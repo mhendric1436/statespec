@@ -1,0 +1,579 @@
+(*
+  StateSpec v0 Grammar
+
+  Purpose:
+    Canonical grammar for the StateSpec software design language.
+
+  Scope:
+    - system declarations
+    - external systems
+    - state declarations
+    - value declarations
+    - entities
+    - ownership
+    - parent/child relationships
+    - events
+    - APIs
+    - workflows
+    - child-set orchestration
+
+  Notes:
+    - This grammar defines syntax only.
+    - Semantic validation is handled by the StateSpec compiler.
+    - Canonical ordering is enforced by formatter + validator.
+*)
+
+(* ============================================================ *)
+(* Root                                                         *)
+(* ============================================================ *)
+
+spec                    ::= system_decl top_level_decl* EOF ;
+
+system_decl             ::= "system" Identifier ;
+
+top_level_decl          ::= state_decl
+                          | value_decl
+                          | external_system_decl
+                          | entity_decl
+                          | event_decl
+                          | api_decl
+                          | workflow_decl ;
+
+
+(* ============================================================ *)
+(* Lexical Elements                                             *)
+(* ============================================================ *)
+
+Identifier              ::= Letter (Letter | Digit | "_")* ;
+QualifiedName           ::= Identifier ("." Identifier)* ;
+
+StringLiteral           ::= '"' StringCharacter* '"' ;
+IntegerLiteral          ::= Digit+ ;
+DecimalLiteral          ::= Digit+ "." Digit+ ;
+BooleanLiteral          ::= "true" | "false" ;
+
+Letter                  ::= "A".."Z" | "a".."z" ;
+Digit                   ::= "0".."9" ;
+StringCharacter         ::= ? any character except double quote ? ;
+
+Comment                 ::= LineComment | BlockComment ;
+LineComment             ::= "//" ? characters until end of line ? ;
+BlockComment            ::= "/*" ? characters until closing marker ? "*/" ;
+Whitespace              ::= ? spaces, tabs, newlines, carriage returns ? ;
+
+EOF                     ::= ? end of file ? ;
+
+
+(* ============================================================ *)
+(* Types                                                        *)
+(* ============================================================ *)
+
+type                    ::= scalar_type
+                          | Identifier
+                          | collection_type
+                          | reference_type
+                          | optional_type ;
+
+scalar_type             ::= "string"
+                          | "int"
+                          | "long"
+                          | "bool"
+                          | "decimal"
+                          | "timestamp"
+                          | "uuid" ;
+
+collection_type         ::= "list" "<" type ">"
+                          | "set" "<" type ">"
+                          | "map" "<" type "," type ">" ;
+
+reference_type          ::= "ref" "<" Identifier ">" ;
+optional_type           ::= "optional" "<" type ">" ;
+
+
+(* ============================================================ *)
+(* Literals                                                     *)
+(* ============================================================ *)
+
+literal                 ::= StringLiteral
+                          | IntegerLiteral
+                          | DecimalLiteral
+                          | BooleanLiteral ;
+
+
+(* ============================================================ *)
+(* States                                                       *)
+(* ============================================================ *)
+
+state_decl              ::= "state" Identifier "=" state_member ("|" state_member)* ;
+state_member            ::= Identifier ;
+
+
+(* ============================================================ *)
+(* Values                                                       *)
+(* ============================================================ *)
+
+value_decl              ::= "value" Identifier ":" type constraint_clause? ;
+constraint_clause       ::= "where" expression ;
+
+
+(* ============================================================ *)
+(* External Systems                                             *)
+(* ============================================================ *)
+
+external_system_decl    ::= "external_system" Identifier external_system_block ;
+
+external_system_block   ::= "{"
+                              external_system_member*
+                            "}" ;
+
+external_system_member  ::= field_assignment
+                          | annotations_block ;
+
+field_assignment        ::= Identifier ":" literal ;
+
+
+(* ============================================================ *)
+(* Entities                                                     *)
+(* ============================================================ *)
+
+entity_decl             ::= "entity" Identifier entity_block ;
+
+entity_block            ::= "{"
+                              key_decl
+                              ownership_block?
+                              version_decl?
+                              state_field_decl?
+                              relations_block?
+                              children_block?
+                              fields_block?
+                              transitions_block?
+                              invariants_block?
+                              indexes_block?
+                              annotations_block?
+                            "}" ;
+
+key_decl                ::= "key" Identifier ":" type ;
+version_decl            ::= "version" ":" type ;
+state_field_decl        ::= "state" ":" Identifier ;
+
+
+(* ============================================================ *)
+(* Ownership                                                    *)
+(* ============================================================ *)
+
+ownership_block         ::= "ownership" "{"
+                              authority_decl
+                              system_of_record_decl
+                              lifecycle_decl
+                              control_block?
+                            "}" ;
+
+authority_decl          ::= "authority" ":" ownership_authority ;
+ownership_authority     ::= "system" | "external" ;
+
+system_of_record_decl   ::= "system_of_record" ":" system_of_record ;
+system_of_record        ::= "self" | Identifier ;
+
+lifecycle_decl          ::= "lifecycle" ":" lifecycle_mode ;
+lifecycle_mode          ::= "authoritative"
+                          | "managed"
+                          | "observed"
+                          | "projected" ;
+
+control_block           ::= "control" "{"
+                              control_create?
+                              control_update?
+                              control_delete?
+                              control_sync?
+                            "}" ;
+
+control_create          ::= "create" ":" control_mode ;
+control_update          ::= "update" ":" control_mode ;
+control_delete          ::= "delete" ":" control_mode ;
+control_sync            ::= "sync" ":" sync_mode ;
+
+control_mode            ::= "none" | "request" ;
+sync_mode               ::= "none" | "poll" | "push" | "import" ;
+
+
+(* ============================================================ *)
+(* Parent/Child Relationships                                   *)
+(* ============================================================ *)
+
+relations_block         ::= "relations" "{"
+                              relation_decl*
+                            "}" ;
+
+relation_decl           ::= parent_relation_decl ;
+
+parent_relation_decl    ::= "parent" Identifier ":" parent_ref relation_options? ;
+
+parent_ref              ::= reference_type
+                          | "optional" reference_type ;
+
+relation_options        ::= "{"
+                              relation_kind_decl?
+                              on_parent_delete_decl?
+                              parent_must_be_in_decl?
+                              unique_within_parent_decl?
+                            "}" ;
+
+relation_kind_decl      ::= "kind" ":" relation_kind ;
+relation_kind           ::= "composition" | "aggregation" ;
+
+on_parent_delete_decl   ::= "on_parent_delete" ":" parent_delete_behavior ;
+parent_delete_behavior  ::= "cascade" | "block" | "detach" | "fail" ;
+
+parent_must_be_in_decl  ::= "parent_must_be_in" ":" state_list ;
+unique_within_parent_decl ::= "unique_within_parent" ":" identifier_list ;
+
+children_block          ::= "children" "{"
+                              child_collection_decl*
+                            "}" ;
+
+child_collection_decl   ::= Identifier ":" Identifier "by" Identifier ;
+
+state_list              ::= "[" Identifier ("," Identifier)* "]" ;
+identifier_list         ::= "[" Identifier ("," Identifier)* "]" ;
+
+
+(* ============================================================ *)
+(* Entity Fields                                                *)
+(* ============================================================ *)
+
+fields_block            ::= "fields" "{"
+                              field_decl*
+                            "}" ;
+
+field_decl              ::= Identifier ":" type constraint_clause? ;
+
+
+(* ============================================================ *)
+(* Entity Transitions                                           *)
+(* ============================================================ *)
+
+transitions_block       ::= "transitions" "{"
+                              transition_decl*
+                            "}" ;
+
+transition_decl         ::= state_member "->" state_member ;
+
+
+(* ============================================================ *)
+(* Entity Invariants                                            *)
+(* ============================================================ *)
+
+invariants_block        ::= "invariants" "{"
+                              invariant_decl*
+                            "}" ;
+
+invariant_decl          ::= Identifier ":" expression ;
+
+
+(* ============================================================ *)
+(* Entity Indexes                                               *)
+(* ============================================================ *)
+
+indexes_block           ::= "indexes" "{"
+                              index_decl*
+                            "}" ;
+
+index_decl              ::= Identifier ":" identifier_list_inline ;
+identifier_list_inline  ::= Identifier ("," Identifier)* ;
+
+
+(* ============================================================ *)
+(* Annotations                                                  *)
+(* ============================================================ *)
+
+annotations_block       ::= "annotations" "{"
+                              annotation_decl*
+                            "}" ;
+
+annotation_decl         ::= Identifier ":" literal ;
+
+
+(* ============================================================ *)
+(* Events                                                       *)
+(* ============================================================ *)
+
+event_decl              ::= "event" Identifier "{"
+                              event_field_decl*
+                            "}" ;
+
+event_field_decl        ::= Identifier ":" type ;
+
+
+(* ============================================================ *)
+(* APIs                                                         *)
+(* ============================================================ *)
+
+api_decl                ::= "api" Identifier "{"
+                              method_decl
+                              path_decl
+                              input_decl?
+                              output_decl?
+                              authz_decl?
+                              behavior_block?
+                            "}" ;
+
+method_decl             ::= "method" ":" http_method ;
+http_method             ::= "GET" | "POST" | "PUT" | "PATCH" | "DELETE" ;
+
+path_decl               ::= "path" ":" StringLiteral ;
+input_decl              ::= "input" ":" Identifier ;
+output_decl             ::= "output" ":" Identifier ;
+
+authz_decl              ::= "authz" ":" authz_expr ;
+authz_expr              ::= "permission" Identifier
+                          | Identifier ;
+
+behavior_block          ::= "behavior" "{"
+                              behavior_stmt*
+                            "}" ;
+
+behavior_stmt           ::= allocates_stmt
+                          | set_stmt
+                          | emits_stmt
+                          | returns_stmt
+                          | require_stmt ;
+
+allocates_stmt          ::= "allocates" Identifier ;
+returns_stmt            ::= "returns" IntegerLiteral ;
+
+
+(* ============================================================ *)
+(* Workflows                                                    *)
+(* ============================================================ *)
+
+workflow_decl           ::= "workflow" Identifier "{"
+                              workflow_trigger
+                              workflow_load
+                              require_stmt?
+                              child_set_block*
+                              workflow_step*
+                            "}" ;
+
+workflow_trigger        ::= "on" ":" Identifier ;
+workflow_load           ::= "load" ":" Identifier "by" Identifier ;
+
+
+(* ============================================================ *)
+(* Child Sets                                                   *)
+(* ============================================================ *)
+
+child_set_block         ::= "child_set" Identifier "{"
+                              child_set_entity_decl
+                              child_set_parent_field_decl
+                              child_set_id_type_decl
+                              child_set_pending_decl
+                              child_set_creating_decl
+                              child_set_succeeded_decl
+                              child_set_failed_decl
+                              child_set_desired_count_decl
+                            "}" ;
+
+child_set_entity_decl       ::= "entity" ":" Identifier ;
+child_set_parent_field_decl ::= "parent_field" ":" Identifier ;
+child_set_id_type_decl      ::= "id_type" ":" type ;
+child_set_pending_decl      ::= "pending" ":" Identifier ;
+child_set_creating_decl     ::= "creating" ":" Identifier ;
+child_set_succeeded_decl    ::= "succeeded" ":" Identifier ;
+child_set_failed_decl       ::= "failed" ":" Identifier ;
+child_set_desired_count_decl ::= "desired_count" ":" expression ;
+
+
+(* ============================================================ *)
+(* Workflow Steps                                               *)
+(* ============================================================ *)
+
+workflow_step           ::= "step" Identifier "{"
+                              workflow_stmt*
+                            "}" ;
+
+workflow_stmt           ::= require_stmt
+                          | set_stmt
+                          | atomic_block
+                          | for_each_block
+                          | when_block
+                          | create_child_stmt
+                          | emit_stmt
+                          | observe_child_stmt
+                          | move_stmt
+                          | transition_to_stmt
+                          | complete_stmt
+                          | fail_stmt
+                          | reserve_child_set_stmt
+                          | materialize_child_set_stmt
+                          | reconcile_child_set_stmt ;
+
+require_stmt            ::= "require" ":"? expression ;
+set_stmt                ::= "set" Identifier "=" expression ;
+
+emit_stmt               ::= "emit" Identifier event_payload? ;
+emits_stmt              ::= "emits" Identifier event_payload? ;
+
+event_payload           ::= "{"
+                              assignment_stmt*
+                            "}" ;
+
+assignment_stmt         ::= Identifier "=" expression ;
+
+atomic_block            ::= "atomic" "{"
+                              workflow_stmt*
+                            "}" ;
+
+for_each_block          ::= "for_each" Identifier "in" expression "{"
+                              workflow_stmt*
+                            "}" ;
+
+when_block              ::= "when" expression "{"
+                              workflow_stmt*
+                            "}" ;
+
+transition_to_stmt      ::= "transition_to" Identifier ;
+complete_stmt           ::= "complete" ;
+fail_stmt               ::= "fail" ;
+
+
+(* ============================================================ *)
+(* Child Workflow Operations                                    *)
+(* ============================================================ *)
+
+create_child_stmt       ::= "create" "child" Identifier "{"
+                              child_init_stmt*
+                            "}" ;
+
+child_init_stmt         ::= "key" Identifier "=" expression
+                          | "parent" Identifier "=" expression
+                          | Identifier "=" expression ;
+
+observe_child_stmt      ::= "observe" "child" Identifier "by" Identifier "=" expression ;
+move_stmt               ::= "move" expression "from" Identifier "to" Identifier ;
+
+reserve_child_set_stmt      ::= "reserve" "child_set" Identifier ;
+materialize_child_set_stmt  ::= "materialize" "child_set" Identifier ;
+reconcile_child_set_stmt    ::= "reconcile" "child_set" Identifier ;
+
+
+(* ============================================================ *)
+(* Expressions                                                  *)
+(* ============================================================ *)
+
+expression              ::= logical_or ;
+
+logical_or              ::= logical_and ("||" logical_and)* ;
+logical_and             ::= equality ("&&" equality)* ;
+equality                ::= comparison (("==" | "!=") comparison)* ;
+comparison              ::= additive (("<" | "<=" | ">" | ">=" | "in") additive)* ;
+additive                ::= multiplicative (("+" | "-") multiplicative)* ;
+multiplicative          ::= unary (("*" | "/" | "%") unary)* ;
+
+unary                   ::= ("!" | "-") unary
+                          | primary ;
+
+primary                 ::= literal
+                          | QualifiedName
+                          | function_call
+                          | list_literal
+                          | "(" expression ")" ;
+
+function_call           ::= Identifier "(" argument_list? ")" ;
+argument_list           ::= expression ("," expression)* ;
+
+list_literal            ::= "[" expression_list? "]" ;
+expression_list         ::= expression ("," expression)* ;
+
+
+(* ============================================================ *)
+(* Semantic Built-ins                                           *)
+(* ============================================================ *)
+
+(*
+  The following names are reserved semantic built-ins. They are parsed
+  as normal function calls but validated specially by the compiler.
+
+  Collection and predicate helpers:
+    count(list)
+    count(predicate)
+    empty(list)
+    contains(list, value)
+    disjoint(list1, list2, ...)
+    exists(value)
+
+  Child orchestration helpers:
+    generate_ids(count)
+    ordinal_of(childId)
+    child_state(childId)
+    all_children(child_set, predicate)
+    any_child(child_set, predicate)
+*)
+
+
+(* ============================================================ *)
+(* Semantic Validation Rules                                    *)
+(* ============================================================ *)
+
+(*
+  The compiler must enforce at least the following rules:
+
+  General:
+    1. All referenced identifiers must resolve within scope.
+    2. Top-level names must be unique within a system.
+    3. Canonical block ordering must match the entity/workflow model.
+    4. Type names must resolve to scalar, value, state, entity, or collection types.
+
+  Entities:
+    5. Every entity must have exactly one key declaration.
+    6. If an entity has transitions, it must declare a state field.
+    7. State fields must reference a declared state type.
+    8. Transition endpoints must exist in the declared state type.
+    9. System-owned authoritative entities may define local lifecycle transitions.
+   10. External authoritative entities must not claim local ownership of external lifecycle.
+
+  Ownership:
+   11. authority: system requires system_of_record: self unless explicitly relaxed later.
+   12. authority: external requires system_of_record to name an external system.
+   13. lifecycle: managed is valid only for authority: external.
+   14. lifecycle: authoritative is valid only for authority: system in v0.
+
+  Parent/child relationships:
+   15. A parent relation must reference an existing entity.
+   16. A child entity may have at most one parent relation in v0.
+   17. parent_must_be_in entries must exist in the parent state type.
+   18. unique_within_parent fields must exist on the child entity.
+   19. on_parent_delete: detach requires an optional parent reference.
+   20. composition relationships must not form cycles.
+   21. Parent-side children declarations must match child-side parent relations.
+
+  APIs:
+   22. API input and output types must resolve.
+   23. allocates must refer to an entity.
+   24. set state = X must refer to a valid state value of the allocated or loaded entity.
+   25. emitted events must resolve.
+
+  Workflows:
+   26. Workflow trigger events must resolve.
+   27. Workflow load entity must resolve.
+   28. Workflow load key must match the loaded entity key or a valid lookup field.
+   29. Workflow state mutations must follow declared entity transitions.
+   30. transition_to must target a declared step in the same workflow.
+
+  Child sets:
+   31. child_set.entity must refer to a valid child entity.
+   32. The child entity must have a parent relation to the workflow's loaded parent entity.
+   33. child_set.parent_field must match the child's parent relation field.
+   34. pending, creating, succeeded, and failed fields must exist on the parent entity.
+   35. Child bucket fields must all be list<id_type>.
+   36. desired_count must type-check as an integer.
+   37. Child buckets must be disjoint.
+   38. Child bucket union must represent the reserved child set.
+
+  Child workflow operations:
+   39. create child must initialize the child key.
+   40. create child must initialize the child parent field.
+   41. observe child by field must use a key or valid unique lookup.
+   42. move expression from A to B requires A and B to be compatible list fields.
+   43. Moving a child ID to succeeded should correspond to a successful child terminal state.
+   44. Moving a child ID to failed should correspond to a failed child terminal state.
+*)
