@@ -2,12 +2,15 @@
 #include "statespec/lexer.hpp"
 #include "statespec/parser.hpp"
 #include "statespec/source.hpp"
+#include "statespec/token.hpp"
 #include "statespec/validator.hpp"
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace {
 
@@ -44,13 +47,43 @@ void print_diagnostics(const statespec::DiagnosticBag& diagnostics)
     }
 }
 
-int validate_file(const std::string& path)
+std::vector<statespec::Token> lex_file(const std::string& path, statespec::DiagnosticBag& diagnostics)
 {
     statespec::SourceFile source{path, read_file(path)};
-    statespec::DiagnosticBag diagnostics;
-
     statespec::Lexer lexer{source};
-    auto tokens = lexer.lex(diagnostics);
+    return lexer.lex(diagnostics);
+}
+
+int tokens_file(const std::string& path)
+{
+    statespec::DiagnosticBag diagnostics;
+    const auto tokens = lex_file(path, diagnostics);
+
+    for (const auto& token : tokens)
+    {
+        std::cout << std::setw(4) << token.range.begin.line << ':'
+                  << std::setw(3) << token.range.begin.column << "  "
+                  << statespec::token_kind_name(token.kind);
+        if (!token.lexeme.empty())
+        {
+            std::cout << "  " << token.lexeme;
+        }
+        std::cout << '\n';
+    }
+
+    if (diagnostics.has_errors())
+    {
+        print_diagnostics(diagnostics);
+        return 1;
+    }
+
+    return 0;
+}
+
+int validate_file(const std::string& path)
+{
+    statespec::DiagnosticBag diagnostics;
+    auto tokens = lex_file(path, diagnostics);
 
     statespec::Parser parser{std::move(tokens)};
     auto spec = parser.parse(diagnostics);
@@ -77,7 +110,7 @@ int main(int argc, char** argv)
     {
         if (argc != 3)
         {
-            std::cerr << "usage: statespec validate <file.sspec>\n";
+            std::cerr << "usage: statespec <validate|tokens> <file.sspec>\n";
             return 2;
         }
 
@@ -87,6 +120,10 @@ int main(int argc, char** argv)
         if (command == "validate")
         {
             return validate_file(path);
+        }
+        if (command == "tokens")
+        {
+            return tokens_file(path);
         }
 
         std::cerr << "unknown command: " << command << "\n";
