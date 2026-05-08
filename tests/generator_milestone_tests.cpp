@@ -51,6 +51,7 @@ std::string generator_fixture()
             fields {
               order_id string
               status string
+              updated_at timestamp?
             }
           }
           queue EmailQueue {
@@ -141,6 +142,9 @@ void generator_emits_files_for_generate_declarations()
 
     require(!diagnostics.has_errors(), "generator should not emit diagnostics for valid fixture");
     require(has_file(result, "generated/mt/mt-manifest.yaml"), "generator should emit mt manifest");
+    require(has_file(result, "generated/mt/mt_entities.hpp"), "generator should emit mt entities header");
+    require(has_file(result, "generated/mt/mt_metadata.cpp"), "generator should emit mt metadata source");
+    require(has_file(result, "generated/mt/mt-state-machines.yaml"), "generator should emit mt state-machine manifest");
     require(has_file(result, "generated/dl/dl-manifest.yaml"), "generator should emit dl manifest");
     require(has_file(result, "generated/qu/qu-manifest.yaml"), "generator should emit qu manifest");
     require(has_file(result, "generated/wf/wf-manifest.yaml"), "generator should emit wf manifest");
@@ -149,7 +153,7 @@ void generator_emits_files_for_generate_declarations()
     );
 }
 
-void generator_target_override_selects_one_target()
+void generator_target_override_selects_one_target_family()
 {
     statespec::DiagnosticBag diagnostics;
     const auto spec = parse_and_validate(generator_fixture(), diagnostics);
@@ -157,19 +161,15 @@ void generator_target_override_selects_one_target()
 
     statespec::Generator generator;
     statespec::GenerationOptions options;
-    options.target_override = "wf";
+    options.target_override = "mt";
     const auto result = generator.generate(spec, options, diagnostics);
 
     require(!diagnostics.has_errors(), "generator target override should not fail");
-    require(result.files.size() == 1, "generator target override should emit one file");
-    require(
-        result.files[0].path == "generated/wf/wf-manifest.yaml",
-        "generator target override should emit wf manifest"
-    );
-    require(
-        result.files[0].content.find("OrderProcessing") != std::string::npos,
-        "wf manifest should include workflow name"
-    );
+    require(result.files.size() == 4, "mt target override should emit mt file family");
+    require(has_file(result, "generated/mt/mt-manifest.yaml"), "mt target override should emit manifest");
+    require(has_file(result, "generated/mt/mt_entities.hpp"), "mt target override should emit header");
+    require(has_file(result, "generated/mt/mt_metadata.cpp"), "mt target override should emit source");
+    require(has_file(result, "generated/mt/mt-state-machines.yaml"), "mt target override should emit state metadata");
 }
 
 void generator_out_override_changes_output_root()
@@ -185,11 +185,9 @@ void generator_out_override_changes_output_root()
     const auto result = generator.generate(spec, options, diagnostics);
 
     require(!diagnostics.has_errors(), "generator output override should not fail");
-    require(result.files.size() == 1, "generator output override should emit one file");
-    require(
-        result.files[0].path == "tmp/generated/mt-manifest.yaml",
-        "generator output override should change root"
-    );
+    require(result.files.size() == 4, "generator output override should emit mt file family");
+    require(has_file(result, "tmp/generated/mt-manifest.yaml"), "generator output override should change manifest root");
+    require(has_file(result, "tmp/generated/mt_entities.hpp"), "generator output override should change header root");
 }
 
 void generator_emits_scaffold_content()
@@ -203,11 +201,28 @@ void generator_emits_scaffold_content()
     const auto result = generator.generate(spec, options, diagnostics);
 
     const auto& mt = find_file(result, "generated/mt/mt-manifest.yaml");
+    const auto& mt_header = find_file(result, "generated/mt/mt_entities.hpp");
+    const auto& mt_source = find_file(result, "generated/mt/mt_metadata.cpp");
     const auto& qu = find_file(result, "generated/qu/qu-manifest.yaml");
     const auto& openapi = find_file(result, "generated/openapi/openapi.yaml");
 
     require(
-        mt.content.find("Order") != std::string::npos, "mt manifest should include entity name"
+        mt.content.find("cpp_type: std::optional<std::chrono::system_clock::time_point>") !=
+            std::string::npos,
+        "mt manifest should include optional timestamp C++ type"
+    );
+    require(
+        mt_header.content.find("struct Order") != std::string::npos,
+        "mt header should include entity struct"
+    );
+    require(
+        mt_header.content.find("std::optional<std::chrono::system_clock::time_point> updated_at") !=
+            std::string::npos,
+        "mt header should map timestamp? to optional chrono time point"
+    );
+    require(
+        mt_source.content.find("EntityMetadata") != std::string::npos,
+        "mt source should include entity metadata"
     );
     require(
         qu.content.find("EmailQueue") != std::string::npos, "qu manifest should include queue name"
@@ -223,7 +238,7 @@ void generator_emits_scaffold_content()
 void run_generator_milestone_tests()
 {
     generator_emits_files_for_generate_declarations();
-    generator_target_override_selects_one_target();
+    generator_target_override_selects_one_target_family();
     generator_out_override_changes_output_root();
     generator_emits_scaffold_content();
 }
