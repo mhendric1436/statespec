@@ -395,10 +395,10 @@ void parser_parses_api_policy_and_generate()
           }
           policy WorkflowAccess {
             tenant scoped_by tenant_id
-            allow StartOrderProcessing when caller.role == operator
-            deny StartOrderProcessing when caller.suspended == true
-            quota starts_per_minute: 60
-            audit StartOrderProcessing
+            allow StartOrderProcessing when caller.role == operator;
+            deny StartOrderProcessing when caller.suspended == true;
+            quota starts_per_minute: 60;
+            audit StartOrderProcessing;
           }
           generate mt { out "generated/mt" }
           generate wf
