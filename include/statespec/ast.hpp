@@ -55,6 +55,62 @@ struct EntityDecl
     SourceRange range;
 };
 
+struct MessageDecl
+{
+    std::string name;
+    std::optional<std::string> idempotency_key;
+    std::vector<FieldDecl> payload_fields;
+    SourceRange range;
+};
+
+struct QueueDecl
+{
+    std::string name;
+    std::optional<std::string> namespace_name;
+    std::optional<std::string> channel;
+    std::optional<std::string> visibility_timeout;
+    std::optional<int> max_attempts;
+    std::optional<std::string> dead_letter;
+    std::vector<MessageDecl> messages;
+    SourceRange range;
+};
+
+struct LeaseDecl
+{
+    std::string name;
+    std::optional<std::string> resource;
+    std::optional<std::string> ttl;
+    std::optional<std::string> renew_every;
+    std::optional<std::string> holder;
+    std::optional<bool> fencing_token;
+    std::optional<std::string> max_ttl;
+    SourceRange range;
+};
+
+struct WorkerDecl
+{
+    std::string name;
+    std::optional<bool> singleton;
+    std::optional<std::string> lease;
+    std::optional<std::string> polls;
+    std::optional<std::string> executes;
+    std::optional<int> concurrency;
+    SourceRange range;
+};
+
+struct ApiDecl
+{
+    std::string name;
+    std::optional<std::string> method;
+    std::optional<std::string> path;
+    std::optional<std::string> input;
+    std::optional<std::string> output;
+    std::optional<std::string> error;
+    std::optional<std::string> starts_workflow;
+    std::optional<std::string> enqueues;
+    SourceRange range;
+};
+
 struct WorkflowStepDecl
 {
     std::string name;
@@ -74,11 +130,52 @@ struct WorkflowDecl
     SourceRange range;
 };
 
+struct PolicyRuleDecl
+{
+    std::string action;
+    std::string condition;
+    SourceRange range;
+};
+
+struct QuotaDecl
+{
+    std::string name;
+    std::string expression;
+    SourceRange range;
+};
+
+struct PolicyDecl
+{
+    std::string name;
+    std::optional<std::string> tenant_scoped_by;
+    std::vector<PolicyRuleDecl> allows;
+    std::vector<PolicyRuleDecl> denies;
+    std::vector<QuotaDecl> quotas;
+    std::vector<std::string> audits;
+    SourceRange range;
+};
+
+struct GenerateDecl
+{
+    std::string target;
+    std::optional<std::string> out;
+    std::optional<std::string> language;
+    std::optional<std::string> package;
+    std::optional<std::string> runtime;
+    SourceRange range;
+};
+
 struct SystemDecl
 {
     std::string name;
     std::vector<EntityDecl> entities;
+    std::vector<QueueDecl> queues;
+    std::vector<LeaseDecl> leases;
+    std::vector<WorkerDecl> workers;
+    std::vector<ApiDecl> apis;
     std::vector<WorkflowDecl> workflows;
+    std::vector<PolicyDecl> policies;
+    std::vector<GenerateDecl> generators;
     SourceRange range;
 };
 
