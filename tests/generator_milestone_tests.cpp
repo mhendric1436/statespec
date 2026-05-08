@@ -209,3 +209,13 @@ void run_generator_milestone_tests()
     generator_out_override_changes_output_root();
     generator_emits_scaffold_content();
 }
+
+namespace
+{
+
+const bool generator_milestone_tests_ran = []() {
+    run_generator_milestone_tests();
+    return true;
+}();
+
+} // namespace
