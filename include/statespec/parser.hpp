@@ -4,6 +4,7 @@
 #include "statespec/diagnostic.hpp"
 #include "statespec/token.hpp"
 
+#include <cstddef>
 #include <initializer_list>
 #include <string>
 #include <vector>
