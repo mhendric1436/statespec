@@ -154,6 +154,12 @@ void generator_emits_files_for_generate_declarations()
     );
     require(has_file(result, "generated/dl/dl-manifest.yaml"), "generator should emit dl manifest");
     require(has_file(result, "generated/qu/qu-manifest.yaml"), "generator should emit qu manifest");
+    require(
+        has_file(result, "generated/qu/qu_messages.hpp"), "generator should emit qu messages header"
+    );
+    require(
+        has_file(result, "generated/qu/qu_metadata.cpp"), "generator should emit qu metadata source"
+    );
     require(has_file(result, "generated/wf/wf-manifest.yaml"), "generator should emit wf manifest");
     require(
         has_file(result, "generated/openapi/openapi.yaml"), "generator should emit openapi stub"
@@ -168,23 +174,19 @@ void generator_target_override_selects_one_target_family()
 
     statespec::Generator generator;
     statespec::GenerationOptions options;
-    options.target_override = "mt";
+    options.target_override = "qu";
     const auto result = generator.generate(spec, options, diagnostics);
 
     require(!diagnostics.has_errors(), "generator target override should not fail");
-    require(result.files.size() == 4, "mt target override should emit mt file family");
+    require(result.files.size() == 3, "qu target override should emit qu file family");
     require(
-        has_file(result, "generated/mt/mt-manifest.yaml"), "mt target override should emit manifest"
+        has_file(result, "generated/qu/qu-manifest.yaml"), "qu target override should emit manifest"
     );
     require(
-        has_file(result, "generated/mt/mt_entities.hpp"), "mt target override should emit header"
+        has_file(result, "generated/qu/qu_messages.hpp"), "qu target override should emit header"
     );
     require(
-        has_file(result, "generated/mt/mt_metadata.cpp"), "mt target override should emit source"
-    );
-    require(
-        has_file(result, "generated/mt/mt-state-machines.yaml"),
-        "mt target override should emit state metadata"
+        has_file(result, "generated/qu/qu_metadata.cpp"), "qu target override should emit source"
     );
 }
 
@@ -196,18 +198,18 @@ void generator_out_override_changes_output_root()
 
     statespec::Generator generator;
     statespec::GenerationOptions options;
-    options.target_override = "mt";
+    options.target_override = "qu";
     options.out_override = "tmp/generated";
     const auto result = generator.generate(spec, options, diagnostics);
 
     require(!diagnostics.has_errors(), "generator output override should not fail");
-    require(result.files.size() == 4, "generator output override should emit mt file family");
+    require(result.files.size() == 3, "generator output override should emit qu file family");
     require(
-        has_file(result, "tmp/generated/mt-manifest.yaml"),
+        has_file(result, "tmp/generated/qu-manifest.yaml"),
         "generator output override should change manifest root"
     );
     require(
-        has_file(result, "tmp/generated/mt_entities.hpp"),
+        has_file(result, "tmp/generated/qu_messages.hpp"),
         "generator output override should change header root"
     );
 }
@@ -226,6 +228,8 @@ void generator_emits_scaffold_content()
     const auto& mt_header = find_file(result, "generated/mt/mt_entities.hpp");
     const auto& mt_source = find_file(result, "generated/mt/mt_metadata.cpp");
     const auto& qu = find_file(result, "generated/qu/qu-manifest.yaml");
+    const auto& qu_header = find_file(result, "generated/qu/qu_messages.hpp");
+    const auto& qu_source = find_file(result, "generated/qu/qu_metadata.cpp");
     const auto& openapi = find_file(result, "generated/openapi/openapi.yaml");
 
     require(
@@ -247,7 +251,20 @@ void generator_emits_scaffold_content()
         "mt source should include entity metadata"
     );
     require(
-        qu.content.find("EmailQueue") != std::string::npos, "qu manifest should include queue name"
+        qu.content.find("payload_struct: EmailQueueSendConfirmationPayload") != std::string::npos,
+        "qu manifest should include payload struct name"
+    );
+    require(
+        qu_header.content.find("struct EmailQueueSendConfirmationPayload") != std::string::npos,
+        "qu header should include message payload struct"
+    );
+    require(
+        qu_header.content.find("std::string message_id") != std::string::npos,
+        "qu header should include payload fields"
+    );
+    require(
+        qu_source.content.find("idempotency_key_field") != std::string::npos,
+        "qu source should include idempotency key lookup"
     );
     require(
         openapi.content.find("openapi: 3.1.0") != std::string::npos,
