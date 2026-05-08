@@ -307,7 +307,7 @@ void parser_parses_queue_and_message()
     const auto spec = parse_text(R"sspec(
         system OrderSystem {
           queue EmailQueue {
-            namespace workflow
+            namespace workflow_ns
             channel email
             visibility_timeout PT30S
             max_attempts 5
@@ -327,7 +327,7 @@ void parser_parses_queue_and_message()
     require(spec.system->queues.size() == 1, "parser should parse one queue");
     const auto& queue = spec.system->queues[0];
     require(queue.name == "EmailQueue", "parser should parse queue name");
-    require(queue.namespace_name == "workflow", "parser should parse queue namespace");
+    require(queue.namespace_name == "workflow_ns", "parser should parse queue namespace");
     require(queue.channel == "email", "parser should parse queue channel");
     require(queue.visibility_timeout == "PT30S", "parser should parse visibility timeout");
     require(queue.max_attempts == 5, "parser should parse max_attempts");
