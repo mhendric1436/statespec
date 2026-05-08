@@ -144,7 +144,9 @@ void generator_emits_files_for_generate_declarations()
     require(has_file(result, "generated/dl/dl-manifest.yaml"), "generator should emit dl manifest");
     require(has_file(result, "generated/qu/qu-manifest.yaml"), "generator should emit qu manifest");
     require(has_file(result, "generated/wf/wf-manifest.yaml"), "generator should emit wf manifest");
-    require(has_file(result, "generated/openapi/openapi.yaml"), "generator should emit openapi stub");
+    require(
+        has_file(result, "generated/openapi/openapi.yaml"), "generator should emit openapi stub"
+    );
 }
 
 void generator_target_override_selects_one_target()
@@ -160,8 +162,14 @@ void generator_target_override_selects_one_target()
 
     require(!diagnostics.has_errors(), "generator target override should not fail");
     require(result.files.size() == 1, "generator target override should emit one file");
-    require(result.files[0].path == "generated/wf/wf-manifest.yaml", "generator target override should emit wf manifest");
-    require(result.files[0].content.find("OrderProcessing") != std::string::npos, "wf manifest should include workflow name");
+    require(
+        result.files[0].path == "generated/wf/wf-manifest.yaml",
+        "generator target override should emit wf manifest"
+    );
+    require(
+        result.files[0].content.find("OrderProcessing") != std::string::npos,
+        "wf manifest should include workflow name"
+    );
 }
 
 void generator_out_override_changes_output_root()
@@ -178,7 +186,10 @@ void generator_out_override_changes_output_root()
 
     require(!diagnostics.has_errors(), "generator output override should not fail");
     require(result.files.size() == 1, "generator output override should emit one file");
-    require(result.files[0].path == "tmp/generated/mt-manifest.yaml", "generator output override should change root");
+    require(
+        result.files[0].path == "tmp/generated/mt-manifest.yaml",
+        "generator output override should change root"
+    );
 }
 
 void generator_emits_scaffold_content()
@@ -195,9 +206,16 @@ void generator_emits_scaffold_content()
     const auto& qu = find_file(result, "generated/qu/qu-manifest.yaml");
     const auto& openapi = find_file(result, "generated/openapi/openapi.yaml");
 
-    require(mt.content.find("Order") != std::string::npos, "mt manifest should include entity name");
-    require(qu.content.find("EmailQueue") != std::string::npos, "qu manifest should include queue name");
-    require(openapi.content.find("openapi: 3.1.0") != std::string::npos, "openapi stub should include version header");
+    require(
+        mt.content.find("Order") != std::string::npos, "mt manifest should include entity name"
+    );
+    require(
+        qu.content.find("EmailQueue") != std::string::npos, "qu manifest should include queue name"
+    );
+    require(
+        openapi.content.find("openapi: 3.1.0") != std::string::npos,
+        "openapi stub should include version header"
+    );
 }
 
 } // namespace
@@ -213,7 +231,8 @@ void run_generator_milestone_tests()
 namespace
 {
 
-const bool generator_milestone_tests_ran = []() {
+const bool generator_milestone_tests_ran = []()
+{
     run_generator_milestone_tests();
     return true;
 }();

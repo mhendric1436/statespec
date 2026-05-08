@@ -67,7 +67,10 @@ void append_header(
     out << "# system: " << system.name << "\n\n";
 }
 
-std::string generate_mt_manifest(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_mt_manifest(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     append_header(out, system, declaration.target);
@@ -90,7 +93,10 @@ std::string generate_mt_manifest(const SystemDecl& system, const GenerateDecl& d
     return out.str();
 }
 
-std::string generate_dl_manifest(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_dl_manifest(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     append_header(out, system, declaration.target);
@@ -102,19 +108,24 @@ std::string generate_dl_manifest(const SystemDecl& system, const GenerateDecl& d
         out << "    ttl: " << optional_or_empty(lease.ttl) << "\n";
         out << "    renew_every: " << optional_or_empty(lease.renew_every) << "\n";
         out << "    holder: " << optional_or_empty(lease.holder) << "\n";
-        out << "    fencing_token: " << (lease.fencing_token.has_value() ? bool_text(*lease.fencing_token) : "") << "\n";
+        out << "    fencing_token: "
+            << (lease.fencing_token.has_value() ? bool_text(*lease.fencing_token) : "") << "\n";
     }
     out << "workers:\n";
     for (const auto& worker : system.workers)
     {
         out << "  - name: " << worker.name << "\n";
         out << "    lease: " << optional_or_empty(worker.lease) << "\n";
-        out << "    singleton: " << (worker.singleton.has_value() ? bool_text(*worker.singleton) : "") << "\n";
+        out << "    singleton: "
+            << (worker.singleton.has_value() ? bool_text(*worker.singleton) : "") << "\n";
     }
     return out.str();
 }
 
-std::string generate_qu_manifest(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_qu_manifest(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     append_header(out, system, declaration.target);
@@ -128,13 +139,17 @@ std::string generate_qu_manifest(const SystemDecl& system, const GenerateDecl& d
         for (const auto& message : queue.messages)
         {
             out << "      - name: " << message.name << "\n";
-            out << "        idempotency_key: " << optional_or_empty(message.idempotency_key) << "\n";
+            out << "        idempotency_key: " << optional_or_empty(message.idempotency_key)
+                << "\n";
         }
     }
     return out.str();
 }
 
-std::string generate_wf_manifest(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_wf_manifest(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     append_header(out, system, declaration.target);
@@ -148,14 +163,18 @@ std::string generate_wf_manifest(const SystemDecl& system, const GenerateDecl& d
         for (const auto& step : workflow.steps)
         {
             out << "      - name: " << step.name << "\n";
-            out << "        expected_execution_time: " << optional_or_empty(step.expected_execution_time) << "\n";
+            out << "        expected_execution_time: "
+                << optional_or_empty(step.expected_execution_time) << "\n";
             out << "        max_retries: " << step.max_retries.value_or(0) << "\n";
         }
     }
     return out.str();
 }
 
-std::string generate_openapi_stub(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_openapi_stub(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     out << "openapi: 3.1.0\n";
@@ -262,7 +281,9 @@ GenerationResult Generator::generate(
     const auto declarations = selected_declarations(system, options);
     if (declarations.empty())
     {
-        diagnostics.error(system.range, "SSPEC5002", "generation requires at least one generate declaration");
+        diagnostics.error(
+            system.range, "SSPEC5002", "generation requires at least one generate declaration"
+        );
         return result;
     }
 
@@ -299,7 +320,10 @@ void Generator::generate_target(
 
     if (supported_targets.find(declaration.target) == supported_targets.end())
     {
-        diagnostics.error(declaration.range, "SSPEC5003", "unsupported generate target '" + declaration.target + "'");
+        diagnostics.error(
+            declaration.range, "SSPEC5003",
+            "unsupported generate target '" + declaration.target + "'"
+        );
         return;
     }
 
