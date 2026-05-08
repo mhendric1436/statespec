@@ -45,6 +45,22 @@ grep -q "state_machines:" "$OUT_DIR/mt-state-machines.yaml"
 
 rm -rf "$OUT_DIR"
 
+GENERATE_QU_OUTPUT="$($CLI generate "$EXAMPLE" qu --out "$OUT_DIR")"
+printf '%s\n' "$GENERATE_QU_OUTPUT" | grep -q "generated $OUT_DIR/qu-manifest.yaml"
+printf '%s\n' "$GENERATE_QU_OUTPUT" | grep -q "generated $OUT_DIR/qu_messages.hpp"
+printf '%s\n' "$GENERATE_QU_OUTPUT" | grep -q "generated $OUT_DIR/qu_metadata.cpp"
+
+test -f "$OUT_DIR/qu-manifest.yaml"
+test -f "$OUT_DIR/qu_messages.hpp"
+test -f "$OUT_DIR/qu_metadata.cpp"
+
+grep -q "payload_struct: OrderEventsOrderValidatedPayload" "$OUT_DIR/qu-manifest.yaml"
+grep -q "struct OrderEventsOrderValidatedPayload" "$OUT_DIR/qu_messages.hpp"
+grep -q "std::string message_id" "$OUT_DIR/qu_messages.hpp"
+grep -q "idempotency_key_field" "$OUT_DIR/qu_metadata.cpp"
+
+rm -rf "$OUT_DIR"
+
 GENERATE_ALL_OUTPUT="$($CLI generate "$EXAMPLE" --out "$OUT_DIR")"
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/mt-manifest.yaml"
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/mt_entities.hpp"
@@ -52,6 +68,8 @@ printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/mt_metadata.c
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/mt-state-machines.yaml"
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/dl-manifest.yaml"
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/qu-manifest.yaml"
+printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/qu_messages.hpp"
+printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/qu_metadata.cpp"
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/wf-manifest.yaml"
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/openapi.yaml"
 
@@ -61,6 +79,8 @@ test -f "$OUT_DIR/mt_metadata.cpp"
 test -f "$OUT_DIR/mt-state-machines.yaml"
 test -f "$OUT_DIR/dl-manifest.yaml"
 test -f "$OUT_DIR/qu-manifest.yaml"
+test -f "$OUT_DIR/qu_messages.hpp"
+test -f "$OUT_DIR/qu_metadata.cpp"
 test -f "$OUT_DIR/wf-manifest.yaml"
 test -f "$OUT_DIR/openapi.yaml"
 
