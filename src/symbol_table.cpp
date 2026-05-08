@@ -2,7 +2,8 @@
 
 #include <utility>
 
-namespace statespec {
+namespace statespec
+{
 
 bool SymbolTable::insert(Symbol symbol)
 {

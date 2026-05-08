@@ -6,20 +6,24 @@
 #include <string>
 #include <vector>
 
-namespace statespec {
+namespace statespec
+{
 
-struct ImportDecl {
+struct ImportDecl
+{
     std::string name;
     std::optional<std::string> alias;
     SourceRange range;
 };
 
-struct SystemDecl {
+struct SystemDecl
+{
     std::string name;
     SourceRange range;
 };
 
-struct Spec {
+struct Spec
+{
     std::optional<std::string> version;
     std::vector<ImportDecl> imports;
     std::optional<SystemDecl> system;

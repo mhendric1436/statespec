@@ -6,15 +6,17 @@
 
 #include <vector>
 
-namespace statespec {
+namespace statespec
+{
 
-class Lexer {
-public:
+class Lexer
+{
+  public:
     explicit Lexer(const SourceFile& source);
 
     std::vector<Token> lex(DiagnosticBag& diagnostics);
 
-private:
+  private:
     const SourceFile& source_;
 };
 

@@ -4,9 +4,11 @@
 #include <string_view>
 #include <unordered_map>
 
-namespace statespec {
+namespace statespec
+{
 
-namespace {
+namespace
+{
 
 bool is_identifier_start(char ch)
 {
@@ -172,10 +174,16 @@ bool looks_like_duration(std::string_view text)
     return has_digit && has_unit;
 }
 
-class Scanner {
-public:
-    Scanner(const SourceFile& source, DiagnosticBag& diagnostics)
-        : source_(source), diagnostics_(diagnostics), text_(source.text())
+class Scanner
+{
+  public:
+    Scanner(
+        const SourceFile& source,
+        DiagnosticBag& diagnostics
+    )
+        : source_(source),
+          diagnostics_(diagnostics),
+          text_(source.text())
     {
     }
 
@@ -195,7 +203,7 @@ public:
         return tokens_;
     }
 
-private:
+  private:
     bool is_at_end() const
     {
         return location_.offset >= text_.size();
@@ -285,7 +293,9 @@ private:
 
                 if (!closed)
                 {
-                    diagnostics_.error(SourceRange{start, location_}, "SSPEC0101", "unterminated block comment");
+                    diagnostics_.error(
+                        SourceRange{start, location_}, "SSPEC0101", "unterminated block comment"
+                    );
                 }
                 consumed = true;
             }
@@ -299,60 +309,102 @@ private:
 
         switch (ch)
         {
-            case '{': add(TokenKind::LeftBrace, start); return;
-            case '}': add(TokenKind::RightBrace, start); return;
-            case '(': add(TokenKind::LeftParen, start); return;
-            case ')': add(TokenKind::RightParen, start); return;
-            case '[': add(TokenKind::LeftBracket, start); return;
-            case ']': add(TokenKind::RightBracket, start); return;
-            case ',': add(TokenKind::Comma, start); return;
-            case ':': add(TokenKind::Colon, start); return;
-            case ';': add(TokenKind::Semicolon, start); return;
-            case '.': add(TokenKind::Dot, start); return;
-            case '?': add(TokenKind::Question, start); return;
-            case '+': add(TokenKind::Plus, start); return;
-            case '*': add(TokenKind::Star, start); return;
-            case '%': add(TokenKind::Percent, start); return;
-            case '-': add(match('>') ? TokenKind::Arrow : TokenKind::Minus, start); return;
-            case '=': add(match('=') ? TokenKind::EqualEqual : TokenKind::Equals, start); return;
-            case '!': add(match('=') ? TokenKind::BangEqual : TokenKind::Bang, start); return;
-            case '<': add(match('=') ? TokenKind::LessEqual : TokenKind::Less, start); return;
-            case '>': add(match('=') ? TokenKind::GreaterEqual : TokenKind::Greater, start); return;
-            case '&':
-                if (match('&'))
-                {
-                    add(TokenKind::AndAnd, start);
-                }
-                else
-                {
-                    unknown(start, "unexpected '&'; did you mean '&&'?");
-                }
+        case '{':
+            add(TokenKind::LeftBrace, start);
+            return;
+        case '}':
+            add(TokenKind::RightBrace, start);
+            return;
+        case '(':
+            add(TokenKind::LeftParen, start);
+            return;
+        case ')':
+            add(TokenKind::RightParen, start);
+            return;
+        case '[':
+            add(TokenKind::LeftBracket, start);
+            return;
+        case ']':
+            add(TokenKind::RightBracket, start);
+            return;
+        case ',':
+            add(TokenKind::Comma, start);
+            return;
+        case ':':
+            add(TokenKind::Colon, start);
+            return;
+        case ';':
+            add(TokenKind::Semicolon, start);
+            return;
+        case '.':
+            add(TokenKind::Dot, start);
+            return;
+        case '?':
+            add(TokenKind::Question, start);
+            return;
+        case '+':
+            add(TokenKind::Plus, start);
+            return;
+        case '*':
+            add(TokenKind::Star, start);
+            return;
+        case '%':
+            add(TokenKind::Percent, start);
+            return;
+        case '-':
+            add(match('>') ? TokenKind::Arrow : TokenKind::Minus, start);
+            return;
+        case '=':
+            add(match('=') ? TokenKind::EqualEqual : TokenKind::Equals, start);
+            return;
+        case '!':
+            add(match('=') ? TokenKind::BangEqual : TokenKind::Bang, start);
+            return;
+        case '<':
+            add(match('=') ? TokenKind::LessEqual : TokenKind::Less, start);
+            return;
+        case '>':
+            add(match('=') ? TokenKind::GreaterEqual : TokenKind::Greater, start);
+            return;
+        case '&':
+            if (match('&'))
+            {
+                add(TokenKind::AndAnd, start);
+            }
+            else
+            {
+                unknown(start, "unexpected '&'; did you mean '&&'?");
+            }
+            return;
+        case '|':
+            if (match('|'))
+            {
+                add(TokenKind::OrOr, start);
+            }
+            else
+            {
+                unknown(start, "unexpected '|'; did you mean '||'?");
+            }
+            return;
+        case '/':
+            add(TokenKind::Slash, start);
+            return;
+        case '"':
+            scan_string(start);
+            return;
+        default:
+            if (is_digit(ch))
+            {
+                scan_number(start);
                 return;
-            case '|':
-                if (match('|'))
-                {
-                    add(TokenKind::OrOr, start);
-                }
-                else
-                {
-                    unknown(start, "unexpected '|'; did you mean '||'?");
-                }
+            }
+            if (is_identifier_start(ch))
+            {
+                scan_identifier_or_duration(start);
                 return;
-            case '/': add(TokenKind::Slash, start); return;
-            case '"': scan_string(start); return;
-            default:
-                if (is_digit(ch))
-                {
-                    scan_number(start);
-                    return;
-                }
-                if (is_identifier_start(ch))
-                {
-                    scan_identifier_or_duration(start);
-                    return;
-                }
-                unknown(start, std::string("unexpected character '") + ch + "'");
-                return;
+            }
+            unknown(start, std::string("unexpected character '") + ch + "'");
+            return;
         }
     }
 
@@ -376,7 +428,9 @@ private:
 
         if (!closed)
         {
-            diagnostics_.error(SourceRange{start, location_}, "SSPEC0102", "unterminated string literal");
+            diagnostics_.error(
+                SourceRange{start, location_}, "SSPEC0102", "unterminated string literal"
+            );
         }
 
         add(TokenKind::StringLiteral, start);
@@ -410,7 +464,8 @@ private:
             advance();
         }
 
-        const auto lexeme = std::string_view{text_}.substr(start.offset, location_.offset - start.offset);
+        const auto lexeme =
+            std::string_view{text_}.substr(start.offset, location_.offset - start.offset);
         if (looks_like_duration(lexeme))
         {
             add(TokenKind::DurationLiteral, start);
@@ -420,12 +475,22 @@ private:
         add(keyword_kind(lexeme), start);
     }
 
-    void add(TokenKind kind, SourceLocation start)
+    void
+    add(TokenKind kind,
+        SourceLocation start)
     {
-        tokens_.push_back(Token{kind, text_.substr(start.offset, location_.offset - start.offset), SourceRange{start, location_}});
+        tokens_.push_back(
+            Token{
+                kind, text_.substr(start.offset, location_.offset - start.offset),
+                SourceRange{start, location_}
+            }
+        );
     }
 
-    void unknown(SourceLocation start, const std::string& message)
+    void unknown(
+        SourceLocation start,
+        const std::string& message
+    )
     {
         add(TokenKind::Unknown, start);
         diagnostics_.error(SourceRange{start, location_}, "SSPEC0100", message);

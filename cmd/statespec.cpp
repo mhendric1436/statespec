@@ -14,7 +14,8 @@
 #include <utility>
 #include <vector>
 
-namespace {
+namespace
+{
 
 std::string read_file(const std::string& path)
 {
@@ -43,13 +44,15 @@ void print_diagnostics(const statespec::DiagnosticBag& diagnostics)
             severity = "info";
         }
 
-        std::cerr << diagnostic.range.begin.line << ':' << diagnostic.range.begin.column
-                  << ": " << severity << ' ' << diagnostic.code << ": "
-                  << diagnostic.message << '\n';
+        std::cerr << diagnostic.range.begin.line << ':' << diagnostic.range.begin.column << ": "
+                  << severity << ' ' << diagnostic.code << ": " << diagnostic.message << '\n';
     }
 }
 
-std::vector<statespec::Token> lex_file(const std::string& path, statespec::DiagnosticBag& diagnostics)
+std::vector<statespec::Token> lex_file(
+    const std::string& path,
+    statespec::DiagnosticBag& diagnostics
+)
 {
     statespec::SourceFile source{path, read_file(path)};
     statespec::Lexer lexer{source};
@@ -63,9 +66,8 @@ int tokens_file(const std::string& path)
 
     for (const auto& token : tokens)
     {
-        std::cout << std::setw(4) << token.range.begin.line << ':'
-                  << std::setw(3) << token.range.begin.column << "  "
-                  << statespec::token_kind_name(token.kind);
+        std::cout << std::setw(4) << token.range.begin.line << ':' << std::setw(3)
+                  << token.range.begin.column << "  " << statespec::token_kind_name(token.kind);
         if (!token.lexeme.empty())
         {
             std::cout << "  " << token.lexeme;
@@ -106,7 +108,10 @@ int validate_file(const std::string& path)
 
 } // namespace
 
-int main(int argc, char** argv)
+int main(
+    int argc,
+    char** argv
+)
 {
     try
     {

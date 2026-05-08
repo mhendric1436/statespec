@@ -6,9 +6,11 @@
 #include <string>
 #include <unordered_map>
 
-namespace statespec {
+namespace statespec
+{
 
-enum class SymbolKind {
+enum class SymbolKind
+{
     System,
     Namespace,
     Value,
@@ -27,18 +29,20 @@ enum class SymbolKind {
     GenerateTarget,
 };
 
-struct Symbol {
+struct Symbol
+{
     SymbolKind kind = SymbolKind::System;
     std::string name;
     SourceRange range;
 };
 
-class SymbolTable {
-public:
+class SymbolTable
+{
+  public:
     bool insert(Symbol symbol);
     std::optional<Symbol> find(const std::string& name) const;
 
-private:
+  private:
     std::unordered_map<std::string, Symbol> symbols_;
 };
 

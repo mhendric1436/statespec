@@ -2,21 +2,40 @@
 
 #include <utility>
 
-namespace statespec {
-
-void DiagnosticBag::info(SourceRange range, std::string code, std::string message)
+namespace statespec
 {
-    diagnostics_.push_back(Diagnostic{DiagnosticSeverity::Info, range, std::move(code), std::move(message)});
+
+void DiagnosticBag::info(
+    SourceRange range,
+    std::string code,
+    std::string message
+)
+{
+    diagnostics_.push_back(
+        Diagnostic{DiagnosticSeverity::Info, range, std::move(code), std::move(message)}
+    );
 }
 
-void DiagnosticBag::warning(SourceRange range, std::string code, std::string message)
+void DiagnosticBag::warning(
+    SourceRange range,
+    std::string code,
+    std::string message
+)
 {
-    diagnostics_.push_back(Diagnostic{DiagnosticSeverity::Warning, range, std::move(code), std::move(message)});
+    diagnostics_.push_back(
+        Diagnostic{DiagnosticSeverity::Warning, range, std::move(code), std::move(message)}
+    );
 }
 
-void DiagnosticBag::error(SourceRange range, std::string code, std::string message)
+void DiagnosticBag::error(
+    SourceRange range,
+    std::string code,
+    std::string message
+)
 {
-    diagnostics_.push_back(Diagnostic{DiagnosticSeverity::Error, range, std::move(code), std::move(message)});
+    diagnostics_.push_back(
+        Diagnostic{DiagnosticSeverity::Error, range, std::move(code), std::move(message)}
+    );
 }
 
 bool DiagnosticBag::has_errors() const noexcept

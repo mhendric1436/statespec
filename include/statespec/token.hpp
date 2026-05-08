@@ -4,9 +4,11 @@
 
 #include <string>
 
-namespace statespec {
+namespace statespec
+{
 
-enum class TokenKind {
+enum class TokenKind
+{
     EndOfFile,
     Identifier,
     StringLiteral,
@@ -137,7 +139,8 @@ enum class TokenKind {
     Unknown,
 };
 
-struct Token {
+struct Token
+{
     TokenKind kind = TokenKind::Unknown;
     std::string lexeme;
     SourceRange range;

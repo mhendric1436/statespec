@@ -1,8 +1,12 @@
 #include "statespec/validator.hpp"
 
-namespace statespec {
+namespace statespec
+{
 
-void Validator::validate(const Spec& spec, DiagnosticBag& diagnostics)
+void Validator::validate(
+    const Spec& spec,
+    DiagnosticBag& diagnostics
+)
 {
     if (!spec.system.has_value())
     {

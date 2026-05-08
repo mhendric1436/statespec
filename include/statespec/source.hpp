@@ -3,27 +3,34 @@
 #include <cstddef>
 #include <string>
 
-namespace statespec {
+namespace statespec
+{
 
-struct SourceLocation {
+struct SourceLocation
+{
     std::size_t offset = 0;
     std::size_t line = 1;
     std::size_t column = 1;
 };
 
-struct SourceRange {
+struct SourceRange
+{
     SourceLocation begin;
     SourceLocation end;
 };
 
-class SourceFile {
-public:
-    SourceFile(std::string path, std::string text);
+class SourceFile
+{
+  public:
+    SourceFile(
+        std::string path,
+        std::string text
+    );
 
     const std::string& path() const noexcept;
     const std::string& text() const noexcept;
 
-private:
+  private:
     std::string path_;
     std::string text_;
 };

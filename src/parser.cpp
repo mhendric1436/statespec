@@ -2,7 +2,8 @@
 
 #include <utility>
 
-namespace statespec {
+namespace statespec
+{
 
 Parser::Parser(std::vector<Token> tokens)
     : tokens_(std::move(tokens))

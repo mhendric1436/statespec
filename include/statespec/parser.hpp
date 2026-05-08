@@ -6,15 +6,17 @@
 
 #include <vector>
 
-namespace statespec {
+namespace statespec
+{
 
-class Parser {
-public:
+class Parser
+{
+  public:
     explicit Parser(std::vector<Token> tokens);
 
     Spec parse(DiagnosticBag& diagnostics);
 
-private:
+  private:
     std::vector<Token> tokens_;
 };
 

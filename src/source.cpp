@@ -2,10 +2,15 @@
 
 #include <utility>
 
-namespace statespec {
+namespace statespec
+{
 
-SourceFile::SourceFile(std::string path, std::string text)
-    : path_(std::move(path)), text_(std::move(text))
+SourceFile::SourceFile(
+    std::string path,
+    std::string text
+)
+    : path_(std::move(path)),
+      text_(std::move(text))
 {
 }
 

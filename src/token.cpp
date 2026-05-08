@@ -1,136 +1,262 @@
 #include "statespec/token.hpp"
 
-namespace statespec {
+namespace statespec
+{
 
 std::string token_kind_name(TokenKind kind)
 {
     switch (kind)
     {
-        case TokenKind::EndOfFile: return "EndOfFile";
-        case TokenKind::Identifier: return "Identifier";
-        case TokenKind::StringLiteral: return "StringLiteral";
-        case TokenKind::IntegerLiteral: return "IntegerLiteral";
-        case TokenKind::DecimalLiteral: return "DecimalLiteral";
-        case TokenKind::BooleanLiteral: return "BooleanLiteral";
-        case TokenKind::DurationLiteral: return "DurationLiteral";
-        case TokenKind::LeftBrace: return "LeftBrace";
-        case TokenKind::RightBrace: return "RightBrace";
-        case TokenKind::LeftParen: return "LeftParen";
-        case TokenKind::RightParen: return "RightParen";
-        case TokenKind::LeftBracket: return "LeftBracket";
-        case TokenKind::RightBracket: return "RightBracket";
-        case TokenKind::Less: return "Less";
-        case TokenKind::Greater: return "Greater";
-        case TokenKind::Comma: return "Comma";
-        case TokenKind::Colon: return "Colon";
-        case TokenKind::Semicolon: return "Semicolon";
-        case TokenKind::Dot: return "Dot";
-        case TokenKind::Question: return "Question";
-        case TokenKind::Arrow: return "Arrow";
-        case TokenKind::Equals: return "Equals";
-        case TokenKind::EqualEqual: return "EqualEqual";
-        case TokenKind::BangEqual: return "BangEqual";
-        case TokenKind::LessEqual: return "LessEqual";
-        case TokenKind::GreaterEqual: return "GreaterEqual";
-        case TokenKind::Plus: return "Plus";
-        case TokenKind::Minus: return "Minus";
-        case TokenKind::Star: return "Star";
-        case TokenKind::Slash: return "Slash";
-        case TokenKind::Percent: return "Percent";
-        case TokenKind::Bang: return "Bang";
-        case TokenKind::AndAnd: return "AndAnd";
-        case TokenKind::OrOr: return "OrOr";
-        case TokenKind::KeywordStatespec: return "KeywordStatespec";
-        case TokenKind::KeywordImport: return "KeywordImport";
-        case TokenKind::KeywordAs: return "KeywordAs";
-        case TokenKind::KeywordSystem: return "KeywordSystem";
-        case TokenKind::KeywordNamespace: return "KeywordNamespace";
-        case TokenKind::KeywordValue: return "KeywordValue";
-        case TokenKind::KeywordEnum: return "KeywordEnum";
-        case TokenKind::KeywordShape: return "KeywordShape";
-        case TokenKind::KeywordExternalSystem: return "KeywordExternalSystem";
-        case TokenKind::KeywordEntity: return "KeywordEntity";
-        case TokenKind::KeywordKey: return "KeywordKey";
-        case TokenKind::KeywordVersion: return "KeywordVersion";
-        case TokenKind::KeywordFields: return "KeywordFields";
-        case TokenKind::KeywordStateMachine: return "KeywordStateMachine";
-        case TokenKind::KeywordState: return "KeywordState";
-        case TokenKind::KeywordInitial: return "KeywordInitial";
-        case TokenKind::KeywordTerminal: return "KeywordTerminal";
-        case TokenKind::KeywordOwnership: return "KeywordOwnership";
-        case TokenKind::KeywordAuthority: return "KeywordAuthority";
-        case TokenKind::KeywordSystemOfRecord: return "KeywordSystemOfRecord";
-        case TokenKind::KeywordLifecycle: return "KeywordLifecycle";
-        case TokenKind::KeywordControl: return "KeywordControl";
-        case TokenKind::KeywordRelations: return "KeywordRelations";
-        case TokenKind::KeywordParent: return "KeywordParent";
-        case TokenKind::KeywordRef: return "KeywordRef";
-        case TokenKind::KeywordOptional: return "KeywordOptional";
-        case TokenKind::KeywordChildren: return "KeywordChildren";
-        case TokenKind::KeywordInvariants: return "KeywordInvariants";
-        case TokenKind::KeywordIndexes: return "KeywordIndexes";
-        case TokenKind::KeywordAnnotations: return "KeywordAnnotations";
-        case TokenKind::KeywordEvent: return "KeywordEvent";
-        case TokenKind::KeywordQueue: return "KeywordQueue";
-        case TokenKind::KeywordMessage: return "KeywordMessage";
-        case TokenKind::KeywordPayload: return "KeywordPayload";
-        case TokenKind::KeywordLease: return "KeywordLease";
-        case TokenKind::KeywordWorker: return "KeywordWorker";
-        case TokenKind::KeywordApi: return "KeywordApi";
-        case TokenKind::KeywordBehavior: return "KeywordBehavior";
-        case TokenKind::KeywordWorkflow: return "KeywordWorkflow";
-        case TokenKind::KeywordStep: return "KeywordStep";
-        case TokenKind::KeywordChildSet: return "KeywordChildSet";
-        case TokenKind::KeywordPolicy: return "KeywordPolicy";
-        case TokenKind::KeywordGenerate: return "KeywordGenerate";
-        case TokenKind::KeywordWhen: return "KeywordWhen";
-        case TokenKind::KeywordWhere: return "KeywordWhere";
-        case TokenKind::KeywordRequire: return "KeywordRequire";
-        case TokenKind::KeywordSet: return "KeywordSet";
-        case TokenKind::KeywordEmit: return "KeywordEmit";
-        case TokenKind::KeywordEmits: return "KeywordEmits";
-        case TokenKind::KeywordEnqueue: return "KeywordEnqueue";
-        case TokenKind::KeywordAcquire: return "KeywordAcquire";
-        case TokenKind::KeywordRenew: return "KeywordRenew";
-        case TokenKind::KeywordRelease: return "KeywordRelease";
-        case TokenKind::KeywordStart: return "KeywordStart";
-        case TokenKind::KeywordLoad: return "KeywordLoad";
-        case TokenKind::KeywordAllocates: return "KeywordAllocates";
-        case TokenKind::KeywordReturns: return "KeywordReturns";
-        case TokenKind::KeywordAtomic: return "KeywordAtomic";
-        case TokenKind::KeywordForEach: return "KeywordForEach";
-        case TokenKind::KeywordIn: return "KeywordIn";
-        case TokenKind::KeywordCreate: return "KeywordCreate";
-        case TokenKind::KeywordChild: return "KeywordChild";
-        case TokenKind::KeywordObserve: return "KeywordObserve";
-        case TokenKind::KeywordMove: return "KeywordMove";
-        case TokenKind::KeywordFrom: return "KeywordFrom";
-        case TokenKind::KeywordTo: return "KeywordTo";
-        case TokenKind::KeywordTransitionTo: return "KeywordTransitionTo";
-        case TokenKind::KeywordComplete: return "KeywordComplete";
-        case TokenKind::KeywordFail: return "KeywordFail";
-        case TokenKind::KeywordReserve: return "KeywordReserve";
-        case TokenKind::KeywordMaterialize: return "KeywordMaterialize";
-        case TokenKind::KeywordReconcile: return "KeywordReconcile";
-        case TokenKind::KeywordAllow: return "KeywordAllow";
-        case TokenKind::KeywordDeny: return "KeywordDeny";
-        case TokenKind::KeywordQuota: return "KeywordQuota";
-        case TokenKind::KeywordAudit: return "KeywordAudit";
-        case TokenKind::KeywordTenant: return "KeywordTenant";
-        case TokenKind::KeywordScopedBy: return "KeywordScopedBy";
-        case TokenKind::KeywordMethod: return "KeywordMethod";
-        case TokenKind::KeywordPath: return "KeywordPath";
-        case TokenKind::KeywordInput: return "KeywordInput";
-        case TokenKind::KeywordOutput: return "KeywordOutput";
-        case TokenKind::KeywordError: return "KeywordError";
-        case TokenKind::KeywordAuthz: return "KeywordAuthz";
-        case TokenKind::KeywordStarts: return "KeywordStarts";
-        case TokenKind::KeywordEnqueues: return "KeywordEnqueues";
-        case TokenKind::KeywordPolls: return "KeywordPolls";
-        case TokenKind::KeywordExecutes: return "KeywordExecutes";
-        case TokenKind::KeywordSingleton: return "KeywordSingleton";
-        case TokenKind::KeywordConcurrency: return "KeywordConcurrency";
-        case TokenKind::Unknown: return "Unknown";
+    case TokenKind::EndOfFile:
+        return "EndOfFile";
+    case TokenKind::Identifier:
+        return "Identifier";
+    case TokenKind::StringLiteral:
+        return "StringLiteral";
+    case TokenKind::IntegerLiteral:
+        return "IntegerLiteral";
+    case TokenKind::DecimalLiteral:
+        return "DecimalLiteral";
+    case TokenKind::BooleanLiteral:
+        return "BooleanLiteral";
+    case TokenKind::DurationLiteral:
+        return "DurationLiteral";
+    case TokenKind::LeftBrace:
+        return "LeftBrace";
+    case TokenKind::RightBrace:
+        return "RightBrace";
+    case TokenKind::LeftParen:
+        return "LeftParen";
+    case TokenKind::RightParen:
+        return "RightParen";
+    case TokenKind::LeftBracket:
+        return "LeftBracket";
+    case TokenKind::RightBracket:
+        return "RightBracket";
+    case TokenKind::Less:
+        return "Less";
+    case TokenKind::Greater:
+        return "Greater";
+    case TokenKind::Comma:
+        return "Comma";
+    case TokenKind::Colon:
+        return "Colon";
+    case TokenKind::Semicolon:
+        return "Semicolon";
+    case TokenKind::Dot:
+        return "Dot";
+    case TokenKind::Question:
+        return "Question";
+    case TokenKind::Arrow:
+        return "Arrow";
+    case TokenKind::Equals:
+        return "Equals";
+    case TokenKind::EqualEqual:
+        return "EqualEqual";
+    case TokenKind::BangEqual:
+        return "BangEqual";
+    case TokenKind::LessEqual:
+        return "LessEqual";
+    case TokenKind::GreaterEqual:
+        return "GreaterEqual";
+    case TokenKind::Plus:
+        return "Plus";
+    case TokenKind::Minus:
+        return "Minus";
+    case TokenKind::Star:
+        return "Star";
+    case TokenKind::Slash:
+        return "Slash";
+    case TokenKind::Percent:
+        return "Percent";
+    case TokenKind::Bang:
+        return "Bang";
+    case TokenKind::AndAnd:
+        return "AndAnd";
+    case TokenKind::OrOr:
+        return "OrOr";
+    case TokenKind::KeywordStatespec:
+        return "KeywordStatespec";
+    case TokenKind::KeywordImport:
+        return "KeywordImport";
+    case TokenKind::KeywordAs:
+        return "KeywordAs";
+    case TokenKind::KeywordSystem:
+        return "KeywordSystem";
+    case TokenKind::KeywordNamespace:
+        return "KeywordNamespace";
+    case TokenKind::KeywordValue:
+        return "KeywordValue";
+    case TokenKind::KeywordEnum:
+        return "KeywordEnum";
+    case TokenKind::KeywordShape:
+        return "KeywordShape";
+    case TokenKind::KeywordExternalSystem:
+        return "KeywordExternalSystem";
+    case TokenKind::KeywordEntity:
+        return "KeywordEntity";
+    case TokenKind::KeywordKey:
+        return "KeywordKey";
+    case TokenKind::KeywordVersion:
+        return "KeywordVersion";
+    case TokenKind::KeywordFields:
+        return "KeywordFields";
+    case TokenKind::KeywordStateMachine:
+        return "KeywordStateMachine";
+    case TokenKind::KeywordState:
+        return "KeywordState";
+    case TokenKind::KeywordInitial:
+        return "KeywordInitial";
+    case TokenKind::KeywordTerminal:
+        return "KeywordTerminal";
+    case TokenKind::KeywordOwnership:
+        return "KeywordOwnership";
+    case TokenKind::KeywordAuthority:
+        return "KeywordAuthority";
+    case TokenKind::KeywordSystemOfRecord:
+        return "KeywordSystemOfRecord";
+    case TokenKind::KeywordLifecycle:
+        return "KeywordLifecycle";
+    case TokenKind::KeywordControl:
+        return "KeywordControl";
+    case TokenKind::KeywordRelations:
+        return "KeywordRelations";
+    case TokenKind::KeywordParent:
+        return "KeywordParent";
+    case TokenKind::KeywordRef:
+        return "KeywordRef";
+    case TokenKind::KeywordOptional:
+        return "KeywordOptional";
+    case TokenKind::KeywordChildren:
+        return "KeywordChildren";
+    case TokenKind::KeywordInvariants:
+        return "KeywordInvariants";
+    case TokenKind::KeywordIndexes:
+        return "KeywordIndexes";
+    case TokenKind::KeywordAnnotations:
+        return "KeywordAnnotations";
+    case TokenKind::KeywordEvent:
+        return "KeywordEvent";
+    case TokenKind::KeywordQueue:
+        return "KeywordQueue";
+    case TokenKind::KeywordMessage:
+        return "KeywordMessage";
+    case TokenKind::KeywordPayload:
+        return "KeywordPayload";
+    case TokenKind::KeywordLease:
+        return "KeywordLease";
+    case TokenKind::KeywordWorker:
+        return "KeywordWorker";
+    case TokenKind::KeywordApi:
+        return "KeywordApi";
+    case TokenKind::KeywordBehavior:
+        return "KeywordBehavior";
+    case TokenKind::KeywordWorkflow:
+        return "KeywordWorkflow";
+    case TokenKind::KeywordStep:
+        return "KeywordStep";
+    case TokenKind::KeywordChildSet:
+        return "KeywordChildSet";
+    case TokenKind::KeywordPolicy:
+        return "KeywordPolicy";
+    case TokenKind::KeywordGenerate:
+        return "KeywordGenerate";
+    case TokenKind::KeywordWhen:
+        return "KeywordWhen";
+    case TokenKind::KeywordWhere:
+        return "KeywordWhere";
+    case TokenKind::KeywordRequire:
+        return "KeywordRequire";
+    case TokenKind::KeywordSet:
+        return "KeywordSet";
+    case TokenKind::KeywordEmit:
+        return "KeywordEmit";
+    case TokenKind::KeywordEmits:
+        return "KeywordEmits";
+    case TokenKind::KeywordEnqueue:
+        return "KeywordEnqueue";
+    case TokenKind::KeywordAcquire:
+        return "KeywordAcquire";
+    case TokenKind::KeywordRenew:
+        return "KeywordRenew";
+    case TokenKind::KeywordRelease:
+        return "KeywordRelease";
+    case TokenKind::KeywordStart:
+        return "KeywordStart";
+    case TokenKind::KeywordLoad:
+        return "KeywordLoad";
+    case TokenKind::KeywordAllocates:
+        return "KeywordAllocates";
+    case TokenKind::KeywordReturns:
+        return "KeywordReturns";
+    case TokenKind::KeywordAtomic:
+        return "KeywordAtomic";
+    case TokenKind::KeywordForEach:
+        return "KeywordForEach";
+    case TokenKind::KeywordIn:
+        return "KeywordIn";
+    case TokenKind::KeywordCreate:
+        return "KeywordCreate";
+    case TokenKind::KeywordChild:
+        return "KeywordChild";
+    case TokenKind::KeywordObserve:
+        return "KeywordObserve";
+    case TokenKind::KeywordMove:
+        return "KeywordMove";
+    case TokenKind::KeywordFrom:
+        return "KeywordFrom";
+    case TokenKind::KeywordTo:
+        return "KeywordTo";
+    case TokenKind::KeywordTransitionTo:
+        return "KeywordTransitionTo";
+    case TokenKind::KeywordComplete:
+        return "KeywordComplete";
+    case TokenKind::KeywordFail:
+        return "KeywordFail";
+    case TokenKind::KeywordReserve:
+        return "KeywordReserve";
+    case TokenKind::KeywordMaterialize:
+        return "KeywordMaterialize";
+    case TokenKind::KeywordReconcile:
+        return "KeywordReconcile";
+    case TokenKind::KeywordAllow:
+        return "KeywordAllow";
+    case TokenKind::KeywordDeny:
+        return "KeywordDeny";
+    case TokenKind::KeywordQuota:
+        return "KeywordQuota";
+    case TokenKind::KeywordAudit:
+        return "KeywordAudit";
+    case TokenKind::KeywordTenant:
+        return "KeywordTenant";
+    case TokenKind::KeywordScopedBy:
+        return "KeywordScopedBy";
+    case TokenKind::KeywordMethod:
+        return "KeywordMethod";
+    case TokenKind::KeywordPath:
+        return "KeywordPath";
+    case TokenKind::KeywordInput:
+        return "KeywordInput";
+    case TokenKind::KeywordOutput:
+        return "KeywordOutput";
+    case TokenKind::KeywordError:
+        return "KeywordError";
+    case TokenKind::KeywordAuthz:
+        return "KeywordAuthz";
+    case TokenKind::KeywordStarts:
+        return "KeywordStarts";
+    case TokenKind::KeywordEnqueues:
+        return "KeywordEnqueues";
+    case TokenKind::KeywordPolls:
+        return "KeywordPolls";
+    case TokenKind::KeywordExecutes:
+        return "KeywordExecutes";
+    case TokenKind::KeywordSingleton:
+        return "KeywordSingleton";
+    case TokenKind::KeywordConcurrency:
+        return "KeywordConcurrency";
+    case TokenKind::Unknown:
+        return "Unknown";
     }
     return "Unknown";
 }
