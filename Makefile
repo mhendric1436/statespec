@@ -14,6 +14,7 @@ HEADERS := $(wildcard include/statespec/*.hpp)
 SRC := $(wildcard src/*.cpp)
 CLI_SRC := $(wildcard cmd/*.cpp)
 TEST_SRC := $(wildcard tests/*.cpp)
+TEST_SCRIPTS := $(wildcard tests/*_tests.sh)
 FORMAT_FILES := $(HEADERS) $(SRC) $(CLI_SRC) $(TEST_SRC)
 
 OBJ := $(patsubst src/%.cpp,$(OBJ_DIR)/src/%.o,$(SRC))
@@ -22,7 +23,7 @@ TEST_OBJ := $(patsubst tests/%.cpp,$(OBJ_DIR)/tests/%.o,$(TEST_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d)
 
-.PHONY: all build cli test format format-check clean help print-files
+.PHONY: all build cli test test-cli format format-check clean help print-files
 
 all: test cli
 
@@ -54,8 +55,14 @@ $(OBJ_DIR)/tests/%.o: tests/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
-test: $(TEST_BIN)
+test: $(TEST_BIN) test-cli
 	$(TEST_BIN)
+
+test-cli: $(CLI)
+	@for script in $(TEST_SCRIPTS); do \
+		echo "$$script"; \
+		sh "$$script" "$(CLI)"; \
+	done
 
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
@@ -68,6 +75,7 @@ print-files:
 	@echo "SRC=$(SRC)"
 	@echo "CLI_SRC=$(CLI_SRC)"
 	@echo "TEST_SRC=$(TEST_SRC)"
+	@echo "TEST_SCRIPTS=$(TEST_SCRIPTS)"
 	@echo "FORMAT_FILES=$(FORMAT_FILES)"
 
 clean:
@@ -78,7 +86,8 @@ help:
 	@echo "  make              Build and run tests, then build CLI"
 	@echo "  make build        Build libstatespec.a"
 	@echo "  make cli          Build statespec CLI"
-	@echo "  make test         Build and run smoke tests"
+	@echo "  make test         Build and run smoke tests and CLI tests"
+	@echo "  make test-cli     Build CLI and run shell-based CLI tests"
 	@echo "  make format       Format source and header files with clang-format"
 	@echo "  make format-check Check formatting without modifying files"
 	@echo "  make clean        Remove build outputs"
