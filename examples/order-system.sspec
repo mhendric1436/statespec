@@ -41,7 +41,7 @@ system OrderSystem {
 
   queue OrderEvents {
     namespace workflow_ns
-    channel order-events
+    channel order_events
     visibility_timeout PT30S
     max_attempts 5
 
