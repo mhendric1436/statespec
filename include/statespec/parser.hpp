@@ -38,8 +38,15 @@ class Parser
     ImportDecl parse_import_decl(DiagnosticBag& diagnostics);
     SystemDecl parse_system_decl(DiagnosticBag& diagnostics);
     EntityDecl parse_entity_decl(DiagnosticBag& diagnostics);
+    QueueDecl parse_queue_decl(DiagnosticBag& diagnostics);
+    MessageDecl parse_message_decl(DiagnosticBag& diagnostics);
+    LeaseDecl parse_lease_decl(DiagnosticBag& diagnostics);
+    WorkerDecl parse_worker_decl(DiagnosticBag& diagnostics);
+    ApiDecl parse_api_decl(DiagnosticBag& diagnostics);
     WorkflowDecl parse_workflow_decl(DiagnosticBag& diagnostics);
     WorkflowStepDecl parse_workflow_step_decl(DiagnosticBag& diagnostics);
+    PolicyDecl parse_policy_decl(DiagnosticBag& diagnostics);
+    GenerateDecl parse_generate_decl(DiagnosticBag& diagnostics);
     StateMachineDecl parse_state_machine_decl(DiagnosticBag& diagnostics);
     FieldDecl parse_field_decl(DiagnosticBag& diagnostics);
 
@@ -49,6 +56,9 @@ class Parser
     );
     std::string parse_type_name(DiagnosticBag& diagnostics);
     std::vector<std::string> parse_identifier_list(DiagnosticBag& diagnostics);
+    std::string parse_simple_value(DiagnosticBag& diagnostics, const std::string& context);
+    std::string parse_simple_expression_until_boundary();
+    std::string parse_generate_target(DiagnosticBag& diagnostics);
 
     void consume_optional_semicolon();
     void skip_unknown_declaration(DiagnosticBag& diagnostics);
