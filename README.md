@@ -74,6 +74,16 @@ qu dispatches durable work.
 wf orchestrates long-running workflows.
 ```
 
+A shorter ecosystem summary:
+
+```text
+StateSpec defines.
+mt stores.
+dl coordinates.
+qu dispatches.
+wf orchestrates.
+```
+
 ---
 
 # 🏗️ Runtime Stack
