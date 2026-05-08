@@ -23,6 +23,20 @@ int parse_int_or_zero(const Token& token)
     }
 }
 
+std::string strip_quotes(const std::string& value)
+{
+    if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
+    {
+        return value.substr(1, value.size() - 2);
+    }
+    return value;
+}
+
+bool is_named_identifier(const Token& token, const std::string& name)
+{
+    return token.kind == TokenKind::Identifier && token.lexeme == name;
+}
+
 } // namespace
 
 Parser::Parser(std::vector<Token> tokens)
@@ -107,11 +121,7 @@ Token Parser::advance()
     return previous();
 }
 
-Token Parser::consume(
-    TokenKind kind,
-    const std::string& message,
-    DiagnosticBag& diagnostics
-)
+Token Parser::consume(TokenKind kind, const std::string& message, DiagnosticBag& diagnostics)
 {
     if (check(kind))
     {
@@ -160,14 +170,12 @@ Spec Parser::parse_spec(DiagnosticBag& diagnostics)
 
 ImportDecl Parser::parse_import_decl(DiagnosticBag& diagnostics)
 {
-    const auto start =
-        consume(TokenKind::KeywordImport, "expected import declaration", diagnostics);
+    const auto start = consume(TokenKind::KeywordImport, "expected import declaration", diagnostics);
     ImportDecl import_decl;
     import_decl.name = parse_qualified_name(diagnostics, "import name");
     if (match(TokenKind::KeywordAs))
     {
-        import_decl.alias =
-            consume(TokenKind::Identifier, "expected import alias", diagnostics).lexeme;
+        import_decl.alias = consume(TokenKind::Identifier, "expected import alias", diagnostics).lexeme;
     }
     consume(TokenKind::Semicolon, "expected ';' after import declaration", diagnostics);
     import_decl.range = SourceRange{start.range.begin, previous().range.end};
@@ -176,8 +184,7 @@ ImportDecl Parser::parse_import_decl(DiagnosticBag& diagnostics)
 
 SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 {
-    const auto start =
-        consume(TokenKind::KeywordSystem, "expected system declaration", diagnostics);
+    const auto start = consume(TokenKind::KeywordSystem, "expected system declaration", diagnostics);
     auto name = consume(TokenKind::Identifier, "expected system name", diagnostics);
     SystemDecl system;
     system.name = name.lexeme;
@@ -189,9 +196,33 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         {
             system.entities.push_back(parse_entity_decl(diagnostics));
         }
+        else if (check(TokenKind::KeywordQueue))
+        {
+            system.queues.push_back(parse_queue_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordLease))
+        {
+            system.leases.push_back(parse_lease_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordWorker))
+        {
+            system.workers.push_back(parse_worker_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordApi))
+        {
+            system.apis.push_back(parse_api_decl(diagnostics));
+        }
         else if (check(TokenKind::KeywordWorkflow))
         {
             system.workflows.push_back(parse_workflow_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordPolicy))
+        {
+            system.policies.push_back(parse_policy_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordGenerate))
+        {
+            system.generators.push_back(parse_generate_decl(diagnostics));
         }
         else
         {
@@ -206,8 +237,7 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 
 EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
 {
-    const auto start =
-        consume(TokenKind::KeywordEntity, "expected entity declaration", diagnostics);
+    const auto start = consume(TokenKind::KeywordEntity, "expected entity declaration", diagnostics);
     auto name = consume(TokenKind::Identifier, "expected entity name", diagnostics);
     EntityDecl entity;
     entity.name = name.lexeme;
@@ -243,6 +273,266 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
 
     entity.range = SourceRange{start.range.begin, previous().range.end};
     return entity;
+}
+
+QueueDecl Parser::parse_queue_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordQueue, "expected queue declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected queue name", diagnostics);
+    QueueDecl queue;
+    queue.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after queue name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (match(TokenKind::KeywordNamespace))
+        {
+            queue.namespace_name = parse_simple_value(diagnostics, "queue namespace");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "channel"))
+        {
+            advance();
+            queue.channel = parse_simple_value(diagnostics, "queue channel");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "visibility_timeout"))
+        {
+            advance();
+            queue.visibility_timeout = parse_simple_value(diagnostics, "visibility timeout");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "max_attempts"))
+        {
+            advance();
+            queue.max_attempts = parse_int_or_zero(
+                consume(TokenKind::IntegerLiteral, "expected max_attempts integer", diagnostics)
+            );
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "dead_letter"))
+        {
+            advance();
+            queue.dead_letter = parse_qualified_name(diagnostics, "dead_letter target");
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordMessage))
+        {
+            queue.messages.push_back(parse_message_decl(diagnostics));
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after queue block", diagnostics);
+
+    queue.range = SourceRange{start.range.begin, previous().range.end};
+    return queue;
+}
+
+MessageDecl Parser::parse_message_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordMessage, "expected message declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected message name", diagnostics);
+    MessageDecl message;
+    message.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after message name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (is_named_identifier(peek(), "idempotency_key"))
+        {
+            advance();
+            message.idempotency_key =
+                consume(TokenKind::Identifier, "expected idempotency key field", diagnostics).lexeme;
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordPayload))
+        {
+            advance();
+            consume(TokenKind::LeftBrace, "expected '{' after payload", diagnostics);
+            while (!check(TokenKind::RightBrace) && !is_at_end())
+            {
+                message.payload_fields.push_back(parse_field_decl(diagnostics));
+            }
+            consume(TokenKind::RightBrace, "expected '}' after payload block", diagnostics);
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after message block", diagnostics);
+
+    message.range = SourceRange{start.range.begin, previous().range.end};
+    return message;
+}
+
+LeaseDecl Parser::parse_lease_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordLease, "expected lease declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected lease name", diagnostics);
+    LeaseDecl lease;
+    lease.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after lease name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (is_named_identifier(peek(), "resource"))
+        {
+            advance();
+            lease.resource = parse_simple_value(diagnostics, "lease resource");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "ttl"))
+        {
+            advance();
+            lease.ttl = parse_simple_value(diagnostics, "lease ttl");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "renew_every"))
+        {
+            advance();
+            lease.renew_every = parse_simple_value(diagnostics, "lease renew_every");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "holder"))
+        {
+            advance();
+            lease.holder = parse_simple_value(diagnostics, "lease holder");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "fencing_token"))
+        {
+            advance();
+            const auto value =
+                consume(TokenKind::BooleanLiteral, "expected fencing_token boolean", diagnostics);
+            lease.fencing_token = value.lexeme == "true";
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "max_ttl"))
+        {
+            advance();
+            lease.max_ttl = parse_simple_value(diagnostics, "lease max_ttl");
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after lease block", diagnostics);
+
+    lease.range = SourceRange{start.range.begin, previous().range.end};
+    return lease;
+}
+
+WorkerDecl Parser::parse_worker_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordWorker, "expected worker declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected worker name", diagnostics);
+    WorkerDecl worker;
+    worker.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after worker name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (match(TokenKind::KeywordSingleton))
+        {
+            const auto value =
+                consume(TokenKind::BooleanLiteral, "expected singleton boolean", diagnostics);
+            worker.singleton = value.lexeme == "true";
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordLease))
+        {
+            worker.lease = parse_qualified_name(diagnostics, "worker lease");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordPolls))
+        {
+            worker.polls = parse_qualified_name(diagnostics, "worker polls target");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordExecutes))
+        {
+            worker.executes = parse_qualified_name(diagnostics, "worker executes target");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordConcurrency))
+        {
+            worker.concurrency = parse_int_or_zero(
+                consume(TokenKind::IntegerLiteral, "expected concurrency integer", diagnostics)
+            );
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after worker block", diagnostics);
+
+    worker.range = SourceRange{start.range.begin, previous().range.end};
+    return worker;
+}
+
+ApiDecl Parser::parse_api_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordApi, "expected api declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected api name", diagnostics);
+    ApiDecl api;
+    api.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after api name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (match(TokenKind::KeywordMethod))
+        {
+            api.method = parse_simple_value(diagnostics, "HTTP method");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordPath))
+        {
+            api.path = parse_simple_value(diagnostics, "API path");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordInput))
+        {
+            api.input = parse_qualified_name(diagnostics, "API input");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordOutput))
+        {
+            api.output = parse_qualified_name(diagnostics, "API output");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordError))
+        {
+            api.error = parse_qualified_name(diagnostics, "API error");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordStarts))
+        {
+            consume(TokenKind::KeywordWorkflow, "expected workflow after starts", diagnostics);
+            api.starts_workflow = parse_qualified_name(diagnostics, "started workflow");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordEnqueues))
+        {
+            api.enqueues = parse_qualified_name(diagnostics, "enqueued message");
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after api block", diagnostics);
+
+    api.range = SourceRange{start.range.begin, previous().range.end};
+    return api;
 }
 
 FieldDecl Parser::parse_field_decl(DiagnosticBag& diagnostics)
@@ -362,7 +652,7 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
             workflow.singleton = value.lexeme == "true";
             consume_optional_semicolon();
         }
-        else if (check(TokenKind::Identifier) && peek().lexeme == "expected_execution_time")
+        else if (is_named_identifier(peek(), "expected_execution_time"))
         {
             advance();
             auto value =
@@ -401,7 +691,7 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after workflow step name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (check(TokenKind::Identifier) && peek().lexeme == "expected_execution_time")
+        if (is_named_identifier(peek(), "expected_execution_time"))
         {
             advance();
             const auto value =
@@ -409,7 +699,7 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
             step.expected_execution_time = value.lexeme;
             consume_optional_semicolon();
         }
-        else if (check(TokenKind::Identifier) && peek().lexeme == "max_retries")
+        else if (is_named_identifier(peek(), "max_retries"))
         {
             advance();
             step.max_retries = parse_int_or_zero(
@@ -428,10 +718,127 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
     return step;
 }
 
-std::string Parser::parse_qualified_name(
-    DiagnosticBag& diagnostics,
-    const std::string& context
-)
+PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordPolicy, "expected policy declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected policy name", diagnostics);
+    PolicyDecl policy;
+    policy.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after policy name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (match(TokenKind::KeywordTenant))
+        {
+            consume(TokenKind::KeywordScopedBy, "expected scoped_by after tenant", diagnostics);
+            policy.tenant_scoped_by =
+                consume(TokenKind::Identifier, "expected tenant scope field", diagnostics).lexeme;
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordAllow))
+        {
+            PolicyRuleDecl rule;
+            const auto rule_start = previous();
+            rule.action = parse_qualified_name(diagnostics, "allow action");
+            if (match(TokenKind::KeywordWhen))
+            {
+                rule.condition = parse_simple_expression_until_boundary();
+            }
+            consume_optional_semicolon();
+            rule.range = SourceRange{rule_start.range.begin, previous().range.end};
+            policy.allows.push_back(rule);
+        }
+        else if (match(TokenKind::KeywordDeny))
+        {
+            PolicyRuleDecl rule;
+            const auto rule_start = previous();
+            rule.action = parse_qualified_name(diagnostics, "deny action");
+            if (match(TokenKind::KeywordWhen))
+            {
+                rule.condition = parse_simple_expression_until_boundary();
+            }
+            consume_optional_semicolon();
+            rule.range = SourceRange{rule_start.range.begin, previous().range.end};
+            policy.denies.push_back(rule);
+        }
+        else if (match(TokenKind::KeywordQuota))
+        {
+            QuotaDecl quota;
+            const auto quota_start = previous();
+            quota.name = consume(TokenKind::Identifier, "expected quota name", diagnostics).lexeme;
+            consume(TokenKind::Colon, "expected ':' after quota name", diagnostics);
+            quota.expression = parse_simple_expression_until_boundary();
+            consume_optional_semicolon();
+            quota.range = SourceRange{quota_start.range.begin, previous().range.end};
+            policy.quotas.push_back(quota);
+        }
+        else if (match(TokenKind::KeywordAudit))
+        {
+            policy.audits.push_back(parse_qualified_name(diagnostics, "audit action"));
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after policy block", diagnostics);
+
+    policy.range = SourceRange{start.range.begin, previous().range.end};
+    return policy;
+}
+
+GenerateDecl Parser::parse_generate_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordGenerate, "expected generate declaration", diagnostics);
+    GenerateDecl generate;
+    generate.target = parse_generate_target(diagnostics);
+
+    if (match(TokenKind::LeftBrace))
+    {
+        while (!check(TokenKind::RightBrace) && !is_at_end())
+        {
+            if (is_named_identifier(peek(), "out"))
+            {
+                advance();
+                generate.out = parse_simple_value(diagnostics, "generate output directory");
+                consume_optional_semicolon();
+            }
+            else if (is_named_identifier(peek(), "language"))
+            {
+                advance();
+                generate.language = parse_simple_value(diagnostics, "generate language");
+                consume_optional_semicolon();
+            }
+            else if (is_named_identifier(peek(), "package"))
+            {
+                advance();
+                generate.package = parse_qualified_name(diagnostics, "generate package");
+                consume_optional_semicolon();
+            }
+            else if (is_named_identifier(peek(), "runtime"))
+            {
+                advance();
+                generate.runtime = parse_generate_target(diagnostics);
+                consume_optional_semicolon();
+            }
+            else
+            {
+                skip_unknown_declaration(diagnostics);
+            }
+        }
+        consume(TokenKind::RightBrace, "expected '}' after generate block", diagnostics);
+    }
+    else
+    {
+        consume_optional_semicolon();
+    }
+
+    generate.range = SourceRange{start.range.begin, previous().range.end};
+    return generate;
+}
+
+std::string Parser::parse_qualified_name(DiagnosticBag& diagnostics, const std::string& context)
 {
     auto name = consume(TokenKind::Identifier, "expected " + context, diagnostics).lexeme;
     while (match(TokenKind::Dot))
@@ -473,6 +880,67 @@ std::vector<std::string> Parser::parse_identifier_list(DiagnosticBag& diagnostic
     }
 
     return values;
+}
+
+std::string Parser::parse_simple_value(DiagnosticBag& diagnostics, const std::string& context)
+{
+    if (check(TokenKind::Identifier))
+    {
+        return parse_qualified_name(diagnostics, context);
+    }
+    if (match_any(
+            {
+                TokenKind::StringLiteral,
+                TokenKind::DurationLiteral,
+                TokenKind::IntegerLiteral,
+                TokenKind::DecimalLiteral,
+                TokenKind::BooleanLiteral,
+            }
+        ))
+    {
+        return strip_quotes(previous().lexeme);
+    }
+
+    diagnostics.error(peek().range, "SSPEC0203", "expected " + context);
+    return "";
+}
+
+std::string Parser::parse_simple_expression_until_boundary()
+{
+    std::string expression;
+    while (!is_at_end() && !check(TokenKind::Semicolon) && !check(TokenKind::RightBrace))
+    {
+        if (!expression.empty())
+        {
+            expression += ' ';
+        }
+        expression += previous().lexeme.empty() ? peek().lexeme : peek().lexeme;
+        advance();
+    }
+    return expression;
+}
+
+std::string Parser::parse_generate_target(DiagnosticBag& diagnostics)
+{
+    if (check(TokenKind::Identifier))
+    {
+        return advance().lexeme;
+    }
+    if (match_any(
+            {
+                TokenKind::KeywordApi,
+                TokenKind::KeywordWorkflow,
+                TokenKind::KeywordQueue,
+                TokenKind::KeywordLease,
+                TokenKind::KeywordWorker,
+            }
+        ))
+    {
+        return previous().lexeme;
+    }
+
+    diagnostics.error(peek().range, "SSPEC0204", "expected generate target");
+    return "";
 }
 
 void Parser::consume_optional_semicolon()
