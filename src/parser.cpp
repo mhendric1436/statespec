@@ -362,8 +362,9 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
             workflow.singleton = value.lexeme == "true";
             consume_optional_semicolon();
         }
-        else if (match(TokenKind::Identifier) && previous().lexeme == "expected_execution_time")
+        else if (check(TokenKind::Identifier) && peek().lexeme == "expected_execution_time")
         {
+            advance();
             auto value =
                 consume(TokenKind::DurationLiteral, "expected workflow duration", diagnostics);
             workflow.expected_execution_time = value.lexeme;
@@ -400,15 +401,17 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after workflow step name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (match(TokenKind::Identifier) && previous().lexeme == "expected_execution_time")
+        if (check(TokenKind::Identifier) && peek().lexeme == "expected_execution_time")
         {
+            advance();
             const auto value =
                 consume(TokenKind::DurationLiteral, "expected step duration", diagnostics);
             step.expected_execution_time = value.lexeme;
             consume_optional_semicolon();
         }
-        else if (match(TokenKind::Identifier) && previous().lexeme == "max_retries")
+        else if (check(TokenKind::Identifier) && peek().lexeme == "max_retries")
         {
+            advance();
             step.max_retries = parse_int_or_zero(
                 consume(TokenKind::IntegerLiteral, "expected max_retries integer", diagnostics)
             );
