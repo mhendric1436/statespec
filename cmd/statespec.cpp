@@ -452,12 +452,11 @@ std::string generate_wf_metadata_source(const statespec::SystemDecl& system)
     for (const auto& workflow : system.workflows)
     {
         const auto symbol = lower_name(workflow.name);
-        out << "    WorkflowMetadata{\"" << workflow.name << "\", "
-            << workflow.version.value_or(0) << ", "
-            << (workflow.singleton.value_or(false) ? "true" : "false") << ", \""
+        out << "    WorkflowMetadata{\"" << workflow.name << "\", " << workflow.version.value_or(0)
+            << ", " << (workflow.singleton.value_or(false) ? "true" : "false") << ", \""
             << workflow.expected_execution_time.value_or("") << "\", \""
-            << workflow.start_step.value_or("") << "\", " << symbol << "_steps.data(), "
-            << symbol << "_steps.size()},\n";
+            << workflow.start_step.value_or("") << "\", " << symbol << "_steps.data(), " << symbol
+            << "_steps.size()},\n";
     }
     out << "}};\n\n";
     out << "} // namespace\n\n";
@@ -522,7 +521,9 @@ void append_wf_generated_files(
 
     const auto root = wf_output_root(*spec.system, target, out);
     result.files.push_back(
-        statespec::GeneratedFile{join_path(root, "wf_workflows.hpp"), generate_wf_workflows_header()}
+        statespec::GeneratedFile{
+            join_path(root, "wf_workflows.hpp"), generate_wf_workflows_header()
+        }
     );
     result.files.push_back(
         statespec::GeneratedFile{
