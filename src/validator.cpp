@@ -26,8 +26,8 @@ bool contains(
 bool is_builtin_type(const std::string& type)
 {
     static const std::unordered_set<std::string> builtin_types{
-        "string", "bool",     "int",      "int32", "int64", "long",
-        "double", "decimal", "json",     "timestamp", "duration", "uuid",
+        "string", "bool",    "int",  "int32",     "int64",    "long",
+        "double", "decimal", "json", "timestamp", "duration", "uuid",
     };
 
     if (!type.empty() && type.back() == '?')
@@ -194,11 +194,15 @@ void validate_state_machine(
     {
         if (!contains(states, transition.from))
         {
-            unknown_reference_error(diagnostics, transition.range, "transition source state", transition.from);
+            unknown_reference_error(
+                diagnostics, transition.range, "transition source state", transition.from
+            );
         }
         if (!contains(states, transition.to))
         {
-            unknown_reference_error(diagnostics, transition.range, "transition target state", transition.to);
+            unknown_reference_error(
+                diagnostics, transition.range, "transition target state", transition.to
+            );
         }
     }
 }
@@ -213,7 +217,9 @@ void validate_entities(
     {
         if (entity.key_fields.empty())
         {
-            diagnostics.error(entity.range, "SSPEC3101", "entity '" + entity.name + "' must declare a key");
+            diagnostics.error(
+                entity.range, "SSPEC3101", "entity '" + entity.name + "' must declare a key"
+            );
         }
 
         validate_field_duplicates(entity.fields, diagnostics);
@@ -257,7 +263,8 @@ void validate_queues(
                 if (!contains(payload_fields, *message.idempotency_key))
                 {
                     unknown_reference_error(
-                        diagnostics, message.range, "message idempotency_key field", *message.idempotency_key
+                        diagnostics, message.range, "message idempotency_key field",
+                        *message.idempotency_key
                     );
                 }
             }
@@ -288,7 +295,9 @@ void validate_workflows(
 
         if (workflow.start_step.has_value() && !contains(steps, *workflow.start_step))
         {
-            unknown_reference_error(diagnostics, workflow.range, "workflow start step", *workflow.start_step);
+            unknown_reference_error(
+                diagnostics, workflow.range, "workflow start step", *workflow.start_step
+            );
         }
     }
 }
@@ -304,7 +313,8 @@ void validate_workers(
         if (worker.singleton.value_or(false) && !worker.lease.has_value())
         {
             diagnostics.error(
-                worker.range, "SSPEC3301", "singleton worker '" + worker.name + "' must declare a lease"
+                worker.range, "SSPEC3301",
+                "singleton worker '" + worker.name + "' must declare a lease"
             );
         }
 
@@ -314,11 +324,15 @@ void validate_workers(
         }
         if (worker.polls.has_value() && !symbols.find(*worker.polls).has_value())
         {
-            unknown_reference_error(diagnostics, worker.range, "worker polls target", *worker.polls);
+            unknown_reference_error(
+                diagnostics, worker.range, "worker polls target", *worker.polls
+            );
         }
         if (worker.executes.has_value() && !symbols.find(*worker.executes).has_value())
         {
-            unknown_reference_error(diagnostics, worker.range, "worker executes target", *worker.executes);
+            unknown_reference_error(
+                diagnostics, worker.range, "worker executes target", *worker.executes
+            );
         }
     }
 }
@@ -333,7 +347,9 @@ void validate_apis(
     {
         if (api.starts_workflow.has_value() && !symbols.find(*api.starts_workflow).has_value())
         {
-            unknown_reference_error(diagnostics, api.range, "API starts workflow", *api.starts_workflow);
+            unknown_reference_error(
+                diagnostics, api.range, "API starts workflow", *api.starts_workflow
+            );
         }
         if (api.enqueues.has_value() && !symbols.find(*api.enqueues).has_value())
         {
@@ -354,7 +370,9 @@ void validate_policies(
         {
             if (!symbols.find(rule.action).has_value())
             {
-                unknown_reference_error(diagnostics, rule.range, "policy allow action", rule.action);
+                unknown_reference_error(
+                    diagnostics, rule.range, "policy allow action", rule.action
+                );
             }
         }
         for (const auto& rule : policy.denies)
@@ -383,11 +401,15 @@ void validate_generators(
     {
         if (!is_generate_target(generator.target))
         {
-            unknown_reference_error(diagnostics, generator.range, "generate target", generator.target);
+            unknown_reference_error(
+                diagnostics, generator.range, "generate target", generator.target
+            );
         }
         if (generator.runtime.has_value() && !is_generate_target(*generator.runtime))
         {
-            unknown_reference_error(diagnostics, generator.range, "generate runtime", *generator.runtime);
+            unknown_reference_error(
+                diagnostics, generator.range, "generate runtime", *generator.runtime
+            );
         }
     }
 }
@@ -410,7 +432,8 @@ SymbolTable build_symbol_table(
         for (const auto& message : queue.messages)
         {
             add_symbol(
-                symbols, diagnostics, SymbolKind::Message, queue_message_name(queue, message), message.range
+                symbols, diagnostics, SymbolKind::Message, queue_message_name(queue, message),
+                message.range
             );
         }
     }
@@ -432,7 +455,8 @@ SymbolTable build_symbol_table(
         for (const auto& step : workflow.steps)
         {
             add_symbol(
-                symbols, diagnostics, SymbolKind::WorkflowStep, workflow_step_name(workflow, step), step.range
+                symbols, diagnostics, SymbolKind::WorkflowStep, workflow_step_name(workflow, step),
+                step.range
             );
         }
     }

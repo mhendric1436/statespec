@@ -125,7 +125,10 @@ void validator_rejects_duplicate_top_level_names()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC3001"), "validator should reject duplicate top-level names");
+    require(
+        has_error_code(diagnostics, "SSPEC3001"),
+        "validator should reject duplicate top-level names"
+    );
 }
 
 void validator_rejects_missing_entity_key_field()
@@ -139,7 +142,9 @@ void validator_rejects_missing_entity_key_field()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown entity key field");
+    require(
+        has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown entity key field"
+    );
 }
 
 void validator_rejects_unknown_workflow_start_step()
@@ -156,7 +161,10 @@ void validator_rejects_unknown_workflow_start_step()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown workflow start step");
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown workflow start step"
+    );
 }
 
 void validator_rejects_unknown_worker_references()
@@ -172,7 +180,10 @@ void validator_rejects_unknown_worker_references()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown worker references");
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown worker references"
+    );
 }
 
 void validator_rejects_unknown_api_references()
@@ -188,7 +199,9 @@ void validator_rejects_unknown_api_references()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown API references");
+    require(
+        has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown API references"
+    );
 }
 
 void validator_rejects_invalid_generate_target()
@@ -199,7 +212,9 @@ void validator_rejects_invalid_generate_target()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC3002"), "validator should reject invalid generate target");
+    require(
+        has_error_code(diagnostics, "SSPEC3002"), "validator should reject invalid generate target"
+    );
 }
 
 } // namespace
