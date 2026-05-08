@@ -68,6 +68,10 @@ std::string generator_fixture()
           lease WorkerLease {
             resource "worker"
             ttl PT30S
+            renew_every PT10S
+            holder worker_id
+            fencing_token true
+            max_ttl PT5M
           }
           workflow OrderProcessing {
             version 1
@@ -82,6 +86,7 @@ std::string generator_fixture()
             lease WorkerLease
             polls EmailQueue.SendConfirmation
             executes OrderProcessing
+            concurrency 4
           }
           api StartOrderProcessing {
             method POST
@@ -153,6 +158,12 @@ void generator_emits_files_for_generate_declarations()
         "generator should emit mt state-machine manifest"
     );
     require(has_file(result, "generated/dl/dl-manifest.yaml"), "generator should emit dl manifest");
+    require(
+        has_file(result, "generated/dl/dl_leases.hpp"), "generator should emit dl leases header"
+    );
+    require(
+        has_file(result, "generated/dl/dl_metadata.cpp"), "generator should emit dl metadata source"
+    );
     require(has_file(result, "generated/qu/qu-manifest.yaml"), "generator should emit qu manifest");
     require(
         has_file(result, "generated/qu/qu_messages.hpp"), "generator should emit qu messages header"
@@ -174,19 +185,19 @@ void generator_target_override_selects_one_target_family()
 
     statespec::Generator generator;
     statespec::GenerationOptions options;
-    options.target_override = "qu";
+    options.target_override = "dl";
     const auto result = generator.generate(spec, options, diagnostics);
 
     require(!diagnostics.has_errors(), "generator target override should not fail");
-    require(result.files.size() == 3, "qu target override should emit qu file family");
+    require(result.files.size() == 3, "dl target override should emit dl file family");
     require(
-        has_file(result, "generated/qu/qu-manifest.yaml"), "qu target override should emit manifest"
+        has_file(result, "generated/dl/dl-manifest.yaml"), "dl target override should emit manifest"
     );
     require(
-        has_file(result, "generated/qu/qu_messages.hpp"), "qu target override should emit header"
+        has_file(result, "generated/dl/dl_leases.hpp"), "dl target override should emit header"
     );
     require(
-        has_file(result, "generated/qu/qu_metadata.cpp"), "qu target override should emit source"
+        has_file(result, "generated/dl/dl_metadata.cpp"), "dl target override should emit source"
     );
 }
 
@@ -198,18 +209,18 @@ void generator_out_override_changes_output_root()
 
     statespec::Generator generator;
     statespec::GenerationOptions options;
-    options.target_override = "qu";
+    options.target_override = "dl";
     options.out_override = "tmp/generated";
     const auto result = generator.generate(spec, options, diagnostics);
 
     require(!diagnostics.has_errors(), "generator output override should not fail");
-    require(result.files.size() == 3, "generator output override should emit qu file family");
+    require(result.files.size() == 3, "generator output override should emit dl file family");
     require(
-        has_file(result, "tmp/generated/qu-manifest.yaml"),
+        has_file(result, "tmp/generated/dl-manifest.yaml"),
         "generator output override should change manifest root"
     );
     require(
-        has_file(result, "tmp/generated/qu_messages.hpp"),
+        has_file(result, "tmp/generated/dl_leases.hpp"),
         "generator output override should change header root"
     );
 }
@@ -227,6 +238,9 @@ void generator_emits_scaffold_content()
     const auto& mt = find_file(result, "generated/mt/mt-manifest.yaml");
     const auto& mt_header = find_file(result, "generated/mt/mt_entities.hpp");
     const auto& mt_source = find_file(result, "generated/mt/mt_metadata.cpp");
+    const auto& dl = find_file(result, "generated/dl/dl-manifest.yaml");
+    const auto& dl_header = find_file(result, "generated/dl/dl_leases.hpp");
+    const auto& dl_source = find_file(result, "generated/dl/dl_metadata.cpp");
     const auto& qu = find_file(result, "generated/qu/qu-manifest.yaml");
     const auto& qu_header = find_file(result, "generated/qu/qu_messages.hpp");
     const auto& qu_source = find_file(result, "generated/qu/qu_metadata.cpp");
@@ -249,6 +263,22 @@ void generator_emits_scaffold_content()
     require(
         mt_source.content.find("EntityMetadata") != std::string::npos,
         "mt source should include entity metadata"
+    );
+    require(
+        dl.content.find("fencing_token: true") != std::string::npos,
+        "dl manifest should include fencing token metadata"
+    );
+    require(
+        dl_header.content.find("struct LeaseMetadata") != std::string::npos,
+        "dl header should include lease metadata"
+    );
+    require(
+        dl_header.content.find("struct WorkerLeaseBinding") != std::string::npos,
+        "dl header should include worker lease bindings"
+    );
+    require(
+        dl_source.content.find("find_lease") != std::string::npos,
+        "dl source should include lease lookup"
     );
     require(
         qu.content.find("payload_struct: EmailQueueSendConfirmationPayload") != std::string::npos,
