@@ -75,7 +75,8 @@ bool is_optional_type(const std::string& type)
 std::string to_lower(std::string value)
 {
     std::transform(
-        value.begin(), value.end(), value.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
+        value.begin(), value.end(), value.begin(),
+        [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
     );
     return value;
 }
@@ -164,7 +165,8 @@ std::string generate_mt_manifest(
         if (entity.state_machine.has_value())
         {
             out << "    state_machine:\n";
-            out << "      initial: " << optional_or_empty(entity.state_machine->initial_state) << "\n";
+            out << "      initial: " << optional_or_empty(entity.state_machine->initial_state)
+                << "\n";
             out << "      terminal:\n";
             for (const auto& state : entity.state_machine->terminal_states)
             {
@@ -210,7 +212,8 @@ std::string generate_mt_entities_header(const SystemDecl& system)
         out << "{\n";
         for (const auto& field : entity.fields)
         {
-            out << "    " << cpp_type_for_statespec_type(field.type) << ' ' << field.name << "{};\n";
+            out << "    " << cpp_type_for_statespec_type(field.type) << ' ' << field.name
+                << "{};\n";
         }
         out << "};\n\n";
     }
@@ -239,13 +242,13 @@ std::string generate_mt_metadata_source(const SystemDecl& system)
         for (const auto& field : entity.fields)
         {
             out << "    FieldMetadata{\"" << field.name << "\", \"" << field.type << "\", \""
-                << cpp_type_for_statespec_type(field.type) << "\", " << bool_text(is_optional_type(field.type))
-                << "},\n";
+                << cpp_type_for_statespec_type(field.type) << "\", "
+                << bool_text(is_optional_type(field.type)) << "},\n";
         }
         out << "}};\n\n";
 
-        out << "constexpr std::array<std::string_view, " << entity.key_fields.size() << "> " << entity_name
-            << "_keys{{\n";
+        out << "constexpr std::array<std::string_view, " << entity.key_fields.size() << "> "
+            << entity_name << "_keys{{\n";
         for (const auto& key : entity.key_fields)
         {
             out << "    \"" << key << "\",\n";
@@ -253,7 +256,8 @@ std::string generate_mt_metadata_source(const SystemDecl& system)
         out << "}};\n\n";
     }
 
-    out << "constexpr std::array<EntityMetadata, " << system.entities.size() << "> all_entities{{\n";
+    out << "constexpr std::array<EntityMetadata, " << system.entities.size()
+        << "> all_entities{{\n";
     for (const auto& entity : system.entities)
     {
         const auto entity_name = to_lower(entity.name);
@@ -546,10 +550,23 @@ void Generator::generate_target(
     const auto root = output_root(declaration, options);
     if (declaration.target == "mt")
     {
-        result.files.push_back(GeneratedFile{join_path(root, "mt-manifest.yaml"), generate_mt_manifest(system, declaration)});
-        result.files.push_back(GeneratedFile{join_path(root, "mt_entities.hpp"), generate_mt_entities_header(system)});
-        result.files.push_back(GeneratedFile{join_path(root, "mt_metadata.cpp"), generate_mt_metadata_source(system)});
-        result.files.push_back(GeneratedFile{join_path(root, "mt-state-machines.yaml"), generate_mt_state_machine_manifest(system)});
+        result.files.push_back(
+            GeneratedFile{
+                join_path(root, "mt-manifest.yaml"), generate_mt_manifest(system, declaration)
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{join_path(root, "mt_entities.hpp"), generate_mt_entities_header(system)}
+        );
+        result.files.push_back(
+            GeneratedFile{join_path(root, "mt_metadata.cpp"), generate_mt_metadata_source(system)}
+        );
+        result.files.push_back(
+            GeneratedFile{
+                join_path(root, "mt-state-machines.yaml"),
+                generate_mt_state_machine_manifest(system)
+            }
+        );
         return;
     }
 

@@ -142,9 +142,16 @@ void generator_emits_files_for_generate_declarations()
 
     require(!diagnostics.has_errors(), "generator should not emit diagnostics for valid fixture");
     require(has_file(result, "generated/mt/mt-manifest.yaml"), "generator should emit mt manifest");
-    require(has_file(result, "generated/mt/mt_entities.hpp"), "generator should emit mt entities header");
-    require(has_file(result, "generated/mt/mt_metadata.cpp"), "generator should emit mt metadata source");
-    require(has_file(result, "generated/mt/mt-state-machines.yaml"), "generator should emit mt state-machine manifest");
+    require(
+        has_file(result, "generated/mt/mt_entities.hpp"), "generator should emit mt entities header"
+    );
+    require(
+        has_file(result, "generated/mt/mt_metadata.cpp"), "generator should emit mt metadata source"
+    );
+    require(
+        has_file(result, "generated/mt/mt-state-machines.yaml"),
+        "generator should emit mt state-machine manifest"
+    );
     require(has_file(result, "generated/dl/dl-manifest.yaml"), "generator should emit dl manifest");
     require(has_file(result, "generated/qu/qu-manifest.yaml"), "generator should emit qu manifest");
     require(has_file(result, "generated/wf/wf-manifest.yaml"), "generator should emit wf manifest");
@@ -166,10 +173,19 @@ void generator_target_override_selects_one_target_family()
 
     require(!diagnostics.has_errors(), "generator target override should not fail");
     require(result.files.size() == 4, "mt target override should emit mt file family");
-    require(has_file(result, "generated/mt/mt-manifest.yaml"), "mt target override should emit manifest");
-    require(has_file(result, "generated/mt/mt_entities.hpp"), "mt target override should emit header");
-    require(has_file(result, "generated/mt/mt_metadata.cpp"), "mt target override should emit source");
-    require(has_file(result, "generated/mt/mt-state-machines.yaml"), "mt target override should emit state metadata");
+    require(
+        has_file(result, "generated/mt/mt-manifest.yaml"), "mt target override should emit manifest"
+    );
+    require(
+        has_file(result, "generated/mt/mt_entities.hpp"), "mt target override should emit header"
+    );
+    require(
+        has_file(result, "generated/mt/mt_metadata.cpp"), "mt target override should emit source"
+    );
+    require(
+        has_file(result, "generated/mt/mt-state-machines.yaml"),
+        "mt target override should emit state metadata"
+    );
 }
 
 void generator_out_override_changes_output_root()
@@ -186,8 +202,14 @@ void generator_out_override_changes_output_root()
 
     require(!diagnostics.has_errors(), "generator output override should not fail");
     require(result.files.size() == 4, "generator output override should emit mt file family");
-    require(has_file(result, "tmp/generated/mt-manifest.yaml"), "generator output override should change manifest root");
-    require(has_file(result, "tmp/generated/mt_entities.hpp"), "generator output override should change header root");
+    require(
+        has_file(result, "tmp/generated/mt-manifest.yaml"),
+        "generator output override should change manifest root"
+    );
+    require(
+        has_file(result, "tmp/generated/mt_entities.hpp"),
+        "generator output override should change header root"
+    );
 }
 
 void generator_emits_scaffold_content()
