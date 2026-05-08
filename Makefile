@@ -1,4 +1,5 @@
 CXX ?= clang++
+CLANG_FORMAT ?= clang-format
 CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -Iinclude
 LDFLAGS ?=
 
@@ -9,18 +10,19 @@ LIB := $(BUILD_DIR)/libstatespec.a
 CLI := $(BIN_DIR)/statespec
 TEST_BIN := $(BIN_DIR)/statespec_tests
 
+HEADERS := $(wildcard include/statespec/*.hpp)
 SRC := $(wildcard src/*.cpp)
-OBJ := $(patsubst src/%.cpp,$(OBJ_DIR)/src/%.o,$(SRC))
-
 CLI_SRC := $(wildcard cmd/*.cpp)
-CLI_OBJ := $(patsubst cmd/%.cpp,$(OBJ_DIR)/cmd/%.o,$(CLI_SRC))
-
 TEST_SRC := $(wildcard tests/*.cpp)
+FORMAT_FILES := $(HEADERS) $(SRC) $(CLI_SRC) $(TEST_SRC)
+
+OBJ := $(patsubst src/%.cpp,$(OBJ_DIR)/src/%.o,$(SRC))
+CLI_OBJ := $(patsubst cmd/%.cpp,$(OBJ_DIR)/cmd/%.o,$(CLI_SRC))
 TEST_OBJ := $(patsubst tests/%.cpp,$(OBJ_DIR)/tests/%.o,$(TEST_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d)
 
-.PHONY: all build cli test clean help print-files
+.PHONY: all build cli test format format-check clean help print-files
 
 all: test cli
 
@@ -55,25 +57,37 @@ $(OBJ_DIR)/tests/%.o: tests/%.cpp
 test: $(TEST_BIN)
 	$(TEST_BIN)
 
+format:
+	$(CLANG_FORMAT) -i $(FORMAT_FILES)
+
+format-check:
+	$(CLANG_FORMAT) --dry-run --Werror $(FORMAT_FILES)
+
 print-files:
+	@echo "HEADERS=$(HEADERS)"
 	@echo "SRC=$(SRC)"
 	@echo "CLI_SRC=$(CLI_SRC)"
 	@echo "TEST_SRC=$(TEST_SRC)"
+	@echo "FORMAT_FILES=$(FORMAT_FILES)"
 
 clean:
 	rm -rf $(BUILD_DIR)
 
 help:
 	@echo "StateSpec Makefile targets:"
-	@echo "  make          Build and run tests, then build CLI"
-	@echo "  make build    Build libstatespec.a"
-	@echo "  make cli      Build statespec CLI"
-	@echo "  make test     Build and run smoke tests"
-	@echo "  make clean    Remove build outputs"
-	@echo "  make print-files Show discovered source files"
+	@echo "  make              Build and run tests, then build CLI"
+	@echo "  make build        Build libstatespec.a"
+	@echo "  make cli          Build statespec CLI"
+	@echo "  make test         Build and run smoke tests"
+	@echo "  make format       Format source and header files with clang-format"
+	@echo "  make format-check Check formatting without modifying files"
+	@echo "  make clean        Remove build outputs"
+	@echo "  make print-files  Show discovered source files"
+	@echo "  make help         Show this help"
 	@echo ""
 	@echo "Variables:"
 	@echo "  CXX=$(CXX)"
+	@echo "  CLANG_FORMAT=$(CLANG_FORMAT)"
 	@echo "  CXXFLAGS=$(CXXFLAGS)"
 
 -include $(DEPS)
