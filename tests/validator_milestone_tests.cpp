@@ -217,6 +217,73 @@ void validator_rejects_invalid_generate_target()
     );
 }
 
+void validator_rejects_missing_required_declarations()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity EmptyEntity {
+            key id
+          }
+          queue EmptyQueue {
+          }
+          lease EmptyLease {
+          }
+          workflow EmptyWorkflow {
+          }
+          api EmptyApi {
+          }
+        }
+    )sspec");
+
+    require(has_error_code(diagnostics, "SSPEC4001"), "validator should reject missing required declarations");
+}
+
+void validator_rejects_invalid_positive_and_non_negative_values()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          queue EmailQueue {
+            namespace workflow_ns
+            channel email
+            max_attempts 0
+            message SendConfirmation {
+              idempotency_key message_id
+              payload { message_id string }
+            }
+          }
+          workflow OrderProcessing {
+            version 0
+            start validate_order
+            step validate_order {
+              expected_execution_time PT10S
+              max_retries -1
+            }
+          }
+          worker OrderWorker {
+            concurrency 0
+          }
+        }
+    )sspec");
+
+    require(has_error_code(diagnostics, "SSPEC4002"), "validator should reject non-positive integer values");
+    require(has_error_code(diagnostics, "SSPEC4003"), "validator should reject negative integer values");
+}
+
+void validator_rejects_invalid_generate_dependencies()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system EmptySystem {
+          generate mt
+          generate dl
+          generate qu
+          generate wf
+          generate openapi
+        }
+    )sspec");
+
+    require(has_error_code(diagnostics, "SSPEC4005"), "validator should reject missing generate dependencies");
+}
+
 } // namespace
 
 void run_validator_milestone_tests()
@@ -228,4 +295,7 @@ void run_validator_milestone_tests()
     validator_rejects_unknown_worker_references();
     validator_rejects_unknown_api_references();
     validator_rejects_invalid_generate_target();
+    validator_rejects_missing_required_declarations();
+    validator_rejects_invalid_positive_and_non_negative_values();
+    validator_rejects_invalid_generate_dependencies();
 }
