@@ -204,7 +204,7 @@ void validator_rejects_invalid_generate_target()
 
 } // namespace
 
-int main()
+void run_validator_milestone_tests()
 {
     validator_accepts_resolved_references();
     validator_rejects_duplicate_top_level_names();
@@ -213,7 +213,4 @@ int main()
     validator_rejects_unknown_worker_references();
     validator_rejects_unknown_api_references();
     validator_rejects_invalid_generate_target();
-
-    std::cout << "validator milestone tests passed\n";
-    return 0;
 }
