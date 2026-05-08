@@ -235,7 +235,10 @@ void validator_rejects_missing_required_declarations()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC4001"), "validator should reject missing required declarations");
+    require(
+        has_error_code(diagnostics, "SSPEC4001"),
+        "validator should reject missing required declarations"
+    );
 }
 
 void validator_rejects_invalid_positive_and_non_negative_values()
@@ -265,8 +268,13 @@ void validator_rejects_invalid_positive_and_non_negative_values()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC4002"), "validator should reject non-positive integer values");
-    require(has_error_code(diagnostics, "SSPEC4003"), "validator should reject negative integer values");
+    require(
+        has_error_code(diagnostics, "SSPEC4002"),
+        "validator should reject non-positive integer values"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4003"), "validator should reject negative integer values"
+    );
 }
 
 void validator_rejects_invalid_generate_dependencies()
@@ -281,7 +289,10 @@ void validator_rejects_invalid_generate_dependencies()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC4005"), "validator should reject missing generate dependencies");
+    require(
+        has_error_code(diagnostics, "SSPEC4005"),
+        "validator should reject missing generate dependencies"
+    );
 }
 
 } // namespace

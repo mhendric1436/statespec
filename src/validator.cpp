@@ -198,7 +198,9 @@ void dependency_error(
     const std::string& dependency
 )
 {
-    diagnostics.error(range, "SSPEC4005", "generate " + target + " requires at least one " + dependency);
+    diagnostics.error(
+        range, "SSPEC4005", "generate " + target + " requires at least one " + dependency
+    );
 }
 
 void add_symbol(
@@ -267,16 +269,24 @@ void validate_state_machine(
 
     if (state_machine.states.empty())
     {
-        required_error(diagnostics, state_machine.range, "state_machine for entity '" + entity.name + "'", "at least one state");
+        required_error(
+            diagnostics, state_machine.range, "state_machine for entity '" + entity.name + "'",
+            "at least one state"
+        );
     }
 
     if (!state_machine.initial_state.has_value())
     {
-        required_error(diagnostics, state_machine.range, "state_machine for entity '" + entity.name + "'", "an initial state");
+        required_error(
+            diagnostics, state_machine.range, "state_machine for entity '" + entity.name + "'",
+            "an initial state"
+        );
     }
     else if (!contains(states, *state_machine.initial_state))
     {
-        unknown_reference_error(diagnostics, state_machine.range, "initial state", *state_machine.initial_state);
+        unknown_reference_error(
+            diagnostics, state_machine.range, "initial state", *state_machine.initial_state
+        );
     }
 
     for (const auto& terminal : state_machine.terminal_states)
@@ -291,11 +301,15 @@ void validate_state_machine(
     {
         if (!contains(states, transition.from))
         {
-            unknown_reference_error(diagnostics, transition.range, "transition source state", transition.from);
+            unknown_reference_error(
+                diagnostics, transition.range, "transition source state", transition.from
+            );
         }
         if (!contains(states, transition.to))
         {
-            unknown_reference_error(diagnostics, transition.range, "transition target state", transition.to);
+            unknown_reference_error(
+                diagnostics, transition.range, "transition target state", transition.to
+            );
         }
     }
 }
@@ -310,7 +324,9 @@ void validate_entities(
     {
         if (entity.key_fields.empty())
         {
-            diagnostics.error(entity.range, "SSPEC3101", "entity '" + entity.name + "' must declare a key");
+            diagnostics.error(
+                entity.range, "SSPEC3101", "entity '" + entity.name + "' must declare a key"
+            );
         }
         if (entity.fields.empty())
         {
@@ -351,15 +367,21 @@ void validate_queues(
         }
         if (queue.visibility_timeout.has_value() && !is_duration_literal(*queue.visibility_timeout))
         {
-            duration_error(diagnostics, queue.range, "queue '" + queue.name + "'", "visibility_timeout");
+            duration_error(
+                diagnostics, queue.range, "queue '" + queue.name + "'", "visibility_timeout"
+            );
         }
         if (queue.max_attempts.has_value() && !is_positive_integer(*queue.max_attempts))
         {
-            positive_integer_error(diagnostics, queue.range, "queue '" + queue.name + "'", "max_attempts");
+            positive_integer_error(
+                diagnostics, queue.range, "queue '" + queue.name + "'", "max_attempts"
+            );
         }
         if (queue.messages.empty())
         {
-            required_error(diagnostics, queue.range, "queue '" + queue.name + "'", "at least one message");
+            required_error(
+                diagnostics, queue.range, "queue '" + queue.name + "'", "at least one message"
+            );
         }
 
         std::unordered_set<std::string> message_names;
@@ -371,11 +393,17 @@ void validate_queues(
             }
             if (!message.idempotency_key.has_value())
             {
-                required_error(diagnostics, message.range, "message '" + queue_message_name(queue, message) + "'", "idempotency_key");
+                required_error(
+                    diagnostics, message.range,
+                    "message '" + queue_message_name(queue, message) + "'", "idempotency_key"
+                );
             }
             if (message.payload_fields.empty())
             {
-                required_error(diagnostics, message.range, "message '" + queue_message_name(queue, message) + "'", "payload");
+                required_error(
+                    diagnostics, message.range,
+                    "message '" + queue_message_name(queue, message) + "'", "payload"
+                );
             }
 
             validate_field_duplicates(message.payload_fields, diagnostics);
@@ -386,7 +414,10 @@ void validate_queues(
                 const auto payload_fields = field_names(message.payload_fields);
                 if (!contains(payload_fields, *message.idempotency_key))
                 {
-                    unknown_reference_error(diagnostics, message.range, "message idempotency_key field", *message.idempotency_key);
+                    unknown_reference_error(
+                        diagnostics, message.range, "message idempotency_key field",
+                        *message.idempotency_key
+                    );
                 }
             }
         }
@@ -437,23 +468,35 @@ void validate_workflows(
     {
         if (!workflow.version.has_value())
         {
-            required_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "version");
+            required_error(
+                diagnostics, workflow.range, "workflow '" + workflow.name + "'", "version"
+            );
         }
         else if (!is_positive_integer(*workflow.version))
         {
-            positive_integer_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "version");
+            positive_integer_error(
+                diagnostics, workflow.range, "workflow '" + workflow.name + "'", "version"
+            );
         }
         if (!workflow.start_step.has_value())
         {
-            required_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "start step");
+            required_error(
+                diagnostics, workflow.range, "workflow '" + workflow.name + "'", "start step"
+            );
         }
         if (workflow.steps.empty())
         {
-            required_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "at least one step");
+            required_error(
+                diagnostics, workflow.range, "workflow '" + workflow.name + "'", "at least one step"
+            );
         }
-        if (workflow.expected_execution_time.has_value() && !is_duration_literal(*workflow.expected_execution_time))
+        if (workflow.expected_execution_time.has_value() &&
+            !is_duration_literal(*workflow.expected_execution_time))
         {
-            duration_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "expected_execution_time");
+            duration_error(
+                diagnostics, workflow.range, "workflow '" + workflow.name + "'",
+                "expected_execution_time"
+            );
         }
 
         std::unordered_set<std::string> steps;
@@ -465,21 +508,34 @@ void validate_workflows(
             }
             if (!step.expected_execution_time.has_value())
             {
-                required_error(diagnostics, step.range, "workflow step '" + workflow_step_name(workflow, step) + "'", "expected_execution_time");
+                required_error(
+                    diagnostics, step.range,
+                    "workflow step '" + workflow_step_name(workflow, step) + "'",
+                    "expected_execution_time"
+                );
             }
             else if (!is_duration_literal(*step.expected_execution_time))
             {
-                duration_error(diagnostics, step.range, "workflow step '" + workflow_step_name(workflow, step) + "'", "expected_execution_time");
+                duration_error(
+                    diagnostics, step.range,
+                    "workflow step '" + workflow_step_name(workflow, step) + "'",
+                    "expected_execution_time"
+                );
             }
             if (step.max_retries.has_value() && !is_non_negative_integer(*step.max_retries))
             {
-                non_negative_integer_error(diagnostics, step.range, "workflow step '" + workflow_step_name(workflow, step) + "'", "max_retries");
+                non_negative_integer_error(
+                    diagnostics, step.range,
+                    "workflow step '" + workflow_step_name(workflow, step) + "'", "max_retries"
+                );
             }
         }
 
         if (workflow.start_step.has_value() && !contains(steps, *workflow.start_step))
         {
-            unknown_reference_error(diagnostics, workflow.range, "workflow start step", *workflow.start_step);
+            unknown_reference_error(
+                diagnostics, workflow.range, "workflow start step", *workflow.start_step
+            );
         }
     }
 }
@@ -494,11 +550,16 @@ void validate_workers(
     {
         if (worker.singleton.value_or(false) && !worker.lease.has_value())
         {
-            diagnostics.error(worker.range, "SSPEC3301", "singleton worker '" + worker.name + "' must declare a lease");
+            diagnostics.error(
+                worker.range, "SSPEC3301",
+                "singleton worker '" + worker.name + "' must declare a lease"
+            );
         }
         if (worker.concurrency.has_value() && !is_positive_integer(*worker.concurrency))
         {
-            positive_integer_error(diagnostics, worker.range, "worker '" + worker.name + "'", "concurrency");
+            positive_integer_error(
+                diagnostics, worker.range, "worker '" + worker.name + "'", "concurrency"
+            );
         }
 
         if (worker.lease.has_value() && !symbols.find(*worker.lease).has_value())
@@ -507,11 +568,15 @@ void validate_workers(
         }
         if (worker.polls.has_value() && !symbols.find(*worker.polls).has_value())
         {
-            unknown_reference_error(diagnostics, worker.range, "worker polls target", *worker.polls);
+            unknown_reference_error(
+                diagnostics, worker.range, "worker polls target", *worker.polls
+            );
         }
         if (worker.executes.has_value() && !symbols.find(*worker.executes).has_value())
         {
-            unknown_reference_error(diagnostics, worker.range, "worker executes target", *worker.executes);
+            unknown_reference_error(
+                diagnostics, worker.range, "worker executes target", *worker.executes
+            );
         }
     }
 }
@@ -534,7 +599,9 @@ void validate_apis(
         }
         if (api.starts_workflow.has_value() && !symbols.find(*api.starts_workflow).has_value())
         {
-            unknown_reference_error(diagnostics, api.range, "API starts workflow", *api.starts_workflow);
+            unknown_reference_error(
+                diagnostics, api.range, "API starts workflow", *api.starts_workflow
+            );
         }
         if (api.enqueues.has_value() && !symbols.find(*api.enqueues).has_value())
         {
@@ -555,7 +622,9 @@ void validate_policies(
         {
             if (!symbols.find(rule.action).has_value())
             {
-                unknown_reference_error(diagnostics, rule.range, "policy allow action", rule.action);
+                unknown_reference_error(
+                    diagnostics, rule.range, "policy allow action", rule.action
+                );
             }
         }
         for (const auto& rule : policy.denies)
@@ -584,20 +653,27 @@ void validate_generators(
     {
         if (!is_generate_target(generator.target))
         {
-            unknown_reference_error(diagnostics, generator.range, "generate target", generator.target);
+            unknown_reference_error(
+                diagnostics, generator.range, "generate target", generator.target
+            );
         }
         if (generator.runtime.has_value() && !is_generate_target(*generator.runtime))
         {
-            unknown_reference_error(diagnostics, generator.range, "generate runtime", *generator.runtime);
+            unknown_reference_error(
+                diagnostics, generator.range, "generate runtime", *generator.runtime
+            );
         }
 
         if ((generator.target == "mt" || generator.target == "all") && system.entities.empty())
         {
             dependency_error(diagnostics, generator.range, generator.target, "entity declaration");
         }
-        if ((generator.target == "dl" || generator.target == "all") && system.leases.empty() && system.workers.empty())
+        if ((generator.target == "dl" || generator.target == "all") && system.leases.empty() &&
+            system.workers.empty())
         {
-            dependency_error(diagnostics, generator.range, generator.target, "lease or worker declaration");
+            dependency_error(
+                diagnostics, generator.range, generator.target, "lease or worker declaration"
+            );
         }
         if ((generator.target == "qu" || generator.target == "all") && system.queues.empty())
         {
@@ -605,7 +681,9 @@ void validate_generators(
         }
         if ((generator.target == "wf" || generator.target == "all") && system.workflows.empty())
         {
-            dependency_error(diagnostics, generator.range, generator.target, "workflow declaration");
+            dependency_error(
+                diagnostics, generator.range, generator.target, "workflow declaration"
+            );
         }
         if ((generator.target == "openapi" || generator.target == "all") && system.apis.empty())
         {
@@ -631,7 +709,10 @@ SymbolTable build_symbol_table(
         add_symbol(symbols, diagnostics, SymbolKind::Queue, queue.name, queue.range);
         for (const auto& message : queue.messages)
         {
-            add_symbol(symbols, diagnostics, SymbolKind::Message, queue_message_name(queue, message), message.range);
+            add_symbol(
+                symbols, diagnostics, SymbolKind::Message, queue_message_name(queue, message),
+                message.range
+            );
         }
     }
     for (const auto& lease : system.leases)
@@ -651,7 +732,10 @@ SymbolTable build_symbol_table(
         add_symbol(symbols, diagnostics, SymbolKind::Workflow, workflow.name, workflow.range);
         for (const auto& step : workflow.steps)
         {
-            add_symbol(symbols, diagnostics, SymbolKind::WorkflowStep, workflow_step_name(workflow, step), step.range);
+            add_symbol(
+                symbols, diagnostics, SymbolKind::WorkflowStep, workflow_step_name(workflow, step),
+                step.range
+            );
         }
     }
     for (const auto& policy : system.policies)
