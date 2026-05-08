@@ -1,5 +1,6 @@
 #include "statespec/diagnostic.hpp"
 #include "statespec/lexer.hpp"
+#include "statespec/parser.hpp"
 #include "statespec/source.hpp"
 #include "statespec/symbol_table.hpp"
 #include "statespec/token.hpp"
@@ -7,15 +8,13 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <string>
 #include <vector>
 
 namespace
 {
 
-void require(
-    bool condition,
-    const char* message
-)
+void require(bool condition, const char* message)
 {
     if (!condition)
     {
@@ -40,6 +39,24 @@ std::vector<statespec::Token> lex_text(const std::string& text)
     auto tokens = lex_text(text, diagnostics);
     require(!diagnostics.has_errors(), "lexer should not produce diagnostics for valid input");
     return tokens;
+}
+
+statespec::Spec parse_text(
+    const std::string& text,
+    statespec::DiagnosticBag& diagnostics
+)
+{
+    auto tokens = lex_text(text, diagnostics);
+    statespec::Parser parser{std::move(tokens)};
+    return parser.parse(diagnostics);
+}
+
+statespec::Spec parse_text(const std::string& text)
+{
+    statespec::DiagnosticBag diagnostics;
+    auto spec = parse_text(text, diagnostics);
+    require(!diagnostics.has_errors(), "parser should not produce errors for valid input");
+    return spec;
 }
 
 void diagnostic_bag_records_errors()
@@ -195,6 +212,96 @@ void lexer_reports_unterminated_block_comment()
     );
 }
 
+void parser_parses_empty_system()
+{
+    const auto spec = parse_text("statespec 0.1; system OrderSystem {}");
+    require(spec.version == "0.1", "parser should capture version");
+    require(spec.system.has_value(), "parser should capture system");
+    require(spec.system->name == "OrderSystem", "parser should capture system name");
+}
+
+void parser_parses_entity_fields_and_state_machine()
+{
+    const auto spec = parse_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key tenant_id, order_id
+            fields {
+              tenant_id string
+              order_id string
+              status string
+            }
+            state_machine {
+              state Creating
+              state Active
+              state Failed { terminal: true }
+              initial Creating
+              terminal [Failed]
+              Creating -> Active
+              Creating -> Failed
+            }
+          }
+        }
+    )sspec");
+
+    require(spec.system.has_value(), "parser should parse system");
+    require(spec.system->entities.size() == 1, "parser should parse one entity");
+    const auto& entity = spec.system->entities[0];
+    require(entity.name == "Order", "parser should parse entity name");
+    require(entity.key_fields.size() == 2, "parser should parse composite key fields");
+    require(entity.fields.size() == 3, "parser should parse fields");
+    require(entity.fields[0].name == "tenant_id", "parser should parse field name");
+    require(entity.fields[0].type == "string", "parser should parse field type");
+    require(entity.state_machine.has_value(), "parser should parse state machine");
+    require(entity.state_machine->states.size() == 3, "parser should parse states");
+    require(entity.state_machine->initial_state == "Creating", "parser should parse initial state");
+    require(entity.state_machine->terminal_states.size() == 1, "parser should parse terminal states");
+    require(entity.state_machine->transitions.size() == 2, "parser should parse transitions");
+}
+
+void parser_parses_workflow_steps()
+{
+    const auto spec = parse_text(R"sspec(
+        system OrderSystem {
+          workflow OrderProcessing {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start validate_order
+            step validate_order {
+              expected_execution_time PT10S
+              max_retries 2
+            }
+            step charge_payment {
+              expected_execution_time PT30S
+              max_retries 3
+            }
+          }
+        }
+    )sspec");
+
+    require(spec.system.has_value(), "parser should parse system");
+    require(spec.system->workflows.size() == 1, "parser should parse one workflow");
+    const auto& workflow = spec.system->workflows[0];
+    require(workflow.name == "OrderProcessing", "parser should parse workflow name");
+    require(workflow.version == 1, "parser should parse workflow version");
+    require(workflow.singleton == false, "parser should parse singleton value");
+    require(workflow.expected_execution_time == "PT5M", "parser should parse workflow duration");
+    require(workflow.start_step == "validate_order", "parser should parse start step");
+    require(workflow.steps.size() == 2, "parser should parse workflow steps");
+    require(workflow.steps[0].name == "validate_order", "parser should parse first step name");
+    require(workflow.steps[0].expected_execution_time == "PT10S", "parser should parse step duration");
+    require(workflow.steps[0].max_retries == 2, "parser should parse max_retries");
+}
+
+void parser_reports_missing_system()
+{
+    statespec::DiagnosticBag diagnostics;
+    auto spec = parse_text("entity Order {}", diagnostics);
+    require(!spec.system.has_value(), "parser should not synthesize missing system");
+    require(diagnostics.has_errors(), "parser should report missing system");
+}
+
 void validator_rejects_missing_system()
 {
     statespec::Spec spec;
@@ -218,6 +325,10 @@ int main()
     lexer_tracks_line_and_column();
     lexer_reports_unterminated_string();
     lexer_reports_unterminated_block_comment();
+    parser_parses_empty_system();
+    parser_parses_entity_fields_and_state_machine();
+    parser_parses_workflow_steps();
+    parser_reports_missing_system();
     validator_rejects_missing_system();
 
     std::cout << "smoke tests passed\n";
