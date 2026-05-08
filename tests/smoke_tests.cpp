@@ -334,7 +334,9 @@ void parser_parses_queue_and_message()
     require(queue.dead_letter == "EmailQueue.DeadLetter", "parser should parse dead_letter");
     require(queue.messages.size() == 1, "parser should parse queue message");
     require(queue.messages[0].name == "SendConfirmation", "parser should parse message name");
-    require(queue.messages[0].idempotency_key == "message_id", "parser should parse idempotency key");
+    require(
+        queue.messages[0].idempotency_key == "message_id", "parser should parse idempotency key"
+    );
     require(queue.messages[0].payload_fields.size() == 3, "parser should parse payload fields");
 }
 

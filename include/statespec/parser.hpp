@@ -56,7 +56,10 @@ class Parser
     );
     std::string parse_type_name(DiagnosticBag& diagnostics);
     std::vector<std::string> parse_identifier_list(DiagnosticBag& diagnostics);
-    std::string parse_simple_value(DiagnosticBag& diagnostics, const std::string& context);
+    std::string parse_simple_value(
+        DiagnosticBag& diagnostics,
+        const std::string& context
+    );
     std::string parse_simple_expression_until_boundary();
     std::string parse_generate_target(DiagnosticBag& diagnostics);
 

@@ -32,7 +32,10 @@ std::string strip_quotes(const std::string& value)
     return value;
 }
 
-bool is_named_identifier(const Token& token, const std::string& name)
+bool is_named_identifier(
+    const Token& token,
+    const std::string& name
+)
 {
     return token.kind == TokenKind::Identifier && token.lexeme == name;
 }
@@ -121,7 +124,11 @@ Token Parser::advance()
     return previous();
 }
 
-Token Parser::consume(TokenKind kind, const std::string& message, DiagnosticBag& diagnostics)
+Token Parser::consume(
+    TokenKind kind,
+    const std::string& message,
+    DiagnosticBag& diagnostics
+)
 {
     if (check(kind))
     {
@@ -170,12 +177,14 @@ Spec Parser::parse_spec(DiagnosticBag& diagnostics)
 
 ImportDecl Parser::parse_import_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordImport, "expected import declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordImport, "expected import declaration", diagnostics);
     ImportDecl import_decl;
     import_decl.name = parse_qualified_name(diagnostics, "import name");
     if (match(TokenKind::KeywordAs))
     {
-        import_decl.alias = consume(TokenKind::Identifier, "expected import alias", diagnostics).lexeme;
+        import_decl.alias =
+            consume(TokenKind::Identifier, "expected import alias", diagnostics).lexeme;
     }
     consume(TokenKind::Semicolon, "expected ';' after import declaration", diagnostics);
     import_decl.range = SourceRange{start.range.begin, previous().range.end};
@@ -184,7 +193,8 @@ ImportDecl Parser::parse_import_decl(DiagnosticBag& diagnostics)
 
 SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordSystem, "expected system declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordSystem, "expected system declaration", diagnostics);
     auto name = consume(TokenKind::Identifier, "expected system name", diagnostics);
     SystemDecl system;
     system.name = name.lexeme;
@@ -237,7 +247,8 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 
 EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordEntity, "expected entity declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordEntity, "expected entity declaration", diagnostics);
     auto name = consume(TokenKind::Identifier, "expected entity name", diagnostics);
     EntityDecl entity;
     entity.name = name.lexeme;
@@ -333,7 +344,8 @@ QueueDecl Parser::parse_queue_decl(DiagnosticBag& diagnostics)
 
 MessageDecl Parser::parse_message_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordMessage, "expected message declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordMessage, "expected message declaration", diagnostics);
     const auto name = consume(TokenKind::Identifier, "expected message name", diagnostics);
     MessageDecl message;
     message.name = name.lexeme;
@@ -345,7 +357,8 @@ MessageDecl Parser::parse_message_decl(DiagnosticBag& diagnostics)
         {
             advance();
             message.idempotency_key =
-                consume(TokenKind::Identifier, "expected idempotency key field", diagnostics).lexeme;
+                consume(TokenKind::Identifier, "expected idempotency key field", diagnostics)
+                    .lexeme;
             consume_optional_semicolon();
         }
         else if (check(TokenKind::KeywordPayload))
@@ -430,7 +443,8 @@ LeaseDecl Parser::parse_lease_decl(DiagnosticBag& diagnostics)
 
 WorkerDecl Parser::parse_worker_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordWorker, "expected worker declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordWorker, "expected worker declaration", diagnostics);
     const auto name = consume(TokenKind::Identifier, "expected worker name", diagnostics);
     WorkerDecl worker;
     worker.name = name.lexeme;
@@ -720,7 +734,8 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
 
 PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordPolicy, "expected policy declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordPolicy, "expected policy declaration", diagnostics);
     const auto name = consume(TokenKind::Identifier, "expected policy name", diagnostics);
     PolicyDecl policy;
     policy.name = name.lexeme;
@@ -790,7 +805,8 @@ PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
 
 GenerateDecl Parser::parse_generate_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordGenerate, "expected generate declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordGenerate, "expected generate declaration", diagnostics);
     GenerateDecl generate;
     generate.target = parse_generate_target(diagnostics);
 
@@ -838,7 +854,10 @@ GenerateDecl Parser::parse_generate_decl(DiagnosticBag& diagnostics)
     return generate;
 }
 
-std::string Parser::parse_qualified_name(DiagnosticBag& diagnostics, const std::string& context)
+std::string Parser::parse_qualified_name(
+    DiagnosticBag& diagnostics,
+    const std::string& context
+)
 {
     auto name = consume(TokenKind::Identifier, "expected " + context, diagnostics).lexeme;
     while (match(TokenKind::Dot))
@@ -882,21 +901,22 @@ std::vector<std::string> Parser::parse_identifier_list(DiagnosticBag& diagnostic
     return values;
 }
 
-std::string Parser::parse_simple_value(DiagnosticBag& diagnostics, const std::string& context)
+std::string Parser::parse_simple_value(
+    DiagnosticBag& diagnostics,
+    const std::string& context
+)
 {
     if (check(TokenKind::Identifier))
     {
         return parse_qualified_name(diagnostics, context);
     }
-    if (match_any(
-            {
-                TokenKind::StringLiteral,
-                TokenKind::DurationLiteral,
-                TokenKind::IntegerLiteral,
-                TokenKind::DecimalLiteral,
-                TokenKind::BooleanLiteral,
-            }
-        ))
+    if (match_any({
+            TokenKind::StringLiteral,
+            TokenKind::DurationLiteral,
+            TokenKind::IntegerLiteral,
+            TokenKind::DecimalLiteral,
+            TokenKind::BooleanLiteral,
+        }))
     {
         return strip_quotes(previous().lexeme);
     }
@@ -926,15 +946,13 @@ std::string Parser::parse_generate_target(DiagnosticBag& diagnostics)
     {
         return advance().lexeme;
     }
-    if (match_any(
-            {
-                TokenKind::KeywordApi,
-                TokenKind::KeywordWorkflow,
-                TokenKind::KeywordQueue,
-                TokenKind::KeywordLease,
-                TokenKind::KeywordWorker,
-            }
-        ))
+    if (match_any({
+            TokenKind::KeywordApi,
+            TokenKind::KeywordWorkflow,
+            TokenKind::KeywordQueue,
+            TokenKind::KeywordLease,
+            TokenKind::KeywordWorker,
+        }))
     {
         return previous().lexeme;
     }
