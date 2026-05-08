@@ -1,0 +1,158 @@
+statespec 0.1;
+
+system OrderSystem {
+  entity Order {
+    key tenant_id, order_id
+
+    fields {
+      tenant_id string
+      order_id string
+      customer_id string
+      status string
+      total_cents int64
+      created_at timestamp
+      updated_at timestamp?
+    }
+
+    state_machine {
+      state Created
+      state Validated
+      state PaymentPending
+      state Paid
+      state FulfillmentPending
+      state Fulfilled
+      state Cancelled
+      state Failed
+
+      initial Created
+      terminal [Fulfilled, Cancelled, Failed]
+
+      Created -> Validated
+      Validated -> PaymentPending
+      PaymentPending -> Paid
+      Paid -> FulfillmentPending
+      FulfillmentPending -> Fulfilled
+      Created -> Cancelled
+      Validated -> Cancelled
+      PaymentPending -> Failed
+      FulfillmentPending -> Failed
+    }
+  }
+
+  queue OrderEvents {
+    namespace workflow_ns
+    channel order-events
+    visibility_timeout PT30S
+    max_attempts 5
+
+    message OrderValidated {
+      idempotency_key message_id
+      payload {
+        message_id string
+        tenant_id string
+        order_id string
+      }
+    }
+
+    message PaymentCaptured {
+      idempotency_key message_id
+      payload {
+        message_id string
+        tenant_id string
+        order_id string
+        payment_id string
+      }
+    }
+  }
+
+  queue NotificationQueue {
+    namespace workflow_ns
+    channel notifications
+    visibility_timeout PT30S
+    max_attempts 3
+
+    message SendOrderConfirmation {
+      idempotency_key message_id
+      payload {
+        message_id string
+        tenant_id string
+        order_id string
+        customer_id string
+      }
+    }
+  }
+
+  lease OrderWorkflowLease {
+    resource "workflow:order-processing"
+    ttl PT30S
+    renew_every PT10S
+    holder worker_id
+    fencing_token true
+    max_ttl PT5M
+  }
+
+  workflow OrderProcessing {
+    version 1
+    singleton false
+    expected_execution_time PT5M
+    start validate_order
+
+    step validate_order {
+      expected_execution_time PT10S
+      max_retries 2
+    }
+
+    step capture_payment {
+      expected_execution_time PT30S
+      max_retries 3
+    }
+
+    step enqueue_confirmation {
+      expected_execution_time PT10S
+      max_retries 2
+    }
+  }
+
+  worker OrderWorkflowWorker {
+    singleton true
+    lease OrderWorkflowLease
+    polls OrderEvents.OrderValidated
+    executes OrderProcessing
+    concurrency 4
+  }
+
+  api StartOrderProcessing {
+    method POST
+    path "/v1/tenants/{tenantId}/orders/{orderId}/start"
+    input StartOrderProcessingRequest
+    output StartOrderProcessingResponse
+    error ProblemDetails
+    starts workflow OrderProcessing
+    enqueues OrderEvents.OrderValidated
+  }
+
+  api SendOrderConfirmation {
+    method POST
+    path "/v1/tenants/{tenantId}/orders/{orderId}/confirmation"
+    input SendOrderConfirmationRequest
+    output SendOrderConfirmationResponse
+    error ProblemDetails
+    enqueues NotificationQueue.SendOrderConfirmation
+  }
+
+  policy OrderAccess {
+    tenant scoped_by tenant_id
+    allow StartOrderProcessing when caller.role == operator;
+    allow SendOrderConfirmation when caller.role == operator;
+    deny StartOrderProcessing when caller.suspended == true;
+    quota starts_per_minute: 60;
+    audit StartOrderProcessing;
+    audit SendOrderConfirmation;
+  }
+
+  generate mt { out "generated/mt" }
+  generate dl { out "generated/dl" }
+  generate qu { out "generated/qu" }
+  generate wf { out "generated/wf" }
+  generate openapi { out "generated/openapi" }
+}
