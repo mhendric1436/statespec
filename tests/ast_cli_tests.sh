@@ -32,9 +32,7 @@ printf '%s\n' "$AST_OUTPUT" | grep -q '"target": "dl"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"target": "qu"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"target": "wf"'
 
-python3 - <<'PY' <<EOF
-$AST_OUTPUT
-EOF
+printf '%s\n' "$AST_OUTPUT" | python3 -c '
 import json
 import sys
 
@@ -45,6 +43,6 @@ assert len(document["system"]["entities"]) >= 1
 assert len(document["system"]["queues"]) >= 1
 assert len(document["system"]["workflows"]) >= 1
 assert len(document["system"]["generators"]) >= 1
-PY
+'
 
 echo "ast CLI tests passed"
