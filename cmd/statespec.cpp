@@ -9,8 +9,10 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace {
 
