@@ -28,7 +28,11 @@ class Parser
     bool match(TokenKind kind);
     bool match_any(std::initializer_list<TokenKind> kinds);
     Token advance();
-    Token consume(TokenKind kind, const std::string& message, DiagnosticBag& diagnostics);
+    Token consume(
+        TokenKind kind,
+        const std::string& message,
+        DiagnosticBag& diagnostics
+    );
 
     Spec parse_spec(DiagnosticBag& diagnostics);
     ImportDecl parse_import_decl(DiagnosticBag& diagnostics);
@@ -39,7 +43,10 @@ class Parser
     StateMachineDecl parse_state_machine_decl(DiagnosticBag& diagnostics);
     FieldDecl parse_field_decl(DiagnosticBag& diagnostics);
 
-    std::string parse_qualified_name(DiagnosticBag& diagnostics, const std::string& context);
+    std::string parse_qualified_name(
+        DiagnosticBag& diagnostics,
+        const std::string& context
+    );
     std::string parse_type_name(DiagnosticBag& diagnostics);
     std::vector<std::string> parse_identifier_list(DiagnosticBag& diagnostics);
 

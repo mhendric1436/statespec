@@ -15,7 +15,10 @@
 namespace
 {
 
-void require(bool condition, const char* message)
+void require(
+    bool condition,
+    const char* message
+)
 {
     if (!condition)
     {
@@ -256,7 +259,9 @@ void parser_parses_entity_fields_and_state_machine()
     require(entity.state_machine.has_value(), "parser should parse state machine");
     require(entity.state_machine->states.size() == 3, "parser should parse states");
     require(entity.state_machine->initial_state == "Creating", "parser should parse initial state");
-    require(entity.state_machine->terminal_states.size() == 1, "parser should parse terminal states");
+    require(
+        entity.state_machine->terminal_states.size() == 1, "parser should parse terminal states"
+    );
     require(entity.state_machine->transitions.size() == 2, "parser should parse transitions");
 }
 
@@ -291,7 +296,9 @@ void parser_parses_workflow_steps()
     require(workflow.start_step == "validate_order", "parser should parse start step");
     require(workflow.steps.size() == 2, "parser should parse workflow steps");
     require(workflow.steps[0].name == "validate_order", "parser should parse first step name");
-    require(workflow.steps[0].expected_execution_time == "PT10S", "parser should parse step duration");
+    require(
+        workflow.steps[0].expected_execution_time == "PT10S", "parser should parse step duration"
+    );
     require(workflow.steps[0].max_retries == 2, "parser should parse max_retries");
 }
 

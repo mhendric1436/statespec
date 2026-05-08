@@ -107,7 +107,11 @@ Token Parser::advance()
     return previous();
 }
 
-Token Parser::consume(TokenKind kind, const std::string& message, DiagnosticBag& diagnostics)
+Token Parser::consume(
+    TokenKind kind,
+    const std::string& message,
+    DiagnosticBag& diagnostics
+)
 {
     if (check(kind))
     {
@@ -124,7 +128,8 @@ Spec Parser::parse_spec(DiagnosticBag& diagnostics)
 
     if (match(TokenKind::KeywordStatespec))
     {
-        const auto version = consume(TokenKind::DecimalLiteral, "expected StateSpec version", diagnostics);
+        const auto version =
+            consume(TokenKind::DecimalLiteral, "expected StateSpec version", diagnostics);
         spec.version = version.lexeme;
         consume(TokenKind::Semicolon, "expected ';' after StateSpec version", diagnostics);
     }
@@ -155,12 +160,14 @@ Spec Parser::parse_spec(DiagnosticBag& diagnostics)
 
 ImportDecl Parser::parse_import_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordImport, "expected import declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordImport, "expected import declaration", diagnostics);
     ImportDecl import_decl;
     import_decl.name = parse_qualified_name(diagnostics, "import name");
     if (match(TokenKind::KeywordAs))
     {
-        import_decl.alias = consume(TokenKind::Identifier, "expected import alias", diagnostics).lexeme;
+        import_decl.alias =
+            consume(TokenKind::Identifier, "expected import alias", diagnostics).lexeme;
     }
     consume(TokenKind::Semicolon, "expected ';' after import declaration", diagnostics);
     import_decl.range = SourceRange{start.range.begin, previous().range.end};
@@ -169,7 +176,8 @@ ImportDecl Parser::parse_import_decl(DiagnosticBag& diagnostics)
 
 SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordSystem, "expected system declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordSystem, "expected system declaration", diagnostics);
     auto name = consume(TokenKind::Identifier, "expected system name", diagnostics);
     SystemDecl system;
     system.name = name.lexeme;
@@ -198,7 +206,8 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 
 EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordEntity, "expected entity declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordEntity, "expected entity declaration", diagnostics);
     auto name = consume(TokenKind::Identifier, "expected entity name", diagnostics);
     EntityDecl entity;
     entity.name = name.lexeme;
@@ -260,7 +269,8 @@ FieldDecl Parser::parse_field_decl(DiagnosticBag& diagnostics)
 
 StateMachineDecl Parser::parse_state_machine_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordStateMachine, "expected state_machine block", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordStateMachine, "expected state_machine block", diagnostics);
     StateMachineDecl state_machine;
     consume(TokenKind::LeftBrace, "expected '{' after state_machine", diagnostics);
 
@@ -281,7 +291,8 @@ StateMachineDecl Parser::parse_state_machine_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordInitial))
         {
-            state_machine.initial_state = consume(TokenKind::Identifier, "expected initial state", diagnostics).lexeme;
+            state_machine.initial_state =
+                consume(TokenKind::Identifier, "expected initial state", diagnostics).lexeme;
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordTerminal))
@@ -302,7 +313,8 @@ StateMachineDecl Parser::parse_state_machine_decl(DiagnosticBag& diagnostics)
         {
             const auto from = advance();
             advance();
-            const auto to = consume(TokenKind::Identifier, "expected transition target state", diagnostics);
+            const auto to =
+                consume(TokenKind::Identifier, "expected transition target state", diagnostics);
             TransitionDecl transition;
             transition.from = from.lexeme;
             transition.to = to.lexeme;
@@ -327,7 +339,8 @@ StateMachineDecl Parser::parse_state_machine_decl(DiagnosticBag& diagnostics)
 
 WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
 {
-    const auto start = consume(TokenKind::KeywordWorkflow, "expected workflow declaration", diagnostics);
+    const auto start =
+        consume(TokenKind::KeywordWorkflow, "expected workflow declaration", diagnostics);
     auto name = consume(TokenKind::Identifier, "expected workflow name", diagnostics);
     WorkflowDecl workflow;
     workflow.name = name.lexeme;
@@ -344,19 +357,22 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordSingleton))
         {
-            const auto value = consume(TokenKind::BooleanLiteral, "expected singleton boolean", diagnostics);
+            const auto value =
+                consume(TokenKind::BooleanLiteral, "expected singleton boolean", diagnostics);
             workflow.singleton = value.lexeme == "true";
             consume_optional_semicolon();
         }
         else if (match(TokenKind::Identifier) && previous().lexeme == "expected_execution_time")
         {
-            auto value = consume(TokenKind::DurationLiteral, "expected workflow duration", diagnostics);
+            auto value =
+                consume(TokenKind::DurationLiteral, "expected workflow duration", diagnostics);
             workflow.expected_execution_time = value.lexeme;
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordStart))
         {
-            workflow.start_step = consume(TokenKind::Identifier, "expected start step name", diagnostics).lexeme;
+            workflow.start_step =
+                consume(TokenKind::Identifier, "expected start step name", diagnostics).lexeme;
             consume_optional_semicolon();
         }
         else if (check(TokenKind::KeywordStep))
@@ -386,7 +402,8 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
     {
         if (match(TokenKind::Identifier) && previous().lexeme == "expected_execution_time")
         {
-            const auto value = consume(TokenKind::DurationLiteral, "expected step duration", diagnostics);
+            const auto value =
+                consume(TokenKind::DurationLiteral, "expected step duration", diagnostics);
             step.expected_execution_time = value.lexeme;
             consume_optional_semicolon();
         }
@@ -408,7 +425,10 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
     return step;
 }
 
-std::string Parser::parse_qualified_name(DiagnosticBag& diagnostics, const std::string& context)
+std::string Parser::parse_qualified_name(
+    DiagnosticBag& diagnostics,
+    const std::string& context
+)
 {
     auto name = consume(TokenKind::Identifier, "expected " + context, diagnostics).lexeme;
     while (match(TokenKind::Dot))
@@ -440,7 +460,9 @@ std::vector<std::string> Parser::parse_identifier_list(DiagnosticBag& diagnostic
     values.push_back(consume(TokenKind::Identifier, "expected identifier", diagnostics).lexeme);
     while (match(TokenKind::Comma))
     {
-        values.push_back(consume(TokenKind::Identifier, "expected identifier after ','", diagnostics).lexeme);
+        values.push_back(
+            consume(TokenKind::Identifier, "expected identifier after ','", diagnostics).lexeme
+        );
     }
     if (bracketed)
     {
@@ -457,7 +479,9 @@ void Parser::consume_optional_semicolon()
 
 void Parser::skip_unknown_declaration(DiagnosticBag& diagnostics)
 {
-    diagnostics.warning(peek().range, "SSPEC0299", "skipping unsupported declaration in current parser milestone");
+    diagnostics.warning(
+        peek().range, "SSPEC0299", "skipping unsupported declaration in current parser milestone"
+    );
 
     if (check(TokenKind::LeftBrace))
     {
