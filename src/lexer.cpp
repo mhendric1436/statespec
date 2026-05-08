@@ -181,8 +181,7 @@ class Scanner
         const SourceFile& source,
         DiagnosticBag& diagnostics
     )
-        : source_(source),
-          diagnostics_(diagnostics),
+        : diagnostics_(diagnostics),
           text_(source.text())
     {
     }
@@ -496,7 +495,6 @@ class Scanner
         diagnostics_.error(SourceRange{start, location_}, "SSPEC0100", message);
     }
 
-    const SourceFile& source_;
     DiagnosticBag& diagnostics_;
     const std::string& text_;
     SourceLocation location_{};
