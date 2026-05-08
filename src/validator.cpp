@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -46,6 +47,55 @@ bool is_generate_target(const std::string& target)
     return targets.find(target) != targets.end();
 }
 
+bool is_positive_integer(int value)
+{
+    return value > 0;
+}
+
+bool is_non_negative_integer(int value)
+{
+    return value >= 0;
+}
+
+bool is_duration_literal(const std::string& value)
+{
+    if (value.size() < 3 || value.front() != 'P')
+    {
+        return false;
+    }
+
+    bool has_digit = false;
+    bool has_unit = false;
+    bool in_time = false;
+
+    for (std::size_t i = 1; i < value.size(); ++i)
+    {
+        const char ch = value[i];
+        if (std::isdigit(static_cast<unsigned char>(ch)) != 0)
+        {
+            has_digit = true;
+            continue;
+        }
+        if (ch == 'T')
+        {
+            if (in_time)
+            {
+                return false;
+            }
+            in_time = true;
+            continue;
+        }
+        if (ch == 'D' || ch == 'H' || ch == 'M' || ch == 'S')
+        {
+            has_unit = true;
+            continue;
+        }
+        return false;
+    }
+
+    return has_digit && has_unit;
+}
+
 std::string queue_message_name(
     const QueueDecl& queue,
     const MessageDecl& message
@@ -82,16 +132,6 @@ std::unordered_set<std::string> step_names(const WorkflowDecl& workflow)
     return names;
 }
 
-std::unordered_set<std::string> state_names(const StateMachineDecl& state_machine)
-{
-    std::unordered_set<std::string> names;
-    for (const auto& state : state_machine.states)
-    {
-        names.insert(state.name);
-    }
-    return names;
-}
-
 void duplicate_error(
     DiagnosticBag& diagnostics,
     const SourceRange& range,
@@ -109,6 +149,56 @@ void unknown_reference_error(
 )
 {
     diagnostics.error(range, "SSPEC3002", "unknown " + kind + " reference '" + name + "'");
+}
+
+void required_error(
+    DiagnosticBag& diagnostics,
+    const SourceRange& range,
+    const std::string& subject,
+    const std::string& field
+)
+{
+    diagnostics.error(range, "SSPEC4001", subject + " must declare " + field);
+}
+
+void positive_integer_error(
+    DiagnosticBag& diagnostics,
+    const SourceRange& range,
+    const std::string& subject,
+    const std::string& field
+)
+{
+    diagnostics.error(range, "SSPEC4002", subject + " " + field + " must be a positive integer");
+}
+
+void non_negative_integer_error(
+    DiagnosticBag& diagnostics,
+    const SourceRange& range,
+    const std::string& subject,
+    const std::string& field
+)
+{
+    diagnostics.error(range, "SSPEC4003", subject + " " + field + " must be non-negative");
+}
+
+void duration_error(
+    DiagnosticBag& diagnostics,
+    const SourceRange& range,
+    const std::string& subject,
+    const std::string& field
+)
+{
+    diagnostics.error(range, "SSPEC4004", subject + " " + field + " must be an ISO-8601 duration");
+}
+
+void dependency_error(
+    DiagnosticBag& diagnostics,
+    const SourceRange& range,
+    const std::string& target,
+    const std::string& dependency
+)
+{
+    diagnostics.error(range, "SSPEC4005", "generate " + target + " requires at least one " + dependency);
 }
 
 void add_symbol(
@@ -175,11 +265,18 @@ void validate_state_machine(
         }
     }
 
-    if (state_machine.initial_state.has_value() && !contains(states, *state_machine.initial_state))
+    if (state_machine.states.empty())
     {
-        unknown_reference_error(
-            diagnostics, state_machine.range, "initial state", *state_machine.initial_state
-        );
+        required_error(diagnostics, state_machine.range, "state_machine for entity '" + entity.name + "'", "at least one state");
+    }
+
+    if (!state_machine.initial_state.has_value())
+    {
+        required_error(diagnostics, state_machine.range, "state_machine for entity '" + entity.name + "'", "an initial state");
+    }
+    else if (!contains(states, *state_machine.initial_state))
+    {
+        unknown_reference_error(diagnostics, state_machine.range, "initial state", *state_machine.initial_state);
     }
 
     for (const auto& terminal : state_machine.terminal_states)
@@ -194,15 +291,11 @@ void validate_state_machine(
     {
         if (!contains(states, transition.from))
         {
-            unknown_reference_error(
-                diagnostics, transition.range, "transition source state", transition.from
-            );
+            unknown_reference_error(diagnostics, transition.range, "transition source state", transition.from);
         }
         if (!contains(states, transition.to))
         {
-            unknown_reference_error(
-                diagnostics, transition.range, "transition target state", transition.to
-            );
+            unknown_reference_error(diagnostics, transition.range, "transition target state", transition.to);
         }
     }
 }
@@ -217,9 +310,11 @@ void validate_entities(
     {
         if (entity.key_fields.empty())
         {
-            diagnostics.error(
-                entity.range, "SSPEC3101", "entity '" + entity.name + "' must declare a key"
-            );
+            diagnostics.error(entity.range, "SSPEC3101", "entity '" + entity.name + "' must declare a key");
+        }
+        if (entity.fields.empty())
+        {
+            required_error(diagnostics, entity.range, "entity '" + entity.name + "'", "fields");
         }
 
         validate_field_duplicates(entity.fields, diagnostics);
@@ -246,12 +341,41 @@ void validate_queues(
 {
     for (const auto& queue : system.queues)
     {
+        if (!queue.namespace_name.has_value())
+        {
+            required_error(diagnostics, queue.range, "queue '" + queue.name + "'", "namespace");
+        }
+        if (!queue.channel.has_value())
+        {
+            required_error(diagnostics, queue.range, "queue '" + queue.name + "'", "channel");
+        }
+        if (queue.visibility_timeout.has_value() && !is_duration_literal(*queue.visibility_timeout))
+        {
+            duration_error(diagnostics, queue.range, "queue '" + queue.name + "'", "visibility_timeout");
+        }
+        if (queue.max_attempts.has_value() && !is_positive_integer(*queue.max_attempts))
+        {
+            positive_integer_error(diagnostics, queue.range, "queue '" + queue.name + "'", "max_attempts");
+        }
+        if (queue.messages.empty())
+        {
+            required_error(diagnostics, queue.range, "queue '" + queue.name + "'", "at least one message");
+        }
+
         std::unordered_set<std::string> message_names;
         for (const auto& message : queue.messages)
         {
             if (!message_names.insert(message.name).second)
             {
                 duplicate_error(diagnostics, message.range, queue_message_name(queue, message));
+            }
+            if (!message.idempotency_key.has_value())
+            {
+                required_error(diagnostics, message.range, "message '" + queue_message_name(queue, message) + "'", "idempotency_key");
+            }
+            if (message.payload_fields.empty())
+            {
+                required_error(diagnostics, message.range, "message '" + queue_message_name(queue, message) + "'", "payload");
             }
 
             validate_field_duplicates(message.payload_fields, diagnostics);
@@ -262,10 +386,7 @@ void validate_queues(
                 const auto payload_fields = field_names(message.payload_fields);
                 if (!contains(payload_fields, *message.idempotency_key))
                 {
-                    unknown_reference_error(
-                        diagnostics, message.range, "message idempotency_key field",
-                        *message.idempotency_key
-                    );
+                    unknown_reference_error(diagnostics, message.range, "message idempotency_key field", *message.idempotency_key);
                 }
             }
         }
@@ -277,6 +398,36 @@ void validate_queues(
     }
 }
 
+void validate_leases(
+    const SystemDecl& system,
+    DiagnosticBag& diagnostics
+)
+{
+    for (const auto& lease : system.leases)
+    {
+        if (!lease.resource.has_value())
+        {
+            required_error(diagnostics, lease.range, "lease '" + lease.name + "'", "resource");
+        }
+        if (!lease.ttl.has_value())
+        {
+            required_error(diagnostics, lease.range, "lease '" + lease.name + "'", "ttl");
+        }
+        else if (!is_duration_literal(*lease.ttl))
+        {
+            duration_error(diagnostics, lease.range, "lease '" + lease.name + "'", "ttl");
+        }
+        if (lease.renew_every.has_value() && !is_duration_literal(*lease.renew_every))
+        {
+            duration_error(diagnostics, lease.range, "lease '" + lease.name + "'", "renew_every");
+        }
+        if (lease.max_ttl.has_value() && !is_duration_literal(*lease.max_ttl))
+        {
+            duration_error(diagnostics, lease.range, "lease '" + lease.name + "'", "max_ttl");
+        }
+    }
+}
+
 void validate_workflows(
     const SystemDecl& system,
     DiagnosticBag& diagnostics
@@ -284,6 +435,27 @@ void validate_workflows(
 {
     for (const auto& workflow : system.workflows)
     {
+        if (!workflow.version.has_value())
+        {
+            required_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "version");
+        }
+        else if (!is_positive_integer(*workflow.version))
+        {
+            positive_integer_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "version");
+        }
+        if (!workflow.start_step.has_value())
+        {
+            required_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "start step");
+        }
+        if (workflow.steps.empty())
+        {
+            required_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "at least one step");
+        }
+        if (workflow.expected_execution_time.has_value() && !is_duration_literal(*workflow.expected_execution_time))
+        {
+            duration_error(diagnostics, workflow.range, "workflow '" + workflow.name + "'", "expected_execution_time");
+        }
+
         std::unordered_set<std::string> steps;
         for (const auto& step : workflow.steps)
         {
@@ -291,13 +463,23 @@ void validate_workflows(
             {
                 duplicate_error(diagnostics, step.range, workflow_step_name(workflow, step));
             }
+            if (!step.expected_execution_time.has_value())
+            {
+                required_error(diagnostics, step.range, "workflow step '" + workflow_step_name(workflow, step) + "'", "expected_execution_time");
+            }
+            else if (!is_duration_literal(*step.expected_execution_time))
+            {
+                duration_error(diagnostics, step.range, "workflow step '" + workflow_step_name(workflow, step) + "'", "expected_execution_time");
+            }
+            if (step.max_retries.has_value() && !is_non_negative_integer(*step.max_retries))
+            {
+                non_negative_integer_error(diagnostics, step.range, "workflow step '" + workflow_step_name(workflow, step) + "'", "max_retries");
+            }
         }
 
         if (workflow.start_step.has_value() && !contains(steps, *workflow.start_step))
         {
-            unknown_reference_error(
-                diagnostics, workflow.range, "workflow start step", *workflow.start_step
-            );
+            unknown_reference_error(diagnostics, workflow.range, "workflow start step", *workflow.start_step);
         }
     }
 }
@@ -312,10 +494,11 @@ void validate_workers(
     {
         if (worker.singleton.value_or(false) && !worker.lease.has_value())
         {
-            diagnostics.error(
-                worker.range, "SSPEC3301",
-                "singleton worker '" + worker.name + "' must declare a lease"
-            );
+            diagnostics.error(worker.range, "SSPEC3301", "singleton worker '" + worker.name + "' must declare a lease");
+        }
+        if (worker.concurrency.has_value() && !is_positive_integer(*worker.concurrency))
+        {
+            positive_integer_error(diagnostics, worker.range, "worker '" + worker.name + "'", "concurrency");
         }
 
         if (worker.lease.has_value() && !symbols.find(*worker.lease).has_value())
@@ -324,15 +507,11 @@ void validate_workers(
         }
         if (worker.polls.has_value() && !symbols.find(*worker.polls).has_value())
         {
-            unknown_reference_error(
-                diagnostics, worker.range, "worker polls target", *worker.polls
-            );
+            unknown_reference_error(diagnostics, worker.range, "worker polls target", *worker.polls);
         }
         if (worker.executes.has_value() && !symbols.find(*worker.executes).has_value())
         {
-            unknown_reference_error(
-                diagnostics, worker.range, "worker executes target", *worker.executes
-            );
+            unknown_reference_error(diagnostics, worker.range, "worker executes target", *worker.executes);
         }
     }
 }
@@ -345,11 +524,17 @@ void validate_apis(
 {
     for (const auto& api : system.apis)
     {
+        if (!api.method.has_value())
+        {
+            required_error(diagnostics, api.range, "api '" + api.name + "'", "method");
+        }
+        if (!api.path.has_value())
+        {
+            required_error(diagnostics, api.range, "api '" + api.name + "'", "path");
+        }
         if (api.starts_workflow.has_value() && !symbols.find(*api.starts_workflow).has_value())
         {
-            unknown_reference_error(
-                diagnostics, api.range, "API starts workflow", *api.starts_workflow
-            );
+            unknown_reference_error(diagnostics, api.range, "API starts workflow", *api.starts_workflow);
         }
         if (api.enqueues.has_value() && !symbols.find(*api.enqueues).has_value())
         {
@@ -370,9 +555,7 @@ void validate_policies(
         {
             if (!symbols.find(rule.action).has_value())
             {
-                unknown_reference_error(
-                    diagnostics, rule.range, "policy allow action", rule.action
-                );
+                unknown_reference_error(diagnostics, rule.range, "policy allow action", rule.action);
             }
         }
         for (const auto& rule : policy.denies)
@@ -401,15 +584,32 @@ void validate_generators(
     {
         if (!is_generate_target(generator.target))
         {
-            unknown_reference_error(
-                diagnostics, generator.range, "generate target", generator.target
-            );
+            unknown_reference_error(diagnostics, generator.range, "generate target", generator.target);
         }
         if (generator.runtime.has_value() && !is_generate_target(*generator.runtime))
         {
-            unknown_reference_error(
-                diagnostics, generator.range, "generate runtime", *generator.runtime
-            );
+            unknown_reference_error(diagnostics, generator.range, "generate runtime", *generator.runtime);
+        }
+
+        if ((generator.target == "mt" || generator.target == "all") && system.entities.empty())
+        {
+            dependency_error(diagnostics, generator.range, generator.target, "entity declaration");
+        }
+        if ((generator.target == "dl" || generator.target == "all") && system.leases.empty() && system.workers.empty())
+        {
+            dependency_error(diagnostics, generator.range, generator.target, "lease or worker declaration");
+        }
+        if ((generator.target == "qu" || generator.target == "all") && system.queues.empty())
+        {
+            dependency_error(diagnostics, generator.range, generator.target, "queue declaration");
+        }
+        if ((generator.target == "wf" || generator.target == "all") && system.workflows.empty())
+        {
+            dependency_error(diagnostics, generator.range, generator.target, "workflow declaration");
+        }
+        if ((generator.target == "openapi" || generator.target == "all") && system.apis.empty())
+        {
+            dependency_error(diagnostics, generator.range, generator.target, "api declaration");
         }
     }
 }
@@ -431,10 +631,7 @@ SymbolTable build_symbol_table(
         add_symbol(symbols, diagnostics, SymbolKind::Queue, queue.name, queue.range);
         for (const auto& message : queue.messages)
         {
-            add_symbol(
-                symbols, diagnostics, SymbolKind::Message, queue_message_name(queue, message),
-                message.range
-            );
+            add_symbol(symbols, diagnostics, SymbolKind::Message, queue_message_name(queue, message), message.range);
         }
     }
     for (const auto& lease : system.leases)
@@ -454,10 +651,7 @@ SymbolTable build_symbol_table(
         add_symbol(symbols, diagnostics, SymbolKind::Workflow, workflow.name, workflow.range);
         for (const auto& step : workflow.steps)
         {
-            add_symbol(
-                symbols, diagnostics, SymbolKind::WorkflowStep, workflow_step_name(workflow, step),
-                step.range
-            );
+            add_symbol(symbols, diagnostics, SymbolKind::WorkflowStep, workflow_step_name(workflow, step), step.range);
         }
     }
     for (const auto& policy : system.policies)
@@ -486,6 +680,7 @@ void Validator::validate(
 
     validate_entities(system, symbols, diagnostics);
     validate_queues(system, symbols, diagnostics);
+    validate_leases(system, diagnostics);
     validate_workflows(system, diagnostics);
     validate_workers(system, symbols, diagnostics);
     validate_apis(system, symbols, diagnostics);
