@@ -302,6 +302,135 @@ void parser_parses_workflow_steps()
     require(workflow.steps[0].max_retries == 2, "parser should parse max_retries");
 }
 
+void parser_parses_queue_and_message()
+{
+    const auto spec = parse_text(R"sspec(
+        system OrderSystem {
+          queue EmailQueue {
+            namespace workflow
+            channel email
+            visibility_timeout PT30S
+            max_attempts 5
+            dead_letter EmailQueue.DeadLetter
+            message SendConfirmation {
+              idempotency_key message_id
+              payload {
+                message_id string
+                order_id string
+                email string
+              }
+            }
+          }
+        }
+    )sspec");
+
+    require(spec.system->queues.size() == 1, "parser should parse one queue");
+    const auto& queue = spec.system->queues[0];
+    require(queue.name == "EmailQueue", "parser should parse queue name");
+    require(queue.namespace_name == "workflow", "parser should parse queue namespace");
+    require(queue.channel == "email", "parser should parse queue channel");
+    require(queue.visibility_timeout == "PT30S", "parser should parse visibility timeout");
+    require(queue.max_attempts == 5, "parser should parse max_attempts");
+    require(queue.dead_letter == "EmailQueue.DeadLetter", "parser should parse dead_letter");
+    require(queue.messages.size() == 1, "parser should parse queue message");
+    require(queue.messages[0].name == "SendConfirmation", "parser should parse message name");
+    require(queue.messages[0].idempotency_key == "message_id", "parser should parse idempotency key");
+    require(queue.messages[0].payload_fields.size() == 3, "parser should parse payload fields");
+}
+
+void parser_parses_lease_and_worker()
+{
+    const auto spec = parse_text(R"sspec(
+        system OrderSystem {
+          lease OrderReconcilerLease {
+            resource "reconciler:orders"
+            ttl PT30S
+            renew_every PT10S
+            holder worker_id
+            fencing_token true
+            max_ttl PT5M
+          }
+          worker OrderReconciler {
+            singleton true
+            lease OrderReconcilerLease
+            polls EmailQueue.SendConfirmation
+            executes OrderProcessing
+            concurrency 4
+          }
+        }
+    )sspec");
+
+    require(spec.system->leases.size() == 1, "parser should parse one lease");
+    const auto& lease = spec.system->leases[0];
+    require(lease.name == "OrderReconcilerLease", "parser should parse lease name");
+    require(lease.resource == "reconciler:orders", "parser should parse lease resource");
+    require(lease.ttl == "PT30S", "parser should parse lease ttl");
+    require(lease.renew_every == "PT10S", "parser should parse renew_every");
+    require(lease.holder == "worker_id", "parser should parse holder");
+    require(lease.fencing_token == true, "parser should parse fencing_token");
+    require(lease.max_ttl == "PT5M", "parser should parse max_ttl");
+
+    require(spec.system->workers.size() == 1, "parser should parse one worker");
+    const auto& worker = spec.system->workers[0];
+    require(worker.name == "OrderReconciler", "parser should parse worker name");
+    require(worker.singleton == true, "parser should parse worker singleton");
+    require(worker.lease == "OrderReconcilerLease", "parser should parse worker lease");
+    require(worker.polls == "EmailQueue.SendConfirmation", "parser should parse worker polls");
+    require(worker.executes == "OrderProcessing", "parser should parse worker executes");
+    require(worker.concurrency == 4, "parser should parse worker concurrency");
+}
+
+void parser_parses_api_policy_and_generate()
+{
+    const auto spec = parse_text(R"sspec(
+        system OrderSystem {
+          api StartOrderProcessing {
+            method POST
+            path "/v1/orders/{orderId}/start"
+            input StartOrderRequest
+            output StartOrderResponse
+            error ProblemDetails
+            starts workflow OrderProcessing
+            enqueues EmailQueue.SendConfirmation
+          }
+          policy WorkflowAccess {
+            tenant scoped_by tenant_id
+            allow StartOrderProcessing when caller.role == operator
+            deny StartOrderProcessing when caller.suspended == true
+            quota starts_per_minute: 60
+            audit StartOrderProcessing
+          }
+          generate mt { out "generated/mt" }
+          generate wf
+        }
+    )sspec");
+
+    require(spec.system->apis.size() == 1, "parser should parse one API");
+    const auto& api = spec.system->apis[0];
+    require(api.name == "StartOrderProcessing", "parser should parse API name");
+    require(api.method == "POST", "parser should parse API method");
+    require(api.path == "/v1/orders/{orderId}/start", "parser should parse API path");
+    require(api.input == "StartOrderRequest", "parser should parse API input");
+    require(api.output == "StartOrderResponse", "parser should parse API output");
+    require(api.error == "ProblemDetails", "parser should parse API error");
+    require(api.starts_workflow == "OrderProcessing", "parser should parse started workflow");
+    require(api.enqueues == "EmailQueue.SendConfirmation", "parser should parse enqueued message");
+
+    require(spec.system->policies.size() == 1, "parser should parse one policy");
+    const auto& policy = spec.system->policies[0];
+    require(policy.name == "WorkflowAccess", "parser should parse policy name");
+    require(policy.tenant_scoped_by == "tenant_id", "parser should parse tenant scope");
+    require(policy.allows.size() == 1, "parser should parse allow rule");
+    require(policy.denies.size() == 1, "parser should parse deny rule");
+    require(policy.quotas.size() == 1, "parser should parse quota");
+    require(policy.audits.size() == 1, "parser should parse audit");
+
+    require(spec.system->generators.size() == 2, "parser should parse generate declarations");
+    require(spec.system->generators[0].target == "mt", "parser should parse mt generate target");
+    require(spec.system->generators[0].out == "generated/mt", "parser should parse generate out");
+    require(spec.system->generators[1].target == "wf", "parser should parse wf generate target");
+}
+
 void parser_reports_missing_system()
 {
     statespec::DiagnosticBag diagnostics;
@@ -336,6 +465,9 @@ int main()
     parser_parses_empty_system();
     parser_parses_entity_fields_and_state_machine();
     parser_parses_workflow_steps();
+    parser_parses_queue_and_message();
+    parser_parses_lease_and_worker();
+    parser_parses_api_policy_and_generate();
     parser_reports_missing_system();
     validator_rejects_missing_system();
 
