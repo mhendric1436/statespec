@@ -351,7 +351,14 @@ class Scanner
             add(TokenKind::Percent, start);
             return;
         case '-':
-            add(match('>') ? TokenKind::Arrow : TokenKind::Minus, start);
+            if (is_digit(peek()))
+            {
+                scan_number(start);
+            }
+            else
+            {
+                add(match('>') ? TokenKind::Arrow : TokenKind::Minus, start);
+            }
             return;
         case '=':
             add(match('=') ? TokenKind::EqualEqual : TokenKind::Equals, start);
