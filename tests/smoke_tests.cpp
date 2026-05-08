@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+void run_validator_milestone_tests();
+
 namespace
 {
 
@@ -472,6 +474,7 @@ int main()
     parser_parses_api_policy_and_generate();
     parser_reports_missing_system();
     validator_rejects_missing_system();
+    run_validator_milestone_tests();
 
     std::cout << "smoke tests passed\n";
     return 0;
