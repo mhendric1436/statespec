@@ -32,6 +32,18 @@ std::vector<GenerateDecl> selected_declarations(
     return selected;
 }
 
+std::optional<std::string> target_scoped_output_root(
+    const std::optional<std::string>& root,
+    const std::string& target
+)
+{
+    if (!root.has_value())
+    {
+        return std::nullopt;
+    }
+    return generator_backend::join_path(*root, target);
+}
+
 } // namespace
 
 GenerationResult Generator::generate(
@@ -83,7 +95,13 @@ void Generator::generate_target(
         {
             GenerateDecl expanded = declaration;
             expanded.target = target;
-            generate_target(system, expanded, options, result, diagnostics);
+            expanded.out = target_scoped_output_root(declaration.out, target);
+
+            GenerationOptions expanded_options = options;
+            expanded_options.target_override = target;
+            expanded_options.out_override = target_scoped_output_root(options.out_override, target);
+
+            generate_target(system, expanded, expanded_options, result, diagnostics);
         }
         return;
     }
