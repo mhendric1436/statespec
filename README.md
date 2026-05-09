@@ -190,6 +190,9 @@ src/tables/generated/<entity>_row.hpp
 src/tables/generated/<entity>_mapping.hpp
 ```
 
+The generated `*.mt.json` definition follows the JSON schema defined in the `mt` repo at
+`mt/schemas/mt-codegen.schema.json`.
+
 `mt` provides:
 
 - typed table access
