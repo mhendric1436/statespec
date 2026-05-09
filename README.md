@@ -141,6 +141,41 @@ build/bin/statespec_tests regression test binary
 
 ---
 
+# 🔁 OCC Foundation
+
+Optimistic concurrency control (OCC) is the shared consistency model underneath the
+StateSpec runtime stack.
+
+OCC assumes that most operations do not conflict. A transaction reads state at a known
+version, computes a change, and commits only if the data it depended on has not changed
+since it was read. If another writer changed the same entity, row, lease, queue item, or
+workflow record first, the commit fails and the caller retries from a fresh read.
+
+This gives StateSpec-generated systems a common durability rule:
+
+```text
+read versioned state
+validate predicates and invariants
+prepare deterministic changes
+commit only if observed versions are still current
+retry safely on conflict
+```
+
+OCC is the foundation for each runtime:
+
+| Runtime | OCC role |
+|---|---|
+| `mt` | Stores versioned entity rows, validates read predicates, and commits entity changes atomically. |
+| `dl` | Acquires and renews leases by conditionally updating lease records with fencing tokens and expiry checks. |
+| `qu` | Enqueues, claims, retries, and acknowledges messages through conditional queue-state updates. |
+| `wf` | Advances workflow executions and step ownership only when the observed workflow state is still current. |
+
+The result is one concurrency doctrine across storage, leases, queues, and workflows.
+StateSpec generators should compose these primitives instead of inventing separate
+conflict-resolution behavior for each generated artifact.
+
+---
+
 # 🧱 Runtime Roles
 
 ## `mt` — Transactional Entity Runtime
