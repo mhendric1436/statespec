@@ -6,7 +6,10 @@ namespace statespec::generator_backend
 namespace
 {
 
-std::string generate_wf_manifest(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_wf_manifest(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     append_header(out, system, declaration.target);
@@ -78,8 +81,8 @@ std::string generate_wf_metadata_source(const SystemDecl& system)
     for (const auto& workflow : system.workflows)
     {
         const auto symbol = to_lower(workflow.name);
-        out << "constexpr std::array<WorkflowStepMetadata, " << workflow.steps.size()
-            << "> " << symbol << "_steps{{\n";
+        out << "constexpr std::array<WorkflowStepMetadata, " << workflow.steps.size() << "> "
+            << symbol << "_steps{{\n";
         for (const auto& step : workflow.steps)
         {
             out << "    WorkflowStepMetadata{\"" << step.name << "\", \""
@@ -94,9 +97,8 @@ std::string generate_wf_metadata_source(const SystemDecl& system)
     for (const auto& workflow : system.workflows)
     {
         const auto symbol = to_lower(workflow.name);
-        out << "    WorkflowMetadata{\"" << workflow.name << "\", "
-            << workflow.version.value_or(0) << ", "
-            << bool_text(workflow.singleton.value_or(false)) << ", \""
+        out << "    WorkflowMetadata{\"" << workflow.name << "\", " << workflow.version.value_or(0)
+            << ", " << bool_text(workflow.singleton.value_or(false)) << ", \""
             << optional_or_empty(workflow.expected_execution_time) << "\", \""
             << optional_or_empty(workflow.start_step) << "\", " << symbol << "_steps.data(), "
             << symbol << "_steps.size()},\n";
@@ -159,7 +161,9 @@ void generate_wf(
 {
     const auto root = output_root(declaration, options);
     result.files.push_back(
-        GeneratedFile{join_path(root, "wf-manifest.yaml"), generate_wf_manifest(system, declaration)}
+        GeneratedFile{
+            join_path(root, "wf-manifest.yaml"), generate_wf_manifest(system, declaration)
+        }
     );
     result.files.push_back(
         GeneratedFile{join_path(root, "wf_workflows.hpp"), generate_wf_workflows_header()}

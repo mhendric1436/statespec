@@ -6,7 +6,10 @@ namespace statespec::generator_backend
 namespace
 {
 
-std::string generate_qu_manifest(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_qu_manifest(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     append_header(out, system, declaration.target);
@@ -23,7 +26,8 @@ std::string generate_qu_manifest(const SystemDecl& system, const GenerateDecl& d
         {
             out << "      - name: " << message.name << "\n";
             out << "        payload_struct: " << payload_struct_name(queue, message) << "\n";
-            out << "        idempotency_key: " << optional_or_empty(message.idempotency_key) << "\n";
+            out << "        idempotency_key: " << optional_or_empty(message.idempotency_key)
+                << "\n";
             out << "        payload_fields:\n";
             for (const auto& field : message.payload_fields)
             {
@@ -136,8 +140,8 @@ std::string generate_qu_metadata_source(const SystemDecl& system)
         for (const auto& message : queue.messages)
         {
             const auto symbol = to_lower(queue.name + message.name);
-            out << "    MessageMetadata{\"" << queue.name << "\", \"" << message.name
-                << "\", \"" << payload_struct_name(queue, message) << "\", \""
+            out << "    MessageMetadata{\"" << queue.name << "\", \"" << message.name << "\", \""
+                << payload_struct_name(queue, message) << "\", \""
                 << optional_or_empty(message.idempotency_key) << "\", " << symbol
                 << "_payload_fields.data(), " << symbol << "_payload_fields.size()},\n";
         }
@@ -152,8 +156,8 @@ std::string generate_qu_metadata_source(const SystemDecl& system)
         for (const auto& message : queue.messages)
         {
             const auto message_symbol = to_lower(queue.name + message.name);
-            out << "    MessageMetadata{\"" << queue.name << "\", \"" << message.name
-                << "\", \"" << payload_struct_name(queue, message) << "\", \""
+            out << "    MessageMetadata{\"" << queue.name << "\", \"" << message.name << "\", \""
+                << payload_struct_name(queue, message) << "\", \""
                 << optional_or_empty(message.idempotency_key) << "\", " << message_symbol
                 << "_payload_fields.data(), " << message_symbol << "_payload_fields.size()},\n";
         }
@@ -165,8 +169,9 @@ std::string generate_qu_metadata_source(const SystemDecl& system)
     {
         const auto symbol = to_lower(queue.name);
         out << "    QueueMetadata{\"" << queue.name << "\", \""
-            << optional_or_empty(queue.namespace_name) << "\", \"" << optional_or_empty(queue.channel)
-            << "\", \"" << optional_or_empty(queue.visibility_timeout) << "\", "
+            << optional_or_empty(queue.namespace_name) << "\", \""
+            << optional_or_empty(queue.channel) << "\", \""
+            << optional_or_empty(queue.visibility_timeout) << "\", "
             << queue.max_attempts.value_or(0) << ", " << symbol << "_messages.data(), " << symbol
             << "_messages.size()},\n";
     }
@@ -195,7 +200,8 @@ std::string generate_qu_metadata_source(const SystemDecl& system)
     out << "    for (std::size_t i = 0; i < all_messages.size(); ++i)\n";
     out << "    {\n";
     out << "        const auto& message = all_messages[i];\n";
-    out << "        if (message.queue_name == queue_name && message.message_name == message_name)\n";
+    out << "        if (message.queue_name == queue_name && message.message_name == "
+           "message_name)\n";
     out << "        {\n";
     out << "            return message.idempotency_key;\n";
     out << "        }\n";
@@ -217,7 +223,9 @@ void generate_qu(
 {
     const auto root = output_root(declaration, options);
     result.files.push_back(
-        GeneratedFile{join_path(root, "qu-manifest.yaml"), generate_qu_manifest(system, declaration)}
+        GeneratedFile{
+            join_path(root, "qu-manifest.yaml"), generate_qu_manifest(system, declaration)
+        }
     );
     result.files.push_back(
         GeneratedFile{join_path(root, "qu_messages.hpp"), generate_qu_messages_header(system)}

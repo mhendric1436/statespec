@@ -6,7 +6,10 @@ namespace statespec::generator_backend
 namespace
 {
 
-std::string generate_mt_manifest(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_mt_manifest(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     append_header(out, system, declaration.target);
@@ -175,7 +178,9 @@ void generate_mt(
 {
     const auto root = output_root(declaration, options);
     result.files.push_back(
-        GeneratedFile{join_path(root, "mt-manifest.yaml"), generate_mt_manifest(system, declaration)}
+        GeneratedFile{
+            join_path(root, "mt-manifest.yaml"), generate_mt_manifest(system, declaration)
+        }
     );
     result.files.push_back(
         GeneratedFile{join_path(root, "mt_entities.hpp"), generate_mt_entities_header(system)}

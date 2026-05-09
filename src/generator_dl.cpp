@@ -6,7 +6,10 @@ namespace statespec::generator_backend
 namespace
 {
 
-std::string generate_dl_manifest(const SystemDecl& system, const GenerateDecl& declaration)
+std::string generate_dl_manifest(
+    const SystemDecl& system,
+    const GenerateDecl& declaration
+)
 {
     std::ostringstream out;
     append_header(out, system, declaration.target);
@@ -138,7 +141,9 @@ void generate_dl(
 {
     const auto root = output_root(declaration, options);
     result.files.push_back(
-        GeneratedFile{join_path(root, "dl-manifest.yaml"), generate_dl_manifest(system, declaration)}
+        GeneratedFile{
+            join_path(root, "dl-manifest.yaml"), generate_dl_manifest(system, declaration)
+        }
     );
     result.files.push_back(
         GeneratedFile{join_path(root, "dl_leases.hpp"), generate_dl_leases_header()}
