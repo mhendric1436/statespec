@@ -87,6 +87,26 @@ grep -q "idempotency_key_field" "$OUT_DIR/qu_metadata.cpp"
 
 rm -rf "$OUT_DIR"
 
+GENERATE_OPENAPI_OUTPUT="$($CLI generate "$EXAMPLE" openapi --out "$OUT_DIR")"
+printf '%s\n' "$GENERATE_OPENAPI_OUTPUT" | grep -q "generated $OUT_DIR/openapi.yaml"
+
+test -f "$OUT_DIR/openapi.yaml"
+grep -q "openapi: 3.1.0" "$OUT_DIR/openapi.yaml"
+grep -q '"/v1/tenants/{tenantId}/orders/{orderId}/start"' "$OUT_DIR/openapi.yaml"
+grep -q "operationId: StartOrderProcessing" "$OUT_DIR/openapi.yaml"
+grep -q "parameters:" "$OUT_DIR/openapi.yaml"
+grep -q "name: tenantId" "$OUT_DIR/openapi.yaml"
+grep -q "requestBody:" "$OUT_DIR/openapi.yaml"
+grep -q '"202"' "$OUT_DIR/openapi.yaml"
+grep -q "application/problem+json" "$OUT_DIR/openapi.yaml"
+grep -q "ProblemDetails:" "$OUT_DIR/openapi.yaml"
+grep -q "StartOrderProcessingRequest:" "$OUT_DIR/openapi.yaml"
+grep -q "StartOrderProcessingResponse:" "$OUT_DIR/openapi.yaml"
+grep -q "OrderEventsOrderValidatedPayload:" "$OUT_DIR/openapi.yaml"
+grep -q "format: date-time" "$OUT_DIR/openapi.yaml"
+
+rm -rf "$OUT_DIR"
+
 GENERATE_ALL_OUTPUT="$($CLI generate "$EXAMPLE" --out "$OUT_DIR")"
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/mt-manifest.yaml"
 printf '%s\n' "$GENERATE_ALL_OUTPUT" | grep -q "generated $OUT_DIR/mt_entities.hpp"
