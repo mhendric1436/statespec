@@ -12,8 +12,9 @@ TEST_BIN := $(BIN_DIR)/statespec_tests
 
 HEADERS := $(wildcard include/statespec/*.hpp)
 SRC_RETIRED := src/generator.cpp
+GENERATOR_SRC := src/generator_v2.cpp
 SRC_ALL := $(filter-out $(SRC_RETIRED),$(wildcard src/*.cpp))
-SRC := $(SRC_ALL)
+SRC := $(GENERATOR_SRC) $(filter-out $(GENERATOR_SRC),$(SRC_ALL))
 CLI_SRC := $(wildcard cmd/*.cpp)
 TEST_SRC := $(wildcard tests/*.cpp)
 TEST_SCRIPTS := $(wildcard tests/*_tests.sh)
@@ -75,6 +76,7 @@ format-check:
 print-files:
 	@echo "HEADERS=$(HEADERS)"
 	@echo "SRC_RETIRED=$(SRC_RETIRED)"
+	@echo "GENERATOR_SRC=$(GENERATOR_SRC)"
 	@echo "SRC_ALL=$(SRC_ALL)"
 	@echo "SRC=$(SRC)"
 	@echo "CLI_SRC=$(CLI_SRC)"
