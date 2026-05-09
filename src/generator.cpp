@@ -54,14 +54,14 @@ std::string optional_bool_or_empty(const std::optional<bool>& value)
     return value.has_value() ? bool_text(*value) : "";
 }
 
-std::string strip_optional_suffix(const std::string& type)
-{
-    return !type.empty() && type.back() == '?' ? type.substr(0, type.size() - 1) : type;
-}
-
 bool is_optional_type(const std::string& type)
 {
     return !type.empty() && type.back() == '?';
+}
+
+std::string strip_optional_suffix(const std::string& type)
+{
+    return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
 std::string to_lower(std::string value)
@@ -166,26 +166,14 @@ std::string generate_mt_entities_header(const SystemDecl& system)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include <chrono>\n";
-    out << "#include <cstddef>\n";
-    out << "#include <cstdint>\n";
-    out << "#include <optional>\n";
-    out << "#include <string>\n";
-    out << "#include <string_view>\n\n";
+    out << "#include <chrono>\n#include <cstddef>\n#include <cstdint>\n#include "
+           "<optional>\n#include <string>\n#include <string_view>\n\n";
     out << "namespace statespec_generated::mt\n{\n\n";
-    out << "struct FieldMetadata\n{\n";
-    out << "    std::string_view name;\n";
-    out << "    std::string_view statespec_type;\n";
-    out << "    std::string_view cpp_type;\n";
-    out << "    bool optional;\n";
-    out << "};\n\n";
-    out << "struct EntityMetadata\n{\n";
-    out << "    std::string_view name;\n";
-    out << "    const FieldMetadata* fields;\n";
-    out << "    std::size_t field_count;\n";
-    out << "    const std::string_view* keys;\n";
-    out << "    std::size_t key_count;\n";
-    out << "};\n\n";
+    out << "struct FieldMetadata\n{\n    std::string_view name;\n    std::string_view "
+           "statespec_type;\n    std::string_view cpp_type;\n    bool optional;\n};\n\n";
+    out << "struct EntityMetadata\n{\n    std::string_view name;\n    const FieldMetadata* "
+           "fields;\n    std::size_t field_count;\n    const std::string_view* keys;\n    "
+           "std::size_t key_count;\n};\n\n";
 
     for (const auto& entity : system.entities)
     {
@@ -198,8 +186,7 @@ std::string generate_mt_entities_header(const SystemDecl& system)
         out << "};\n\n";
     }
 
-    out << "const EntityMetadata* entities();\n";
-    out << "std::size_t entity_count();\n\n";
+    out << "const EntityMetadata* entities();\nstd::size_t entity_count();\n\n";
     out << "} // namespace statespec_generated::mt\n";
     return out.str();
 }
@@ -207,10 +194,8 @@ std::string generate_mt_entities_header(const SystemDecl& system)
 std::string generate_mt_metadata_source(const SystemDecl& system)
 {
     std::ostringstream out;
-    out << "#include \"mt_entities.hpp\"\n\n";
-    out << "#include <array>\n\n";
+    out << "#include \"mt_entities.hpp\"\n\n#include <array>\n\n";
     out << "namespace statespec_generated::mt\n{\nnamespace\n{\n\n";
-
     for (const auto& entity : system.entities)
     {
         const auto symbol = to_lower(entity.name);
@@ -231,7 +216,6 @@ std::string generate_mt_metadata_source(const SystemDecl& system)
         }
         out << "}};\n\n";
     }
-
     out << "constexpr std::array<EntityMetadata, " << system.entities.size()
         << "> all_entities{{\n";
     for (const auto& entity : system.entities)
@@ -241,8 +225,7 @@ std::string generate_mt_metadata_source(const SystemDecl& system)
             << symbol << "_fields.size(), " << symbol << "_keys.data(), " << symbol
             << "_keys.size()},\n";
     }
-    out << "}};\n\n";
-    out << "} // namespace\n\n";
+    out << "}};\n\n} // namespace\n\n";
     out << "const EntityMetadata* entities()\n{\n    return all_entities.data();\n}\n\n";
     out << "std::size_t entity_count()\n{\n    return all_entities.size();\n}\n\n";
     out << "} // namespace statespec_generated::mt\n";
@@ -275,8 +258,7 @@ std::string generate_mt_state_machine_manifest(const SystemDecl& system)
         out << "    transitions:\n";
         for (const auto& transition : entity.state_machine->transitions)
         {
-            out << "      - from: " << transition.from << "\n";
-            out << "        to: " << transition.to << "\n";
+            out << "      - from: " << transition.from << "\n        to: " << transition.to << "\n";
         }
     }
     return out.str();
@@ -292,21 +274,19 @@ std::string generate_dl_manifest(
     out << "leases:\n";
     for (const auto& lease : system.leases)
     {
-        out << "  - name: " << lease.name << "\n";
-        out << "    resource: " << optional_or_empty(lease.resource) << "\n";
-        out << "    ttl: " << optional_or_empty(lease.ttl) << "\n";
-        out << "    renew_every: " << optional_or_empty(lease.renew_every) << "\n";
-        out << "    holder: " << optional_or_empty(lease.holder) << "\n";
-        out << "    fencing_token: " << optional_bool_or_empty(lease.fencing_token) << "\n";
-        out << "    max_ttl: " << optional_or_empty(lease.max_ttl) << "\n";
+        out << "  - name: " << lease.name << "\n    resource: " << optional_or_empty(lease.resource)
+            << "\n    ttl: " << optional_or_empty(lease.ttl)
+            << "\n    renew_every: " << optional_or_empty(lease.renew_every)
+            << "\n    holder: " << optional_or_empty(lease.holder)
+            << "\n    fencing_token: " << optional_bool_or_empty(lease.fencing_token)
+            << "\n    max_ttl: " << optional_or_empty(lease.max_ttl) << "\n";
     }
     out << "workers:\n";
     for (const auto& worker : system.workers)
     {
-        out << "  - name: " << worker.name << "\n";
-        out << "    lease: " << optional_or_empty(worker.lease) << "\n";
-        out << "    singleton: " << optional_bool_or_empty(worker.singleton) << "\n";
-        out << "    concurrency: " << worker.concurrency.value_or(0) << "\n";
+        out << "  - name: " << worker.name << "\n    lease: " << optional_or_empty(worker.lease)
+            << "\n    singleton: " << optional_bool_or_empty(worker.singleton)
+            << "\n    concurrency: " << worker.concurrency.value_or(0) << "\n";
     }
     return out.str();
 }
@@ -314,30 +294,16 @@ std::string generate_dl_manifest(
 std::string generate_dl_leases_header()
 {
     std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include <cstddef>\n";
-    out << "#include <string_view>\n\n";
-    out << "namespace statespec_generated::dl\n{\n\n";
-    out << "struct LeaseMetadata\n{\n";
-    out << "    std::string_view name;\n";
-    out << "    std::string_view resource;\n";
-    out << "    std::string_view ttl;\n";
-    out << "    std::string_view renew_every;\n";
-    out << "    std::string_view holder;\n";
-    out << "    bool fencing_token;\n";
-    out << "    std::string_view max_ttl;\n";
-    out << "};\n\n";
-    out << "struct WorkerLeaseBinding\n{\n";
-    out << "    std::string_view worker_name;\n";
-    out << "    std::string_view lease_name;\n";
-    out << "    bool singleton;\n";
-    out << "    int concurrency;\n";
-    out << "};\n\n";
-    out << "const LeaseMetadata* leases();\n";
-    out << "std::size_t lease_count();\n";
-    out << "const WorkerLeaseBinding* worker_lease_bindings();\n";
-    out << "std::size_t worker_lease_binding_count();\n";
-    out << "const LeaseMetadata* find_lease(std::string_view name);\n\n";
+    out << "#pragma once\n\n#include <cstddef>\n#include <string_view>\n\nnamespace "
+           "statespec_generated::dl\n{\n\n";
+    out << "struct LeaseMetadata\n{\n    std::string_view name;\n    std::string_view resource;\n  "
+           "  std::string_view ttl;\n    std::string_view renew_every;\n    std::string_view "
+           "holder;\n    bool fencing_token;\n    std::string_view max_ttl;\n};\n\n";
+    out << "struct WorkerLeaseBinding\n{\n    std::string_view worker_name;\n    std::string_view "
+           "lease_name;\n    bool singleton;\n    int concurrency;\n};\n\n";
+    out << "const LeaseMetadata* leases();\nstd::size_t lease_count();\nconst WorkerLeaseBinding* "
+           "worker_lease_bindings();\nstd::size_t worker_lease_binding_count();\nconst "
+           "LeaseMetadata* find_lease(std::string_view name);\n\n";
     out << "} // namespace statespec_generated::dl\n";
     return out.str();
 }
@@ -345,9 +311,8 @@ std::string generate_dl_leases_header()
 std::string generate_dl_metadata_source(const SystemDecl& system)
 {
     std::ostringstream out;
-    out << "#include \"dl_leases.hpp\"\n\n";
-    out << "#include <array>\n\n";
-    out << "namespace statespec_generated::dl\n{\nnamespace\n{\n\n";
+    out << "#include \"dl_leases.hpp\"\n\n#include <array>\n\nnamespace "
+           "statespec_generated::dl\n{\nnamespace\n{\n\n";
     out << "constexpr std::array<LeaseMetadata, " << system.leases.size() << "> all_leases{{\n";
     for (const auto& lease : system.leases)
     {
@@ -357,8 +322,7 @@ std::string generate_dl_metadata_source(const SystemDecl& system)
             << "\", " << bool_text(lease.fencing_token.value_or(false)) << ", \""
             << optional_or_empty(lease.max_ttl) << "\"},\n";
     }
-    out << "}};\n\n";
-    out << "constexpr std::array<WorkerLeaseBinding, " << system.workers.size()
+    out << "}};\n\nconstexpr std::array<WorkerLeaseBinding, " << system.workers.size()
         << "> all_worker_lease_bindings{{\n";
     for (const auto& worker : system.workers)
     {
@@ -367,20 +331,15 @@ std::string generate_dl_metadata_source(const SystemDecl& system)
             << bool_text(worker.singleton.value_or(false)) << ", " << worker.concurrency.value_or(0)
             << "},\n";
     }
-    out << "}};\n\n";
-    out << "} // namespace\n\n";
-    out << "const LeaseMetadata* leases()\n{\n    return all_leases.data();\n}\n\n";
-    out << "std::size_t lease_count()\n{\n    return all_leases.size();\n}\n\n";
-    out << "const WorkerLeaseBinding* worker_lease_bindings()\n{\n    return "
-           "all_worker_lease_bindings.data();\n}\n\n";
-    out << "std::size_t worker_lease_binding_count()\n{\n    return "
-           "all_worker_lease_bindings.size();\n}\n\n";
-    out << "const LeaseMetadata* find_lease(std::string_view name)\n{\n";
-    out << "    for (std::size_t i = 0; i < all_leases.size(); ++i)\n    {\n";
-    out << "        if (all_leases[i].name == name)\n        {\n";
-    out << "            return &all_leases[i];\n        }\n";
-    out << "    }\n";
-    out << "    return nullptr;\n}\n\n";
+    out << "}};\n\n} // namespace\n\n";
+    out << "const LeaseMetadata* leases()\n{\n    return all_leases.data();\n}\n\nstd::size_t "
+           "lease_count()\n{\n    return all_leases.size();\n}\n\nconst WorkerLeaseBinding* "
+           "worker_lease_bindings()\n{\n    return "
+           "all_worker_lease_bindings.data();\n}\n\nstd::size_t worker_lease_binding_count()\n{\n  "
+           "  return all_worker_lease_bindings.size();\n}\n\nconst LeaseMetadata* "
+           "find_lease(std::string_view name)\n{\n    for (std::size_t i = 0; i < "
+           "all_leases.size(); ++i)\n    {\n        if (all_leases[i].name == name)\n        {\n   "
+           "         return &all_leases[i];\n        }\n    }\n    return nullptr;\n}\n\n";
     out << "} // namespace statespec_generated::dl\n";
     return out.str();
 }
@@ -395,25 +354,23 @@ std::string generate_qu_manifest(
     out << "queues:\n";
     for (const auto& queue : system.queues)
     {
-        out << "  - name: " << queue.name << "\n";
-        out << "    namespace: " << optional_or_empty(queue.namespace_name) << "\n";
-        out << "    channel: " << optional_or_empty(queue.channel) << "\n";
-        out << "    visibility_timeout: " << optional_or_empty(queue.visibility_timeout) << "\n";
-        out << "    max_attempts: " << queue.max_attempts.value_or(0) << "\n";
-        out << "    messages:\n";
+        out << "  - name: " << queue.name
+            << "\n    namespace: " << optional_or_empty(queue.namespace_name)
+            << "\n    channel: " << optional_or_empty(queue.channel)
+            << "\n    visibility_timeout: " << optional_or_empty(queue.visibility_timeout)
+            << "\n    max_attempts: " << queue.max_attempts.value_or(0) << "\n    messages:\n";
         for (const auto& message : queue.messages)
         {
-            out << "      - name: " << message.name << "\n";
-            out << "        payload_struct: " << payload_struct_name(queue, message) << "\n";
-            out << "        idempotency_key: " << optional_or_empty(message.idempotency_key)
-                << "\n";
-            out << "        payload_fields:\n";
+            out << "      - name: " << message.name
+                << "\n        payload_struct: " << payload_struct_name(queue, message)
+                << "\n        idempotency_key: " << optional_or_empty(message.idempotency_key)
+                << "\n        payload_fields:\n";
             for (const auto& field : message.payload_fields)
             {
-                out << "          - name: " << field.name << "\n";
-                out << "            type: " << field.type << "\n";
-                out << "            cpp_type: " << cpp_type_for_statespec_type(field.type) << "\n";
-                out << "            optional: " << bool_text(is_optional_type(field.type)) << "\n";
+                out << "          - name: " << field.name << "\n            type: " << field.type
+                    << "\n            cpp_type: " << cpp_type_for_statespec_type(field.type)
+                    << "\n            optional: " << bool_text(is_optional_type(field.type))
+                    << "\n";
             }
         }
     }
@@ -423,38 +380,19 @@ std::string generate_qu_manifest(
 std::string generate_qu_messages_header(const SystemDecl& system)
 {
     std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include <chrono>\n";
-    out << "#include <cstddef>\n";
-    out << "#include <cstdint>\n";
-    out << "#include <optional>\n";
-    out << "#include <string>\n";
-    out << "#include <string_view>\n\n";
-    out << "namespace statespec_generated::qu\n{\n\n";
-    out << "struct PayloadFieldMetadata\n{\n";
-    out << "    std::string_view name;\n";
-    out << "    std::string_view statespec_type;\n";
-    out << "    std::string_view cpp_type;\n";
-    out << "    bool optional;\n";
-    out << "};\n\n";
-    out << "struct MessageMetadata\n{\n";
-    out << "    std::string_view queue_name;\n";
-    out << "    std::string_view message_name;\n";
-    out << "    std::string_view payload_struct;\n";
-    out << "    std::string_view idempotency_key;\n";
-    out << "    const PayloadFieldMetadata* payload_fields;\n";
-    out << "    std::size_t payload_field_count;\n";
-    out << "};\n\n";
-    out << "struct QueueMetadata\n{\n";
-    out << "    std::string_view name;\n";
-    out << "    std::string_view namespace_name;\n";
-    out << "    std::string_view channel;\n";
-    out << "    std::string_view visibility_timeout;\n";
-    out << "    int max_attempts;\n";
-    out << "    const MessageMetadata* messages;\n";
-    out << "    std::size_t message_count;\n";
-    out << "};\n\n";
-
+    out << "#pragma once\n\n#include <chrono>\n#include <cstddef>\n#include <cstdint>\n#include "
+           "<optional>\n#include <string>\n#include <string_view>\n\nnamespace "
+           "statespec_generated::qu\n{\n\n";
+    out << "struct PayloadFieldMetadata\n{\n    std::string_view name;\n    std::string_view "
+           "statespec_type;\n    std::string_view cpp_type;\n    bool optional;\n};\n\n";
+    out << "struct MessageMetadata\n{\n    std::string_view queue_name;\n    std::string_view "
+           "message_name;\n    std::string_view payload_struct;\n    std::string_view "
+           "idempotency_key;\n    const PayloadFieldMetadata* payload_fields;\n    std::size_t "
+           "payload_field_count;\n};\n\n";
+    out << "struct QueueMetadata\n{\n    std::string_view name;\n    std::string_view "
+           "namespace_name;\n    std::string_view channel;\n    std::string_view "
+           "visibility_timeout;\n    int max_attempts;\n    const MessageMetadata* messages;\n    "
+           "std::size_t message_count;\n};\n\n";
     for (const auto& queue : system.queues)
     {
         for (const auto& message : queue.messages)
@@ -468,13 +406,9 @@ std::string generate_qu_messages_header(const SystemDecl& system)
             out << "};\n\n";
         }
     }
-
-    out << "const QueueMetadata* queues();\n";
-    out << "std::size_t queue_count();\n";
-    out << "const MessageMetadata* messages();\n";
-    out << "std::size_t message_count();\n";
-    out << "std::string_view idempotency_key_field(std::string_view queue_name, std::string_view "
-           "message_name);\n\n";
+    out << "const QueueMetadata* queues();\nstd::size_t queue_count();\nconst MessageMetadata* "
+           "messages();\nstd::size_t message_count();\nstd::string_view "
+           "idempotency_key_field(std::string_view queue_name, std::string_view message_name);\n\n";
     out << "} // namespace statespec_generated::qu\n";
     return out.str();
 }
@@ -482,16 +416,14 @@ std::string generate_qu_messages_header(const SystemDecl& system)
 std::string generate_qu_metadata_source(const SystemDecl& system)
 {
     std::ostringstream out;
-    out << "#include \"qu_messages.hpp\"\n\n";
-    out << "#include <array>\n\n";
-    out << "namespace statespec_generated::qu\n{\nnamespace\n{\n\n";
-
-    std::size_t total_message_count = 0;
+    out << "#include \"qu_messages.hpp\"\n\n#include <array>\n\nnamespace "
+           "statespec_generated::qu\n{\nnamespace\n{\n\n";
+    std::size_t total_messages = 0;
     for (const auto& queue : system.queues)
     {
+        total_messages += queue.messages.size();
         for (const auto& message : queue.messages)
         {
-            ++total_message_count;
             const auto symbol = to_lower(queue.name + message.name);
             out << "constexpr std::array<PayloadFieldMetadata, " << message.payload_fields.size()
                 << "> " << symbol << "_payload_fields{{\n";
@@ -504,8 +436,7 @@ std::string generate_qu_metadata_source(const SystemDecl& system)
             out << "}};\n\n";
         }
     }
-
-    out << "constexpr std::array<MessageMetadata, " << total_message_count << "> all_messages{{\n";
+    out << "constexpr std::array<MessageMetadata, " << total_messages << "> all_messages{{\n";
     for (const auto& queue : system.queues)
     {
         for (const auto& message : queue.messages)
@@ -518,7 +449,6 @@ std::string generate_qu_metadata_source(const SystemDecl& system)
         }
     }
     out << "}};\n\n";
-
     for (const auto& queue : system.queues)
     {
         const auto symbol = to_lower(queue.name);
@@ -534,7 +464,6 @@ std::string generate_qu_metadata_source(const SystemDecl& system)
         }
         out << "}};\n\n";
     }
-
     out << "constexpr std::array<QueueMetadata, " << system.queues.size() << "> all_queues{{\n";
     for (const auto& queue : system.queues)
     {
@@ -546,21 +475,16 @@ std::string generate_qu_metadata_source(const SystemDecl& system)
             << queue.max_attempts.value_or(0) << ", " << symbol << "_messages.data(), " << symbol
             << "_messages.size()},\n";
     }
-    out << "}};\n\n";
-    out << "} // namespace\n\n";
-    out << "const QueueMetadata* queues()\n{\n    return all_queues.data();\n}\n\n";
-    out << "std::size_t queue_count()\n{\n    return all_queues.size();\n}\n\n";
-    out << "const MessageMetadata* messages()\n{\n    return all_messages.data();\n}\n\n";
-    out << "std::size_t message_count()\n{\n    return all_messages.size();\n}\n\n";
-    out << "std::string_view idempotency_key_field(std::string_view queue_name, std::string_view "
-           "message_name)\n{\n";
-    out << "    for (std::size_t i = 0; i < all_messages.size(); ++i)\n    {\n";
-    out << "        const auto& message = all_messages[i];\n";
-    out << "        if (message.queue_name == queue_name && message.message_name == "
-           "message_name)\n        {\n";
-    out << "            return message.idempotency_key;\n        }\n";
-    out << "    }\n";
-    out << "    return {};\n}\n\n";
+    out << "}};\n\n} // namespace\n\n";
+    out << "const QueueMetadata* queues()\n{\n    return all_queues.data();\n}\n\nstd::size_t "
+           "queue_count()\n{\n    return all_queues.size();\n}\n\nconst MessageMetadata* "
+           "messages()\n{\n    return all_messages.data();\n}\n\nstd::size_t message_count()\n{\n  "
+           "  return all_messages.size();\n}\n\nstd::string_view "
+           "idempotency_key_field(std::string_view queue_name, std::string_view message_name)\n{\n "
+           "   for (std::size_t i = 0; i < all_messages.size(); ++i)\n    {\n        const auto& "
+           "message = all_messages[i];\n        if (message.queue_name == queue_name && "
+           "message.message_name == message_name)\n        {\n            return "
+           "message.idempotency_key;\n        }\n    }\n    return {};\n}\n\n";
     out << "} // namespace statespec_generated::qu\n";
     return out.str();
 }
@@ -575,18 +499,85 @@ std::string generate_wf_manifest(
     out << "workflows:\n";
     for (const auto& workflow : system.workflows)
     {
-        out << "  - name: " << workflow.name << "\n";
-        out << "    version: " << workflow.version.value_or(0) << "\n";
-        out << "    start: " << optional_or_empty(workflow.start_step) << "\n";
-        out << "    steps:\n";
+        out << "  - name: " << workflow.name << "\n    version: " << workflow.version.value_or(0)
+            << "\n    singleton: " << optional_bool_or_empty(workflow.singleton)
+            << "\n    expected_execution_time: "
+            << optional_or_empty(workflow.expected_execution_time)
+            << "\n    start: " << optional_or_empty(workflow.start_step) << "\n    steps:\n";
         for (const auto& step : workflow.steps)
         {
-            out << "      - name: " << step.name << "\n";
-            out << "        expected_execution_time: "
-                << optional_or_empty(step.expected_execution_time) << "\n";
-            out << "        max_retries: " << step.max_retries.value_or(0) << "\n";
+            out << "      - name: " << step.name << "\n        expected_execution_time: "
+                << optional_or_empty(step.expected_execution_time)
+                << "\n        max_retries: " << step.max_retries.value_or(0) << "\n";
         }
     }
+    return out.str();
+}
+
+std::string generate_wf_workflows_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n#include <cstddef>\n#include <string_view>\n\nnamespace "
+           "statespec_generated::wf\n{\n\n";
+    out << "struct WorkflowStepMetadata\n{\n    std::string_view name;\n    std::string_view "
+           "expected_execution_time;\n    int max_retries;\n};\n\n";
+    out << "struct WorkflowMetadata\n{\n    std::string_view name;\n    int version;\n    bool "
+           "singleton;\n    std::string_view expected_execution_time;\n    std::string_view "
+           "start_step;\n    const WorkflowStepMetadata* steps;\n    std::size_t "
+           "step_count;\n};\n\n";
+    out << "const WorkflowMetadata* workflows();\nstd::size_t workflow_count();\nconst "
+           "WorkflowMetadata* find_workflow(std::string_view name);\nconst WorkflowStepMetadata* "
+           "find_step(std::string_view workflow_name, std::string_view "
+           "step_name);\nstd::string_view start_step(std::string_view workflow_name);\n\n";
+    out << "} // namespace statespec_generated::wf\n";
+    return out.str();
+}
+
+std::string generate_wf_metadata_source(const SystemDecl& system)
+{
+    std::ostringstream out;
+    out << "#include \"wf_workflows.hpp\"\n\n#include <array>\n\nnamespace "
+           "statespec_generated::wf\n{\nnamespace\n{\n\n";
+    for (const auto& workflow : system.workflows)
+    {
+        const auto symbol = to_lower(workflow.name);
+        out << "constexpr std::array<WorkflowStepMetadata, " << workflow.steps.size() << "> "
+            << symbol << "_steps{{\n";
+        for (const auto& step : workflow.steps)
+        {
+            out << "    WorkflowStepMetadata{\"" << step.name << "\", \""
+                << optional_or_empty(step.expected_execution_time) << "\", "
+                << step.max_retries.value_or(0) << "},\n";
+        }
+        out << "}};\n\n";
+    }
+    out << "constexpr std::array<WorkflowMetadata, " << system.workflows.size()
+        << "> all_workflows{{\n";
+    for (const auto& workflow : system.workflows)
+    {
+        const auto symbol = to_lower(workflow.name);
+        out << "    WorkflowMetadata{\"" << workflow.name << "\", " << workflow.version.value_or(0)
+            << ", " << bool_text(workflow.singleton.value_or(false)) << ", \""
+            << optional_or_empty(workflow.expected_execution_time) << "\", \""
+            << optional_or_empty(workflow.start_step) << "\", " << symbol << "_steps.data(), "
+            << symbol << "_steps.size()},\n";
+    }
+    out << "}};\n\n} // namespace\n\n";
+    out << "const WorkflowMetadata* workflows()\n{\n    return "
+           "all_workflows.data();\n}\n\nstd::size_t workflow_count()\n{\n    return "
+           "all_workflows.size();\n}\n\nconst WorkflowMetadata* find_workflow(std::string_view "
+           "name)\n{\n    for (std::size_t i = 0; i < all_workflows.size(); ++i)\n    {\n        "
+           "if (all_workflows[i].name == name)\n        {\n            return &all_workflows[i];\n "
+           "       }\n    }\n    return nullptr;\n}\n\nconst WorkflowStepMetadata* "
+           "find_step(std::string_view workflow_name, std::string_view step_name)\n{\n    const "
+           "auto* workflow = find_workflow(workflow_name);\n    if (workflow == nullptr)\n    {\n  "
+           "      return nullptr;\n    }\n    for (std::size_t i = 0; i < workflow->step_count; "
+           "++i)\n    {\n        if (workflow->steps[i].name == step_name)\n        {\n            "
+           "return &workflow->steps[i];\n        }\n    }\n    return "
+           "nullptr;\n}\n\nstd::string_view start_step(std::string_view workflow_name)\n{\n    "
+           "const auto* workflow = find_workflow(workflow_name);\n    return workflow == nullptr ? "
+           "std::string_view{} : workflow->start_step;\n}\n\n";
+    out << "} // namespace statespec_generated::wf\n";
     return out.str();
 }
 
@@ -596,19 +587,12 @@ std::string generate_openapi_stub(
 )
 {
     std::ostringstream out;
-    out << "openapi: 3.1.0\n";
-    out << "info:\n";
-    out << "  title: " << system.name << " API\n";
-    out << "  version: 0.1.0\n";
-    out << "paths:\n";
+    out << "openapi: 3.1.0\ninfo:\n  title: " << system.name << " API\n  version: 0.1.0\npaths:\n";
     for (const auto& api : system.apis)
     {
-        out << "  \"" << api.path.value_or("/") << "\":\n";
-        out << "    " << api.method.value_or("GET") << ":\n";
-        out << "      operationId: " << api.name << "\n";
-        out << "      responses:\n";
-        out << "        \"200\":\n";
-        out << "          description: generated stub\n";
+        out << "  \"" << api.path.value_or("/") << "\":\n    " << api.method.value_or("GET")
+            << ":\n      operationId: " << api.name
+            << "\n      responses:\n        \"200\":\n          description: generated stub\n";
     }
     (void)declaration;
     return out.str();
@@ -624,19 +608,10 @@ std::string content_for_target(
     const GenerateDecl& declaration
 )
 {
-    if (declaration.target == "dl")
-    {
-        return generate_dl_manifest(system, declaration);
-    }
-    if (declaration.target == "wf")
-    {
-        return generate_wf_manifest(system, declaration);
-    }
     if (declaration.target == "openapi")
     {
         return generate_openapi_stub(system, declaration);
     }
-
     std::ostringstream out;
     append_header(out, system, declaration.target);
     out << "status: scaffold-only\n";
@@ -656,14 +631,12 @@ std::vector<GenerateDecl> selected_declarations(
             selected.push_back(declaration);
         }
     }
-
     if (selected.empty() && options.target_override.has_value())
     {
         GenerateDecl declaration;
         declaration.target = *options.target_override;
         selected.push_back(declaration);
     }
-
     return selected;
 }
 
@@ -681,7 +654,6 @@ GenerationResult Generator::generate(
         diagnostics.error(SourceRange{}, "SSPEC5001", "generation requires a system declaration");
         return result;
     }
-
     const auto& system = *spec.system;
     const auto declarations = selected_declarations(system, options);
     if (declarations.empty())
@@ -691,12 +663,10 @@ GenerationResult Generator::generate(
         );
         return result;
     }
-
     for (const auto& declaration : declarations)
     {
         generate_target(system, declaration, options, result, diagnostics);
     }
-
     return result;
 }
 
@@ -711,7 +681,6 @@ void Generator::generate_target(
     static const std::unordered_set<std::string> supported_targets{
         "mt", "dl", "qu", "wf", "openapi", "proto", "docs", "tests",
     };
-
     if (declaration.target == "all")
     {
         for (const auto& target : {"mt", "dl", "qu", "wf", "openapi"})
@@ -722,7 +691,6 @@ void Generator::generate_target(
         }
         return;
     }
-
     if (supported_targets.find(declaration.target) == supported_targets.end())
     {
         diagnostics.error(
@@ -731,7 +699,6 @@ void Generator::generate_target(
         );
         return;
     }
-
     const auto root = output_root(declaration, options);
     if (declaration.target == "mt")
     {
@@ -784,7 +751,21 @@ void Generator::generate_target(
         );
         return;
     }
-
+    if (declaration.target == "wf")
+    {
+        result.files.push_back(
+            GeneratedFile{
+                join_path(root, "wf-manifest.yaml"), generate_wf_manifest(system, declaration)
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{join_path(root, "wf_workflows.hpp"), generate_wf_workflows_header()}
+        );
+        result.files.push_back(
+            GeneratedFile{join_path(root, "wf_metadata.cpp"), generate_wf_metadata_source(system)}
+        );
+        return;
+    }
     result.files.push_back(
         GeneratedFile{
             join_path(root, manifest_name_for_target(declaration.target)),
