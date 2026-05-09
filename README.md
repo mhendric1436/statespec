@@ -89,6 +89,53 @@ Runtime-specific output belongs in generators.
 
 ---
 
+# ⚙️ Design Principles
+
+StateSpec is built around **low-entropy system design**.
+
+## 1. Canonical Structure
+
+There should be one preferred way to express each concept.
+
+## 2. Explicit State
+
+All important lifecycle states and transitions should be defined explicitly.
+
+## 3. Deterministic Behavior
+
+Specifications should generate deterministic artifacts. Hidden side effects and implicit
+transitions should be avoided.
+
+## 4. Runtime Independence
+
+The language should describe the system. Generators should decide how that system maps
+to `mt`, `dl`, `qu`, `wf`, OpenAPI, Protobuf, or other targets.
+
+## 5. Durable Coordination
+
+Workflow communication should happen through durable entity state, durable queues, or
+explicit leases, not transient in-memory execution state.
+
+## 6. Separation of Concerns
+
+StateSpec separates:
+
+- domain model
+- lifecycle model
+- API surface
+- workflow execution
+- queue dispatch
+- lease coordination
+- storage realization
+- security and policy
+
+## 7. Text Is The Source Of Truth
+
+Visual tools, diagrams, generated code, and runtime configuration should be derived from
+the canonical text specification.
+
+---
+
 # 🧩 StateSpec Ecosystem
 
 StateSpec is implemented as a C++20 compiler and generator toolchain. The language is
@@ -512,53 +559,6 @@ examples/order-system/
     └── docs/
         └── architecture.md
 ```
-
----
-
-# ⚙️ Design Principles
-
-StateSpec is built around **low-entropy system design**.
-
-## 1. Canonical Structure
-
-There should be one preferred way to express each concept.
-
-## 2. Explicit State
-
-All important lifecycle states and transitions should be defined explicitly.
-
-## 3. Deterministic Behavior
-
-Specifications should generate deterministic artifacts. Hidden side effects and implicit
-transitions should be avoided.
-
-## 4. Runtime Independence
-
-The language should describe the system. Generators should decide how that system maps
-to `mt`, `dl`, `qu`, `wf`, OpenAPI, Protobuf, or other targets.
-
-## 5. Durable Coordination
-
-Workflow communication should happen through durable entity state, durable queues, or
-explicit leases, not transient in-memory execution state.
-
-## 6. Separation of Concerns
-
-StateSpec separates:
-
-- domain model
-- lifecycle model
-- API surface
-- workflow execution
-- queue dispatch
-- lease coordination
-- storage realization
-- security and policy
-
-## 7. Text Is The Source Of Truth
-
-Visual tools, diagrams, generated code, and runtime configuration should be derived from
-the canonical text specification.
 
 ---
 
