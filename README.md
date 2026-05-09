@@ -561,21 +561,25 @@ the canonical text specification.
 
 # 🔗 Parent-Child Model
 
-StateSpec natively supports hierarchical systems:
+StateSpec is designed to support hierarchical systems:
 
-- parent entities own child entities
-- parent workflows create and orchestrate child workflows
-- child workflows execute independently
-- parent progress is derived from durable child entity state
+- parent entities own child entities through declared relationships
+- parent workflows coordinate child entity creation
+- child workflows may execute independently
+- parent progress should be derived from durable child entity state
 
 > Workflows communicate through durable entity state, durable messages, and explicit
 > coordination primitives.
+
+The grammar defines relationship constructs such as `relations`, `parent`, `children`,
+and `child_set`. The current C++ compiler milestone parses the core workflow and entity
+surface first; full parent-child semantic validation and generation are planned work.
 
 ---
 
 # 🔄 Orchestration Model
 
-StateSpec standardizes parent-child orchestration as a three-phase protocol:
+StateSpec's intended parent-child orchestration convention is a three-phase protocol:
 
 ```text
 generate_child_ids
@@ -589,6 +593,12 @@ This makes orchestration:
 - observable
 - restart-safe
 - deterministic
+
+These names are workflow step conventions, not special keywords. The grammar also
+reserves explicit child orchestration statements such as `reserve child_set`,
+`materialize child_set`, `reconcile child_set`, `create child`, and `observe child`.
+The compiler should eventually validate that those statements manipulate durable child
+ID buckets and legal parent/child state transitions.
 
 ---
 
