@@ -364,7 +364,10 @@ void write_api_operation(
     out << "                $ref: " << yaml_quote(schema_ref(error_schema)) << "\n";
 }
 
-void write_components(std::ostream& out, const SystemDecl& system)
+void write_components(
+    std::ostream& out,
+    const SystemDecl& system
+)
 {
     out << "components:\n";
     out << "  schemas:\n";
@@ -401,8 +404,7 @@ void write_components(std::ostream& out, const SystemDecl& system)
         if (api.input.has_value() && emitted.insert(*api.input).second)
         {
             write_object_schema(
-                out, *api.input, request_fields_for_api(system, api),
-                api.name + " request model"
+                out, *api.input, request_fields_for_api(system, api), api.name + " request model"
             );
         }
         if (api.output.has_value() && emitted.insert(*api.output).second)
