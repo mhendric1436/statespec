@@ -11,11 +11,12 @@ CLI := $(BIN_DIR)/statespec
 TEST_BIN := $(BIN_DIR)/statespec_tests
 
 HEADERS := $(wildcard include/statespec/*.hpp)
-SRC := $(wildcard src/*.cpp)
+SRC_ALL := $(wildcard src/*.cpp)
+SRC := $(filter-out src/generator.cpp,$(SRC_ALL))
 CLI_SRC := $(wildcard cmd/*.cpp)
 TEST_SRC := $(wildcard tests/*.cpp)
 TEST_SCRIPTS := $(wildcard tests/*_tests.sh)
-FORMAT_FILES := $(HEADERS) $(SRC) $(CLI_SRC) $(TEST_SRC)
+FORMAT_FILES := $(HEADERS) $(SRC_ALL) $(CLI_SRC) $(TEST_SRC)
 
 OBJ := $(patsubst src/%.cpp,$(OBJ_DIR)/src/%.o,$(SRC))
 CLI_OBJ := $(patsubst cmd/%.cpp,$(OBJ_DIR)/cmd/%.o,$(CLI_SRC))
@@ -72,6 +73,7 @@ format-check:
 
 print-files:
 	@echo "HEADERS=$(HEADERS)"
+	@echo "SRC_ALL=$(SRC_ALL)"
 	@echo "SRC=$(SRC)"
 	@echo "CLI_SRC=$(CLI_SRC)"
 	@echo "TEST_SRC=$(TEST_SRC)"
