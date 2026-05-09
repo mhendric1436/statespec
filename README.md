@@ -54,7 +54,9 @@ StateSpec captures those concepts in one place:
 
 # 🧩 StateSpec Ecosystem
 
-StateSpec is designed to sit above a small set of focused C++20 runtime libraries.
+StateSpec is implemented as a C++20 compiler and generator toolchain. The language is
+backend-neutral, while the current implementation can generate C++-oriented runtime
+metadata for a small set of focused runtime libraries.
 
 ```text
 StateSpec  → canonical design language and generator toolchain
@@ -72,6 +74,29 @@ mt stores the system state.
 dl coordinates exclusive ownership.
 qu dispatches durable work.
 wf orchestrates long-running workflows.
+```
+
+---
+
+# 🛠️ Implementation
+
+The repository is organized as a C++20 project:
+
+```text
+include/statespec/   public compiler and generator headers
+src/                 lexer, parser, validator, and generator implementation
+cmd/                 statespec CLI
+tests/               C++ and shell-based regression tests
+grammar/             StateSpec grammar reference
+examples/            example .sspec files
+```
+
+The active implementation is built with `make` and produces:
+
+```text
+build/libstatespec.a      compiler and generator library
+build/bin/statespec       CLI
+build/bin/statespec_tests regression test binary
 ```
 
 ---
@@ -624,7 +649,7 @@ reviewable:
 
 | Milestone | Status | Summary |
 |---:|---|---|
-| 1 | Complete | C++ skeleton |
+| 1 | Complete | C++20 compiler and CLI skeleton |
 | 2 | Complete | Lexer |
 | 3 | Complete | Core parser |
 | 4 | Complete | Ecosystem parser for entities, queues, leases, workers, workflows, APIs, policies, and generators |
