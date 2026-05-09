@@ -139,9 +139,10 @@ void write_json_optional_string(
     }
 }
 
-void write_json_string_array(
+template <typename T>
+void write_named_array(
     std::ostream& out,
-    const std::vector<std::string>& values
+    const std::vector<T>& values
 )
 {
     out << '[';
@@ -151,7 +152,9 @@ void write_json_string_array(
         {
             out << ", ";
         }
-        write_json_string(out, values[i]);
+        out << "{\"name\": ";
+        write_json_string(out, values[i].name);
+        out << '}';
     }
     out << ']';
 }
@@ -173,6 +176,23 @@ void write_fields(
         out << ", \"type\": ";
         write_json_string(out, fields[i].type);
         out << '}';
+    }
+    out << ']';
+}
+
+void write_string_array(
+    std::ostream& out,
+    const std::vector<std::string>& values
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < values.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        write_json_string(out, values[i]);
     }
     out << ']';
 }
@@ -204,110 +224,39 @@ void write_spec_json(
     out << "    \"entities\": [";
     for (std::size_t i = 0; i < system.entities.size(); ++i)
     {
-        const auto& entity = system.entities[i];
         if (i > 0)
         {
             out << ", ";
         }
+        const auto& entity = system.entities[i];
         out << "{\"name\": ";
         write_json_string(out, entity.name);
         out << ", \"key_fields\": ";
-        write_json_string_array(out, entity.key_fields);
+        write_string_array(out, entity.key_fields);
         out << ", \"fields\": ";
         write_fields(out, entity.fields);
         out << '}';
     }
     out << "],\n";
 
-    out << "    \"queues\": [";
-    for (std::size_t i = 0; i < system.queues.size(); ++i)
-    {
-        const auto& queue = system.queues[i];
-        if (i > 0)
-        {
-            out << ", ";
-        }
-        out << "{\"name\": ";
-        write_json_string(out, queue.name);
-        out << ", \"messages\": [";
-        for (std::size_t j = 0; j < queue.messages.size(); ++j)
-        {
-            if (j > 0)
-            {
-                out << ", ";
-            }
-            out << "{\"name\": ";
-            write_json_string(out, queue.messages[j].name);
-            out << '}';
-        }
-        out << "]}";
-    }
-    out << "],\n";
-
-    out << "    \"leases\": [";
-    for (std::size_t i = 0; i < system.leases.size(); ++i)
-    {
-        if (i > 0)
-        {
-            out << ", ";
-        }
-        out << "{\"name\": ";
-        write_json_string(out, system.leases[i].name);
-        out << '}';
-    }
-    out << "],\n";
-
-    out << "    \"workers\": [";
-    for (std::size_t i = 0; i < system.workers.size(); ++i)
-    {
-        if (i > 0)
-        {
-            out << ", ";
-        }
-        out << "{\"name\": ";
-        write_json_string(out, system.workers[i].name);
-        out << '}';
-    }
-    out << "],\n";
-
-    out << "    \"apis\": [";
-    for (std::size_t i = 0; i < system.apis.size(); ++i)
-    {
-        if (i > 0)
-        {
-            out << ", ";
-        }
-        out << "{\"name\": ";
-        write_json_string(out, system.apis[i].name);
-        out << '}';
-    }
-    out << "],\n";
-
-    out << "    \"workflows\": [";
-    for (std::size_t i = 0; i < system.workflows.size(); ++i)
-    {
-        if (i > 0)
-        {
-            out << ", ";
-        }
-        out << "{\"name\": ";
-        write_json_string(out, system.workflows[i].name);
-        out << '}';
-    }
-    out << "],\n";
-
-    out << "    \"policies\": [";
-    for (std::size_t i = 0; i < system.policies.size(); ++i)
-    {
-        if (i > 0)
-        {
-            out << ", ";
-        }
-        out << "{\"name\": ";
-        write_json_string(out, system.policies[i].name);
-        out << '}';
-    }
-    out << "],\n";
+    out << "    \"queues\": ";
+    write_named_array(out, system.queues);
+    out << ",\n";
+    out << "    \"leases\": ";
+    write_named_array(out, system.leases);
+    out << ",\n";
+    out << "    \"workers\": ";
+    write_named_array(out, system.workers);
+    out << ",\n";
+    out << "    \"apis\": ";
+    write_named_array(out, system.apis);
+    out << ",\n";
+    out << "    \"workflows\": ";
+    write_named_array(out, system.workflows);
+    out << ",\n";
+    out << "    \"policies\": ";
+    write_named_array(out, system.policies);
+    out << ",\n";
 
     out << "    \"generators\": [";
     for (std::size_t i = 0; i < system.generators.size(); ++i)
@@ -323,213 +272,8 @@ void write_spec_json(
         out << '}';
     }
     out << "]\n";
-
     out << "  }\n";
     out << "}\n";
-}
-
-std::string join_path(
-    const std::string& left,
-    const std::string& right
-)
-{
-    if (left.empty())
-    {
-        return right;
-    }
-    return left.back() == '/' ? left + right : left + "/" + right;
-}
-
-std::string wf_output_root(
-    const statespec::SystemDecl& system,
-    const std::optional<std::string>& target,
-    const std::optional<std::string>& out
-)
-{
-    if (out.has_value())
-    {
-        return *out;
-    }
-    if (target.has_value())
-    {
-        return "generated/" + *target;
-    }
-    for (const auto& generator : system.generators)
-    {
-        if (generator.target == "wf")
-        {
-            return generator.out.value_or("generated/wf");
-        }
-    }
-    return "generated/wf";
-}
-
-bool should_emit_wf_files(
-    const statespec::SystemDecl& system,
-    const std::optional<std::string>& target
-)
-{
-    if (target.has_value())
-    {
-        return *target == "wf" || *target == "all";
-    }
-    for (const auto& generator : system.generators)
-    {
-        if (generator.target == "wf" || generator.target == "all")
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-std::string generate_wf_workflows_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include <cstddef>\n";
-    out << "#include <string_view>\n\n";
-    out << "namespace statespec_generated::wf\n{\n\n";
-    out << "struct WorkflowStepMetadata\n{\n";
-    out << "    std::string_view name;\n";
-    out << "    std::string_view expected_execution_time;\n";
-    out << "    int max_retries;\n";
-    out << "};\n\n";
-    out << "struct WorkflowMetadata\n{\n";
-    out << "    std::string_view name;\n";
-    out << "    int version;\n";
-    out << "    bool singleton;\n";
-    out << "    std::string_view expected_execution_time;\n";
-    out << "    std::string_view start_step;\n";
-    out << "    const WorkflowStepMetadata* steps;\n";
-    out << "    std::size_t step_count;\n";
-    out << "};\n\n";
-    out << "const WorkflowMetadata* workflows();\n";
-    out << "std::size_t workflow_count();\n";
-    out << "const WorkflowMetadata* find_workflow(std::string_view name);\n";
-    out << "const WorkflowStepMetadata* find_step(\n";
-    out << "    std::string_view workflow_name,\n";
-    out << "    std::string_view step_name\n";
-    out << ");\n";
-    out << "std::string_view start_step(std::string_view workflow_name);\n\n";
-    out << "} // namespace statespec_generated::wf\n";
-    return out.str();
-}
-
-std::string lower_name(std::string value)
-{
-    for (auto& ch : value)
-    {
-        ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-    }
-    return value;
-}
-
-std::string generate_wf_metadata_source(const statespec::SystemDecl& system)
-{
-    std::ostringstream out;
-    out << "#include \"wf_workflows.hpp\"\n\n";
-    out << "#include <array>\n\n";
-    out << "namespace statespec_generated::wf\n{\n";
-    out << "namespace\n{\n\n";
-
-    for (const auto& workflow : system.workflows)
-    {
-        const auto symbol = lower_name(workflow.name);
-        out << "constexpr std::array<WorkflowStepMetadata, " << workflow.steps.size() << "> "
-            << symbol << "_steps{{\n";
-        for (const auto& step : workflow.steps)
-        {
-            out << "    WorkflowStepMetadata{\"" << step.name << "\", \""
-                << step.expected_execution_time.value_or("") << "\", "
-                << step.max_retries.value_or(0) << "},\n";
-        }
-        out << "}};\n\n";
-    }
-
-    out << "constexpr std::array<WorkflowMetadata, " << system.workflows.size()
-        << "> all_workflows{{\n";
-    for (const auto& workflow : system.workflows)
-    {
-        const auto symbol = lower_name(workflow.name);
-        out << "    WorkflowMetadata{\"" << workflow.name << "\", " << workflow.version.value_or(0)
-            << ", " << (workflow.singleton.value_or(false) ? "true" : "false") << ", \""
-            << workflow.expected_execution_time.value_or("") << "\", \""
-            << workflow.start_step.value_or("") << "\", " << symbol << "_steps.data(), " << symbol
-            << "_steps.size()},\n";
-    }
-    out << "}};\n\n";
-    out << "} // namespace\n\n";
-    out << "const WorkflowMetadata* workflows()\n";
-    out << "{\n";
-    out << "    return all_workflows.data();\n";
-    out << "}\n\n";
-    out << "std::size_t workflow_count()\n";
-    out << "{\n";
-    out << "    return all_workflows.size();\n";
-    out << "}\n\n";
-    out << "const WorkflowMetadata* find_workflow(std::string_view name)\n";
-    out << "{\n";
-    out << "    for (std::size_t i = 0; i < all_workflows.size(); ++i)\n";
-    out << "    {\n";
-    out << "        if (all_workflows[i].name == name)\n";
-    out << "        {\n";
-    out << "            return &all_workflows[i];\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "    return nullptr;\n";
-    out << "}\n\n";
-    out << "const WorkflowStepMetadata* find_step(\n";
-    out << "    std::string_view workflow_name,\n";
-    out << "    std::string_view step_name\n";
-    out << ")\n";
-    out << "{\n";
-    out << "    const auto* workflow = find_workflow(workflow_name);\n";
-    out << "    if (workflow == nullptr)\n";
-    out << "    {\n";
-    out << "        return nullptr;\n";
-    out << "    }\n";
-    out << "    for (std::size_t i = 0; i < workflow->step_count; ++i)\n";
-    out << "    {\n";
-    out << "        if (workflow->steps[i].name == step_name)\n";
-    out << "        {\n";
-    out << "            return &workflow->steps[i];\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "    return nullptr;\n";
-    out << "}\n\n";
-    out << "std::string_view start_step(std::string_view workflow_name)\n";
-    out << "{\n";
-    out << "    const auto* workflow = find_workflow(workflow_name);\n";
-    out << "    return workflow == nullptr ? std::string_view{} : workflow->start_step;\n";
-    out << "}\n\n";
-    out << "} // namespace statespec_generated::wf\n";
-    return out.str();
-}
-
-void append_wf_generated_files(
-    const statespec::Spec& spec,
-    const std::optional<std::string>& target,
-    const std::optional<std::string>& out,
-    statespec::GenerationResult& result
-)
-{
-    if (!spec.system.has_value() || !should_emit_wf_files(*spec.system, target))
-    {
-        return;
-    }
-
-    const auto root = wf_output_root(*spec.system, target, out);
-    result.files.push_back(
-        statespec::GeneratedFile{
-            join_path(root, "wf_workflows.hpp"), generate_wf_workflows_header()
-        }
-    );
-    result.files.push_back(
-        statespec::GeneratedFile{
-            join_path(root, "wf_metadata.cpp"), generate_wf_metadata_source(*spec.system)
-        }
-    );
 }
 
 void write_generated_file(const statespec::GeneratedFile& file)
@@ -577,7 +321,7 @@ int tokens_file(const std::string& path)
 int ast_file(const std::string& path)
 {
     statespec::DiagnosticBag diagnostics;
-    auto spec = parse_file(path, diagnostics);
+    const auto spec = parse_file(path, diagnostics);
     if (diagnostics.has_errors())
     {
         print_diagnostics(diagnostics);
@@ -611,7 +355,7 @@ int generate_file(
 )
 {
     statespec::DiagnosticBag diagnostics;
-    auto spec = parse_and_validate_file(path, diagnostics);
+    const auto spec = parse_and_validate_file(path, diagnostics);
     if (diagnostics.has_errors())
     {
         print_diagnostics(diagnostics);
@@ -623,8 +367,7 @@ int generate_file(
     options.target_override = target;
     options.out_override = out;
 
-    auto result = generator.generate(spec, options, diagnostics);
-    append_wf_generated_files(spec, target, out, result);
+    const auto result = generator.generate(spec, options, diagnostics);
     if (diagnostics.has_errors())
     {
         print_diagnostics(diagnostics);
