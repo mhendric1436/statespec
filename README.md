@@ -620,6 +620,41 @@ reviewable:
 
 ---
 
+# ✅ Milestone History
+
+| Milestone | Status | Summary |
+|---:|---|---|
+| 1 | Complete | C++ skeleton |
+| 2 | Complete | Lexer |
+| 3 | Complete | Core parser |
+| 4 | Complete | Ecosystem parser for entities, queues, leases, workers, workflows, APIs, policies, and generators |
+| 5 | Complete | Symbol table and reference validation |
+| 6 | Complete | Deeper semantic validation |
+| 7 | Complete | AST JSON CLI dump and regression test |
+| 8 | Complete | Code generation scaffold |
+| 9 | Complete | CLI `generate` command |
+| 10 | Complete | Real `mt` generator with entity structs and metadata |
+| 11 | Complete | Real `qu` generator with queue/message payload structs and metadata |
+| 12 | Complete | Real `dl` generator with lease and worker binding metadata |
+| 13 | Complete | Real `wf` generator with workflow and step metadata |
+| 14 | Complete | Consolidated generator library |
+| 15 | Complete | Retired old monolithic generator from the active build |
+| 16 | Planned | Real OpenAPI generator with full paths, schemas, request/response models, and problem details |
+
+The current generator implementation is decomposed by target:
+
+```text
+src/generator.cpp          facade and target dispatch
+src/generator_backend.hpp  shared generator backend helpers and declarations
+src/generator_mt.cpp       mt backend
+src/generator_dl.cpp       dl backend
+src/generator_qu.cpp       qu backend
+src/generator_wf.cpp       wf backend
+src/generator_openapi.cpp  OpenAPI and generic scaffold backend
+```
+
+---
+
 # 🛣️ Roadmap
 
 ## Language
