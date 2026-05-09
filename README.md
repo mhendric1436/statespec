@@ -225,6 +225,64 @@ build/bin/statespec_tests regression test binary
 
 ---
 
+# 🧱 Backend Abstraction Model
+
+StateSpec should make backend targeting easier by defining a small set of backend
+abstractions that all share the same consistency contract: **optimistic concurrency
+control**.
+
+The goal is that StateSpec does not generate different semantic behavior for memory,
+SQLite, PostgreSQL, RocksDB, FoundationDB, or future storage engines. StateSpec should
+generate one logical model, then rely on backend adapters that implement the same OCC
+contract.
+
+```text
+StateSpec .sspec
+    │
+    ▼
+Generated model metadata
+    │
+    ▼
+Runtime primitives
+    ├── mt entity/table runtime
+    ├── dl lease runtime
+    ├── qu queue runtime
+    └── wf workflow runtime
+    │
+    ▼
+OCC backend abstraction
+    ├── begin transaction
+    ├── read versioned records
+    ├── query records
+    ├── stage writes
+    ├── validate read versions
+    └── commit atomically
+    │
+    ▼
+Concrete backend adapters
+    ├── memory
+    ├── SQLite
+    ├── PostgreSQL
+    ├── RocksDB
+    ├── FoundationDB
+    └── future backends
+```
+
+Concrete backends may use very different native mechanisms:
+
+```text
+memory        → maps, mutexes, and in-process version counters
+SQLite        → tables, transactions, and metadata rows
+PostgreSQL    → SQL rows, MVCC, indexes, and version columns
+RocksDB       → keys, values, prefixes, and conditional update patterns
+FoundationDB  → transactional key ranges and conflict ranges
+```
+
+StateSpec-generated semantics should depend on the abstraction, not on those physical
+implementation details.
+
+---
+
 # 🔁 OCC Foundation
 
 Optimistic concurrency control (OCC) is the shared consistency model underneath the
@@ -260,7 +318,153 @@ conflict-resolution behavior for each generated artifact.
 
 ---
 
-# 🧱 Runtime Roles
+# 🧰 Backend Abstraction Layers
+
+The backend abstraction can be organized as a small stack of reusable contracts.
+
+## Entity Store Backend
+
+The entity store backend is the foundation used by `mt`. It provides versioned document
+or row access, query support, staged writes, staged deletes, and atomic commit.
+
+```text
+begin transaction
+read collection/key with version
+query collection with predicate or prefix
+stage put
+stage delete
+commit if read versions and predicates are still valid
+abort
+```
+
+StateSpec entities lower into backend-neutral table metadata. Backend adapters decide how
+that metadata maps to physical tables, key prefixes, indexes, or in-memory maps.
+
+## Lease Backend
+
+Leases can be modeled as versioned records on top of the entity store abstraction.
+
+Acquire, renew, and release operations are conditional updates:
+
+```text
+acquire lease:
+  read lease record
+  if missing or expired, write holder, expiry, and next fencing token
+  commit only if the lease version is unchanged
+
+renew lease:
+  read lease record
+  if holder and fencing token match, extend expiry
+  commit only if the lease version is unchanged
+
+release lease:
+  read lease record
+  if holder matches, clear ownership
+  commit only if the lease version is unchanged
+```
+
+Because these operations depend only on OCC behavior, the same lease semantics can run on
+any backend adapter that implements the shared contract.
+
+## Queue Backend
+
+Queues can be modeled as OCC-backed message records.
+
+```text
+claim message:
+  query available or expired messages
+  read selected message version
+  set claimed_by and claim_expires_at
+  commit only if the selected message version is unchanged
+
+acknowledge message:
+  read claimed message
+  verify claimant
+  mark processed
+  commit only if the message version is unchanged
+
+retry message:
+  read message
+  increment attempts
+  mark available or failed
+  commit only if the message version is unchanged
+```
+
+This lets `qu` express durable queue behavior once while backend adapters handle storage
+mechanics.
+
+## Workflow Backend
+
+Workflows can be modeled as OCC-backed execution and step records.
+
+```text
+poll and claim step:
+  query runnable workflow steps
+  read execution or step version
+  claim runnable work
+  commit only if the observed versions are unchanged
+
+complete step:
+  read execution
+  verify claim owner or fencing token
+  advance to next step or mark complete
+  commit only if the execution version is unchanged
+
+fail step:
+  read execution
+  increment retry state or mark failed
+  commit only if the execution version is unchanged
+```
+
+This keeps workflow execution restart-safe and portable across concrete storage engines.
+
+---
+
+# 🧪 Backend Capabilities And Conflict Types
+
+Backends will not all support the same physical features. StateSpec should represent
+backend capabilities explicitly so generators and runtimes can reject unsupported targets
+or select safe fallbacks.
+
+Example capabilities:
+
+```text
+transactions
+compare_and_swap
+prefix_query
+secondary_indexes
+unique_indexes
+json_path_query
+ordered_scan
+durable_history
+schema_snapshots
+```
+
+Capability checks make target selection explicit. For example, a StateSpec entity with a
+unique index should require a backend with native unique index support or a generated
+runtime strategy that can enforce uniqueness safely.
+
+The OCC abstraction should also expose meaningful semantic conflict categories:
+
+```text
+VersionConflict       observed record changed before commit
+PredicateConflict     query result or predicate changed before commit
+UniqueIndexConflict   another transaction inserted the same unique value
+SchemaConflict        requested schema is incompatible with accepted schema
+LeaseConflict         another holder acquired or renewed the lease
+QueueClaimConflict    another worker claimed or completed the message
+WorkflowClaimConflict another worker claimed or advanced the workflow step
+```
+
+Concrete adapters may implement these conflicts with different native mechanisms, but
+StateSpec-generated code should observe a stable semantic error model.
+
+---
+
+# 🧱 Specific Runtime Implementations
+
+The concrete runtimes are implementations of the shared StateSpec model. They should use
+the OCC-centered backend abstractions rather than inventing separate consistency rules.
 
 ## `mt` — Transactional Entity Runtime
 
