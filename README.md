@@ -52,6 +52,43 @@ StateSpec captures those concepts in one place:
 
 ---
 
+# 🧬 Canonical Language Model
+
+StateSpec should model these first-class concepts:
+
+```text
+system
+entity
+state_machine
+api
+workflow
+step
+queue
+message
+lease
+worker
+policy
+```
+
+The language should remain backend-neutral. It should not require users to write
+runtime-specific concepts directly unless they intentionally select a runtime target.
+
+Good:
+
+```statespec
+entity Order { ... }
+workflow OrderProcessing { ... }
+queue EmailQueue { ... }
+lease OrderReconcilerLease { ... }
+```
+
+Avoid making the language depend directly on implementation names such as `mt::Table`,
+`wf::WorkflowOrchestrator`, or `qu::Queue`.
+
+Runtime-specific output belongs in generators.
+
+---
+
 # 🧩 StateSpec Ecosystem
 
 StateSpec is implemented as a C++20 compiler and generator toolchain. The language is
@@ -319,43 +356,6 @@ StateSpec should use `wf` for:
 - worker pools
 - workflow state tracking
 - generated workflow definitions and `WorkflowLogic` scaffolding
-
----
-
-# 🧬 Canonical Language Model
-
-StateSpec should model these first-class concepts:
-
-```text
-system
-entity
-state_machine
-api
-workflow
-step
-queue
-message
-lease
-worker
-policy
-```
-
-The language should remain backend-neutral. It should not require users to write
-runtime-specific concepts directly unless they intentionally select a runtime target.
-
-Good:
-
-```statespec
-entity Order { ... }
-workflow OrderProcessing { ... }
-queue EmailQueue { ... }
-lease OrderReconcilerLease { ... }
-```
-
-Avoid making the language depend directly on implementation names such as `mt::Table`,
-`wf::WorkflowOrchestrator`, or `qu::Queue`.
-
-Runtime-specific output belongs in generators.
 
 ---
 
