@@ -1,6 +1,14 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{BackendResult, LeaseRecord, Transaction};
+use crate::backend::{BackendResult, Transaction};
+
+#[derive(Debug, Clone)]
+pub struct LeaseRecord {
+    pub resource: String,
+    pub holder: Option<String>,
+    pub expires_at: SystemTime,
+    pub fencing_token: u64,
+}
 
 #[derive(Debug, Clone)]
 pub struct LeaseAcquireRequest {
