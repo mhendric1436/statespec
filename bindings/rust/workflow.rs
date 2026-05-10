@@ -26,6 +26,7 @@ pub struct StartWorkflowRequest {
 
 #[derive(Debug, Clone)]
 pub struct ClaimWorkflowStepRequest {
+    pub workflow_execution_id: String,
     pub workflow_name: String,
     pub workflow_version: i64,
     pub worker: String,
