@@ -1,6 +1,18 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{BackendResult, Json, QueueMessageRecord, Transaction};
+use crate::backend::{BackendResult, Json, Transaction};
+
+#[derive(Debug, Clone)]
+pub struct QueueMessageRecord {
+    pub message_id: String,
+    pub queue: String,
+    pub channel: String,
+    pub status: String,
+    pub attempts: u64,
+    pub claimed_by: Option<String>,
+    pub claim_expires_at: Option<SystemTime>,
+    pub payload: Json,
+}
 
 #[derive(Debug, Clone)]
 pub struct EnqueueMessageRequest {
