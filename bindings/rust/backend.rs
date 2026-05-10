@@ -1,5 +1,3 @@
-use std::time::SystemTime;
-
 pub type CollectionName = String;
 pub type Key = String;
 pub type Version = u64;
@@ -122,36 +120,4 @@ pub trait Backend {
     ) -> BackendResult<()>;
 
     fn commit(&self, tx: Self::Tx) -> BackendResult<()>;
-}
-
-#[derive(Debug, Clone)]
-pub struct LeaseRecord {
-    pub resource: String,
-    pub holder: Option<String>,
-    pub expires_at: SystemTime,
-    pub fencing_token: u64,
-}
-
-#[derive(Debug, Clone)]
-pub struct QueueMessageRecord {
-    pub message_id: String,
-    pub queue: String,
-    pub channel: String,
-    pub status: String,
-    pub attempts: u64,
-    pub claimed_by: Option<String>,
-    pub claim_expires_at: Option<SystemTime>,
-    pub payload: Json,
-}
-
-#[derive(Debug, Clone)]
-pub struct WorkflowExecutionRecord {
-    pub workflow_execution_id: String,
-    pub workflow_name: String,
-    pub current_step: String,
-    pub status: String,
-    pub attempt: u64,
-    pub claimed_by: Option<String>,
-    pub claim_expires_at: Option<SystemTime>,
-    pub state: Json,
 }
