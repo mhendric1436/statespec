@@ -12,6 +12,7 @@ public interface WorkflowStore {
     record WorkflowExecutionRecord(
         String workflowExecutionId,
         String workflowName,
+        long workflowVersion,
         String currentStep,
         String status,
         long attempt,
@@ -23,12 +24,14 @@ public interface WorkflowStore {
     record StartWorkflowRequest(
         String workflowExecutionId,
         String workflowName,
+        long workflowVersion,
         String startStep,
         String stateJson
     ) {}
 
     record ClaimWorkflowStepRequest(
         String workflowName,
+        long workflowVersion,
         String worker,
         Instant now,
         Duration leaseDuration,
