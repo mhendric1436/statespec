@@ -16,7 +16,7 @@ leases, queues, workflows, or any subset their system requires.
 
 ## Shared Backend Model
 
-Each language defines the same conceptual backend pieces:
+Each language defines the same conceptual backend pieces in the backend file:
 
 ```text
 CollectionDescriptor
@@ -28,10 +28,10 @@ VersionedRecord
 Query
 Transaction
 Backend
-LeaseRecord
-QueueMessageRecord
-WorkflowExecutionRecord
 ```
+
+The backend file intentionally stays component-neutral. Lease, queue, and workflow record
+shapes live with their respective runtime interface files.
 
 ## Shared Runtime Store Model
 
@@ -44,7 +44,7 @@ QueueStore
 WorkflowStore
 ```
 
-The runtime stores expose request and result types for:
+The runtime stores expose request, result, and record types for:
 
 ```text
 lease acquire / renew / release / inspect
