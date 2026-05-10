@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+type QueueMessageRecord struct {
+	MessageID      string
+	Queue          string
+	Channel        string
+	Status         string
+	Attempts       uint64
+	ClaimedBy      *string
+	ClaimExpiresAt *time.Time
+	Payload         JSON
+}
+
 type EnqueueMessageRequest struct {
 	MessageID      string
 	Queue          string
