@@ -11,6 +11,20 @@
 namespace statespec::backend
 {
 
+using Timestamp = std::chrono::system_clock::time_point;
+
+struct QueueMessageRecord
+{
+    std::string message_id;
+    std::string queue;
+    std::string channel;
+    std::string status;
+    std::uint64_t attempts = 0;
+    std::optional<std::string> claimed_by;
+    std::optional<Timestamp> claim_expires_at;
+    Json payload;
+};
+
 struct EnqueueMessageRequest
 {
     std::string message_id;
