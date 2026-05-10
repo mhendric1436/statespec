@@ -3,7 +3,6 @@ package backend
 import (
 	"context"
 	"errors"
-	"time"
 )
 
 type CollectionName string
@@ -33,27 +32,27 @@ type CollectionDescriptor struct {
 }
 
 type BackendCapabilities struct {
-	Transactions    bool
-	CompareAndSwap  bool
-	PrefixQuery     bool
-	SecondaryIndexes bool
-	UniqueIndexes   bool
-	JSONPathQuery   bool
-	OrderedScan     bool
-	DurableHistory  bool
-	SchemaSnapshots bool
+	Transactions      bool
+	CompareAndSwap    bool
+	PrefixQuery       bool
+	SecondaryIndexes  bool
+	UniqueIndexes     bool
+	JSONPathQuery     bool
+	OrderedScan       bool
+	DurableHistory    bool
+	SchemaSnapshots   bool
 }
 
 type ConflictKind string
 
 const (
-	VersionConflict        ConflictKind = "VersionConflict"
-	PredicateConflict      ConflictKind = "PredicateConflict"
-	UniqueIndexConflict    ConflictKind = "UniqueIndexConflict"
-	SchemaConflict         ConflictKind = "SchemaConflict"
-	LeaseConflict          ConflictKind = "LeaseConflict"
-	QueueClaimConflict     ConflictKind = "QueueClaimConflict"
-	WorkflowClaimConflict  ConflictKind = "WorkflowClaimConflict"
+	VersionConflict       ConflictKind = "VersionConflict"
+	PredicateConflict     ConflictKind = "PredicateConflict"
+	UniqueIndexConflict   ConflictKind = "UniqueIndexConflict"
+	SchemaConflict        ConflictKind = "SchemaConflict"
+	LeaseConflict         ConflictKind = "LeaseConflict"
+	QueueClaimConflict    ConflictKind = "QueueClaimConflict"
+	WorkflowClaimConflict ConflictKind = "WorkflowClaimConflict"
 )
 
 type ConflictError struct {
@@ -126,33 +125,4 @@ type Backend interface {
 	Erase(ctx context.Context, tx Transaction, collection CollectionName, key Key) error
 
 	Commit(ctx context.Context, tx Transaction) error
-}
-
-type LeaseRecord struct {
-	Resource     string
-	Holder       *string
-	ExpiresAt    time.Time
-	FencingToken uint64
-}
-
-type QueueMessageRecord struct {
-	MessageID      string
-	Queue          string
-	Channel        string
-	Status         string
-	Attempts       uint64
-	ClaimedBy      *string
-	ClaimExpiresAt *time.Time
-	Payload         JSON
-}
-
-type WorkflowExecutionRecord struct {
-	WorkflowExecutionID string
-	WorkflowName        string
-	CurrentStep         string
-	Status              string
-	Attempt             uint64
-	ClaimedBy           *string
-	ClaimExpiresAt      *time.Time
-	State               JSON
 }
