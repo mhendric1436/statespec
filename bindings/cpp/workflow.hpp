@@ -37,6 +37,7 @@ struct StartWorkflowRequest
 
 struct ClaimWorkflowStepRequest
 {
+    std::string workflow_execution_id;
     std::string workflow_name;
     std::int64_t workflow_version = 0;
     std::string worker;
