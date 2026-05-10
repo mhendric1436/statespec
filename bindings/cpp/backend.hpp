@@ -1,6 +1,5 @@
 #pragma once
 
-#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -16,7 +15,6 @@ namespace statespec::backend
 using CollectionName = std::string;
 using Key = std::string;
 using Version = std::uint64_t;
-using Timestamp = std::chrono::system_clock::time_point;
 using Json = std::string;
 
 struct FieldDescriptor
@@ -189,38 +187,6 @@ class IBackend
     ) = 0;
 
     virtual void commit(ITransaction& tx) = 0;
-};
-
-struct LeaseRecord
-{
-    std::string resource;
-    std::optional<std::string> holder;
-    Timestamp expires_at;
-    std::uint64_t fencing_token = 0;
-};
-
-struct QueueMessageRecord
-{
-    std::string message_id;
-    std::string queue;
-    std::string channel;
-    std::string status;
-    std::uint64_t attempts = 0;
-    std::optional<std::string> claimed_by;
-    std::optional<Timestamp> claim_expires_at;
-    Json payload;
-};
-
-struct WorkflowExecutionRecord
-{
-    std::string workflow_execution_id;
-    std::string workflow_name;
-    std::string current_step;
-    std::string status;
-    std::uint64_t attempt = 0;
-    std::optional<std::string> claimed_by;
-    std::optional<Timestamp> claim_expires_at;
-    Json state;
 };
 
 } // namespace statespec::backend
