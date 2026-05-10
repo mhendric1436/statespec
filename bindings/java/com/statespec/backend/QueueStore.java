@@ -1,7 +1,6 @@
 package com.statespec.backend;
 
 import com.statespec.backend.BackendModel.BackendException;
-import com.statespec.backend.BackendModel.QueueMessageRecord;
 import com.statespec.backend.BackendModel.Transaction;
 
 import java.time.Duration;
@@ -10,6 +9,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface QueueStore {
+    record QueueMessageRecord(
+        String messageId,
+        String queue,
+        String channel,
+        String status,
+        long attempts,
+        Optional<String> claimedBy,
+        Optional<Instant> claimExpiresAt,
+        String payloadJson
+    ) {}
+
     record EnqueueMessageRequest(
         String messageId,
         String queue,
