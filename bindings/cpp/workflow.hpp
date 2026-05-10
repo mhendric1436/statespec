@@ -17,6 +17,7 @@ struct WorkflowExecutionRecord
 {
     std::string workflow_execution_id;
     std::string workflow_name;
+    std::int64_t workflow_version = 0;
     std::string current_step;
     std::string status;
     std::uint64_t attempt = 0;
@@ -29,6 +30,7 @@ struct StartWorkflowRequest
 {
     std::string workflow_execution_id;
     std::string workflow_name;
+    std::int64_t workflow_version = 0;
     std::string start_step;
     Json state;
 };
@@ -36,6 +38,7 @@ struct StartWorkflowRequest
 struct ClaimWorkflowStepRequest
 {
     std::string workflow_name;
+    std::int64_t workflow_version = 0;
     std::string worker;
     Timestamp now;
     std::chrono::seconds lease_duration;
