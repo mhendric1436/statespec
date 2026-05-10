@@ -12,7 +12,7 @@ leases, queues, workflows, or any subset their system requires.
 | C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | [`bindings/cpp/lease.hpp`](../bindings/cpp/lease.hpp) | [`bindings/cpp/queue.hpp`](../bindings/cpp/queue.hpp) | [`bindings/cpp/workflow.hpp`](../bindings/cpp/workflow.hpp) | C++ runtime/backend adapter reference. |
 | Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | [`bindings/rust/lease.rs`](../bindings/rust/lease.rs) | [`bindings/rust/queue.rs`](../bindings/rust/queue.rs) | [`bindings/rust/workflow.rs`](../bindings/rust/workflow.rs) | Rust runtime/backend adapter reference. |
 | Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | [`bindings/go/backend/lease.go`](../bindings/go/backend/lease.go) | [`bindings/go/backend/queue.go`](../bindings/go/backend/queue.go) | [`bindings/go/backend/workflow.go`](../bindings/go/backend/workflow.go) | Go API, worker, and backend adapter reference. |
-| Java | [`bindings/java/com/statespec/backend/BackendModel.java`](../bindings/java/com/statespec/backend/BackendModel.java) | [`bindings/java/com/statespec/backend/LeaseStore.java`](../bindings/java/com/statespec/backend/LeaseStore.java) | [`bindings/java/com/statespec/backend/QueueStore.java`](../bindings/java/com/statespec/backend/QueueStore.java) | [`bindings/java/com/statespec/backend/WorkflowStore.java`](../bindings/java/com/statespec/backend/WorkflowStore.java) | JVM service/backend adapter reference. |
+| Java | [`bindings/java/com/statespec/backend/BackendModel.java`](../bindings/java/com/statespec/backend/BackendModel.java) | [`bindings/java/com/statespec/backend/Lease.java`](../bindings/java/com/statespec/backend/Lease.java) | [`bindings/java/com/statespec/backend/Queue.java`](../bindings/java/com/statespec/backend/Queue.java) | [`bindings/java/com/statespec/backend/Workflow.java`](../bindings/java/com/statespec/backend/Workflow.java) | JVM service/backend adapter reference. |
 
 ## Shared Backend Model
 
@@ -33,18 +33,18 @@ Backend
 The backend file intentionally stays component-neutral. Lease, queue, and workflow record
 shapes live with their respective runtime interface files.
 
-## Shared Runtime Store Model
+## Shared Runtime Model
 
 Each language also defines runtime-facing interfaces for higher-level primitives in
 separate files:
 
 ```text
-LeaseStore
-QueueStore
-WorkflowStore
+Lease
+Queue
+Workflow
 ```
 
-The runtime stores expose request, result, and record types for:
+The runtime interfaces expose request, result, and record types for:
 
 ```text
 lease acquire / renew / release / inspect
@@ -95,9 +95,9 @@ retry safely on conflict
 The higher-level runtimes should compose on this model:
 
 - `mt` uses the entity store contract.
-- `dl` implements `LeaseStore` with conditional OCC updates.
-- `qu` implements `QueueStore` with claimable OCC message records.
-- `wf` implements `WorkflowStore` with claimable OCC execution and step records.
+- `dl` implements `Lease` with conditional OCC updates.
+- `qu` implements `Queue` with claimable OCC message records.
+- `wf` implements `Workflow` with claimable OCC execution and step records.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
 straightforward to build.
