@@ -4,14 +4,15 @@ StateSpec defines an OCC-centered backend abstraction model so generated runtime
 share one consistency doctrine across multiple concrete storage engines.
 
 The repository includes reference interface definitions in several implementation
-languages.
+languages. Runtime interfaces are decomposed by component so users can depend only on
+leases, queues, workflows, or any subset their system requires.
 
-| Language | Backend path | Runtime store path | Intended use |
-|---|---|---|---|
-| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | [`bindings/cpp/runtime.hpp`](../bindings/cpp/runtime.hpp) | C++ runtime/backend adapter reference. |
-| Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | [`bindings/rust/runtime.rs`](../bindings/rust/runtime.rs) | Rust runtime/backend adapter reference. |
-| Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | [`bindings/go/backend/runtime.go`](../bindings/go/backend/runtime.go) | Go API, worker, and backend adapter reference. |
-| Java | [`bindings/java/com/statespec/backend/BackendModel.java`](../bindings/java/com/statespec/backend/BackendModel.java) | [`bindings/java/com/statespec/backend/RuntimeStores.java`](../bindings/java/com/statespec/backend/RuntimeStores.java) | JVM service/backend adapter reference. |
+| Language | Backend path | Lease path | Queue path | Workflow path | Intended use |
+|---|---|---|---|---|---|
+| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | [`bindings/cpp/lease.hpp`](../bindings/cpp/lease.hpp) | [`bindings/cpp/queue.hpp`](../bindings/cpp/queue.hpp) | [`bindings/cpp/workflow.hpp`](../bindings/cpp/workflow.hpp) | C++ runtime/backend adapter reference. |
+| Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | [`bindings/rust/lease.rs`](../bindings/rust/lease.rs) | [`bindings/rust/queue.rs`](../bindings/rust/queue.rs) | [`bindings/rust/workflow.rs`](../bindings/rust/workflow.rs) | Rust runtime/backend adapter reference. |
+| Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | [`bindings/go/backend/lease.go`](../bindings/go/backend/lease.go) | [`bindings/go/backend/queue.go`](../bindings/go/backend/queue.go) | [`bindings/go/backend/workflow.go`](../bindings/go/backend/workflow.go) | Go API, worker, and backend adapter reference. |
+| Java | [`bindings/java/com/statespec/backend/BackendModel.java`](../bindings/java/com/statespec/backend/BackendModel.java) | [`bindings/java/com/statespec/backend/LeaseStore.java`](../bindings/java/com/statespec/backend/LeaseStore.java) | [`bindings/java/com/statespec/backend/QueueStore.java`](../bindings/java/com/statespec/backend/QueueStore.java) | [`bindings/java/com/statespec/backend/WorkflowStore.java`](../bindings/java/com/statespec/backend/WorkflowStore.java) | JVM service/backend adapter reference. |
 
 ## Shared Backend Model
 
@@ -34,7 +35,8 @@ WorkflowExecutionRecord
 
 ## Shared Runtime Store Model
 
-Each language also defines runtime-facing interfaces for higher-level primitives:
+Each language also defines runtime-facing interfaces for higher-level primitives in
+separate files:
 
 ```text
 LeaseStore
