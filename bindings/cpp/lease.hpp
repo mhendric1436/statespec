@@ -10,6 +10,16 @@
 namespace statespec::backend
 {
 
+using Timestamp = std::chrono::system_clock::time_point;
+
+struct LeaseRecord
+{
+    std::string resource;
+    std::optional<std::string> holder;
+    Timestamp expires_at;
+    std::uint64_t fencing_token = 0;
+};
+
 struct LeaseAcquireRequest
 {
     std::string resource;
