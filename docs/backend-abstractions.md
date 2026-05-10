@@ -57,6 +57,9 @@ Workflow records and requests that identify a workflow definition carry both
 the unique workflow-definition identity, allowing multiple versions of the same workflow
 name to coexist.
 
+Workflow step claim requests also carry `workflow_execution_id` because claiming work is
+scoped to a particular execution of a workflow definition.
+
 ## Required Semantics
 
 All backend implementations should preserve these semantics:
