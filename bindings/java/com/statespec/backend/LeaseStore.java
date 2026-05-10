@@ -1,7 +1,6 @@
 package com.statespec.backend;
 
 import com.statespec.backend.BackendModel.BackendException;
-import com.statespec.backend.BackendModel.LeaseRecord;
 import com.statespec.backend.BackendModel.Transaction;
 
 import java.time.Duration;
@@ -9,6 +8,13 @@ import java.time.Instant;
 import java.util.Optional;
 
 public interface LeaseStore {
+    record LeaseRecord(
+        String resource,
+        Optional<String> holder,
+        Instant expiresAt,
+        long fencingToken
+    ) {}
+
     record LeaseAcquireRequest(
         String resource,
         String holder,
