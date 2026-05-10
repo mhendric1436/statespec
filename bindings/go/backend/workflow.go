@@ -8,6 +8,7 @@ import (
 type WorkflowExecutionRecord struct {
 	WorkflowExecutionID string
 	WorkflowName        string
+	WorkflowVersion     int64
 	CurrentStep         string
 	Status              string
 	Attempt             uint64
@@ -19,16 +20,18 @@ type WorkflowExecutionRecord struct {
 type StartWorkflowRequest struct {
 	WorkflowExecutionID string
 	WorkflowName        string
+	WorkflowVersion     int64
 	StartStep           string
 	State               JSON
 }
 
 type ClaimWorkflowStepRequest struct {
-	WorkflowName  string
-	Worker        string
-	Now           time.Time
-	LeaseDuration time.Duration
-	MaxSteps      uint32
+	WorkflowName    string
+	WorkflowVersion int64
+	Worker          string
+	Now             time.Time
+	LeaseDuration   time.Duration
+	MaxSteps        uint32
 }
 
 type CompleteWorkflowStepRequest struct {
