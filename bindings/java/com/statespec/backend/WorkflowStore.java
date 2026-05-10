@@ -30,6 +30,7 @@ public interface WorkflowStore {
     ) {}
 
     record ClaimWorkflowStepRequest(
+        String workflowExecutionId,
         String workflowName,
         long workflowVersion,
         String worker,
