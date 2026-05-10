@@ -1,6 +1,5 @@
 package com.statespec.backend;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -129,33 +128,4 @@ public final class BackendModel {
 
         void commit(Transaction tx) throws BackendException;
     }
-
-    public record LeaseRecord(
-        String resource,
-        Optional<String> holder,
-        Instant expiresAt,
-        long fencingToken
-    ) {}
-
-    public record QueueMessageRecord(
-        String messageId,
-        String queue,
-        String channel,
-        String status,
-        long attempts,
-        Optional<String> claimedBy,
-        Optional<Instant> claimExpiresAt,
-        String payloadJson
-    ) {}
-
-    public record WorkflowExecutionRecord(
-        String workflowExecutionId,
-        String workflowName,
-        String currentStep,
-        String status,
-        long attempt,
-        Optional<String> claimedBy,
-        Optional<Instant> claimExpiresAt,
-        String stateJson
-    ) {}
 }
