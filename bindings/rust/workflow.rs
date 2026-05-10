@@ -1,6 +1,18 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{BackendResult, Json, Transaction, WorkflowExecutionRecord};
+use crate::backend::{BackendResult, Json, Transaction};
+
+#[derive(Debug, Clone)]
+pub struct WorkflowExecutionRecord {
+    pub workflow_execution_id: String,
+    pub workflow_name: String,
+    pub current_step: String,
+    pub status: String,
+    pub attempt: u64,
+    pub claimed_by: Option<String>,
+    pub claim_expires_at: Option<SystemTime>,
+    pub state: Json,
+}
 
 #[derive(Debug, Clone)]
 pub struct StartWorkflowRequest {
