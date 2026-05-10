@@ -6,6 +6,7 @@ use crate::backend::{BackendResult, Json, Transaction};
 pub struct WorkflowExecutionRecord {
     pub workflow_execution_id: String,
     pub workflow_name: String,
+    pub workflow_version: i64,
     pub current_step: String,
     pub status: String,
     pub attempt: u64,
@@ -18,6 +19,7 @@ pub struct WorkflowExecutionRecord {
 pub struct StartWorkflowRequest {
     pub workflow_execution_id: String,
     pub workflow_name: String,
+    pub workflow_version: i64,
     pub start_step: String,
     pub state: Json,
 }
@@ -25,6 +27,7 @@ pub struct StartWorkflowRequest {
 #[derive(Debug, Clone)]
 pub struct ClaimWorkflowStepRequest {
     pub workflow_name: String,
+    pub workflow_version: i64,
     pub worker: String,
     pub now: SystemTime,
     pub lease_duration: Duration,
