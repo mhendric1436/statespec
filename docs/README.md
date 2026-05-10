@@ -18,6 +18,7 @@ behavior.
 | [workflows-and-apis.md](workflows-and-apis.md) | Workflow, step, API, behavior, and orchestration declarations. |
 | [policies.md](policies.md) | Policy authoring for tenant scoping, authorization rules, quotas, and audit points. |
 | [generators.md](generators.md) | Generator targets and expected output layout. |
+| [backend-abstractions.md](backend-abstractions.md) | OCC-centered backend abstraction source artifacts and runtime contracts. |
 | [style-guide.md](style-guide.md) | Naming, ordering, and maintainability conventions for `.sspec` files. |
 
 ## Recommended Reading Order
@@ -25,7 +26,8 @@ behavior.
 1. Start with [getting-started.md](getting-started.md).
 2. Read [language-model.md](language-model.md) to understand how declarations fit together.
 3. Use the focused guides while authoring specific sections.
-4. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
+4. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
+5. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
 
 ## Source Of Truth
 
