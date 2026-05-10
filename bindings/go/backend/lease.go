@@ -5,6 +5,13 @@ import (
 	"time"
 )
 
+type LeaseRecord struct {
+	Resource     string
+	Holder       *string
+	ExpiresAt    time.Time
+	FencingToken uint64
+}
+
 type LeaseAcquireRequest struct {
 	Resource string
 	Holder   string
