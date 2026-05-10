@@ -11,6 +11,20 @@
 namespace statespec::backend
 {
 
+using Timestamp = std::chrono::system_clock::time_point;
+
+struct WorkflowExecutionRecord
+{
+    std::string workflow_execution_id;
+    std::string workflow_name;
+    std::string current_step;
+    std::string status;
+    std::uint64_t attempt = 0;
+    std::optional<std::string> claimed_by;
+    std::optional<Timestamp> claim_expires_at;
+    Json state;
+};
+
 struct StartWorkflowRequest
 {
     std::string workflow_execution_id;
