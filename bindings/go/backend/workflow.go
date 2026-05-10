@@ -26,12 +26,13 @@ type StartWorkflowRequest struct {
 }
 
 type ClaimWorkflowStepRequest struct {
-	WorkflowName    string
-	WorkflowVersion int64
-	Worker          string
-	Now             time.Time
-	LeaseDuration   time.Duration
-	MaxSteps        uint32
+	WorkflowExecutionID string
+	WorkflowName        string
+	WorkflowVersion     int64
+	Worker              string
+	Now                 time.Time
+	LeaseDuration       time.Duration
+	MaxSteps            uint32
 }
 
 type CompleteWorkflowStepRequest struct {
