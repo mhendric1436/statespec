@@ -108,8 +108,16 @@ transitions should be avoided.
 
 ## 4. Runtime Independence
 
-The language should describe the system. Generators should decide how that system maps
-to `mt`, `dl`, `qu`, `wf`, OpenAPI, Protobuf, or other targets.
+The language should describe the system without depending on a concrete runtime,
+storage engine, database, or transport. Generators should map the canonical model to
+runtime targets such as `mt`, `dl`, `qu`, `wf`, OpenAPI, or Protobuf, while backend
+adapters should map those targets onto concrete implementations such as memory, SQLite,
+PostgreSQL, RocksDB, FoundationDB, or future storage engines.
+
+Runtime independence depends on the shared OCC-centered backend abstraction: generated
+semantics should rely on versioned reads, predicate validation, staged writes, atomic
+commit, and stable conflict categories instead of backend-specific mechanics. This lets
+StateSpec preserve one consistency doctrine while supporting multiple concrete backends.
 
 ## 5. Durable Coordination
 
