@@ -1,7 +1,6 @@
 package com.statespec.backend;
 
 import com.statespec.backend.BackendModel.BackendException;
-import com.statespec.backend.BackendModel.JsonEquals;
 import com.statespec.backend.BackendModel.LeaseRecord;
 import com.statespec.backend.BackendModel.QueueMessageRecord;
 import com.statespec.backend.BackendModel.Transaction;
