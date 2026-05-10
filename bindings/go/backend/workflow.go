@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+type WorkflowExecutionRecord struct {
+	WorkflowExecutionID string
+	WorkflowName        string
+	CurrentStep         string
+	Status              string
+	Attempt             uint64
+	ClaimedBy           *string
+	ClaimExpiresAt      *time.Time
+	State               JSON
+}
+
 type StartWorkflowRequest struct {
 	WorkflowExecutionID string
 	WorkflowName        string
