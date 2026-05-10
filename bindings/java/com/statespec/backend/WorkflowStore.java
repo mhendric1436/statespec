@@ -2,7 +2,6 @@ package com.statespec.backend;
 
 import com.statespec.backend.BackendModel.BackendException;
 import com.statespec.backend.BackendModel.Transaction;
-import com.statespec.backend.BackendModel.WorkflowExecutionRecord;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -10,6 +9,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface WorkflowStore {
+    record WorkflowExecutionRecord(
+        String workflowExecutionId,
+        String workflowName,
+        String currentStep,
+        String status,
+        long attempt,
+        Optional<String> claimedBy,
+        Optional<Instant> claimExpiresAt,
+        String stateJson
+    ) {}
+
     record StartWorkflowRequest(
         String workflowExecutionId,
         String workflowName,
