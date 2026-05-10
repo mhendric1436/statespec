@@ -8,7 +8,7 @@ languages.
 
 | Language | Path | Intended use |
 |---|---|---|
-| C++20 | [`include/statespec/backend.hpp`](../include/statespec/backend.hpp) | Native StateSpec runtime and generator-facing abstraction surface. |
+| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | C++ runtime/backend adapter reference. |
 | Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | Rust runtime/backend adapter reference. |
 | Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | Go API, worker, and backend adapter reference. |
 | Java | [`bindings/java/com/statespec/backend/BackendModel.java`](../bindings/java/com/statespec/backend/BackendModel.java) | JVM service/backend adapter reference. |
