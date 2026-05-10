@@ -6,16 +6,16 @@ share one consistency doctrine across multiple concrete storage engines.
 The repository includes reference interface definitions in several implementation
 languages.
 
-| Language | Path | Intended use |
-|---|---|---|
-| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | C++ runtime/backend adapter reference. |
-| Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | Rust runtime/backend adapter reference. |
-| Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | Go API, worker, and backend adapter reference. |
-| Java | [`bindings/java/com/statespec/backend/BackendModel.java`](../bindings/java/com/statespec/backend/BackendModel.java) | JVM service/backend adapter reference. |
+| Language | Backend path | Runtime store path | Intended use |
+|---|---|---|---|
+| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | [`bindings/cpp/runtime.hpp`](../bindings/cpp/runtime.hpp) | C++ runtime/backend adapter reference. |
+| Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | [`bindings/rust/runtime.rs`](../bindings/rust/runtime.rs) | Rust runtime/backend adapter reference. |
+| Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | [`bindings/go/backend/runtime.go`](../bindings/go/backend/runtime.go) | Go API, worker, and backend adapter reference. |
+| Java | [`bindings/java/com/statespec/backend/BackendModel.java`](../bindings/java/com/statespec/backend/BackendModel.java) | [`bindings/java/com/statespec/backend/RuntimeStores.java`](../bindings/java/com/statespec/backend/RuntimeStores.java) | JVM service/backend adapter reference. |
 
-## Shared Model
+## Shared Backend Model
 
-Each language defines the same conceptual pieces:
+Each language defines the same conceptual backend pieces:
 
 ```text
 CollectionDescriptor
@@ -30,6 +30,24 @@ Backend
 LeaseRecord
 QueueMessageRecord
 WorkflowExecutionRecord
+```
+
+## Shared Runtime Store Model
+
+Each language also defines runtime-facing interfaces for higher-level primitives:
+
+```text
+LeaseStore
+QueueStore
+WorkflowStore
+```
+
+The runtime stores expose request and result types for:
+
+```text
+lease acquire / renew / release / inspect
+queue enqueue / claim / acknowledge / fail / inspect
+workflow start / claim steps / complete step / fail step / cancel / inspect
 ```
 
 ## Required Semantics
@@ -67,9 +85,9 @@ retry safely on conflict
 The higher-level runtimes should compose on this model:
 
 - `mt` uses the entity store contract.
-- `dl` models leases as conditional OCC updates.
-- `qu` models messages as claimable OCC records.
-- `wf` models workflow executions and steps as claimable OCC records.
+- `dl` implements `LeaseStore` with conditional OCC updates.
+- `qu` implements `QueueStore` with claimable OCC message records.
+- `wf` implements `WorkflowStore` with claimable OCC execution and step records.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
 straightforward to build.
