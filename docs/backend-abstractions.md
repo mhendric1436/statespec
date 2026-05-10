@@ -52,6 +52,11 @@ queue enqueue / claim / acknowledge / fail / inspect
 workflow start / claim steps / complete step / fail step / cancel / inspect
 ```
 
+Workflow records and requests that identify a workflow definition carry both
+`workflow_name` and `workflow_version`. The pair `(workflow_name, workflow_version)` is
+the unique workflow-definition identity, allowing multiple versions of the same workflow
+name to coexist.
+
 ## Required Semantics
 
 All backend implementations should preserve these semantics:
