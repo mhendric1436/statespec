@@ -5,6 +5,33 @@ import (
 	"time"
 )
 
+type WorkflowStepDefinition struct {
+	Name                  string
+	ExpectedExecutionTime time.Duration
+	MaxRetries            uint32
+}
+
+type WorkflowDefinition struct {
+	WorkflowName          string
+	WorkflowVersion       int64
+	StartStep             string
+	ExpectedExecutionTime time.Duration
+	Singleton             bool
+	Steps                 []WorkflowStepDefinition
+	Metadata              JSON
+}
+
+type RegisterWorkflowDefinitionRequest struct {
+	Definition      WorkflowDefinition
+	ReplaceExisting bool
+}
+
+type WorkflowDefinitionRegistration struct {
+	Definition WorkflowDefinition
+	Created    bool
+	Replaced   bool
+}
+
 type WorkflowExecutionRecord struct {
 	WorkflowExecutionID string
 	WorkflowName        string
@@ -58,6 +85,10 @@ type CancelWorkflowRequest struct {
 }
 
 type WorkflowStore interface {
+	RegisterDefinition(ctx context.Context, tx Transaction, request RegisterWorkflowDefinitionRequest) (WorkflowDefinitionRegistration, error)
+
+	InspectDefinition(ctx context.Context, tx Transaction, workflowName string, workflowVersion int64) (*WorkflowDefinition, error)
+
 	Start(ctx context.Context, tx Transaction, request StartWorkflowRequest) (WorkflowExecutionRecord, error)
 
 	ClaimSteps(ctx context.Context, tx Transaction, request ClaimWorkflowStepRequest) ([]WorkflowExecutionRecord, error)
