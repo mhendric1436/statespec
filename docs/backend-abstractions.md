@@ -48,10 +48,20 @@ The runtime interfaces expose request, result, and record types for:
 
 ```text
 lease acquire / renew / release / inspect
+queue create / inspect definition
 queue enqueue / claim / acknowledge / fail / inspect
 workflow register definition / inspect definition
 workflow start / claim steps / complete step / fail step / cancel / inspect
 ```
+
+Queues are created explicitly and idempotently with `QueueDefinition` and
+`CreateQueueRequest`. The queue identity is the pair `(queue, channel)`. `QueueCreation`
+returns the registered definition and whether the queue definition was newly created. If
+the same queue definition is already registered, creation may return `created = false`.
+
+Queue definitions include visibility timeout, maximum attempts, optional dead-letter
+queue, and metadata. Enqueue and claim operations should target an existing queue
+identity.
 
 Workflow definitions are registered before executions are started. A
 `WorkflowDefinition` includes the workflow name, version, start step, expected execution
@@ -109,7 +119,7 @@ The higher-level runtimes should compose on this model:
 
 - `mt` uses the entity store contract.
 - `dl` implements `Lease` with conditional OCC updates.
-- `qu` implements `Queue` with claimable OCC message records.
+- `qu` implements `Queue` with idempotent queue creation and claimable OCC message records.
 - `wf` implements `Workflow` with immutable registered definitions and claimable OCC execution and step records.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
