@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{BackendResult, Json, Transaction};
+use crate::backend::{Backend, BackendResult, Json, Transaction};
 
 #[derive(Debug, Clone)]
 pub struct WorkflowStepDefinition {
@@ -114,4 +114,142 @@ pub trait WorkflowStore<Tx: Transaction> {
     fn cancel(&self, tx: &mut Tx, request: &CancelWorkflowRequest) -> BackendResult<WorkflowExecutionRecord>;
 
     fn inspect(&self, tx: &mut Tx, workflow_execution_id: &str) -> BackendResult<Option<WorkflowExecutionRecord>>;
+}
+
+pub struct WorkflowRuntime<'a, B, S>
+where
+    B: Backend,
+    S: WorkflowStore<B::Tx>,
+{
+    backend: &'a B,
+    store: &'a S,
+}
+
+impl<'a, B, S> WorkflowRuntime<'a, B, S>
+where
+    B: Backend,
+    S: WorkflowStore<B::Tx>,
+{
+    pub fn new(backend: &'a B, store: &'a S) -> Self {
+        Self { backend, store }
+    }
+
+    pub fn register_definition(
+        &self,
+        request: &RegisterWorkflowDefinitionRequest,
+    ) -> BackendResult<WorkflowDefinitionRegistration> {
+        let mut tx = self.backend.begin()?;
+        match self.store.register_definition(&mut tx, request) {
+            Ok(result) => {
+                self.backend.commit(tx)?;
+                Ok(result)
+            }
+            Err(err) => {
+                let _ = tx.abort();
+                Err(err)
+            }
+        }
+    }
+
+    pub fn inspect_definition(
+        &self,
+        workflow_name: &str,
+        workflow_version: i64,
+    ) -> BackendResult<Option<WorkflowDefinition>> {
+        let mut tx = self.backend.begin()?;
+        match self.store.inspect_definition(&mut tx, workflow_name, workflow_version) {
+            Ok(result) => {
+                self.backend.commit(tx)?;
+                Ok(result)
+            }
+            Err(err) => {
+                let _ = tx.abort();
+                Err(err)
+            }
+        }
+    }
+
+    pub fn start(&self, request: &StartWorkflowRequest) -> BackendResult<WorkflowExecutionRecord> {
+        let mut tx = self.backend.begin()?;
+        match self.store.start(&mut tx, request) {
+            Ok(result) => {
+                self.backend.commit(tx)?;
+                Ok(result)
+            }
+            Err(err) => {
+                let _ = tx.abort();
+                Err(err)
+            }
+        }
+    }
+
+    pub fn claim_steps(&self, request: &ClaimWorkflowStepRequest) -> BackendResult<Vec<WorkflowExecutionRecord>> {
+        let mut tx = self.backend.begin()?;
+        match self.store.claim_steps(&mut tx, request) {
+            Ok(result) => {
+                self.backend.commit(tx)?;
+                Ok(result)
+            }
+            Err(err) => {
+                let _ = tx.abort();
+                Err(err)
+            }
+        }
+    }
+
+    pub fn complete_step(&self, request: &CompleteWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord> {
+        let mut tx = self.backend.begin()?;
+        match self.store.complete_step(&mut tx, request) {
+            Ok(result) => {
+                self.backend.commit(tx)?;
+                Ok(result)
+            }
+            Err(err) => {
+                let _ = tx.abort();
+                Err(err)
+            }
+        }
+    }
+
+    pub fn fail_step(&self, request: &FailWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord> {
+        let mut tx = self.backend.begin()?;
+        match self.store.fail_step(&mut tx, request) {
+            Ok(result) => {
+                self.backend.commit(tx)?;
+                Ok(result)
+            }
+            Err(err) => {
+                let _ = tx.abort();
+                Err(err)
+            }
+        }
+    }
+
+    pub fn cancel(&self, request: &CancelWorkflowRequest) -> BackendResult<WorkflowExecutionRecord> {
+        let mut tx = self.backend.begin()?;
+        match self.store.cancel(&mut tx, request) {
+            Ok(result) => {
+                self.backend.commit(tx)?;
+                Ok(result)
+            }
+            Err(err) => {
+                let _ = tx.abort();
+                Err(err)
+            }
+        }
+    }
+
+    pub fn inspect(&self, workflow_execution_id: &str) -> BackendResult<Option<WorkflowExecutionRecord>> {
+        let mut tx = self.backend.begin()?;
+        match self.store.inspect(&mut tx, workflow_execution_id) {
+            Ok(result) => {
+                self.backend.commit(tx)?;
+                Ok(result)
+            }
+            Err(err) => {
+                let _ = tx.abort();
+                Err(err)
+            }
+        }
+    }
 }
