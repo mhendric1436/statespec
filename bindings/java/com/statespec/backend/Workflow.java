@@ -2,27 +2,20 @@ package com.statespec.backend;
 
 import com.statespec.backend.BackendModel.Backend;
 import com.statespec.backend.BackendModel.BackendException;
-import com.statespec.backend.BackendModel.Transaction;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public abstract class Workflow {
-    private final Backend backend;
-
-    protected Workflow(Backend backend) {
-        this.backend = backend;
-    }
-
-    public record WorkflowStepDefinition(
+public interface Workflow {
+    record WorkflowStepDefinition(
         String name,
         Duration expectedExecutionTime,
         int maxRetries
     ) {}
 
-    public record WorkflowDefinition(
+    record WorkflowDefinition(
         String workflowName,
         long workflowVersion,
         String startStep,
@@ -32,16 +25,16 @@ public abstract class Workflow {
         String metadataJson
     ) {}
 
-    public record RegisterWorkflowDefinitionRequest(
+    record RegisterWorkflowDefinitionRequest(
         WorkflowDefinition definition
     ) {}
 
-    public record WorkflowDefinitionRegistration(
+    record WorkflowDefinitionRegistration(
         WorkflowDefinition definition,
         boolean created
     ) {}
 
-    public record WorkflowExecutionRecord(
+    record WorkflowExecutionRecord(
         String workflowExecutionId,
         String workflowName,
         long workflowVersion,
@@ -53,7 +46,7 @@ public abstract class Workflow {
         String stateJson
     ) {}
 
-    public record StartWorkflowRequest(
+    record StartWorkflowRequest(
         String workflowExecutionId,
         String workflowName,
         long workflowVersion,
@@ -61,7 +54,7 @@ public abstract class Workflow {
         String stateJson
     ) {}
 
-    public record ClaimWorkflowStepRequest(
+    record ClaimWorkflowStepRequest(
         String workflowExecutionId,
         String workflowName,
         long workflowVersion,
@@ -71,7 +64,7 @@ public abstract class Workflow {
         int maxSteps
     ) {}
 
-    public record CompleteWorkflowStepRequest(
+    record CompleteWorkflowStepRequest(
         String workflowExecutionId,
         String worker,
         String completedStep,
@@ -79,7 +72,7 @@ public abstract class Workflow {
         String stateJson
     ) {}
 
-    public record FailWorkflowStepRequest(
+    record FailWorkflowStepRequest(
         String workflowExecutionId,
         String worker,
         String failedStep,
@@ -88,154 +81,49 @@ public abstract class Workflow {
         int maxAttempts
     ) {}
 
-    public record CancelWorkflowRequest(
+    record CancelWorkflowRequest(
         String workflowExecutionId,
         String reason
     ) {}
 
-    protected abstract WorkflowDefinitionRegistration registerDefinition(
-        Transaction tx,
+    WorkflowDefinitionRegistration registerDefinition(
+        Backend backend,
         RegisterWorkflowDefinitionRequest request
     ) throws BackendException;
 
-    protected abstract Optional<WorkflowDefinition> inspectDefinition(
-        Transaction tx,
+    Optional<WorkflowDefinition> inspectDefinition(
+        Backend backend,
         String workflowName,
         long workflowVersion
     ) throws BackendException;
 
-    protected abstract WorkflowExecutionRecord start(
-        Transaction tx,
+    WorkflowExecutionRecord start(
+        Backend backend,
         StartWorkflowRequest request
     ) throws BackendException;
 
-    protected abstract List<WorkflowExecutionRecord> claimSteps(
-        Transaction tx,
+    List<WorkflowExecutionRecord> claimSteps(
+        Backend backend,
         ClaimWorkflowStepRequest request
     ) throws BackendException;
 
-    protected abstract WorkflowExecutionRecord completeStep(
-        Transaction tx,
+    WorkflowExecutionRecord completeStep(
+        Backend backend,
         CompleteWorkflowStepRequest request
     ) throws BackendException;
 
-    protected abstract WorkflowExecutionRecord failStep(
-        Transaction tx,
+    WorkflowExecutionRecord failStep(
+        Backend backend,
         FailWorkflowStepRequest request
     ) throws BackendException;
 
-    protected abstract WorkflowExecutionRecord cancel(
-        Transaction tx,
+    WorkflowExecutionRecord cancel(
+        Backend backend,
         CancelWorkflowRequest request
     ) throws BackendException;
 
-    protected abstract Optional<WorkflowExecutionRecord> inspect(
-        Transaction tx,
+    Optional<WorkflowExecutionRecord> inspect(
+        Backend backend,
         String workflowExecutionId
     ) throws BackendException;
-
-    public final WorkflowDefinitionRegistration registerDefinition(
-        RegisterWorkflowDefinitionRequest request
-    ) throws BackendException {
-        Transaction tx = backend.begin();
-        try {
-            WorkflowDefinitionRegistration result = registerDefinition(tx, request);
-            backend.commit(tx);
-            return result;
-        } catch (BackendException | RuntimeException e) {
-            tx.abort();
-            throw e;
-        }
-    }
-
-    public final Optional<WorkflowDefinition> inspectDefinition(
-        String workflowName,
-        long workflowVersion
-    ) throws BackendException {
-        Transaction tx = backend.begin();
-        try {
-            Optional<WorkflowDefinition> result = inspectDefinition(tx, workflowName, workflowVersion);
-            backend.commit(tx);
-            return result;
-        } catch (BackendException | RuntimeException e) {
-            tx.abort();
-            throw e;
-        }
-    }
-
-    public final WorkflowExecutionRecord start(StartWorkflowRequest request) throws BackendException {
-        Transaction tx = backend.begin();
-        try {
-            WorkflowExecutionRecord result = start(tx, request);
-            backend.commit(tx);
-            return result;
-        } catch (BackendException | RuntimeException e) {
-            tx.abort();
-            throw e;
-        }
-    }
-
-    public final List<WorkflowExecutionRecord> claimSteps(
-        ClaimWorkflowStepRequest request
-    ) throws BackendException {
-        Transaction tx = backend.begin();
-        try {
-            List<WorkflowExecutionRecord> result = claimSteps(tx, request);
-            backend.commit(tx);
-            return result;
-        } catch (BackendException | RuntimeException e) {
-            tx.abort();
-            throw e;
-        }
-    }
-
-    public final WorkflowExecutionRecord completeStep(
-        CompleteWorkflowStepRequest request
-    ) throws BackendException {
-        Transaction tx = backend.begin();
-        try {
-            WorkflowExecutionRecord result = completeStep(tx, request);
-            backend.commit(tx);
-            return result;
-        } catch (BackendException | RuntimeException e) {
-            tx.abort();
-            throw e;
-        }
-    }
-
-    public final WorkflowExecutionRecord failStep(FailWorkflowStepRequest request) throws BackendException {
-        Transaction tx = backend.begin();
-        try {
-            WorkflowExecutionRecord result = failStep(tx, request);
-            backend.commit(tx);
-            return result;
-        } catch (BackendException | RuntimeException e) {
-            tx.abort();
-            throw e;
-        }
-    }
-
-    public final WorkflowExecutionRecord cancel(CancelWorkflowRequest request) throws BackendException {
-        Transaction tx = backend.begin();
-        try {
-            WorkflowExecutionRecord result = cancel(tx, request);
-            backend.commit(tx);
-            return result;
-        } catch (BackendException | RuntimeException e) {
-            tx.abort();
-            throw e;
-        }
-    }
-
-    public final Optional<WorkflowExecutionRecord> inspect(String workflowExecutionId) throws BackendException {
-        Transaction tx = backend.begin();
-        try {
-            Optional<WorkflowExecutionRecord> result = inspect(tx, workflowExecutionId);
-            backend.commit(tx);
-            return result;
-        } catch (BackendException | RuntimeException e) {
-            tx.abort();
-            throw e;
-        }
-    }
 }
