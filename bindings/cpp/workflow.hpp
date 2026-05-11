@@ -34,14 +34,12 @@ struct WorkflowDefinition
 struct RegisterWorkflowDefinitionRequest
 {
     WorkflowDefinition definition;
-    bool replace_existing = false;
 };
 
 struct WorkflowDefinitionRegistration
 {
     WorkflowDefinition definition;
     bool created = false;
-    bool replaced = false;
 };
 
 struct WorkflowExecutionRecord
