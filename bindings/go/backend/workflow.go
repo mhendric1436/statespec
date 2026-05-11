@@ -85,17 +85,33 @@ type CancelWorkflowRequest struct {
 type WorkflowStore interface {
 	RegisterDefinition(ctx context.Context, backend Backend, request RegisterWorkflowDefinitionRequest) (WorkflowDefinitionRegistration, error)
 
+	RegisterDefinitionTx(ctx context.Context, tx Transaction, request RegisterWorkflowDefinitionRequest) (WorkflowDefinitionRegistration, error)
+
 	InspectDefinition(ctx context.Context, backend Backend, workflowName string, workflowVersion int64) (*WorkflowDefinition, error)
+
+	InspectDefinitionTx(ctx context.Context, tx Transaction, workflowName string, workflowVersion int64) (*WorkflowDefinition, error)
 
 	Start(ctx context.Context, backend Backend, request StartWorkflowRequest) (WorkflowExecutionRecord, error)
 
+	StartTx(ctx context.Context, tx Transaction, request StartWorkflowRequest) (WorkflowExecutionRecord, error)
+
 	ClaimSteps(ctx context.Context, backend Backend, request ClaimWorkflowStepRequest) ([]WorkflowExecutionRecord, error)
+
+	ClaimStepsTx(ctx context.Context, tx Transaction, request ClaimWorkflowStepRequest) ([]WorkflowExecutionRecord, error)
 
 	CompleteStep(ctx context.Context, backend Backend, request CompleteWorkflowStepRequest) (WorkflowExecutionRecord, error)
 
+	CompleteStepTx(ctx context.Context, tx Transaction, request CompleteWorkflowStepRequest) (WorkflowExecutionRecord, error)
+
 	FailStep(ctx context.Context, backend Backend, request FailWorkflowStepRequest) (WorkflowExecutionRecord, error)
+
+	FailStepTx(ctx context.Context, tx Transaction, request FailWorkflowStepRequest) (WorkflowExecutionRecord, error)
 
 	Cancel(ctx context.Context, backend Backend, request CancelWorkflowRequest) (WorkflowExecutionRecord, error)
 
+	CancelTx(ctx context.Context, tx Transaction, request CancelWorkflowRequest) (WorkflowExecutionRecord, error)
+
 	Inspect(ctx context.Context, backend Backend, workflowExecutionID string) (*WorkflowExecutionRecord, error)
+
+	InspectTx(ctx context.Context, tx Transaction, workflowExecutionID string) (*WorkflowExecutionRecord, error)
 }
