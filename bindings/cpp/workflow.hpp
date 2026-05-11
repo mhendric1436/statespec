@@ -147,4 +147,149 @@ class IWorkflowStore
     ) = 0;
 };
 
+class Workflow : public IWorkflowStore
+{
+  public:
+    explicit Workflow(IBackend& backend)
+        : backend_(backend)
+    {
+    }
+
+    WorkflowDefinitionRegistration register_definition(
+        const RegisterWorkflowDefinitionRequest& request
+    )
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = register_definition(*tx, request);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    std::optional<WorkflowDefinition> inspect_definition(
+        const std::string& workflow_name,
+        std::int64_t workflow_version
+    )
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = inspect_definition(*tx, workflow_name, workflow_version);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    WorkflowExecutionRecord start(const StartWorkflowRequest& request)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = start(*tx, request);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    std::vector<WorkflowExecutionRecord> claim_steps(const ClaimWorkflowStepRequest& request)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = claim_steps(*tx, request);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    WorkflowExecutionRecord complete_step(const CompleteWorkflowStepRequest& request)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = complete_step(*tx, request);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    WorkflowExecutionRecord fail_step(const FailWorkflowStepRequest& request)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = fail_step(*tx, request);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    WorkflowExecutionRecord cancel(const CancelWorkflowRequest& request)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = cancel(*tx, request);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    std::optional<WorkflowExecutionRecord> inspect(const std::string& workflow_execution_id)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = inspect(*tx, workflow_execution_id);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+  private:
+    IBackend& backend_;
+};
+
 } // namespace statespec::backend
