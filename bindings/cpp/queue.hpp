@@ -86,166 +86,40 @@ class IQueueStore
     virtual ~IQueueStore() = default;
 
     virtual QueueCreation create(
-        ITransaction& tx,
+        IBackend& backend,
         const CreateQueueRequest& request
     ) = 0;
 
     virtual std::optional<QueueDefinition> inspect_definition(
-        ITransaction& tx,
+        IBackend& backend,
         const std::string& queue,
         const std::string& channel
     ) = 0;
 
     virtual QueueMessageRecord enqueue(
-        ITransaction& tx,
+        IBackend& backend,
         const EnqueueMessageRequest& request
     ) = 0;
 
     virtual std::vector<QueueMessageRecord> claim(
-        ITransaction& tx,
+        IBackend& backend,
         const ClaimMessageRequest& request
     ) = 0;
 
     virtual void acknowledge(
-        ITransaction& tx,
+        IBackend& backend,
         const AckMessageRequest& request
     ) = 0;
 
     virtual QueueMessageRecord fail(
-        ITransaction& tx,
+        IBackend& backend,
         const FailMessageRequest& request
     ) = 0;
 
     virtual std::optional<QueueMessageRecord> inspect(
-        ITransaction& tx,
+        IBackend& backend,
         const std::string& message_id
     ) = 0;
-};
-
-class Queue : public IQueueStore
-{
-  public:
-    explicit Queue(IBackend& backend)
-        : backend_(backend)
-    {
-    }
-
-    QueueCreation create(const CreateQueueRequest& request)
-    {
-        auto tx = backend_.begin();
-        try
-        {
-            auto result = create(*tx, request);
-            backend_.commit(*tx);
-            return result;
-        }
-        catch (...)
-        {
-            tx->abort();
-            throw;
-        }
-    }
-
-    std::optional<QueueDefinition> inspect_definition(
-        const std::string& queue,
-        const std::string& channel
-    )
-    {
-        auto tx = backend_.begin();
-        try
-        {
-            auto result = inspect_definition(*tx, queue, channel);
-            backend_.commit(*tx);
-            return result;
-        }
-        catch (...)
-        {
-            tx->abort();
-            throw;
-        }
-    }
-
-    QueueMessageRecord enqueue(const EnqueueMessageRequest& request)
-    {
-        auto tx = backend_.begin();
-        try
-        {
-            auto result = enqueue(*tx, request);
-            backend_.commit(*tx);
-            return result;
-        }
-        catch (...)
-        {
-            tx->abort();
-            throw;
-        }
-    }
-
-    std::vector<QueueMessageRecord> claim(const ClaimMessageRequest& request)
-    {
-        auto tx = backend_.begin();
-        try
-        {
-            auto result = claim(*tx, request);
-            backend_.commit(*tx);
-            return result;
-        }
-        catch (...)
-        {
-            tx->abort();
-            throw;
-        }
-    }
-
-    void acknowledge(const AckMessageRequest& request)
-    {
-        auto tx = backend_.begin();
-        try
-        {
-            acknowledge(*tx, request);
-            backend_.commit(*tx);
-        }
-        catch (...)
-        {
-            tx->abort();
-            throw;
-        }
-    }
-
-    QueueMessageRecord fail(const FailMessageRequest& request)
-    {
-        auto tx = backend_.begin();
-        try
-        {
-            auto result = fail(*tx, request);
-            backend_.commit(*tx);
-            return result;
-        }
-        catch (...)
-        {
-            tx->abort();
-            throw;
-        }
-    }
-
-    std::optional<QueueMessageRecord> inspect(const std::string& message_id)
-    {
-        auto tx = backend_.begin();
-        try
-        {
-            auto result = inspect(*tx, message_id);
-            backend_.commit(*tx);
-            return result;
-        }
-        catch (...)
-        {
-            tx->abort();
-            throw;
-        }
-    }
-
-  private:
-    IBackend& backend_;
 };
 
 } // namespace statespec::backend
