@@ -5,6 +5,24 @@ import (
 	"time"
 )
 
+type QueueDefinition struct {
+	Queue             string
+	Channel           string
+	VisibilityTimeout time.Duration
+	MaxAttempts       uint32
+	DeadLetterQueue   *string
+	Metadata          JSON
+}
+
+type CreateQueueRequest struct {
+	Definition QueueDefinition
+}
+
+type QueueCreation struct {
+	Definition QueueDefinition
+	Created    bool
+}
+
 type QueueMessageRecord struct {
 	MessageID      string
 	Queue          string
@@ -47,6 +65,10 @@ type FailMessageRequest struct {
 }
 
 type QueueStore interface {
+	Create(ctx context.Context, tx Transaction, request CreateQueueRequest) (QueueCreation, error)
+
+	InspectDefinition(ctx context.Context, tx Transaction, queue string, channel string) (*QueueDefinition, error)
+
 	Enqueue(ctx context.Context, tx Transaction, request EnqueueMessageRequest) (QueueMessageRecord, error)
 
 	Claim(ctx context.Context, tx Transaction, request ClaimMessageRequest) ([]QueueMessageRecord, error)
