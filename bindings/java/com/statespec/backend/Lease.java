@@ -2,6 +2,7 @@ package com.statespec.backend;
 
 import com.statespec.backend.BackendModel.Backend;
 import com.statespec.backend.BackendModel.BackendException;
+import com.statespec.backend.BackendModel.Transaction;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -46,8 +47,18 @@ public interface Lease {
         LeaseAcquireRequest request
     ) throws BackendException;
 
+    LeaseAcquireResult acquireTx(
+        Transaction tx,
+        LeaseAcquireRequest request
+    ) throws BackendException;
+
     LeaseRecord renew(
         Backend backend,
+        LeaseRenewRequest request
+    ) throws BackendException;
+
+    LeaseRecord renewTx(
+        Transaction tx,
         LeaseRenewRequest request
     ) throws BackendException;
 
@@ -56,8 +67,18 @@ public interface Lease {
         LeaseReleaseRequest request
     ) throws BackendException;
 
+    void releaseTx(
+        Transaction tx,
+        LeaseReleaseRequest request
+    ) throws BackendException;
+
     Optional<LeaseRecord> inspect(
         Backend backend,
+        String resource
+    ) throws BackendException;
+
+    Optional<LeaseRecord> inspectTx(
+        Transaction tx,
         String resource
     ) throws BackendException;
 }
