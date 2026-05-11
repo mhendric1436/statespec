@@ -41,9 +41,17 @@ type LeaseAcquireResult struct {
 type LeaseStore interface {
 	Acquire(ctx context.Context, backend Backend, request LeaseAcquireRequest) (LeaseAcquireResult, error)
 
+	AcquireTx(ctx context.Context, tx Transaction, request LeaseAcquireRequest) (LeaseAcquireResult, error)
+
 	Renew(ctx context.Context, backend Backend, request LeaseRenewRequest) (LeaseRecord, error)
+
+	RenewTx(ctx context.Context, tx Transaction, request LeaseRenewRequest) (LeaseRecord, error)
 
 	Release(ctx context.Context, backend Backend, request LeaseReleaseRequest) error
 
+	ReleaseTx(ctx context.Context, tx Transaction, request LeaseReleaseRequest) error
+
 	Inspect(ctx context.Context, backend Backend, resource string) (*LeaseRecord, error)
+
+	InspectTx(ctx context.Context, tx Transaction, resource string) (*LeaseRecord, error)
 }
