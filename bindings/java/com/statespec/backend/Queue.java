@@ -2,6 +2,7 @@ package com.statespec.backend;
 
 import com.statespec.backend.BackendModel.Backend;
 import com.statespec.backend.BackendModel.BackendException;
+import com.statespec.backend.BackendModel.Transaction;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -73,8 +74,19 @@ public interface Queue {
         CreateQueueRequest request
     ) throws BackendException;
 
+    QueueCreation createTx(
+        Transaction tx,
+        CreateQueueRequest request
+    ) throws BackendException;
+
     Optional<QueueDefinition> inspectDefinition(
         Backend backend,
+        String queue,
+        String channel
+    ) throws BackendException;
+
+    Optional<QueueDefinition> inspectDefinitionTx(
+        Transaction tx,
         String queue,
         String channel
     ) throws BackendException;
@@ -84,8 +96,18 @@ public interface Queue {
         EnqueueMessageRequest request
     ) throws BackendException;
 
+    QueueMessageRecord enqueueTx(
+        Transaction tx,
+        EnqueueMessageRequest request
+    ) throws BackendException;
+
     List<QueueMessageRecord> claim(
         Backend backend,
+        ClaimMessageRequest request
+    ) throws BackendException;
+
+    List<QueueMessageRecord> claimTx(
+        Transaction tx,
         ClaimMessageRequest request
     ) throws BackendException;
 
@@ -94,13 +116,28 @@ public interface Queue {
         AckMessageRequest request
     ) throws BackendException;
 
+    void acknowledgeTx(
+        Transaction tx,
+        AckMessageRequest request
+    ) throws BackendException;
+
     QueueMessageRecord fail(
         Backend backend,
         FailMessageRequest request
     ) throws BackendException;
 
+    QueueMessageRecord failTx(
+        Transaction tx,
+        FailMessageRequest request
+    ) throws BackendException;
+
     Optional<QueueMessageRecord> inspect(
         Backend backend,
+        String messageId
+    ) throws BackendException;
+
+    Optional<QueueMessageRecord> inspectTx(
+        Transaction tx,
         String messageId
     ) throws BackendException;
 }
