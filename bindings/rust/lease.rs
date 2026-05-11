@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{Backend, BackendResult, Transaction};
+use crate::backend::{Backend, BackendResult};
 
 #[derive(Debug, Clone)]
 pub struct LeaseRecord {
@@ -40,84 +40,12 @@ pub struct LeaseAcquireResult {
     pub lease: Option<LeaseRecord>,
 }
 
-pub trait LeaseStore<Tx: Transaction> {
-    fn acquire(&self, tx: &mut Tx, request: &LeaseAcquireRequest) -> BackendResult<LeaseAcquireResult>;
+pub trait LeaseStore<B: Backend> {
+    fn acquire(&self, backend: &B, request: &LeaseAcquireRequest) -> BackendResult<LeaseAcquireResult>;
 
-    fn renew(&self, tx: &mut Tx, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord>;
+    fn renew(&self, backend: &B, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord>;
 
-    fn release(&self, tx: &mut Tx, request: &LeaseReleaseRequest) -> BackendResult<()>;
+    fn release(&self, backend: &B, request: &LeaseReleaseRequest) -> BackendResult<()>;
 
-    fn inspect(&self, tx: &mut Tx, resource: &str) -> BackendResult<Option<LeaseRecord>>;
-}
-
-pub struct LeaseRuntime<'a, B, S>
-where
-    B: Backend,
-    S: LeaseStore<B::Tx>,
-{
-    backend: &'a B,
-    store: &'a S,
-}
-
-impl<'a, B, S> LeaseRuntime<'a, B, S>
-where
-    B: Backend,
-    S: LeaseStore<B::Tx>,
-{
-    pub fn new(backend: &'a B, store: &'a S) -> Self {
-        Self { backend, store }
-    }
-
-    pub fn acquire(&self, request: &LeaseAcquireRequest) -> BackendResult<LeaseAcquireResult> {
-        let mut tx = self.backend.begin()?;
-        match self.store.acquire(&mut tx, request) {
-            Ok(result) => {
-                self.backend.commit(tx)?;
-                Ok(result)
-            }
-            Err(err) => {
-                let _ = tx.abort();
-                Err(err)
-            }
-        }
-    }
-
-    pub fn renew(&self, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord> {
-        let mut tx = self.backend.begin()?;
-        match self.store.renew(&mut tx, request) {
-            Ok(result) => {
-                self.backend.commit(tx)?;
-                Ok(result)
-            }
-            Err(err) => {
-                let _ = tx.abort();
-                Err(err)
-            }
-        }
-    }
-
-    pub fn release(&self, request: &LeaseReleaseRequest) -> BackendResult<()> {
-        let mut tx = self.backend.begin()?;
-        match self.store.release(&mut tx, request) {
-            Ok(()) => self.backend.commit(tx),
-            Err(err) => {
-                let _ = tx.abort();
-                Err(err)
-            }
-        }
-    }
-
-    pub fn inspect(&self, resource: &str) -> BackendResult<Option<LeaseRecord>> {
-        let mut tx = self.backend.begin()?;
-        match self.store.inspect(&mut tx, resource) {
-            Ok(result) => {
-                self.backend.commit(tx)?;
-                Ok(result)
-            }
-            Err(err) => {
-                let _ = tx.abort();
-                Err(err)
-            }
-        }
-    }
+    fn inspect(&self, backend: &B, resource: &str) -> BackendResult<Option<LeaseRecord>>;
 }
