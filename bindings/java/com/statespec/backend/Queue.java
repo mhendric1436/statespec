@@ -9,6 +9,24 @@ import java.util.List;
 import java.util.Optional;
 
 public interface Queue {
+    record QueueDefinition(
+        String queue,
+        String channel,
+        Duration visibilityTimeout,
+        int maxAttempts,
+        Optional<String> deadLetterQueue,
+        String metadataJson
+    ) {}
+
+    record CreateQueueRequest(
+        QueueDefinition definition
+    ) {}
+
+    record QueueCreation(
+        QueueDefinition definition,
+        boolean created
+    ) {}
+
     record QueueMessageRecord(
         String messageId,
         String queue,
@@ -49,6 +67,17 @@ public interface Queue {
         Instant now,
         int maxAttempts
     ) {}
+
+    QueueCreation create(
+        Transaction tx,
+        CreateQueueRequest request
+    ) throws BackendException;
+
+    Optional<QueueDefinition> inspectDefinition(
+        Transaction tx,
+        String queue,
+        String channel
+    ) throws BackendException;
 
     QueueMessageRecord enqueue(
         Transaction tx,
