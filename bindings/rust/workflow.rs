@@ -23,14 +23,12 @@ pub struct WorkflowDefinition {
 #[derive(Debug, Clone)]
 pub struct RegisterWorkflowDefinitionRequest {
     pub definition: WorkflowDefinition,
-    pub replace_existing: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct WorkflowDefinitionRegistration {
     pub definition: WorkflowDefinition,
     pub created: bool,
-    pub replaced: bool,
 }
 
 #[derive(Debug, Clone)]
