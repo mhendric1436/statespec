@@ -114,6 +114,8 @@ type Backend interface {
 
 	EnsureCollection(ctx context.Context, descriptor CollectionDescriptor) error
 
+	EnsureCollections(ctx context.Context, descriptors []CollectionDescriptor) error
+
 	Begin(ctx context.Context) (Transaction, error)
 
 	Get(ctx context.Context, tx Transaction, collection CollectionName, key Key) (*VersionedRecord, error)
