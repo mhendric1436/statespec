@@ -3,6 +3,27 @@ use std::time::{Duration, SystemTime};
 use crate::backend::{BackendResult, Json, Transaction};
 
 #[derive(Debug, Clone)]
+pub struct QueueDefinition {
+    pub queue: String,
+    pub channel: String,
+    pub visibility_timeout: Duration,
+    pub max_attempts: u32,
+    pub dead_letter_queue: Option<String>,
+    pub metadata: Json,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateQueueRequest {
+    pub definition: QueueDefinition,
+}
+
+#[derive(Debug, Clone)]
+pub struct QueueCreation {
+    pub definition: QueueDefinition,
+    pub created: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct QueueMessageRecord {
     pub message_id: String,
     pub queue: String,
@@ -49,6 +70,15 @@ pub struct FailMessageRequest {
 }
 
 pub trait QueueStore<Tx: Transaction> {
+    fn create(&self, tx: &mut Tx, request: &CreateQueueRequest) -> BackendResult<QueueCreation>;
+
+    fn inspect_definition(
+        &self,
+        tx: &mut Tx,
+        queue: &str,
+        channel: &str,
+    ) -> BackendResult<Option<QueueDefinition>>;
+
     fn enqueue(&self, tx: &mut Tx, request: &EnqueueMessageRequest) -> BackendResult<QueueMessageRecord>;
 
     fn claim(&self, tx: &mut Tx, request: &ClaimMessageRequest) -> BackendResult<Vec<QueueMessageRecord>>;
