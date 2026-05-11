@@ -55,9 +55,15 @@ workflow start / claim steps / complete step / fail step / cancel / inspect
 
 Workflow definitions are registered before executions are started. A
 `WorkflowDefinition` includes the workflow name, version, start step, expected execution
-time, singleton setting, step definitions, and metadata. Registration uses
-`RegisterWorkflowDefinitionRequest` and returns `WorkflowDefinitionRegistration` so a
-runtime can report whether the definition was created or replaced.
+time, singleton setting, step definitions, and metadata. Workflow definition registration
+is immutable: an existing `(workflow_name, workflow_version)` definition cannot be
+replaced because doing so would not be idempotent for currently executing workflows. A
+changed definition must be registered with an incremented `workflow_version`.
+
+`RegisterWorkflowDefinitionRequest` carries only the definition to register.
+`WorkflowDefinitionRegistration` reports the registered definition and whether it was
+newly created; if the same definition is already registered, registration may return
+`created = false`.
 
 Workflow records and requests that identify a workflow definition carry both
 `workflow_name` and `workflow_version`. The pair `(workflow_name, workflow_version)` is
@@ -104,7 +110,7 @@ The higher-level runtimes should compose on this model:
 - `mt` uses the entity store contract.
 - `dl` implements `Lease` with conditional OCC updates.
 - `qu` implements `Queue` with claimable OCC message records.
-- `wf` implements `Workflow` with registered definitions and claimable OCC execution and step records.
+- `wf` implements `Workflow` with immutable registered definitions and claimable OCC execution and step records.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
 straightforward to build.
