@@ -53,8 +53,9 @@ workflow register definition / inspect definition
 workflow start / claim steps / complete step / fail step / cancel / inspect
 ```
 
-Runtime APIs are intentionally a single layer. Each operation receives the backend as an
-argument and is responsible for managing the transaction internally:
+Runtime APIs support two call styles in the same component interface:
+
+1. **Backend-managed transaction calls** receive a backend and manage the transaction internally:
 
 ```text
 begin transaction
@@ -63,8 +64,26 @@ commit on success
 abort on failure
 ```
 
-This avoids a separate façade/store split while still making the backend dependency
-explicit at every runtime boundary.
+2. **Caller-managed transaction calls** receive an existing transaction so a user can compose
+   multiple lease, queue, workflow, and entity operations into one transaction.
+
+C++ uses overloads for the two call styles:
+
+```text
+operation(IBackend& backend, request)
+operation(ITransaction& tx, request)
+```
+
+Rust, Go, and Java use `Tx` suffixes for caller-managed transaction variants:
+
+```text
+operation(backend, request)
+operation_tx(tx, request)      Rust
+Operation(ctx, backend, req)   Go
+OperationTx(ctx, tx, req)      Go
+operation(backend, request)    Java
+operationTx(tx, request)       Java
+```
 
 Queues are created explicitly and idempotently with `QueueDefinition` and
 `CreateQueueRequest`. The queue identity is the pair `(queue, channel)`. `QueueCreation`
