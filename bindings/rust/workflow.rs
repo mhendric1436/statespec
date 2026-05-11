@@ -3,6 +3,37 @@ use std::time::{Duration, SystemTime};
 use crate::backend::{BackendResult, Json, Transaction};
 
 #[derive(Debug, Clone)]
+pub struct WorkflowStepDefinition {
+    pub name: String,
+    pub expected_execution_time: Duration,
+    pub max_retries: u32,
+}
+
+#[derive(Debug, Clone)]
+pub struct WorkflowDefinition {
+    pub workflow_name: String,
+    pub workflow_version: i64,
+    pub start_step: String,
+    pub expected_execution_time: Duration,
+    pub singleton: bool,
+    pub steps: Vec<WorkflowStepDefinition>,
+    pub metadata: Json,
+}
+
+#[derive(Debug, Clone)]
+pub struct RegisterWorkflowDefinitionRequest {
+    pub definition: WorkflowDefinition,
+    pub replace_existing: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct WorkflowDefinitionRegistration {
+    pub definition: WorkflowDefinition,
+    pub created: bool,
+    pub replaced: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct WorkflowExecutionRecord {
     pub workflow_execution_id: String,
     pub workflow_name: String,
@@ -61,6 +92,19 @@ pub struct CancelWorkflowRequest {
 }
 
 pub trait WorkflowStore<Tx: Transaction> {
+    fn register_definition(
+        &self,
+        tx: &mut Tx,
+        request: &RegisterWorkflowDefinitionRequest,
+    ) -> BackendResult<WorkflowDefinitionRegistration>;
+
+    fn inspect_definition(
+        &self,
+        tx: &mut Tx,
+        workflow_name: &str,
+        workflow_version: i64,
+    ) -> BackendResult<Option<WorkflowDefinition>>;
+
     fn start(&self, tx: &mut Tx, request: &StartWorkflowRequest) -> BackendResult<WorkflowExecutionRecord>;
 
     fn claim_steps(&self, tx: &mut Tx, request: &ClaimWorkflowStepRequest) -> BackendResult<Vec<WorkflowExecutionRecord>>;
