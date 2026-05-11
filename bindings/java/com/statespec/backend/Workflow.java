@@ -9,6 +9,33 @@ import java.util.List;
 import java.util.Optional;
 
 public interface Workflow {
+    record WorkflowStepDefinition(
+        String name,
+        Duration expectedExecutionTime,
+        int maxRetries
+    ) {}
+
+    record WorkflowDefinition(
+        String workflowName,
+        long workflowVersion,
+        String startStep,
+        Duration expectedExecutionTime,
+        boolean singleton,
+        List<WorkflowStepDefinition> steps,
+        String metadataJson
+    ) {}
+
+    record RegisterWorkflowDefinitionRequest(
+        WorkflowDefinition definition,
+        boolean replaceExisting
+    ) {}
+
+    record WorkflowDefinitionRegistration(
+        WorkflowDefinition definition,
+        boolean created,
+        boolean replaced
+    ) {}
+
     record WorkflowExecutionRecord(
         String workflowExecutionId,
         String workflowName,
@@ -60,6 +87,17 @@ public interface Workflow {
         String workflowExecutionId,
         String reason
     ) {}
+
+    WorkflowDefinitionRegistration registerDefinition(
+        Transaction tx,
+        RegisterWorkflowDefinitionRequest request
+    ) throws BackendException;
+
+    Optional<WorkflowDefinition> inspectDefinition(
+        Transaction tx,
+        String workflowName,
+        long workflowVersion
+    ) throws BackendException;
 
     WorkflowExecutionRecord start(
         Transaction tx,
