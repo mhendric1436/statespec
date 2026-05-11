@@ -67,15 +67,29 @@ type FailMessageRequest struct {
 type QueueStore interface {
 	Create(ctx context.Context, backend Backend, request CreateQueueRequest) (QueueCreation, error)
 
+	CreateTx(ctx context.Context, tx Transaction, request CreateQueueRequest) (QueueCreation, error)
+
 	InspectDefinition(ctx context.Context, backend Backend, queue string, channel string) (*QueueDefinition, error)
+
+	InspectDefinitionTx(ctx context.Context, tx Transaction, queue string, channel string) (*QueueDefinition, error)
 
 	Enqueue(ctx context.Context, backend Backend, request EnqueueMessageRequest) (QueueMessageRecord, error)
 
+	EnqueueTx(ctx context.Context, tx Transaction, request EnqueueMessageRequest) (QueueMessageRecord, error)
+
 	Claim(ctx context.Context, backend Backend, request ClaimMessageRequest) ([]QueueMessageRecord, error)
+
+	ClaimTx(ctx context.Context, tx Transaction, request ClaimMessageRequest) ([]QueueMessageRecord, error)
 
 	Acknowledge(ctx context.Context, backend Backend, request AckMessageRequest) error
 
+	AcknowledgeTx(ctx context.Context, tx Transaction, request AckMessageRequest) error
+
 	Fail(ctx context.Context, backend Backend, request FailMessageRequest) (QueueMessageRecord, error)
 
+	FailTx(ctx context.Context, tx Transaction, request FailMessageRequest) (QueueMessageRecord, error)
+
 	Inspect(ctx context.Context, backend Backend, messageID string) (*QueueMessageRecord, error)
+
+	InspectTx(ctx context.Context, tx Transaction, messageID string) (*QueueMessageRecord, error)
 }
