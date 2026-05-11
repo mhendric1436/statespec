@@ -67,22 +67,17 @@ abort on failure
 2. **Caller-managed transaction calls** receive an existing transaction so a user can compose
    multiple lease, queue, workflow, and entity operations into one transaction.
 
-C++ uses overloads for the two call styles:
+All languages use a `Tx` suffix for caller-managed transaction variants:
 
 ```text
-operation(IBackend& backend, request)
-operation(ITransaction& tx, request)
-```
-
-Rust, Go, and Java use `Tx` suffixes for caller-managed transaction variants:
-
-```text
-operation(backend, request)
-operation_tx(tx, request)      Rust
-Operation(ctx, backend, req)   Go
-OperationTx(ctx, tx, req)      Go
-operation(backend, request)    Java
-operationTx(tx, request)       Java
+operation(backend, request)      C++
+operationTx(tx, request)         C++
+operation(backend, request)      Rust
+operation_tx(tx, request)        Rust
+Operation(ctx, backend, req)     Go
+OperationTx(ctx, tx, req)        Go
+operation(backend, request)      Java
+operationTx(tx, request)         Java
 ```
 
 Queues are created explicitly and idempotently with `QueueDefinition` and
