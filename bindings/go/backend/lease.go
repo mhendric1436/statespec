@@ -47,3 +47,83 @@ type LeaseStore interface {
 
 	Inspect(ctx context.Context, tx Transaction, resource string) (*LeaseRecord, error)
 }
+
+type LeaseRuntime struct {
+	Backend Backend
+	Store   LeaseStore
+}
+
+func NewLeaseRuntime(backend Backend, store LeaseStore) LeaseRuntime {
+	return LeaseRuntime{Backend: backend, Store: store}
+}
+
+func (r LeaseRuntime) Acquire(ctx context.Context, request LeaseAcquireRequest) (LeaseAcquireResult, error) {
+	tx, err := r.Backend.Begin(ctx)
+	if err != nil {
+		return LeaseAcquireResult{}, err
+	}
+
+	result, err := r.Store.Acquire(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return LeaseAcquireResult{}, err
+	}
+
+	if err := r.Backend.Commit(ctx, tx); err != nil {
+		return LeaseAcquireResult{}, err
+	}
+
+	return result, nil
+}
+
+func (r LeaseRuntime) Renew(ctx context.Context, request LeaseRenewRequest) (LeaseRecord, error) {
+	tx, err := r.Backend.Begin(ctx)
+	if err != nil {
+		return LeaseRecord{}, err
+	}
+
+	result, err := r.Store.Renew(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return LeaseRecord{}, err
+	}
+
+	if err := r.Backend.Commit(ctx, tx); err != nil {
+		return LeaseRecord{}, err
+	}
+
+	return result, nil
+}
+
+func (r LeaseRuntime) Release(ctx context.Context, request LeaseReleaseRequest) error {
+	tx, err := r.Backend.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := r.Store.Release(ctx, tx, request); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+
+	return r.Backend.Commit(ctx, tx)
+}
+
+func (r LeaseRuntime) Inspect(ctx context.Context, resource string) (*LeaseRecord, error) {
+	tx, err := r.Backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := r.Store.Inspect(ctx, tx, resource)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+
+	if err := r.Backend.Commit(ctx, tx); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
