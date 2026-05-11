@@ -110,7 +110,7 @@ class IWorkflowStore
         const RegisterWorkflowDefinitionRequest& request
     ) = 0;
 
-    virtual WorkflowDefinitionRegistration register_definition(
+    virtual WorkflowDefinitionRegistration register_definitionTx(
         ITransaction& tx,
         const RegisterWorkflowDefinitionRequest& request
     ) = 0;
@@ -121,7 +121,7 @@ class IWorkflowStore
         std::int64_t workflow_version
     ) = 0;
 
-    virtual std::optional<WorkflowDefinition> inspect_definition(
+    virtual std::optional<WorkflowDefinition> inspect_definitionTx(
         ITransaction& tx,
         const std::string& workflow_name,
         std::int64_t workflow_version
@@ -132,7 +132,7 @@ class IWorkflowStore
         const StartWorkflowRequest& request
     ) = 0;
 
-    virtual WorkflowExecutionRecord start(
+    virtual WorkflowExecutionRecord startTx(
         ITransaction& tx,
         const StartWorkflowRequest& request
     ) = 0;
@@ -142,7 +142,7 @@ class IWorkflowStore
         const ClaimWorkflowStepRequest& request
     ) = 0;
 
-    virtual std::vector<WorkflowExecutionRecord> claim_steps(
+    virtual std::vector<WorkflowExecutionRecord> claim_stepsTx(
         ITransaction& tx,
         const ClaimWorkflowStepRequest& request
     ) = 0;
@@ -152,7 +152,7 @@ class IWorkflowStore
         const CompleteWorkflowStepRequest& request
     ) = 0;
 
-    virtual WorkflowExecutionRecord complete_step(
+    virtual WorkflowExecutionRecord complete_stepTx(
         ITransaction& tx,
         const CompleteWorkflowStepRequest& request
     ) = 0;
@@ -162,7 +162,7 @@ class IWorkflowStore
         const FailWorkflowStepRequest& request
     ) = 0;
 
-    virtual WorkflowExecutionRecord fail_step(
+    virtual WorkflowExecutionRecord fail_stepTx(
         ITransaction& tx,
         const FailWorkflowStepRequest& request
     ) = 0;
@@ -172,7 +172,7 @@ class IWorkflowStore
         const CancelWorkflowRequest& request
     ) = 0;
 
-    virtual WorkflowExecutionRecord cancel(
+    virtual WorkflowExecutionRecord cancelTx(
         ITransaction& tx,
         const CancelWorkflowRequest& request
     ) = 0;
@@ -182,7 +182,7 @@ class IWorkflowStore
         const std::string& workflow_execution_id
     ) = 0;
 
-    virtual std::optional<WorkflowExecutionRecord> inspect(
+    virtual std::optional<WorkflowExecutionRecord> inspectTx(
         ITransaction& tx,
         const std::string& workflow_execution_id
     ) = 0;
