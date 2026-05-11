@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{Backend, BackendResult};
+use crate::backend::{Backend, BackendResult, Transaction};
 
 #[derive(Debug, Clone)]
 pub struct LeaseRecord {
@@ -43,9 +43,17 @@ pub struct LeaseAcquireResult {
 pub trait LeaseStore<B: Backend> {
     fn acquire(&self, backend: &B, request: &LeaseAcquireRequest) -> BackendResult<LeaseAcquireResult>;
 
+    fn acquire_tx(&self, tx: &mut B::Tx, request: &LeaseAcquireRequest) -> BackendResult<LeaseAcquireResult>;
+
     fn renew(&self, backend: &B, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord>;
+
+    fn renew_tx(&self, tx: &mut B::Tx, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord>;
 
     fn release(&self, backend: &B, request: &LeaseReleaseRequest) -> BackendResult<()>;
 
+    fn release_tx(&self, tx: &mut B::Tx, request: &LeaseReleaseRequest) -> BackendResult<()>;
+
     fn inspect(&self, backend: &B, resource: &str) -> BackendResult<Option<LeaseRecord>>;
+
+    fn inspect_tx(&self, tx: &mut B::Tx, resource: &str) -> BackendResult<Option<LeaseRecord>>;
 }
