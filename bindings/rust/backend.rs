@@ -88,6 +88,8 @@ pub trait Backend {
 
     fn ensure_collection(&self, descriptor: &CollectionDescriptor) -> BackendResult<()>;
 
+    fn ensure_collections(&self, descriptors: &[CollectionDescriptor]) -> BackendResult<()>;
+
     fn begin(&self) -> BackendResult<Self::Tx>;
 
     fn get(
