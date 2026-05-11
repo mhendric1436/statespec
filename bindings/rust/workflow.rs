@@ -96,6 +96,12 @@ pub trait WorkflowStore<B: Backend> {
         request: &RegisterWorkflowDefinitionRequest,
     ) -> BackendResult<WorkflowDefinitionRegistration>;
 
+    fn register_definition_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &RegisterWorkflowDefinitionRequest,
+    ) -> BackendResult<WorkflowDefinitionRegistration>;
+
     fn inspect_definition(
         &self,
         backend: &B,
@@ -103,15 +109,34 @@ pub trait WorkflowStore<B: Backend> {
         workflow_version: i64,
     ) -> BackendResult<Option<WorkflowDefinition>>;
 
+    fn inspect_definition_tx(
+        &self,
+        tx: &mut B::Tx,
+        workflow_name: &str,
+        workflow_version: i64,
+    ) -> BackendResult<Option<WorkflowDefinition>>;
+
     fn start(&self, backend: &B, request: &StartWorkflowRequest) -> BackendResult<WorkflowExecutionRecord>;
+
+    fn start_tx(&self, tx: &mut B::Tx, request: &StartWorkflowRequest) -> BackendResult<WorkflowExecutionRecord>;
 
     fn claim_steps(&self, backend: &B, request: &ClaimWorkflowStepRequest) -> BackendResult<Vec<WorkflowExecutionRecord>>;
 
+    fn claim_steps_tx(&self, tx: &mut B::Tx, request: &ClaimWorkflowStepRequest) -> BackendResult<Vec<WorkflowExecutionRecord>>;
+
     fn complete_step(&self, backend: &B, request: &CompleteWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord>;
+
+    fn complete_step_tx(&self, tx: &mut B::Tx, request: &CompleteWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord>;
 
     fn fail_step(&self, backend: &B, request: &FailWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord>;
 
+    fn fail_step_tx(&self, tx: &mut B::Tx, request: &FailWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord>;
+
     fn cancel(&self, backend: &B, request: &CancelWorkflowRequest) -> BackendResult<WorkflowExecutionRecord>;
 
+    fn cancel_tx(&self, tx: &mut B::Tx, request: &CancelWorkflowRequest) -> BackendResult<WorkflowExecutionRecord>;
+
     fn inspect(&self, backend: &B, workflow_execution_id: &str) -> BackendResult<Option<WorkflowExecutionRecord>>;
+
+    fn inspect_tx(&self, tx: &mut B::Tx, workflow_execution_id: &str) -> BackendResult<Option<WorkflowExecutionRecord>>;
 }
