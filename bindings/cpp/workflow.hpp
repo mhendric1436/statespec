@@ -13,6 +13,37 @@ namespace statespec::backend
 
 using Timestamp = std::chrono::system_clock::time_point;
 
+struct WorkflowStepDefinition
+{
+    std::string name;
+    std::chrono::seconds expected_execution_time;
+    std::uint32_t max_retries = 0;
+};
+
+struct WorkflowDefinition
+{
+    std::string workflow_name;
+    std::int64_t workflow_version = 0;
+    std::string start_step;
+    std::chrono::seconds expected_execution_time;
+    bool singleton = false;
+    std::vector<WorkflowStepDefinition> steps;
+    Json metadata;
+};
+
+struct RegisterWorkflowDefinitionRequest
+{
+    WorkflowDefinition definition;
+    bool replace_existing = false;
+};
+
+struct WorkflowDefinitionRegistration
+{
+    WorkflowDefinition definition;
+    bool created = false;
+    bool replaced = false;
+};
+
 struct WorkflowExecutionRecord
 {
     std::string workflow_execution_id;
@@ -75,6 +106,17 @@ class IWorkflowStore
 {
   public:
     virtual ~IWorkflowStore() = default;
+
+    virtual WorkflowDefinitionRegistration register_definition(
+        ITransaction& tx,
+        const RegisterWorkflowDefinitionRequest& request
+    ) = 0;
+
+    virtual std::optional<WorkflowDefinition> inspect_definition(
+        ITransaction& tx,
+        const std::string& workflow_name,
+        std::int64_t workflow_version
+    ) = 0;
 
     virtual WorkflowExecutionRecord start(
         ITransaction& tx,
