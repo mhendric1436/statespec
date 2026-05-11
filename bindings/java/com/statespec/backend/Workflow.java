@@ -26,14 +26,12 @@ public interface Workflow {
     ) {}
 
     record RegisterWorkflowDefinitionRequest(
-        WorkflowDefinition definition,
-        boolean replaceExisting
+        WorkflowDefinition definition
     ) {}
 
     record WorkflowDefinitionRegistration(
         WorkflowDefinition definition,
-        boolean created,
-        boolean replaced
+        boolean created
     ) {}
 
     record WorkflowExecutionRecord(
