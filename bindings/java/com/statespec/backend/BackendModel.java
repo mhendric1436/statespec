@@ -99,6 +99,8 @@ public final class BackendModel {
 
         void ensureCollection(CollectionDescriptor descriptor) throws BackendException;
 
+        void ensureCollections(List<CollectionDescriptor> descriptors) throws BackendException;
+
         Transaction begin() throws BackendException;
 
         Optional<VersionedRecord> get(
