@@ -60,7 +60,7 @@ class ILeaseStore
         const LeaseAcquireRequest& request
     ) = 0;
 
-    virtual LeaseAcquireResult acquire(
+    virtual LeaseAcquireResult acquireTx(
         ITransaction& tx,
         const LeaseAcquireRequest& request
     ) = 0;
@@ -70,7 +70,7 @@ class ILeaseStore
         const LeaseRenewRequest& request
     ) = 0;
 
-    virtual LeaseRecord renew(
+    virtual LeaseRecord renewTx(
         ITransaction& tx,
         const LeaseRenewRequest& request
     ) = 0;
@@ -80,7 +80,7 @@ class ILeaseStore
         const LeaseReleaseRequest& request
     ) = 0;
 
-    virtual void release(
+    virtual void releaseTx(
         ITransaction& tx,
         const LeaseReleaseRequest& request
     ) = 0;
@@ -90,7 +90,7 @@ class ILeaseStore
         const std::string& resource
     ) = 0;
 
-    virtual std::optional<LeaseRecord> inspect(
+    virtual std::optional<LeaseRecord> inspectTx(
         ITransaction& tx,
         const std::string& resource
     ) = 0;
