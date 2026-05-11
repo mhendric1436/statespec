@@ -35,8 +35,8 @@ shapes live with their respective runtime interface files.
 
 ## Shared Runtime Model
 
-Each language also defines runtime-facing interfaces for higher-level primitives in
-separate files:
+Each language also defines runtime-facing interfaces or classes for higher-level
+primitives in separate files:
 
 ```text
 Lease
@@ -44,7 +44,7 @@ Queue
 Workflow
 ```
 
-The runtime interfaces expose request, result, and record types for:
+The runtime files expose request, result, and record types for:
 
 ```text
 lease acquire / renew / release / inspect
@@ -52,6 +52,22 @@ queue create / inspect definition
 queue enqueue / claim / acknowledge / fail / inspect
 workflow register definition / inspect definition
 workflow start / claim steps / complete step / fail step / cancel / inspect
+```
+
+Each runtime component has two layers:
+
+1. **Transaction-aware implementation methods** that accept an explicit transaction.
+2. **Transaction-managing façade methods** that construct or wrap a backend, begin a
+   transaction, invoke the transaction-aware method, commit on success, and abort on
+   failure.
+
+The façade layer is named idiomatically per language:
+
+```text
+C++   Lease / Queue / Workflow classes constructed with IBackend&
+Rust  LeaseRuntime / QueueRuntime / WorkflowRuntime constructed with Backend + store
+Go    LeaseRuntime / QueueRuntime / WorkflowRuntime constructed with Backend + store
+Java  Lease / Queue / Workflow abstract classes constructed with Backend
 ```
 
 Queues are created explicitly and idempotently with `QueueDefinition` and
