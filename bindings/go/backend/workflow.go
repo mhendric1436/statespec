@@ -22,14 +22,12 @@ type WorkflowDefinition struct {
 }
 
 type RegisterWorkflowDefinitionRequest struct {
-	Definition      WorkflowDefinition
-	ReplaceExisting bool
+	Definition WorkflowDefinition
 }
 
 type WorkflowDefinitionRegistration struct {
 	Definition WorkflowDefinition
 	Created    bool
-	Replaced   bool
 }
 
 type WorkflowExecutionRecord struct {
