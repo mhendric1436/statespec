@@ -49,8 +49,15 @@ The runtime interfaces expose request, result, and record types for:
 ```text
 lease acquire / renew / release / inspect
 queue enqueue / claim / acknowledge / fail / inspect
+workflow register definition / inspect definition
 workflow start / claim steps / complete step / fail step / cancel / inspect
 ```
+
+Workflow definitions are registered before executions are started. A
+`WorkflowDefinition` includes the workflow name, version, start step, expected execution
+time, singleton setting, step definitions, and metadata. Registration uses
+`RegisterWorkflowDefinitionRequest` and returns `WorkflowDefinitionRegistration` so a
+runtime can report whether the definition was created or replaced.
 
 Workflow records and requests that identify a workflow definition carry both
 `workflow_name` and `workflow_version`. The pair `(workflow_name, workflow_version)` is
@@ -97,7 +104,7 @@ The higher-level runtimes should compose on this model:
 - `mt` uses the entity store contract.
 - `dl` implements `Lease` with conditional OCC updates.
 - `qu` implements `Queue` with claimable OCC message records.
-- `wf` implements `Workflow` with claimable OCC execution and step records.
+- `wf` implements `Workflow` with registered definitions and claimable OCC execution and step records.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
 straightforward to build.
