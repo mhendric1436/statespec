@@ -1,5 +1,6 @@
 package com.statespec.backend;
 
+import com.statespec.backend.BackendModel.Backend;
 import com.statespec.backend.BackendModel.BackendException;
 import com.statespec.backend.BackendModel.Transaction;
 
@@ -8,14 +9,20 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public interface Workflow {
-    record WorkflowStepDefinition(
+public abstract class Workflow {
+    private final Backend backend;
+
+    protected Workflow(Backend backend) {
+        this.backend = backend;
+    }
+
+    public record WorkflowStepDefinition(
         String name,
         Duration expectedExecutionTime,
         int maxRetries
     ) {}
 
-    record WorkflowDefinition(
+    public record WorkflowDefinition(
         String workflowName,
         long workflowVersion,
         String startStep,
@@ -25,16 +32,16 @@ public interface Workflow {
         String metadataJson
     ) {}
 
-    record RegisterWorkflowDefinitionRequest(
+    public record RegisterWorkflowDefinitionRequest(
         WorkflowDefinition definition
     ) {}
 
-    record WorkflowDefinitionRegistration(
+    public record WorkflowDefinitionRegistration(
         WorkflowDefinition definition,
         boolean created
     ) {}
 
-    record WorkflowExecutionRecord(
+    public record WorkflowExecutionRecord(
         String workflowExecutionId,
         String workflowName,
         long workflowVersion,
@@ -46,7 +53,7 @@ public interface Workflow {
         String stateJson
     ) {}
 
-    record StartWorkflowRequest(
+    public record StartWorkflowRequest(
         String workflowExecutionId,
         String workflowName,
         long workflowVersion,
@@ -54,7 +61,7 @@ public interface Workflow {
         String stateJson
     ) {}
 
-    record ClaimWorkflowStepRequest(
+    public record ClaimWorkflowStepRequest(
         String workflowExecutionId,
         String workflowName,
         long workflowVersion,
@@ -64,7 +71,7 @@ public interface Workflow {
         int maxSteps
     ) {}
 
-    record CompleteWorkflowStepRequest(
+    public record CompleteWorkflowStepRequest(
         String workflowExecutionId,
         String worker,
         String completedStep,
@@ -72,7 +79,7 @@ public interface Workflow {
         String stateJson
     ) {}
 
-    record FailWorkflowStepRequest(
+    public record FailWorkflowStepRequest(
         String workflowExecutionId,
         String worker,
         String failedStep,
@@ -81,49 +88,154 @@ public interface Workflow {
         int maxAttempts
     ) {}
 
-    record CancelWorkflowRequest(
+    public record CancelWorkflowRequest(
         String workflowExecutionId,
         String reason
     ) {}
 
-    WorkflowDefinitionRegistration registerDefinition(
+    protected abstract WorkflowDefinitionRegistration registerDefinition(
         Transaction tx,
         RegisterWorkflowDefinitionRequest request
     ) throws BackendException;
 
-    Optional<WorkflowDefinition> inspectDefinition(
+    protected abstract Optional<WorkflowDefinition> inspectDefinition(
         Transaction tx,
         String workflowName,
         long workflowVersion
     ) throws BackendException;
 
-    WorkflowExecutionRecord start(
+    protected abstract WorkflowExecutionRecord start(
         Transaction tx,
         StartWorkflowRequest request
     ) throws BackendException;
 
-    List<WorkflowExecutionRecord> claimSteps(
+    protected abstract List<WorkflowExecutionRecord> claimSteps(
         Transaction tx,
         ClaimWorkflowStepRequest request
     ) throws BackendException;
 
-    WorkflowExecutionRecord completeStep(
+    protected abstract WorkflowExecutionRecord completeStep(
         Transaction tx,
         CompleteWorkflowStepRequest request
     ) throws BackendException;
 
-    WorkflowExecutionRecord failStep(
+    protected abstract WorkflowExecutionRecord failStep(
         Transaction tx,
         FailWorkflowStepRequest request
     ) throws BackendException;
 
-    WorkflowExecutionRecord cancel(
+    protected abstract WorkflowExecutionRecord cancel(
         Transaction tx,
         CancelWorkflowRequest request
     ) throws BackendException;
 
-    Optional<WorkflowExecutionRecord> inspect(
+    protected abstract Optional<WorkflowExecutionRecord> inspect(
         Transaction tx,
         String workflowExecutionId
     ) throws BackendException;
+
+    public final WorkflowDefinitionRegistration registerDefinition(
+        RegisterWorkflowDefinitionRequest request
+    ) throws BackendException {
+        Transaction tx = backend.begin();
+        try {
+            WorkflowDefinitionRegistration result = registerDefinition(tx, request);
+            backend.commit(tx);
+            return result;
+        } catch (BackendException | RuntimeException e) {
+            tx.abort();
+            throw e;
+        }
+    }
+
+    public final Optional<WorkflowDefinition> inspectDefinition(
+        String workflowName,
+        long workflowVersion
+    ) throws BackendException {
+        Transaction tx = backend.begin();
+        try {
+            Optional<WorkflowDefinition> result = inspectDefinition(tx, workflowName, workflowVersion);
+            backend.commit(tx);
+            return result;
+        } catch (BackendException | RuntimeException e) {
+            tx.abort();
+            throw e;
+        }
+    }
+
+    public final WorkflowExecutionRecord start(StartWorkflowRequest request) throws BackendException {
+        Transaction tx = backend.begin();
+        try {
+            WorkflowExecutionRecord result = start(tx, request);
+            backend.commit(tx);
+            return result;
+        } catch (BackendException | RuntimeException e) {
+            tx.abort();
+            throw e;
+        }
+    }
+
+    public final List<WorkflowExecutionRecord> claimSteps(
+        ClaimWorkflowStepRequest request
+    ) throws BackendException {
+        Transaction tx = backend.begin();
+        try {
+            List<WorkflowExecutionRecord> result = claimSteps(tx, request);
+            backend.commit(tx);
+            return result;
+        } catch (BackendException | RuntimeException e) {
+            tx.abort();
+            throw e;
+        }
+    }
+
+    public final WorkflowExecutionRecord completeStep(
+        CompleteWorkflowStepRequest request
+    ) throws BackendException {
+        Transaction tx = backend.begin();
+        try {
+            WorkflowExecutionRecord result = completeStep(tx, request);
+            backend.commit(tx);
+            return result;
+        } catch (BackendException | RuntimeException e) {
+            tx.abort();
+            throw e;
+        }
+    }
+
+    public final WorkflowExecutionRecord failStep(FailWorkflowStepRequest request) throws BackendException {
+        Transaction tx = backend.begin();
+        try {
+            WorkflowExecutionRecord result = failStep(tx, request);
+            backend.commit(tx);
+            return result;
+        } catch (BackendException | RuntimeException e) {
+            tx.abort();
+            throw e;
+        }
+    }
+
+    public final WorkflowExecutionRecord cancel(CancelWorkflowRequest request) throws BackendException {
+        Transaction tx = backend.begin();
+        try {
+            WorkflowExecutionRecord result = cancel(tx, request);
+            backend.commit(tx);
+            return result;
+        } catch (BackendException | RuntimeException e) {
+            tx.abort();
+            throw e;
+        }
+    }
+
+    public final Optional<WorkflowExecutionRecord> inspect(String workflowExecutionId) throws BackendException {
+        Transaction tx = backend.begin();
+        try {
+            Optional<WorkflowExecutionRecord> result = inspect(tx, workflowExecutionId);
+            backend.commit(tx);
+            return result;
+        } catch (BackendException | RuntimeException e) {
+            tx.abort();
+            throw e;
+        }
+    }
 }
