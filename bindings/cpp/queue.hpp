@@ -90,8 +90,19 @@ class IQueueStore
         const CreateQueueRequest& request
     ) = 0;
 
+    virtual QueueCreation create(
+        ITransaction& tx,
+        const CreateQueueRequest& request
+    ) = 0;
+
     virtual std::optional<QueueDefinition> inspect_definition(
         IBackend& backend,
+        const std::string& queue,
+        const std::string& channel
+    ) = 0;
+
+    virtual std::optional<QueueDefinition> inspect_definition(
+        ITransaction& tx,
         const std::string& queue,
         const std::string& channel
     ) = 0;
@@ -101,8 +112,18 @@ class IQueueStore
         const EnqueueMessageRequest& request
     ) = 0;
 
+    virtual QueueMessageRecord enqueue(
+        ITransaction& tx,
+        const EnqueueMessageRequest& request
+    ) = 0;
+
     virtual std::vector<QueueMessageRecord> claim(
         IBackend& backend,
+        const ClaimMessageRequest& request
+    ) = 0;
+
+    virtual std::vector<QueueMessageRecord> claim(
+        ITransaction& tx,
         const ClaimMessageRequest& request
     ) = 0;
 
@@ -111,13 +132,28 @@ class IQueueStore
         const AckMessageRequest& request
     ) = 0;
 
+    virtual void acknowledge(
+        ITransaction& tx,
+        const AckMessageRequest& request
+    ) = 0;
+
     virtual QueueMessageRecord fail(
         IBackend& backend,
         const FailMessageRequest& request
     ) = 0;
 
+    virtual QueueMessageRecord fail(
+        ITransaction& tx,
+        const FailMessageRequest& request
+    ) = 0;
+
     virtual std::optional<QueueMessageRecord> inspect(
         IBackend& backend,
+        const std::string& message_id
+    ) = 0;
+
+    virtual std::optional<QueueMessageRecord> inspect(
+        ITransaction& tx,
         const std::string& message_id
     ) = 0;
 };
