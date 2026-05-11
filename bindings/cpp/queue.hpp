@@ -13,6 +13,27 @@ namespace statespec::backend
 
 using Timestamp = std::chrono::system_clock::time_point;
 
+struct QueueDefinition
+{
+    std::string queue;
+    std::string channel;
+    std::chrono::seconds visibility_timeout;
+    std::uint32_t max_attempts = 1;
+    std::optional<std::string> dead_letter_queue;
+    Json metadata;
+};
+
+struct CreateQueueRequest
+{
+    QueueDefinition definition;
+};
+
+struct QueueCreation
+{
+    QueueDefinition definition;
+    bool created = false;
+};
+
 struct QueueMessageRecord
 {
     std::string message_id;
@@ -63,6 +84,17 @@ class IQueueStore
 {
   public:
     virtual ~IQueueStore() = default;
+
+    virtual QueueCreation create(
+        ITransaction& tx,
+        const CreateQueueRequest& request
+    ) = 0;
+
+    virtual std::optional<QueueDefinition> inspect_definition(
+        ITransaction& tx,
+        const std::string& queue,
+        const std::string& channel
+    ) = 0;
 
     virtual QueueMessageRecord enqueue(
         ITransaction& tx,
