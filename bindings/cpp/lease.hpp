@@ -76,4 +76,79 @@ class ILeaseStore
     ) = 0;
 };
 
+class Lease : public ILeaseStore
+{
+  public:
+    explicit Lease(IBackend& backend)
+        : backend_(backend)
+    {
+    }
+
+    LeaseAcquireResult acquire(const LeaseAcquireRequest& request)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = acquire(*tx, request);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    LeaseRecord renew(const LeaseRenewRequest& request)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = renew(*tx, request);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    void release(const LeaseReleaseRequest& request)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            release(*tx, request);
+            backend_.commit(*tx);
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+    std::optional<LeaseRecord> inspect(const std::string& resource)
+    {
+        auto tx = backend_.begin();
+        try
+        {
+            auto result = inspect(*tx, resource);
+            backend_.commit(*tx);
+            return result;
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
+    }
+
+  private:
+    IBackend& backend_;
+};
+
 } // namespace statespec::backend
