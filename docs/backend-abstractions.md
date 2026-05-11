@@ -35,13 +35,12 @@ shapes live with their respective runtime interface files.
 
 ## Shared Runtime Model
 
-Each language also defines runtime-facing interfaces or classes for higher-level
-primitives in separate files:
+Each language also defines runtime-facing interfaces for higher-level primitives in
+separate files:
 
 ```text
-Lease
-Queue
-Workflow
+LeaseStore / QueueStore / WorkflowStore  C++, Rust, Go
+Lease / Queue / Workflow                 Java
 ```
 
 The runtime files expose request, result, and record types for:
@@ -54,21 +53,18 @@ workflow register definition / inspect definition
 workflow start / claim steps / complete step / fail step / cancel / inspect
 ```
 
-Each runtime component has two layers:
-
-1. **Transaction-aware implementation methods** that accept an explicit transaction.
-2. **Transaction-managing façade methods** that construct or wrap a backend, begin a
-   transaction, invoke the transaction-aware method, commit on success, and abort on
-   failure.
-
-The façade layer is named idiomatically per language:
+Runtime APIs are intentionally a single layer. Each operation receives the backend as an
+argument and is responsible for managing the transaction internally:
 
 ```text
-C++   Lease / Queue / Workflow classes constructed with IBackend&
-Rust  LeaseRuntime / QueueRuntime / WorkflowRuntime constructed with Backend + store
-Go    LeaseRuntime / QueueRuntime / WorkflowRuntime constructed with Backend + store
-Java  Lease / Queue / Workflow abstract classes constructed with Backend
+begin transaction
+perform component operation
+commit on success
+abort on failure
 ```
+
+This avoids a separate façade/store split while still making the backend dependency
+explicit at every runtime boundary.
 
 Queues are created explicitly and idempotently with `QueueDefinition` and
 `CreateQueueRequest`. The queue identity is the pair `(queue, channel)`. `QueueCreation`
@@ -134,9 +130,9 @@ retry safely on conflict
 The higher-level runtimes should compose on this model:
 
 - `mt` uses the entity store contract.
-- `dl` implements `Lease` with conditional OCC updates.
-- `qu` implements `Queue` with idempotent queue creation and claimable OCC message records.
-- `wf` implements `Workflow` with immutable registered definitions and claimable OCC execution and step records.
+- `dl` implements `LeaseStore` or `Lease` with conditional OCC updates.
+- `qu` implements `QueueStore` or `Queue` with idempotent queue creation and claimable OCC message records.
+- `wf` implements `WorkflowStore` or `Workflow` with immutable registered definitions and claimable OCC execution and step records.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
 straightforward to build.
