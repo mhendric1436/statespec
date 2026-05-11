@@ -110,8 +110,19 @@ class IWorkflowStore
         const RegisterWorkflowDefinitionRequest& request
     ) = 0;
 
+    virtual WorkflowDefinitionRegistration register_definition(
+        ITransaction& tx,
+        const RegisterWorkflowDefinitionRequest& request
+    ) = 0;
+
     virtual std::optional<WorkflowDefinition> inspect_definition(
         IBackend& backend,
+        const std::string& workflow_name,
+        std::int64_t workflow_version
+    ) = 0;
+
+    virtual std::optional<WorkflowDefinition> inspect_definition(
+        ITransaction& tx,
         const std::string& workflow_name,
         std::int64_t workflow_version
     ) = 0;
@@ -121,8 +132,18 @@ class IWorkflowStore
         const StartWorkflowRequest& request
     ) = 0;
 
+    virtual WorkflowExecutionRecord start(
+        ITransaction& tx,
+        const StartWorkflowRequest& request
+    ) = 0;
+
     virtual std::vector<WorkflowExecutionRecord> claim_steps(
         IBackend& backend,
+        const ClaimWorkflowStepRequest& request
+    ) = 0;
+
+    virtual std::vector<WorkflowExecutionRecord> claim_steps(
+        ITransaction& tx,
         const ClaimWorkflowStepRequest& request
     ) = 0;
 
@@ -131,8 +152,18 @@ class IWorkflowStore
         const CompleteWorkflowStepRequest& request
     ) = 0;
 
+    virtual WorkflowExecutionRecord complete_step(
+        ITransaction& tx,
+        const CompleteWorkflowStepRequest& request
+    ) = 0;
+
     virtual WorkflowExecutionRecord fail_step(
         IBackend& backend,
+        const FailWorkflowStepRequest& request
+    ) = 0;
+
+    virtual WorkflowExecutionRecord fail_step(
+        ITransaction& tx,
         const FailWorkflowStepRequest& request
     ) = 0;
 
@@ -141,8 +172,18 @@ class IWorkflowStore
         const CancelWorkflowRequest& request
     ) = 0;
 
+    virtual WorkflowExecutionRecord cancel(
+        ITransaction& tx,
+        const CancelWorkflowRequest& request
+    ) = 0;
+
     virtual std::optional<WorkflowExecutionRecord> inspect(
         IBackend& backend,
+        const std::string& workflow_execution_id
+    ) = 0;
+
+    virtual std::optional<WorkflowExecutionRecord> inspect(
+        ITransaction& tx,
         const std::string& workflow_execution_id
     ) = 0;
 };
