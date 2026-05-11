@@ -159,6 +159,8 @@ class IBackend
 
     virtual void ensure_collection(const CollectionDescriptor& descriptor) = 0;
 
+    virtual void ensure_collections(const std::vector<CollectionDescriptor>& descriptors) = 0;
+
     virtual std::unique_ptr<ITransaction> begin() = 0;
 
     virtual std::optional<VersionedRecord> get(
