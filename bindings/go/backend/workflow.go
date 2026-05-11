@@ -83,180 +83,19 @@ type CancelWorkflowRequest struct {
 }
 
 type WorkflowStore interface {
-	RegisterDefinition(ctx context.Context, tx Transaction, request RegisterWorkflowDefinitionRequest) (WorkflowDefinitionRegistration, error)
+	RegisterDefinition(ctx context.Context, backend Backend, request RegisterWorkflowDefinitionRequest) (WorkflowDefinitionRegistration, error)
 
-	InspectDefinition(ctx context.Context, tx Transaction, workflowName string, workflowVersion int64) (*WorkflowDefinition, error)
+	InspectDefinition(ctx context.Context, backend Backend, workflowName string, workflowVersion int64) (*WorkflowDefinition, error)
 
-	Start(ctx context.Context, tx Transaction, request StartWorkflowRequest) (WorkflowExecutionRecord, error)
+	Start(ctx context.Context, backend Backend, request StartWorkflowRequest) (WorkflowExecutionRecord, error)
 
-	ClaimSteps(ctx context.Context, tx Transaction, request ClaimWorkflowStepRequest) ([]WorkflowExecutionRecord, error)
+	ClaimSteps(ctx context.Context, backend Backend, request ClaimWorkflowStepRequest) ([]WorkflowExecutionRecord, error)
 
-	CompleteStep(ctx context.Context, tx Transaction, request CompleteWorkflowStepRequest) (WorkflowExecutionRecord, error)
+	CompleteStep(ctx context.Context, backend Backend, request CompleteWorkflowStepRequest) (WorkflowExecutionRecord, error)
 
-	FailStep(ctx context.Context, tx Transaction, request FailWorkflowStepRequest) (WorkflowExecutionRecord, error)
+	FailStep(ctx context.Context, backend Backend, request FailWorkflowStepRequest) (WorkflowExecutionRecord, error)
 
-	Cancel(ctx context.Context, tx Transaction, request CancelWorkflowRequest) (WorkflowExecutionRecord, error)
+	Cancel(ctx context.Context, backend Backend, request CancelWorkflowRequest) (WorkflowExecutionRecord, error)
 
-	Inspect(ctx context.Context, tx Transaction, workflowExecutionID string) (*WorkflowExecutionRecord, error)
-}
-
-type WorkflowRuntime struct {
-	Backend Backend
-	Store   WorkflowStore
-}
-
-func NewWorkflowRuntime(backend Backend, store WorkflowStore) WorkflowRuntime {
-	return WorkflowRuntime{Backend: backend, Store: store}
-}
-
-func (r WorkflowRuntime) RegisterDefinition(ctx context.Context, request RegisterWorkflowDefinitionRequest) (WorkflowDefinitionRegistration, error) {
-	tx, err := r.Backend.Begin(ctx)
-	if err != nil {
-		return WorkflowDefinitionRegistration{}, err
-	}
-
-	result, err := r.Store.RegisterDefinition(ctx, tx, request)
-	if err != nil {
-		_ = tx.Abort(ctx)
-		return WorkflowDefinitionRegistration{}, err
-	}
-
-	if err := r.Backend.Commit(ctx, tx); err != nil {
-		return WorkflowDefinitionRegistration{}, err
-	}
-
-	return result, nil
-}
-
-func (r WorkflowRuntime) InspectDefinition(ctx context.Context, workflowName string, workflowVersion int64) (*WorkflowDefinition, error) {
-	tx, err := r.Backend.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := r.Store.InspectDefinition(ctx, tx, workflowName, workflowVersion)
-	if err != nil {
-		_ = tx.Abort(ctx)
-		return nil, err
-	}
-
-	if err := r.Backend.Commit(ctx, tx); err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (r WorkflowRuntime) Start(ctx context.Context, request StartWorkflowRequest) (WorkflowExecutionRecord, error) {
-	tx, err := r.Backend.Begin(ctx)
-	if err != nil {
-		return WorkflowExecutionRecord{}, err
-	}
-
-	result, err := r.Store.Start(ctx, tx, request)
-	if err != nil {
-		_ = tx.Abort(ctx)
-		return WorkflowExecutionRecord{}, err
-	}
-
-	if err := r.Backend.Commit(ctx, tx); err != nil {
-		return WorkflowExecutionRecord{}, err
-	}
-
-	return result, nil
-}
-
-func (r WorkflowRuntime) ClaimSteps(ctx context.Context, request ClaimWorkflowStepRequest) ([]WorkflowExecutionRecord, error) {
-	tx, err := r.Backend.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := r.Store.ClaimSteps(ctx, tx, request)
-	if err != nil {
-		_ = tx.Abort(ctx)
-		return nil, err
-	}
-
-	if err := r.Backend.Commit(ctx, tx); err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (r WorkflowRuntime) CompleteStep(ctx context.Context, request CompleteWorkflowStepRequest) (WorkflowExecutionRecord, error) {
-	tx, err := r.Backend.Begin(ctx)
-	if err != nil {
-		return WorkflowExecutionRecord{}, err
-	}
-
-	result, err := r.Store.CompleteStep(ctx, tx, request)
-	if err != nil {
-		_ = tx.Abort(ctx)
-		return WorkflowExecutionRecord{}, err
-	}
-
-	if err := r.Backend.Commit(ctx, tx); err != nil {
-		return WorkflowExecutionRecord{}, err
-	}
-
-	return result, nil
-}
-
-func (r WorkflowRuntime) FailStep(ctx context.Context, request FailWorkflowStepRequest) (WorkflowExecutionRecord, error) {
-	tx, err := r.Backend.Begin(ctx)
-	if err != nil {
-		return WorkflowExecutionRecord{}, err
-	}
-
-	result, err := r.Store.FailStep(ctx, tx, request)
-	if err != nil {
-		_ = tx.Abort(ctx)
-		return WorkflowExecutionRecord{}, err
-	}
-
-	if err := r.Backend.Commit(ctx, tx); err != nil {
-		return WorkflowExecutionRecord{}, err
-	}
-
-	return result, nil
-}
-
-func (r WorkflowRuntime) Cancel(ctx context.Context, request CancelWorkflowRequest) (WorkflowExecutionRecord, error) {
-	tx, err := r.Backend.Begin(ctx)
-	if err != nil {
-		return WorkflowExecutionRecord{}, err
-	}
-
-	result, err := r.Store.Cancel(ctx, tx, request)
-	if err != nil {
-		_ = tx.Abort(ctx)
-		return WorkflowExecutionRecord{}, err
-	}
-
-	if err := r.Backend.Commit(ctx, tx); err != nil {
-		return WorkflowExecutionRecord{}, err
-	}
-
-	return result, nil
-}
-
-func (r WorkflowRuntime) Inspect(ctx context.Context, workflowExecutionID string) (*WorkflowExecutionRecord, error) {
-	tx, err := r.Backend.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := r.Store.Inspect(ctx, tx, workflowExecutionID)
-	if err != nil {
-		_ = tx.Abort(ctx)
-		return nil, err
-	}
-
-	if err := r.Backend.Commit(ctx, tx); err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	Inspect(ctx context.Context, backend Backend, workflowExecutionID string) (*WorkflowExecutionRecord, error)
 }
