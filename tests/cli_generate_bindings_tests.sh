@@ -89,9 +89,9 @@ assert_output_contains "cpp|go|java|rust"
 run_expect_status 2 "$CLI" generate bindings --lang cpp
 assert_output_contains "generate bindings requires an input .sspec file"
 
-# Pre-alpha cleanup: old generate shape is no longer accepted.
-run_expect_status 2 "$CLI" generate "$SPEC" mt
+# Pre-alpha cleanup: old positional generate shape is no longer accepted.
+run_expect_status 2 "$CLI" generate "$SPEC" legacy
 assert_output_contains "unsupported generate kind: $SPEC"
 
-run_expect_status 2 "$CLI" generate mt "$SPEC"
-assert_output_contains "unsupported generate kind: mt"
+run_expect_status 2 "$CLI" generate legacy "$SPEC"
+assert_output_contains "unsupported generate kind: legacy"
