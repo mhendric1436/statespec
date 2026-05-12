@@ -25,7 +25,6 @@ Recommended top-level order inside a `system` block:
 6. workflows
 7. APIs
 8. policies
-9. generate declarations
 ```
 
 Keep related declarations close together. For example, put queue messages inside their

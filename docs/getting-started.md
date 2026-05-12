@@ -1,7 +1,7 @@
 # Getting Started With `.sspec` Files
 
 This guide shows the basic workflow for writing a StateSpec file, validating it, and
-generating runtime artifacts.
+generating language bindings.
 
 ## 1. Create A Specification File
 
@@ -16,14 +16,12 @@ system OrderSystem {
   entity Order {
     key order_id
 
-    fields {
+  fields {
       order_id string
       status string
       created_at timestamp
     }
   }
-
-  generate mt
 }
 ```
 
@@ -55,56 +53,17 @@ Use the `ast` command when debugging how the parser interpreted a file:
 This is useful when a declaration parses successfully but does not validate the way you
 expected.
 
-## 4. Generate One Target
+## 4. Generate Bindings
 
-Generate a specific target with either a `generate` declaration inside the file or a CLI
-target override.
-
-```sh
-./build/bin/statespec generate examples/order-system.sspec mt
-```
-
-To write generated files under a specific output root:
+Binding generation is selected by CLI option, not by declarations inside `.sspec` text:
 
 ```sh
-./build/bin/statespec generate examples/order-system.sspec mt --out build/generated/mt
+./build/bin/statespec generate bindings --lang cpp examples/order-system.sspec --out build/generated/cpp
 ```
 
-## 5. Generate All Concrete Targets
+Supported languages are `cpp`, `go`, `java`, and `rust`.
 
-Use `all` to expand the supported concrete generator targets:
-
-```sh
-./build/bin/statespec generate examples/order-system.sspec all
-```
-
-With no `--out`, generated files are written to target-specific default roots:
-
-```text
-generated/mt/
-generated/dl/
-generated/qu/
-generated/wf/
-generated/openapi/
-```
-
-With `--out`, each target is written under the supplied root:
-
-```sh
-./build/bin/statespec generate examples/order-system.sspec all --out build/generated
-```
-
-Expected layout:
-
-```text
-build/generated/mt/
-build/generated/dl/
-build/generated/qu/
-build/generated/wf/
-build/generated/openapi/
-```
-
-## 6. Authoring Loop
+## 5. Authoring Loop
 
 A practical authoring loop is:
 
@@ -112,8 +71,8 @@ A practical authoring loop is:
 make cli
 ./build/bin/statespec validate system.sspec
 ./build/bin/statespec ast system.sspec
-./build/bin/statespec generate system.sspec all --out build/generated
+./build/bin/statespec generate bindings --lang cpp system.sspec --out build/generated/cpp
 ```
 
 Run this loop whenever you add a new entity, state machine, workflow, queue, lease, API,
-or generator declaration.
+or policy declaration.

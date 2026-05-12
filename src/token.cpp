@@ -159,8 +159,6 @@ std::string token_kind_name(TokenKind kind)
         return "KeywordChildSet";
     case TokenKind::KeywordPolicy:
         return "KeywordPolicy";
-    case TokenKind::KeywordGenerate:
-        return "KeywordGenerate";
     case TokenKind::KeywordWhen:
         return "KeywordWhen";
     case TokenKind::KeywordWhere:

@@ -59,7 +59,6 @@ system_member           ::= namespace_decl
                           | api_decl
                           | workflow_decl
                           | policy_decl
-                          | generate_decl
                           | annotations_block ;
 
 namespace_decl          ::= "namespace" QualifiedName "{" system_member* "}" ;
@@ -624,28 +623,6 @@ audit_decl              ::= "audit" QualifiedName ";"? ;
 
 
 (* ============================================================ *)
-(* Generator and Runtime Targets                                *)
-(* ============================================================ *)
-
-generate_decl           ::= "generate" generate_target generate_block? ";"? ;
-
-generate_target         ::= "cpp"
-                          | "go"
-                          | "java"
-                          | "rust" ;
-
-generate_block          ::= "{"
-                              generate_option*
-                            "}" ;
-
-generate_option         ::= "out" StringLiteral ";"?
-                          | "language" Identifier ";"?
-                          | "package" QualifiedName ";"?
-                          | "runtime" generate_target ";"?
-                          | annotations_block ;
-
-
-(* ============================================================ *)
 (* Expressions                                                  *)
 (* ============================================================ *)
 
@@ -796,9 +773,4 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
    56. Child buckets must be disjoint.
    57. Child bucket union must represent the reserved child set.
 
-  Generator targets:
-   58. generate cpp requires declarations supported by the C++ binding generator.
-   59. generate go requires declarations supported by the Go binding generator.
-   60. generate java requires declarations supported by the Java binding generator.
-   61. generate rust requires declarations supported by the Rust binding generator.
 *)

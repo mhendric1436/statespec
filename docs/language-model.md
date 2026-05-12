@@ -16,7 +16,7 @@ system OrderSystem {
 ```
 
 The `system` block is the top-level scope for names. Names declared inside a system are
-referenced by APIs, workflows, queues, leases, workers, policies, and generators.
+referenced by APIs, workflows, queues, leases, workers, and policies.
 
 ## First-Class Concepts
 
@@ -32,7 +32,6 @@ referenced by APIs, workflows, queues, leases, workers, policies, and generators
 | `step` | Unit of workflow execution with timing and retry metadata. |
 | `api` | External operation such as a REST endpoint. |
 | `policy` | Authorization, tenancy, quota, and audit intent. |
-| `generate` | Target-specific output request. |
 
 ## Backend-Neutral Authoring
 
@@ -65,8 +64,8 @@ entity mt_Table_Order {
 }
 ```
 
-Runtime-specific output belongs in generators such as `mt`, `dl`, `qu`, `wf`, and
-`openapi`.
+Runtime-specific output belongs in tooling and binding generators, not in the canonical
+model.
 
 ## Type Model
 
@@ -96,7 +95,7 @@ fields {
 ```
 
 The grammar also reserves richer type forms such as `optional<T>`, `list<T>`, `set<T>`,
-`map<K,V>`, `ref<T>`, and named shapes. Support in individual generator targets may lag
+`map<K,V>`, `ref<T>`, and named shapes. Support in individual binding generators may lag
 behind the grammar as the compiler matures.
 
 ## References
@@ -114,17 +113,12 @@ api StartOrderProcessing {
 Validation should ensure referenced identifiers exist and are used in a compatible
 context.
 
-## Generator Targets
+## Binding Generation
 
-Generator target names are runtime mappings, not language dependencies:
+Generated bindings are selected outside the `.sspec` file:
 
-```statespec
-generate mt
-generate dl
-generate qu
-generate wf
-generate openapi
-generate all
+```sh
+statespec generate bindings --lang cpp system.sspec --out generated/cpp
 ```
 
-Use `generate all` when you want the normal output for the supported concrete targets.
+Supported binding languages are `cpp`, `go`, `java`, and `rust`.

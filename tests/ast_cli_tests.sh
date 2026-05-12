@@ -26,11 +26,6 @@ printf '%s\n' "$AST_OUTPUT" | grep -q '"workers"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"apis"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"workflows"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"policies"'
-printf '%s\n' "$AST_OUTPUT" | grep -q '"generators"'
-printf '%s\n' "$AST_OUTPUT" | grep -q '"target": "mt"'
-printf '%s\n' "$AST_OUTPUT" | grep -q '"target": "dl"'
-printf '%s\n' "$AST_OUTPUT" | grep -q '"target": "qu"'
-printf '%s\n' "$AST_OUTPUT" | grep -q '"target": "wf"'
 
 printf '%s\n' "$AST_OUTPUT" | python3 -c '
 import json
@@ -42,7 +37,6 @@ assert document["system"]["name"] == "OrderSystem"
 assert len(document["system"]["entities"]) >= 1
 assert len(document["system"]["queues"]) >= 1
 assert len(document["system"]["workflows"]) >= 1
-assert len(document["system"]["generators"]) >= 1
 '
 
 echo "ast CLI tests passed"

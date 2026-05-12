@@ -87,7 +87,6 @@ enum class TokenKind
     KeywordStep,
     KeywordChildSet,
     KeywordPolicy,
-    KeywordGenerate,
     KeywordWhen,
     KeywordWhere,
     KeywordRequire,

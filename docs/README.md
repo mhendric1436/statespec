@@ -3,9 +3,8 @@
 This directory contains practical guidance for programmers who author `.sspec` files.
 
 StateSpec is a canonical language for describing distributed systems with explicit
-entities, lifecycle state, APIs, workflows, queues, leases, workers, policies, and
-generator targets. A `.sspec` file should be treated as the source of truth for system
-behavior.
+entities, lifecycle state, APIs, workflows, queues, leases, workers, and policies. A
+`.sspec` file should be treated as the source of truth for system behavior.
 
 ## Guide Structure
 
@@ -17,7 +16,7 @@ behavior.
 | [queues-leases-workers.md](queues-leases-workers.md) | Durable queue, message, lease, and worker declarations. |
 | [workflows-and-apis.md](workflows-and-apis.md) | Workflow, step, API, behavior, and orchestration declarations. |
 | [policies.md](policies.md) | Policy authoring for tenant scoping, authorization rules, quotas, and audit points. |
-| [generators.md](generators.md) | Generator targets and expected output layout. |
+| [generators.md](generators.md) | CLI-selected binding generation and expected output layout. |
 | [backend-abstractions.md](backend-abstractions.md) | OCC-centered backend abstraction source artifacts and runtime contracts. |
 | [style-guide.md](style-guide.md) | Naming, ordering, and maintainability conventions for `.sspec` files. |
 
@@ -37,16 +36,14 @@ canonical syntax reference.
 
 ## Current Runtime Mapping
 
-The StateSpec runtime ecosystem uses these target names:
+The binding generator supports these language names:
 
 ```text
-mt       transactional entity/table/storage runtime
-dl       distributed locks and leases runtime
-qu       transactional queue/runtime messaging primitive
-wf       workflow orchestration runtime
-openapi  REST API contract generation
-all      expand to the concrete generator targets
+cpp
+go
+java
+rust
 ```
 
-Use generator declarations or the CLI `generate` command to lower a `.sspec` file into
-runtime artifacts.
+Use `statespec generate bindings --lang <language>` to lower a validated `.sspec` file
+into language bindings.

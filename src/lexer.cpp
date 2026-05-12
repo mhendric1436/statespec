@@ -72,7 +72,6 @@ TokenKind keyword_kind(std::string_view text)
         {"step", TokenKind::KeywordStep},
         {"child_set", TokenKind::KeywordChildSet},
         {"policy", TokenKind::KeywordPolicy},
-        {"generate", TokenKind::KeywordGenerate},
         {"when", TokenKind::KeywordWhen},
         {"where", TokenKind::KeywordWhere},
         {"require", TokenKind::KeywordRequire},

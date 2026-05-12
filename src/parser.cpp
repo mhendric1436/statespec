@@ -230,10 +230,6 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         {
             system.policies.push_back(parse_policy_decl(diagnostics));
         }
-        else if (check(TokenKind::KeywordGenerate))
-        {
-            system.generators.push_back(parse_generate_decl(diagnostics));
-        }
         else
         {
             skip_unknown_declaration(diagnostics);
@@ -852,57 +848,6 @@ PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
     return policy;
 }
 
-GenerateDecl Parser::parse_generate_decl(DiagnosticBag& diagnostics)
-{
-    const auto start =
-        consume(TokenKind::KeywordGenerate, "expected generate declaration", diagnostics);
-    GenerateDecl generate;
-    generate.target = parse_generate_target(diagnostics);
-
-    if (match(TokenKind::LeftBrace))
-    {
-        while (!check(TokenKind::RightBrace) && !is_at_end())
-        {
-            if (is_named_identifier(peek(), "out"))
-            {
-                advance();
-                generate.out = parse_simple_value(diagnostics, "generate output directory");
-                consume_optional_semicolon();
-            }
-            else if (is_named_identifier(peek(), "language"))
-            {
-                advance();
-                generate.language = parse_simple_value(diagnostics, "generate language");
-                consume_optional_semicolon();
-            }
-            else if (is_named_identifier(peek(), "package"))
-            {
-                advance();
-                generate.package = parse_qualified_name(diagnostics, "generate package");
-                consume_optional_semicolon();
-            }
-            else if (is_named_identifier(peek(), "runtime"))
-            {
-                advance();
-                generate.runtime = parse_generate_target(diagnostics);
-                consume_optional_semicolon();
-            }
-            else
-            {
-                skip_unknown_declaration(diagnostics);
-            }
-        }
-        consume(TokenKind::RightBrace, "expected '}' after generate block", diagnostics);
-    }
-    else
-    {
-        consume_optional_semicolon();
-    }
-
-    generate.range = SourceRange{start.range.begin, previous().range.end};
-    return generate;
-}
-
 std::string Parser::parse_qualified_name(
     DiagnosticBag& diagnostics,
     const std::string& context
@@ -987,27 +932,6 @@ std::string Parser::parse_simple_expression_until_boundary()
         advance();
     }
     return expression;
-}
-
-std::string Parser::parse_generate_target(DiagnosticBag& diagnostics)
-{
-    if (check(TokenKind::Identifier))
-    {
-        return advance().lexeme;
-    }
-    if (match_any({
-            TokenKind::KeywordApi,
-            TokenKind::KeywordWorkflow,
-            TokenKind::KeywordQueue,
-            TokenKind::KeywordLease,
-            TokenKind::KeywordWorker,
-        }))
-    {
-        return previous().lexeme;
-    }
-
-    diagnostics.error(peek().range, "SSPEC0204", "expected generate target");
-    return "";
 }
 
 void Parser::consume_optional_semicolon()

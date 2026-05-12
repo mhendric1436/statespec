@@ -106,8 +106,6 @@ void validator_accepts_resolved_references()
             allow StartOrderProcessing when caller.role == operator;
             audit StartOrderProcessing;
           }
-          generate mt
-          generate wf
         }
     )sspec");
 
@@ -236,19 +234,6 @@ void validator_rejects_unknown_api_references()
     );
 }
 
-void validator_rejects_invalid_generate_target()
-{
-    auto diagnostics = validate_text(R"sspec(
-        system OrderSystem {
-          generate unknown_target
-        }
-    )sspec");
-
-    require(
-        has_error_code(diagnostics, "SSPEC3002"), "validator should reject invalid generate target"
-    );
-}
-
 void validator_rejects_missing_required_declarations()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -309,24 +294,6 @@ void validator_rejects_invalid_positive_and_non_negative_values()
     );
 }
 
-void validator_rejects_invalid_generate_dependencies()
-{
-    auto diagnostics = validate_text(R"sspec(
-        system EmptySystem {
-          generate mt
-          generate dl
-          generate qu
-          generate wf
-          generate openapi
-        }
-    )sspec");
-
-    require(
-        has_error_code(diagnostics, "SSPEC4005"),
-        "validator should reject missing generate dependencies"
-    );
-}
-
 } // namespace
 
 void run_validator_milestone_tests()
@@ -338,8 +305,6 @@ void run_validator_milestone_tests()
     validator_rejects_unknown_workflow_start_step();
     validator_rejects_unknown_worker_references();
     validator_rejects_unknown_api_references();
-    validator_rejects_invalid_generate_target();
     validator_rejects_missing_required_declarations();
     validator_rejects_invalid_positive_and_non_negative_values();
-    validator_rejects_invalid_generate_dependencies();
 }

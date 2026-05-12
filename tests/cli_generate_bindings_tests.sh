@@ -224,9 +224,9 @@ run_expect_status 1 "$CLI" generate bindings --lang cpp "$NO_SYSTEM_SPEC" --out 
 assert_output_contains "SSPEC0201"
 assert_output_contains "expected system declaration"
 
-# Generic generation rejects unknown targets.
-run_expect_status 1 "$CLI" generate "$SPEC" legacy
-assert_output_contains "unsupported generate target 'legacy'"
+# Generic generation is not supported.
+run_expect_status 2 "$CLI" generate "$SPEC" legacy
+assert_output_contains "unsupported generate kind: $SPEC"
 
 run_expect_status 2 "$CLI" generate legacy "$SPEC"
-assert_output_contains "failed to open file: legacy"
+assert_output_contains "unsupported generate kind: legacy"

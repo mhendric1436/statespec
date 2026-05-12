@@ -164,16 +164,6 @@ struct PolicyDecl
     SourceRange range;
 };
 
-struct GenerateDecl
-{
-    std::string target;
-    std::optional<std::string> out;
-    std::optional<std::string> language;
-    std::optional<std::string> package;
-    std::optional<std::string> runtime;
-    SourceRange range;
-};
-
 struct SystemDecl
 {
     std::string name;
@@ -184,7 +174,6 @@ struct SystemDecl
     std::vector<ApiDecl> apis;
     std::vector<WorkflowDecl> workflows;
     std::vector<PolicyDecl> policies;
-    std::vector<GenerateDecl> generators;
     SourceRange range;
 };
 

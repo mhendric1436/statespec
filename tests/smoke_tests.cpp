@@ -393,7 +393,7 @@ void parser_parses_lease_and_worker()
     require(worker.concurrency == 4, "parser should parse worker concurrency");
 }
 
-void parser_parses_api_policy_and_generate()
+void parser_parses_api_and_policy()
 {
     const auto spec = parse_text(R"sspec(
         system OrderSystem {
@@ -413,8 +413,6 @@ void parser_parses_api_policy_and_generate()
             quota starts_per_minute: 60;
             audit StartOrderProcessing;
           }
-          generate mt { out "generated/mt" }
-          generate wf
         }
     )sspec");
 
@@ -437,11 +435,6 @@ void parser_parses_api_policy_and_generate()
     require(policy.denies.size() == 1, "parser should parse deny rule");
     require(policy.quotas.size() == 1, "parser should parse quota");
     require(policy.audits.size() == 1, "parser should parse audit");
-
-    require(spec.system->generators.size() == 2, "parser should parse generate declarations");
-    require(spec.system->generators[0].target == "mt", "parser should parse mt generate target");
-    require(spec.system->generators[0].out == "generated/mt", "parser should parse generate out");
-    require(spec.system->generators[1].target == "wf", "parser should parse wf generate target");
 }
 
 void parser_reports_missing_system()
@@ -480,7 +473,7 @@ int main()
     parser_parses_workflow_steps();
     parser_parses_queue_and_message();
     parser_parses_lease_and_worker();
-    parser_parses_api_policy_and_generate();
+    parser_parses_api_and_policy();
     parser_reports_missing_system();
     validator_rejects_missing_system();
     run_validator_milestone_tests();

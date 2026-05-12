@@ -39,14 +39,6 @@ bool is_builtin_type(const std::string& type)
     return builtin_types.find(type) != builtin_types.end();
 }
 
-bool is_generate_target(const std::string& target)
-{
-    static const std::unordered_set<std::string> targets{
-        "mt", "dl", "qu", "wf", "openapi", "proto", "docs", "tests", "all",
-    };
-    return targets.find(target) != targets.end();
-}
-
 bool is_positive_integer(int value)
 {
     return value > 0;
@@ -189,18 +181,6 @@ void duration_error(
 )
 {
     diagnostics.error(range, "SSPEC4004", subject + " " + field + " must be an ISO-8601 duration");
-}
-
-void dependency_error(
-    DiagnosticBag& diagnostics,
-    const SourceRange& range,
-    const std::string& target,
-    const std::string& dependency
-)
-{
-    diagnostics.error(
-        range, "SSPEC4005", "generate " + target + " requires at least one " + dependency
-    );
 }
 
 void add_symbol(
@@ -681,54 +661,6 @@ void validate_policies(
     }
 }
 
-void validate_generators(
-    const SystemDecl& system,
-    DiagnosticBag& diagnostics
-)
-{
-    for (const auto& generator : system.generators)
-    {
-        if (!is_generate_target(generator.target))
-        {
-            unknown_reference_error(
-                diagnostics, generator.range, "generate target", generator.target
-            );
-        }
-        if (generator.runtime.has_value() && !is_generate_target(*generator.runtime))
-        {
-            unknown_reference_error(
-                diagnostics, generator.range, "generate runtime", *generator.runtime
-            );
-        }
-
-        if ((generator.target == "mt" || generator.target == "all") && system.entities.empty())
-        {
-            dependency_error(diagnostics, generator.range, generator.target, "entity declaration");
-        }
-        if ((generator.target == "dl" || generator.target == "all") && system.leases.empty() &&
-            system.workers.empty())
-        {
-            dependency_error(
-                diagnostics, generator.range, generator.target, "lease or worker declaration"
-            );
-        }
-        if ((generator.target == "qu" || generator.target == "all") && system.queues.empty())
-        {
-            dependency_error(diagnostics, generator.range, generator.target, "queue declaration");
-        }
-        if ((generator.target == "wf" || generator.target == "all") && system.workflows.empty())
-        {
-            dependency_error(
-                diagnostics, generator.range, generator.target, "workflow declaration"
-            );
-        }
-        if ((generator.target == "openapi" || generator.target == "all") && system.apis.empty())
-        {
-            dependency_error(diagnostics, generator.range, generator.target, "api declaration");
-        }
-    }
-}
-
 SymbolTable build_symbol_table(
     const SystemDecl& system,
     DiagnosticBag& diagnostics
@@ -806,7 +738,6 @@ void Validator::validate(
     validate_workers(system, symbols, diagnostics);
     validate_apis(system, symbols, diagnostics);
     validate_policies(system, symbols, diagnostics);
-    validate_generators(system, diagnostics);
 }
 
 } // namespace statespec

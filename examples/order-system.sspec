@@ -154,10 +154,4 @@ system OrderSystem {
     audit StartOrderProcessing;
     audit SendOrderConfirmation;
   }
-
-  generate mt { out "generated/mt" }
-  generate dl { out "generated/dl" }
-  generate qu { out "generated/qu" }
-  generate wf { out "generated/wf" }
-  generate openapi { out "generated/openapi" }
 }

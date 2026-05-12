@@ -265,22 +265,7 @@ void write_spec_json(
     out << ",\n";
     out << "    \"policies\": ";
     write_named_array(out, system.policies);
-    out << ",\n";
-
-    out << "    \"generators\": [";
-    for (std::size_t i = 0; i < system.generators.size(); ++i)
-    {
-        if (i > 0)
-        {
-            out << ", ";
-        }
-        out << "{\"target\": ";
-        write_json_string(out, system.generators[i].target);
-        out << ", \"out\": ";
-        write_json_optional_string(out, system.generators[i].out);
-        out << '}';
-    }
-    out << "]\n";
+    out << "\n";
     out << "  }\n";
     out << "}\n";
 }
@@ -447,48 +432,12 @@ int generate_bindings_file(const GenerateBindingsArgs& args)
     return 0;
 }
 
-int generate_file(
-    const std::string& path,
-    const std::optional<std::string>& target,
-    const std::optional<std::string>& out
-)
-{
-    statespec::DiagnosticBag diagnostics;
-    const auto spec = parse_and_validate_file(path, diagnostics);
-    if (diagnostics.has_errors())
-    {
-        print_diagnostics(diagnostics);
-        return 1;
-    }
-
-    statespec::Generator generator;
-    statespec::GenerationOptions options;
-    options.target_override = target;
-    options.out_override = out;
-
-    const auto result = generator.generate(spec, options, diagnostics);
-    if (diagnostics.has_errors())
-    {
-        print_diagnostics(diagnostics);
-        return 1;
-    }
-
-    for (const auto& file : result.files)
-    {
-        write_generated_file(file);
-        std::cout << "generated " << file.path << '\n';
-    }
-
-    return 0;
-}
-
 void print_usage()
 {
     std::cerr << "usage:\n";
     std::cerr << "  statespec validate <file.sspec>\n";
     std::cerr << "  statespec tokens <file.sspec>\n";
     std::cerr << "  statespec ast <file.sspec>\n";
-    std::cerr << "  statespec generate <file.sspec> [target] [--out DIR]\n";
     std::cerr
         << "  statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]\n";
 }
@@ -534,30 +483,9 @@ int main(
                 return generate_bindings_file(args);
             }
 
-            std::optional<std::string> target;
-            std::optional<std::string> out;
-            for (int i = 3; i < argc; ++i)
-            {
-                const std::string arg = argv[i];
-                if (arg == "--out")
-                {
-                    if (i + 1 >= argc)
-                    {
-                        throw std::runtime_error("--out requires a directory");
-                    }
-                    out = argv[++i];
-                }
-                else if (!target.has_value())
-                {
-                    target = arg;
-                }
-                else
-                {
-                    throw std::runtime_error("unexpected argument for generate: " + arg);
-                }
-            }
-
-            return generate_file(generate_kind, target, out);
+            std::cerr << "statespec: unsupported generate kind: " << generate_kind << "\n";
+            print_usage();
+            return 2;
         }
 
         std::cerr << "unknown command: " << command << "\n";
