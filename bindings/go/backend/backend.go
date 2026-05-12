@@ -77,19 +77,47 @@ type VersionedRecord struct {
 	Document   JSON
 }
 
+type IndexValueKind string
+
+const (
+	IndexNull      IndexValueKind = "Null"
+	IndexString    IndexValueKind = "String"
+	IndexInteger   IndexValueKind = "Integer"
+	IndexDecimal   IndexValueKind = "Decimal"
+	IndexBoolean   IndexValueKind = "Boolean"
+	IndexTimestamp IndexValueKind = "Timestamp"
+)
+
+type IndexValue struct {
+	Kind  IndexValueKind
+	Value JSON
+}
+
+type IndexBound struct {
+	Values    []IndexValue
+	Inclusive bool
+}
+
 type QueryKind string
 
 const (
-	QueryAll        QueryKind = "All"
-	QueryKeyPrefix  QueryKind = "KeyPrefix"
-	QueryJSONEquals QueryKind = "JSONEquals"
+	QueryAll         QueryKind = "All"
+	QueryKeyPrefix   QueryKind = "KeyPrefix"
+	QueryJSONEquals  QueryKind = "JSONEquals"
+	QueryIndexEquals QueryKind = "IndexEquals"
+	QueryIndexPrefix QueryKind = "IndexPrefix"
+	QueryIndexRange  QueryKind = "IndexRange"
 )
 
 type Query struct {
-	Kind      QueryKind
-	KeyPrefix *string
-	JSONPath  *string
-	JSONValue *JSON
+	Kind        QueryKind
+	KeyPrefix   *string
+	JSONPath    *string
+	JSONValue   *JSON
+	IndexName   *string
+	IndexValues []IndexValue
+	LowerBound  *IndexBound
+	UpperBound  *IndexBound
 }
 
 func AllQuery() Query {
@@ -102,6 +130,18 @@ func KeyPrefixQuery(prefix string) Query {
 
 func JSONEqualsQuery(path string, value JSON) Query {
 	return Query{Kind: QueryJSONEquals, JSONPath: &path, JSONValue: &value}
+}
+
+func IndexEqualsQuery(indexName string, values []IndexValue) Query {
+	return Query{Kind: QueryIndexEquals, IndexName: &indexName, IndexValues: values}
+}
+
+func IndexPrefixQuery(indexName string, prefixValues []IndexValue) Query {
+	return Query{Kind: QueryIndexPrefix, IndexName: &indexName, IndexValues: prefixValues}
+}
+
+func IndexRangeQuery(indexName string, lowerBound *IndexBound, upperBound *IndexBound) Query {
+	return Query{Kind: QueryIndexRange, IndexName: &indexName, LowerBound: lowerBound, UpperBound: upperBound}
 }
 
 type Transaction interface {
