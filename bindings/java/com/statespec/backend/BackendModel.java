@@ -78,14 +78,55 @@ public final class BackendModel {
         String documentJson
     ) {}
 
+    public sealed interface IndexValue
+        permits IndexValue.NullValue,
+                IndexValue.StringValue,
+                IndexValue.IntegerValue,
+                IndexValue.DecimalValue,
+                IndexValue.BooleanValue,
+                IndexValue.TimestampValue {
+
+        record NullValue() implements IndexValue {}
+
+        record StringValue(String value) implements IndexValue {}
+
+        record IntegerValue(long value) implements IndexValue {}
+
+        record DecimalValue(String value) implements IndexValue {}
+
+        record BooleanValue(boolean value) implements IndexValue {}
+
+        record TimestampValue(String value) implements IndexValue {}
+    }
+
+    public record IndexBound(
+        List<IndexValue> values,
+        boolean inclusive
+    ) {}
+
     public sealed interface Query
-        permits Query.All, Query.KeyPrefix, Query.JsonEquals {
+        permits Query.All,
+                Query.KeyPrefix,
+                Query.JsonEquals,
+                Query.IndexEquals,
+                Query.IndexPrefix,
+                Query.IndexRange {
 
         record All() implements Query {}
 
         record KeyPrefix(String prefix) implements Query {}
 
         record JsonEquals(String path, String valueJson) implements Query {}
+
+        record IndexEquals(String indexName, List<IndexValue> values) implements Query {}
+
+        record IndexPrefix(String indexName, List<IndexValue> prefixValues) implements Query {}
+
+        record IndexRange(
+            String indexName,
+            Optional<IndexBound> lowerBound,
+            Optional<IndexBound> upperBound
+        ) implements Query {}
     }
 
     public interface Transaction {
