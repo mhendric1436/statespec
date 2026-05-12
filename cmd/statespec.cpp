@@ -1,3 +1,4 @@
+#include "statespec/binding_language.hpp"
 #include "statespec/diagnostic.hpp"
 #include "statespec/generator.hpp"
 #include "statespec/lexer.hpp"
@@ -19,6 +20,13 @@
 
 namespace
 {
+
+struct GenerateBindingsArgs
+{
+    statespec::BindingLanguage language;
+    std::string input_path;
+    std::string output_dir;
+};
 
 std::string read_file(const std::string& path)
 {
@@ -348,6 +356,77 @@ int validate_file(const std::string& path)
     return 0;
 }
 
+GenerateBindingsArgs parse_generate_bindings_args(
+    int argc,
+    char** argv
+)
+{
+    std::optional<statespec::BindingLanguage> language;
+    std::optional<std::string> input_path;
+    std::optional<std::string> output_dir;
+
+    for (int i = 3; i < argc; ++i)
+    {
+        const std::string arg = argv[i];
+        if (arg == "--lang")
+        {
+            if (i + 1 >= argc)
+            {
+                throw std::runtime_error("--lang requires one of: " + statespec::supported_binding_languages_text());
+            }
+            language = statespec::parse_binding_language(argv[++i]);
+        }
+        else if (arg == "--out")
+        {
+            if (i + 1 >= argc)
+            {
+                throw std::runtime_error("--out requires a directory");
+            }
+            output_dir = argv[++i];
+        }
+        else if (!input_path.has_value())
+        {
+            input_path = arg;
+        }
+        else
+        {
+            throw std::runtime_error("unexpected argument for generate bindings: " + arg);
+        }
+    }
+
+    if (!language.has_value())
+    {
+        throw std::runtime_error("generate bindings requires --lang <" + statespec::supported_binding_languages_text() + ">");
+    }
+    if (!input_path.has_value())
+    {
+        throw std::runtime_error("generate bindings requires an input .sspec file");
+    }
+    if (!output_dir.has_value())
+    {
+        output_dir = std::filesystem::path{"generated"} / statespec::to_string(*language);
+    }
+
+    return GenerateBindingsArgs{*language, *input_path, *output_dir};
+}
+
+int generate_bindings_file(const GenerateBindingsArgs& args)
+{
+    statespec::DiagnosticBag diagnostics;
+    parse_and_validate_file(args.input_path, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        print_diagnostics(diagnostics);
+        return 1;
+    }
+
+    std::cerr << "statespec: generate bindings --lang " << statespec::to_string(args.language)
+              << " is not implemented yet; binding generator dispatch will be added next\n";
+    std::cerr << "statespec: parsed input " << args.input_path << " and resolved output directory "
+              << args.output_dir << "\n";
+    return 2;
+}
+
 int generate_file(
     const std::string& path,
     const std::optional<std::string>& target,
@@ -389,7 +468,7 @@ void print_usage()
     std::cerr << "  statespec validate <file.sspec>\n";
     std::cerr << "  statespec tokens <file.sspec>\n";
     std::cerr << "  statespec ast <file.sspec>\n";
-    std::cerr << "  statespec generate <file.sspec> [target] [--out DIR]\n";
+    std::cerr << "  statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]\n";
 }
 
 } // namespace
@@ -408,47 +487,34 @@ int main(
         }
 
         const std::string command = argv[1];
-        const std::string path = argv[2];
 
         if (command == "validate")
         {
+            const std::string path = argv[2];
             return argc == 3 ? validate_file(path) : (print_usage(), 2);
         }
         if (command == "tokens")
         {
+            const std::string path = argv[2];
             return argc == 3 ? tokens_file(path) : (print_usage(), 2);
         }
         if (command == "ast")
         {
+            const std::string path = argv[2];
             return argc == 3 ? ast_file(path) : (print_usage(), 2);
         }
         if (command == "generate")
         {
-            std::optional<std::string> target;
-            std::optional<std::string> out;
-            for (int i = 3; i < argc; ++i)
+            const std::string generate_kind = argv[2];
+            if (generate_kind != "bindings")
             {
-                const std::string arg = argv[i];
-                if (arg == "--out")
-                {
-                    if (i + 1 >= argc)
-                    {
-                        std::cerr << "statespec: --out requires a directory\n";
-                        return 2;
-                    }
-                    out = argv[++i];
-                }
-                else if (!target.has_value())
-                {
-                    target = arg;
-                }
-                else
-                {
-                    print_usage();
-                    return 2;
-                }
+                std::cerr << "statespec: unsupported generate kind: " << generate_kind << "\n";
+                print_usage();
+                return 2;
             }
-            return generate_file(path, target, out);
+
+            const auto args = parse_generate_bindings_args(argc, argv);
+            return generate_bindings_file(args);
         }
 
         std::cerr << "unknown command: " << command << "\n";
