@@ -8,6 +8,15 @@ trap 'rm -rf "$TMPDIR"' EXIT
 SPEC="$TMPDIR/minimal.sspec"
 cat > "$SPEC" <<'SSPEC'
 system Demo {
+  entity Order {
+    key tenant_id, order_id
+    fields {
+      tenant_id string
+      order_id string
+      status string
+      retry_count int?
+    }
+  }
 }
 SSPEC
 
@@ -44,12 +53,25 @@ assert_file_exists() {
     fi
 }
 
+assert_file_contains() {
+    path="$1"
+    needle="$2"
+    if ! grep -F "$needle" "$path" >/dev/null 2>&1; then
+        echo "expected $path to contain: $needle" >&2
+        cat "$path" >&2 || true
+        exit 1
+    fi
+}
+
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
 assert_output_contains "generated $TMPDIR/out-cpp/backend.hpp"
 assert_file_exists "$TMPDIR/out-cpp/backend.hpp"
 assert_file_exists "$TMPDIR/out-cpp/lease.hpp"
 assert_file_exists "$TMPDIR/out-cpp/queue.hpp"
 assert_file_exists "$TMPDIR/out-cpp/workflow.hpp"
+assert_file_exists "$TMPDIR/out-cpp/system_descriptors.hpp"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "CollectionDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "Order"
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
 assert_output_contains "generated $TMPDIR/out-go/backend/backend.go"
@@ -57,6 +79,9 @@ assert_file_exists "$TMPDIR/out-go/backend/backend.go"
 assert_file_exists "$TMPDIR/out-go/backend/lease.go"
 assert_file_exists "$TMPDIR/out-go/backend/queue.go"
 assert_file_exists "$TMPDIR/out-go/backend/workflow.go"
+assert_file_exists "$TMPDIR/out-go/backend/descriptors.go"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func CollectionDescriptors() []CollectionDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Order"
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
 assert_output_contains "generated $TMPDIR/out-java/com/statespec/backend/Backend.java"
@@ -64,6 +89,9 @@ assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Backend.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Lease.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Queue.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Workflow.java"
+assert_file_exists "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "class Descriptors"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Order"
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
 assert_output_contains "generated $TMPDIR/out-rust/backend.rs"
@@ -71,6 +99,9 @@ assert_file_exists "$TMPDIR/out-rust/backend.rs"
 assert_file_exists "$TMPDIR/out-rust/lease.rs"
 assert_file_exists "$TMPDIR/out-rust/queue.rs"
 assert_file_exists "$TMPDIR/out-rust/workflow.rs"
+assert_file_exists "$TMPDIR/out-rust/descriptors.rs"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn collection_descriptors() -> Vec<CollectionDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "Order"
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC"
 assert_output_contains "generated generated/go/backend/backend.go"
