@@ -35,22 +35,46 @@ assert_output_contains() {
     fi
 }
 
-# New shape is accepted and routed to binding generator dispatch. Until the
-# per-language generators are added, Milestone 4 reports a language-specific
-# not-implemented diagnostic.
-run_expect_status 1 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
-assert_output_contains "SSPEC5103"
-assert_output_contains "binding generator for language 'cpp' is not implemented yet"
+assert_file_exists() {
+    path="$1"
+    if [ ! -f "$path" ]; then
+        echo "expected generated file: $path" >&2
+        cat "$TMPDIR/output.txt" >&2 || true
+        exit 1
+    fi
+}
 
-run_expect_status 1 "$CLI" generate bindings --lang go "$SPEC"
-assert_output_contains "SSPEC5103"
-assert_output_contains "binding generator for language 'go' is not implemented yet"
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
+assert_output_contains "generated $TMPDIR/out-cpp/backend.hpp"
+assert_file_exists "$TMPDIR/out-cpp/backend.hpp"
+assert_file_exists "$TMPDIR/out-cpp/lease.hpp"
+assert_file_exists "$TMPDIR/out-cpp/queue.hpp"
+assert_file_exists "$TMPDIR/out-cpp/workflow.hpp"
 
-run_expect_status 1 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
-assert_output_contains "binding generator for language 'java' is not implemented yet"
+run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
+assert_output_contains "generated $TMPDIR/out-go/backend/backend.go"
+assert_file_exists "$TMPDIR/out-go/backend/backend.go"
+assert_file_exists "$TMPDIR/out-go/backend/lease.go"
+assert_file_exists "$TMPDIR/out-go/backend/queue.go"
+assert_file_exists "$TMPDIR/out-go/backend/workflow.go"
 
-run_expect_status 1 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
-assert_output_contains "binding generator for language 'rust' is not implemented yet"
+run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
+assert_output_contains "generated $TMPDIR/out-java/com/statespec/backend/Backend.java"
+assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Backend.java"
+assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Lease.java"
+assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Queue.java"
+assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Workflow.java"
+
+run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
+assert_output_contains "generated $TMPDIR/out-rust/backend.rs"
+assert_file_exists "$TMPDIR/out-rust/backend.rs"
+assert_file_exists "$TMPDIR/out-rust/lease.rs"
+assert_file_exists "$TMPDIR/out-rust/queue.rs"
+assert_file_exists "$TMPDIR/out-rust/workflow.rs"
+
+run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC"
+assert_output_contains "generated generated/go/backend/backend.go"
+rm -rf generated/go
 
 # --lang is required.
 run_expect_status 2 "$CLI" generate bindings "$SPEC"
