@@ -1,10 +1,11 @@
 # Binding Template Strategy
 
 StateSpec binding generation currently uses the checked-in reference bindings as the
-source templates for generated language outputs.
+source templates for generated language outputs, then adds model-derived descriptor files
+beside those copied bindings.
 
-This document defines the Milestone 6 template strategy and the constraints that future
-model-driven generation should preserve.
+This document defines the template strategy and the constraints that model-driven
+generation should preserve.
 
 ## Decision
 
@@ -19,13 +20,15 @@ bindings/rust/
 ```
 
 The generator reads those files and emits them into the user-selected output directory.
+It then emits model-derived descriptor files from the parsed `.sspec` model.
 
 This keeps the generated binding surface aligned with the reference binding source files
 and avoids maintaining a second copy of nearly identical templates.
 
 ## Current Generator Behavior
 
-The language generators are implemented as deterministic template-copy generators:
+The language generators are implemented as deterministic template-copy generators with
+additive model-derived descriptor generation:
 
 ```text
 src/generator_cpp.cpp
@@ -70,6 +73,7 @@ Generated output layout:
 <out>/lease.hpp
 <out>/queue.hpp
 <out>/workflow.hpp
+<out>/system_descriptors.hpp
 ```
 
 ### Go
@@ -90,6 +94,7 @@ Generated output layout:
 <out>/backend/lease.go
 <out>/backend/queue.go
 <out>/backend/workflow.go
+<out>/backend/descriptors.go
 ```
 
 ### Java
@@ -110,6 +115,7 @@ Generated output layout:
 <out>/com/statespec/backend/Lease.java
 <out>/com/statespec/backend/Queue.java
 <out>/com/statespec/backend/Workflow.java
+<out>/com/statespec/generated/Descriptors.java
 ```
 
 ### Rust
@@ -130,7 +136,25 @@ Generated output layout:
 <out>/lease.rs
 <out>/queue.rs
 <out>/workflow.rs
+<out>/descriptors.rs
 ```
+
+## Model-Derived Descriptor Generation
+
+The generator emits collection descriptor artifacts from entity declarations.
+
+Current descriptor generation includes:
+
+```text
+CollectionDescriptor records
+FieldDescriptor records
+key_fields
+schema_version = 1
+```
+
+The current AST does not yet expose explicit entity index declarations, so generated
+`indexes` lists are empty. Once index declarations are added to the grammar and AST, the
+same descriptor files should populate `IndexDescriptor` values from the parsed model.
 
 ## Why Use Reference Bindings as Templates?
 
@@ -142,18 +166,19 @@ generator templates.
 
 ### Deterministic generation
 
-The generator copies files byte-for-byte into deterministic paths. The same input binding
-files, language, and output directory produce the same generated files.
+The generator copies files byte-for-byte into deterministic paths and emits descriptor
+files from the parsed model in declaration order. The same input binding files, language,
+StateSpec model, and output directory produce the same generated files.
 
 ### Simple review model
 
 Binding API changes are reviewed directly in the `bindings/` tree. Once committed, those
 changes automatically become the emitted binding templates.
 
-### Good pre-model-driven step
+### Good model-driven step
 
-This strategy allows the CLI, dispatch layer, output layout, and tests to stabilize
-before adding model-derived descriptor generation.
+This strategy allows the CLI, dispatch layer, output layout, and tests to stabilize while
+model-derived files are added incrementally beside the reference bindings.
 
 ## Constraints
 
@@ -188,14 +213,15 @@ This makes missing or moved template files visible during generation and tests.
 
 ## Acceptance Criteria
 
-Milestone 6 is accepted when:
+The current strategy is accepted when:
 
 ```text
 binding template strategy is documented
 generated output is deterministic
 generator sources use language-based binding names
 generator sources do not introduce runtime-specific target awareness
-CLI tests verify generated files for all four languages
+CLI tests verify generated binding files for all four languages
+CLI tests verify generated descriptor files for all four languages
 ```
 
 The current CLI test coverage is in:
@@ -215,15 +241,15 @@ rust
 
 ## Future Model-Driven Generation
 
-Later milestones can add model-derived files beside the copied binding templates.
+Later milestones can add more model-derived files beside the copied binding templates.
 
 Recommended future outputs:
 
 ```text
-cpp/system_descriptors.hpp
-go/backend/descriptors.go
-java/com/statespec/generated/Descriptors.java
-rust/descriptors.rs
+queue definitions
+lease definitions
+workflow definitions
+workflow step definitions
 ```
 
 Those files should use the generalized backend abstraction types:
