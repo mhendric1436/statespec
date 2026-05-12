@@ -7,7 +7,7 @@ and runtime component model.
 
 | File | Purpose |
 |---|---|
-| [`com/statespec/backend/BackendModel.java`](com/statespec/backend/BackendModel.java) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
+| [`com/statespec/backend/Backend.java`](com/statespec/backend/Backend.java) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
 | [`com/statespec/backend/Lease.java`](com/statespec/backend/Lease.java) | Lease records and lease runtime API. |
 | [`com/statespec/backend/Queue.java`](com/statespec/backend/Queue.java) | Queue definitions, message records, and queue runtime API. |
 | [`com/statespec/backend/Workflow.java`](com/statespec/backend/Workflow.java) | Workflow definitions, execution records, and workflow runtime API. |
@@ -22,10 +22,10 @@ package com.statespec.backend;
 
 ## Backend Interface
 
-The core backend interface is nested in `BackendModel`:
+The core backend interface is:
 
 ```java
-BackendModel.Backend
+Backend
 ```
 
 It provides:
@@ -48,14 +48,14 @@ backend API call.
 ## Index-Aware Queries
 
 Java defines index-aware query model records in
-[`BackendModel.java`](com/statespec/backend/BackendModel.java):
+[`Backend.java`](com/statespec/backend/Backend.java):
 
 ```java
-BackendModel.IndexValue
-BackendModel.IndexBound
-BackendModel.Query.IndexEquals
-BackendModel.Query.IndexPrefix
-BackendModel.Query.IndexRange
+Backend.IndexValue
+Backend.IndexBound
+Backend.Query.IndexEquals
+Backend.Query.IndexPrefix
+Backend.Query.IndexRange
 ```
 
 `IndexValue` supports:
@@ -76,7 +76,7 @@ Index values must be ordered according to the target `IndexDescriptor.fields` or
 Transactions implement:
 
 ```java
-BackendModel.Transaction
+Backend.Transaction
 ```
 
 ```java
