@@ -1,60 +1,58 @@
 ![Project Logo](images/statespec4.png)
 
-# 📦 StateSpec
+# StateSpec
 
-> **Design distributed systems with zero ambiguity.**
+> A canonical design language for distributed systems and their backend-neutral runtime model.
 
-StateSpec is a **canonical language for distributed system design**. It unifies
-**entities, APIs, workflows, queues, leases, state machines, and policies** into a
-single deterministic specification.
+StateSpec is a structured specification language for describing distributed systems with
+explicit entities, lifecycle state, APIs, workflows, queues, leases, policies, and
+backend requirements.
 
-A StateSpec file is intended to be the **source of truth** for a system. From that
-source, tooling can generate schemas, APIs, workflow definitions, queue bindings,
-lease declarations, validators, test scaffolding, diagrams, and runtime-specific
-integration code.
-
----
-
-# 🚀 Why StateSpec?
-
-Modern distributed systems are difficult to reason about because critical behavior is
-usually spread across many disconnected artifacts:
-
-- OpenAPI documents describe APIs, but not lifecycle state.
-- Database schemas describe storage, but not workflow behavior.
-- Workflow definitions describe execution, but not entity invariants.
-- Queue messages describe async work, but not ownership, retry, or policy.
-- Lock and lease logic is often reimplemented differently in every subsystem.
-- Prose design documents are ambiguous, inconsistent, and quickly outdated.
-
-**StateSpec solves this by making system behavior explicit, structured, canonical, and
-generator-friendly.**
+A StateSpec file is intended to be the source of truth for system behavior. From that
+source, tooling can derive schemas, API contracts, workflow definitions, queue and lease
+metadata, validators, tests, diagrams, and integration scaffolding.
 
 ---
 
-# 🧠 Core Idea
+## Why StateSpec?
 
-> A system is a set of **entities with lifecycles**, manipulated by **APIs**,
-> coordinated by **leases**, connected by **queues**, and executed by **workflows**.
+Modern distributed systems are difficult to reason about because behavior is usually
+spread across disconnected artifacts:
 
-StateSpec captures those concepts in one place:
+- API contracts describe external shape but not lifecycle state.
+- Database schemas describe storage but not invariants or orchestration.
+- Queue and worker code often embeds retry, ownership, and idempotency rules in ad hoc ways.
+- Lease and coordination logic is often reimplemented differently across services.
+- Design documents become stale and are not executable or mechanically validated.
+
+StateSpec addresses this by making system behavior explicit, structured, canonical, and
+generator-friendly.
+
+---
+
+## Core Idea
+
+A distributed system can be modeled as durable state plus deterministic transitions over
+that state.
+
+StateSpec captures the main concepts in one place:
 
 | Concept | Purpose |
 |---|---|
-| **Entities** | Durable domain objects, state, relationships, indexes, invariants |
-| **State machines** | Allowed lifecycle transitions and transition guards |
-| **APIs** | External contracts and intent-oriented operations |
-| **Workflows** | Long-running asynchronous orchestration |
-| **Queues** | Durable async commands, events, and worker dispatch |
-| **Leases** | Exclusive ownership, singleton workers, leader election, fencing |
-| **Policies** | Tenant, authorization, quota, and operational constraints |
-| **Generators** | Runtime-specific output from the canonical model |
+| Entities | Durable domain objects, fields, keys, relationships, indexes, and invariants |
+| State machines | Legal lifecycle states, transitions, and transition guards |
+| APIs | External contracts and intent-oriented operations |
+| Workflows | Long-running asynchronous orchestration |
+| Queues | Durable async commands, events, and worker dispatch |
+| Leases | Exclusive ownership, leadership, fencing, and coordination |
+| Policies | Tenant, authorization, quota, and operational constraints |
+| Generators | Deterministic output from the canonical model |
 
 ---
 
-# 🧬 Canonical Language Model
+## Canonical Language Model
 
-StateSpec should model these first-class concepts:
+StateSpec models these first-class concepts:
 
 ```text
 system
@@ -68,240 +66,111 @@ message
 lease
 worker
 policy
+generator
 ```
 
-The language should remain backend-neutral. It should not require users to write
-runtime-specific concepts directly unless they intentionally select a runtime target.
+The language should remain backend-neutral. A specification should describe system
+semantics rather than binding itself to a specific storage engine, queue implementation,
+or workflow runtime.
 
-Good:
+Example:
 
 ```statespec
-entity Order { ... }
-workflow OrderProcessing { ... }
-queue EmailQueue { ... }
-lease OrderReconcilerLease { ... }
+system OrderSystem {
+  entity Order { ... }
+  workflow OrderProcessing { ... }
+  queue EmailDispatch { ... }
+  lease OrderReconciler { ... }
+  api StartOrderProcessing { ... }
+}
 ```
-
-Avoid making the language depend directly on implementation names such as `mt::Table`,
-`wf::WorkflowOrchestrator`, or `qu::Queue`.
-
-Runtime-specific output belongs in generators.
 
 ---
 
-# ⚙️ Design Principles
+## Design Principles
 
-StateSpec is built around **low-entropy system design**.
-
-## 1. Canonical Structure
+### Canonical structure
 
 There should be one preferred way to express each concept.
 
-## 2. Explicit State
+### Explicit state
 
-All important lifecycle states and transitions should be defined explicitly.
+Important lifecycle states, transitions, ownership rules, retry behavior, and invariants
+should be represented directly in the specification.
 
-## 3. Deterministic Behavior
+### Deterministic behavior
 
-Specifications should generate deterministic artifacts. Hidden side effects and implicit
+Generated artifacts should be deterministic. Hidden side effects and ambiguous
 transitions should be avoided.
 
-## 4. Runtime Independence
+### Backend independence
 
 The language should describe the system without depending on a concrete runtime,
-storage engine, database, or transport. Generators should map the canonical model to
-runtime targets such as `mt`, `dl`, `qu`, `wf`, OpenAPI, or Protobuf, while backend
-adapters should map those targets onto concrete implementations such as memory, SQLite,
-PostgreSQL, RocksDB, FoundationDB, or future storage engines.
+storage engine, database, or transport.
 
-Runtime independence depends on the shared OCC-centered backend abstraction: generated
-semantics should rely on versioned reads, predicate validation, staged writes, atomic
-commit, and stable conflict categories instead of backend-specific mechanics. This lets
-StateSpec preserve one consistency doctrine while supporting multiple concrete backends.
+### Durable coordination
 
-## 5. Durable Coordination
+Workflow communication, queue dispatch, and exclusive ownership should be expressed in
+terms of durable state, durable messages, or explicit leases rather than transient
+in-memory coordination.
 
-Workflow communication should happen through durable entity state, durable queues, or
-explicit leases, not transient in-memory execution state.
+### Text is the source of truth
 
-## 6. Separation of Concerns
-
-StateSpec separates:
-
-- domain model
-- lifecycle model
-- API surface
-- workflow execution
-- queue dispatch
-- lease coordination
-- storage realization
-- security and policy
-
-## 7. Text Is The Source Of Truth
-
-Visual tools, diagrams, generated code, and runtime configuration should be derived from
-the canonical text specification.
+Visual tools, diagrams, generated code, runtime configuration, and tests should be
+derived from the canonical text specification.
 
 ---
 
-# 🧩 StateSpec Ecosystem
+## Backend Abstraction Model
 
-StateSpec is implemented as a C++20 compiler and generator toolchain. The language is
-backend-neutral, while the current implementation can generate C++-oriented runtime
-metadata for a small set of focused runtime libraries.
+StateSpec defines an OCC-centered backend abstraction so generated runtimes can share one
+consistency doctrine across multiple concrete implementations.
 
-```text
-StateSpec  → canonical design language and generator toolchain
-mt         → transactional entity/table/storage runtime
-dl         → distributed locks and leases runtime
-qu         → transactional queue/runtime messaging primitive
-wf         → workflow orchestration runtime
-```
-
-A concise mental model:
+The backend model is intentionally small:
 
 ```text
-StateSpec defines the system.
-mt stores the system state.
-dl coordinates exclusive ownership.
-qu dispatches durable work.
-wf orchestrates long-running workflows.
+CollectionDescriptor
+FieldDescriptor
+IndexDescriptor
+BackendCapabilities
+ConflictKind
+VersionedRecord
+Query
+Transaction
+Backend
 ```
+
+The core backend contract provides:
+
+```text
+capabilities
+ensure_collection
+ensure_collections
+begin
+get
+query
+put
+erase
+commit
+abort
+```
+
+`ensure_collections` accepts a list of `CollectionDescriptor` records so generated
+systems can provision all required collections with one API call.
 
 ---
 
-# 🛠️ Implementation
+## Optimistic Concurrency Control
 
-The repository is organized as a C++20 project:
+Optimistic concurrency control is the shared consistency model behind the backend
+abstraction.
 
-```text
-include/statespec/   public compiler and generator headers
-src/                 lexer, parser, validator, and generator implementation
-cmd/                 statespec CLI
-tests/               C++ and shell-based regression tests
-grammar/             StateSpec grammar reference
-examples/            example .sspec files
-```
+A transaction reads versioned records, computes deterministic changes, and commits only
+if the state it depended on has not changed. If another writer changes a record or
+predicate first, the commit reports a semantic conflict and the caller can retry from a
+fresh read.
 
-The active implementation is built with `make` and produces:
-
-```text
-build/libstatespec.a      compiler and generator library
-build/bin/statespec       CLI
-build/bin/statespec_tests regression test binary
-```
-
----
-
-# 🏗️ Runtime Stack
-
-```text
-                     ┌────────────────────────────┐
-                     │         StateSpec           │
-                     │ .sspec canonical language   │
-                     └──────────────┬─────────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────┐
-        │                           │                           │
-        ▼                           ▼                           ▼
-┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-│ Entity Generator│       │Workflow Generator│       │ API Generator   │
-└────────┬────────┘       └────────┬────────┘       └────────┬────────┘
-         │                         │                         │
-         ▼                         ▼                         ▼
-┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-│ mt schemas      │       │ wf definitions  │       │ OpenAPI 3.1     │
-│ mt mappings     │       │ WorkflowLogic   │       │ clients/servers │
-└────────┬────────┘       └────────┬────────┘       └────────┬────────┘
-         │                         │                         │
-         └──────────────┬──────────┴──────────────┬──────────┘
-                        │                         │
-                        ▼                         ▼
-              ┌─────────────────┐       ┌─────────────────┐
-              │       mt        │       │       wf        │
-              │ transactions    │       │ orchestration   │
-              │ typed tables    │       │ workers/steps   │
-              └───────┬─────────┘       └───────┬─────────┘
-                      │                         │
-        ┌─────────────┼─────────────┐           │
-        ▼                           ▼           ▼
-┌─────────────────┐       ┌─────────────────┐   │
-│       dl        │       │       qu        │◄──┘
-│ locks/leases    │       │ queues/messages │
-└─────────────────┘       └─────────────────┘
-```
-
----
-
-# 🧱 Backend Abstraction Model
-
-StateSpec should make backend targeting easier by defining a small set of backend
-abstractions that all share the same consistency contract: **optimistic concurrency
-control**.
-
-The goal is that StateSpec does not generate different semantic behavior for memory,
-SQLite, PostgreSQL, RocksDB, FoundationDB, or future storage engines. StateSpec should
-generate one logical model, then rely on backend adapters that implement the same OCC
-contract.
-
-```text
-StateSpec .sspec
-    │
-    ▼
-Generated model metadata
-    │
-    ▼
-Runtime primitives
-    ├── mt entity/table runtime
-    ├── dl lease runtime
-    ├── qu queue runtime
-    └── wf workflow runtime
-    │
-    ▼
-OCC backend abstraction
-    ├── begin transaction
-    ├── read versioned records
-    ├── query records
-    ├── stage writes
-    ├── validate read versions
-    └── commit atomically
-    │
-    ▼
-Concrete backend adapters
-    ├── memory
-    ├── SQLite
-    ├── PostgreSQL
-    ├── RocksDB
-    ├── FoundationDB
-    └── future backends
-```
-
-Concrete backends may use very different native mechanisms:
-
-```text
-memory        → maps, mutexes, and in-process version counters
-SQLite        → tables, transactions, and metadata rows
-PostgreSQL    → SQL rows, MVCC, indexes, and version columns
-RocksDB       → keys, values, prefixes, and conditional update patterns
-FoundationDB  → transactional key ranges and conflict ranges
-```
-
-StateSpec-generated semantics should depend on the abstraction, not on those physical
-implementation details.
-
----
-
-# 🔁 OCC Foundation
-
-Optimistic concurrency control (OCC) is the shared consistency model underneath the
-StateSpec runtime stack.
-
-OCC assumes that most operations do not conflict. A transaction reads state at a known
-version, computes a change, and commits only if the data it depended on has not changed
-since it was read. If another writer changed the same entity, row, lease, queue item, or
-workflow record first, the commit fails and the caller retries from a fresh read.
-
-This gives StateSpec-generated systems a common durability rule:
+The common rule is:
 
 ```text
 read versioned state
@@ -311,314 +180,146 @@ commit only if observed versions are still current
 retry safely on conflict
 ```
 
-OCC is the foundation for each runtime:
+Concrete backend adapters may implement this with different native mechanisms:
 
-| Runtime | OCC role |
-|---|---|
-| `mt` | Stores versioned entity rows, validates read predicates, and commits entity changes atomically. |
-| `dl` | Acquires and renews leases by conditionally updating lease records with fencing tokens and expiry checks. |
-| `qu` | Enqueues, claims, retries, and acknowledges messages through conditional queue-state updates. |
-| `wf` | Advances workflow executions and step ownership only when the observed workflow state is still current. |
+```text
+in-memory maps and version counters
+SQL rows, indexes, transactions, and version columns
+key-value prefixes and conditional updates
+MVCC snapshots and conflict ranges
+future durable storage engines
+```
 
-The result is one concurrency doctrine across storage, leases, queues, and workflows.
-StateSpec generators should compose these primitives instead of inventing separate
-conflict-resolution behavior for each generated artifact.
+StateSpec-generated semantics should depend on the abstraction rather than the physical
+implementation details.
 
 ---
 
-# 🧰 Backend Abstraction Layers
+## Runtime Component Abstractions
 
-The backend abstraction can be organized as a small stack of reusable contracts.
+The backend bindings define generalized component abstractions for common distributed
+systems primitives.
 
-## Entity Store Backend
+### Leases
 
-The entity store backend is the foundation used by `mt`. It provides versioned document
-or row access, query support, staged writes, staged deletes, and atomic commit.
+Leases model exclusive ownership with expiry and fencing tokens.
+
+Typical operations:
+
+```text
+acquire
+renew
+release
+inspect
+```
+
+### Queues
+
+Queues model durable messages with explicit queue definitions, visibility timeouts,
+claiming, retries, acknowledgement, and optional dead-letter routing.
+
+Typical operations:
+
+```text
+create
+inspect definition
+enqueue
+claim
+acknowledge
+fail
+inspect message
+```
+
+Queue creation is idempotent. The queue identity is:
+
+```text
+(queue, channel)
+```
+
+### Workflows
+
+Workflows model immutable workflow definitions and durable workflow executions.
+
+Typical operations:
+
+```text
+register definition
+inspect definition
+start
+claim steps
+complete step
+fail step
+cancel
+inspect execution
+```
+
+Workflow definition registration is immutable. The workflow definition identity is:
+
+```text
+(workflow_name, workflow_version)
+```
+
+A changed workflow definition should be registered with a new incremented version.
+
+---
+
+## Transaction Call Styles
+
+Runtime component APIs support two call styles.
+
+### Backend-managed calls
+
+Backend-managed methods receive a backend and manage the transaction internally:
 
 ```text
 begin transaction
-read collection/key with version
-query collection with predicate or prefix
-stage put
-stage delete
-commit if read versions and predicates are still valid
-abort
+perform component operation
+commit on success
+abort on failure
 ```
 
-StateSpec entities lower into backend-neutral table metadata. Backend adapters decide how
-that metadata maps to physical tables, key prefixes, indexes, or in-memory maps.
+### Caller-managed calls
 
-## Lease Backend
+Transaction methods receive an existing transaction so a caller can compose entity,
+lease, queue, workflow, and policy operations into one atomic unit.
 
-Leases can be modeled as versioned records on top of the entity store abstraction.
-
-Acquire, renew, and release operations are conditional updates:
-
-```text
-acquire lease:
-  read lease record
-  if missing or expired, write holder, expiry, and next fencing token
-  commit only if the lease version is unchanged
-
-renew lease:
-  read lease record
-  if holder and fencing token match, extend expiry
-  commit only if the lease version is unchanged
-
-release lease:
-  read lease record
-  if holder matches, clear ownership
-  commit only if the lease version is unchanged
-```
-
-Because these operations depend only on OCC behavior, the same lease semantics can run on
-any backend adapter that implements the shared contract.
-
-## Queue Backend
-
-Queues can be modeled as OCC-backed message records.
-
-```text
-claim message:
-  query available or expired messages
-  read selected message version
-  set claimed_by and claim_expires_at
-  commit only if the selected message version is unchanged
-
-acknowledge message:
-  read claimed message
-  verify claimant
-  mark processed
-  commit only if the message version is unchanged
-
-retry message:
-  read message
-  increment attempts
-  mark available or failed
-  commit only if the message version is unchanged
-```
-
-This lets `qu` express durable queue behavior once while backend adapters handle storage
-mechanics.
-
-## Workflow Backend
-
-Workflows can be modeled as OCC-backed execution and step records.
-
-```text
-poll and claim step:
-  query runnable workflow steps
-  read execution or step version
-  claim runnable work
-  commit only if the observed versions are unchanged
-
-complete step:
-  read execution
-  verify claim owner or fencing token
-  advance to next step or mark complete
-  commit only if the execution version is unchanged
-
-fail step:
-  read execution
-  increment retry state or mark failed
-  commit only if the execution version is unchanged
-```
-
-This keeps workflow execution restart-safe and portable across concrete storage engines.
+All bindings use a `Tx` suffix for caller-managed transaction variants, adapted to each
+language's naming conventions.
 
 ---
 
-# 🧪 Backend Capabilities And Conflict Types
+## Language Bindings
 
-Backends will not all support the same physical features. StateSpec should represent
-backend capabilities explicitly so generators and runtimes can reject unsupported targets
-or select safe fallbacks.
+Reference backend and runtime component bindings are provided for:
 
-Example capabilities:
+| Language | Binding guide |
+|---|---|
+| C++ | [`bindings/cpp/README.md`](bindings/cpp/README.md) |
+| Go | [`bindings/go/README.md`](bindings/go/README.md) |
+| Java | [`bindings/java/README.md`](bindings/java/README.md) |
+| Rust | [`bindings/rust/README.md`](bindings/rust/README.md) |
 
-```text
-transactions
-compare_and_swap
-prefix_query
-secondary_indexes
-unique_indexes
-json_path_query
-ordered_scan
-durable_history
-schema_snapshots
-```
-
-Capability checks make target selection explicit. For example, a StateSpec entity with a
-unique index should require a backend with native unique index support or a generated
-runtime strategy that can enforce uniqueness safely.
-
-The OCC abstraction should also expose meaningful semantic conflict categories:
-
-```text
-VersionConflict       observed record changed before commit
-PredicateConflict     query result or predicate changed before commit
-UniqueIndexConflict   another transaction inserted the same unique value
-SchemaConflict        requested schema is incompatible with accepted schema
-LeaseConflict         another holder acquired or renewed the lease
-QueueClaimConflict    another worker claimed or completed the message
-WorkflowClaimConflict another worker claimed or advanced the workflow step
-```
-
-Concrete adapters may implement these conflicts with different native mechanisms, but
-StateSpec-generated code should observe a stable semantic error model.
+The shared binding documentation is in
+[`docs/backend-abstractions.md`](docs/backend-abstractions.md).
 
 ---
 
-# 🧱 Specific Runtime Implementations
-
-The concrete runtimes are implementations of the shared StateSpec model. They should use
-the OCC-centered backend abstractions rather than inventing separate consistency rules.
-
-## `mt` — Transactional Entity Runtime
-
-`mt` is the storage and transaction substrate for StateSpec-generated entities.
-
-StateSpec entities can generate:
+## Repository Layout
 
 ```text
-src/tables/schemas/<entity>.mt.json
-src/tables/generated/<entity>_row.hpp
-src/tables/generated/<entity>_mapping.hpp
+bindings/            reference backend and runtime component interfaces
+cmd/                 StateSpec CLI entry points
+docs/                programmer guides and abstraction documentation
+examples/            example specifications
+grammar/             grammar reference
+include/             public compiler/generator headers
+src/                 lexer, parser, validator, and generator implementation
+tests/               regression tests
 ```
-
-The generated `*.mt.json` definition follows the JSON schema defined in the `mt` repo at
-`mt/schemas/mt-codegen.schema.json`.
-
-`mt` provides:
-
-- typed table access
-- snapshot-style reads
-- optimistic concurrency control
-- predicate read validation
-- backend-neutral storage
-- generated schema metadata
-- compatible schema evolution
-- memory, SQLite, PostgreSQL, and future backend support
-
-StateSpec should use `mt` for:
-
-- entity rows
-- lifecycle state persistence
-- indexes
-- invariant checks
-- state transition guards
-- atomic composition across workflows, queues, and leases
 
 ---
 
-## `dl` — Distributed Locks and Leases Runtime
-
-`dl` is the reusable coordination primitive for StateSpec-generated systems.
-
-StateSpec leases can generate:
-
-```text
-generated/dl/<lease_name>_lease.hpp
-generated/dl/<worker_name>_leader.hpp
-```
-
-`dl` provides:
-
-- named resource leases
-- exclusive ownership
-- acquire, renew, release, and inspect operations
-- expiry semantics
-- monotonically increasing fencing tokens
-- conflict detection through `mt`
-- backend-neutral lease management
-
-StateSpec should use `dl` for:
-
-- singleton workers
-- leader election
-- exclusive reconcilers
-- resource ownership
-- service registration
-- stale-owner protection
-- common lease semantics shared by queues and workflows
-
----
-
-## `qu` — Transactional Queue Runtime
-
-`qu` is the durable queue and async messaging primitive for StateSpec-generated systems.
-
-StateSpec queues and messages can generate:
-
-```text
-generated/qu/<queue_name>_queue.hpp
-generated/qu/<message_name>_message.hpp
-generated/qu/<queue_name>_worker.hpp
-```
-
-`qu` provides:
-
-- enqueue with duplicate message protection
-- claim with lease-style visibility timeout
-- acknowledge / processed status
-- fail and retry
-- expired claim reaping
-- namespace and channel scoping
-- backend-neutral queue operations over `mt`
-- caller-owned transaction overloads
-
-StateSpec should use `qu` for:
-
-- async command dispatch
-- event handoff
-- worker queues
-- retryable background work
-- transactional outbox-like flows
-- workflow-to-worker communication
-- queue operations committed atomically with entity and workflow state
-
----
-
-## `wf` — Workflow Orchestration Runtime
-
-`wf` is the workflow runtime for StateSpec-generated workflows.
-
-StateSpec workflows can generate:
-
-```text
-generated/wf/<workflow_name>_workflow.json
-generated/wf/<workflow_name>_logic.hpp
-generated/wf/<workflow_name>_logic.cpp
-```
-
-`wf` provides:
-
-- workflow definition parsing and validation
-- workflow execution orchestration
-- worker-oriented step execution
-- atomic poll-and-claim
-- lease-based step ownership
-- keep-alive support
-- cancellation
-- background lease sweep
-- `mt`-backed persistence
-- HTTP REST API
-- OpenAPI 3.1 specification
-- CLI commands
-
-StateSpec should use `wf` for:
-
-- long-running workflows
-- parent-child orchestration
-- restart-safe step execution
-- retries and failure handling
-- worker pools
-- workflow state tracking
-- generated workflow definitions and `WorkflowLogic` scaffolding
-
----
-
-# 📄 Example `.sspec`
+## Example Specification Shape
 
 ```statespec
 system OrderSystem {
@@ -645,33 +346,19 @@ system OrderSystem {
     }
   }
 
-  queue EmailQueue {
-    namespace workflow
+  queue EmailDispatch {
     channel email
     visibility_timeout PT30S
-
-    message SendConfirmation {
-      idempotency_key message_id
-
-      payload {
-        workflowExecutionId string
-        orderId string
-        email string
-      }
-    }
   }
 
-  lease OrderReconcilerLease {
+  lease OrderReconciler {
     resource "reconciler:orders"
     ttl PT30S
-    renew_every PT10S
     fencing_token true
   }
 
   workflow OrderProcessing {
     version 1
-    singleton false
-    expected_execution_time PT5M
     start validate_order
 
     step validate_order {
@@ -679,48 +366,33 @@ system OrderSystem {
       max_retries 2
     }
 
-    step charge_payment {
-      expected_execution_time PT30S
-      max_retries 3
-    }
-
     step send_confirmation {
       expected_execution_time PT10S
       max_retries 3
-      enqueue EmailQueue.SendConfirmation
     }
-  }
-
-  api StartOrderProcessing {
-    method POST
-    path "/v1/orders/{orderId}/start"
-    starts workflow OrderProcessing
   }
 }
 ```
 
 ---
 
-# 🧩 What StateSpec Can Generate
+## What StateSpec Can Generate
 
-From a single `.sspec` file, StateSpec can generate:
+From a single `.sspec` file, StateSpec tooling can derive:
 
-| Target | Generated artifacts |
+| Artifact type | Examples |
 |---|---|
-| `mt` | entity schemas, row structs, table mappings, index metadata |
-| `dl` | lease declarations, singleton worker helpers, fencing-token checks |
-| `qu` | queue bindings, message payload types, enqueue helpers, worker helpers |
-| `wf` | workflow definition JSON, workflow logic scaffolding, worker integration |
-| OpenAPI | REST contracts, request/response schemas, error models |
-| Protobuf / gRPC | RPC schemas and service definitions |
-| Server stubs | Go, Java, Rust, C++, or other target languages |
-| Tests | state transition tests, workflow tests, queue tests, lease tests |
+| Schemas | entity metadata, collection descriptors, indexes, validation metadata |
+| APIs | OpenAPI, RPC contracts, request/response models, error models |
+| Runtime metadata | workflow definitions, queue definitions, lease definitions |
+| Code scaffolding | server stubs, client stubs, integration helpers, worker skeletons |
+| Tests | state transition tests, invariant tests, runtime behavior tests |
 | Documentation | architecture docs, diagrams, state machine graphs |
-| VS Code | syntax highlighting, validation, autocomplete, symbol navigation |
+| Tooling | syntax highlighting, validation, autocomplete, symbol navigation |
 
 ---
 
-# 💻 Planned CLI
+## CLI Shape
 
 ```sh
 statespec validate <file>
@@ -730,99 +402,16 @@ statespec graph <file>
 statespec diff <old-file> <new-file>
 ```
 
-Planned generator targets:
+Generator targets are implementation choices layered on top of the canonical model.
+StateSpec should keep the source language stable even as generator targets evolve.
 
-```sh
-statespec generate mt       system.sspec
-statespec generate dl       system.sspec
-statespec generate qu       system.sspec
-statespec generate wf       system.sspec
-statespec generate openapi  system.sspec
-statespec generate proto    system.sspec
-statespec generate docs     system.sspec
-statespec generate all      system.sspec
-```
+---
+
+## Policy Model
+
+StateSpec can represent policy declarations for hosted or multi-tenant systems.
 
 Example:
-
-```sh
-statespec generate all examples/order-system/order-system.sspec
-```
-
-Possible output layout:
-
-```text
-examples/order-system/
-├── order-system.sspec
-└── generated/
-    ├── mt/
-    │   ├── order.mt.json
-    │   └── order_row.hpp
-    ├── dl/
-    │   └── order_reconciler_lease.hpp
-    ├── qu/
-    │   ├── email_queue.hpp
-    │   └── send_confirmation_message.hpp
-    ├── wf/
-    │   ├── order-processing-workflow.json
-    │   └── order_processing_logic.hpp
-    ├── openapi/
-    │   └── openapi.yaml
-    └── docs/
-        └── architecture.md
-```
-
----
-
-# 🔗 Parent-Child Model
-
-StateSpec is designed to support hierarchical systems:
-
-- parent entities own child entities through declared relationships
-- parent workflows coordinate child entity creation
-- child workflows may execute independently
-- parent progress should be derived from durable child entity state
-
-> Workflows communicate through durable entity state, durable messages, and explicit
-> coordination primitives.
-
-The grammar defines relationship constructs such as `relations`, `parent`, `children`,
-and `child_set`. The current C++ compiler milestone parses the core workflow and entity
-surface first; full parent-child semantic validation and generation are planned work.
-
----
-
-# 🔄 Orchestration Model
-
-StateSpec's intended parent-child orchestration convention is a three-phase protocol:
-
-```text
-generate_child_ids
-creating_children
-waiting_children
-```
-
-This makes orchestration:
-
-- idempotent
-- observable
-- restart-safe
-- deterministic
-
-These names are workflow step conventions, not special keywords. The grammar also
-reserves explicit child orchestration statements such as `reserve child_set`,
-`materialize child_set`, `reconcile child_set`, `create child`, and `observe child`.
-The compiler should eventually validate that those statements manipulate durable child
-ID buckets and legal parent/child state transitions.
-
----
-
-# 🔐 Policy Model
-
-StateSpec should eventually support policy declarations for hosted or multi-tenant
-systems.
-
-Examples:
 
 ```statespec
 policy WorkflowAccess {
@@ -833,40 +422,20 @@ policy WorkflowAccess {
 }
 ```
 
-Policies can generate:
+Policies can derive:
 
-- authorization hooks
-- ownership checks
-- tenant scoping rules
-- quota checks
-- audit event definitions
-- service-layer validation scaffolding
-
-Runtime libraries such as `mt`, `dl`, `qu`, and `wf` are intentionally focused on
-backend-neutral primitives. Multi-tenant identity and authorization should be enforced
-by the service layer generated or guided by StateSpec.
+```text
+authorization hooks
+ownership checks
+tenant scoping rules
+quota checks
+audit event definitions
+service-layer validation scaffolding
+```
 
 ---
 
-# 🧠 VS Code Extension
-
-StateSpec is designed to be used with a Visual Studio Code extension.
-
-Planned features:
-
-- syntax highlighting
-- real-time validation
-- autocomplete
-- symbol navigation
-- entity graph visualization
-- workflow graph visualization
-- state machine visualization
-- code generation commands
-- jump-to-generated-artifact support
-
----
-
-# 📂 File Extension
+## File Extension
 
 ```text
 .sspec
@@ -874,142 +443,51 @@ Planned features:
 
 ---
 
-# 🎯 Use Cases
+## Use Cases
 
 StateSpec is intended for systems where behavior must be precise, durable, and
 reviewable:
 
-- cloud control planes
-- infrastructure services
-- event-driven systems
-- API + worker architectures
-- distributed workflow systems
-- systems with complex lifecycle management
-- systems requiring explicit state transition rules
-- systems using durable queues and leases
-- internal platforms and service orchestration layers
-
----
-
-# 🔍 Comparison
-
-| Tool | Scope | Limitation |
-|---|---|---|
-| OpenAPI | APIs | No workflows, leases, queues, or lifecycle state |
-| Protobuf | RPC schemas | No lifecycle or orchestration model |
-| Terraform | Infrastructure | No runtime behavior |
-| BPMN | Business workflows | Not ideal as a system implementation spec |
-| UML | Diagrams | Not usually executable or canonical |
-| Prose docs | Everything | Ambiguous, inconsistent, difficult to validate |
-| StateSpec | System behavior | Intended to be canonical, structured, and generator-friendly |
-
----
-
-# ✅ Milestone History
-
-| Milestone | Status | Summary |
-|---:|---|---|
-| 1 | Complete | C++20 compiler and CLI skeleton |
-| 2 | Complete | Lexer |
-| 3 | Complete | Core parser |
-| 4 | Complete | Ecosystem parser for entities, queues, leases, workers, workflows, APIs, policies, and generators |
-| 5 | Complete | Symbol table and reference validation |
-| 6 | Complete | Deeper semantic validation |
-| 7 | Complete | AST JSON CLI dump and regression test |
-| 8 | Complete | Code generation scaffold |
-| 9 | Complete | CLI `generate` command |
-| 10 | Complete | Real `mt` generator with entity structs and metadata |
-| 11 | Complete | Real `qu` generator with queue/message payload structs and metadata |
-| 12 | Complete | Real `dl` generator with lease and worker binding metadata |
-| 13 | Complete | Real `wf` generator with workflow and step metadata |
-| 14 | Complete | Consolidated generator library |
-| 15 | Complete | Retired old monolithic generator from the active build |
-| 16 | Planned | Real OpenAPI generator with full paths, schemas, request/response models, and problem details |
-
-The current generator implementation is decomposed by target:
-
 ```text
-src/generator.cpp          facade and target dispatch
-src/generator_backend.hpp  shared generator backend helpers and declarations
-src/generator_mt.cpp       mt backend
-src/generator_dl.cpp       dl backend
-src/generator_qu.cpp       qu backend
-src/generator_wf.cpp       wf backend
-src/generator_openapi.cpp  OpenAPI and generic scaffold backend
+cloud control planes
+infrastructure services
+event-driven systems
+API and worker architectures
+distributed workflow systems
+systems with complex lifecycle management
+systems requiring explicit state transition rules
+internal platforms and service orchestration layers
 ```
 
 ---
 
-# 🛣️ Roadmap
+## Comparison
 
-## Language
-
-- language spec v0.1
-- parser
-- validator
-- formatter
-- grammar documentation
-- canonical examples
-
-## Generators
-
-- `mt` entity schema and mapping generator
-- `dl` lease helper generator
-- `qu` queue and message binding generator
-- `wf` workflow definition and logic generator
-- OpenAPI generator
-- Protobuf / gRPC generator
-- documentation generator
-- diagram generator
-
-## Runtime Integration
-
-- integrated `mt` entity example
-- integrated `dl` lease example
-- integrated `qu` queue example
-- integrated `wf` workflow example
-- full order-system end-to-end example
-- generated test scaffolding
-- generated policy hooks
-
-## Tooling
-
-- CLI
-- VS Code extension
-- graph visualization
-- generated artifact diffing
-- compatibility checks for spec evolution
+| Tool | Scope | Limitation |
+|---|---|---|
+| OpenAPI | APIs | Does not model lifecycle state, queues, leases, or workflows |
+| Protobuf | RPC schemas | Does not model lifecycle or orchestration semantics |
+| Terraform | Infrastructure | Does not model runtime behavior |
+| BPMN | Business workflows | Not usually a system implementation specification |
+| UML | Diagrams | Not usually executable or canonical |
+| Prose docs | Everything | Ambiguous, inconsistent, difficult to validate |
+| StateSpec | System behavior | Structured, canonical, generator-friendly |
 
 ---
 
-# 🤝 Contributing
+## Contributing
 
-See `CONTRIBUTING.md`.
-
----
-
-# 📜 License
-
-Apache 2.0 is recommended.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
 
-# 🧭 Positioning
+## License
 
-StateSpec is a **canonical design language for distributed systems** that unifies APIs,
-entities, state machines, workflows, queues, leases, and policies into a single
-deterministic specification.
-
-It is designed to generate and coordinate runtime artifacts for:
-
-- `mt` transactional entity storage
-- `dl` distributed locks and leases
-- `qu` transactional queues
-- `wf` workflow orchestration
+See [`LICENSE.md`](LICENSE.md).
 
 ---
 
-# 🧠 Philosophy
+## Philosophy
 
 > Systems fail when design is implicit.
 
@@ -1017,6 +495,6 @@ StateSpec makes design explicit, structured, reviewable, and executable.
 
 ---
 
-# 🚀 One-Line Summary
+## One-Line Summary
 
-> From state machines to running systems.
+> From state machines to backend-neutral distributed systems.
