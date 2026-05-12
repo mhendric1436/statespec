@@ -19,17 +19,14 @@
 
   Ecosystem model:
     StateSpec defines.
-    mt stores.
-    dl coordinates.
-    qu dispatches.
-    wf orchestrates.
+    cpp, go, java, and rust bindings consume generated backend descriptors.
 
   Notes:
     - This grammar defines syntax only.
     - Semantic validation is handled by the StateSpec compiler.
     - Canonical declaration ordering is enforced by formatter + validator.
-    - Runtime-specific names such as mt, dl, qu, and wf are target names,
-      not required language dependencies.
+    - Language-specific names such as cpp, go, java, and rust are generator
+      targets, not required language dependencies.
 *)
 
 (* ============================================================ *)
@@ -632,16 +629,10 @@ audit_decl              ::= "audit" QualifiedName ";"? ;
 
 generate_decl           ::= "generate" generate_target generate_block? ";"? ;
 
-generate_target         ::= "mt"
-                          | "dl"
-                          | "qu"
-                          | "wf"
-                          | "openapi"
-                          | "proto"
-                          | "docs"
-                          | "tests"
-                          | "all"
-                          | Identifier ;
+generate_target         ::= "cpp"
+                          | "go"
+                          | "java"
+                          | "rust" ;
 
 generate_block          ::= "{"
                               generate_option*
@@ -805,10 +796,9 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
    56. Child buckets must be disjoint.
    57. Child bucket union must represent the reserved child set.
 
-  Runtime targets:
-   58. generate mt requires entity declarations.
-   59. generate dl requires lease or singleton worker declarations.
-   60. generate qu requires queue/message declarations.
-   61. generate wf requires workflow declarations.
-   62. generate openapi requires API declarations.
+  Generator targets:
+   58. generate cpp requires declarations supported by the C++ binding generator.
+   59. generate go requires declarations supported by the Go binding generator.
+   60. generate java requires declarations supported by the Java binding generator.
+   61. generate rust requires declarations supported by the Rust binding generator.
 *)
