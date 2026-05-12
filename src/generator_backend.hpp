@@ -116,14 +116,6 @@ inline std::string cpp_type_for_statespec_type(const std::string& type)
     return optional ? "std::optional<" + cpp_type + ">" : cpp_type;
 }
 
-inline std::string payload_struct_name(
-    const QueueDecl& queue,
-    const MessageDecl& message
-)
-{
-    return queue.name + message.name + "Payload";
-}
-
 inline void append_header(
     std::ostream& out,
     const SystemDecl& system,
@@ -134,34 +126,6 @@ inline void append_header(
     out << "# target: " << target << "\n";
     out << "# system: " << system.name << "\n\n";
 }
-
-void generate_mt(
-    const SystemDecl& system,
-    const GenerateDecl& declaration,
-    const GenerationOptions& options,
-    GenerationResult& result
-);
-
-void generate_dl(
-    const SystemDecl& system,
-    const GenerateDecl& declaration,
-    const GenerationOptions& options,
-    GenerationResult& result
-);
-
-void generate_qu(
-    const SystemDecl& system,
-    const GenerateDecl& declaration,
-    const GenerationOptions& options,
-    GenerationResult& result
-);
-
-void generate_wf(
-    const SystemDecl& system,
-    const GenerateDecl& declaration,
-    const GenerationOptions& options,
-    GenerationResult& result
-);
 
 void generate_openapi(
     const SystemDecl& system,
