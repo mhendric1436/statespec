@@ -45,6 +45,32 @@ commit(tx)
 `ensureCollections` provisions a full set of `CollectionDescriptor` records in one
 backend API call.
 
+## Index-Aware Queries
+
+Java defines index-aware query model records in
+[`BackendModel.java`](com/statespec/backend/BackendModel.java):
+
+```java
+BackendModel.IndexValue
+BackendModel.IndexBound
+BackendModel.Query.IndexEquals
+BackendModel.Query.IndexPrefix
+BackendModel.Query.IndexRange
+```
+
+`IndexValue` supports:
+
+```java
+NullValue
+StringValue
+IntegerValue
+DecimalValue
+BooleanValue
+TimestampValue
+```
+
+Index values must be ordered according to the target `IndexDescriptor.fields` order.
+
 ## Transaction Interface
 
 Transactions implement:
