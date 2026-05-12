@@ -17,6 +17,31 @@ system Demo {
       retry_count int?
     }
   }
+
+  queue EmailDispatch {
+    channel email
+    visibility_timeout PT30S
+    max_attempts 3
+  }
+
+  lease OrderReconciler {
+    resource "orders:reconciler"
+    ttl PT30S
+    renew_every PT10S
+    fencing_token true
+  }
+
+  workflow OrderProcessing {
+    version 2
+    singleton false
+    expected_execution_time PT60S
+    start validate_order
+
+    step validate_order {
+      expected_execution_time PT10S
+      max_retries 2
+    }
+  }
 }
 SSPEC
 
@@ -71,7 +96,10 @@ assert_file_exists "$TMPDIR/out-cpp/queue.hpp"
 assert_file_exists "$TMPDIR/out-cpp/workflow.hpp"
 assert_file_exists "$TMPDIR/out-cpp/system_descriptors.hpp"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "CollectionDescriptor"
-assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "Order"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "queue_definitions"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "lease_definitions"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "workflow_definitions"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderProcessing"
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
 assert_output_contains "generated $TMPDIR/out-go/backend/backend.go"
@@ -81,7 +109,10 @@ assert_file_exists "$TMPDIR/out-go/backend/queue.go"
 assert_file_exists "$TMPDIR/out-go/backend/workflow.go"
 assert_file_exists "$TMPDIR/out-go/backend/descriptors.go"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func CollectionDescriptors() []CollectionDescriptor"
-assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Order"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func QueueDefinitions() []QueueDefinition"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func LeaseDefinitions() []LeaseDefinition"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func WorkflowDefinitions() []WorkflowDefinition"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "OrderProcessing"
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
 assert_output_contains "generated $TMPDIR/out-java/com/statespec/backend/Backend.java"
@@ -91,7 +122,10 @@ assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Queue.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Workflow.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "class Descriptors"
-assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Order"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "queueDefinitions"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "leaseDefinitions"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflowDefinitions"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "OrderProcessing"
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
 assert_output_contains "generated $TMPDIR/out-rust/backend.rs"
@@ -101,7 +135,10 @@ assert_file_exists "$TMPDIR/out-rust/queue.rs"
 assert_file_exists "$TMPDIR/out-rust/workflow.rs"
 assert_file_exists "$TMPDIR/out-rust/descriptors.rs"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn collection_descriptors() -> Vec<CollectionDescriptor>"
-assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "Order"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn queue_definitions() -> Vec<QueueDefinition>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn lease_definitions() -> Vec<LeaseDefinition>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn workflow_definitions() -> Vec<WorkflowDefinition>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderProcessing"
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC"
 assert_output_contains "generated generated/go/backend/backend.go"
