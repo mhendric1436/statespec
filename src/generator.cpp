@@ -32,18 +32,6 @@ std::vector<GenerateDecl> selected_declarations(
     return selected;
 }
 
-std::optional<std::string> target_scoped_output_root(
-    const std::optional<std::string>& root,
-    const std::string& target
-)
-{
-    if (!root.has_value())
-    {
-        return std::nullopt;
-    }
-    return generator_backend::join_path(*root, target);
-}
-
 } // namespace
 
 GenerationResult Generator::generate(
@@ -86,25 +74,8 @@ void Generator::generate_target(
 ) const
 {
     static const std::unordered_set<std::string> supported_targets{
-        "mt", "dl", "qu", "wf", "openapi", "proto", "docs", "tests",
+        "openapi", "proto", "docs", "tests",
     };
-
-    if (declaration.target == "all")
-    {
-        for (const auto& target : {"mt", "dl", "qu", "wf", "openapi"})
-        {
-            GenerateDecl expanded = declaration;
-            expanded.target = target;
-            expanded.out = target_scoped_output_root(declaration.out, target);
-
-            GenerationOptions expanded_options = options;
-            expanded_options.target_override = target;
-            expanded_options.out_override = target_scoped_output_root(options.out_override, target);
-
-            generate_target(system, expanded, expanded_options, result, diagnostics);
-        }
-        return;
-    }
 
     if (supported_targets.find(declaration.target) == supported_targets.end())
     {
@@ -115,23 +86,7 @@ void Generator::generate_target(
         return;
     }
 
-    if (declaration.target == "mt")
-    {
-        generator_backend::generate_mt(system, declaration, options, result);
-    }
-    else if (declaration.target == "dl")
-    {
-        generator_backend::generate_dl(system, declaration, options, result);
-    }
-    else if (declaration.target == "qu")
-    {
-        generator_backend::generate_qu(system, declaration, options, result);
-    }
-    else if (declaration.target == "wf")
-    {
-        generator_backend::generate_wf(system, declaration, options, result);
-    }
-    else if (declaration.target == "openapi")
+    if (declaration.target == "openapi")
     {
         generator_backend::generate_openapi(system, declaration, options, result);
     }
