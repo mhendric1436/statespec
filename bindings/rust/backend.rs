@@ -70,10 +70,33 @@ pub struct VersionedRecord {
 }
 
 #[derive(Debug, Clone)]
+pub enum IndexValue {
+    Null,
+    String(String),
+    Integer(i64),
+    Decimal(String),
+    Boolean(bool),
+    Timestamp(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct IndexBound {
+    pub values: Vec<IndexValue>,
+    pub inclusive: bool,
+}
+
+#[derive(Debug, Clone)]
 pub enum Query {
     All,
     KeyPrefix { prefix: String },
     JsonEquals { path: String, value: Json },
+    IndexEquals { index_name: String, values: Vec<IndexValue> },
+    IndexPrefix { index_name: String, prefix_values: Vec<IndexValue> },
+    IndexRange {
+        index_name: String,
+        lower_bound: Option<IndexBound>,
+        upper_bound: Option<IndexBound>,
+    },
 }
 
 pub trait Transaction {
