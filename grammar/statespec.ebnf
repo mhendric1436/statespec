@@ -326,8 +326,9 @@ invariant_decl          ::= Identifier ":" expression ";"? ;
 indexes_block           ::= "indexes" "{"
                               index_decl*
                             "}" ;
-index_decl              ::= index_kind? Identifier "on" key_field_list index_options? ";"? ;
+index_decl              ::= index_kind Identifier "on" index_field_list index_options? ";"? ;
 index_kind              ::= "index" | "unique" ;
+index_field_list        ::= Identifier ("," Identifier)* ;
 index_options           ::= "{"
                               index_option*
                             "}" ;
