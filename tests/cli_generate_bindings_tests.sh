@@ -19,9 +19,17 @@ system Demo {
   }
 
   queue EmailDispatch {
+    namespace workflow_ns
     channel email
     visibility_timeout PT30S
     max_attempts 3
+    message SendConfirmation {
+      idempotency_key message_id
+      payload {
+        message_id string
+        order_id string
+      }
+    }
   }
 
   lease OrderReconciler {
@@ -67,7 +75,7 @@ run_expect_status() {
 
 assert_output_contains() {
     needle="$1"
-    if ! grep -F "$needle" "$TMPDIR/output.txt" >/dev/null 2>&1; then
+    if ! grep -F -- "$needle" "$TMPDIR/output.txt" >/dev/null 2>&1; then
         echo "expected output to contain: $needle" >&2
         cat "$TMPDIR/output.txt" >&2
         exit 1
@@ -86,7 +94,7 @@ assert_file_exists() {
 assert_file_contains() {
     path="$1"
     needle="$2"
-    if ! grep -F "$needle" "$path" >/dev/null 2>&1; then
+    if ! grep -F -- "$needle" "$path" >/dev/null 2>&1; then
         echo "expected $path to contain: $needle" >&2
         cat "$path" >&2 || true
         exit 1
@@ -213,12 +221,12 @@ assert_output_contains "unexpected argument for generate bindings: extra"
 
 # A system declaration is required for binding generation.
 run_expect_status 1 "$CLI" generate bindings --lang cpp "$NO_SYSTEM_SPEC" --out "$TMPDIR/no-system"
-assert_output_contains "SSPEC5101"
-assert_output_contains "binding generation requires a system declaration"
+assert_output_contains "SSPEC0201"
+assert_output_contains "expected system declaration"
 
-# Pre-alpha cleanup: old positional generate shape is no longer accepted.
-run_expect_status 2 "$CLI" generate "$SPEC" legacy
-assert_output_contains "unsupported generate kind: $SPEC"
+# Generic generation rejects unknown targets.
+run_expect_status 1 "$CLI" generate "$SPEC" legacy
+assert_output_contains "unsupported generate target 'legacy'"
 
 run_expect_status 2 "$CLI" generate legacy "$SPEC"
-assert_output_contains "unsupported generate kind: legacy"
+assert_output_contains "failed to open file: legacy"

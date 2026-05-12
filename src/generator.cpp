@@ -74,7 +74,7 @@ void Generator::generate_target(
 ) const
 {
     static const std::unordered_set<std::string> supported_targets{
-        "openapi", "proto", "docs", "tests",
+        "mt", "dl", "qu", "wf", "openapi", "proto", "docs", "tests", "all",
     };
 
     if (supported_targets.find(declaration.target) == supported_targets.end())
@@ -86,7 +86,16 @@ void Generator::generate_target(
         return;
     }
 
-    if (declaration.target == "openapi")
+    if (declaration.target == "all")
+    {
+        for (const auto& target : {"mt", "dl", "qu", "wf", "openapi"})
+        {
+            auto selected = declaration;
+            selected.target = target;
+            generate_target(system, selected, options, result, diagnostics);
+        }
+    }
+    else if (declaration.target == "openapi")
     {
         generator_backend::generate_openapi(system, declaration, options, result);
     }

@@ -62,7 +62,7 @@ test: $(TEST_BIN) test-cli
 test-cli: $(CLI)
 	@for script in $(TEST_SCRIPTS); do \
 		echo "$$script"; \
-		sh "$$script" "$(CLI)"; \
+		sh "$$script" "$(CLI)" || exit $$?; \
 	done
 
 format:

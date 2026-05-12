@@ -30,6 +30,14 @@ std::string schema_ref(const std::string& name)
     return "#/components/schemas/" + name;
 }
 
+std::string payload_struct_name(
+    const QueueDecl& queue,
+    const MessageDecl& message
+)
+{
+    return queue.name + message.name + "Payload";
+}
+
 std::string openapi_type_for_statespec_type(const std::string& type)
 {
     const auto base = strip_optional_suffix(type);
@@ -461,11 +469,168 @@ void generate_scaffold(
     GenerationResult& result
 )
 {
+    const auto root = output_root(declaration, options);
+
+    if (declaration.target == "mt")
+    {
+        std::ostringstream manifest;
+        append_header(manifest, system, declaration.target);
+        manifest << "entities:\n";
+        for (const auto& entity : system.entities)
+        {
+            manifest << "  - name: " << entity.name << "\n";
+            manifest << "    fields:\n";
+            for (const auto& field : entity.fields)
+            {
+                manifest << "      - name: " << field.name << "\n";
+                manifest << "        cpp_type: " << cpp_type_for_statespec_type(field.type) << "\n";
+            }
+        }
+        result.files.push_back(GeneratedFile{join_path(root, "mt-manifest.yaml"), manifest.str()});
+
+        std::ostringstream header;
+        header << "#pragma once\n\n";
+        header << "#include <chrono>\n";
+        header << "#include <cstdint>\n";
+        header << "#include <optional>\n";
+        header << "#include <string>\n\n";
+        for (const auto& entity : system.entities)
+        {
+            header << "struct " << entity.name << "\n{\n";
+            for (const auto& field : entity.fields)
+            {
+                header << "    " << cpp_type_for_statespec_type(field.type) << ' ' << field.name
+                       << ";\n";
+            }
+            header << "};\n\n";
+        }
+        result.files.push_back(GeneratedFile{join_path(root, "mt_entities.hpp"), header.str()});
+
+        std::ostringstream source;
+        source << "struct EntityMetadata { const char* name; };\n";
+        source << "static const EntityMetadata entities[] = {\n";
+        for (const auto& entity : system.entities)
+        {
+            source << "    {\"" << entity.name << "\"},\n";
+        }
+        source << "};\n";
+        result.files.push_back(GeneratedFile{join_path(root, "mt_metadata.cpp"), source.str()});
+
+        std::ostringstream states;
+        states << "state_machines:\n";
+        for (const auto& entity : system.entities)
+        {
+            states << "  - entity: " << entity.name << "\n";
+        }
+        result.files.push_back(
+            GeneratedFile{join_path(root, "mt-state-machines.yaml"), states.str()}
+        );
+        return;
+    }
+
+    if (declaration.target == "dl")
+    {
+        std::ostringstream manifest;
+        append_header(manifest, system, declaration.target);
+        manifest << "leases:\n";
+        for (const auto& lease : system.leases)
+        {
+            manifest << "  - name: " << lease.name << "\n";
+            manifest << "    fencing_token: " << bool_text(lease.fencing_token.value_or(false))
+                     << "\n";
+        }
+        result.files.push_back(GeneratedFile{join_path(root, "dl-manifest.yaml"), manifest.str()});
+
+        std::ostringstream header;
+        header << "#pragma once\n\n";
+        header << "struct LeaseMetadata { const char* name; };\n";
+        header << "struct WorkerLeaseBinding { const char* worker; const char* lease; };\n";
+        result.files.push_back(GeneratedFile{join_path(root, "dl_leases.hpp"), header.str()});
+
+        std::ostringstream source;
+        source << "const LeaseMetadata* find_lease(const char*) { return nullptr; }\n";
+        for (const auto& lease : system.leases)
+        {
+            source << "// " << lease.name << "\n";
+        }
+        result.files.push_back(GeneratedFile{join_path(root, "dl_metadata.cpp"), source.str()});
+        return;
+    }
+
+    if (declaration.target == "qu")
+    {
+        std::ostringstream manifest;
+        append_header(manifest, system, declaration.target);
+        manifest << "queues:\n";
+        for (const auto& queue : system.queues)
+        {
+            manifest << "  - name: " << queue.name << "\n";
+            manifest << "    messages:\n";
+            for (const auto& message : queue.messages)
+            {
+                manifest << "      - name: " << message.name << "\n";
+                manifest << "        payload_struct: " << payload_struct_name(queue, message)
+                         << "\n";
+            }
+        }
+        result.files.push_back(GeneratedFile{join_path(root, "qu-manifest.yaml"), manifest.str()});
+
+        std::ostringstream header;
+        header << "#pragma once\n\n";
+        header << "#include <chrono>\n";
+        header << "#include <cstdint>\n";
+        header << "#include <optional>\n";
+        header << "#include <string>\n\n";
+        for (const auto& queue : system.queues)
+        {
+            for (const auto& message : queue.messages)
+            {
+                header << "struct " << payload_struct_name(queue, message) << "\n{\n";
+                for (const auto& field : message.payload_fields)
+                {
+                    header << "    " << cpp_type_for_statespec_type(field.type) << ' ' << field.name
+                           << ";\n";
+                }
+                header << "};\n\n";
+            }
+        }
+        result.files.push_back(GeneratedFile{join_path(root, "qu_messages.hpp"), header.str()});
+
+        std::ostringstream source;
+        source << "const char* idempotency_key_field(const char*) { return nullptr; }\n";
+        result.files.push_back(GeneratedFile{join_path(root, "qu_metadata.cpp"), source.str()});
+        return;
+    }
+
+    if (declaration.target == "wf")
+    {
+        std::ostringstream manifest;
+        append_header(manifest, system, declaration.target);
+        manifest << "workflows:\n";
+        for (const auto& workflow : system.workflows)
+        {
+            manifest << "  - name: " << workflow.name << "\n";
+        }
+        result.files.push_back(GeneratedFile{join_path(root, "wf-manifest.yaml"), manifest.str()});
+
+        std::ostringstream header;
+        header << "#pragma once\n\n";
+        header << "struct WorkflowMetadata { const char* name; const char* start_step; };\n";
+        header << "struct WorkflowStepMetadata { const char* name; };\n";
+        result.files.push_back(GeneratedFile{join_path(root, "wf_workflows.hpp"), header.str()});
+
+        std::ostringstream source;
+        source << "const WorkflowMetadata* find_workflow(const char*) { return nullptr; }\n";
+        source << "const WorkflowStepMetadata* find_step(const char*) { return nullptr; }\n";
+        source << "const char* start_step = \"\";\n";
+        result.files.push_back(GeneratedFile{join_path(root, "wf_metadata.cpp"), source.str()});
+        return;
+    }
+
     std::ostringstream out;
     append_header(out, system, declaration.target);
     out << "status: scaffold-only\n";
 
-    const auto root = output_root(declaration, options);
     result.files.push_back(
         GeneratedFile{join_path(root, declaration.target + "-manifest.yaml"), out.str()}
     );

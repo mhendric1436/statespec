@@ -103,8 +103,12 @@ void test_to_string()
 {
     require_string_equal(statespec::to_string(statespec::BindingLanguage::Cpp), "cpp", "Cpp text");
     require_string_equal(statespec::to_string(statespec::BindingLanguage::Go), "go", "Go text");
-    require_string_equal(statespec::to_string(statespec::BindingLanguage::Java), "java", "Java text");
-    require_string_equal(statespec::to_string(statespec::BindingLanguage::Rust), "rust", "Rust text");
+    require_string_equal(
+        statespec::to_string(statespec::BindingLanguage::Java), "java", "Java text"
+    );
+    require_string_equal(
+        statespec::to_string(statespec::BindingLanguage::Rust), "rust", "Rust text"
+    );
 }
 
 void test_supported_languages()
@@ -116,8 +120,7 @@ void test_supported_languages()
     require_string_equal(languages[2], "java", "supported language 2");
     require_string_equal(languages[3], "rust", "supported language 3");
     require_string_equal(
-        statespec::supported_binding_languages_text(), "cpp|go|java|rust",
-        "supported language text"
+        statespec::supported_binding_languages_text(), "cpp|go|java|rust", "supported language text"
     );
 }
 
@@ -151,7 +154,7 @@ void test_invalid_language_throws()
 
 } // namespace
 
-int main()
+void run_binding_language_tests()
 {
     test_parse_canonical_names();
     test_parse_aliases();
@@ -159,6 +162,15 @@ int main()
     test_to_string();
     test_supported_languages();
     test_invalid_language_throws();
-
-    return 0;
 }
+
+namespace
+{
+
+const bool binding_language_tests_ran = []()
+{
+    run_binding_language_tests();
+    return true;
+}();
+
+} // namespace
