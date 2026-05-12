@@ -3,7 +3,7 @@ set -eu
 
 CLI="$1"
 TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT
+trap 'rm -rf "$TMPDIR" generated/cpp generated/go generated/java generated/rust' EXIT
 
 SPEC="$TMPDIR/minimal.sspec"
 cat > "$SPEC" <<'SSPEC'
@@ -43,6 +43,11 @@ system Demo {
     }
   }
 }
+SSPEC
+
+NO_SYSTEM_SPEC="$TMPDIR/no-system.sspec"
+cat > "$NO_SYSTEM_SPEC" <<'SSPEC'
+version "0.1"
 SSPEC
 
 run_expect_status() {
@@ -88,6 +93,7 @@ assert_file_contains() {
     fi
 }
 
+# Positive generation: C++.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
 assert_output_contains "generated $TMPDIR/out-cpp/backend.hpp"
 assert_file_exists "$TMPDIR/out-cpp/backend.hpp"
@@ -99,8 +105,12 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "CollectionDescrip
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "queue_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "lease_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "workflow_definitions"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EmailDispatch"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderReconciler"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderProcessing"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "validate_order"
 
+# Positive generation: Go.
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
 assert_output_contains "generated $TMPDIR/out-go/backend/backend.go"
 assert_file_exists "$TMPDIR/out-go/backend/backend.go"
@@ -112,8 +122,12 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func CollectionDes
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func QueueDefinitions() []QueueDefinition"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func LeaseDefinitions() []LeaseDefinition"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func WorkflowDefinitions() []WorkflowDefinition"
-assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "OrderProcessing"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "EmailDispatch"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "OrderReconciler"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "WorkflowVersion: 2"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "validate_order"
 
+# Positive generation: Java.
 run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
 assert_output_contains "generated $TMPDIR/out-java/com/statespec/backend/Backend.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Backend.java"
@@ -125,8 +139,12 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "queueDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "leaseDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflowDefinitions"
-assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "OrderProcessing"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "EmailDispatch"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "OrderReconciler"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "2L"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "validate_order"
 
+# Positive generation: Rust.
 run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
 assert_output_contains "generated $TMPDIR/out-rust/backend.rs"
 assert_file_exists "$TMPDIR/out-rust/backend.rs"
@@ -138,15 +156,43 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn collection_descri
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn queue_definitions() -> Vec<QueueDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn lease_definitions() -> Vec<LeaseDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn workflow_definitions() -> Vec<WorkflowDefinition>"
-assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderProcessing"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "EmailDispatch"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderReconciler"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "workflow_version: 2"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "validate_order"
+
+# Default output directories.
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC"
+assert_output_contains "generated generated/cpp/backend.hpp"
+assert_file_exists "generated/cpp/backend.hpp"
+assert_file_exists "generated/cpp/system_descriptors.hpp"
+rm -rf generated/cpp
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC"
 assert_output_contains "generated generated/go/backend/backend.go"
+assert_file_exists "generated/go/backend/backend.go"
+assert_file_exists "generated/go/backend/descriptors.go"
 rm -rf generated/go
+
+run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC"
+assert_output_contains "generated generated/java/com/statespec/backend/Backend.java"
+assert_file_exists "generated/java/com/statespec/backend/Backend.java"
+assert_file_exists "generated/java/com/statespec/generated/Descriptors.java"
+rm -rf generated/java
+
+run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC"
+assert_output_contains "generated generated/rust/backend.rs"
+assert_file_exists "generated/rust/backend.rs"
+assert_file_exists "generated/rust/descriptors.rs"
+rm -rf generated/rust
 
 # --lang is required.
 run_expect_status 2 "$CLI" generate bindings "$SPEC"
 assert_output_contains "generate bindings requires --lang <cpp|go|java|rust>"
+
+# --lang requires a value.
+run_expect_status 2 "$CLI" generate bindings --lang
+assert_output_contains "--lang requires one of: cpp|go|java|rust"
 
 # --lang must be supported.
 run_expect_status 2 "$CLI" generate bindings --lang python "$SPEC"
@@ -156,6 +202,19 @@ assert_output_contains "cpp|go|java|rust"
 # Input file is required.
 run_expect_status 2 "$CLI" generate bindings --lang cpp
 assert_output_contains "generate bindings requires an input .sspec file"
+
+# --out requires a value.
+run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" --out
+assert_output_contains "--out requires a directory"
+
+# Extra positional arguments are rejected.
+run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" extra
+assert_output_contains "unexpected argument for generate bindings: extra"
+
+# A system declaration is required for binding generation.
+run_expect_status 1 "$CLI" generate bindings --lang cpp "$NO_SYSTEM_SPEC" --out "$TMPDIR/no-system"
+assert_output_contains "SSPEC5101"
+assert_output_contains "binding generation requires a system declaration"
 
 # Pre-alpha cleanup: old positional generate shape is no longer accepted.
 run_expect_status 2 "$CLI" generate "$SPEC" legacy
