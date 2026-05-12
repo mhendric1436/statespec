@@ -33,6 +33,31 @@ commit(...)
 `ensure_collections` provisions a full set of `CollectionDescriptor` records in one
 backend API call.
 
+## Index-Aware Queries
+
+Rust defines index-aware query model types in [`backend.rs`](backend.rs):
+
+```rust
+IndexValue
+IndexBound
+Query::IndexEquals
+Query::IndexPrefix
+Query::IndexRange
+```
+
+`IndexValue` supports:
+
+```rust
+Null
+String(...)
+Integer(...)
+Decimal(...)
+Boolean(...)
+Timestamp(...)
+```
+
+Index values must be ordered according to the target `IndexDescriptor.fields` order.
+
 ## Transaction Trait
 
 Transactions implement `Transaction`.
