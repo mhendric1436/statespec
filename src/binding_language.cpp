@@ -56,8 +56,8 @@ BindingLanguage parse_binding_language(std::string_view value)
     }
 
     throw BindingLanguageError(
-        "unsupported binding language '" + std::string(value) + "'; supported languages: " +
-        supported_binding_languages_text()
+        "unsupported binding language '" + std::string(value) +
+        "'; supported languages: " + supported_binding_languages_text()
     );
 }
 

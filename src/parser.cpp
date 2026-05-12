@@ -275,6 +275,16 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         {
             entity.state_machine = parse_state_machine_decl(diagnostics);
         }
+        else if (check(TokenKind::KeywordIndexes))
+        {
+            advance();
+            consume(TokenKind::LeftBrace, "expected '{' after indexes", diagnostics);
+            while (!check(TokenKind::RightBrace) && !is_at_end())
+            {
+                entity.indexes.push_back(parse_index_decl(diagnostics));
+            }
+            consume(TokenKind::RightBrace, "expected '}' after indexes block", diagnostics);
+        }
         else
         {
             skip_unknown_declaration(diagnostics);
@@ -569,6 +579,45 @@ FieldDecl Parser::parse_field_decl(DiagnosticBag& diagnostics)
     consume_optional_semicolon();
     field.range = SourceRange{name.range.begin, previous().range.end};
     return field;
+}
+
+IndexDecl Parser::parse_index_decl(DiagnosticBag& diagnostics)
+{
+    const auto kind = consume(TokenKind::Identifier, "expected index kind", diagnostics);
+    const bool unique = kind.lexeme == "unique";
+    if (kind.lexeme != "index" && kind.lexeme != "unique")
+    {
+        diagnostics.error(kind.range, "SSPEC0200", "expected 'index' or 'unique'");
+    }
+
+    const auto name = consume(TokenKind::Identifier, "expected index name", diagnostics);
+    if (!is_named_identifier(peek(), "on"))
+    {
+        diagnostics.error(peek().range, "SSPEC0200", "expected 'on' after index name");
+    }
+    else
+    {
+        advance();
+    }
+
+    std::vector<std::string> fields;
+    fields.push_back(consume(TokenKind::Identifier, "expected index field", diagnostics).lexeme);
+    while (match(TokenKind::Comma))
+    {
+        fields.push_back(
+            consume(TokenKind::Identifier, "expected index field after ','", diagnostics).lexeme
+        );
+    }
+
+    if (check(TokenKind::LeftBrace))
+    {
+        skip_balanced_block();
+    }
+
+    consume_optional_semicolon();
+    return IndexDecl{
+        name.lexeme, fields, unique, SourceRange{kind.range.begin, previous().range.end}
+    };
 }
 
 StateMachineDecl Parser::parse_state_machine_decl(DiagnosticBag& diagnostics)

@@ -20,7 +20,9 @@ std::string read_template_file(
     std::ifstream input(path);
     if (!input)
     {
-        diagnostics.error(SourceRange{}, "SSPEC5201", "failed to read binding template: " + path.string());
+        diagnostics.error(
+            SourceRange{}, "SSPEC5201", "failed to read binding template: " + path.string()
+        );
         return {};
     }
 
@@ -43,10 +45,12 @@ void add_template_file(
         return;
     }
 
-    result.files.push_back(GeneratedFile{
-        (output_dir / relative_output_path).string(),
-        content,
-    });
+    result.files.push_back(
+        GeneratedFile{
+            (output_dir / relative_output_path).string(),
+            content,
+        }
+    );
 }
 
 std::string go_string(const std::string& value)
@@ -175,9 +179,10 @@ std::string generate_descriptors_go(const Spec& spec)
             out << "\t\t\tFields: []FieldDescriptor{\n";
             for (const auto& field : entity.fields)
             {
-                out << "\t\t\t\t{Name: " << go_string(field.name) << ", Type: "
-                    << go_string(strip_optional_suffix(field.type)) << ", Required: "
-                    << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+                out << "\t\t\t\t{Name: " << go_string(field.name)
+                    << ", Type: " << go_string(strip_optional_suffix(field.type))
+                    << ", Required: " << (is_optional_type(field.type) ? "false" : "true")
+                    << "},\n";
             }
             out << "\t\t\t},\n";
             out << "\t\t\tKeyFields: []string{";
@@ -208,7 +213,8 @@ std::string generate_descriptors_go(const Spec& spec)
             out << "\t\t{\n";
             out << "\t\t\tQueue: " << go_string(queue.name) << ",\n";
             out << "\t\t\tChannel: " << go_string(queue.channel.value_or("default")) << ",\n";
-            out << "\t\t\tVisibilityTimeout: " << parse_duration_seconds(queue.visibility_timeout) << " * time.Second,\n";
+            out << "\t\t\tVisibilityTimeout: " << parse_duration_seconds(queue.visibility_timeout)
+                << " * time.Second,\n";
             out << "\t\t\tMaxAttempts: " << queue.max_attempts.value_or(1) << ",\n";
             out << "\t\t\tDeadLetterQueue: " << string_ptr_expr(queue.dead_letter) << ",\n";
             out << "\t\t\tMetadata: JSON(`{}`),\n";
@@ -230,7 +236,8 @@ std::string generate_descriptors_go(const Spec& spec)
             out << "\t\t\tTTL: " << parse_duration_seconds(lease.ttl) << " * time.Second,\n";
             out << "\t\t\tRenewEvery: " << duration_ptr_expr(lease.renew_every) << ",\n";
             out << "\t\t\tHolder: " << string_ptr_expr(lease.holder) << ",\n";
-            out << "\t\t\tFencingToken: " << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
+            out << "\t\t\tFencingToken: "
+                << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
             out << "\t\t\tMaxTTL: " << duration_ptr_expr(lease.max_ttl) << ",\n";
             out << "\t\t},\n";
         }
@@ -248,13 +255,15 @@ std::string generate_descriptors_go(const Spec& spec)
             out << "\t\t\tWorkflowName: " << go_string(workflow.name) << ",\n";
             out << "\t\t\tWorkflowVersion: " << workflow.version.value_or(1) << ",\n";
             out << "\t\t\tStartStep: " << go_string(workflow.start_step.value_or("")) << ",\n";
-            out << "\t\t\tExpectedExecutionTime: " << parse_duration_seconds(workflow.expected_execution_time) << " * time.Second,\n";
-            out << "\t\t\tSingleton: " << (workflow.singleton.value_or(false) ? "true" : "false") << ",\n";
+            out << "\t\t\tExpectedExecutionTime: "
+                << parse_duration_seconds(workflow.expected_execution_time) << " * time.Second,\n";
+            out << "\t\t\tSingleton: " << (workflow.singleton.value_or(false) ? "true" : "false")
+                << ",\n";
             out << "\t\t\tSteps: []WorkflowStepDefinition{\n";
             for (const auto& step : workflow.steps)
             {
-                out << "\t\t\t\t{Name: " << go_string(step.name)
-                    << ", ExpectedExecutionTime: " << parse_duration_seconds(step.expected_execution_time)
+                out << "\t\t\t\t{Name: " << go_string(step.name) << ", ExpectedExecutionTime: "
+                    << parse_duration_seconds(step.expected_execution_time)
                     << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
             }
             out << "\t\t\t},\n";
@@ -278,17 +287,28 @@ GenerationResult generate_go_bindings(
     GenerationResult result;
     const std::filesystem::path template_root{"bindings/go/backend"};
 
-    add_template_file(result, options.output_dir, template_root / "backend.go", "backend/backend.go", diagnostics);
-    add_template_file(result, options.output_dir, template_root / "lease.go", "backend/lease.go", diagnostics);
-    add_template_file(result, options.output_dir, template_root / "queue.go", "backend/queue.go", diagnostics);
-    add_template_file(result, options.output_dir, template_root / "workflow.go", "backend/workflow.go", diagnostics);
+    add_template_file(
+        result, options.output_dir, template_root / "backend.go", "backend/backend.go", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "lease.go", "backend/lease.go", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "queue.go", "backend/queue.go", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "workflow.go", "backend/workflow.go",
+        diagnostics
+    );
 
     if (!diagnostics.has_errors())
     {
-        result.files.push_back(GeneratedFile{
-            (options.output_dir / "backend/descriptors.go").string(),
-            generate_descriptors_go(spec),
-        });
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "backend/descriptors.go").string(),
+                generate_descriptors_go(spec),
+            }
+        );
     }
 
     return result;

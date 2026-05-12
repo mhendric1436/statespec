@@ -62,6 +62,10 @@ void validator_accepts_resolved_references()
               order_id string
               status string
             }
+            indexes {
+              index by_status on status
+              unique by_order_id on order_id
+            }
           }
           queue EmailQueue {
             namespace workflow_ns
@@ -144,6 +148,34 @@ void validator_rejects_missing_entity_key_field()
 
     require(
         has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown entity key field"
+    );
+}
+
+void validator_rejects_invalid_entity_indexes()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            fields {
+              order_id string
+              status string
+            }
+            indexes {
+              index by_status on missing_status
+              unique by_status on order_id
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3001"),
+        "validator should reject duplicate entity index names"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown entity index fields"
     );
 }
 
@@ -302,6 +334,7 @@ void run_validator_milestone_tests()
     validator_accepts_resolved_references();
     validator_rejects_duplicate_top_level_names();
     validator_rejects_missing_entity_key_field();
+    validator_rejects_invalid_entity_indexes();
     validator_rejects_unknown_workflow_start_step();
     validator_rejects_unknown_worker_references();
     validator_rejects_unknown_api_references();

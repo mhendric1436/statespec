@@ -14,6 +14,11 @@ system OrderSystem {
       updated_at timestamp?
     }
 
+    indexes {
+      index by_tenant_status on tenant_id, status
+      unique by_tenant_order on tenant_id, order_id
+    }
+
     state_machine {
       state Created
       state Validated

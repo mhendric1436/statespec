@@ -314,6 +314,42 @@ void validate_state_machine(
     }
 }
 
+void validate_indexes(
+    const EntityDecl& entity,
+    const std::unordered_set<std::string>& fields,
+    DiagnosticBag& diagnostics
+)
+{
+    std::unordered_set<std::string> index_names;
+    for (const auto& index : entity.indexes)
+    {
+        if (!index_names.insert(index.name).second)
+        {
+            duplicate_error(diagnostics, index.range, index.name);
+        }
+
+        if (index.fields.empty())
+        {
+            required_error(
+                diagnostics, index.range, "index '" + index.name + "'", "at least one field"
+            );
+        }
+
+        std::unordered_set<std::string> index_fields;
+        for (const auto& field : index.fields)
+        {
+            if (!contains(fields, field))
+            {
+                unknown_reference_error(diagnostics, index.range, "index field", field);
+            }
+            if (!index_fields.insert(field).second)
+            {
+                duplicate_error(diagnostics, index.range, field);
+            }
+        }
+    }
+}
+
 void validate_entities(
     const SystemDecl& system,
     const SymbolTable& symbols,
@@ -345,6 +381,7 @@ void validate_entities(
             }
         }
 
+        validate_indexes(entity, fields, diagnostics);
         validate_state_machine(entity, diagnostics);
     }
 }

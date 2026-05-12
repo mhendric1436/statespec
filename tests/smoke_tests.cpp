@@ -237,6 +237,10 @@ void parser_parses_entity_fields_and_state_machine()
               order_id string
               status string
             }
+            indexes {
+              index by_tenant_status on tenant_id, status
+              unique by_tenant_order on tenant_id, order_id
+            }
             state_machine {
               state Creating
               state Active
@@ -258,6 +262,11 @@ void parser_parses_entity_fields_and_state_machine()
     require(entity.fields.size() == 3, "parser should parse fields");
     require(entity.fields[0].name == "tenant_id", "parser should parse field name");
     require(entity.fields[0].type == "string", "parser should parse field type");
+    require(entity.indexes.size() == 2, "parser should parse indexes");
+    require(entity.indexes[0].name == "by_tenant_status", "parser should parse index name");
+    require(entity.indexes[0].fields.size() == 2, "parser should parse index fields");
+    require(!entity.indexes[0].unique, "parser should parse non-unique index");
+    require(entity.indexes[1].unique, "parser should parse unique index");
     require(entity.state_machine.has_value(), "parser should parse state machine");
     require(entity.state_machine->states.size() == 3, "parser should parse states");
     require(entity.state_machine->initial_state == "Creating", "parser should parse initial state");

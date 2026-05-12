@@ -46,11 +46,20 @@ struct StateMachineDecl
     SourceRange range;
 };
 
+struct IndexDecl
+{
+    std::string name;
+    std::vector<std::string> fields;
+    bool unique = false;
+    SourceRange range;
+};
+
 struct EntityDecl
 {
     std::string name;
     std::vector<std::string> key_fields;
     std::vector<FieldDecl> fields;
+    std::vector<IndexDecl> indexes;
     std::optional<StateMachineDecl> state_machine;
     SourceRange range;
 };

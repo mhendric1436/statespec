@@ -20,7 +20,9 @@ std::string read_template_file(
     std::ifstream input(path);
     if (!input)
     {
-        diagnostics.error(SourceRange{}, "SSPEC5201", "failed to read binding template: " + path.string());
+        diagnostics.error(
+            SourceRange{}, "SSPEC5201", "failed to read binding template: " + path.string()
+        );
         return {};
     }
 
@@ -43,10 +45,12 @@ void add_template_file(
         return;
     }
 
-    result.files.push_back(GeneratedFile{
-        (output_dir / relative_output_path).string(),
-        content,
-    });
+    result.files.push_back(
+        GeneratedFile{
+            (output_dir / relative_output_path).string(),
+            content,
+        }
+    );
 }
 
 std::string rust_string(const std::string& value)
@@ -140,8 +144,8 @@ std::string optional_string_expr(const std::optional<std::string>& value)
 std::string optional_duration_expr(const std::optional<std::string>& value)
 {
     return value.has_value()
-        ? "Some(Duration::from_secs(" + std::to_string(parse_duration_seconds(value)) + "))"
-        : "None";
+               ? "Some(Duration::from_secs(" + std::to_string(parse_duration_seconds(value)) + "))"
+               : "None";
 }
 
 std::string generate_descriptors_rs(const Spec& spec)
@@ -175,9 +179,9 @@ std::string generate_descriptors_rs(const Spec& spec)
             for (const auto& field : entity.fields)
             {
                 out << "                FieldDescriptor { name: " << rust_string(field.name)
-                    << ".to_string(), field_type: " << rust_string(strip_optional_suffix(field.type))
-                    << ".to_string(), required: " << (is_optional_type(field.type) ? "false" : "true")
-                    << " },\n";
+                    << ".to_string(), field_type: "
+                    << rust_string(strip_optional_suffix(field.type)) << ".to_string(), required: "
+                    << (is_optional_type(field.type) ? "false" : "true") << " },\n";
             }
             out << "            ],\n";
             out << "            key_fields: vec![";
@@ -207,10 +211,13 @@ std::string generate_descriptors_rs(const Spec& spec)
         {
             out << "        QueueDefinition {\n";
             out << "            queue: " << rust_string(queue.name) << ".to_string(),\n";
-            out << "            channel: " << rust_string(queue.channel.value_or("default")) << ".to_string(),\n";
-            out << "            visibility_timeout: Duration::from_secs(" << parse_duration_seconds(queue.visibility_timeout) << "),\n";
+            out << "            channel: " << rust_string(queue.channel.value_or("default"))
+                << ".to_string(),\n";
+            out << "            visibility_timeout: Duration::from_secs("
+                << parse_duration_seconds(queue.visibility_timeout) << "),\n";
             out << "            max_attempts: " << queue.max_attempts.value_or(1) << ",\n";
-            out << "            dead_letter_queue: " << optional_string_expr(queue.dead_letter) << ",\n";
+            out << "            dead_letter_queue: " << optional_string_expr(queue.dead_letter)
+                << ",\n";
             out << "            metadata: \"{}\".to_string(),\n";
             out << "        },\n";
         }
@@ -227,10 +234,13 @@ std::string generate_descriptors_rs(const Spec& spec)
             out << "        LeaseDefinition {\n";
             out << "            name: " << rust_string(lease.name) << ".to_string(),\n";
             out << "            resource: " << optional_string_expr(lease.resource) << ",\n";
-            out << "            ttl: Duration::from_secs(" << parse_duration_seconds(lease.ttl) << "),\n";
-            out << "            renew_every: " << optional_duration_expr(lease.renew_every) << ",\n";
+            out << "            ttl: Duration::from_secs(" << parse_duration_seconds(lease.ttl)
+                << "),\n";
+            out << "            renew_every: " << optional_duration_expr(lease.renew_every)
+                << ",\n";
             out << "            holder: " << optional_string_expr(lease.holder) << ",\n";
-            out << "            fencing_token: " << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
+            out << "            fencing_token: "
+                << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
             out << "            max_ttl: " << optional_duration_expr(lease.max_ttl) << ",\n";
             out << "        },\n";
         }
@@ -247,14 +257,18 @@ std::string generate_descriptors_rs(const Spec& spec)
             out << "        WorkflowDefinition {\n";
             out << "            workflow_name: " << rust_string(workflow.name) << ".to_string(),\n";
             out << "            workflow_version: " << workflow.version.value_or(1) << ",\n";
-            out << "            start_step: " << rust_string(workflow.start_step.value_or("")) << ".to_string(),\n";
-            out << "            expected_execution_time: Duration::from_secs(" << parse_duration_seconds(workflow.expected_execution_time) << "),\n";
-            out << "            singleton: " << (workflow.singleton.value_or(false) ? "true" : "false") << ",\n";
+            out << "            start_step: " << rust_string(workflow.start_step.value_or(""))
+                << ".to_string(),\n";
+            out << "            expected_execution_time: Duration::from_secs("
+                << parse_duration_seconds(workflow.expected_execution_time) << "),\n";
+            out << "            singleton: "
+                << (workflow.singleton.value_or(false) ? "true" : "false") << ",\n";
             out << "            steps: vec![\n";
             for (const auto& step : workflow.steps)
             {
                 out << "                WorkflowStepDefinition { name: " << rust_string(step.name)
-                    << ".to_string(), expected_execution_time: Duration::from_secs(" << parse_duration_seconds(step.expected_execution_time)
+                    << ".to_string(), expected_execution_time: Duration::from_secs("
+                    << parse_duration_seconds(step.expected_execution_time)
                     << "), max_retries: " << step.max_retries.value_or(0) << " },\n";
             }
             out << "            ],\n";
@@ -278,17 +292,27 @@ GenerationResult generate_rust_bindings(
     GenerationResult result;
     const std::filesystem::path template_root{"bindings/rust"};
 
-    add_template_file(result, options.output_dir, template_root / "backend.rs", "backend.rs", diagnostics);
-    add_template_file(result, options.output_dir, template_root / "lease.rs", "lease.rs", diagnostics);
-    add_template_file(result, options.output_dir, template_root / "queue.rs", "queue.rs", diagnostics);
-    add_template_file(result, options.output_dir, template_root / "workflow.rs", "workflow.rs", diagnostics);
+    add_template_file(
+        result, options.output_dir, template_root / "backend.rs", "backend.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "lease.rs", "lease.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "queue.rs", "queue.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "workflow.rs", "workflow.rs", diagnostics
+    );
 
     if (!diagnostics.has_errors())
     {
-        result.files.push_back(GeneratedFile{
-            (options.output_dir / "descriptors.rs").string(),
-            generate_descriptors_rs(spec),
-        });
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "descriptors.rs").string(),
+                generate_descriptors_rs(spec),
+            }
+        );
     }
 
     return result;

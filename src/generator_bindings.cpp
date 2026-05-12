@@ -16,20 +16,24 @@ bool validate_binding_generation_request(
 
     if (!spec.system.has_value())
     {
-        diagnostics.error(SourceRange{}, "SSPEC5101", "binding generation requires a system declaration");
+        diagnostics.error(
+            SourceRange{}, "SSPEC5101", "binding generation requires a system declaration"
+        );
         valid = false;
     }
 
     if (options.output_dir.empty())
     {
-        diagnostics.error(SourceRange{}, "SSPEC5102", "binding generation requires an output directory");
+        diagnostics.error(
+            SourceRange{}, "SSPEC5102", "binding generation requires an output directory"
+        );
         valid = false;
     }
 
     return valid;
 }
 
-}
+} // namespace
 
 GenerationResult generate_bindings(
     const Spec& spec,

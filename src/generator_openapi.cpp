@@ -30,14 +30,6 @@ std::string schema_ref(const std::string& name)
     return "#/components/schemas/" + name;
 }
 
-std::string payload_struct_name(
-    const QueueDecl& queue,
-    const MessageDecl& message
-)
-{
-    return queue.name + message.name + "Payload";
-}
-
 std::string openapi_type_for_statespec_type(const std::string& type)
 {
     const auto base = strip_optional_suffix(type);

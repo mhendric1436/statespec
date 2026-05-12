@@ -49,6 +49,7 @@ class Parser
     GenerateDecl parse_generate_decl(DiagnosticBag& diagnostics);
     StateMachineDecl parse_state_machine_decl(DiagnosticBag& diagnostics);
     FieldDecl parse_field_decl(DiagnosticBag& diagnostics);
+    IndexDecl parse_index_decl(DiagnosticBag& diagnostics);
 
     std::string parse_qualified_name(
         DiagnosticBag& diagnostics,
