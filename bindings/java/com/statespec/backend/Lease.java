@@ -1,8 +1,7 @@
 package com.statespec.backend;
 
-import com.statespec.backend.BackendModel.Backend;
-import com.statespec.backend.BackendModel.BackendException;
-import com.statespec.backend.BackendModel.Transaction;
+import com.statespec.backend.Backend.BackendException;
+import com.statespec.backend.Backend.Transaction;
 
 import java.time.Duration;
 import java.time.Instant;
