@@ -1,0 +1,177 @@
+# StateSpec C++ Binding
+
+This directory contains the C++ reference binding for the StateSpec backend abstraction
+and runtime component model.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| [`backend.hpp`](backend.hpp) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
+| [`lease.hpp`](lease.hpp) | Lease records and lease runtime API. |
+| [`queue.hpp`](queue.hpp) | Queue definitions, message records, and queue runtime API. |
+| [`workflow.hpp`](workflow.hpp) | Workflow definitions, execution records, and workflow runtime API. |
+
+## Backend Interface
+
+The backend interface is `statespec::backend::IBackend`.
+
+It provides:
+
+```cpp
+capabilities()
+ensure_collection(...)
+ensure_collections(...)
+begin()
+get(...)
+query(...)
+put(...)
+erase(...)
+commit(...)
+```
+
+`ensure_collections` provisions a full set of `CollectionDescriptor` records in one
+backend API call.
+
+## Transaction Interface
+
+Transactions implement `statespec::backend::ITransaction`.
+
+```cpp
+is_open()
+abort()
+```
+
+The backend owns commit behavior through:
+
+```cpp
+backend.commit(tx)
+```
+
+## Runtime Components
+
+C++ uses `I*Store` interface names:
+
+```cpp
+ILeaseStore
+IQueueStore
+IWorkflowStore
+```
+
+Each runtime component supports two method styles.
+
+### Backend-managed transaction methods
+
+These methods take an `IBackend&` and are expected to manage transaction lifecycle
+internally.
+
+```cpp
+operation(IBackend& backend, const Request& request)
+```
+
+Expected behavior:
+
+```text
+begin transaction
+perform component operation
+commit on success
+abort on failure
+```
+
+### Caller-managed transaction methods
+
+These methods use the `Tx` suffix and take an existing `ITransaction&`.
+
+```cpp
+operationTx(ITransaction& tx, const Request& request)
+```
+
+Use these when composing multiple entity, lease, queue, or workflow operations into one
+transaction.
+
+## Lease API
+
+Defined in [`lease.hpp`](lease.hpp):
+
+```cpp
+acquire(...)
+acquireTx(...)
+renew(...)
+renewTx(...)
+release(...)
+releaseTx(...)
+inspect(...)
+inspectTx(...)
+```
+
+Leases provide exclusive ownership, expiry, and fencing-token semantics.
+
+## Queue API
+
+Defined in [`queue.hpp`](queue.hpp):
+
+```cpp
+create(...)
+createTx(...)
+inspect_definition(...)
+inspect_definitionTx(...)
+enqueue(...)
+enqueueTx(...)
+claim(...)
+claimTx(...)
+acknowledge(...)
+acknowledgeTx(...)
+fail(...)
+failTx(...)
+inspect(...)
+inspectTx(...)
+```
+
+Queue identity is:
+
+```text
+(queue, channel)
+```
+
+Queue creation is idempotent. Re-creating an identical definition may return
+`created = false`.
+
+## Workflow API
+
+Defined in [`workflow.hpp`](workflow.hpp):
+
+```cpp
+register_definition(...)
+register_definitionTx(...)
+inspect_definition(...)
+inspect_definitionTx(...)
+start(...)
+startTx(...)
+claim_steps(...)
+claim_stepsTx(...)
+complete_step(...)
+complete_stepTx(...)
+fail_step(...)
+fail_stepTx(...)
+cancel(...)
+cancelTx(...)
+inspect(...)
+inspectTx(...)
+```
+
+Workflow definition identity is:
+
+```text
+(workflow_name, workflow_version)
+```
+
+Workflow definitions are immutable. A changed definition must be registered as a new
+version.
+
+## Namespaces
+
+All C++ declarations are under:
+
+```cpp
+statespec::backend
+```
