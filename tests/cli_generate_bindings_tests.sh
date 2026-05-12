@@ -105,6 +105,18 @@ assert_file_contains() {
     fi
 }
 
+# Help.
+run_expect_status 0 "$CLI" help
+assert_output_contains "usage:"
+assert_output_contains "statespec help"
+assert_output_contains "statespec generate bindings --lang <cpp|go|java|rust>"
+
+run_expect_status 0 "$CLI" --help
+assert_output_contains "statespec validate <file.sspec>"
+
+run_expect_status 0 "$CLI" -h
+assert_output_contains "statespec ast <file.sspec>"
+
 # Positive generation: C++.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
 assert_output_contains "generated $TMPDIR/out-cpp/backend.hpp"

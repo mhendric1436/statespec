@@ -432,14 +432,19 @@ int generate_bindings_file(const GenerateBindingsArgs& args)
     return 0;
 }
 
+void print_usage(std::ostream& out)
+{
+    out << "usage:\n";
+    out << "  statespec help\n";
+    out << "  statespec validate <file.sspec>\n";
+    out << "  statespec tokens <file.sspec>\n";
+    out << "  statespec ast <file.sspec>\n";
+    out << "  statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]\n";
+}
+
 void print_usage()
 {
-    std::cerr << "usage:\n";
-    std::cerr << "  statespec validate <file.sspec>\n";
-    std::cerr << "  statespec tokens <file.sspec>\n";
-    std::cerr << "  statespec ast <file.sspec>\n";
-    std::cerr
-        << "  statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]\n";
+    print_usage(std::cerr);
 }
 
 } // namespace
@@ -451,6 +456,16 @@ int main(
 {
     try
     {
+        if (argc == 2)
+        {
+            const std::string command = argv[1];
+            if (command == "help" || command == "--help" || command == "-h")
+            {
+                print_usage(std::cout);
+                return 0;
+            }
+        }
+
         if (argc < 3)
         {
             print_usage();
