@@ -25,6 +25,8 @@ IndexDescriptor
 BackendCapabilities
 ConflictKind
 VersionedRecord
+IndexValue
+IndexBound
 Query
 Transaction
 Backend
@@ -43,6 +45,81 @@ ensure_collections / EnsureCollections / ensureCollections
 `ensure_collections` accepts a list of `CollectionDescriptor` records so generated
 runtimes can provision all required collections with one API call rather than one call per
 collection.
+
+## Index-Aware Queries
+
+`CollectionDescriptor` declares secondary indexes through `IndexDescriptor` records:
+
+```text
+IndexDescriptor
+  name
+  fields
+  unique
+```
+
+The query model can target those declared indexes without binding generated code to a
+specific storage implementation.
+
+The shared index query value model is:
+
+```text
+IndexValue
+  Null
+  String
+  Integer
+  Decimal
+  Boolean
+  Timestamp
+
+IndexBound
+  values
+  inclusive
+```
+
+Index values are ordered according to the field order in `IndexDescriptor.fields`.
+
+The query model supports these index-aware variants:
+
+```text
+IndexEquals
+IndexPrefix
+IndexRange
+```
+
+### IndexEquals
+
+`IndexEquals` targets a named index and supplies equality values in index field order.
+
+Use it for exact index lookups, including unique-index lookups.
+
+```text
+index_name = "orders_by_tenant_status"
+values = ["tenant-001", "Active"]
+```
+
+### IndexPrefix
+
+`IndexPrefix` targets a named compound index and supplies a leading prefix of index field
+values.
+
+```text
+index_name = "orders_by_tenant_status_created"
+prefix_values = ["tenant-001", "Active"]
+```
+
+### IndexRange
+
+`IndexRange` targets a named index and supplies optional lower and upper `IndexBound`
+values.
+
+```text
+index_name = "orders_by_tenant_status_created"
+lower_bound = ["tenant-001", "Active", "2026-01-01T00:00:00Z"] inclusive
+upper_bound = ["tenant-001", "Active", "2026-02-01T00:00:00Z"] exclusive
+```
+
+Phase 1 only defines the portable query model. Backend capability flags and stricter
+runtime validation rules can be layered on later.
 
 ## Shared Runtime Model
 
@@ -154,10 +231,10 @@ retry safely on conflict
 
 The higher-level runtimes should compose on this model:
 
-- `mt` uses the entity store contract.
-- `dl` implements `LeaseStore` or `Lease` with conditional OCC updates.
-- `qu` implements `QueueStore` or `Queue` with idempotent queue creation and claimable OCC message records.
-- `wf` implements `WorkflowStore` or `Workflow` with immutable registered definitions and claimable OCC execution and step records.
+- Entity persistence uses the backend collection and versioned-record contract.
+- Lease runtimes implement conditional ownership and fencing through backend records.
+- Queue runtimes implement idempotent queue creation and claimable message records.
+- Workflow runtimes implement immutable registered definitions and claimable execution records.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
 straightforward to build.
