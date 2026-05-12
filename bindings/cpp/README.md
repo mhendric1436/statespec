@@ -33,6 +33,39 @@ commit(...)
 `ensure_collections` provisions a full set of `CollectionDescriptor` records in one
 backend API call.
 
+## Index-Aware Queries
+
+C++ defines index-aware query model types in [`backend.hpp`](backend.hpp):
+
+```cpp
+IndexValue
+IndexBound
+Query::Kind::IndexEquals
+Query::Kind::IndexPrefix
+Query::Kind::IndexRange
+```
+
+Factory helpers are available:
+
+```cpp
+Query::index_equals(index_name, values)
+Query::index_prefix(index_name, values)
+Query::index_range(index_name, lower_bound, upper_bound)
+```
+
+`IndexValue` supports:
+
+```cpp
+null_value()
+string_value(...)
+integer_value(...)
+decimal_value(...)
+boolean_value(...)
+timestamp_value(...)
+```
+
+Index values must be ordered according to the target `IndexDescriptor.fields` order.
+
 ## Transaction Interface
 
 Transactions implement `statespec::backend::ITransaction`.
