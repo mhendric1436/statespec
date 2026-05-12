@@ -101,6 +101,58 @@ struct VersionedRecord
     Json document;
 };
 
+struct IndexValue
+{
+    enum class Kind
+    {
+        Null,
+        String,
+        Integer,
+        Decimal,
+        Boolean,
+        Timestamp,
+    };
+
+    Kind kind = Kind::Null;
+    Json value;
+
+    static IndexValue null_value()
+    {
+        return IndexValue{};
+    }
+
+    static IndexValue string_value(std::string value)
+    {
+        return IndexValue{Kind::String, std::move(value)};
+    }
+
+    static IndexValue integer_value(std::int64_t value)
+    {
+        return IndexValue{Kind::Integer, std::to_string(value)};
+    }
+
+    static IndexValue decimal_value(std::string value)
+    {
+        return IndexValue{Kind::Decimal, std::move(value)};
+    }
+
+    static IndexValue boolean_value(bool value)
+    {
+        return IndexValue{Kind::Boolean, value ? "true" : "false"};
+    }
+
+    static IndexValue timestamp_value(std::string value)
+    {
+        return IndexValue{Kind::Timestamp, std::move(value)};
+    }
+};
+
+struct IndexBound
+{
+    std::vector<IndexValue> values;
+    bool inclusive = true;
+};
+
 struct Query
 {
     enum class Kind
@@ -108,12 +160,19 @@ struct Query
         All,
         KeyPrefix,
         JsonEquals,
+        IndexEquals,
+        IndexPrefix,
+        IndexRange,
     };
 
     Kind kind = Kind::All;
     std::optional<std::string> key_prefix;
     std::optional<std::string> json_path;
     std::optional<Json> json_value;
+    std::optional<std::string> index_name;
+    std::vector<IndexValue> index_values;
+    std::optional<IndexBound> lower_bound;
+    std::optional<IndexBound> upper_bound;
 
     static Query all()
     {
@@ -137,6 +196,44 @@ struct Query
         query.kind = Kind::JsonEquals;
         query.json_path = std::move(path);
         query.json_value = std::move(value);
+        return query;
+    }
+
+    static Query index_equals(
+        std::string name,
+        std::vector<IndexValue> values
+    )
+    {
+        Query query;
+        query.kind = Kind::IndexEquals;
+        query.index_name = std::move(name);
+        query.index_values = std::move(values);
+        return query;
+    }
+
+    static Query index_prefix(
+        std::string name,
+        std::vector<IndexValue> values
+    )
+    {
+        Query query;
+        query.kind = Kind::IndexPrefix;
+        query.index_name = std::move(name);
+        query.index_values = std::move(values);
+        return query;
+    }
+
+    static Query index_range(
+        std::string name,
+        std::optional<IndexBound> lower,
+        std::optional<IndexBound> upper
+    )
+    {
+        Query query;
+        query.kind = Kind::IndexRange;
+        query.index_name = std::move(name);
+        query.lower_bound = std::move(lower);
+        query.upper_bound = std::move(upper);
         return query;
     }
 };
