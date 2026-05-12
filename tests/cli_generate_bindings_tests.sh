@@ -35,21 +35,22 @@ assert_output_contains() {
     fi
 }
 
-# New shape is accepted and validates language/input/out parsing. Until the binding
-# generator dispatch is added, Milestone 3 intentionally reports not implemented.
-run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
-assert_output_contains "generate bindings --lang cpp is not implemented yet"
-assert_output_contains "resolved output directory $TMPDIR/out-cpp"
+# New shape is accepted and routed to binding generator dispatch. Until the
+# per-language generators are added, Milestone 4 reports a language-specific
+# not-implemented diagnostic.
+run_expect_status 1 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
+assert_output_contains "SSPEC5103"
+assert_output_contains "binding generator for language 'cpp' is not implemented yet"
 
-run_expect_status 2 "$CLI" generate bindings --lang go "$SPEC"
-assert_output_contains "generate bindings --lang go is not implemented yet"
-assert_output_contains "resolved output directory generated/go"
+run_expect_status 1 "$CLI" generate bindings --lang go "$SPEC"
+assert_output_contains "SSPEC5103"
+assert_output_contains "binding generator for language 'go' is not implemented yet"
 
-run_expect_status 2 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
-assert_output_contains "generate bindings --lang java is not implemented yet"
+run_expect_status 1 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
+assert_output_contains "binding generator for language 'java' is not implemented yet"
 
-run_expect_status 2 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
-assert_output_contains "generate bindings --lang rust is not implemented yet"
+run_expect_status 1 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
+assert_output_contains "binding generator for language 'rust' is not implemented yet"
 
 # --lang is required.
 run_expect_status 2 "$CLI" generate bindings "$SPEC"
