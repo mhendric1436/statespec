@@ -1,6 +1,7 @@
 #include "statespec/binding_language.hpp"
 #include "statespec/diagnostic.hpp"
 #include "statespec/generator.hpp"
+#include "statespec/generator_bindings.hpp"
 #include "statespec/lexer.hpp"
 #include "statespec/parser.hpp"
 #include "statespec/source.hpp"
@@ -413,18 +414,32 @@ GenerateBindingsArgs parse_generate_bindings_args(
 int generate_bindings_file(const GenerateBindingsArgs& args)
 {
     statespec::DiagnosticBag diagnostics;
-    parse_and_validate_file(args.input_path, diagnostics);
+    const auto spec = parse_and_validate_file(args.input_path, diagnostics);
     if (diagnostics.has_errors())
     {
         print_diagnostics(diagnostics);
         return 1;
     }
 
-    std::cerr << "statespec: generate bindings --lang " << statespec::to_string(args.language)
-              << " is not implemented yet; binding generator dispatch will be added next\n";
-    std::cerr << "statespec: parsed input " << args.input_path << " and resolved output directory "
-              << args.output_dir << "\n";
-    return 2;
+    const statespec::BindingGeneratorOptions options{
+        args.language,
+        std::filesystem::path{args.output_dir},
+    };
+
+    const auto result = statespec::generate_bindings(spec, options, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        print_diagnostics(diagnostics);
+        return 1;
+    }
+
+    for (const auto& file : result.files)
+    {
+        write_generated_file(file);
+        std::cout << "generated " << file.path << '\n';
+    }
+
+    return 0;
 }
 
 int generate_file(
