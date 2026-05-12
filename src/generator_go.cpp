@@ -1,5 +1,6 @@
 #include "statespec/generator_go.hpp"
 
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -90,10 +91,78 @@ std::string strip_optional_suffix(const std::string& type)
     return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
+long long parse_duration_seconds(const std::optional<std::string>& value)
+{
+    if (!value.has_value() || value->empty())
+    {
+        return 0;
+    }
+    const auto& text = *value;
+    if (text.size() < 3 || text[0] != 'P' || text[1] != 'T')
+    {
+        return 0;
+    }
+
+    long long total = 0;
+    long long current = 0;
+    for (std::size_t i = 2; i < text.size(); ++i)
+    {
+        const auto ch = text[i];
+        if (std::isdigit(static_cast<unsigned char>(ch)))
+        {
+            current = current * 10 + static_cast<long long>(ch - '0');
+        }
+        else
+        {
+            if (ch == 'H')
+            {
+                total += current * 3600;
+            }
+            else if (ch == 'M')
+            {
+                total += current * 60;
+            }
+            else if (ch == 'S')
+            {
+                total += current;
+            }
+            current = 0;
+        }
+    }
+    return total;
+}
+
+std::string string_ptr_expr(const std::optional<std::string>& value)
+{
+    return value.has_value() ? "stringPtr(" + go_string(*value) + ")" : "nil";
+}
+
+std::string duration_ptr_expr(const std::optional<std::string>& value)
+{
+    if (!value.has_value())
+    {
+        return "nil";
+    }
+    return "durationPtr(" + std::to_string(parse_duration_seconds(value)) + " * time.Second)";
+}
+
 std::string generate_descriptors_go(const Spec& spec)
 {
     std::ostringstream out;
     out << "package backend\n\n";
+    out << "import \"time\"\n\n";
+    out << "type LeaseDefinition struct {\n";
+    out << "\tName string\n";
+    out << "\tResource *string\n";
+    out << "\tTTL time.Duration\n";
+    out << "\tRenewEvery *time.Duration\n";
+    out << "\tHolder *string\n";
+    out << "\tFencingToken bool\n";
+    out << "\tMaxTTL *time.Duration\n";
+    out << "}\n\n";
+    out << "func stringPtr(value string) *string { return &value }\n";
+    out << "func durationPtr(value time.Duration) *time.Duration { return &value }\n\n";
+
     out << "func CollectionDescriptors() []CollectionDescriptor {\n";
     out << "\treturn []CollectionDescriptor{\n";
 
@@ -127,6 +196,72 @@ std::string generate_descriptors_go(const Spec& spec)
         }
     }
 
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func QueueDefinitions() []QueueDefinition {\n";
+    out << "\treturn []QueueDefinition{\n";
+    if (spec.system.has_value())
+    {
+        for (const auto& queue : spec.system->queues)
+        {
+            out << "\t\t{\n";
+            out << "\t\t\tQueue: " << go_string(queue.name) << ",\n";
+            out << "\t\t\tChannel: " << go_string(queue.channel.value_or("default")) << ",\n";
+            out << "\t\t\tVisibilityTimeout: " << parse_duration_seconds(queue.visibility_timeout) << " * time.Second,\n";
+            out << "\t\t\tMaxAttempts: " << queue.max_attempts.value_or(1) << ",\n";
+            out << "\t\t\tDeadLetterQueue: " << string_ptr_expr(queue.dead_letter) << ",\n";
+            out << "\t\t\tMetadata: JSON(`{}`),\n";
+            out << "\t\t},\n";
+        }
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func LeaseDefinitions() []LeaseDefinition {\n";
+    out << "\treturn []LeaseDefinition{\n";
+    if (spec.system.has_value())
+    {
+        for (const auto& lease : spec.system->leases)
+        {
+            out << "\t\t{\n";
+            out << "\t\t\tName: " << go_string(lease.name) << ",\n";
+            out << "\t\t\tResource: " << string_ptr_expr(lease.resource) << ",\n";
+            out << "\t\t\tTTL: " << parse_duration_seconds(lease.ttl) << " * time.Second,\n";
+            out << "\t\t\tRenewEvery: " << duration_ptr_expr(lease.renew_every) << ",\n";
+            out << "\t\t\tHolder: " << string_ptr_expr(lease.holder) << ",\n";
+            out << "\t\t\tFencingToken: " << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
+            out << "\t\t\tMaxTTL: " << duration_ptr_expr(lease.max_ttl) << ",\n";
+            out << "\t\t},\n";
+        }
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func WorkflowDefinitions() []WorkflowDefinition {\n";
+    out << "\treturn []WorkflowDefinition{\n";
+    if (spec.system.has_value())
+    {
+        for (const auto& workflow : spec.system->workflows)
+        {
+            out << "\t\t{\n";
+            out << "\t\t\tWorkflowName: " << go_string(workflow.name) << ",\n";
+            out << "\t\t\tWorkflowVersion: " << workflow.version.value_or(1) << ",\n";
+            out << "\t\t\tStartStep: " << go_string(workflow.start_step.value_or("")) << ",\n";
+            out << "\t\t\tExpectedExecutionTime: " << parse_duration_seconds(workflow.expected_execution_time) << " * time.Second,\n";
+            out << "\t\t\tSingleton: " << (workflow.singleton.value_or(false) ? "true" : "false") << ",\n";
+            out << "\t\t\tSteps: []WorkflowStepDefinition{\n";
+            for (const auto& step : workflow.steps)
+            {
+                out << "\t\t\t\t{Name: " << go_string(step.name)
+                    << ", ExpectedExecutionTime: " << parse_duration_seconds(step.expected_execution_time)
+                    << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
+            }
+            out << "\t\t\t},\n";
+            out << "\t\t\tMetadata: JSON(`{}`),\n";
+            out << "\t\t},\n";
+        }
+    }
     out << "\t}\n";
     out << "}\n";
     return out.str();
