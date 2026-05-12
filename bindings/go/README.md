@@ -41,6 +41,40 @@ Commit(ctx, tx)
 `EnsureCollections` provisions a full set of `CollectionDescriptor` records in one
 backend API call.
 
+## Index-Aware Queries
+
+Go defines index-aware query model types in [`backend/backend.go`](backend/backend.go):
+
+```go
+IndexValueKind
+IndexValue
+IndexBound
+QueryIndexEquals
+QueryIndexPrefix
+QueryIndexRange
+```
+
+Factory helpers are available:
+
+```go
+IndexEqualsQuery(indexName, values)
+IndexPrefixQuery(indexName, prefixValues)
+IndexRangeQuery(indexName, lowerBound, upperBound)
+```
+
+`IndexValueKind` supports:
+
+```go
+IndexNull
+IndexString
+IndexInteger
+IndexDecimal
+IndexBoolean
+IndexTimestamp
+```
+
+Index values must be ordered according to the target `IndexDescriptor.Fields` order.
+
 ## Transaction Interface
 
 Transactions implement `Transaction`.
