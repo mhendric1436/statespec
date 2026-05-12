@@ -1,11 +1,10 @@
+#include "catch2/catch_amalgamated.hpp"
 #include "statespec/diagnostic.hpp"
 #include "statespec/lexer.hpp"
 #include "statespec/parser.hpp"
 #include "statespec/source.hpp"
 #include "statespec/validator.hpp"
 
-#include <cstdlib>
-#include <iostream>
 #include <string>
 #include <utility>
 
@@ -17,11 +16,8 @@ void require(
     const char* message
 )
 {
-    if (!condition)
-    {
-        std::cerr << "test failed: " << message << '\n';
-        std::exit(1);
-    }
+    INFO(message);
+    REQUIRE(condition);
 }
 
 statespec::DiagnosticBag validate_text(const std::string& text)
@@ -296,15 +292,47 @@ void validator_rejects_invalid_positive_and_non_negative_values()
 
 } // namespace
 
-void run_validator_milestone_tests()
+TEST_CASE("validator accepts resolved references")
 {
     validator_accepts_resolved_references();
+}
+
+TEST_CASE("validator rejects duplicate top-level names")
+{
     validator_rejects_duplicate_top_level_names();
+}
+
+TEST_CASE("validator rejects missing entity key fields")
+{
     validator_rejects_missing_entity_key_field();
+}
+
+TEST_CASE("validator rejects invalid entity indexes")
+{
     validator_rejects_invalid_entity_indexes();
+}
+
+TEST_CASE("validator rejects unknown workflow start steps")
+{
     validator_rejects_unknown_workflow_start_step();
+}
+
+TEST_CASE("validator rejects unknown worker references")
+{
     validator_rejects_unknown_worker_references();
+}
+
+TEST_CASE("validator rejects unknown API references")
+{
     validator_rejects_unknown_api_references();
+}
+
+TEST_CASE("validator rejects missing required declarations")
+{
     validator_rejects_missing_required_declarations();
+}
+
+TEST_CASE("validator rejects invalid positive and non-negative values")
+{
     validator_rejects_invalid_positive_and_non_negative_values();
 }

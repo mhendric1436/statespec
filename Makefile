@@ -1,6 +1,6 @@
 CXX ?= clang++
 CLANG_FORMAT ?= clang-format
-CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -Iinclude
+CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -Iinclude -Ithird_party
 LDFLAGS ?=
 
 BUILD_DIR := build
@@ -16,13 +16,15 @@ SRC := $(SRC_ALL)
 CLI_SRC := $(wildcard cmd/*.cpp)
 TEST_SRC := $(wildcard tests/*.cpp)
 TEST_SCRIPTS := $(wildcard tests/*_tests.sh)
+CATCH_SRC := third_party/catch2/catch_amalgamated.cpp
 FORMAT_FILES := $(HEADERS) $(SRC_ALL) $(wildcard src/*.hpp) $(CLI_SRC) $(TEST_SRC)
 
 OBJ := $(patsubst src/%.cpp,$(OBJ_DIR)/src/%.o,$(SRC))
 CLI_OBJ := $(patsubst cmd/%.cpp,$(OBJ_DIR)/cmd/%.o,$(CLI_SRC))
 TEST_OBJ := $(patsubst tests/%.cpp,$(OBJ_DIR)/tests/%.o,$(TEST_SRC))
+CATCH_OBJ := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CATCH_SRC))
 
-DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d)
+DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d) $(CATCH_OBJ:.o=.d)
 
 .PHONY: all build cli test test-cli format format-check clean help print-files
 
@@ -40,7 +42,7 @@ $(CLI): $(CLI_OBJ) $(LIB)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(TEST_BIN): $(TEST_OBJ) $(LIB)
+$(TEST_BIN): $(TEST_OBJ) $(CATCH_OBJ) $(LIB)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
@@ -53,6 +55,10 @@ $(OBJ_DIR)/cmd/%.o: cmd/%.cpp
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 $(OBJ_DIR)/tests/%.o: tests/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+
+$(OBJ_DIR)/third_party/catch2/%.o: third_party/catch2/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 

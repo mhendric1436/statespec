@@ -1,3 +1,4 @@
+#include "catch2/catch_amalgamated.hpp"
 #include "statespec/diagnostic.hpp"
 #include "statespec/lexer.hpp"
 #include "statespec/parser.hpp"
@@ -6,13 +7,9 @@
 #include "statespec/token.hpp"
 #include "statespec/validator.hpp"
 
-#include <cstdlib>
-#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
-
-void run_validator_milestone_tests();
 
 namespace
 {
@@ -22,11 +19,8 @@ void require(
     const char* message
 )
 {
-    if (!condition)
-    {
-        std::cerr << "test failed: " << message << '\n';
-        std::exit(1);
-    }
+    INFO(message);
+    REQUIRE(condition);
 }
 
 std::vector<statespec::Token> lex_text(
@@ -456,28 +450,92 @@ void validator_rejects_missing_system()
 
 } // namespace
 
-int main()
+TEST_CASE("diagnostic bag records errors")
 {
     diagnostic_bag_records_errors();
-    symbol_table_rejects_duplicates();
-    lexer_emits_eof_for_empty_source();
-    lexer_tokenizes_system_declaration();
-    lexer_skips_comments();
-    lexer_tokenizes_literals();
-    lexer_tokenizes_operators_and_punctuation();
-    lexer_tracks_line_and_column();
-    lexer_reports_unterminated_string();
-    lexer_reports_unterminated_block_comment();
-    parser_parses_empty_system();
-    parser_parses_entity_fields_and_state_machine();
-    parser_parses_workflow_steps();
-    parser_parses_queue_and_message();
-    parser_parses_lease_and_worker();
-    parser_parses_api_and_policy();
-    parser_reports_missing_system();
-    validator_rejects_missing_system();
-    run_validator_milestone_tests();
+}
 
-    std::cout << "smoke tests passed\n";
-    return 0;
+TEST_CASE("symbol table rejects duplicates")
+{
+    symbol_table_rejects_duplicates();
+}
+
+TEST_CASE("lexer emits EOF for empty source")
+{
+    lexer_emits_eof_for_empty_source();
+}
+
+TEST_CASE("lexer tokenizes system declarations")
+{
+    lexer_tokenizes_system_declaration();
+}
+
+TEST_CASE("lexer skips comments")
+{
+    lexer_skips_comments();
+}
+
+TEST_CASE("lexer tokenizes literals")
+{
+    lexer_tokenizes_literals();
+}
+
+TEST_CASE("lexer tokenizes operators and punctuation")
+{
+    lexer_tokenizes_operators_and_punctuation();
+}
+
+TEST_CASE("lexer tracks line and column")
+{
+    lexer_tracks_line_and_column();
+}
+
+TEST_CASE("lexer reports unterminated strings")
+{
+    lexer_reports_unterminated_string();
+}
+
+TEST_CASE("lexer reports unterminated block comments")
+{
+    lexer_reports_unterminated_block_comment();
+}
+
+TEST_CASE("parser parses empty systems")
+{
+    parser_parses_empty_system();
+}
+
+TEST_CASE("parser parses entity fields, indexes, and state machines")
+{
+    parser_parses_entity_fields_and_state_machine();
+}
+
+TEST_CASE("parser parses workflow steps")
+{
+    parser_parses_workflow_steps();
+}
+
+TEST_CASE("parser parses queues and messages")
+{
+    parser_parses_queue_and_message();
+}
+
+TEST_CASE("parser parses leases and workers")
+{
+    parser_parses_lease_and_worker();
+}
+
+TEST_CASE("parser parses APIs and policies")
+{
+    parser_parses_api_and_policy();
+}
+
+TEST_CASE("parser reports missing systems")
+{
+    parser_reports_missing_system();
+}
+
+TEST_CASE("validator rejects missing systems")
+{
+    validator_rejects_missing_system();
 }

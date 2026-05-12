@@ -1,8 +1,7 @@
+#include "catch2/catch_amalgamated.hpp"
 #include "statespec/binding_language.hpp"
 
-#include <cstdlib>
 #include <exception>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -14,11 +13,8 @@ void require(
     const std::string& message
 )
 {
-    if (!condition)
-    {
-        std::cerr << "binding_language_tests: " << message << '\n';
-        std::exit(1);
-    }
+    INFO(message);
+    REQUIRE(condition);
 }
 
 void require_equal(
@@ -154,23 +150,32 @@ void test_invalid_language_throws()
 
 } // namespace
 
-void run_binding_language_tests()
+TEST_CASE("binding language parses canonical names")
 {
     test_parse_canonical_names();
-    test_parse_aliases();
-    test_parse_is_case_and_separator_tolerant();
-    test_to_string();
-    test_supported_languages();
-    test_invalid_language_throws();
 }
 
-namespace
+TEST_CASE("binding language parses aliases")
 {
+    test_parse_aliases();
+}
 
-const bool binding_language_tests_ran = []()
+TEST_CASE("binding language parsing is case and separator tolerant")
 {
-    run_binding_language_tests();
-    return true;
-}();
+    test_parse_is_case_and_separator_tolerant();
+}
 
-} // namespace
+TEST_CASE("binding language converts to strings")
+{
+    test_to_string();
+}
+
+TEST_CASE("binding language lists supported languages")
+{
+    test_supported_languages();
+}
+
+TEST_CASE("binding language rejects unsupported languages")
+{
+    test_invalid_language_throws();
+}
