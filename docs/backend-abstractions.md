@@ -33,6 +33,17 @@ Backend
 The backend file intentionally stays component-neutral. Lease, queue, and workflow record
 shapes live with their respective runtime interface files.
 
+Backends expose both single-collection and bulk collection provisioning APIs:
+
+```text
+ensure_collection / EnsureCollection / ensureCollection
+ensure_collections / EnsureCollections / ensureCollections
+```
+
+`ensure_collections` accepts a list of `CollectionDescriptor` records so generated
+runtimes can provision all required collections with one API call rather than one call per
+collection.
+
 ## Shared Runtime Model
 
 Each language also defines runtime-facing interfaces for higher-level primitives in
