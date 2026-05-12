@@ -1,7 +1,5 @@
 #include "statespec/generator_bindings.hpp"
 
-#include <string>
-
 namespace statespec
 {
 
@@ -31,19 +29,7 @@ bool validate_binding_generation_request(
     return valid;
 }
 
-GenerationResult language_generator_not_implemented(
-    BindingLanguage language,
-    DiagnosticBag& diagnostics
-)
-{
-    diagnostics.error(
-        SourceRange{}, "SSPEC5103",
-        "binding generator for language '" + to_string(language) + "' is not implemented yet"
-    );
-    return GenerationResult{};
 }
-
-} // namespace
 
 GenerationResult generate_bindings(
     const Spec& spec,
@@ -70,42 +56,6 @@ GenerationResult generate_bindings(
 
     diagnostics.error(SourceRange{}, "SSPEC5104", "unsupported binding generator language");
     return GenerationResult{};
-}
-
-GenerationResult generate_cpp_bindings(
-    const Spec&,
-    const BindingGeneratorOptions&,
-    DiagnosticBag& diagnostics
-)
-{
-    return language_generator_not_implemented(BindingLanguage::Cpp, diagnostics);
-}
-
-GenerationResult generate_go_bindings(
-    const Spec&,
-    const BindingGeneratorOptions&,
-    DiagnosticBag& diagnostics
-)
-{
-    return language_generator_not_implemented(BindingLanguage::Go, diagnostics);
-}
-
-GenerationResult generate_java_bindings(
-    const Spec&,
-    const BindingGeneratorOptions&,
-    DiagnosticBag& diagnostics
-)
-{
-    return language_generator_not_implemented(BindingLanguage::Java, diagnostics);
-}
-
-GenerationResult generate_rust_bindings(
-    const Spec&,
-    const BindingGeneratorOptions&,
-    DiagnosticBag& diagnostics
-)
-{
-    return language_generator_not_implemented(BindingLanguage::Rust, diagnostics);
 }
 
 } // namespace statespec
