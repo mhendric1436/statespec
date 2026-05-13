@@ -8,9 +8,51 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`backend.rs`](backend.rs) | Core backend, transaction, collection, query, capability, and conflict traits/types. |
+| [`json.rs`](json.rs) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`lease.rs`](lease.rs) | Lease records and lease runtime API. |
 | [`queue.rs`](queue.rs) | Queue definitions, message records, and queue runtime API. |
 | [`workflow.rs`](workflow.rs) | Workflow definitions, execution records, and workflow runtime API. |
+
+## Typed JSON Model
+
+The Rust binding uses `Json` for backend documents, JSON equality predicates, and index values instead of raw serialized JSON strings.
+
+The typed JSON implementation provides:
+
+```rust
+Json::parse(...)
+Json::canonical_string()
+Json::find(...)
+```
+
+The `Json` enum supports:
+
+```rust
+Json::Null
+Json::Bool(...)
+Json::Integer(...)
+Json::Decimal(...)
+Json::String(...)
+Json::Array(...)
+Json::Object(...)
+```
+
+Example:
+
+```rust
+use std::collections::BTreeMap;
+
+let mut object = BTreeMap::new();
+object.insert("id".to_string(), Json::String("order-123".to_string()));
+object.insert("active".to_string(), Json::Bool(true));
+object.insert("retry_count".to_string(), Json::Integer(3));
+
+let document = Json::Object(object);
+```
+
+`Json::parse` rejects malformed input such as duplicate object members, trailing commas, leading-zero numbers, invalid escapes, and unescaped control characters.
+
+`canonical_string()` serializes object members in sorted key order using `BTreeMap` so backend storage, hashing, snapshotting, logging, and cross-binding comparisons can use deterministic JSON text.
 
 ## Backend Trait
 
@@ -30,8 +72,7 @@ erase(...)
 commit(...)
 ```
 
-`ensure_collections` provisions a full set of `CollectionDescriptor` records in one
-backend API call.
+`ensure_collections` provisions a full set of `CollectionDescriptor` records in one backend API call.
 
 ## Index-Aware Queries
 
@@ -54,6 +95,12 @@ Integer(...)
 Decimal(...)
 Boolean(...)
 Timestamp(...)
+```
+
+Typed JSON conversion is available through:
+
+```rust
+IndexValue::json_value()
 ```
 
 Index values must be ordered according to the target `IndexDescriptor.fields` order.
@@ -87,8 +134,7 @@ Each runtime component supports two method styles.
 
 ### Backend-managed transaction methods
 
-These methods take a `Backend` and are expected to manage transaction lifecycle
-internally.
+These methods take a `Backend` and are expected to manage transaction lifecycle internally.
 
 ```rust
 operation(&backend, &request)
@@ -111,8 +157,7 @@ These methods use the `_tx` suffix and take an existing transaction.
 operation_tx(&mut tx, &request)
 ```
 
-Use these when composing multiple entity, lease, queue, or workflow operations into one
-transaction.
+Use these when composing multiple entity, lease, queue, or workflow operations into one transaction.
 
 ## Lease API
 
@@ -158,8 +203,7 @@ Queue identity is:
 (queue, channel)
 ```
 
-Queue creation is idempotent. Re-creating an identical definition may return
-`created = false`.
+Queue creation is idempotent. Re-creating an identical definition may return `created = false`.
 
 ## Workflow API
 
@@ -190,5 +234,4 @@ Workflow definition identity is:
 (workflow_name, workflow_version)
 ```
 
-Workflow definitions are immutable. A changed definition must be registered as a new
-version.
+Workflow definitions are immutable. A changed definition must be registered as a new version.
