@@ -1,5 +1,7 @@
 #pragma once
 
+#include "json.hpp"
+
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -15,7 +17,6 @@ namespace statespec::backend
 using CollectionName = std::string;
 using Key = std::string;
 using Version = std::uint64_t;
-using Json = std::string;
 
 struct FieldDescriptor
 {
@@ -123,27 +124,27 @@ struct IndexValue
 
     static IndexValue string_value(std::string value)
     {
-        return IndexValue{Kind::String, std::move(value)};
+        return IndexValue{Kind::String, Json(std::move(value))};
     }
 
     static IndexValue integer_value(std::int64_t value)
     {
-        return IndexValue{Kind::Integer, std::to_string(value)};
+        return IndexValue{Kind::Integer, Json(value)};
     }
 
-    static IndexValue decimal_value(std::string value)
+    static IndexValue decimal_value(double value)
     {
-        return IndexValue{Kind::Decimal, std::move(value)};
+        return IndexValue{Kind::Decimal, Json(value)};
     }
 
     static IndexValue boolean_value(bool value)
     {
-        return IndexValue{Kind::Boolean, value ? "true" : "false"};
+        return IndexValue{Kind::Boolean, Json(value)};
     }
 
     static IndexValue timestamp_value(std::string value)
     {
-        return IndexValue{Kind::Timestamp, std::move(value)};
+        return IndexValue{Kind::Timestamp, Json(std::move(value))};
     }
 };
 
