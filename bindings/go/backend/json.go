@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -37,16 +39,14 @@ func ParseJSON(encoded string) (JSON, error) {
 	if err != nil {
 		return JSON{}, err
 	}
-	if decoder.More() {
-		return JSON{}, errors.New("unexpected trailing JSON content")
-	}
-	if decoder.Decode(&struct{}{}) != ioEOF {
+	if _, err := decoder.Token(); err != io.EOF {
+		if err != nil {
+			return JSON{}, err
+		}
 		return JSON{}, errors.New("unexpected trailing JSON content")
 	}
 	return value, nil
 }
-
-var ioEOF = errors.New("EOF marker")
 
 func parseDecoderValue(decoder *json.Decoder) (JSON, error) {
 	token, err := decoder.Token()
@@ -167,12 +167,17 @@ func appendCanonical(out *bytes.Buffer, value JSON) {
 	case nil:
 		out.WriteString("null")
 	case bool:
-		if v { out.WriteString("true") } else { out.WriteString("false") }
+		if v {
+			out.WriteString("true")
+		} else {
+			out.WriteString("false")
+		}
 	case int64:
 		out.WriteString(strconv.FormatInt(v, 10))
 	case float64:
-		out.WriteString(strconv.FormatFloat(v, 'g', -1, 64))
-		if !strings.ContainsAny(out.String()[out.Len()-len(strconv.FormatFloat(v, 'g', -1, 64)):], ".eE") {
+		encoded := strconv.FormatFloat(v, 'g', -1, 64)
+		out.WriteString(encoded)
+		if !strings.ContainsAny(encoded, ".eE") {
 			out.WriteString(".0")
 		}
 	case string:
@@ -181,17 +186,23 @@ func appendCanonical(out *bytes.Buffer, value JSON) {
 	case []JSON:
 		out.WriteByte('[')
 		for i, item := range v {
-			if i > 0 { out.WriteByte(',') }
+			if i > 0 {
+				out.WriteByte(',')
+			}
 			appendCanonical(out, item)
 		}
 		out.WriteByte(']')
 	case map[string]JSON:
 		keys := make([]string, 0, len(v))
-		for key := range v { keys = append(keys, key) }
+		for key := range v {
+			keys = append(keys, key)
+		}
 		sort.Strings(keys)
 		out.WriteByte('{')
 		for i, key := range keys {
-			if i > 0 { out.WriteByte(',') }
+			if i > 0 {
+				out.WriteByte(',')
+			}
 			encoded, _ := json.Marshal(key)
 			out.Write(encoded)
 			out.WriteByte(':')
