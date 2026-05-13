@@ -26,7 +26,7 @@ CATCH_OBJ := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CATCH_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d) $(CATCH_OBJ:.o=.d)
 
-.PHONY: all build cli test test-cli test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-check clean help print-files
+.PHONY: all build cli check-build-tools test test-cli test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-check clean help print-files
 
 all: test cli
 
@@ -61,6 +61,31 @@ $(OBJ_DIR)/tests/%.o: tests/%.cpp
 $(OBJ_DIR)/third_party/catch2/%.o: third_party/catch2/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+
+check-build-tools:
+	@missing=0; \
+	check_tool() { \
+		name="$$1"; \
+		cmd="$$2"; \
+		version_cmd="$$3"; \
+		if command -v "$$cmd" >/dev/null 2>&1; then \
+			echo "[ok] $$name: $$($$version_cmd 2>&1 | head -n 1)"; \
+		else \
+			echo "[missing] $$name: $$cmd"; \
+			missing=1; \
+		fi; \
+	}; \
+	check_tool "C++ compiler" "$(CXX)" "$(CXX) --version"; \
+	check_tool "Go" "go" "go version"; \
+	check_tool "Java runtime" "java" "java -version"; \
+	check_tool "Java compiler" "javac" "javac -version"; \
+	check_tool "Rust compiler" "rustc" "rustc --version"; \
+	check_tool "Cargo" "cargo" "cargo --version"; \
+	if [ "$$missing" -ne 0 ]; then \
+		echo ""; \
+		echo "Install missing tools using docs/build-tools.md"; \
+		exit 1; \
+	fi
 
 test: $(TEST_BIN) test-cli
 	$(TEST_BIN)
@@ -112,6 +137,7 @@ help:
 	@echo "  make                     Build and run tests, then build CLI"
 	@echo "  make build               Build libstatespec.a"
 	@echo "  make cli                 Build statespec CLI"
+	@echo "  make check-build-tools   Check C++, Go, Java, and Rust build tools"
 	@echo "  make test                Build and run core tests and CLI tests"
 	@echo "  make test-bindings       Run all language binding tests"
 	@echo "  make test-bindings-cpp   Run C++ binding tests"
