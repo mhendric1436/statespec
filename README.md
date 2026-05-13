@@ -302,6 +302,9 @@ Reference backend and runtime component bindings are provided for:
 The shared binding documentation is in
 [`docs/backend-abstractions.md`](docs/backend-abstractions.md).
 
+Build tool installation and binding-local build instructions are documented in
+[`docs/build-tools.md`](docs/build-tools.md).
+
 ---
 
 ## Repository Layout
