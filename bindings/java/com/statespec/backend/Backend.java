@@ -1,5 +1,6 @@
 package com.statespec.backend;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,7 +74,7 @@ public interface Backend {
         String collection,
         String key,
         long version,
-        String documentJson
+        Json document
     ) {}
 
     sealed interface IndexValue
@@ -84,17 +85,53 @@ public interface Backend {
                 IndexValue.BooleanValue,
                 IndexValue.TimestampValue {
 
-        record NullValue() implements IndexValue {}
+        Json value();
 
-        record StringValue(String value) implements IndexValue {}
+        record NullValue() implements IndexValue {
+            @Override
+            public Json value() {
+                return Json.nullValue();
+            }
+        }
 
-        record IntegerValue(long value) implements IndexValue {}
+        record StringValue(String raw) implements IndexValue {
+            @Override
+            public Json value() {
+                return Json.string(raw);
+            }
+        }
 
-        record DecimalValue(String value) implements IndexValue {}
+        record IntegerValue(long raw) implements IndexValue {
+            @Override
+            public Json value() {
+                return Json.integer(raw);
+            }
+        }
 
-        record BooleanValue(boolean value) implements IndexValue {}
+        record DecimalValue(BigDecimal raw) implements IndexValue {
+            public DecimalValue(String raw) {
+                this(new BigDecimal(raw));
+            }
 
-        record TimestampValue(String value) implements IndexValue {}
+            @Override
+            public Json value() {
+                return Json.decimal(raw);
+            }
+        }
+
+        record BooleanValue(boolean raw) implements IndexValue {
+            @Override
+            public Json value() {
+                return Json.bool(raw);
+            }
+        }
+
+        record TimestampValue(String raw) implements IndexValue {
+            @Override
+            public Json value() {
+                return Json.string(raw);
+            }
+        }
     }
 
     record IndexBound(
@@ -114,7 +151,7 @@ public interface Backend {
 
         record KeyPrefix(String prefix) implements Query {}
 
-        record JsonEquals(String path, String valueJson) implements Query {}
+        record JsonEquals(String path, Json value) implements Query {}
 
         record IndexEquals(String indexName, List<IndexValue> values) implements Query {}
 
@@ -157,7 +194,7 @@ public interface Backend {
         Transaction tx,
         String collection,
         String key,
-        String documentJson
+        Json document
     ) throws BackendException;
 
     void erase(
