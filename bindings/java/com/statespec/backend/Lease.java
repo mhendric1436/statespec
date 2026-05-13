@@ -8,7 +8,27 @@ import java.time.Instant;
 import java.util.Optional;
 
 public interface Lease {
+    record LeaseDefinitionId(
+        String name,
+        long version
+    ) {}
+
+    record LeaseDefinition(
+        LeaseDefinitionId id,
+        String resourcePattern,
+        Duration ttl,
+        Duration renewEvery,
+        Optional<Duration> maxTtl,
+        boolean fencingToken
+    ) {}
+
+    record LeaseRegisterDefinitionResult(
+        boolean registeredNew,
+        LeaseDefinition definition
+    ) {}
+
     record LeaseRecord(
+        LeaseDefinitionId definitionId,
         String resource,
         Optional<String> holder,
         Instant expiresAt,
@@ -16,30 +36,56 @@ public interface Lease {
     ) {}
 
     record LeaseAcquireRequest(
+        LeaseDefinitionId definitionId,
         String resource,
         String holder,
-        Instant now,
-        Duration ttl
+        Instant now
     ) {}
 
     record LeaseRenewRequest(
+        LeaseDefinitionId definitionId,
         String resource,
         String holder,
         long fencingToken,
-        Instant now,
-        Duration ttl
+        Instant now
     ) {}
 
     record LeaseReleaseRequest(
+        LeaseDefinitionId definitionId,
         String resource,
         String holder,
         long fencingToken
+    ) {}
+
+    record LeaseInspectRequest(
+        LeaseDefinitionId definitionId,
+        String resource
     ) {}
 
     record LeaseAcquireResult(
         boolean acquired,
         Optional<LeaseRecord> lease
     ) {}
+
+    LeaseRegisterDefinitionResult registerDefinition(
+        Backend backend,
+        LeaseDefinition definition
+    ) throws BackendException;
+
+    LeaseRegisterDefinitionResult registerDefinitionTx(
+        Transaction tx,
+        LeaseDefinition definition
+    ) throws BackendException;
+
+    Optional<LeaseDefinition> inspectDefinition(
+        Backend backend,
+        LeaseDefinitionId definitionId
+    ) throws BackendException;
+
+    Optional<LeaseDefinition> inspectDefinitionTx(
+        Transaction tx,
+        LeaseDefinitionId definitionId
+    ) throws BackendException;
 
     LeaseAcquireResult acquire(
         Backend backend,
@@ -73,11 +119,11 @@ public interface Lease {
 
     Optional<LeaseRecord> inspect(
         Backend backend,
-        String resource
+        LeaseInspectRequest request
     ) throws BackendException;
 
     Optional<LeaseRecord> inspectTx(
         Transaction tx,
-        String resource
+        LeaseInspectRequest request
     ) throws BackendException;
 }
