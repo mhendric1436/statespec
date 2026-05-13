@@ -10,6 +10,7 @@ namespace statespec
 {
 
 inline constexpr const char* DefaultTenantIdFieldName = "tenant_id";
+inline constexpr const char* DefaultSystemTenantIdConfigKey = "STATESPEC_SYSTEM_TENANT_ID";
 
 struct ImportDecl
 {
@@ -28,6 +29,18 @@ struct FieldDecl
 struct TenantScopeDecl
 {
     std::string field_name = DefaultTenantIdFieldName;
+    SourceRange range;
+};
+
+enum class SystemTenantSource
+{
+    Configured,
+};
+
+struct SystemTenantDecl
+{
+    SystemTenantSource source = SystemTenantSource::Configured;
+    std::string config_key = DefaultSystemTenantIdConfigKey;
     SourceRange range;
 };
 
@@ -176,6 +189,7 @@ struct SystemDecl
 {
     std::string name;
     std::optional<TenantScopeDecl> tenant_scope;
+    std::optional<SystemTenantDecl> system_tenant;
     std::vector<EntityDecl> entities;
     std::vector<QueueDecl> queues;
     std::vector<LeaseDecl> leases;
