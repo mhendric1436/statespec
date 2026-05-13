@@ -26,7 +26,7 @@ CATCH_OBJ := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CATCH_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d) $(CATCH_OBJ:.o=.d)
 
-.PHONY: all build cli test test-cli format format-check clean help print-files
+.PHONY: all build cli test test-cli test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-check clean help print-files
 
 all: test cli
 
@@ -71,6 +71,20 @@ test-cli: $(CLI)
 		sh "$$script" "$(CLI)" || exit $$?; \
 	done
 
+test-bindings: test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust
+
+test-bindings-cpp:
+	$(MAKE) -C bindings/cpp test
+
+test-bindings-go:
+	$(MAKE) -C bindings/go test
+
+test-bindings-java:
+	$(MAKE) -C bindings/java test
+
+test-bindings-rust:
+	$(MAKE) -C bindings/rust test
+
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
 
@@ -88,19 +102,29 @@ print-files:
 
 clean:
 	rm -rf $(BUILD_DIR)
+	$(MAKE) -C bindings/cpp clean
+	$(MAKE) -C bindings/go clean
+	$(MAKE) -C bindings/java clean
+	$(MAKE) -C bindings/rust clean
 
 help:
 	@echo "StateSpec Makefile targets:"
-	@echo "  make              Build and run tests, then build CLI"
-	@echo "  make build        Build libstatespec.a"
-	@echo "  make cli          Build statespec CLI"
-	@echo "  make test         Build and run smoke tests and CLI tests"
-	@echo "  make test-cli     Build CLI and run shell-based CLI tests"
-	@echo "  make format       Format source and header files with clang-format"
-	@echo "  make format-check Check formatting without modifying files"
-	@echo "  make clean        Remove build outputs"
-	@echo "  make print-files  Show discovered source files"
-	@echo "  make help         Show this help"
+	@echo "  make                     Build and run tests, then build CLI"
+	@echo "  make build               Build libstatespec.a"
+	@echo "  make cli                 Build statespec CLI"
+	@echo "  make test                Build and run core tests and CLI tests"
+	@echo "  make test-bindings       Run all language binding tests"
+	@echo "  make test-bindings-cpp   Run C++ binding tests"
+	@echo "  make test-bindings-go    Run Go binding tests"
+	@echo "  make test-bindings-java  Run Java binding tests"
+	@echo "  make test-bindings-rust  Run Rust binding tests"
+	@echo "  make format              Format source and header files with clang-format"
+	@echo "  make format-check        Check formatting without modifying files"
+	@echo "  make clean               Remove build outputs"
+	@echo "  make print-files         Show discovered source files"
+	@echo "  make help                Show this help"
+	@echo ""
+	@echo "Binding-local builds are implemented in bindings/<language>/Makefile using language-native tooling where practical."
 	@echo ""
 	@echo "Variables:"
 	@echo "  CXX=$(CXX)"
