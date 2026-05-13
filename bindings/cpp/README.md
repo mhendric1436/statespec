@@ -8,9 +8,84 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`backend.hpp`](backend.hpp) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
+| [`json.hpp`](json.hpp) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`lease.hpp`](lease.hpp) | Lease records and lease runtime API. |
 | [`queue.hpp`](queue.hpp) | Queue definitions, message records, and queue runtime API. |
 | [`workflow.hpp`](workflow.hpp) | Workflow definitions, execution records, and workflow runtime API. |
+
+## Typed JSON Model
+
+The C++ binding does not use raw `std::string` values for JSON documents.
+
+All backend APIs use the typed:
+
+```cpp
+statespec::backend::Json
+```
+
+Defined in:
+
+```cpp
+json.hpp
+```
+
+The JSON implementation provides:
+
+```cpp
+Json::parse(...)
+Json::object(...)
+Json::array(...)
+Json::null()
+canonical_string()
+contains(...)
+find(...)
+at(...)
+```
+
+Example:
+
+```cpp
+using namespace statespec::backend;
+
+auto document = Json::object(
+    {
+        {"id", "order-123"},
+        {"active", true},
+        {"retry_count", std::int64_t{3}},
+        {"tags", Json::array({"a", "b"})},
+    }
+);
+
+backend.put(tx, "orders", "order-123", document);
+```
+
+JSON parsing is intentionally strict.
+
+The parser rejects:
+
+```text
+duplicate object members
+leading-zero numbers
+trailing commas
+invalid unicode surrogate pairs
+unescaped control characters
+non-finite numbers
+```
+
+Object members are stored in canonical sorted order using:
+
+```cpp
+std::map<std::string, Json>
+```
+
+Canonical serialization is deterministic and locale-independent.
+
+```cpp
+auto canonical = document.canonical_string();
+```
+
+This enables stable hashing, equality comparison, snapshotting, and backend-independent
+serialization behavior.
 
 ## Backend Interface
 
@@ -63,6 +138,8 @@ decimal_value(...)
 boolean_value(...)
 timestamp_value(...)
 ```
+
+Index values are strongly typed and internally represented as `Json` values.
 
 Index values must be ordered according to the target `IndexDescriptor.fields` order.
 
