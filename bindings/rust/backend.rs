@@ -1,7 +1,8 @@
+use crate::json::Json;
+
 pub type CollectionName = String;
 pub type Key = String;
 pub type Version = u64;
-pub type Json = String;
 
 #[derive(Debug, Clone)]
 pub struct FieldDescriptor {
@@ -74,9 +75,22 @@ pub enum IndexValue {
     Null,
     String(String),
     Integer(i64),
-    Decimal(String),
+    Decimal(f64),
     Boolean(bool),
     Timestamp(String),
+}
+
+impl IndexValue {
+    pub fn json_value(&self) -> Json {
+        match self {
+            IndexValue::Null => Json::Null,
+            IndexValue::String(value) => Json::String(value.clone()),
+            IndexValue::Integer(value) => Json::Integer(*value),
+            IndexValue::Decimal(value) => Json::Decimal(*value),
+            IndexValue::Boolean(value) => Json::Bool(*value),
+            IndexValue::Timestamp(value) => Json::String(value.clone()),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
