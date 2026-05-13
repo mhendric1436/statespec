@@ -9,8 +9,6 @@ type CollectionName string
 type Key string
 type Version uint64
 
-type JSON []byte
-
 type FieldDescriptor struct {
 	Name     string
 	Type     string
@@ -91,6 +89,34 @@ const (
 type IndexValue struct {
 	Kind  IndexValueKind
 	Value JSON
+}
+
+func NullIndexValue() IndexValue {
+	return IndexValue{Kind: IndexNull, Value: JSONNull()}
+}
+
+func StringIndexValue(value string) IndexValue {
+	return IndexValue{Kind: IndexString, Value: JSONString(value)}
+}
+
+func IntegerIndexValue(value int64) IndexValue {
+	return IndexValue{Kind: IndexInteger, Value: JSONInt(value)}
+}
+
+func DecimalIndexValue(value float64) (IndexValue, error) {
+	jsonValue, err := JSONFloat(value)
+	if err != nil {
+		return IndexValue{}, err
+	}
+	return IndexValue{Kind: IndexDecimal, Value: jsonValue}, nil
+}
+
+func BooleanIndexValue(value bool) IndexValue {
+	return IndexValue{Kind: IndexBoolean, Value: JSONBool(value)}
+}
+
+func TimestampIndexValue(value string) IndexValue {
+	return IndexValue{Kind: IndexTimestamp, Value: JSONString(value)}
 }
 
 type IndexBound struct {
