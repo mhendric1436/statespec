@@ -40,6 +40,26 @@ IrSystem lower_to_ir(const Spec& spec)
         {
             ir_entity.fields.push_back(IrField{field.name, field.type});
         }
+        if (entity.state_machine.has_value())
+        {
+            const auto& state_machine = *entity.state_machine;
+            ir_entity.initial_state = state_machine.initial_state;
+            ir_entity.terminal_states = state_machine.terminal_states;
+            for (const auto& state : state_machine.states)
+            {
+                IrState ir_state;
+                ir_state.name = state.name;
+                ir_state.terminal = state.terminal;
+                if (state.garbage_collection.has_value())
+                {
+                    ir_state.garbage_collection = IrGarbageCollectionPolicy{
+                        state.garbage_collection->after.value_or(""),
+                        state.garbage_collection->mode.value_or(""),
+                    };
+                }
+                ir_entity.states.push_back(std::move(ir_state));
+            }
+        }
         ir.entities.push_back(std::move(ir_entity));
     }
 

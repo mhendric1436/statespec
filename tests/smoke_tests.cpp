@@ -1,5 +1,6 @@
 #include "catch2/catch_amalgamated.hpp"
 #include "statespec/diagnostic.hpp"
+#include "statespec/ir.hpp"
 #include "statespec/lexer.hpp"
 #include "statespec/parser.hpp"
 #include "statespec/source.hpp"
@@ -289,6 +290,55 @@ void parser_parses_entity_fields_and_state_machine()
     require(entity.state_machine->transitions.size() == 2, "parser should parse transitions");
 }
 
+void ir_lowers_terminal_garbage_collection_policy()
+{
+    const auto spec = parse_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            fields {
+              order_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            state_machine {
+              state Creating
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
+              initial Creating
+              terminal [Deleted]
+              Creating -> Deleted
+            }
+          }
+        }
+    )sspec");
+
+    const auto ir = statespec::lower_to_ir(spec);
+
+    require(ir.entities.size() == 1, "IR should lower entity");
+    const auto& entity = ir.entities[0];
+    require(entity.states.size() == 2, "IR should lower entity states");
+    require(entity.initial_state == "Creating", "IR should lower initial state");
+    require(entity.terminal_states.size() == 1, "IR should lower terminal state list");
+
+    const auto& deleted = entity.states[1];
+    require(deleted.name == "Deleted", "IR should lower state name");
+    require(deleted.terminal, "IR should lower terminal flag");
+    require(deleted.garbage_collection.has_value(), "IR should lower garbage collection policy");
+    require(
+        deleted.garbage_collection->after == "P30D", "IR should lower garbage collection duration"
+    );
+    require(
+        deleted.garbage_collection->mode == "tombstone", "IR should lower garbage collection mode"
+    );
+}
+
 void parser_parses_feature_flags()
 {
     const auto spec = parse_text(R"sspec(
@@ -570,6 +620,11 @@ TEST_CASE("parser parses empty systems")
 TEST_CASE("parser parses entity fields, indexes, and state machines")
 {
     parser_parses_entity_fields_and_state_machine();
+}
+
+TEST_CASE("IR lowers terminal garbage collection policy")
+{
+    ir_lowers_terminal_garbage_collection_policy();
 }
 
 TEST_CASE("parser parses feature flags")

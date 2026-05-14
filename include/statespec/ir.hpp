@@ -15,11 +15,27 @@ struct IrField
     std::string type;
 };
 
+struct IrGarbageCollectionPolicy
+{
+    std::string after;
+    std::string mode;
+};
+
+struct IrState
+{
+    std::string name;
+    bool terminal = false;
+    std::optional<IrGarbageCollectionPolicy> garbage_collection;
+};
+
 struct IrEntity
 {
     std::string name;
     std::vector<std::string> key_fields;
     std::vector<IrField> fields;
+    std::vector<IrState> states;
+    std::optional<std::string> initial_state;
+    std::vector<std::string> terminal_states;
 };
 
 struct IrQueue
