@@ -11,7 +11,7 @@ system OrderSystem {
       status string
       total_cents int64
       created_at timestamp
-      updated_at timestamp?
+      updated_at timestamp
     }
 
     indexes {
@@ -25,9 +25,27 @@ system OrderSystem {
       state PaymentPending
       state Paid
       state FulfillmentPending
-      state Fulfilled
-      state Cancelled
-      state Failed
+      state Fulfilled {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: archive
+        }
+      }
+      state Cancelled {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      state Failed {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
 
       initial Created
       terminal [Fulfilled, Cancelled, Failed]

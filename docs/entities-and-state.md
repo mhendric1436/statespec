@@ -12,8 +12,27 @@ entity Order {
   fields {
     tenant_id string
     order_id string
-    status string
     created_at timestamp
+    updated_at timestamp
+    status string
+  }
+
+  state_machine {
+    state Creating
+    state Active
+    state Deleted {
+      terminal: true
+      garbage_collection {
+        after: P30D
+        mode: tombstone
+      }
+    }
+
+    initial Creating
+    terminal [Deleted]
+
+    Creating -> Active
+    Active -> Deleted
   }
 }
 ```
@@ -55,6 +74,8 @@ fields {
   revision int64
   metadata json
   created_at timestamp
+  updated_at timestamp
+  status string
   deleted_at timestamp?
 }
 ```
@@ -112,6 +133,9 @@ state_machine {
 Prefer explicit `state`, `initial`, and `terminal` declarations for production specs
 because they make lifecycle intent easier to review.
 
+Every entity must declare a `state_machine`. Entity state is durable lifecycle metadata,
+not a transient implementation detail.
+
 ## Terminal Garbage Collection
 
 Terminal state garbage collection is modeled on the terminal state declaration. The
@@ -140,6 +164,9 @@ state_machine {
 Garbage collection policy belongs to the terminal state because cleanup eligibility is
 part of the entity lifecycle contract. It is not an annotation, workflow step, or
 backend-specific generator option.
+
+The policy declares when an entity becomes eligible for cleanup after entering the
+terminal state. It does not mean the entity is deleted immediately on transition.
 
 Initial policy fields:
 
@@ -215,7 +242,9 @@ Before committing an entity:
 
 - The entity has a stable key.
 - All key fields are declared in `fields`.
+- `created_at`, `updated_at`, and `status` are declared.
 - Lifecycle states and transitions are explicit.
+- Terminal cleanup policy is explicit when terminal records should be collected.
 - Parent-child relationships are durable, not implied.
 - Invariants are named and deterministic.
 - Index declarations match expected query patterns.

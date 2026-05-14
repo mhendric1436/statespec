@@ -16,10 +16,27 @@ system OrderSystem {
   entity Order {
     key order_id
 
-  fields {
+    fields {
       order_id string
-      status string
       created_at timestamp
+      updated_at timestamp
+      status string
+    }
+
+    state_machine {
+      state Pending
+      state Completed {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+
+      initial Pending
+      terminal [Completed]
+
+      Pending -> Completed
     }
   }
 }
