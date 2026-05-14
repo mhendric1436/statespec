@@ -2,6 +2,7 @@
 set -eu
 
 CLI="$1"
+EXAMPLE="examples/order-system.sspec"
 TMPDIR="$(mktemp -d)"
 cleanup() {
     rm -rf "$TMPDIR"
@@ -95,5 +96,8 @@ grep -F "garbage-collected terminal state 'Deleted' must not have outgoing trans
 
 "$CLI" validate "$VALID_GC_SPEC" > "$TMPDIR/valid-output.txt" 2>&1
 grep -F "valid" "$TMPDIR/valid-output.txt" >/dev/null
+
+"$CLI" validate "$EXAMPLE" > "$TMPDIR/example-output.txt" 2>&1
+grep -F "valid" "$TMPDIR/example-output.txt" >/dev/null
 
 echo "validate CLI tests passed"

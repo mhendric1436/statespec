@@ -141,6 +141,57 @@ void validator_accepts_resolved_references()
     require(!diagnostics.has_errors(), "validator should accept resolved references");
 }
 
+void validator_accepts_terminal_garbage_collection_modes()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            fields {
+              order_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            state_machine {
+              state Creating
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: delete
+                }
+              }
+              state Archived {
+                terminal: true
+                garbage_collection {
+                  after: P90D
+                  mode: archive
+                }
+              }
+              state Tombstoned {
+                terminal: true
+                garbage_collection {
+                  after: P60D
+                  mode: tombstone
+                }
+              }
+              initial Creating
+              terminal [Deleted, Archived, Tombstoned]
+              Creating -> Deleted
+              Creating -> Archived
+              Creating -> Tombstoned
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        !diagnostics.has_errors(),
+        "validator should accept supported terminal garbage collection modes"
+    );
+}
+
 void validator_rejects_duplicate_top_level_names()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -596,6 +647,11 @@ TEST_CASE("validator rejects missing entity management model")
 TEST_CASE("validator rejects invalid entity management field types")
 {
     validator_rejects_invalid_entity_management_field_types();
+}
+
+TEST_CASE("validator accepts terminal garbage collection modes")
+{
+    validator_accepts_terminal_garbage_collection_modes();
 }
 
 TEST_CASE("validator rejects invalid terminal garbage collection")
