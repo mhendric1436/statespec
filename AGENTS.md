@@ -100,6 +100,53 @@ Generators, diagrams, and editor features should consume the semantic model or c
 
 ---
 
+## Binding Runtime Persistence Model
+
+Binding interface code that reads or writes persisted StateSpec runtime state must use the optimistic-concurrency-control backend model.
+
+This applies to all language bindings, including C++, Go, Java, and Rust, and to every runtime component that can observe persisted state:
+
+- entity/document access
+- leases
+- queues
+- workflows
+- feature flags
+- generated runtime helpers that inspect, evaluate, claim, enqueue, start, complete, fail, cancel, register, or otherwise depend on persisted records
+
+### OCC rule
+
+Persistent reads must be transaction-scoped.
+
+Do not add binding APIs that read persisted state through standalone resolver/client interfaces that bypass `Backend`/`IBackend` and `Transaction`/`ITransaction`. A read that influences generated behavior, workflow branching, feature flag evaluation, queue claiming, lease acquisition, or entity mutation must participate in the same OCC transaction as the operation that consumes that read.
+
+### Required binding shape
+
+Runtime binding components should expose both method styles when they operate on persisted state:
+
+1. Backend-managed methods that take a backend and own transaction lifecycle internally.
+2. Caller-managed `Tx` methods that take an existing transaction so callers can compose multiple reads and writes atomically.
+
+Backend-managed methods are expected to follow:
+
+```text
+begin transaction
+perform persisted reads/writes through the transaction
+commit on success
+abort on failure
+```
+
+Caller-managed methods must not begin, commit, or abort the transaction they receive unless their contract explicitly says so.
+
+### Feature flag rule
+
+Feature flag usage is persisted-state access. Evaluation must be available as a transaction-scoped binding API, because generated workflows and services may branch on feature flag values while also reading or mutating entities, leases, queues, or workflow records.
+
+### Generator rule
+
+Generated binding code must consume these transaction-aware interfaces. Generators must not emit direct persisted-state reads, in-memory feature flag resolvers, or target-language helper APIs that bypass the canonical backend transaction model.
+
+---
+
 ## Language Concepts
 
 StateSpec v0 includes these top-level concepts:
