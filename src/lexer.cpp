@@ -39,6 +39,7 @@ TokenKind keyword_kind(std::string_view text)
         {"enum", TokenKind::KeywordEnum},
         {"shape", TokenKind::KeywordShape},
         {"external_system", TokenKind::KeywordExternalSystem},
+        {"feature_flag", TokenKind::KeywordFeatureFlag},
         {"entity", TokenKind::KeywordEntity},
         {"key", TokenKind::KeywordKey},
         {"version", TokenKind::KeywordVersion},

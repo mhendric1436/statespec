@@ -35,16 +35,16 @@ system FeatureFlagExample {
     version 1
     start route_order
 
-    load Order by order_id as order
+    load Order by order_id as order;
 
     step route_order {
-      require feature_value(MaxPendingOrders) >= count(order.pending_ids)
+      require feature_value(MaxPendingOrders) >= count(order.pending_ids);
 
       when feature_enabled(NewScheduler) {
-        transition_to schedule_with_new_engine
+        transition_to schedule_with_new_engine;
       }
 
-      transition_to schedule_with_current_engine
+      transition_to schedule_with_current_engine;
     }
 
     step schedule_with_new_engine {

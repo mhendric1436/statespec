@@ -202,9 +202,43 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after system name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (check(TokenKind::KeywordEntity))
+        if (match(TokenKind::KeywordTenant))
+        {
+            const auto tenant_start = previous();
+            consume(TokenKind::KeywordScopedBy, "expected scoped_by after tenant", diagnostics);
+            TenantScopeDecl tenant_scope;
+            tenant_scope.field_name =
+                consume(TokenKind::Identifier, "expected tenant scope field", diagnostics).lexeme;
+            tenant_scope.range = SourceRange{tenant_start.range.begin, previous().range.end};
+            system.tenant_scope = tenant_scope;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "system_tenant"))
+        {
+            const auto system_tenant_start = advance();
+            if (!is_named_identifier(peek(), "configured"))
+            {
+                diagnostics.error(
+                    peek().range, "SSPEC0200", "expected configured after system_tenant"
+                );
+            }
+            else
+            {
+                advance();
+            }
+            SystemTenantDecl system_tenant;
+            system_tenant.range =
+                SourceRange{system_tenant_start.range.begin, previous().range.end};
+            system.system_tenant = system_tenant;
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordEntity))
         {
             system.entities.push_back(parse_entity_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordFeatureFlag))
+        {
+            system.feature_flags.push_back(parse_feature_flag_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordQueue))
         {
@@ -239,6 +273,87 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 
     system.range = SourceRange{start.range.begin, previous().range.end};
     return system;
+}
+
+FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)
+{
+    const auto start =
+        consume(TokenKind::KeywordFeatureFlag, "expected feature_flag declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected feature flag name", diagnostics);
+    FeatureFlagDecl feature_flag;
+    feature_flag.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after feature flag name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (is_named_identifier(peek(), "type"))
+        {
+            advance();
+            feature_flag.type =
+                consume(TokenKind::Identifier, "expected feature flag type", diagnostics).lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "default"))
+        {
+            advance();
+            feature_flag.default_value =
+                parse_simple_value(diagnostics, "feature flag default value");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "scope"))
+        {
+            advance();
+            if (match(TokenKind::KeywordSystem))
+            {
+                feature_flag.scope = "system";
+            }
+            else if (match(TokenKind::KeywordTenant))
+            {
+                feature_flag.scope = "tenant";
+            }
+            else if (is_named_identifier(peek(), "user"))
+            {
+                advance();
+                feature_flag.scope = "user";
+            }
+            else if (match(TokenKind::KeywordEntity))
+            {
+                feature_flag.scope =
+                    "entity " + parse_qualified_name(diagnostics, "feature flag entity scope");
+            }
+            else
+            {
+                diagnostics.error(peek().range, "SSPEC0203", "expected feature flag scope");
+            }
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "owner"))
+        {
+            advance();
+            feature_flag.owner = parse_simple_value(diagnostics, "feature flag owner");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "description"))
+        {
+            advance();
+            feature_flag.description = parse_simple_value(diagnostics, "feature flag description");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "expires"))
+        {
+            advance();
+            feature_flag.expires = parse_simple_value(diagnostics, "feature flag expiration");
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after feature flag block", diagnostics);
+
+    feature_flag.range = SourceRange{start.range.begin, previous().range.end};
+    return feature_flag;
 }
 
 EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
@@ -725,6 +840,22 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
                 consume(TokenKind::Identifier, "expected start step name", diagnostics).lexeme;
             consume_optional_semicolon();
         }
+        else if (match(TokenKind::KeywordLoad))
+        {
+            parse_qualified_name(diagnostics, "workflow load entity");
+            if (!is_named_identifier(peek(), "by"))
+            {
+                diagnostics.error(peek().range, "SSPEC0200", "expected by in workflow load");
+            }
+            else
+            {
+                advance();
+            }
+            consume(TokenKind::Identifier, "expected workflow load key", diagnostics);
+            consume(TokenKind::KeywordAs, "expected as in workflow load", diagnostics);
+            consume(TokenKind::Identifier, "expected workflow load binding", diagnostics);
+            consume_optional_semicolon();
+        }
         else if (check(TokenKind::KeywordStep))
         {
             workflow.steps.push_back(parse_workflow_step_decl(diagnostics));
@@ -764,6 +895,31 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
             step.max_retries = parse_int_or_zero(
                 consume(TokenKind::IntegerLiteral, "expected max_retries integer", diagnostics)
             );
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordRequire))
+        {
+            parse_simple_expression_until_boundary();
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordWhen))
+        {
+            while (!is_at_end() && !check(TokenKind::LeftBrace) && !check(TokenKind::RightBrace))
+            {
+                advance();
+            }
+            if (check(TokenKind::LeftBrace))
+            {
+                skip_balanced_block();
+            }
+        }
+        else if (match(TokenKind::KeywordTransitionTo))
+        {
+            consume(TokenKind::Identifier, "expected transition_to target", diagnostics);
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordComplete))
+        {
             consume_optional_semicolon();
         }
         else
@@ -864,8 +1020,47 @@ std::string Parser::parse_qualified_name(
 
 std::string Parser::parse_type_name(DiagnosticBag& diagnostics)
 {
-    const auto first = consume(TokenKind::Identifier, "expected type name", diagnostics);
-    std::string type = first.lexeme;
+    if (!check_any({TokenKind::Identifier, TokenKind::KeywordOptional, TokenKind::KeywordRef}))
+    {
+        diagnostics.error(peek().range, "SSPEC0200", "expected type name");
+        if (!is_at_end())
+        {
+            advance();
+        }
+        return "";
+    }
+
+    std::string type = advance().lexeme;
+
+    if (match(TokenKind::Less))
+    {
+        type += "<";
+        int depth = 1;
+        while (depth > 0 && !is_at_end())
+        {
+            if (match(TokenKind::Less))
+            {
+                ++depth;
+                type += "<";
+            }
+            else if (match(TokenKind::Greater))
+            {
+                --depth;
+                type += ">";
+            }
+            else
+            {
+                type += advance().lexeme;
+            }
+        }
+    }
+
+    if (match(TokenKind::LeftBracket))
+    {
+        type += "[";
+        consume(TokenKind::RightBracket, "expected ']' after array type", diagnostics);
+        type += "]";
+    }
 
     if (match(TokenKind::Question))
     {

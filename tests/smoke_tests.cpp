@@ -270,6 +270,49 @@ void parser_parses_entity_fields_and_state_machine()
     require(entity.state_machine->transitions.size() == 2, "parser should parse transitions");
 }
 
+void parser_parses_feature_flags()
+{
+    const auto spec = parse_text(R"sspec(
+        system OrderSystem {
+          feature_flag NewScheduler {
+            type bool
+            default false
+            scope tenant
+            owner "platform"
+            description "Route order processing through the new scheduler"
+            expires "2026-12-31"
+          }
+
+          feature_flag MaxPendingOrders {
+            type int
+            default 100
+            scope entity Order
+          }
+        }
+    )sspec");
+
+    require(spec.system.has_value(), "parser should parse system");
+    require(spec.system->feature_flags.size() == 2, "parser should parse feature flags");
+
+    const auto& bool_flag = spec.system->feature_flags[0];
+    require(bool_flag.name == "NewScheduler", "parser should parse feature flag name");
+    require(bool_flag.type == "bool", "parser should parse feature flag type");
+    require(bool_flag.default_value == "false", "parser should parse boolean default");
+    require(bool_flag.scope == "tenant", "parser should parse tenant scope");
+    require(bool_flag.owner == "platform", "parser should parse owner");
+    require(
+        bool_flag.description == "Route order processing through the new scheduler",
+        "parser should parse description"
+    );
+    require(bool_flag.expires == "2026-12-31", "parser should parse expiration");
+
+    const auto& typed_flag = spec.system->feature_flags[1];
+    require(typed_flag.name == "MaxPendingOrders", "parser should parse second flag name");
+    require(typed_flag.type == "int", "parser should parse typed flag type");
+    require(typed_flag.default_value == "100", "parser should parse integer default");
+    require(typed_flag.scope == "entity Order", "parser should parse entity scope");
+}
+
 void parser_parses_workflow_steps()
 {
     const auto spec = parse_text(R"sspec(
@@ -508,6 +551,11 @@ TEST_CASE("parser parses empty systems")
 TEST_CASE("parser parses entity fields, indexes, and state machines")
 {
     parser_parses_entity_fields_and_state_machine();
+}
+
+TEST_CASE("parser parses feature flags")
+{
+    parser_parses_feature_flags();
 }
 
 TEST_CASE("parser parses workflow steps")

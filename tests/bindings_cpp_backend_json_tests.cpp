@@ -1,5 +1,5 @@
-#include "catch2/catch_amalgamated.hpp"
 #include "../bindings/cpp/backend.hpp"
+#include "catch2/catch_amalgamated.hpp"
 
 #include <memory>
 #include <optional>
@@ -35,18 +35,19 @@ class FakeBackend final : public statespec::backend::IBackend
 
     void ensure_collection(const statespec::backend::CollectionDescriptor&) override {}
 
-    void ensure_collections(const std::vector<statespec::backend::CollectionDescriptor>&) override {}
+    void ensure_collections(const std::vector<statespec::backend::CollectionDescriptor>&) override
+    {
+    }
 
     std::unique_ptr<statespec::backend::ITransaction> begin() override
     {
         return std::make_unique<FakeTransaction>();
     }
 
-    std::optional<statespec::backend::VersionedRecord> get(
-        statespec::backend::ITransaction&,
+    std::optional<statespec::backend::VersionedRecord>
+    get(statespec::backend::ITransaction&,
         const statespec::backend::CollectionName& collection,
-        const statespec::backend::Key& key
-    ) override
+        const statespec::backend::Key& key) override
     {
         return statespec::backend::VersionedRecord{
             .collection = collection,
@@ -71,12 +72,11 @@ class FakeBackend final : public statespec::backend::IBackend
         }};
     }
 
-    void put(
-        statespec::backend::ITransaction&,
+    void
+    put(statespec::backend::ITransaction&,
         const statespec::backend::CollectionName&,
         const statespec::backend::Key&,
-        statespec::backend::Json document
-    ) override
+        statespec::backend::Json document) override
     {
         last_document = std::move(document);
     }

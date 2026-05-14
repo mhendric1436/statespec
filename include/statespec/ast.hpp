@@ -85,6 +85,18 @@ struct EntityDecl
     SourceRange range;
 };
 
+struct FeatureFlagDecl
+{
+    std::string name;
+    std::optional<std::string> type;
+    std::optional<std::string> default_value;
+    std::optional<std::string> scope;
+    std::optional<std::string> owner;
+    std::optional<std::string> description;
+    std::optional<std::string> expires;
+    SourceRange range;
+};
+
 struct MessageDecl
 {
     std::string name;
@@ -190,6 +202,7 @@ struct SystemDecl
     std::string name;
     std::optional<TenantScopeDecl> tenant_scope;
     std::optional<SystemTenantDecl> system_tenant;
+    std::vector<FeatureFlagDecl> feature_flags;
     std::vector<EntityDecl> entities;
     std::vector<QueueDecl> queues;
     std::vector<LeaseDecl> leases;

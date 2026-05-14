@@ -37,6 +37,7 @@ class Parser
     Spec parse_spec(DiagnosticBag& diagnostics);
     ImportDecl parse_import_decl(DiagnosticBag& diagnostics);
     SystemDecl parse_system_decl(DiagnosticBag& diagnostics);
+    FeatureFlagDecl parse_feature_flag_decl(DiagnosticBag& diagnostics);
     EntityDecl parse_entity_decl(DiagnosticBag& diagnostics);
     QueueDecl parse_queue_decl(DiagnosticBag& diagnostics);
     MessageDecl parse_message_decl(DiagnosticBag& diagnostics);

@@ -189,6 +189,38 @@ void write_fields(
     out << ']';
 }
 
+void write_feature_flags(
+    std::ostream& out,
+    const std::vector<statespec::FeatureFlagDecl>& feature_flags
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < feature_flags.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& feature_flag = feature_flags[i];
+        out << "{\"name\": ";
+        write_json_string(out, feature_flag.name);
+        out << ", \"type\": ";
+        write_json_optional_string(out, feature_flag.type);
+        out << ", \"default\": ";
+        write_json_optional_string(out, feature_flag.default_value);
+        out << ", \"scope\": ";
+        write_json_optional_string(out, feature_flag.scope);
+        out << ", \"owner\": ";
+        write_json_optional_string(out, feature_flag.owner);
+        out << ", \"description\": ";
+        write_json_optional_string(out, feature_flag.description);
+        out << ", \"expires\": ";
+        write_json_optional_string(out, feature_flag.expires);
+        out << '}';
+    }
+    out << ']';
+}
+
 void write_string_array(
     std::ostream& out,
     const std::vector<std::string>& values
@@ -228,6 +260,10 @@ void write_spec_json(
     out << "{\n";
     out << "    \"name\": ";
     write_json_string(out, system.name);
+    out << ",\n";
+
+    out << "    \"feature_flags\": ";
+    write_feature_flags(out, system.feature_flags);
     out << ",\n";
 
     out << "    \"entities\": [";
