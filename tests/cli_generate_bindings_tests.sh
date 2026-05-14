@@ -32,8 +32,19 @@ system Demo {
     fields {
       tenant_id string
       order_id string
+      created_at timestamp
+      updated_at timestamp
       status string
       retry_count int?
+    }
+    state_machine {
+      state Pending
+      state Active
+      state Failed { terminal: true }
+      initial Pending
+      terminal Failed
+      Pending -> Active
+      Pending -> Failed
     }
   }
 

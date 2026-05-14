@@ -48,6 +48,22 @@ bool has_error_code(
     return false;
 }
 
+bool has_error_message_containing(
+    const statespec::DiagnosticBag& diagnostics,
+    const std::string& fragment
+)
+{
+    for (const auto& diagnostic : diagnostics.all())
+    {
+        if (diagnostic.severity == statespec::DiagnosticSeverity::Error &&
+            diagnostic.message.find(fragment) != std::string::npos)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void validator_accepts_resolved_references()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -56,7 +72,18 @@ void validator_accepts_resolved_references()
             key order_id
             fields {
               order_id string
+              created_at timestamp
+              updated_at timestamp
               status string
+            }
+            state_machine {
+              state Creating
+              state Active
+              state Failed { terminal: true }
+              initial Creating
+              terminal Failed
+              Creating -> Active
+              Creating -> Failed
             }
             indexes {
               index by_status on status
@@ -170,6 +197,57 @@ void validator_rejects_invalid_entity_indexes()
     require(
         has_error_code(diagnostics, "SSPEC3002"),
         "validator should reject unknown entity index fields"
+    );
+}
+
+void validator_rejects_missing_entity_management_model()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            fields {
+              order_id string
+              updated_at timestamp
+              status string
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "field 'created_at'"),
+        "validator should require created_at"
+    );
+    require(
+        has_error_message_containing(diagnostics, "state_machine"),
+        "validator should require state_machine"
+    );
+}
+
+void validator_rejects_invalid_entity_management_field_types()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            fields {
+              order_id string
+              created_at string
+              updated_at timestamp
+              status int
+            }
+            state_machine {
+              state Pending
+              initial Pending
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3102"),
+        "validator should reject invalid entity management field types"
     );
 }
 
@@ -306,7 +384,21 @@ void validator_accepts_feature_flags()
           }
           entity Order {
             key order_id
-            fields { order_id string }
+            fields {
+              order_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            state_machine {
+              state Pending
+              state Active
+              state Failed { terminal: true }
+              initial Pending
+              terminal Failed
+              Pending -> Active
+              Pending -> Failed
+            }
           }
           api StartOrderProcessing {
             method POST
@@ -418,6 +510,16 @@ TEST_CASE("validator rejects missing entity key fields")
 TEST_CASE("validator rejects invalid entity indexes")
 {
     validator_rejects_invalid_entity_indexes();
+}
+
+TEST_CASE("validator rejects missing entity management model")
+{
+    validator_rejects_missing_entity_management_model();
+}
+
+TEST_CASE("validator rejects invalid entity management field types")
+{
+    validator_rejects_invalid_entity_management_field_types();
 }
 
 TEST_CASE("validator rejects unknown workflow start steps")

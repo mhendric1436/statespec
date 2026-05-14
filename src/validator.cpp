@@ -431,6 +431,7 @@ void validate_state_machine(
 {
     if (!entity.state_machine.has_value())
     {
+        required_error(diagnostics, entity.range, "entity '" + entity.name + "'", "state_machine");
         return;
     }
 
@@ -491,6 +492,57 @@ void validate_state_machine(
     }
 }
 
+const FieldDecl* find_field(
+    const std::vector<FieldDecl>& fields,
+    const std::string& name
+)
+{
+    for (const auto& field : fields)
+    {
+        if (field.name == name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+void validate_required_entity_field(
+    const EntityDecl& entity,
+    const std::string& field_name,
+    const std::string& expected_type,
+    DiagnosticBag& diagnostics
+)
+{
+    const auto* field = find_field(entity.fields, field_name);
+    if (field == nullptr)
+    {
+        required_error(
+            diagnostics, entity.range, "entity '" + entity.name + "'", "field '" + field_name + "'"
+        );
+        return;
+    }
+
+    if (field->type != expected_type)
+    {
+        diagnostics.error(
+            field->range, "SSPEC3102",
+            "entity '" + entity.name + "' field '" + field_name + "' must have type " +
+                expected_type
+        );
+    }
+}
+
+void validate_entity_management_fields(
+    const EntityDecl& entity,
+    DiagnosticBag& diagnostics
+)
+{
+    validate_required_entity_field(entity, "created_at", "timestamp", diagnostics);
+    validate_required_entity_field(entity, "updated_at", "timestamp", diagnostics);
+    validate_required_entity_field(entity, "status", "string", diagnostics);
+}
+
 void validate_indexes(
     const EntityDecl& entity,
     const std::unordered_set<std::string>& fields,
@@ -548,6 +600,7 @@ void validate_entities(
 
         validate_field_duplicates(entity.fields, diagnostics);
         validate_field_types(entity.fields, symbols, diagnostics);
+        validate_entity_management_fields(entity, diagnostics);
 
         const auto fields = field_names(entity.fields);
         for (const auto& key_field : entity.key_fields)
