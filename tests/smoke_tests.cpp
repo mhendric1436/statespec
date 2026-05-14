@@ -238,7 +238,13 @@ void parser_parses_entity_fields_and_state_machine()
             state_machine {
               state Creating
               state Active
-              state Failed { terminal: true }
+              state Failed {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
               initial Creating
               terminal [Failed]
               Creating -> Active
@@ -263,6 +269,19 @@ void parser_parses_entity_fields_and_state_machine()
     require(entity.indexes[1].unique, "parser should parse unique index");
     require(entity.state_machine.has_value(), "parser should parse state machine");
     require(entity.state_machine->states.size() == 3, "parser should parse states");
+    require(entity.state_machine->states[2].terminal, "parser should parse terminal state option");
+    require(
+        entity.state_machine->states[2].garbage_collection.has_value(),
+        "parser should parse garbage collection policy"
+    );
+    require(
+        entity.state_machine->states[2].garbage_collection->after == "P30D",
+        "parser should parse garbage collection duration"
+    );
+    require(
+        entity.state_machine->states[2].garbage_collection->mode == "tombstone",
+        "parser should parse garbage collection mode"
+    );
     require(entity.state_machine->initial_state == "Creating", "parser should parse initial state");
     require(
         entity.state_machine->terminal_states.size() == 1, "parser should parse terminal states"

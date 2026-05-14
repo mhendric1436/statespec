@@ -757,16 +757,7 @@ StateMachineDecl Parser::parse_state_machine_decl(DiagnosticBag& diagnostics)
     {
         if (match(TokenKind::KeywordState))
         {
-            const auto name = consume(TokenKind::Identifier, "expected state name", diagnostics);
-            StateDecl state;
-            state.name = name.lexeme;
-            state.range = name.range;
-            if (check(TokenKind::LeftBrace))
-            {
-                skip_balanced_block();
-            }
-            consume_optional_semicolon();
-            state_machine.states.push_back(state);
+            state_machine.states.push_back(parse_state_decl(diagnostics));
         }
         else if (match(TokenKind::KeywordInitial))
         {
@@ -814,6 +805,76 @@ StateMachineDecl Parser::parse_state_machine_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::RightBrace, "expected '}' after state_machine block", diagnostics);
     state_machine.range = SourceRange{start.range.begin, previous().range.end};
     return state_machine;
+}
+
+StateDecl Parser::parse_state_decl(DiagnosticBag& diagnostics)
+{
+    const auto name = consume(TokenKind::Identifier, "expected state name", diagnostics);
+    StateDecl state;
+    state.name = name.lexeme;
+    state.range = name.range;
+
+    if (match(TokenKind::LeftBrace))
+    {
+        while (!check(TokenKind::RightBrace) && !is_at_end())
+        {
+            if (match(TokenKind::KeywordTerminal))
+            {
+                consume(TokenKind::Colon, "expected ':' after terminal", diagnostics);
+                const auto terminal =
+                    consume(TokenKind::BooleanLiteral, "expected terminal boolean", diagnostics);
+                state.terminal = terminal.lexeme == "true";
+                consume_optional_semicolon();
+            }
+            else if (is_named_identifier(peek(), "garbage_collection"))
+            {
+                state.garbage_collection = parse_garbage_collection_policy_decl(diagnostics);
+            }
+            else
+            {
+                skip_unknown_declaration(diagnostics);
+            }
+        }
+        consume(TokenKind::RightBrace, "expected '}' after state options", diagnostics);
+        state.range = SourceRange{name.range.begin, previous().range.end};
+    }
+
+    consume_optional_semicolon();
+    return state;
+}
+
+GarbageCollectionPolicyDecl Parser::parse_garbage_collection_policy_decl(DiagnosticBag& diagnostics)
+{
+    const auto start =
+        consume(TokenKind::Identifier, "expected garbage_collection block", diagnostics);
+    GarbageCollectionPolicyDecl policy;
+    consume(TokenKind::LeftBrace, "expected '{' after garbage_collection", diagnostics);
+
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (is_named_identifier(peek(), "after"))
+        {
+            advance();
+            consume(TokenKind::Colon, "expected ':' after garbage_collection.after", diagnostics);
+            policy.after = parse_simple_value(diagnostics, "garbage_collection.after");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "mode"))
+        {
+            advance();
+            consume(TokenKind::Colon, "expected ':' after garbage_collection.mode", diagnostics);
+            policy.mode = parse_simple_value(diagnostics, "garbage_collection.mode");
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+
+    consume(TokenKind::RightBrace, "expected '}' after garbage_collection block", diagnostics);
+    policy.range = SourceRange{start.range.begin, previous().range.end};
+    return policy;
 }
 
 WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)

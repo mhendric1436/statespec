@@ -44,10 +44,18 @@ struct SystemTenantDecl
     SourceRange range;
 };
 
+struct GarbageCollectionPolicyDecl
+{
+    std::optional<std::string> after;
+    std::optional<std::string> mode;
+    SourceRange range;
+};
+
 struct StateDecl
 {
     std::string name;
     bool terminal = false;
+    std::optional<GarbageCollectionPolicyDecl> garbage_collection;
     SourceRange range;
 };
 
