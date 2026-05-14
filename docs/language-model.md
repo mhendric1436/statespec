@@ -28,6 +28,7 @@ referenced by APIs, workflows, queues, leases, workers, and policies.
 | `message` | Typed payload carried by a queue. |
 | `lease` | Exclusive ownership or fencing primitive. |
 | `worker` | Runtime actor that polls queues or executes workflows. |
+| `feature_flag` | Declared rollout or configuration switch referenced from expressions. |
 | `workflow` | Long-running orchestration composed from named steps. |
 | `step` | Unit of workflow execution with timing and retry metadata. |
 | `api` | External operation such as a REST endpoint. |

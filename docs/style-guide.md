@@ -18,13 +18,14 @@ Recommended top-level order inside a `system` block:
 
 ```text
 1. values, enums, shapes, and external systems
-2. entities
-3. queues
-4. leases
-5. workers
-6. workflows
-7. APIs
-8. policies
+2. feature flags
+3. entities
+4. queues
+5. leases
+6. workers
+7. workflows
+8. APIs
+9. policies
 ```
 
 Keep related declarations close together. For example, put queue messages inside their
@@ -37,6 +38,7 @@ Use PascalCase for top-level named declarations:
 ```statespec
 entity Order
 workflow OrderProcessing
+feature_flag NewScheduler
 queue EmailQueue
 lease OrderReconcilerLease
 api StartOrderProcessing

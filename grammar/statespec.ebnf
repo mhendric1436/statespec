@@ -9,6 +9,7 @@
     - imports and namespaces
     - system-wide tenant scoping
     - values and reusable data shapes
+    - feature flags
     - entities and state machines
     - entity relationships and ownership
     - APIs
@@ -54,6 +55,7 @@ system_member           ::= system_tenant_scope_decl
                           | enum_decl
                           | shape_decl
                           | external_system_decl
+                          | feature_flag_decl
                           | entity_decl
                           | event_decl
                           | queue_decl
@@ -195,6 +197,35 @@ external_system_member  ::= property_assignment
                           | annotations_block ;
 
 property_assignment     ::= Identifier ":" literal ";"? ;
+
+
+(* ============================================================ *)
+(* Feature Flags                                                *)
+(* ============================================================ *)
+
+feature_flag_decl       ::= "feature_flag" Identifier feature_flag_block ;
+
+feature_flag_block      ::= "{"
+                              feature_flag_member*
+                            "}" ;
+
+feature_flag_member     ::= "type" feature_flag_type ";"?
+                          | "default" literal ";"?
+                          | "scope" feature_flag_scope ";"?
+                          | "owner" StringLiteral ";"?
+                          | "description" StringLiteral ";"?
+                          | "expires" StringLiteral ";"?
+                          | annotations_block ;
+
+feature_flag_type       ::= "bool"
+                          | "string"
+                          | "int"
+                          | "decimal" ;
+
+feature_flag_scope      ::= "system"
+                          | "tenant"
+                          | "user"
+                          | "entity" QualifiedName ;
 
 
 (* ============================================================ *)
@@ -705,6 +736,10 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
     now()
     duration(value)
     expired(timestamp)
+
+  Feature flag helpers:
+    feature_enabled(flag)
+    feature_value(flag)
 *)
 
 
@@ -796,5 +831,14 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
    58. desired_count must type-check as an integer.
    59. Child buckets must be disjoint.
    60. Child bucket union must represent the reserved child set.
+
+  Feature flags:
+   61. Feature flag names must be unique within a system or namespace.
+   62. Feature flag names must use PascalCase.
+   63. Feature flags must declare type and default.
+   64. Feature flag defaults must match the declared feature flag type.
+   65. scope entity must reference an existing entity.
+   66. feature_enabled(flag) requires a declared bool feature flag.
+   67. feature_value(flag) requires a declared feature flag.
 
 *)

@@ -1,0 +1,58 @@
+statespec 0.1;
+
+system FeatureFlagExample {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  feature_flag NewScheduler {
+    type bool
+    default false
+    scope tenant
+    owner "platform"
+    description "Route order processing through the new scheduler"
+    expires "2026-12-31"
+  }
+
+  feature_flag MaxPendingOrders {
+    type int
+    default 100
+    scope tenant
+    owner "orders"
+    description "Maximum pending orders allowed per tenant"
+  }
+
+  entity Order {
+    key tenant_id, order_id
+
+    fields {
+      tenant_id string
+      order_id string
+      pending_ids list<string>
+    }
+  }
+
+  workflow OrderProcessing {
+    version 1
+    start route_order
+
+    load Order by order_id as order
+
+    step route_order {
+      require feature_value(MaxPendingOrders) >= count(order.pending_ids)
+
+      when feature_enabled(NewScheduler) {
+        transition_to schedule_with_new_engine
+      }
+
+      transition_to schedule_with_current_engine
+    }
+
+    step schedule_with_new_engine {
+      complete
+    }
+
+    step schedule_with_current_engine {
+      complete
+    }
+  }
+}
