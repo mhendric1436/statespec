@@ -1,0 +1,252 @@
+statespec 0.1;
+
+system WorkflowLaunchControl {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  entity WorkflowCapacity {
+    key capacity_id
+
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      capacity_id string
+      max_in_progress int
+      in_progress int
+      launch_rate_per_minute int
+      available_launch_tokens int
+      tokens_refilled_at timestamp
+    }
+
+    indexes {
+      unique by_capacity_id on capacity_id
+      index by_status on status
+    }
+
+    state_machine {
+      state Active
+      state Suspended
+
+      initial Active
+
+      Active -> Suspended
+      Suspended -> Active
+    }
+  }
+
+  entity WorkflowStartReservation {
+    key reservation_id
+
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      reservation_id string
+      tenant_id string
+      workflow_name string
+      workflow_version int
+      target_entity_id string
+      capacity_id string
+      idempotency_key string
+      requested_at timestamp
+      admitted_at optional<timestamp>
+      launched_at optional<timestamp>
+      completed_at optional<timestamp>
+    }
+
+    indexes {
+      unique by_idempotency_key on idempotency_key
+      index by_tenant_status on tenant_id, status
+      index by_capacity_status on capacity_id, status
+    }
+
+    state_machine {
+      state Pending
+      state Admitted
+      state Launched
+      state Completed {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: archive
+        }
+      }
+      state Rejected {
+        terminal: true
+        garbage_collection {
+          after: P7D
+          mode: tombstone
+        }
+      }
+      state Expired {
+        terminal: true
+        garbage_collection {
+          after: P7D
+          mode: tombstone
+        }
+      }
+
+      initial Pending
+      terminal [Completed, Rejected, Expired]
+
+      Pending -> Admitted
+      Pending -> Rejected
+      Pending -> Expired
+      Admitted -> Launched
+      Launched -> Completed
+      Launched -> Expired
+    }
+  }
+
+  queue WorkflowLaunchQueue {
+    namespace workflow_launch
+    channel launch_requests
+    visibility_timeout PT30S
+    max_attempts 10
+    dead_letter WorkflowLaunchQueue.LaunchWorkflowDeadLetter
+
+    message LaunchWorkflow {
+      idempotency_key message_id
+      payload {
+        message_id string
+        tenant_id string
+        reservation_id string
+        workflow_name string
+        workflow_version int
+        target_entity_id string
+        capacity_id string
+        requested_at timestamp
+      }
+    }
+
+    message LaunchWorkflowDeadLetter {
+      idempotency_key message_id
+      payload {
+        message_id string
+        tenant_id string
+        reservation_id string
+        failure_reason string
+      }
+    }
+  }
+
+  queue WorkflowCompletionQueue {
+    namespace workflow_launch
+    channel workflow_completions
+    visibility_timeout PT30S
+    max_attempts 10
+
+    message WorkflowCompleted {
+      idempotency_key message_id
+      payload {
+        message_id string
+        tenant_id string
+        reservation_id string
+        workflow_execution_id string
+        completed_at timestamp
+      }
+    }
+  }
+
+  lease WorkflowLaunchSchedulerLease {
+    resource "workflow-launch:scheduler"
+    ttl PT30S
+    renew_every PT10S
+    holder worker_id
+    fencing_token true
+    max_ttl PT5M
+  }
+
+  lease WorkflowCompletionAccountingLease {
+    resource "workflow-launch:completion-accounting"
+    ttl PT30S
+    renew_every PT10S
+    holder worker_id
+    fencing_token true
+    max_ttl PT5M
+  }
+
+  workflow WorkflowLaunchAdmission {
+    version 1
+    singleton true
+    expected_execution_time PT2M
+    start reserve_capacity
+
+    step reserve_capacity {
+      expected_execution_time PT10S
+      max_retries 10
+    }
+
+    step create_reservation {
+      expected_execution_time PT10S
+      max_retries 10
+    }
+
+    step start_workflow {
+      expected_execution_time PT20S
+      max_retries 10
+    }
+  }
+
+  workflow WorkflowCompletionAccounting {
+    version 1
+    singleton false
+    expected_execution_time PT1M
+    start mark_completed
+
+    step mark_completed {
+      expected_execution_time PT10S
+      max_retries 10
+    }
+
+    step release_capacity {
+      expected_execution_time PT10S
+      max_retries 10
+    }
+  }
+
+  worker WorkflowLaunchScheduler {
+    singleton true
+    lease WorkflowLaunchSchedulerLease
+    polls WorkflowLaunchQueue.LaunchWorkflow
+    executes WorkflowLaunchAdmission
+    concurrency 1
+  }
+
+  worker WorkflowCompletionAccountingWorker {
+    singleton true
+    lease WorkflowCompletionAccountingLease
+    polls WorkflowCompletionQueue.WorkflowCompleted
+    executes WorkflowCompletionAccounting
+    concurrency 1
+  }
+
+  api RequestWorkflowLaunch {
+    method POST
+    path "/v1/tenants/{tenantId}/workflow-launches"
+    input RequestWorkflowLaunchRequest
+    output WorkflowLaunchAcceptedResponse
+    error ProblemDetails
+    enqueues WorkflowLaunchQueue.LaunchWorkflow
+  }
+
+  api ReportWorkflowCompleted {
+    method POST
+    path "/internal/v1/tenants/{tenantId}/workflow-completions"
+    input WorkflowCompletedRequest
+    output WorkflowCompletedResponse
+    error ProblemDetails
+    enqueues WorkflowCompletionQueue.WorkflowCompleted
+  }
+
+  policy WorkflowLaunchAccess {
+    tenant scoped_by tenant_id
+    allow RequestWorkflowLaunch when caller.role == operator;
+    allow ReportWorkflowCompleted when caller.role == worker;
+    deny RequestWorkflowLaunch when caller.suspended == true;
+    quota workflow_launches_per_minute: 60;
+    audit RequestWorkflowLaunch;
+    audit ReportWorkflowCompleted;
+  }
+}

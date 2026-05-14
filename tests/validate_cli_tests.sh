@@ -3,6 +3,7 @@ set -eu
 
 CLI="$1"
 EXAMPLE="examples/order-system.sspec"
+LAUNCH_CONTROL_EXAMPLE="examples/workflow-launch-control.sspec"
 TMPDIR="$(mktemp -d)"
 cleanup() {
     rm -rf "$TMPDIR"
@@ -99,5 +100,8 @@ grep -F "valid" "$TMPDIR/valid-output.txt" >/dev/null
 
 "$CLI" validate "$EXAMPLE" > "$TMPDIR/example-output.txt" 2>&1
 grep -F "valid" "$TMPDIR/example-output.txt" >/dev/null
+
+"$CLI" validate "$LAUNCH_CONTROL_EXAMPLE" > "$TMPDIR/launch-control-output.txt" 2>&1
+grep -F "valid" "$TMPDIR/launch-control-output.txt" >/dev/null
 
 echo "validate CLI tests passed"

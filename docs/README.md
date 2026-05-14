@@ -15,6 +15,7 @@ policies. A `.sspec` file should be treated as the source of truth for system be
 | [entities-and-state.md](entities-and-state.md) | Entity, field, key, state machine, relationship, invariant, and index authoring. |
 | [queues-leases-workers.md](queues-leases-workers.md) | Durable queue, message, lease, and worker declarations. |
 | [workflows-and-apis.md](workflows-and-apis.md) | Workflow, step, API, behavior, and orchestration declarations. |
+| [workflow-launch-control.md](workflow-launch-control.md) | Durable launch queue, capacity, reservation, and singleton scheduler pattern for rate-controlled workflow starts. |
 | [feature-flags.md](feature-flags.md) | Feature flag declarations, rollout scopes, and expression usage. |
 | [policies.md](policies.md) | Policy authoring for tenant scoping, authorization rules, quotas, and audit points. |
 | [generators.md](generators.md) | CLI-selected binding generation and expected output layout. |
