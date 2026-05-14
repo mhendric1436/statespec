@@ -46,16 +46,18 @@ GenerationResult generate_bindings(
         return GenerationResult{};
     }
 
+    const auto system = lower_to_ir(spec);
+
     switch (options.language)
     {
     case BindingLanguage::Cpp:
-        return generate_cpp_bindings(spec, options, diagnostics);
+        return generate_cpp_bindings(system, options, diagnostics);
     case BindingLanguage::Go:
-        return generate_go_bindings(spec, options, diagnostics);
+        return generate_go_bindings(system, options, diagnostics);
     case BindingLanguage::Java:
-        return generate_java_bindings(spec, options, diagnostics);
+        return generate_java_bindings(system, options, diagnostics);
     case BindingLanguage::Rust:
-        return generate_rust_bindings(spec, options, diagnostics);
+        return generate_rust_bindings(system, options, diagnostics);
     }
 
     diagnostics.error(SourceRange{}, "SSPEC5104", "unsupported binding generator language");

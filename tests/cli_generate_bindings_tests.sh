@@ -12,6 +12,21 @@ trap cleanup EXIT
 SPEC="$TMPDIR/minimal.sspec"
 cat > "$SPEC" <<'SSPEC'
 system Demo {
+  feature_flag NewScheduler {
+    type bool
+    default false
+    scope tenant
+    owner "platform"
+    description "Route order processing through the new scheduler"
+    expires "2026-12-31"
+  }
+
+  feature_flag MaxPendingOrders {
+    type int
+    default 100
+    scope tenant
+  }
+
   entity Order {
     key tenant_id, order_id
     fields {
@@ -126,6 +141,8 @@ assert_file_exists "$TMPDIR/out-cpp/lease.hpp"
 assert_file_exists "$TMPDIR/out-cpp/queue.hpp"
 assert_file_exists "$TMPDIR/out-cpp/workflow.hpp"
 assert_file_exists "$TMPDIR/out-cpp/system_descriptors.hpp"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "FeatureFlagDefinition"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "feature_flag_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "CollectionDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "queue_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "lease_definitions"
@@ -134,6 +151,8 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EmailDispatch"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderReconciler"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderProcessing"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "validate_order"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "NewScheduler"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "MaxPendingOrders"
 
 # Positive generation: Go.
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
@@ -143,6 +162,8 @@ assert_file_exists "$TMPDIR/out-go/backend/lease.go"
 assert_file_exists "$TMPDIR/out-go/backend/queue.go"
 assert_file_exists "$TMPDIR/out-go/backend/workflow.go"
 assert_file_exists "$TMPDIR/out-go/backend/descriptors.go"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type FeatureFlagDefinition struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func FeatureFlagDefinitions() []FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func CollectionDescriptors() []CollectionDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func QueueDefinitions() []QueueDefinition"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func LeaseDefinitions() []LeaseDefinition"
@@ -151,6 +172,8 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "EmailDispatch"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "OrderReconciler"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "WorkflowVersion: 2"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "validate_order"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "NewScheduler"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "DefaultValue: \"false\""
 
 # Positive generation: Java.
 run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
@@ -161,6 +184,8 @@ assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Queue.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Workflow.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "class Descriptors"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record FeatureFlagDefinition"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "featureFlagDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "queueDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "leaseDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflowDefinitions"
@@ -168,6 +193,7 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "OrderReconciler"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "2L"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "validate_order"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "NewScheduler"
 
 # Positive generation: Rust.
 run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
@@ -177,6 +203,8 @@ assert_file_exists "$TMPDIR/out-rust/lease.rs"
 assert_file_exists "$TMPDIR/out-rust/queue.rs"
 assert_file_exists "$TMPDIR/out-rust/workflow.rs"
 assert_file_exists "$TMPDIR/out-rust/descriptors.rs"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct FeatureFlagDefinition"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn feature_flag_definitions() -> Vec<FeatureFlagDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn collection_descriptors() -> Vec<CollectionDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn queue_definitions() -> Vec<QueueDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn lease_definitions() -> Vec<LeaseDefinition>"
@@ -185,6 +213,7 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "EmailDispatch"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderReconciler"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "workflow_version: 2"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "validate_order"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "NewScheduler"
 
 # Default output directories.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC"

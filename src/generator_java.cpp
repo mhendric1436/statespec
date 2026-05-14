@@ -148,7 +148,7 @@ std::string optional_duration_expr(const std::optional<std::string>& value)
                              : "Optional.empty()";
 }
 
-std::string generate_descriptors_java(const Spec& spec)
+std::string generate_descriptors_java(const IrSystem& system)
 {
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
@@ -171,16 +171,42 @@ std::string generate_descriptors_java(const Spec& spec)
     out << "        boolean fencingToken,\n";
     out << "        Optional<Duration> maxTtl\n";
     out << "    ) {}\n\n";
+    out << "    public record FeatureFlagDefinition(\n";
+    out << "        String name,\n";
+    out << "        String type,\n";
+    out << "        String defaultValue,\n";
+    out << "        String scope,\n";
+    out << "        Optional<String> owner,\n";
+    out << "        Optional<String> description,\n";
+    out << "        Optional<String> expires\n";
+    out << "    ) {}\n\n";
+
+    out << "    public static List<FeatureFlagDefinition> featureFlagDefinitions() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t i = 0; i < system.feature_flags.size(); ++i)
+    {
+        const auto& flag = system.feature_flags[i];
+        out << "            new FeatureFlagDefinition(\n";
+        out << "                " << java_string(flag.name) << ",\n";
+        out << "                " << java_string(flag.type) << ",\n";
+        out << "                " << java_string(flag.default_value) << ",\n";
+        out << "                " << java_string(flag.scope) << ",\n";
+        out << "                " << optional_string_expr(flag.owner) << ",\n";
+        out << "                " << optional_string_expr(flag.description) << ",\n";
+        out << "                " << optional_string_expr(flag.expires) << "\n";
+        out << "            )" << (i + 1 < system.feature_flags.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
 
     out << "    public static List<CollectionDescriptor> collectionDescriptors() {\n";
     out << "        return List.of(\n";
 
-    if (spec.system.has_value())
+    if (!system.entities.empty())
     {
-        for (std::size_t entity_index = 0; entity_index < spec.system->entities.size();
-             ++entity_index)
+        for (std::size_t entity_index = 0; entity_index < system.entities.size(); ++entity_index)
         {
-            const auto& entity = spec.system->entities[entity_index];
+            const auto& entity = system.entities[entity_index];
             out << "            new CollectionDescriptor(\n";
             out << "                " << java_string(entity.name) << ",\n";
             out << "                List.of(\n";
@@ -206,7 +232,7 @@ std::string generate_descriptors_java(const Spec& spec)
             out << "                List.of(),\n";
             out << "                1L\n";
             out << "            )";
-            out << (entity_index + 1 < spec.system->entities.size() ? "," : "") << "\n";
+            out << (entity_index + 1 < system.entities.size() ? "," : "") << "\n";
         }
     }
 
@@ -215,11 +241,11 @@ std::string generate_descriptors_java(const Spec& spec)
 
     out << "    public static List<QueueDefinition> queueDefinitions() {\n";
     out << "        return List.of(\n";
-    if (spec.system.has_value())
+    if (!system.queues.empty())
     {
-        for (std::size_t i = 0; i < spec.system->queues.size(); ++i)
+        for (std::size_t i = 0; i < system.queues.size(); ++i)
         {
-            const auto& queue = spec.system->queues[i];
+            const auto& queue = system.queues[i];
             out << "            new QueueDefinition(\n";
             out << "                " << java_string(queue.name) << ",\n";
             out << "                " << java_string(queue.channel.value_or("default")) << ",\n";
@@ -228,7 +254,7 @@ std::string generate_descriptors_java(const Spec& spec)
             out << "                " << queue.max_attempts.value_or(1) << ",\n";
             out << "                " << optional_string_expr(queue.dead_letter) << ",\n";
             out << "                \"{}\"\n";
-            out << "            )" << (i + 1 < spec.system->queues.size() ? "," : "") << "\n";
+            out << "            )" << (i + 1 < system.queues.size() ? "," : "") << "\n";
         }
     }
     out << "        );\n";
@@ -236,11 +262,11 @@ std::string generate_descriptors_java(const Spec& spec)
 
     out << "    public static List<LeaseDefinition> leaseDefinitions() {\n";
     out << "        return List.of(\n";
-    if (spec.system.has_value())
+    if (!system.leases.empty())
     {
-        for (std::size_t i = 0; i < spec.system->leases.size(); ++i)
+        for (std::size_t i = 0; i < system.leases.size(); ++i)
         {
-            const auto& lease = spec.system->leases[i];
+            const auto& lease = system.leases[i];
             out << "            new LeaseDefinition(\n";
             out << "                " << java_string(lease.name) << ",\n";
             out << "                " << optional_string_expr(lease.resource) << ",\n";
@@ -251,7 +277,7 @@ std::string generate_descriptors_java(const Spec& spec)
             out << "                " << (lease.fencing_token.value_or(false) ? "true" : "false")
                 << ",\n";
             out << "                " << optional_duration_expr(lease.max_ttl) << "\n";
-            out << "            )" << (i + 1 < spec.system->leases.size() ? "," : "") << "\n";
+            out << "            )" << (i + 1 < system.leases.size() ? "," : "") << "\n";
         }
     }
     out << "        );\n";
@@ -259,11 +285,11 @@ std::string generate_descriptors_java(const Spec& spec)
 
     out << "    public static List<WorkflowDefinition> workflowDefinitions() {\n";
     out << "        return List.of(\n";
-    if (spec.system.has_value())
+    if (!system.workflows.empty())
     {
-        for (std::size_t i = 0; i < spec.system->workflows.size(); ++i)
+        for (std::size_t i = 0; i < system.workflows.size(); ++i)
         {
-            const auto& workflow = spec.system->workflows[i];
+            const auto& workflow = system.workflows[i];
             out << "            new WorkflowDefinition(\n";
             out << "                " << java_string(workflow.name) << ",\n";
             out << "                " << workflow.version.value_or(1) << "L,\n";
@@ -284,7 +310,7 @@ std::string generate_descriptors_java(const Spec& spec)
             }
             out << "                ),\n";
             out << "                \"{}\"\n";
-            out << "            )" << (i + 1 < spec.system->workflows.size() ? "," : "") << "\n";
+            out << "            )" << (i + 1 < system.workflows.size() ? "," : "") << "\n";
         }
     }
     out << "        );\n";
@@ -296,7 +322,7 @@ std::string generate_descriptors_java(const Spec& spec)
 } // namespace
 
 GenerationResult generate_java_bindings(
-    const Spec& spec,
+    const IrSystem& system,
     const BindingGeneratorOptions& options,
     DiagnosticBag& diagnostics
 )
@@ -327,7 +353,7 @@ GenerationResult generate_java_bindings(
         result.files.push_back(
             GeneratedFile{
                 (options.output_dir / "com/statespec/generated/Descriptors.java").string(),
-                generate_descriptors_java(spec),
+                generate_descriptors_java(system),
             }
         );
     }

@@ -4,6 +4,7 @@
 #include "statespec/binding_language.hpp"
 #include "statespec/diagnostic.hpp"
 #include "statespec/generator.hpp"
+#include "statespec/ir.hpp"
 
 #include <filesystem>
 
@@ -23,25 +24,25 @@ GenerationResult generate_bindings(
 );
 
 GenerationResult generate_cpp_bindings(
-    const Spec& spec,
+    const IrSystem& system,
     const BindingGeneratorOptions& options,
     DiagnosticBag& diagnostics
 );
 
 GenerationResult generate_go_bindings(
-    const Spec& spec,
+    const IrSystem& system,
     const BindingGeneratorOptions& options,
     DiagnosticBag& diagnostics
 );
 
 GenerationResult generate_java_bindings(
-    const Spec& spec,
+    const IrSystem& system,
     const BindingGeneratorOptions& options,
     DiagnosticBag& diagnostics
 );
 
 GenerationResult generate_rust_bindings(
-    const Spec& spec,
+    const IrSystem& system,
     const BindingGeneratorOptions& options,
     DiagnosticBag& diagnostics
 );

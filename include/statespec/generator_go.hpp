@@ -6,7 +6,7 @@ namespace statespec
 {
 
 GenerationResult generate_go_bindings(
-    const Spec& spec,
+    const IrSystem& system,
     const BindingGeneratorOptions& options,
     DiagnosticBag& diagnostics
 );

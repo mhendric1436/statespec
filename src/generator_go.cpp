@@ -150,7 +150,7 @@ std::string duration_ptr_expr(const std::optional<std::string>& value)
     return "durationPtr(" + std::to_string(parse_duration_seconds(value)) + " * time.Second)";
 }
 
-std::string generate_descriptors_go(const Spec& spec)
+std::string generate_descriptors_go(const IrSystem& system)
 {
     std::ostringstream out;
     out << "package backend\n\n";
@@ -164,41 +164,63 @@ std::string generate_descriptors_go(const Spec& spec)
     out << "\tFencingToken bool\n";
     out << "\tMaxTTL *time.Duration\n";
     out << "}\n\n";
+    out << "type FeatureFlagDefinition struct {\n";
+    out << "\tName string\n";
+    out << "\tType string\n";
+    out << "\tDefaultValue string\n";
+    out << "\tScope string\n";
+    out << "\tOwner *string\n";
+    out << "\tDescription *string\n";
+    out << "\tExpires *string\n";
+    out << "}\n\n";
     out << "func stringPtr(value string) *string { return &value }\n";
     out << "func durationPtr(value time.Duration) *time.Duration { return &value }\n\n";
+
+    out << "func FeatureFlagDefinitions() []FeatureFlagDefinition {\n";
+    out << "\treturn []FeatureFlagDefinition{\n";
+    for (const auto& flag : system.feature_flags)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(flag.name) << ",\n";
+        out << "\t\t\tType: " << go_string(flag.type) << ",\n";
+        out << "\t\t\tDefaultValue: " << go_string(flag.default_value) << ",\n";
+        out << "\t\t\tScope: " << go_string(flag.scope) << ",\n";
+        out << "\t\t\tOwner: " << string_ptr_expr(flag.owner) << ",\n";
+        out << "\t\t\tDescription: " << string_ptr_expr(flag.description) << ",\n";
+        out << "\t\t\tExpires: " << string_ptr_expr(flag.expires) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
 
     out << "func CollectionDescriptors() []CollectionDescriptor {\n";
     out << "\treturn []CollectionDescriptor{\n";
 
-    if (spec.system.has_value())
+    for (const auto& entity : system.entities)
     {
-        for (const auto& entity : spec.system->entities)
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(entity.name) << ",\n";
+        out << "\t\t\tFields: []FieldDescriptor{\n";
+        for (const auto& field : entity.fields)
         {
-            out << "\t\t{\n";
-            out << "\t\t\tName: " << go_string(entity.name) << ",\n";
-            out << "\t\t\tFields: []FieldDescriptor{\n";
-            for (const auto& field : entity.fields)
-            {
-                out << "\t\t\t\t{Name: " << go_string(field.name)
-                    << ", Type: " << go_string(strip_optional_suffix(field.type))
-                    << ", Required: " << (is_optional_type(field.type) ? "false" : "true")
-                    << "},\n";
-            }
-            out << "\t\t\t},\n";
-            out << "\t\t\tKeyFields: []string{";
-            for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-            {
-                if (i > 0)
-                {
-                    out << ", ";
-                }
-                out << go_string(entity.key_fields[i]);
-            }
-            out << "},\n";
-            out << "\t\t\tIndexes: []IndexDescriptor{},\n";
-            out << "\t\t\tSchemaVersion: 1,\n";
-            out << "\t\t},\n";
+            out << "\t\t\t\t{Name: " << go_string(field.name)
+                << ", Type: " << go_string(strip_optional_suffix(field.type))
+                << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
         }
+        out << "\t\t\t},\n";
+        out << "\t\t\tKeyFields: []string{";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_string(entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "\t\t\tIndexes: []IndexDescriptor{},\n";
+        out << "\t\t\tSchemaVersion: 1,\n";
+        out << "\t\t},\n";
     }
 
     out << "\t}\n";
@@ -206,70 +228,61 @@ std::string generate_descriptors_go(const Spec& spec)
 
     out << "func QueueDefinitions() []QueueDefinition {\n";
     out << "\treturn []QueueDefinition{\n";
-    if (spec.system.has_value())
+    for (const auto& queue : system.queues)
     {
-        for (const auto& queue : spec.system->queues)
-        {
-            out << "\t\t{\n";
-            out << "\t\t\tQueue: " << go_string(queue.name) << ",\n";
-            out << "\t\t\tChannel: " << go_string(queue.channel.value_or("default")) << ",\n";
-            out << "\t\t\tVisibilityTimeout: " << parse_duration_seconds(queue.visibility_timeout)
-                << " * time.Second,\n";
-            out << "\t\t\tMaxAttempts: " << queue.max_attempts.value_or(1) << ",\n";
-            out << "\t\t\tDeadLetterQueue: " << string_ptr_expr(queue.dead_letter) << ",\n";
-            out << "\t\t\tMetadata: JSON(`{}`),\n";
-            out << "\t\t},\n";
-        }
+        out << "\t\t{\n";
+        out << "\t\t\tQueue: " << go_string(queue.name) << ",\n";
+        out << "\t\t\tChannel: " << go_string(queue.channel.value_or("default")) << ",\n";
+        out << "\t\t\tVisibilityTimeout: " << parse_duration_seconds(queue.visibility_timeout)
+            << " * time.Second,\n";
+        out << "\t\t\tMaxAttempts: " << queue.max_attempts.value_or(1) << ",\n";
+        out << "\t\t\tDeadLetterQueue: " << string_ptr_expr(queue.dead_letter) << ",\n";
+        out << "\t\t\tMetadata: JSON(`{}`),\n";
+        out << "\t\t},\n";
     }
     out << "\t}\n";
     out << "}\n\n";
 
     out << "func LeaseDefinitions() []LeaseDefinition {\n";
     out << "\treturn []LeaseDefinition{\n";
-    if (spec.system.has_value())
+    for (const auto& lease : system.leases)
     {
-        for (const auto& lease : spec.system->leases)
-        {
-            out << "\t\t{\n";
-            out << "\t\t\tName: " << go_string(lease.name) << ",\n";
-            out << "\t\t\tResource: " << string_ptr_expr(lease.resource) << ",\n";
-            out << "\t\t\tTTL: " << parse_duration_seconds(lease.ttl) << " * time.Second,\n";
-            out << "\t\t\tRenewEvery: " << duration_ptr_expr(lease.renew_every) << ",\n";
-            out << "\t\t\tHolder: " << string_ptr_expr(lease.holder) << ",\n";
-            out << "\t\t\tFencingToken: "
-                << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
-            out << "\t\t\tMaxTTL: " << duration_ptr_expr(lease.max_ttl) << ",\n";
-            out << "\t\t},\n";
-        }
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(lease.name) << ",\n";
+        out << "\t\t\tResource: " << string_ptr_expr(lease.resource) << ",\n";
+        out << "\t\t\tTTL: " << parse_duration_seconds(lease.ttl) << " * time.Second,\n";
+        out << "\t\t\tRenewEvery: " << duration_ptr_expr(lease.renew_every) << ",\n";
+        out << "\t\t\tHolder: " << string_ptr_expr(lease.holder) << ",\n";
+        out << "\t\t\tFencingToken: " << (lease.fencing_token.value_or(false) ? "true" : "false")
+            << ",\n";
+        out << "\t\t\tMaxTTL: " << duration_ptr_expr(lease.max_ttl) << ",\n";
+        out << "\t\t},\n";
     }
     out << "\t}\n";
     out << "}\n\n";
 
     out << "func WorkflowDefinitions() []WorkflowDefinition {\n";
     out << "\treturn []WorkflowDefinition{\n";
-    if (spec.system.has_value())
+    for (const auto& workflow : system.workflows)
     {
-        for (const auto& workflow : spec.system->workflows)
+        out << "\t\t{\n";
+        out << "\t\t\tWorkflowName: " << go_string(workflow.name) << ",\n";
+        out << "\t\t\tWorkflowVersion: " << workflow.version.value_or(1) << ",\n";
+        out << "\t\t\tStartStep: " << go_string(workflow.start_step.value_or("")) << ",\n";
+        out << "\t\t\tExpectedExecutionTime: "
+            << parse_duration_seconds(workflow.expected_execution_time) << " * time.Second,\n";
+        out << "\t\t\tSingleton: " << (workflow.singleton.value_or(false) ? "true" : "false")
+            << ",\n";
+        out << "\t\t\tSteps: []WorkflowStepDefinition{\n";
+        for (const auto& step : workflow.steps)
         {
-            out << "\t\t{\n";
-            out << "\t\t\tWorkflowName: " << go_string(workflow.name) << ",\n";
-            out << "\t\t\tWorkflowVersion: " << workflow.version.value_or(1) << ",\n";
-            out << "\t\t\tStartStep: " << go_string(workflow.start_step.value_or("")) << ",\n";
-            out << "\t\t\tExpectedExecutionTime: "
-                << parse_duration_seconds(workflow.expected_execution_time) << " * time.Second,\n";
-            out << "\t\t\tSingleton: " << (workflow.singleton.value_or(false) ? "true" : "false")
-                << ",\n";
-            out << "\t\t\tSteps: []WorkflowStepDefinition{\n";
-            for (const auto& step : workflow.steps)
-            {
-                out << "\t\t\t\t{Name: " << go_string(step.name) << ", ExpectedExecutionTime: "
-                    << parse_duration_seconds(step.expected_execution_time)
-                    << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
-            }
-            out << "\t\t\t},\n";
-            out << "\t\t\tMetadata: JSON(`{}`),\n";
-            out << "\t\t},\n";
+            out << "\t\t\t\t{Name: " << go_string(step.name) << ", ExpectedExecutionTime: "
+                << parse_duration_seconds(step.expected_execution_time)
+                << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
         }
+        out << "\t\t\t},\n";
+        out << "\t\t\tMetadata: JSON(`{}`),\n";
+        out << "\t\t},\n";
     }
     out << "\t}\n";
     out << "}\n";
@@ -279,7 +292,7 @@ std::string generate_descriptors_go(const Spec& spec)
 } // namespace
 
 GenerationResult generate_go_bindings(
-    const Spec& spec,
+    const IrSystem& system,
     const BindingGeneratorOptions& options,
     DiagnosticBag& diagnostics
 )
@@ -306,7 +319,7 @@ GenerationResult generate_go_bindings(
         result.files.push_back(
             GeneratedFile{
                 (options.output_dir / "backend/descriptors.go").string(),
-                generate_descriptors_go(spec),
+                generate_descriptors_go(system),
             }
         );
     }

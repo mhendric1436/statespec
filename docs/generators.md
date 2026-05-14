@@ -30,6 +30,25 @@ When `--out` is omitted, the CLI writes to `generated/<language>`.
 ./build/bin/statespec generate bindings --lang rust system.sspec --out build/generated/rust
 ```
 
+## Generated Metadata
+
+Binding generators consume the lowered StateSpec IR, not raw AST declarations. Feature
+flags are currently emitted as descriptor metadata in each binding target so downstream
+tools can inspect rollout configuration consistently.
+
+Generated feature flag metadata includes:
+
+- name
+- type
+- default value
+- scope
+- owner
+- description
+- expires
+
+Runtime feature flag storage and evaluation are not generated yet. Generated descriptors
+should be treated as passive metadata until runtime support is added.
+
 ## Authoring Guidelines
 
 - Keep generation choices in build scripts, CI, or developer commands.
