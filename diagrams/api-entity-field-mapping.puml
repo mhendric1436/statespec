@@ -1,0 +1,57 @@
+@startuml
+title StateSpec API Field To Entity Field Mapping
+
+skinparam shadowing false
+skinparam linetype ortho
+
+actor "API caller" as Caller
+
+package "API contract" {
+  rectangle "api StartOrder\nmethod POST\npath /v1/orders/{orderId}" as Api
+  rectangle "input shape\n- tenantId\n- orderId\n- requestedStatus\n- displayName" as Request
+}
+
+package "Generated handler" {
+  rectangle "canonical IR\nvalidated names and types" as IR
+  rectangle "field mapping\npath params\nbody fields\nauth / tenant context" as Mapping
+  rectangle "OCC transaction\nread version\nvalidate preconditions\nwrite mapped fields\ncommit" as Tx
+}
+
+package "Entity model" {
+  rectangle "entity Order\nkey tenant_id\nkey order_id\ncreated_at\nupdated_at\nstatus\nstate_machine\ndisplay_name" as Entity
+  rectangle "state_machine\ninitial state\nlegal transitions\nterminal states" as StateMachine
+}
+
+database "Versioned persisted state" as Store
+
+Caller --> Api : invokes endpoint
+Api --> Request : declares input
+Api --> IR : lowers to semantic model
+Request --> IR : contributes request fields
+IR --> Mapping : generator consumes IR
+
+Mapping --> Entity : tenantId -> tenant_id
+Mapping --> Entity : orderId -> order_id
+Mapping --> Entity : requestedStatus -> status
+Mapping --> Entity : displayName -> display_name
+Mapping --> Entity : tenant context -> ownership scope
+
+Entity *-- StateMachine
+Mapping --> Tx : applies inside transaction
+Tx --> Entity : creates or updates entity state
+Tx --> Store : optimistic concurrency commit
+
+note right of Mapping
+API-to-entity field mapping is generated
+from canonical IR, not inferred directly
+from raw .sspec text.
+end note
+
+note bottom of Entity
+Entity management fields are foundational:
+created_at, updated_at, status, and
+state_machine participate in lifecycle
+tracking and future garbage collection.
+end note
+
+@enduml
