@@ -15,7 +15,7 @@ test: $(JSON_TEST)
 
 build: $(JSON_TEST)
 
-$(JSON_TEST): json_test.cpp backend.hpp json.hpp $(CATCH_SRC)
+$(JSON_TEST): json_test.cpp backend.hpp feature_flag.hpp json.hpp $(CATCH_SRC)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party json_test.cpp $(CATCH_SRC) -o $@ $(LDFLAGS)
 

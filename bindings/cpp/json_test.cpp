@@ -1,4 +1,5 @@
 #include "backend.hpp"
+#include "feature_flag.hpp"
 
 #include "catch2/catch_amalgamated.hpp"
 
@@ -28,8 +29,8 @@ TEST_CASE("C++ binding JSON decodes escapes and unicode")
     );
 
     REQUIRE(parsed["text"].as_string() == std::string("line\nA\\\""));
-    REQUIRE(parsed["latin"].as_string() == u8"é");
-    REQUIRE(parsed["emoji"].as_string() == u8"😀");
+    REQUIRE(parsed["latin"].as_string() == std::string("\xC3\xA9"));
+    REQUIRE(parsed["emoji"].as_string() == std::string("\xF0\x9F\x98\x80"));
 }
 
 TEST_CASE("C++ binding JSON canonical string is stable")
@@ -61,16 +62,23 @@ TEST_CASE("C++ binding JSON rejects malformed input")
 {
     REQUIRE_THROWS_AS(statespec::backend::Json::parse(""), statespec::backend::JsonError);
     REQUIRE_THROWS_AS(statespec::backend::Json::parse("[1,]"), statespec::backend::JsonError);
-    REQUIRE_THROWS_AS(statespec::backend::Json::parse("{\"a\":1,\"a\":2}"), statespec::backend::JsonError);
+    REQUIRE_THROWS_AS(
+        statespec::backend::Json::parse("{\"a\":1,\"a\":2}"), statespec::backend::JsonError
+    );
     REQUIRE_THROWS_AS(statespec::backend::Json::parse("01"), statespec::backend::JsonError);
     REQUIRE_THROWS_AS(statespec::backend::Json::parse("-01"), statespec::backend::JsonError);
-    REQUIRE_THROWS_AS(statespec::backend::Json::parse("\"raw\nnewline\""), statespec::backend::JsonError);
-    REQUIRE_THROWS_AS(statespec::backend::Json::parse("\"\\uD800\""), statespec::backend::JsonError);
-    REQUIRE_THROWS_AS(statespec::backend::Json::parse("\"\\uDC00\""), statespec::backend::JsonError);
+    REQUIRE_THROWS_AS(
+        statespec::backend::Json::parse("\"raw\nnewline\""), statespec::backend::JsonError
+    );
+    REQUIRE_THROWS_AS(
+        statespec::backend::Json::parse("\"\\uD800\""), statespec::backend::JsonError
+    );
+    REQUIRE_THROWS_AS(
+        statespec::backend::Json::parse("\"\\uDC00\""), statespec::backend::JsonError
+    );
     REQUIRE_THROWS_AS(statespec::backend::Json::parse("1e9999"), statespec::backend::JsonError);
     REQUIRE_THROWS_AS(
-        statespec::backend::Json::object({{"a", 1}, {"a", 2}}),
-        statespec::backend::JsonError
+        statespec::backend::Json::object({{"a", 1}, {"a", 2}}), statespec::backend::JsonError
     );
     REQUIRE_THROWS_AS(
         statespec::backend::Json(std::numeric_limits<double>::infinity()),
@@ -112,4 +120,52 @@ TEST_CASE("C++ backend surfaces use typed JSON")
     REQUIRE(decimal_value.value.as_double() == 1.5);
     REQUIRE(!boolean_value.value.as_bool());
     REQUIRE(timestamp_value.value.as_string() == "2026-05-12T00:00:00Z");
+}
+
+TEST_CASE("C++ feature flag bindings expose typed values and metadata")
+{
+    auto bool_value = statespec::backend::FeatureFlagValue::bool_value(true);
+    auto string_value = statespec::backend::FeatureFlagValue::string_value("new");
+    auto integer_value = statespec::backend::FeatureFlagValue::integer_value(100);
+    auto decimal_value = statespec::backend::FeatureFlagValue::decimal_value(1.5);
+
+    REQUIRE(bool_value.type() == statespec::backend::FeatureFlagType::Bool);
+    REQUIRE(bool_value.as_bool().value());
+    REQUIRE(!bool_value.as_string().has_value());
+    REQUIRE(string_value.as_string() == "new");
+    REQUIRE(integer_value.as_integer() == 100);
+    REQUIRE(decimal_value.as_decimal() == 1.5);
+
+    statespec::backend::FeatureFlagDefinition definition{
+        .name = "NewScheduler",
+        .type = statespec::backend::FeatureFlagType::Bool,
+        .default_value = bool_value,
+        .scope = statespec::backend::FeatureFlagScopeKind::Tenant,
+        .owner = "platform",
+        .description = "Route through the new scheduler",
+        .expires = "2026-12-31",
+    };
+
+    REQUIRE(definition.name == "NewScheduler");
+    REQUIRE(definition.default_value.as_bool() == true);
+    REQUIRE(definition.scope == statespec::backend::FeatureFlagScopeKind::Tenant);
+
+    statespec::backend::FeatureFlagRegisterDefinitionResult registration{
+        .registered_new = true,
+        .definition = definition,
+    };
+    REQUIRE(registration.registered_new);
+    REQUIRE(registration.definition.name == "NewScheduler");
+
+    statespec::backend::FeatureFlagEvaluationContext context{
+        .tenant_id = "tenant-a",
+    };
+    statespec::backend::FeatureFlagEvaluationRequest request{
+        .name = "NewScheduler",
+        .context = context,
+    };
+
+    REQUIRE(context.tenant_id == "tenant-a");
+    REQUIRE(request.name == "NewScheduler");
+    REQUIRE(request.context.tenant_id == "tenant-a");
 }

@@ -12,6 +12,7 @@ public final class JsonTest {
         canonicalStringIsStable();
         rejectsMalformedInput();
         backendSurfacesUseTypedJson();
+        featureFlagBindingsExposeTypedValues();
     }
 
     private static void parsesObjectsAndArrays() {
@@ -78,6 +79,51 @@ public final class JsonTest {
 
         Backend.IndexValue.StringValue indexValue = new Backend.IndexValue.StringValue("alice@example.com");
         require(indexValue.value() instanceof Json.StringValue, "index value should expose typed JSON");
+    }
+
+    private static void featureFlagBindingsExposeTypedValues() {
+        FeatureFlag.Value.BoolValue boolValue = new FeatureFlag.Value.BoolValue(true);
+        FeatureFlag.Value.StringValue stringValue = new FeatureFlag.Value.StringValue("new");
+        FeatureFlag.Value.IntValue intValue = new FeatureFlag.Value.IntValue(100L);
+        FeatureFlag.Value.DecimalValue decimalValue = new FeatureFlag.Value.DecimalValue("1.5");
+
+        require(boolValue.type() == FeatureFlag.Type.BOOL, "bool value should expose bool type");
+        require(boolValue.asBool().orElse(false), "bool accessor should return value");
+        require(boolValue.asString().isEmpty(), "bool value should not expose string accessor");
+        require(stringValue.asString().orElseThrow().equals("new"), "string accessor should return value");
+        require(intValue.asInt().orElseThrow() == 100L, "int accessor should return value");
+        require(
+            decimalValue.asDecimal().orElseThrow().compareTo(new BigDecimal("1.5")) == 0,
+            "decimal accessor should return value"
+        );
+
+        FeatureFlag.Definition definition = new FeatureFlag.Definition(
+            "NewScheduler",
+            FeatureFlag.Type.BOOL,
+            new FeatureFlag.Value.BoolValue(false),
+            FeatureFlag.ScopeKind.TENANT,
+            Optional.of("platform"),
+            Optional.of("Route through the new scheduler"),
+            Optional.of("2026-12-31")
+        );
+        FeatureFlag.EvaluationContext context = new FeatureFlag.EvaluationContext(
+            Optional.of("tenant-a"),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty()
+        );
+
+        require(definition.name().equals("NewScheduler"), "definition should expose name");
+        require(definition.defaultValue().asBool().orElseThrow().equals(false), "definition should expose default");
+
+        FeatureFlag.RegisterDefinitionResult registration = new FeatureFlag.RegisterDefinitionResult(true, definition);
+        require(registration.registeredNew(), "registration should expose created state");
+        require(registration.definition().name().equals("NewScheduler"), "registration should expose definition");
+
+        FeatureFlag.EvaluationRequest request = new FeatureFlag.EvaluationRequest("NewScheduler", context);
+        require(context.tenantId().orElseThrow().equals("tenant-a"), "context should expose tenant");
+        require(request.name().equals("NewScheduler"), "request should expose flag name");
+        require(request.context().tenantId().orElseThrow().equals("tenant-a"), "request should expose context");
     }
 
     private static <T> T requireType(Object value, Class<T> type) {

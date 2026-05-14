@@ -8,6 +8,7 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`backend/backend.go`](backend/backend.go) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
+| [`backend/feature_flag.go`](backend/feature_flag.go) | Feature flag types, descriptors, evaluation requests, and runtime API. |
 | [`backend/json.go`](backend/json.go) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`backend/lease.go`](backend/lease.go) | Lease records and lease runtime API. |
 | [`backend/queue.go`](backend/queue.go) | Queue definitions, message records, and queue runtime API. |
@@ -150,6 +151,7 @@ Go uses `*Store` interface names:
 LeaseStore
 QueueStore
 WorkflowStore
+FeatureFlagStore
 ```
 
 Each runtime component supports two method styles.
@@ -179,7 +181,22 @@ These methods use the `Tx` suffix and take an existing `Transaction`.
 OperationTx(ctx, tx, request)
 ```
 
-Use these when composing multiple entity, lease, queue, or workflow operations into one transaction.
+Use these when composing multiple entity, lease, queue, workflow, or feature flag operations into one transaction.
+
+## Feature Flag API
+
+Defined in [`backend/feature_flag.go`](backend/feature_flag.go):
+
+```go
+RegisterDefinition(...)
+RegisterDefinitionTx(...)
+InspectDefinition(...)
+InspectDefinitionTx(...)
+Evaluate(...)
+EvaluateTx(...)
+```
+
+Feature flag evaluation is transaction-aware. Use `EvaluateTx(...)` when a workflow, queue, lease, or entity update must observe flags in the same optimistic-concurrency transaction.
 
 ## Lease API
 

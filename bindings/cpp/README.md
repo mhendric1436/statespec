@@ -8,6 +8,7 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`backend.hpp`](backend.hpp) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
+| [`feature_flag.hpp`](feature_flag.hpp) | Feature flag types, descriptors, evaluation requests, and runtime API. |
 | [`json.hpp`](json.hpp) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`lease.hpp`](lease.hpp) | Lease records and lease runtime API. |
 | [`queue.hpp`](queue.hpp) | Queue definitions, message records, and queue runtime API. |
@@ -166,6 +167,7 @@ C++ uses `I*Store` interface names:
 ILeaseStore
 IQueueStore
 IWorkflowStore
+IFeatureFlagStore
 ```
 
 Each runtime component supports two method styles.
@@ -196,7 +198,24 @@ These methods use the `Tx` suffix and take an existing `ITransaction&`.
 operationTx(ITransaction& tx, const Request& request)
 ```
 
-Use these when composing multiple entity, lease, queue, or workflow operations into one
+Use these when composing multiple entity, lease, queue, workflow, or feature flag
+operations into one transaction.
+
+## Feature Flag API
+
+Defined in [`feature_flag.hpp`](feature_flag.hpp):
+
+```cpp
+register_definition(...)
+register_definitionTx(...)
+inspect_definition(...)
+inspect_definitionTx(...)
+evaluate(...)
+evaluateTx(...)
+```
+
+Feature flag evaluation is transaction-aware. Use `evaluateTx(...)` when a workflow,
+queue, lease, or entity update must observe flags in the same optimistic-concurrency
 transaction.
 
 ## Lease API

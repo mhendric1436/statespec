@@ -8,6 +8,7 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`backend.rs`](backend.rs) | Core backend, transaction, collection, query, capability, and conflict traits/types. |
+| [`feature_flag.rs`](feature_flag.rs) | Feature flag types, descriptors, evaluation requests, and runtime API. |
 | [`json.rs`](json.rs) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`lease.rs`](lease.rs) | Lease records and lease runtime API. |
 | [`queue.rs`](queue.rs) | Queue definitions, message records, and queue runtime API. |
@@ -128,6 +129,7 @@ Rust uses `*Store` trait names:
 LeaseStore
 QueueStore
 WorkflowStore
+FeatureFlagStore
 ```
 
 Each runtime component supports two method styles.
@@ -157,7 +159,22 @@ These methods use the `_tx` suffix and take an existing transaction.
 operation_tx(&mut tx, &request)
 ```
 
-Use these when composing multiple entity, lease, queue, or workflow operations into one transaction.
+Use these when composing multiple entity, lease, queue, workflow, or feature flag operations into one transaction.
+
+## Feature Flag API
+
+Defined in [`feature_flag.rs`](feature_flag.rs):
+
+```rust
+register_definition(...)
+register_definition_tx(...)
+inspect_definition(...)
+inspect_definition_tx(...)
+evaluate(...)
+evaluate_tx(...)
+```
+
+Feature flag evaluation is transaction-aware. Use `evaluate_tx(...)` when a workflow, queue, lease, or entity update must observe flags in the same optimistic-concurrency transaction.
 
 ## Lease API
 
