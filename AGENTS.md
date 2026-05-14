@@ -149,18 +149,35 @@ Generated binding code must consume these transaction-aware interfaces. Generato
 
 ## Language Concepts
 
-StateSpec v0 includes these top-level concepts:
+StateSpec v0.1 includes these system-level concepts:
 
 - `system`
-- `state`
+- `tenant scoped_by`
+- `system_tenant configured`
+- `namespace`
 - `value`
+- `enum`
+- `shape`
 - `external_system`
+- `feature_flag`
 - `entity`
 - `event`
+- `queue`
+- `lease`
+- `worker`
 - `api`
 - `workflow`
+- `policy`
+- `annotations`
 
-Entities are durable system objects. Workflows describe asynchronous execution. APIs expose external contracts. Events connect APIs, workflows, and workers.
+`state` declarations are not top-level objects; they belong inside an entity
+`state_machine`.
+
+Entities are durable system objects. Feature flags model declared rollout and
+configuration switches. Queues and leases model durable runtime coordination. Workers
+bind execution to queues, leases, and workflows. Workflows describe asynchronous
+execution. APIs expose external contracts. Events connect APIs, workflows, and workers.
+Policies express authorization, tenancy, quota, and audit intent.
 
 ---
 
