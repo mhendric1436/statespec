@@ -1,5 +1,6 @@
 #include "statespec/binding_language.hpp"
 #include "statespec/diagnostic.hpp"
+#include "statespec/formatter.hpp"
 #include "statespec/generator.hpp"
 #include "statespec/generator_bindings.hpp"
 #include "statespec/lexer.hpp"
@@ -380,6 +381,35 @@ int validate_file(const std::string& path)
     return 0;
 }
 
+int fmt_file(
+    const std::string& path,
+    bool check
+)
+{
+    statespec::DiagnosticBag diagnostics;
+    const auto tokens = lex_file(path, diagnostics);
+    const auto formatted = statespec::format_tokens(tokens, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        print_diagnostics(diagnostics);
+        return 1;
+    }
+
+    if (check)
+    {
+        const auto original = read_file(path);
+        if (original != formatted)
+        {
+            std::cout << path << " is not formatted\n";
+            return 1;
+        }
+        return 0;
+    }
+
+    std::cout << formatted;
+    return 0;
+}
+
 GenerateBindingsArgs parse_generate_bindings_args(
     int argc,
     char** argv
@@ -475,6 +505,7 @@ void print_usage(std::ostream& out)
     out << "usage:\n";
     out << "  statespec help\n";
     out << "  statespec validate <file.sspec>\n";
+    out << "  statespec fmt [--check] <file.sspec>\n";
     out << "  statespec tokens <file.sspec>\n";
     out << "  statespec ast <file.sspec>\n";
     out << "  statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]\n";
@@ -516,6 +547,26 @@ int main(
         {
             const std::string path = argv[2];
             return argc == 3 ? validate_file(path) : (print_usage(), 2);
+        }
+        if (command == "fmt")
+        {
+            bool check = false;
+            std::string path;
+            if (argc == 3)
+            {
+                path = argv[2];
+            }
+            else if (argc == 4 && std::string{argv[2]} == "--check")
+            {
+                check = true;
+                path = argv[3];
+            }
+            else
+            {
+                print_usage();
+                return 2;
+            }
+            return fmt_file(path, check);
         }
         if (command == "tokens")
         {

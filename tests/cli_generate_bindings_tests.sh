@@ -109,6 +109,7 @@ assert_file_contains() {
 run_expect_status 0 "$CLI" help
 assert_output_contains "usage:"
 assert_output_contains "statespec help"
+assert_output_contains "statespec fmt [--check] <file.sspec>"
 assert_output_contains "statespec generate bindings --lang <cpp|go|java|rust>"
 
 run_expect_status 0 "$CLI" --help
