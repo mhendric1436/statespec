@@ -284,6 +284,24 @@ field_option            ::= "required" ":" BooleanLiteral ";"?
 (* State Machines                                               *)
 (* ============================================================ *)
 
+(*
+  Terminal-state garbage collection syntax shape:
+
+    state Deleted {
+      terminal: true
+      garbage_collection {
+        after: P30D
+        mode: tombstone
+      }
+    }
+
+  GC policy belongs to terminal states. Initial policy fields are:
+    - after: duration before collection eligibility
+    - mode: delete | tombstone | archive
+
+  Grammar productions for garbage_collection are introduced in the grammar update phase.
+*)
+
 state_machine_block     ::= "state_machine" state_machine_body ;
 
 state_machine_body      ::= "{"

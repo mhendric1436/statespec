@@ -112,6 +112,45 @@ state_machine {
 Prefer explicit `state`, `initial`, and `terminal` declarations for production specs
 because they make lifecycle intent easier to review.
 
+## Terminal Garbage Collection
+
+Terminal state garbage collection is modeled on the terminal state declaration. The
+canonical syntax shape is:
+
+```statespec
+state_machine {
+  state Creating
+  state Active
+  state Deleted {
+    terminal: true
+    garbage_collection {
+      after: P30D
+      mode: tombstone
+    }
+  }
+
+  initial Creating
+  terminal [Deleted]
+
+  Creating -> Active
+  Active -> Deleted
+}
+```
+
+Garbage collection policy belongs to the terminal state because cleanup eligibility is
+part of the entity lifecycle contract. It is not an annotation, workflow step, or
+backend-specific generator option.
+
+Initial policy fields:
+
+| Field | Meaning |
+|---|---|
+| `after` | Duration after entering the terminal state before the entity is eligible for collection. |
+| `mode` | Collection behavior. Initial modes are `delete`, `tombstone`, and `archive`. |
+
+For v0.1, advanced GC behavior such as cascade cleanup, archive targets, retained
+indexes, and backend-specific retention tuning is intentionally deferred.
+
 ## Relationships
 
 The grammar reserves relationship constructs for parent-child and reference models.
