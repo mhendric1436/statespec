@@ -2,6 +2,7 @@
 build/
 out/
 docs/*.png
+diagrams/*.png
 cmake-build-*/
 tags
 

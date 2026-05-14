@@ -1,0 +1,56 @@
+@startuml
+title StateSpec Compiler And Generation Pipeline
+
+skinparam shadowing false
+skinparam linetype ortho
+
+rectangle ".sspec text" as Text
+rectangle "Lexer" as Lexer
+rectangle "Parser" as Parser
+rectangle "AST" as AST
+rectangle "Semantic validator" as Validator
+rectangle "Symbol table" as Symbols
+rectangle "Canonical IR" as IR
+
+rectangle "Formatter" as Formatter
+rectangle "CLI" as CLI
+rectangle "LSP / IDE tools" as LSP
+rectangle "Generators" as Generators
+
+rectangle "C++ bindings" as Cpp
+rectangle "Go bindings" as Go
+rectangle "Java bindings" as Java
+rectangle "Rust bindings" as Rust
+rectangle "OpenAPI / protobuf / diagrams / tests" as Other
+
+Text --> Lexer
+Lexer --> Parser
+Parser --> AST
+AST --> Validator
+Validator --> Symbols
+Validator --> IR
+
+Lexer --> Formatter
+AST --> CLI
+IR --> CLI
+IR --> LSP
+IR --> Generators
+
+Generators --> Cpp
+Generators --> Go
+Generators --> Java
+Generators --> Rust
+Generators --> Other
+
+note right of Text
+Text is the source of truth.
+Visual tools and generated artifacts
+must derive from .sspec files.
+end note
+
+note right of IR
+Generators consume canonical IR,
+not raw AST or raw text.
+end note
+
+@enduml

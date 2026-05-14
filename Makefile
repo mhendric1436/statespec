@@ -1,5 +1,7 @@
 CXX ?= clang++
 CLANG_FORMAT ?= clang-format
+PLANTUML ?= plantuml
+PLANTUML_FLAGS ?= -DPLANTUML_LIMIT_SIZE=16384 -Xmx512m
 CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -Iinclude -Ithird_party
 LDFLAGS ?=
 
@@ -9,6 +11,9 @@ BIN_DIR := $(BUILD_DIR)/bin
 LIB := $(BUILD_DIR)/libstatespec.a
 CLI := $(BIN_DIR)/statespec
 TEST_BIN := $(BIN_DIR)/statespec_tests
+DIAGRAMS_DIR := diagrams
+PUML_FILES := $(wildcard $(DIAGRAMS_DIR)/*.puml)
+PNG_FILES := $(PUML_FILES:.puml=.png)
 
 HEADERS := $(wildcard include/statespec/*.hpp)
 SRC_ALL := $(wildcard src/*.cpp)
@@ -26,7 +31,7 @@ CATCH_OBJ := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CATCH_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d) $(CATCH_OBJ:.o=.d)
 
-.PHONY: all build cli check-build-tools test test-cli test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check clean help print-files
+.PHONY: all build cli check-build-tools test test-cli test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check diagrams-png clean help print-files
 
 all: test cli
 
@@ -131,6 +136,11 @@ format-bindings-rust:
 format-check:
 	$(CLANG_FORMAT) --dry-run --Werror $(FORMAT_FILES)
 
+diagrams-png: $(PNG_FILES)
+
+$(DIAGRAMS_DIR)/%.png: $(DIAGRAMS_DIR)/%.puml
+	$(PLANTUML) $(PLANTUML_FLAGS) -tpng $<
+
 print-files:
 	@echo "HEADERS=$(HEADERS)"
 	@echo "SRC_ALL=$(SRC_ALL)"
@@ -142,6 +152,7 @@ print-files:
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -f $(DIAGRAMS_DIR)/*.png
 	$(MAKE) -C bindings/cpp clean
 	$(MAKE) -C bindings/go clean
 	$(MAKE) -C bindings/java clean
@@ -162,6 +173,7 @@ help:
 	@echo "  make format              Format core source and all language bindings"
 	@echo "  make format-bindings     Format all language bindings"
 	@echo "  make format-check        Check formatting without modifying files"
+	@echo "  make diagrams-png        Generate PNG diagrams from diagrams/*.puml"
 	@echo "  make clean               Remove build outputs"
 	@echo "  make print-files         Show discovered source files"
 	@echo "  make help                Show this help"
@@ -171,6 +183,8 @@ help:
 	@echo "Variables:"
 	@echo "  CXX=$(CXX)"
 	@echo "  CLANG_FORMAT=$(CLANG_FORMAT)"
+	@echo "  PLANTUML=$(PLANTUML)"
+	@echo "  PLANTUML_FLAGS=$(PLANTUML_FLAGS)"
 	@echo "  CXXFLAGS=$(CXXFLAGS)"
 
 -include $(DEPS)

@@ -1,0 +1,50 @@
+@startuml
+title StateSpec Runtime Binding OCC Model
+
+skinparam shadowing false
+skinparam linetype ortho
+
+actor "Generated service / workflow" as Service
+
+interface "Backend / IBackend" as Backend
+interface "Transaction / ITransaction" as Tx
+
+component "Entity store" as Entity
+component "FeatureFlagStore" as FeatureFlags
+component "QueueStore" as Queue
+component "LeaseStore" as Lease
+component "WorkflowStore" as Workflow
+
+database "Versioned persisted state" as Store
+
+Service --> Backend : begin()
+Backend --> Tx : open transaction
+
+Service --> Entity : get / put via Tx
+Service --> FeatureFlags : evaluateTx(...)
+Service --> Queue : enqueueTx / claimTx(...)
+Service --> Lease : acquireTx / renewTx(...)
+Service --> Workflow : startTx / completeTx(...)
+
+Entity --> Tx
+FeatureFlags --> Tx
+Queue --> Tx
+Lease --> Tx
+Workflow --> Tx
+
+Tx --> Store : OCC reads and writes
+Service --> Backend : commit(tx)
+
+note bottom of Tx
+All persisted reads that affect behavior
+participate in the same optimistic
+concurrency transaction as writes.
+end note
+
+note right of FeatureFlags
+Feature flag evaluation is persisted-state
+access, so generated code uses Tx-aware
+binding APIs.
+end note
+
+@enduml

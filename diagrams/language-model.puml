@@ -1,0 +1,101 @@
+@startuml
+title StateSpec Language Model
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+package "StateSpec File" {
+  class System <<root>> {
+    name
+  }
+
+  class TenantScope {
+    scoped_by
+  }
+
+  class SystemTenant {
+    configured
+  }
+
+  class Namespace {
+    qualified_name
+  }
+
+  class Value
+  class Enum
+  class Shape
+  class ExternalSystem
+
+  class FeatureFlag {
+    type
+    default
+    scope
+  }
+
+  class Entity {
+    key
+    created_at
+    updated_at
+    status
+  }
+
+  class StateMachine
+  class State {
+    name
+    terminal
+  }
+
+  class GarbageCollectionPolicy {
+    after
+    mode
+  }
+
+  class Event
+  class Queue
+  class Message
+  class Lease
+  class Worker
+  class Api
+  class Workflow
+  class WorkflowStep
+  class Policy
+}
+
+System *-- TenantScope
+System *-- SystemTenant
+System *-- Namespace
+System *-- Value
+System *-- Enum
+System *-- Shape
+System *-- ExternalSystem
+System *-- FeatureFlag
+System *-- Entity
+System *-- Event
+System *-- Queue
+System *-- Lease
+System *-- Worker
+System *-- Api
+System *-- Workflow
+System *-- Policy
+
+Entity *-- StateMachine
+StateMachine *-- State
+State *-- GarbageCollectionPolicy : terminal cleanup
+
+Queue *-- Message
+Workflow *-- WorkflowStep
+
+Api ..> Workflow : starts
+Api ..> Queue : enqueues
+Worker ..> Queue : polls
+Worker ..> Lease : holds
+Worker ..> Workflow : executes
+Policy ..> Api : allows / denies / audits
+Workflow ..> Entity : loads / mutates
+Workflow ..> Queue : enqueues
+Workflow ..> Lease : acquires / renews / releases
+FeatureFlag ..> Entity : optional entity scope
+
+@enduml
