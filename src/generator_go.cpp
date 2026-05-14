@@ -173,6 +173,22 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tDescription *string\n";
     out << "\tExpires *string\n";
     out << "}\n\n";
+    out << "type GarbageCollectionPolicy struct {\n";
+    out << "\tAfter string\n";
+    out << "\tMode string\n";
+    out << "}\n\n";
+    out << "type EntityStateDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tTerminal bool\n";
+    out << "\tGarbageCollection *GarbageCollectionPolicy\n";
+    out << "}\n\n";
+    out << "type EntityDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tKeyFields []string\n";
+    out << "\tStates []EntityStateDescriptor\n";
+    out << "\tInitialState *string\n";
+    out << "\tTerminalStates []string\n";
+    out << "}\n\n";
     out << "func stringPtr(value string) *string { return &value }\n";
     out << "func durationPtr(value time.Duration) *time.Duration { return &value }\n\n";
 
@@ -188,6 +204,57 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tOwner: " << string_ptr_expr(flag.owner) << ",\n";
         out << "\t\t\tDescription: " << string_ptr_expr(flag.description) << ",\n";
         out << "\t\t\tExpires: " << string_ptr_expr(flag.expires) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func EntityDescriptors() []EntityDescriptor {\n";
+    out << "\treturn []EntityDescriptor{\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(entity.name) << ",\n";
+        out << "\t\t\tKeyFields: []string{";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_string(entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "\t\t\tStates: []EntityStateDescriptor{\n";
+        for (const auto& state : entity.states)
+        {
+            out << "\t\t\t\t{\n";
+            out << "\t\t\t\t\tName: " << go_string(state.name) << ",\n";
+            out << "\t\t\t\t\tTerminal: " << (state.terminal ? "true" : "false") << ",\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "\t\t\t\t\tGarbageCollection: &GarbageCollectionPolicy{After: "
+                    << go_string(state.garbage_collection->after)
+                    << ", Mode: " << go_string(state.garbage_collection->mode) << "},\n";
+            }
+            else
+            {
+                out << "\t\t\t\t\tGarbageCollection: nil,\n";
+            }
+            out << "\t\t\t\t},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t\tInitialState: " << string_ptr_expr(entity.initial_state) << ",\n";
+        out << "\t\t\tTerminalStates: []string{";
+        for (std::size_t i = 0; i < entity.terminal_states.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_string(entity.terminal_states[i]);
+        }
+        out << "},\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";

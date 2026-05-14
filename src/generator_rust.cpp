@@ -175,6 +175,25 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub description: Option<String>,\n";
     out << "    pub expires: Option<String>,\n";
     out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct GarbageCollectionPolicy {\n";
+    out << "    pub after: String,\n";
+    out << "    pub mode: String,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct EntityStateDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub terminal: bool,\n";
+    out << "    pub garbage_collection: Option<GarbageCollectionPolicy>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct EntityDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub key_fields: Vec<String>,\n";
+    out << "    pub states: Vec<EntityStateDescriptor>,\n";
+    out << "    pub initial_state: Option<String>,\n";
+    out << "    pub terminal_states: Vec<String>,\n";
+    out << "}\n\n";
 
     out << "pub fn feature_flag_definitions() -> Vec<FeatureFlagDefinition> {\n";
     out << "    vec![\n";
@@ -189,6 +208,59 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            owner: " << optional_string_expr(flag.owner) << ",\n";
         out << "            description: " << optional_string_expr(flag.description) << ",\n";
         out << "            expires: " << optional_string_expr(flag.expires) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn entity_descriptors() -> Vec<EntityDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "        EntityDescriptor {\n";
+        out << "            name: " << rust_string(entity.name) << ".to_string(),\n";
+        out << "            key_fields: vec![";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_string(entity.key_fields[i]) << ".to_string()";
+        }
+        out << "],\n";
+        out << "            states: vec![\n";
+        for (const auto& state : entity.states)
+        {
+            out << "                EntityStateDescriptor {\n";
+            out << "                    name: " << rust_string(state.name) << ".to_string(),\n";
+            out << "                    terminal: " << (state.terminal ? "true" : "false") << ",\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "                    garbage_collection: Some(GarbageCollectionPolicy { "
+                       "after: "
+                    << rust_string(state.garbage_collection->after)
+                    << ".to_string(), mode: " << rust_string(state.garbage_collection->mode)
+                    << ".to_string() }),\n";
+            }
+            else
+            {
+                out << "                    garbage_collection: None,\n";
+            }
+            out << "                },\n";
+        }
+        out << "            ],\n";
+        out << "            initial_state: " << optional_string_expr(entity.initial_state) << ",\n";
+        out << "            terminal_states: vec![";
+        for (std::size_t i = 0; i < entity.terminal_states.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_string(entity.terminal_states[i]) << ".to_string()";
+        }
+        out << "],\n";
         out << "        },\n";
     }
     out << "    ]\n";

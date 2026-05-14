@@ -180,6 +180,22 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        Optional<String> description,\n";
     out << "        Optional<String> expires\n";
     out << "    ) {}\n\n";
+    out << "    public record GarbageCollectionPolicy(\n";
+    out << "        String after,\n";
+    out << "        String mode\n";
+    out << "    ) {}\n\n";
+    out << "    public record EntityStateDescriptor(\n";
+    out << "        String name,\n";
+    out << "        boolean terminal,\n";
+    out << "        Optional<GarbageCollectionPolicy> garbageCollection\n";
+    out << "    ) {}\n\n";
+    out << "    public record EntityDescriptor(\n";
+    out << "        String name,\n";
+    out << "        List<String> keyFields,\n";
+    out << "        List<EntityStateDescriptor> states,\n";
+    out << "        Optional<String> initialState,\n";
+    out << "        List<String> terminalStates\n";
+    out << "    ) {}\n\n";
 
     out << "    public static List<FeatureFlagDefinition> featureFlagDefinitions() {\n";
     out << "        return List.of(\n";
@@ -195,6 +211,59 @@ std::string generate_descriptors_java(const IrSystem& system)
         out << "                " << optional_string_expr(flag.description) << ",\n";
         out << "                " << optional_string_expr(flag.expires) << "\n";
         out << "            )" << (i + 1 < system.feature_flags.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static List<EntityDescriptor> entityDescriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t entity_index = 0; entity_index < system.entities.size(); ++entity_index)
+    {
+        const auto& entity = system.entities[entity_index];
+        out << "            new EntityDescriptor(\n";
+        out << "                " << java_string(entity.name) << ",\n";
+        out << "                List.of(";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << java_string(entity.key_fields[i]);
+        }
+        out << "),\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < entity.states.size(); ++i)
+        {
+            const auto& state = entity.states[i];
+            out << "                    new EntityStateDescriptor(\n";
+            out << "                        " << java_string(state.name) << ",\n";
+            out << "                        " << (state.terminal ? "true" : "false") << ",\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "                        Optional.of(new GarbageCollectionPolicy("
+                    << java_string(state.garbage_collection->after) << ", "
+                    << java_string(state.garbage_collection->mode) << "))\n";
+            }
+            else
+            {
+                out << "                        Optional.empty()\n";
+            }
+            out << "                    )" << (i + 1 < entity.states.size() ? "," : "") << "\n";
+        }
+        out << "                ),\n";
+        out << "                " << optional_string_expr(entity.initial_state) << ",\n";
+        out << "                List.of(";
+        for (std::size_t i = 0; i < entity.terminal_states.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << java_string(entity.terminal_states[i]);
+        }
+        out << ")\n";
+        out << "            )" << (entity_index + 1 < system.entities.size() ? "," : "") << "\n";
     }
     out << "        );\n";
     out << "    }\n\n";

@@ -182,6 +182,28 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<std::string> expires;\n";
     out << "};\n\n";
 
+    out << "struct GarbageCollectionPolicy\n";
+    out << "{\n";
+    out << "    std::string after;\n";
+    out << "    std::string mode;\n";
+    out << "};\n\n";
+
+    out << "struct EntityStateDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    bool terminal = false;\n";
+    out << "    std::optional<GarbageCollectionPolicy> garbage_collection;\n";
+    out << "};\n\n";
+
+    out << "struct EntityDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::vector<std::string> key_fields;\n";
+    out << "    std::vector<EntityStateDescriptor> states;\n";
+    out << "    std::optional<std::string> initial_state;\n";
+    out << "    std::vector<std::string> terminal_states;\n";
+    out << "};\n\n";
+
     out << "inline std::vector<FeatureFlagDefinition> feature_flag_definitions()\n";
     out << "{\n";
     out << "    return {\n";
@@ -195,6 +217,58 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            " << optional_string_expr(flag.owner) << ",\n";
         out << "            " << optional_string_expr(flag.description) << ",\n";
         out << "            " << optional_string_expr(flag.expires) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<EntityDescriptor> entity_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "        EntityDescriptor{\n";
+        out << "            " << cpp_string(entity.name) << ",\n";
+        out << "            {";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_string(entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "            {\n";
+        for (const auto& state : entity.states)
+        {
+            out << "                EntityStateDescriptor{\n";
+            out << "                    " << cpp_string(state.name) << ",\n";
+            out << "                    " << (state.terminal ? "true" : "false") << ",\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "                    std::optional<GarbageCollectionPolicy>{"
+                    << "GarbageCollectionPolicy{" << cpp_string(state.garbage_collection->after)
+                    << ", " << cpp_string(state.garbage_collection->mode) << "}},\n";
+            }
+            else
+            {
+                out << "                    std::nullopt,\n";
+            }
+            out << "                },\n";
+        }
+        out << "            },\n";
+        out << "            " << optional_string_expr(entity.initial_state) << ",\n";
+        out << "            {";
+        for (std::size_t i = 0; i < entity.terminal_states.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_string(entity.terminal_states[i]);
+        }
+        out << "},\n";
         out << "        },\n";
     }
     out << "    };\n";

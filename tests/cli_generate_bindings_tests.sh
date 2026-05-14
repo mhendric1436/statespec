@@ -40,7 +40,13 @@ system Demo {
     state_machine {
       state Pending
       state Active
-      state Failed { terminal: true }
+      state Failed {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
       initial Pending
       terminal Failed
       Pending -> Active
@@ -154,6 +160,9 @@ assert_file_exists "$TMPDIR/out-cpp/workflow.hpp"
 assert_file_exists "$TMPDIR/out-cpp/system_descriptors.hpp"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "feature_flag_definitions"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "GarbageCollectionPolicy"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityStateDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "entity_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "CollectionDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "queue_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "lease_definitions"
@@ -164,6 +173,8 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderProcessing"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "validate_order"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "NewScheduler"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "MaxPendingOrders"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"P30D\""
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"tombstone\""
 
 # Positive generation: Go.
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
@@ -175,6 +186,9 @@ assert_file_exists "$TMPDIR/out-go/backend/workflow.go"
 assert_file_exists "$TMPDIR/out-go/backend/descriptors.go"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type FeatureFlagDefinition struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func FeatureFlagDefinitions() []FeatureFlagDefinition"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type GarbageCollectionPolicy struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityStateDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func EntityDescriptors() []EntityDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func CollectionDescriptors() []CollectionDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func QueueDefinitions() []QueueDefinition"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func LeaseDefinitions() []LeaseDefinition"
@@ -185,6 +199,7 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "WorkflowVersion: 2
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "validate_order"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "NewScheduler"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "DefaultValue: \"false\""
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "GarbageCollection: &GarbageCollectionPolicy{After: \"P30D\", Mode: \"tombstone\"}"
 
 # Positive generation: Java.
 run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
@@ -196,6 +211,9 @@ assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Workflow.java"
 assert_file_exists "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "class Descriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record FeatureFlagDefinition"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record GarbageCollectionPolicy"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityStateDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "entityDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "featureFlagDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "queueDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "leaseDefinitions"
@@ -205,6 +223,7 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "2L"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "validate_order"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "NewScheduler"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "new GarbageCollectionPolicy(\"P30D\", \"tombstone\")"
 
 # Positive generation: Rust.
 run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
@@ -216,6 +235,9 @@ assert_file_exists "$TMPDIR/out-rust/workflow.rs"
 assert_file_exists "$TMPDIR/out-rust/descriptors.rs"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn feature_flag_definitions() -> Vec<FeatureFlagDefinition>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct GarbageCollectionPolicy"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityStateDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn entity_descriptors() -> Vec<EntityDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn collection_descriptors() -> Vec<CollectionDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn queue_definitions() -> Vec<QueueDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn lease_definitions() -> Vec<LeaseDefinition>"
@@ -225,6 +247,7 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderReconciler"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "workflow_version: 2"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "validate_order"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "NewScheduler"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "garbage_collection: Some(GarbageCollectionPolicy { after: \"P30D\".to_string(), mode: \"tombstone\".to_string() })"
 
 # Default output directories.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC"
