@@ -102,10 +102,21 @@ pub struct IndexBound {
 #[derive(Debug, Clone)]
 pub enum Query {
     All,
-    KeyPrefix { prefix: String },
-    JsonEquals { path: String, value: Json },
-    IndexEquals { index_name: String, values: Vec<IndexValue> },
-    IndexPrefix { index_name: String, prefix_values: Vec<IndexValue> },
+    KeyPrefix {
+        prefix: String,
+    },
+    JsonEquals {
+        path: String,
+        value: Json,
+    },
+    IndexEquals {
+        index_name: String,
+        values: Vec<IndexValue>,
+    },
+    IndexPrefix {
+        index_name: String,
+        prefix_values: Vec<IndexValue>,
+    },
     IndexRange {
         index_name: String,
         lower_bound: Option<IndexBound>,
@@ -151,12 +162,7 @@ pub trait Backend {
         document: Json,
     ) -> BackendResult<()>;
 
-    fn erase(
-        &self,
-        tx: &mut Self::Tx,
-        collection: &str,
-        key: &str,
-    ) -> BackendResult<()>;
+    fn erase(&self, tx: &mut Self::Tx, collection: &str, key: &str) -> BackendResult<()>;
 
     fn commit(&self, tx: Self::Tx) -> BackendResult<()>;
 }

@@ -30,15 +30,15 @@ type CollectionDescriptor struct {
 }
 
 type BackendCapabilities struct {
-	Transactions      bool
-	CompareAndSwap    bool
-	PrefixQuery       bool
-	SecondaryIndexes  bool
-	UniqueIndexes     bool
-	JSONPathQuery     bool
-	OrderedScan       bool
-	DurableHistory    bool
-	SchemaSnapshots   bool
+	Transactions     bool
+	CompareAndSwap   bool
+	PrefixQuery      bool
+	SecondaryIndexes bool
+	UniqueIndexes    bool
+	JSONPathQuery    bool
+	OrderedScan      bool
+	DurableHistory   bool
+	SchemaSnapshots  bool
 }
 
 type ConflictKind string

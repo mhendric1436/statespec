@@ -81,7 +81,8 @@ class ConflictError : public BackendError
         ConflictKind kind,
         std::string message
     )
-        : BackendError(std::move(message)), kind_(kind)
+        : BackendError(std::move(message)),
+          kind_(kind)
     {
     }
 
@@ -261,11 +262,10 @@ class IBackend
 
     virtual std::unique_ptr<ITransaction> begin() = 0;
 
-    virtual std::optional<VersionedRecord> get(
-        ITransaction& tx,
+    virtual std::optional<VersionedRecord>
+    get(ITransaction& tx,
         const CollectionName& collection,
-        const Key& key
-    ) = 0;
+        const Key& key) = 0;
 
     virtual std::vector<VersionedRecord> query(
         ITransaction& tx,
@@ -273,12 +273,11 @@ class IBackend
         const Query& query
     ) = 0;
 
-    virtual void put(
-        ITransaction& tx,
+    virtual void
+    put(ITransaction& tx,
         const CollectionName& collection,
         const Key& key,
-        Json document
-    ) = 0;
+        Json document) = 0;
 
     virtual void erase(
         ITransaction& tx,

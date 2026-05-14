@@ -2,13 +2,13 @@ package com.statespec.backend;
 
 import com.statespec.backend.Backend.BackendException;
 import com.statespec.backend.Backend.Transaction;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public interface Queue {
+public interface Queue
+{
     record QueueDefinition(
         String queue,
         String channel,
@@ -16,16 +16,20 @@ public interface Queue {
         int maxAttempts,
         Optional<String> deadLetterQueue,
         String metadataJson
-    ) {}
+    )
+    {
+    }
 
-    record CreateQueueRequest(
-        QueueDefinition definition
-    ) {}
+    record CreateQueueRequest(QueueDefinition definition)
+    {
+    }
 
     record QueueCreation(
         QueueDefinition definition,
         boolean created
-    ) {}
+    )
+    {
+    }
 
     record QueueMessageRecord(
         String messageId,
@@ -36,7 +40,9 @@ public interface Queue {
         Optional<String> claimedBy,
         Optional<Instant> claimExpiresAt,
         String payloadJson
-    ) {}
+    )
+    {
+    }
 
     record EnqueueMessageRequest(
         String messageId,
@@ -44,7 +50,9 @@ public interface Queue {
         String channel,
         Optional<String> idempotencyKey,
         String payloadJson
-    ) {}
+    )
+    {
+    }
 
     record ClaimMessageRequest(
         String queue,
@@ -53,12 +61,16 @@ public interface Queue {
         Instant now,
         Duration visibilityTimeout,
         int maxMessages
-    ) {}
+    )
+    {
+    }
 
     record AckMessageRequest(
         String messageId,
         String claimant
-    ) {}
+    )
+    {
+    }
 
     record FailMessageRequest(
         String messageId,
@@ -66,7 +78,9 @@ public interface Queue {
         String reason,
         Instant now,
         int maxAttempts
-    ) {}
+    )
+    {
+    }
 
     QueueCreation create(
         Backend backend,

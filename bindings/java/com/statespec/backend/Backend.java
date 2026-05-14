@@ -4,18 +4,23 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-public interface Backend {
+public interface Backend
+{
     record FieldDescriptor(
         String name,
         String type,
         boolean required
-    ) {}
+    )
+    {
+    }
 
     record IndexDescriptor(
         String name,
         List<String> fields,
         boolean unique
-    ) {}
+    )
+    {
+    }
 
     record CollectionDescriptor(
         String name,
@@ -23,7 +28,9 @@ public interface Backend {
         List<String> keyFields,
         List<IndexDescriptor> indexes,
         long schemaVersion
-    ) {}
+    )
+    {
+    }
 
     record BackendCapabilities(
         boolean transactions,
@@ -35,9 +42,12 @@ public interface Backend {
         boolean orderedScan,
         boolean durableHistory,
         boolean schemaSnapshots
-    ) {}
+    )
+    {
+    }
 
-    enum ConflictKind {
+    enum ConflictKind
+    {
         VERSION_CONFLICT,
         PREDICATE_CONFLICT,
         UNIQUE_INDEX_CONFLICT,
@@ -47,25 +57,37 @@ public interface Backend {
         WORKFLOW_CLAIM_CONFLICT
     }
 
-    class BackendException extends Exception {
-        public BackendException(String message) {
+    class BackendException extends Exception
+    {
+        public BackendException(String message)
+        {
             super(message);
         }
 
-        public BackendException(String message, Throwable cause) {
+        public BackendException(
+            String message,
+            Throwable cause
+        )
+        {
             super(message, cause);
         }
     }
 
-    class ConflictException extends BackendException {
+    class ConflictException extends BackendException
+    {
         private final ConflictKind kind;
 
-        public ConflictException(ConflictKind kind, String message) {
+        public ConflictException(
+            ConflictKind kind,
+            String message
+        )
+        {
             super(message);
             this.kind = kind;
         }
 
-        public ConflictKind kind() {
+        public ConflictKind kind()
+        {
             return kind;
         }
     }
@@ -75,60 +97,65 @@ public interface Backend {
         String key,
         long version,
         Json document
-    ) {}
+    )
+    {
+    }
 
-    sealed interface IndexValue
-        permits IndexValue.NullValue,
-                IndexValue.StringValue,
-                IndexValue.IntegerValue,
-                IndexValue.DecimalValue,
-                IndexValue.BooleanValue,
-                IndexValue.TimestampValue {
+    sealed interface IndexValue permits IndexValue.NullValue, IndexValue.StringValue,
+        IndexValue.IntegerValue, IndexValue.DecimalValue, IndexValue.BooleanValue,
+        IndexValue.TimestampValue {
 
         Json value();
 
-        record NullValue() implements IndexValue {
-            @Override
-            public Json value() {
+        record NullValue() implements IndexValue
+        {
+            @Override public Json value()
+            {
                 return Json.nullValue();
             }
         }
 
-        record StringValue(String raw) implements IndexValue {
-            @Override
-            public Json value() {
+        record StringValue(String raw) implements IndexValue
+        {
+            @Override public Json value()
+            {
                 return Json.string(raw);
             }
         }
 
-        record IntegerValue(long raw) implements IndexValue {
-            @Override
-            public Json value() {
+        record IntegerValue(long raw) implements IndexValue
+        {
+            @Override public Json value()
+            {
                 return Json.integer(raw);
             }
         }
 
-        record DecimalValue(BigDecimal raw) implements IndexValue {
-            public DecimalValue(String raw) {
+        record DecimalValue(BigDecimal raw) implements IndexValue
+        {
+            public DecimalValue(String raw)
+            {
                 this(new BigDecimal(raw));
             }
 
-            @Override
-            public Json value() {
+            @Override public Json value()
+            {
                 return Json.decimal(raw);
             }
         }
 
-        record BooleanValue(boolean raw) implements IndexValue {
-            @Override
-            public Json value() {
+        record BooleanValue(boolean raw) implements IndexValue
+        {
+            @Override public Json value()
+            {
                 return Json.bool(raw);
             }
         }
 
-        record TimestampValue(String raw) implements IndexValue {
-            @Override
-            public Json value() {
+        record TimestampValue(String raw) implements IndexValue
+        {
+            @Override public Json value()
+            {
                 return Json.string(raw);
             }
         }
@@ -137,34 +164,53 @@ public interface Backend {
     record IndexBound(
         List<IndexValue> values,
         boolean inclusive
-    ) {}
+    )
+    {
+    }
 
-    sealed interface Query
-        permits Query.All,
-                Query.KeyPrefix,
-                Query.JsonEquals,
-                Query.IndexEquals,
-                Query.IndexPrefix,
-                Query.IndexRange {
+    sealed interface Query permits Query.All, Query.KeyPrefix, Query.JsonEquals, Query.IndexEquals,
+        Query.IndexPrefix, Query.IndexRange {
 
-        record All() implements Query {}
+        record All() implements Query
+        {
+        }
 
-        record KeyPrefix(String prefix) implements Query {}
+        record KeyPrefix(String prefix) implements Query
+        {
+        }
 
-        record JsonEquals(String path, Json value) implements Query {}
+        record JsonEquals(
+            String path,
+            Json value
+        ) implements Query
+        {
+        }
 
-        record IndexEquals(String indexName, List<IndexValue> values) implements Query {}
+        record IndexEquals(
+            String indexName,
+            List<IndexValue> values
+        ) implements Query
+        {
+        }
 
-        record IndexPrefix(String indexName, List<IndexValue> prefixValues) implements Query {}
+        record IndexPrefix(
+            String indexName,
+            List<IndexValue> prefixValues
+        ) implements Query
+        {
+        }
 
         record IndexRange(
             String indexName,
             Optional<IndexBound> lowerBound,
             Optional<IndexBound> upperBound
-        ) implements Query {}
+        ) implements Query
+        {
+        }
     }
 
-    interface Transaction {
+    interface Transaction
+    {
         boolean isOpen();
 
         void abort() throws BackendException;
@@ -178,11 +224,10 @@ public interface Backend {
 
     Transaction begin() throws BackendException;
 
-    Optional<VersionedRecord> get(
-        Transaction tx,
+    Optional<VersionedRecord>
+    get(Transaction tx,
         String collection,
-        String key
-    ) throws BackendException;
+        String key) throws BackendException;
 
     List<VersionedRecord> query(
         Transaction tx,
@@ -190,12 +235,11 @@ public interface Backend {
         Query query
     ) throws BackendException;
 
-    void put(
-        Transaction tx,
+    void
+    put(Transaction tx,
         String collection,
         String key,
-        Json document
-    ) throws BackendException;
+        Json document) throws BackendException;
 
     void erase(
         Transaction tx,

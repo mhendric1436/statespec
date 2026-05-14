@@ -2,18 +2,20 @@ package com.statespec.backend;
 
 import com.statespec.backend.Backend.BackendException;
 import com.statespec.backend.Backend.Transaction;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public interface Workflow {
+public interface Workflow
+{
     record WorkflowStepDefinition(
         String name,
         Duration expectedExecutionTime,
         int maxRetries
-    ) {}
+    )
+    {
+    }
 
     record WorkflowDefinition(
         String workflowName,
@@ -23,16 +25,20 @@ public interface Workflow {
         boolean singleton,
         List<WorkflowStepDefinition> steps,
         String metadataJson
-    ) {}
+    )
+    {
+    }
 
-    record RegisterWorkflowDefinitionRequest(
-        WorkflowDefinition definition
-    ) {}
+    record RegisterWorkflowDefinitionRequest(WorkflowDefinition definition)
+    {
+    }
 
     record WorkflowDefinitionRegistration(
         WorkflowDefinition definition,
         boolean created
-    ) {}
+    )
+    {
+    }
 
     record WorkflowExecutionRecord(
         String workflowExecutionId,
@@ -44,7 +50,9 @@ public interface Workflow {
         Optional<String> claimedBy,
         Optional<Instant> claimExpiresAt,
         String stateJson
-    ) {}
+    )
+    {
+    }
 
     record StartWorkflowRequest(
         String workflowExecutionId,
@@ -52,7 +60,9 @@ public interface Workflow {
         long workflowVersion,
         String startStep,
         String stateJson
-    ) {}
+    )
+    {
+    }
 
     record ClaimWorkflowStepRequest(
         String workflowExecutionId,
@@ -62,7 +72,9 @@ public interface Workflow {
         Instant now,
         Duration leaseDuration,
         int maxSteps
-    ) {}
+    )
+    {
+    }
 
     record CompleteWorkflowStepRequest(
         String workflowExecutionId,
@@ -70,7 +82,9 @@ public interface Workflow {
         String completedStep,
         Optional<String> nextStep,
         String stateJson
-    ) {}
+    )
+    {
+    }
 
     record FailWorkflowStepRequest(
         String workflowExecutionId,
@@ -79,12 +93,16 @@ public interface Workflow {
         String reason,
         Instant now,
         int maxAttempts
-    ) {}
+    )
+    {
+    }
 
     record CancelWorkflowRequest(
         String workflowExecutionId,
         String reason
-    ) {}
+    )
+    {
+    }
 
     WorkflowDefinitionRegistration registerDefinition(
         Backend backend,

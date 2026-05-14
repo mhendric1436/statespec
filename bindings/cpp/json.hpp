@@ -569,7 +569,8 @@ class JsonParser
         auto code_point = parse_hex_quad();
         if (code_point >= 0xD800 && code_point <= 0xDBFF)
         {
-            if (position_ + 6 > input_.size() || input_[position_] != '\\' || input_[position_ + 1] != 'u')
+            if (position_ + 6 > input_.size() || input_[position_] != '\\' ||
+                input_[position_ + 1] != 'u')
             {
                 fail("missing JSON low surrogate");
             }
@@ -704,7 +705,8 @@ class JsonParser
         if (input_[position_] == '0')
         {
             ++position_;
-            if (position_ < input_.size() && std::isdigit(static_cast<unsigned char>(input_[position_])))
+            if (position_ < input_.size() &&
+                std::isdigit(static_cast<unsigned char>(input_[position_])))
             {
                 fail("invalid JSON number leading zero");
             }

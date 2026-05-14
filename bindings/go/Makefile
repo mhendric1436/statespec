@@ -1,7 +1,10 @@
-.PHONY: test clean help
+.PHONY: test format clean help
 
 test:
 	go test ./...
+
+format:
+	gofmt -w backend/*.go
 
 clean:
 	go clean -testcache
@@ -9,4 +12,5 @@ clean:
 help:
 	@echo "StateSpec Go binding targets:"
 	@echo "  make test   Run Go binding tests"
+	@echo "  make format Format Go binding source files"
 	@echo "  make clean  Clean Go test cache"

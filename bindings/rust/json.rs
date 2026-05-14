@@ -234,14 +234,18 @@ impl<'a> Parser<'a> {
 
         let text = &self.input[start..self.position];
         if decimal {
-            let value: f64 = text.parse().map_err(|_| JsonError::new("invalid JSON number"))?;
+            let value: f64 = text
+                .parse()
+                .map_err(|_| JsonError::new("invalid JSON number"))?;
             if !value.is_finite() {
                 return Err(JsonError::new("invalid JSON number"));
             }
             return Ok(Json::Decimal(value));
         }
 
-        let value: i64 = text.parse().map_err(|_| JsonError::new("invalid JSON integer"))?;
+        let value: i64 = text
+            .parse()
+            .map_err(|_| JsonError::new("invalid JSON integer"))?;
         Ok(Json::Integer(value))
     }
 
@@ -259,7 +263,9 @@ impl<'a> Parser<'a> {
                 out.push(c);
                 continue;
             }
-            let escaped = self.next_char().ok_or_else(|| JsonError::new("unterminated JSON escape"))?;
+            let escaped = self
+                .next_char()
+                .ok_or_else(|| JsonError::new("unterminated JSON escape"))?;
             match escaped {
                 '"' | '\\' | '/' => out.push(escaped),
                 'b' => out.push('\u{08}'),
@@ -282,7 +288,9 @@ impl<'a> Parser<'a> {
     fn parse_hex_quad(&mut self) -> Result<u32, JsonError> {
         let mut value = 0;
         for _ in 0..4 {
-            let c = self.next_char().ok_or_else(|| JsonError::new("short JSON unicode escape"))?;
+            let c = self
+                .next_char()
+                .ok_or_else(|| JsonError::new("short JSON unicode escape"))?;
             value = (value << 4)
                 | match c {
                     '0'..='9' => c as u32 - '0' as u32,

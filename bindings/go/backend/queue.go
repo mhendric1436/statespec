@@ -31,7 +31,7 @@ type QueueMessageRecord struct {
 	Attempts       uint64
 	ClaimedBy      *string
 	ClaimExpiresAt *time.Time
-	Payload         JSON
+	Payload        JSON
 }
 
 type EnqueueMessageRequest struct {
@@ -39,7 +39,7 @@ type EnqueueMessageRequest struct {
 	Queue          string
 	Channel        string
 	IdempotencyKey *string
-	Payload         JSON
+	Payload        JSON
 }
 
 type ClaimMessageRequest struct {

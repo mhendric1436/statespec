@@ -2,16 +2,18 @@ package com.statespec.backend;
 
 import com.statespec.backend.Backend.BackendException;
 import com.statespec.backend.Backend.Transaction;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-public interface Lease {
+public interface Lease
+{
     record LeaseDefinitionId(
         String name,
         long version
-    ) {}
+    )
+    {
+    }
 
     record LeaseDefinition(
         LeaseDefinitionId id,
@@ -20,12 +22,16 @@ public interface Lease {
         Duration renewEvery,
         Optional<Duration> maxTtl,
         boolean fencingToken
-    ) {}
+    )
+    {
+    }
 
     record LeaseRegisterDefinitionResult(
         boolean registeredNew,
         LeaseDefinition definition
-    ) {}
+    )
+    {
+    }
 
     record LeaseRecord(
         LeaseDefinitionId definitionId,
@@ -33,14 +39,18 @@ public interface Lease {
         Optional<String> holder,
         Instant expiresAt,
         long fencingToken
-    ) {}
+    )
+    {
+    }
 
     record LeaseAcquireRequest(
         LeaseDefinitionId definitionId,
         String resource,
         String holder,
         Instant now
-    ) {}
+    )
+    {
+    }
 
     record LeaseRenewRequest(
         LeaseDefinitionId definitionId,
@@ -48,24 +58,32 @@ public interface Lease {
         String holder,
         long fencingToken,
         Instant now
-    ) {}
+    )
+    {
+    }
 
     record LeaseReleaseRequest(
         LeaseDefinitionId definitionId,
         String resource,
         String holder,
         long fencingToken
-    ) {}
+    )
+    {
+    }
 
     record LeaseInspectRequest(
         LeaseDefinitionId definitionId,
         String resource
-    ) {}
+    )
+    {
+    }
 
     record LeaseAcquireResult(
         boolean acquired,
         Optional<LeaseRecord> lease
-    ) {}
+    )
+    {
+    }
 
     LeaseRegisterDefinitionResult registerDefinition(
         Backend backend,

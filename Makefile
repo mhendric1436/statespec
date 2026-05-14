@@ -26,7 +26,7 @@ CATCH_OBJ := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CATCH_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d) $(CATCH_OBJ:.o=.d)
 
-.PHONY: all build cli check-build-tools test test-cli test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-check clean help print-files
+.PHONY: all build cli check-build-tools test test-cli test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check clean help print-files
 
 all: test cli
 
@@ -112,6 +112,21 @@ test-bindings-rust:
 
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
+	$(MAKE) format-bindings
+
+format-bindings: format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust
+
+format-bindings-cpp:
+	$(MAKE) -C bindings/cpp format
+
+format-bindings-go:
+	$(MAKE) -C bindings/go format
+
+format-bindings-java:
+	$(MAKE) -C bindings/java format
+
+format-bindings-rust:
+	$(MAKE) -C bindings/rust format
 
 format-check:
 	$(CLANG_FORMAT) --dry-run --Werror $(FORMAT_FILES)
@@ -144,7 +159,8 @@ help:
 	@echo "  make test-bindings-go    Run Go binding tests"
 	@echo "  make test-bindings-java  Run Java binding tests"
 	@echo "  make test-bindings-rust  Run Rust binding tests"
-	@echo "  make format              Format source and header files with clang-format"
+	@echo "  make format              Format core source and all language bindings"
+	@echo "  make format-bindings     Format all language bindings"
 	@echo "  make format-check        Check formatting without modifying files"
 	@echo "  make clean               Remove build outputs"
 	@echo "  make print-files         Show discovered source files"

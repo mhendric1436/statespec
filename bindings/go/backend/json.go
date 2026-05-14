@@ -19,7 +19,7 @@ type JSON struct {
 	value any
 }
 
-func JSONNull() JSON { return JSON{value: nil} }
+func JSONNull() JSON           { return JSON{value: nil} }
 func JSONBool(value bool) JSON { return JSON{value: value} }
 func JSONInt(value int64) JSON { return JSON{value: value} }
 func JSONFloat(value float64) (JSON, error) {
@@ -28,8 +28,8 @@ func JSONFloat(value float64) (JSON, error) {
 	}
 	return JSON{value: value}, nil
 }
-func JSONString(value string) JSON { return JSON{value: value} }
-func JSONArray(values []JSON) JSON { return JSON{value: values} }
+func JSONString(value string) JSON           { return JSON{value: value} }
+func JSONArray(values []JSON) JSON           { return JSON{value: values} }
 func JSONObject(values map[string]JSON) JSON { return JSON{value: values} }
 
 func ParseJSON(encoded string) (JSON, error) {
@@ -120,7 +120,7 @@ func parseDecoderValue(decoder *json.Decoder) (JSON, error) {
 	return JSON{}, errors.New("invalid JSON value")
 }
 
-func (j JSON) IsNull() bool { return j.value == nil }
+func (j JSON) IsNull() bool         { return j.value == nil }
 func (j JSON) AsBool() (bool, bool) { v, ok := j.value.(bool); return v, ok }
 func (j JSON) AsInt() (int64, bool) { v, ok := j.value.(int64); return v, ok }
 func (j JSON) AsFloat() (float64, bool) {
@@ -133,8 +133,8 @@ func (j JSON) AsFloat() (float64, bool) {
 		return 0, false
 	}
 }
-func (j JSON) AsString() (string, bool) { v, ok := j.value.(string); return v, ok }
-func (j JSON) AsArray() ([]JSON, bool) { v, ok := j.value.([]JSON); return v, ok }
+func (j JSON) AsString() (string, bool)          { v, ok := j.value.(string); return v, ok }
+func (j JSON) AsArray() ([]JSON, bool)           { v, ok := j.value.([]JSON); return v, ok }
 func (j JSON) AsObject() (map[string]JSON, bool) { v, ok := j.value.(map[string]JSON); return v, ok }
 
 func (j JSON) Find(key string) (JSON, bool) {

@@ -70,7 +70,10 @@ mod tests {
         };
 
         match query {
-            crate::backend::Query::JsonEquals { value: Json::Bool(true), .. } => {}
+            crate::backend::Query::JsonEquals {
+                value: Json::Bool(true),
+                ..
+            } => {}
             other => panic!("unexpected query value: {:?}", other),
         }
 
