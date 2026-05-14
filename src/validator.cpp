@@ -141,6 +141,11 @@ bool is_duration_literal(const std::string& value)
     return has_digit && has_unit;
 }
 
+bool is_garbage_collection_mode(const std::string& value)
+{
+    return value == "delete" || value == "tombstone" || value == "archive";
+}
+
 bool is_integer_text(const std::string& value)
 {
     if (value.empty())
@@ -437,11 +442,17 @@ void validate_state_machine(
 
     const auto& state_machine = *entity.state_machine;
     std::unordered_set<std::string> states;
+    std::unordered_set<std::string> terminal_states;
+    std::unordered_set<std::string> garbage_collected_states;
     for (const auto& state : state_machine.states)
     {
         if (!states.insert(state.name).second)
         {
             duplicate_error(diagnostics, state.range, state.name);
+        }
+        if (state.terminal)
+        {
+            terminal_states.insert(state.name);
         }
     }
 
@@ -473,6 +484,67 @@ void validate_state_machine(
         {
             unknown_reference_error(diagnostics, state_machine.range, "terminal state", terminal);
         }
+        terminal_states.insert(terminal);
+    }
+
+    for (const auto& state : state_machine.states)
+    {
+        if (!state.garbage_collection.has_value())
+        {
+            continue;
+        }
+
+        garbage_collected_states.insert(state.name);
+
+        if (!contains(terminal_states, state.name))
+        {
+            diagnostics.error(
+                state.garbage_collection->range, "SSPEC3103",
+                "garbage_collection for state '" + state.name + "' is valid only on terminal states"
+            );
+        }
+
+        if (!state.garbage_collection->after.has_value())
+        {
+            required_error(
+                diagnostics, state.garbage_collection->range,
+                "garbage_collection for state '" + state.name + "'", "after"
+            );
+        }
+        else if (!is_duration_literal(*state.garbage_collection->after))
+        {
+            duration_error(
+                diagnostics, state.garbage_collection->range,
+                "garbage_collection for state '" + state.name + "'", "after"
+            );
+        }
+
+        if (!state.garbage_collection->mode.has_value())
+        {
+            required_error(
+                diagnostics, state.garbage_collection->range,
+                "garbage_collection for state '" + state.name + "'", "mode"
+            );
+        }
+        else if (!is_garbage_collection_mode(*state.garbage_collection->mode))
+        {
+            diagnostics.error(
+                state.garbage_collection->range, "SSPEC3104",
+                "garbage_collection for state '" + state.name +
+                    "' mode must be delete, tombstone, or archive"
+            );
+        }
+    }
+
+    for (const auto& state : state_machine.states)
+    {
+        if (state.duplicate_garbage_collection_range.has_value())
+        {
+            diagnostics.error(
+                *state.duplicate_garbage_collection_range, "SSPEC3001",
+                "duplicate declaration 'garbage_collection'"
+            );
+        }
     }
 
     for (const auto& transition : state_machine.transitions)
@@ -487,6 +559,14 @@ void validate_state_machine(
         {
             unknown_reference_error(
                 diagnostics, transition.range, "transition target state", transition.to
+            );
+        }
+        if (contains(garbage_collected_states, transition.from))
+        {
+            diagnostics.error(
+                transition.range, "SSPEC3105",
+                "garbage-collected terminal state '" + transition.from +
+                    "' must not have outgoing transitions"
             );
         }
     }

@@ -56,6 +56,7 @@ struct StateDecl
     std::string name;
     bool terminal = false;
     std::optional<GarbageCollectionPolicyDecl> garbage_collection;
+    std::optional<SourceRange> duplicate_garbage_collection_range;
     SourceRange range;
 };
 

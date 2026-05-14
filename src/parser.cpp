@@ -828,7 +828,15 @@ StateDecl Parser::parse_state_decl(DiagnosticBag& diagnostics)
             }
             else if (is_named_identifier(peek(), "garbage_collection"))
             {
-                state.garbage_collection = parse_garbage_collection_policy_decl(diagnostics);
+                auto policy = parse_garbage_collection_policy_decl(diagnostics);
+                if (state.garbage_collection.has_value())
+                {
+                    state.duplicate_garbage_collection_range = policy.range;
+                }
+                else
+                {
+                    state.garbage_collection = std::move(policy);
+                }
             }
             else
             {

@@ -79,7 +79,13 @@ void validator_accepts_resolved_references()
             state_machine {
               state Creating
               state Active
-              state Failed { terminal: true }
+              state Failed {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
               initial Creating
               terminal Failed
               Creating -> Active
@@ -248,6 +254,76 @@ void validator_rejects_invalid_entity_management_field_types()
     require(
         has_error_code(diagnostics, "SSPEC3102"),
         "validator should reject invalid entity management field types"
+    );
+}
+
+void validator_rejects_invalid_terminal_garbage_collection()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            fields {
+              order_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            state_machine {
+              state Creating {
+                garbage_collection {
+                  after: soon
+                  mode: compact
+                }
+              }
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                }
+                garbage_collection {
+                  after: P60D
+                  mode: delete
+                }
+              }
+              state Archived {
+                terminal: true
+                garbage_collection {
+                  mode: archive
+                }
+              }
+              initial Creating
+              terminal [Deleted, Archived]
+              Creating -> Deleted
+              Deleted -> Creating
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3103"),
+        "validator should reject garbage collection on non-terminal states"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4001"),
+        "validator should reject missing garbage collection fields"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4004"),
+        "validator should reject invalid garbage collection durations"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3104"),
+        "validator should reject invalid garbage collection modes"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3001"),
+        "validator should reject duplicate garbage collection policy blocks"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3105"),
+        "validator should reject outgoing transitions from garbage-collected terminal states"
     );
 }
 
@@ -520,6 +596,11 @@ TEST_CASE("validator rejects missing entity management model")
 TEST_CASE("validator rejects invalid entity management field types")
 {
     validator_rejects_invalid_entity_management_field_types();
+}
+
+TEST_CASE("validator rejects invalid terminal garbage collection")
+{
+    validator_rejects_invalid_terminal_garbage_collection();
 }
 
 TEST_CASE("validator rejects unknown workflow start steps")
