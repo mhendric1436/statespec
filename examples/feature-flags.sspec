@@ -38,6 +38,9 @@ system FeatureFlagExample {
     load Order by order_id as order;
 
     step route_order {
+      expected_execution_time PT10S
+      max_retries 1
+
       require feature_value(MaxPendingOrders) >= count(order.pending_ids);
 
       when feature_enabled(NewScheduler) {
@@ -48,10 +51,16 @@ system FeatureFlagExample {
     }
 
     step schedule_with_new_engine {
+      expected_execution_time PT30S
+      max_retries 2
+
       complete
     }
 
     step schedule_with_current_engine {
+      expected_execution_time PT30S
+      max_retries 2
+
       complete
     }
   }

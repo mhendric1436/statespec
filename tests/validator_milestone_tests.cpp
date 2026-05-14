@@ -290,6 +290,114 @@ void validator_rejects_invalid_positive_and_non_negative_values()
     );
 }
 
+void validator_accepts_feature_flags()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          feature_flag NewScheduler {
+            type bool
+            default false
+            scope tenant
+          }
+          feature_flag MaxPendingOrders {
+            type int
+            default 100
+            scope entity Order
+          }
+          entity Order {
+            key order_id
+            fields { order_id string }
+          }
+          api StartOrderProcessing {
+            method POST
+            path "/v1/orders/start"
+          }
+          policy WorkflowAccess {
+            allow StartOrderProcessing when feature_enabled(NewScheduler);
+            quota pending_orders: feature_value(MaxPendingOrders) >= 0;
+          }
+        }
+    )sspec");
+
+    require(!diagnostics.has_errors(), "validator should accept valid feature flags");
+}
+
+void validator_rejects_invalid_feature_flag_declarations()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          feature_flag new_scheduler {
+            type bool
+            default "false"
+          }
+          feature_flag MissingType {
+            default false
+          }
+          feature_flag UnsupportedType {
+            type json
+            default "{}"
+          }
+          feature_flag MissingDefault {
+            type bool
+          }
+          feature_flag ScopedToMissingEntity {
+            type bool
+            default false
+            scope entity MissingEntity
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4201"),
+        "validator should reject non-PascalCase feature flags"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4202"),
+        "validator should reject unsupported feature flag types"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4203"), "validator should reject default/type mismatches"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4001"),
+        "validator should reject missing feature flag type/default"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown feature flag entity scope"
+    );
+}
+
+void validator_rejects_invalid_feature_flag_expression_references()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          feature_flag SchedulerMode {
+            type string
+            default "current"
+          }
+          api StartOrderProcessing {
+            method POST
+            path "/v1/orders/start"
+          }
+          policy WorkflowAccess {
+            allow StartOrderProcessing when feature_enabled(SchedulerMode);
+            deny StartOrderProcessing when feature_value(MissingFlag) == "off";
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4204"),
+        "validator should reject feature_enabled on non-bool flags"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown feature flag expression references"
+    );
+}
+
 } // namespace
 
 TEST_CASE("validator accepts resolved references")
@@ -335,4 +443,19 @@ TEST_CASE("validator rejects missing required declarations")
 TEST_CASE("validator rejects invalid positive and non-negative values")
 {
     validator_rejects_invalid_positive_and_non_negative_values();
+}
+
+TEST_CASE("validator accepts feature flags")
+{
+    validator_accepts_feature_flags();
+}
+
+TEST_CASE("validator rejects invalid feature flag declarations")
+{
+    validator_rejects_invalid_feature_flag_declarations();
+}
+
+TEST_CASE("validator rejects invalid feature flag expression references")
+{
+    validator_rejects_invalid_feature_flag_expression_references();
 }

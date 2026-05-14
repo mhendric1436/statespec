@@ -208,6 +208,8 @@ void write_feature_flags(
         write_json_optional_string(out, feature_flag.type);
         out << ", \"default\": ";
         write_json_optional_string(out, feature_flag.default_value);
+        out << ", \"default_kind\": ";
+        write_json_optional_string(out, feature_flag.default_value_kind);
         out << ", \"scope\": ";
         write_json_optional_string(out, feature_flag.scope);
         out << ", \"owner\": ";

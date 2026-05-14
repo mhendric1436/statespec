@@ -90,6 +90,7 @@ struct FeatureFlagDecl
     std::string name;
     std::optional<std::string> type;
     std::optional<std::string> default_value;
+    std::optional<std::string> default_value_kind;
     std::optional<std::string> scope;
     std::optional<std::string> owner;
     std::optional<std::string> description;

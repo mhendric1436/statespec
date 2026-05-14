@@ -5,7 +5,9 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -27,8 +29,8 @@ bool contains(
 bool is_builtin_type(const std::string& type)
 {
     static const std::unordered_set<std::string> builtin_types{
-        "string", "bool",    "int",  "int32",     "int64",    "long",
-        "double", "decimal", "json", "timestamp", "duration", "uuid",
+        "string",    "bool",     "int",  "int32", "int64", "long", "double",   "decimal", "json",
+        "timestamp", "duration", "uuid", "list",  "set",   "map",  "optional", "ref",
     };
 
     if (!type.empty() && type.back() == '?')
@@ -37,6 +39,57 @@ bool is_builtin_type(const std::string& type)
     }
 
     return builtin_types.find(type) != builtin_types.end();
+}
+
+std::string base_type_name(const std::string& type)
+{
+    const auto generic = type.find('<');
+    if (generic != std::string::npos)
+    {
+        return type.substr(0, generic);
+    }
+
+    if (type.size() >= 2 && type.substr(type.size() - 2) == "[]")
+    {
+        return type.substr(0, type.size() - 2);
+    }
+
+    if (!type.empty() && type.back() == '?')
+    {
+        return type.substr(0, type.size() - 1);
+    }
+
+    return type;
+}
+
+bool is_supported_feature_flag_type(const std::string& type)
+{
+    static const std::unordered_set<std::string> feature_flag_types{
+        "bool",
+        "string",
+        "int",
+        "decimal",
+    };
+    return feature_flag_types.find(type) != feature_flag_types.end();
+}
+
+bool is_pascal_case_name(const std::string& name)
+{
+    if (name.empty() || std::isupper(static_cast<unsigned char>(name.front())) == 0)
+    {
+        return false;
+    }
+
+    for (const auto ch : name)
+    {
+        const auto value = static_cast<unsigned char>(ch);
+        if (std::isalnum(value) == 0)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool is_positive_integer(int value)
@@ -86,6 +139,58 @@ bool is_duration_literal(const std::string& value)
     }
 
     return has_digit && has_unit;
+}
+
+bool is_integer_text(const std::string& value)
+{
+    if (value.empty())
+    {
+        return false;
+    }
+
+    return std::all_of(
+        value.begin(), value.end(),
+        [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)) != 0; }
+    );
+}
+
+bool feature_flag_default_matches_type(const FeatureFlagDecl& flag)
+{
+    if (!flag.type.has_value() || !flag.default_value.has_value() ||
+        !flag.default_value_kind.has_value())
+    {
+        return true;
+    }
+
+    if (*flag.type == "bool")
+    {
+        return *flag.default_value_kind == "BooleanLiteral";
+    }
+    if (*flag.type == "string")
+    {
+        return *flag.default_value_kind == "StringLiteral";
+    }
+    if (*flag.type == "int")
+    {
+        return *flag.default_value_kind == "IntegerLiteral" && is_integer_text(*flag.default_value);
+    }
+    if (*flag.type == "decimal")
+    {
+        return *flag.default_value_kind == "DecimalLiteral" ||
+               *flag.default_value_kind == "IntegerLiteral";
+    }
+
+    return true;
+}
+
+std::optional<std::string> entity_scope_target(const std::string& scope)
+{
+    constexpr std::string_view prefix{"entity "};
+    if (scope.rfind(std::string{prefix}, 0) != 0)
+    {
+        return std::nullopt;
+    }
+    return scope.substr(prefix.size());
 }
 
 std::string queue_message_name(
@@ -220,9 +325,101 @@ void validate_field_types(
 {
     for (const auto& field : fields)
     {
-        if (!is_builtin_type(field.type) && !symbols.find(field.type).has_value())
+        const auto base_type = base_type_name(field.type);
+        if (!is_builtin_type(base_type) && !symbols.find(base_type).has_value())
         {
-            unknown_reference_error(diagnostics, field.range, "type", field.type);
+            unknown_reference_error(diagnostics, field.range, "type", base_type);
+        }
+    }
+}
+
+const FeatureFlagDecl* find_feature_flag(
+    const SystemDecl& system,
+    const std::string& name
+)
+{
+    for (const auto& flag : system.feature_flags)
+    {
+        if (flag.name == name)
+        {
+            return &flag;
+        }
+    }
+    return nullptr;
+}
+
+std::vector<std::string> feature_flag_function_arguments(
+    const std::string& expression,
+    const std::string& function_name
+)
+{
+    std::vector<std::string> arguments;
+    std::size_t offset = 0;
+
+    while ((offset = expression.find(function_name, offset)) != std::string::npos)
+    {
+        auto cursor = offset + function_name.size();
+        while (cursor < expression.size() &&
+               std::isspace(static_cast<unsigned char>(expression[cursor])) != 0)
+        {
+            ++cursor;
+        }
+        if (cursor >= expression.size() || expression[cursor] != '(')
+        {
+            offset = cursor;
+            continue;
+        }
+
+        const auto arg_start = cursor + 1;
+        const auto arg_end = expression.find(')', arg_start);
+        if (arg_end == std::string::npos)
+        {
+            break;
+        }
+
+        auto argument = expression.substr(arg_start, arg_end - arg_start);
+        argument.erase(
+            std::remove_if(
+                argument.begin(), argument.end(),
+                [](char ch) { return std::isspace(static_cast<unsigned char>(ch)) != 0; }
+            ),
+            argument.end()
+        );
+        arguments.push_back(argument);
+        offset = arg_end + 1;
+    }
+
+    return arguments;
+}
+
+void validate_feature_flag_expression(
+    const SystemDecl& system,
+    const SourceRange& range,
+    const std::string& expression,
+    DiagnosticBag& diagnostics
+)
+{
+    for (const auto& flag_name : feature_flag_function_arguments(expression, "feature_enabled"))
+    {
+        const auto* flag = find_feature_flag(system, flag_name);
+        if (flag == nullptr)
+        {
+            unknown_reference_error(diagnostics, range, "feature flag", flag_name);
+            continue;
+        }
+        if (flag->type.value_or("") != "bool")
+        {
+            diagnostics.error(
+                range, "SSPEC4204", "feature_enabled requires bool feature flag '" + flag_name + "'"
+            );
+        }
+    }
+
+    for (const auto& flag_name : feature_flag_function_arguments(expression, "feature_value"))
+    {
+        if (find_feature_flag(system, flag_name) == nullptr)
+        {
+            unknown_reference_error(diagnostics, range, "feature flag", flag_name);
         }
     }
 }
@@ -363,6 +560,62 @@ void validate_entities(
 
         validate_indexes(entity, fields, diagnostics);
         validate_state_machine(entity, diagnostics);
+    }
+}
+
+void validate_feature_flags(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    DiagnosticBag& diagnostics
+)
+{
+    for (const auto& flag : system.feature_flags)
+    {
+        if (!is_pascal_case_name(flag.name))
+        {
+            diagnostics.error(
+                flag.range, "SSPEC4201", "feature flag '" + flag.name + "' must use PascalCase"
+            );
+        }
+
+        if (!flag.type.has_value())
+        {
+            required_error(diagnostics, flag.range, "feature_flag '" + flag.name + "'", "type");
+        }
+        else if (!is_supported_feature_flag_type(*flag.type))
+        {
+            diagnostics.error(
+                flag.range, "SSPEC4202",
+                "feature flag '" + flag.name + "' has unsupported type '" + *flag.type + "'"
+            );
+        }
+
+        if (!flag.default_value.has_value())
+        {
+            required_error(diagnostics, flag.range, "feature_flag '" + flag.name + "'", "default");
+        }
+        else if (!feature_flag_default_matches_type(flag))
+        {
+            diagnostics.error(
+                flag.range, "SSPEC4203",
+                "feature flag '" + flag.name + "' default must match declared type"
+            );
+        }
+
+        if (flag.scope.has_value())
+        {
+            const auto entity = entity_scope_target(*flag.scope);
+            if (entity.has_value())
+            {
+                const auto symbol = symbols.find(*entity);
+                if (!symbol.has_value() || symbol->kind != SymbolKind::Entity)
+                {
+                    unknown_reference_error(
+                        diagnostics, flag.range, "feature flag entity scope", *entity
+                    );
+                }
+            }
+        }
     }
 }
 
@@ -643,6 +896,7 @@ void validate_policies(
                     diagnostics, rule.range, "policy allow action", rule.action
                 );
             }
+            validate_feature_flag_expression(system, rule.range, rule.condition, diagnostics);
         }
         for (const auto& rule : policy.denies)
         {
@@ -650,6 +904,11 @@ void validate_policies(
             {
                 unknown_reference_error(diagnostics, rule.range, "policy deny action", rule.action);
             }
+            validate_feature_flag_expression(system, rule.range, rule.condition, diagnostics);
+        }
+        for (const auto& quota : policy.quotas)
+        {
+            validate_feature_flag_expression(system, quota.range, quota.expression, diagnostics);
         }
         for (const auto& audit : policy.audits)
         {
@@ -672,6 +931,10 @@ SymbolTable build_symbol_table(
     for (const auto& entity : system.entities)
     {
         add_symbol(symbols, diagnostics, SymbolKind::Entity, entity.name, entity.range);
+    }
+    for (const auto& flag : system.feature_flags)
+    {
+        add_symbol(symbols, diagnostics, SymbolKind::FeatureFlag, flag.name, flag.range);
     }
     for (const auto& queue : system.queues)
     {
@@ -731,6 +994,7 @@ void Validator::validate(
     const auto& system = *spec.system;
     auto symbols = build_symbol_table(system, diagnostics);
 
+    validate_feature_flags(system, symbols, diagnostics);
     validate_entities(system, symbols, diagnostics);
     validate_queues(system, symbols, diagnostics);
     validate_leases(system, diagnostics);

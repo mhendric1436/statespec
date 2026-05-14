@@ -16,6 +16,7 @@ enum class SymbolKind
     Value,
     Enum,
     Shape,
+    FeatureFlag,
     Entity,
     Event,
     Queue,

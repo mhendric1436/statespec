@@ -296,8 +296,23 @@ FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)
         else if (is_named_identifier(peek(), "default"))
         {
             advance();
-            feature_flag.default_value =
-                parse_simple_value(diagnostics, "feature flag default value");
+            if (check_any({
+                    TokenKind::StringLiteral,
+                    TokenKind::DurationLiteral,
+                    TokenKind::IntegerLiteral,
+                    TokenKind::DecimalLiteral,
+                    TokenKind::BooleanLiteral,
+                    TokenKind::Identifier,
+                }))
+            {
+                const auto value = advance();
+                feature_flag.default_value = strip_quotes(value.lexeme);
+                feature_flag.default_value_kind = token_kind_name(value.kind);
+            }
+            else
+            {
+                diagnostics.error(peek().range, "SSPEC0203", "expected feature flag default value");
+            }
             consume_optional_semicolon();
         }
         else if (is_named_identifier(peek(), "scope"))
