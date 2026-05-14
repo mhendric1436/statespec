@@ -176,6 +176,18 @@ bool is_feature_flag_member_start(const Token& token)
             token.lexeme == "owner" || token.lexeme == "description" || token.lexeme == "expires");
 }
 
+bool is_state_option_member_start(const Token& token)
+{
+    return token.kind == TokenKind::KeywordTerminal ||
+           (token.kind == TokenKind::Identifier && token.lexeme == "garbage_collection");
+}
+
+bool is_garbage_collection_member_start(const Token& token)
+{
+    return token.kind == TokenKind::Identifier &&
+           (token.lexeme == "after" || token.lexeme == "mode");
+}
+
 } // namespace
 
 std::string format_tokens(
@@ -195,6 +207,7 @@ std::string format_tokens(
     TokenKind previous_kind = TokenKind::EndOfFile;
     std::size_t previous_source_line = 0;
     std::vector<TokenKind> block_stack;
+    std::vector<std::string> block_name_stack;
 
     auto newline = [&](bool blank_after = false)
     {
@@ -222,9 +235,18 @@ std::string format_tokens(
 
         const bool in_feature_flag_block =
             !block_stack.empty() && block_stack.back() == TokenKind::KeywordFeatureFlag;
-        if (!at_line_start && (token.range.begin.line > previous_source_line ||
-                               (in_feature_flag_block && is_feature_flag_member_start(token) &&
-                                previous_kind != TokenKind::LeftBrace)))
+        const bool in_state_options_block =
+            !block_stack.empty() && block_stack.back() == TokenKind::KeywordState;
+        const bool in_garbage_collection_block =
+            !block_name_stack.empty() && block_name_stack.back() == "garbage_collection";
+        if (!at_line_start &&
+            (token.range.begin.line > previous_source_line ||
+             (in_feature_flag_block && is_feature_flag_member_start(token) &&
+              previous_kind != TokenKind::LeftBrace) ||
+             (in_state_options_block && is_state_option_member_start(token) &&
+              previous_kind != TokenKind::LeftBrace) ||
+             (in_garbage_collection_block && is_garbage_collection_member_start(token) &&
+              previous_kind != TokenKind::LeftBrace)))
         {
             newline(token.range.begin.line > previous_source_line + 1);
         }
@@ -239,6 +261,10 @@ std::string format_tokens(
             if (!block_stack.empty())
             {
                 block_stack.pop_back();
+            }
+            if (!block_name_stack.empty())
+            {
+                block_name_stack.pop_back();
             }
             write_indent(out, indent);
             out << '}';
@@ -289,11 +315,14 @@ std::string format_tokens(
         if (token.kind == TokenKind::LeftBrace)
         {
             TokenKind block_kind = previous_kind;
+            std::string block_name;
             if (previous_kind == TokenKind::Identifier && i >= 2)
             {
                 block_kind = tokens[i - 2].kind;
+                block_name = tokens[i - 1].lexeme;
             }
             block_stack.push_back(block_kind);
+            block_name_stack.push_back(block_name);
             ++indent;
             newline();
         }
