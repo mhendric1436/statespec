@@ -73,6 +73,33 @@ bool is_supported_feature_flag_type(const std::string& type)
     return feature_flag_types.find(type) != feature_flag_types.end();
 }
 
+bool is_supported_log_level(const std::string& level)
+{
+    static const std::unordered_set<std::string> log_levels{
+        "debug",
+        "info",
+        "warn",
+        "error",
+    };
+    return log_levels.find(level) != log_levels.end();
+}
+
+bool is_supported_metric_kind(const std::string& kind)
+{
+    static const std::unordered_set<std::string> metric_kinds{
+        "counter",
+        "gauge",
+        "histogram",
+    };
+    return metric_kinds.find(kind) != metric_kinds.end();
+}
+
+bool is_supported_metric_label_type(const std::string& type)
+{
+    const auto base_type = base_type_name(type);
+    return base_type == "string" || base_type == "bool" || base_type == "int";
+}
+
 bool is_pascal_case_name(const std::string& name)
 {
     if (name.empty() || std::isupper(static_cast<unsigned char>(name.front())) == 0)
@@ -752,6 +779,108 @@ void validate_feature_flags(
     }
 }
 
+void validate_logs(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    DiagnosticBag& diagnostics
+)
+{
+    std::unordered_set<std::string> event_names;
+    for (const auto& log : system.logs)
+    {
+        if (!is_pascal_case_name(log.name))
+        {
+            diagnostics.error(log.range, "SSPEC4301", "log '" + log.name + "' must use PascalCase");
+        }
+
+        if (!log.level.has_value())
+        {
+            required_error(diagnostics, log.range, "log '" + log.name + "'", "level");
+        }
+        else if (!is_supported_log_level(*log.level))
+        {
+            diagnostics.error(
+                log.range, "SSPEC4302",
+                "log '" + log.name + "' has unsupported level '" + *log.level + "'"
+            );
+        }
+
+        if (!log.event_name.has_value())
+        {
+            required_error(diagnostics, log.range, "log '" + log.name + "'", "event_name");
+        }
+        else if (!event_names.insert(*log.event_name).second)
+        {
+            diagnostics.error(
+                log.range, "SSPEC4303", "duplicate log event_name '" + *log.event_name + "'"
+            );
+        }
+
+        validate_field_duplicates(log.fields, diagnostics);
+        validate_field_types(log.fields, symbols, diagnostics);
+    }
+}
+
+void validate_metrics(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    DiagnosticBag& diagnostics
+)
+{
+    std::unordered_set<std::string> backend_names;
+    for (const auto& metric : system.metrics)
+    {
+        if (!is_pascal_case_name(metric.name))
+        {
+            diagnostics.error(
+                metric.range, "SSPEC4401", "metric '" + metric.name + "' must use PascalCase"
+            );
+        }
+
+        if (!metric.kind.has_value())
+        {
+            required_error(diagnostics, metric.range, "metric '" + metric.name + "'", "kind");
+        }
+        else if (!is_supported_metric_kind(*metric.kind))
+        {
+            diagnostics.error(
+                metric.range, "SSPEC4402",
+                "metric '" + metric.name + "' has unsupported kind '" + *metric.kind + "'"
+            );
+        }
+
+        if (!metric.backend_name.has_value())
+        {
+            required_error(diagnostics, metric.range, "metric '" + metric.name + "'", "name");
+        }
+        else if (!backend_names.insert(*metric.backend_name).second)
+        {
+            diagnostics.error(
+                metric.range, "SSPEC4403", "duplicate metric name '" + *metric.backend_name + "'"
+            );
+        }
+
+        if (!metric.unit.has_value())
+        {
+            required_error(diagnostics, metric.range, "metric '" + metric.name + "'", "unit");
+        }
+
+        validate_field_duplicates(metric.labels, diagnostics);
+        validate_field_types(metric.labels, symbols, diagnostics);
+        for (const auto& label : metric.labels)
+        {
+            if (!is_supported_metric_label_type(label.type))
+            {
+                diagnostics.error(
+                    label.range, "SSPEC4404",
+                    "metric '" + metric.name + "' label '" + label.name +
+                        "' must use low-cardinality type string, bool, or int"
+                );
+            }
+        }
+    }
+}
+
 void validate_queues(
     const SystemDecl& system,
     const SymbolTable& symbols,
@@ -1069,6 +1198,14 @@ SymbolTable build_symbol_table(
     {
         add_symbol(symbols, diagnostics, SymbolKind::FeatureFlag, flag.name, flag.range);
     }
+    for (const auto& log : system.logs)
+    {
+        add_symbol(symbols, diagnostics, SymbolKind::Log, log.name, log.range);
+    }
+    for (const auto& metric : system.metrics)
+    {
+        add_symbol(symbols, diagnostics, SymbolKind::Metric, metric.name, metric.range);
+    }
     for (const auto& queue : system.queues)
     {
         add_symbol(symbols, diagnostics, SymbolKind::Queue, queue.name, queue.range);
@@ -1128,6 +1265,8 @@ void Validator::validate(
     auto symbols = build_symbol_table(system, diagnostics);
 
     validate_feature_flags(system, symbols, diagnostics);
+    validate_logs(system, symbols, diagnostics);
+    validate_metrics(system, symbols, diagnostics);
     validate_entities(system, symbols, diagnostics);
     validate_queues(system, symbols, diagnostics);
     validate_leases(system, diagnostics);

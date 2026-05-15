@@ -617,6 +617,125 @@ void validator_rejects_invalid_feature_flag_expression_references()
     );
 }
 
+void validator_accepts_logs_and_metrics()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          log WorkflowLaunchDecision {
+            level info
+            event_name "workflow.launch.decision"
+            fields {
+              tenant_id string
+              decision string
+            }
+          }
+
+          metric WorkflowLaunchAttempts {
+            kind counter
+            name "workflow_launch_attempts_total"
+            unit count
+            labels {
+              tenant_id string
+              decision string
+              admitted bool
+              retry_count int
+            }
+          }
+        }
+    )sspec");
+
+    require(!diagnostics.has_errors(), "validator should accept valid logs and metrics");
+}
+
+void validator_rejects_invalid_log_declarations()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          log workflowLaunchDecision {
+            level trace
+            fields {
+              tenant_id MissingType
+            }
+          }
+
+          log DuplicateEventA {
+            level info
+            event_name "workflow.launch"
+          }
+
+          log DuplicateEventB {
+            level warn
+            event_name "workflow.launch"
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4301"), "validator should reject non-PascalCase logs"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4302"), "validator should reject unsupported log levels"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4303"), "validator should reject duplicate log events"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4001"), "validator should reject missing log event_name"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown log field types"
+    );
+}
+
+void validator_rejects_invalid_metric_declarations()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          metric workflowLaunchAttempts {
+            kind timer
+            labels {
+              tenant_id uuid
+              observed_at timestamp
+              tenant_id string
+            }
+          }
+
+          metric DuplicateMetricA {
+            kind counter
+            name "workflow_launch_total"
+            unit count
+          }
+
+          metric DuplicateMetricB {
+            kind gauge
+            name "workflow_launch_total"
+            unit count
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4401"), "validator should reject non-PascalCase metrics"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4402"), "validator should reject unsupported metric kinds"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4403"),
+        "validator should reject duplicate metric backend names"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4404"),
+        "validator should reject unsupported metric label types"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4001"), "validator should reject missing metric name/unit"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3001"), "validator should reject duplicate metric labels"
+    );
+}
+
 } // namespace
 
 TEST_CASE("validator accepts resolved references")
@@ -697,4 +816,19 @@ TEST_CASE("validator rejects invalid feature flag declarations")
 TEST_CASE("validator rejects invalid feature flag expression references")
 {
     validator_rejects_invalid_feature_flag_expression_references();
+}
+
+TEST_CASE("validator accepts logs and metrics")
+{
+    validator_accepts_logs_and_metrics();
+}
+
+TEST_CASE("validator rejects invalid log declarations")
+{
+    validator_rejects_invalid_log_declarations();
+}
+
+TEST_CASE("validator rejects invalid metric declarations")
+{
+    validator_rejects_invalid_metric_declarations();
 }
