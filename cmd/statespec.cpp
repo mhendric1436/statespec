@@ -88,6 +88,21 @@ std::filesystem::path normalized_existing_path(const std::filesystem::path& path
     return std::filesystem::weakly_canonical(path);
 }
 
+bool include_stack_contains(
+    const std::vector<std::filesystem::path>& include_stack,
+    const std::filesystem::path& path
+)
+{
+    for (const auto& stacked_path : include_stack)
+    {
+        if (stacked_path == path)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void append_system_members(
     statespec::SystemDecl& target,
     const statespec::SystemDecl& source
@@ -144,16 +159,13 @@ statespec::Spec load_composed_spec(
     const auto absolute_path = normalized_existing_path(input_path);
     const auto absolute_path_text = absolute_path.string();
 
-    for (const auto& stacked_path : include_stack)
+    if (include_stack_contains(include_stack, absolute_path))
     {
-        if (stacked_path == absolute_path)
-        {
-            diagnostics.error(
-                statespec::SourceRange{}, "SSPEC5002",
-                "include cycle detected at '" + absolute_path_text + "'"
-            );
-            return statespec::Spec{};
-        }
+        diagnostics.error(
+            statespec::SourceRange{}, "SSPEC5002",
+            "include cycle detected at '" + absolute_path_text + "'"
+        );
+        return statespec::Spec{};
     }
 
     if (!std::filesystem::exists(absolute_path))
@@ -198,8 +210,30 @@ statespec::Spec load_composed_spec(
         for (const auto& include : spec.includes)
         {
             const auto include_path = absolute_path.parent_path() / include.path;
-            const auto included_spec =
-                load_composed_spec(include_path, diagnostics, include_stack, loaded_paths);
+            const auto normalized_include_path = normalized_existing_path(include_path);
+            const auto normalized_include_path_text = normalized_include_path.string();
+
+            if (!std::filesystem::exists(normalized_include_path))
+            {
+                diagnostics.error(
+                    include.range, "SSPEC5001",
+                    "included file does not exist: '" + normalized_include_path_text + "'"
+                );
+                continue;
+            }
+
+            if (include_stack_contains(include_stack, normalized_include_path))
+            {
+                diagnostics.error(
+                    include.range, "SSPEC5002",
+                    "include cycle detected at '" + normalized_include_path_text + "'"
+                );
+                continue;
+            }
+
+            const auto included_spec = load_composed_spec(
+                normalized_include_path, diagnostics, include_stack, loaded_paths
+            );
             if (diagnostics.has_errors())
             {
                 continue;

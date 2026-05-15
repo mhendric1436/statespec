@@ -14,6 +14,9 @@ EXPECTED="$TMPDIR/expected.sspec"
 GC_UNFORMATTED="$TMPDIR/gc-unformatted.sspec"
 GC_FORMATTED="$TMPDIR/gc-formatted.sspec"
 GC_EXPECTED="$TMPDIR/gc-expected.sspec"
+INCLUDE_UNFORMATTED="$TMPDIR/include-unformatted.sspec"
+INCLUDE_FORMATTED="$TMPDIR/include-formatted.sspec"
+INCLUDE_EXPECTED="$TMPDIR/include-expected.sspec"
 
 cat > "$UNFORMATTED" <<'SSPEC'
 statespec 0.1; system Demo { feature_flag NewScheduler { type bool default false scope tenant owner "platform" description "New scheduler" expires "2026-12-31" } }
@@ -83,5 +86,19 @@ SSPEC
 
 "$CLI" fmt "$GC_UNFORMATTED" > "$GC_FORMATTED"
 diff -u "$GC_EXPECTED" "$GC_FORMATTED"
+
+cat > "$INCLUDE_UNFORMATTED" <<'SSPEC'
+statespec 0.1; include "./workflow-launch-control.sspec"; system Demo { }
+SSPEC
+
+cat > "$INCLUDE_EXPECTED" <<'SSPEC'
+statespec 0.1;
+include "./workflow-launch-control.sspec";
+system Demo {
+}
+SSPEC
+
+"$CLI" fmt "$INCLUDE_UNFORMATTED" > "$INCLUDE_FORMATTED"
+diff -u "$INCLUDE_EXPECTED" "$INCLUDE_FORMATTED"
 
 echo "formatter CLI tests passed"

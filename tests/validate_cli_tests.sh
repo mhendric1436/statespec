@@ -4,6 +4,7 @@ set -eu
 CLI="$1"
 EXAMPLE="examples/order-system.sspec"
 LAUNCH_CONTROL_EXAMPLE="examples/workflow-launch-control.sspec"
+LAUNCH_CONTROL_INCLUDE_EXAMPLE="examples/order-system-with-launch-control.sspec"
 TMPDIR="$(mktemp -d)"
 cleanup() {
     rm -rf "$TMPDIR"
@@ -206,6 +207,9 @@ grep -F "valid" "$TMPDIR/example-output.txt" >/dev/null
 "$CLI" validate "$LAUNCH_CONTROL_EXAMPLE" > "$TMPDIR/launch-control-output.txt" 2>&1
 grep -F "valid" "$TMPDIR/launch-control-output.txt" >/dev/null
 
+"$CLI" validate "$LAUNCH_CONTROL_INCLUDE_EXAMPLE" > "$TMPDIR/launch-control-include-output.txt" 2>&1
+grep -F "valid" "$TMPDIR/launch-control-include-output.txt" >/dev/null
+
 "$CLI" validate "$INCLUDE_ROOT_SPEC" > "$TMPDIR/include-root-output.txt" 2>&1
 grep -F "valid" "$TMPDIR/include-root-output.txt" >/dev/null
 
@@ -220,6 +224,7 @@ if [ "$STATUS" -eq 0 ]; then
 fi
 grep -F "invalid" "$TMPDIR/missing-include-output.txt" >/dev/null
 grep -F "SSPEC5001" "$TMPDIR/missing-include-output.txt" >/dev/null
+grep -F "2:1" "$TMPDIR/missing-include-output.txt" >/dev/null
 grep -F "included file does not exist" "$TMPDIR/missing-include-output.txt" >/dev/null
 
 set +e
@@ -233,6 +238,7 @@ if [ "$STATUS" -eq 0 ]; then
 fi
 grep -F "invalid" "$TMPDIR/cycle-output.txt" >/dev/null
 grep -F "SSPEC5002" "$TMPDIR/cycle-output.txt" >/dev/null
+grep -F "2:1" "$TMPDIR/cycle-output.txt" >/dev/null
 grep -F "include cycle detected" "$TMPDIR/cycle-output.txt" >/dev/null
 
 set +e

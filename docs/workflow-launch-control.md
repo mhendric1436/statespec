@@ -94,3 +94,7 @@ system OrderSystem {
 Validation and binding generation compose included declarations into the root system
 before semantic checks and generation, so local policies, workers, APIs, and generated
 descriptors can reference declarations from the launch-control baseline.
+
+See
+[`examples/order-system-with-launch-control.sspec`](../examples/order-system-with-launch-control.sspec)
+for a small root spec that includes the reusable launch-control baseline.

@@ -1,0 +1,12 @@
+statespec 0.1;
+include "./workflow-launch-control.sspec";
+
+system OrderSystemWithLaunchControl {
+  policy OrderWorkflowLaunchAccess {
+    tenant scoped_by tenant_id
+    allow RequestWorkflowLaunch when caller.role == operator;
+    deny RequestWorkflowLaunch when caller.suspended == true;
+    quota order_workflow_launches_per_minute: 60;
+    audit RequestWorkflowLaunch;
+  }
+}
