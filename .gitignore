@@ -9,6 +9,7 @@ tags
 # Compiled binaries and objects
 *.o
 *.obj
+*.class
 *.a
 *.lib
 *.so

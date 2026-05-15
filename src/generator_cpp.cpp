@@ -182,6 +182,23 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<std::string> expires;\n";
     out << "};\n\n";
 
+    out << "struct LogDefinition\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::string level;\n";
+    out << "    std::string event_name;\n";
+    out << "    std::vector<statespec::backend::FieldDescriptor> fields;\n";
+    out << "};\n\n";
+
+    out << "struct MetricDefinition\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::string kind;\n";
+    out << "    std::string backend_name;\n";
+    out << "    std::string unit;\n";
+    out << "    std::vector<statespec::backend::FieldDescriptor> labels;\n";
+    out << "};\n\n";
+
     out << "struct GarbageCollectionPolicy\n";
     out << "{\n";
     out << "    std::string after;\n";
@@ -217,6 +234,51 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            " << optional_string_expr(flag.owner) << ",\n";
         out << "            " << optional_string_expr(flag.description) << ",\n";
         out << "            " << optional_string_expr(flag.expires) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<LogDefinition> log_definitions()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& log : system.logs)
+    {
+        out << "        LogDefinition{\n";
+        out << "            " << cpp_string(log.name) << ",\n";
+        out << "            " << cpp_string(log.level) << ",\n";
+        out << "            " << cpp_string(log.event_name) << ",\n";
+        out << "            {\n";
+        for (const auto& field : log.fields)
+        {
+            out << "                statespec::backend::FieldDescriptor{" << cpp_string(field.name)
+                << ", " << cpp_string(strip_optional_suffix(field.type)) << ", "
+                << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+        }
+        out << "            },\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<MetricDefinition> metric_definitions()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& metric : system.metrics)
+    {
+        out << "        MetricDefinition{\n";
+        out << "            " << cpp_string(metric.name) << ",\n";
+        out << "            " << cpp_string(metric.kind) << ",\n";
+        out << "            " << cpp_string(metric.backend_name) << ",\n";
+        out << "            " << cpp_string(metric.unit) << ",\n";
+        out << "            {\n";
+        for (const auto& label : metric.labels)
+        {
+            out << "                statespec::backend::FieldDescriptor{" << cpp_string(label.name)
+                << ", " << cpp_string(strip_optional_suffix(label.type)) << ", "
+                << (is_optional_type(label.type) ? "false" : "true") << "},\n";
+        }
+        out << "            },\n";
         out << "        },\n";
     }
     out << "    };\n";

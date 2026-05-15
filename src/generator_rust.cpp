@@ -176,6 +176,21 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub expires: Option<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct LogDefinition {\n";
+    out << "    pub name: String,\n";
+    out << "    pub level: String,\n";
+    out << "    pub event_name: String,\n";
+    out << "    pub fields: Vec<FieldDescriptor>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct MetricDefinition {\n";
+    out << "    pub name: String,\n";
+    out << "    pub kind: String,\n";
+    out << "    pub backend_name: String,\n";
+    out << "    pub unit: String,\n";
+    out << "    pub labels: Vec<FieldDescriptor>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct GarbageCollectionPolicy {\n";
     out << "    pub after: String,\n";
     out << "    pub mode: String,\n";
@@ -208,6 +223,52 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            owner: " << optional_string_expr(flag.owner) << ",\n";
         out << "            description: " << optional_string_expr(flag.description) << ",\n";
         out << "            expires: " << optional_string_expr(flag.expires) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn log_definitions() -> Vec<LogDefinition> {\n";
+    out << "    vec![\n";
+    for (const auto& log : system.logs)
+    {
+        out << "        LogDefinition {\n";
+        out << "            name: " << rust_string(log.name) << ".to_string(),\n";
+        out << "            level: " << rust_string(log.level) << ".to_string(),\n";
+        out << "            event_name: " << rust_string(log.event_name) << ".to_string(),\n";
+        out << "            fields: vec![\n";
+        for (const auto& field : log.fields)
+        {
+            out << "                FieldDescriptor { name: " << rust_string(field.name)
+                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(field.type))
+                << ".to_string(), required: " << (is_optional_type(field.type) ? "false" : "true")
+                << " },\n";
+        }
+        out << "            ],\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn metric_definitions() -> Vec<MetricDefinition> {\n";
+    out << "    vec![\n";
+    for (const auto& metric : system.metrics)
+    {
+        out << "        MetricDefinition {\n";
+        out << "            name: " << rust_string(metric.name) << ".to_string(),\n";
+        out << "            kind: " << rust_string(metric.kind) << ".to_string(),\n";
+        out << "            backend_name: " << rust_string(metric.backend_name)
+            << ".to_string(),\n";
+        out << "            unit: " << rust_string(metric.unit) << ".to_string(),\n";
+        out << "            labels: vec![\n";
+        for (const auto& label : metric.labels)
+        {
+            out << "                FieldDescriptor { name: " << rust_string(label.name)
+                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(label.type))
+                << ".to_string(), required: " << (is_optional_type(label.type) ? "false" : "true")
+                << " },\n";
+        }
+        out << "            ],\n";
         out << "        },\n";
     }
     out << "    ]\n";

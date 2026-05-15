@@ -173,6 +173,19 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tDescription *string\n";
     out << "\tExpires *string\n";
     out << "}\n\n";
+    out << "type LogDefinition struct {\n";
+    out << "\tName string\n";
+    out << "\tLevel string\n";
+    out << "\tEventName string\n";
+    out << "\tFields []FieldDescriptor\n";
+    out << "}\n\n";
+    out << "type MetricDefinition struct {\n";
+    out << "\tName string\n";
+    out << "\tKind string\n";
+    out << "\tBackendName string\n";
+    out << "\tUnit string\n";
+    out << "\tLabels []FieldDescriptor\n";
+    out << "}\n\n";
     out << "type GarbageCollectionPolicy struct {\n";
     out << "\tAfter string\n";
     out << "\tMode string\n";
@@ -204,6 +217,49 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tOwner: " << string_ptr_expr(flag.owner) << ",\n";
         out << "\t\t\tDescription: " << string_ptr_expr(flag.description) << ",\n";
         out << "\t\t\tExpires: " << string_ptr_expr(flag.expires) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func LogDefinitions() []LogDefinition {\n";
+    out << "\treturn []LogDefinition{\n";
+    for (const auto& log : system.logs)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(log.name) << ",\n";
+        out << "\t\t\tLevel: " << go_string(log.level) << ",\n";
+        out << "\t\t\tEventName: " << go_string(log.event_name) << ",\n";
+        out << "\t\t\tFields: []FieldDescriptor{\n";
+        for (const auto& field : log.fields)
+        {
+            out << "\t\t\t\t{Name: " << go_string(field.name)
+                << ", Type: " << go_string(strip_optional_suffix(field.type))
+                << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func MetricDefinitions() []MetricDefinition {\n";
+    out << "\treturn []MetricDefinition{\n";
+    for (const auto& metric : system.metrics)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(metric.name) << ",\n";
+        out << "\t\t\tKind: " << go_string(metric.kind) << ",\n";
+        out << "\t\t\tBackendName: " << go_string(metric.backend_name) << ",\n";
+        out << "\t\t\tUnit: " << go_string(metric.unit) << ",\n";
+        out << "\t\t\tLabels: []FieldDescriptor{\n";
+        for (const auto& label : metric.labels)
+        {
+            out << "\t\t\t\t{Name: " << go_string(label.name)
+                << ", Type: " << go_string(strip_optional_suffix(label.type))
+                << ", Required: " << (is_optional_type(label.type) ? "false" : "true") << "},\n";
+        }
+        out << "\t\t\t},\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";

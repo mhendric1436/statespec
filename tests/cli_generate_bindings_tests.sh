@@ -27,6 +27,27 @@ system Demo {
     scope tenant
   }
 
+  log WorkflowLaunchDecision {
+    level info
+    event_name "workflow.launch.decision"
+    fields {
+      tenant_id string
+      order_id string
+      decision string
+    }
+  }
+
+  metric WorkflowLaunchAttempts {
+    kind counter
+    name "workflow_launch_attempts_total"
+    unit count
+    labels {
+      tenant_id string
+      workflow_name string
+      decision string
+    }
+  }
+
   entity Order {
     key tenant_id, order_id
     fields {
@@ -233,6 +254,13 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderProcessing"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "validate_order"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "NewScheduler"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "MaxPendingOrders"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "struct LogDefinition"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "log_definitions"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "WorkflowLaunchDecision"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "workflow.launch.decision"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "struct MetricDefinition"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "metric_definitions"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "workflow_launch_attempts_total"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"P30D\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"tombstone\""
 
@@ -259,6 +287,12 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "WorkflowVersion: 2
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "validate_order"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "NewScheduler"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "DefaultValue: \"false\""
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type LogDefinition struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func LogDefinitions() []LogDefinition"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "EventName: \"workflow.launch.decision\""
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type MetricDefinition struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func MetricDefinitions() []MetricDefinition"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "BackendName: \"workflow_launch_attempts_total\""
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "GarbageCollection: &GarbageCollectionPolicy{After: \"P30D\", Mode: \"tombstone\"}"
 
 # Positive generation: Java.
@@ -283,6 +317,12 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "2L"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "validate_order"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "NewScheduler"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record LogDefinition"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "logDefinitions"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflow.launch.decision"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record MetricDefinition"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "metricDefinitions"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflow_launch_attempts_total"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "new GarbageCollectionPolicy(\"P30D\", \"tombstone\")"
 
 # Positive generation: Rust.
@@ -307,6 +347,12 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderReconciler"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "workflow_version: 2"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "validate_order"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "NewScheduler"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct LogDefinition"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn log_definitions() -> Vec<LogDefinition>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "event_name: \"workflow.launch.decision\".to_string()"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct MetricDefinition"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn metric_definitions() -> Vec<MetricDefinition>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "backend_name: \"workflow_launch_attempts_total\".to_string()"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "garbage_collection: Some(GarbageCollectionPolicy { after: \"P30D\".to_string(), mode: \"tombstone\".to_string() })"
 
 # Include composition is used by binding generation.

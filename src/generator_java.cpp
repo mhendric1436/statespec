@@ -180,6 +180,19 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        Optional<String> description,\n";
     out << "        Optional<String> expires\n";
     out << "    ) {}\n\n";
+    out << "    public record LogDefinition(\n";
+    out << "        String name,\n";
+    out << "        String level,\n";
+    out << "        String eventName,\n";
+    out << "        List<FieldDescriptor> fields\n";
+    out << "    ) {}\n\n";
+    out << "    public record MetricDefinition(\n";
+    out << "        String name,\n";
+    out << "        String kind,\n";
+    out << "        String backendName,\n";
+    out << "        String unit,\n";
+    out << "        List<FieldDescriptor> labels\n";
+    out << "    ) {}\n\n";
     out << "    public record GarbageCollectionPolicy(\n";
     out << "        String after,\n";
     out << "        String mode\n";
@@ -211,6 +224,55 @@ std::string generate_descriptors_java(const IrSystem& system)
         out << "                " << optional_string_expr(flag.description) << ",\n";
         out << "                " << optional_string_expr(flag.expires) << "\n";
         out << "            )" << (i + 1 < system.feature_flags.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static List<LogDefinition> logDefinitions() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t log_index = 0; log_index < system.logs.size(); ++log_index)
+    {
+        const auto& log = system.logs[log_index];
+        out << "            new LogDefinition(\n";
+        out << "                " << java_string(log.name) << ",\n";
+        out << "                " << java_string(log.level) << ",\n";
+        out << "                " << java_string(log.event_name) << ",\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < log.fields.size(); ++i)
+        {
+            const auto& field = log.fields[i];
+            out << "                    new FieldDescriptor(" << java_string(field.name) << ", "
+                << java_string(strip_optional_suffix(field.type)) << ", "
+                << (is_optional_type(field.type) ? "false" : "true") << ")";
+            out << (i + 1 < log.fields.size() ? "," : "") << "\n";
+        }
+        out << "                )\n";
+        out << "            )" << (log_index + 1 < system.logs.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static List<MetricDefinition> metricDefinitions() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t metric_index = 0; metric_index < system.metrics.size(); ++metric_index)
+    {
+        const auto& metric = system.metrics[metric_index];
+        out << "            new MetricDefinition(\n";
+        out << "                " << java_string(metric.name) << ",\n";
+        out << "                " << java_string(metric.kind) << ",\n";
+        out << "                " << java_string(metric.backend_name) << ",\n";
+        out << "                " << java_string(metric.unit) << ",\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < metric.labels.size(); ++i)
+        {
+            const auto& label = metric.labels[i];
+            out << "                    new FieldDescriptor(" << java_string(label.name) << ", "
+                << java_string(strip_optional_suffix(label.type)) << ", "
+                << (is_optional_type(label.type) ? "false" : "true") << ")";
+            out << (i + 1 < metric.labels.size() ? "," : "") << "\n";
+        }
+        out << "                )\n";
+        out << "            )" << (metric_index + 1 < system.metrics.size() ? "," : "") << "\n";
     }
     out << "        );\n";
     out << "    }\n\n";
