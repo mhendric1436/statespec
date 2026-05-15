@@ -91,6 +91,6 @@ system OrderSystem {
 }
 ```
 
-Validation composes included declarations into the root system before semantic checks, so
-local policies, workers, and APIs can reference declarations from the launch-control
-baseline.
+Validation and binding generation compose included declarations into the root system
+before semantic checks and generation, so local policies, workers, APIs, and generated
+descriptors can reference declarations from the launch-control baseline.

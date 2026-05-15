@@ -29,9 +29,10 @@ system OrderSystem {
 }
 ```
 
-`statespec validate` resolves include paths relative to the including file, detects
-include cycles, and validates the composed system. Included system declarations
-contribute their members to the root system; the root file keeps the final system name.
+`statespec validate` and `statespec generate bindings` resolve include paths relative to
+the including file, detect include cycles, and operate on the composed system. Included
+system declarations contribute their members to the root system; the root file keeps the
+final system name.
 
 `statespec ast` continues to show the parsed file-level AST without expanding includes.
 Formatting also operates on the file being formatted and does not inline included files.

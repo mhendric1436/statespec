@@ -94,6 +94,66 @@ cat > "$NO_SYSTEM_SPEC" <<'SSPEC'
 version "0.1"
 SSPEC
 
+INCLUDED_SPEC="$TMPDIR/included-bindings.sspec"
+cat > "$INCLUDED_SPEC" <<'SSPEC'
+statespec 0.1;
+
+system IncludedBindings {
+  entity IncludedEntity {
+    key included_id
+    fields {
+      included_id string
+      created_at timestamp
+      updated_at timestamp
+      status string
+    }
+    state_machine {
+      state Active
+      initial Active
+    }
+  }
+
+  queue IncludedQueue {
+    namespace included_ns
+    channel included
+    visibility_timeout PT30S
+    max_attempts 3
+    message IncludedMessage {
+      idempotency_key message_id
+      payload {
+        message_id string
+        included_id string
+      }
+    }
+  }
+
+  workflow IncludedWorkflow {
+    version 1
+    singleton false
+    expected_execution_time PT30S
+    start included_step
+    step included_step {
+      expected_execution_time PT10S
+      max_retries 1
+    }
+  }
+}
+SSPEC
+
+INCLUDE_ROOT_SPEC="$TMPDIR/include-bindings-root.sspec"
+cat > "$INCLUDE_ROOT_SPEC" <<'SSPEC'
+statespec 0.1;
+include "./included-bindings.sspec";
+
+system IncludeBindingsRoot {
+  feature_flag IncludedEntityLaunch {
+    type bool
+    default true
+    scope entity IncludedEntity
+  }
+}
+SSPEC
+
 run_expect_status() {
     expected="$1"
     shift
@@ -248,6 +308,15 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "workflow_version: 2"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "validate_order"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "NewScheduler"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "garbage_collection: Some(GarbageCollectionPolicy { after: \"P30D\".to_string(), mode: \"tombstone\".to_string() })"
+
+# Include composition is used by binding generation.
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$INCLUDE_ROOT_SPEC" --out "$TMPDIR/out-include-cpp"
+assert_output_contains "generated $TMPDIR/out-include-cpp/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/out-include-cpp/system_descriptors.hpp"
+assert_file_contains "$TMPDIR/out-include-cpp/system_descriptors.hpp" "IncludedEntity"
+assert_file_contains "$TMPDIR/out-include-cpp/system_descriptors.hpp" "IncludedQueue"
+assert_file_contains "$TMPDIR/out-include-cpp/system_descriptors.hpp" "IncludedWorkflow"
+assert_file_contains "$TMPDIR/out-include-cpp/system_descriptors.hpp" "IncludedEntityLaunch"
 
 # Default output directories.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC"

@@ -83,20 +83,6 @@ statespec::Spec parse_file(
     return parser.parse(diagnostics);
 }
 
-statespec::Spec parse_and_validate_file(
-    const std::string& path,
-    statespec::DiagnosticBag& diagnostics
-)
-{
-    auto spec = parse_file(path, diagnostics);
-    if (!diagnostics.has_errors())
-    {
-        statespec::Validator validator;
-        validator.validate(spec, diagnostics);
-    }
-    return spec;
-}
-
 std::filesystem::path normalized_existing_path(const std::filesystem::path& path)
 {
     return std::filesystem::weakly_canonical(path);
@@ -668,7 +654,7 @@ GenerateBindingsArgs parse_generate_bindings_args(
 int generate_bindings_file(const GenerateBindingsArgs& args)
 {
     statespec::DiagnosticBag diagnostics;
-    const auto spec = parse_and_validate_file(args.input_path, diagnostics);
+    const auto spec = load_composed_and_validate_file(args.input_path, diagnostics);
     if (diagnostics.has_errors())
     {
         print_diagnostics(diagnostics);
