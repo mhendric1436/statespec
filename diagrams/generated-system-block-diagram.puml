@@ -1,0 +1,125 @@
+@startuml
+title StateSpec Generated System Block Diagram
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+rectangle ".sspec source" as Source
+rectangle "StateSpec compiler" as Compiler
+rectangle "Canonical IR" as IR
+
+package "Generated artifacts" {
+  rectangle "Service/API stubs" as ApiStubs
+  rectangle "Worker skeletons" as Workers
+  rectangle "Entity descriptors" as EntityDescriptors
+  rectangle "Workflow descriptors" as WorkflowDescriptors
+  rectangle "Queue descriptors" as QueueDescriptors
+  rectangle "Lease descriptors" as LeaseDescriptors
+  rectangle "Feature flag descriptors" as FeatureFlagDescriptors
+  rectangle "Log descriptors" as LogDescriptors
+  rectangle "Metric descriptors" as MetricDescriptors
+}
+
+package "Generated runtime binding surface" {
+  interface "Backend\nIBackend / Backend" as Backend
+  interface "Transaction\nITransaction / Tx" as Tx
+  component "Entity store" as EntityStore
+  component "Workflow store" as WorkflowStore
+  component "Queue store" as QueueStore
+  component "Lease store" as LeaseStore
+  component "Feature flag store" as FeatureFlagStore
+  component "Log sink" as LogSink
+  component "Metric sink" as MetricSink
+}
+
+package "Application runtime" {
+  rectangle "API service" as ApiService
+  rectangle "Workflow workers" as WorkflowWorkers
+  rectangle "Queue workers" as QueueWorkers
+}
+
+package "Concrete infrastructure adapters" {
+  database "Versioned persisted state" as PersistedState
+  queue "Message transport" as MessageTransport
+  cloud "Logging backend" as LoggingBackend
+  cloud "Metrics backend" as MetricsBackend
+}
+
+Source --> Compiler
+Compiler --> IR
+
+IR --> ApiStubs
+IR --> Workers
+IR --> EntityDescriptors
+IR --> WorkflowDescriptors
+IR --> QueueDescriptors
+IR --> LeaseDescriptors
+IR --> FeatureFlagDescriptors
+IR --> LogDescriptors
+IR --> MetricDescriptors
+
+ApiStubs --> ApiService
+Workers --> WorkflowWorkers
+Workers --> QueueWorkers
+
+ApiService --> Backend : begin / commit
+WorkflowWorkers --> Backend : begin / commit
+QueueWorkers --> Backend : begin / commit
+Backend --> Tx : opens transaction
+
+ApiService --> EntityStore : read/write Tx
+ApiService --> FeatureFlagStore : evaluateTx
+ApiService --> WorkflowStore : startTx
+ApiService --> QueueStore : enqueueTx
+ApiService --> LogSink : emitTx
+ApiService --> MetricSink : recordTx
+
+WorkflowWorkers --> EntityStore : read/write Tx
+WorkflowWorkers --> WorkflowStore : claim/complete Tx
+WorkflowWorkers --> QueueStore : enqueueTx
+WorkflowWorkers --> LeaseStore : acquire/renew Tx
+WorkflowWorkers --> FeatureFlagStore : evaluateTx
+WorkflowWorkers --> LogSink : emitTx
+WorkflowWorkers --> MetricSink : recordTx
+
+QueueWorkers --> QueueStore : claim/ack/fail Tx
+QueueWorkers --> EntityStore : read/write Tx
+QueueWorkers --> LogSink : emitTx
+QueueWorkers --> MetricSink : recordTx
+
+EntityStore --> Tx
+WorkflowStore --> Tx
+QueueStore --> Tx
+LeaseStore --> Tx
+FeatureFlagStore --> Tx
+LogSink --> Tx
+MetricSink --> Tx
+
+Tx --> PersistedState : OCC reads/writes
+QueueStore --> MessageTransport : durable dispatch
+LogSink --> LoggingBackend : structured events
+MetricSink --> MetricsBackend : samples
+
+EntityDescriptors ..> EntityStore : provision collections
+WorkflowDescriptors ..> WorkflowStore : register definitions
+QueueDescriptors ..> QueueStore : create queues
+LeaseDescriptors ..> LeaseStore : register lease definitions
+FeatureFlagDescriptors ..> FeatureFlagStore : register flags
+LogDescriptors ..> LogSink : register event catalog
+MetricDescriptors ..> MetricSink : register metric catalog
+
+note right of Source
+Text remains the source of truth.
+Generated code, descriptors, and runtime
+contracts derive from the validated spec.
+end note
+
+note bottom of Tx
+State reads, feature flag evaluation,
+queue/lease/workflow updates, logs, and
+metrics can participate in the same OCC
+transaction when behavior depends on them.
+end note
+
+@enduml

@@ -119,6 +119,179 @@ void ir_lowers_logs_and_metrics()
     );
 }
 
+void ir_lowers_system_runtime_contracts()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          entity Order {
+            key tenant_id, order_id
+            fields {
+              tenant_id string
+              order_id string
+              status string
+              created_at timestamp
+              updated_at timestamp
+            }
+            indexes {
+              index by_tenant_status on tenant_id, status
+              unique by_tenant_order on tenant_id, order_id
+            }
+            state_machine {
+              state Pending
+              state Active
+              initial Pending
+              Pending -> Active
+            }
+          }
+
+          queue EmailDispatch {
+            namespace workflow_ns
+            channel email
+            visibility_timeout PT30S
+            max_attempts 3
+            dead_letter EmailDispatch.SendFailed
+            message SendConfirmation {
+              idempotency_key message_id
+              payload {
+                message_id string
+                order_id string
+              }
+            }
+          }
+
+          lease OrderReconcilerLease {
+            resource "orders:reconciler"
+            ttl PT30S
+            renew_every PT10S
+            holder worker_id
+            fencing_token true
+            max_ttl PT5M
+          }
+
+          worker OrderWorker {
+            singleton true
+            lease OrderReconcilerLease
+            polls EmailDispatch.SendConfirmation
+            executes OrderProcessing
+            concurrency 4
+          }
+
+          api StartOrderProcessing {
+            method POST
+            path "/v1/orders/{order_id}/start"
+            input StartOrderRequest
+            output StartOrderResponse
+            error ErrorResponse
+            starts workflow OrderProcessing
+            enqueues EmailDispatch.SendConfirmation
+          }
+
+          workflow OrderProcessing {
+            version 2
+            singleton false
+            expected_execution_time PT60S
+            start validate_order
+            step validate_order {
+              expected_execution_time PT10S
+              max_retries 2
+            }
+          }
+
+          policy WorkflowAccess {
+            tenant scoped_by tenant_id
+            allow StartOrderProcessing when caller.role == operator;
+            deny StartOrderProcessing when caller.suspended == true;
+            quota starts_per_minute: 60;
+            audit StartOrderProcessing;
+          }
+        }
+    )sspec");
+
+    const auto ir = statespec::lower_to_ir(spec);
+
+    statespec::test::require(ir.tenant_scope.has_value(), "IR should lower tenant scope");
+    statespec::test::require(
+        ir.tenant_scope->field_name == "tenant_id", "IR should lower tenant scope field"
+    );
+    statespec::test::require(ir.system_tenant.has_value(), "IR should lower system tenant");
+    statespec::test::require(
+        ir.system_tenant->source == "configured", "IR should lower system tenant source"
+    );
+
+    statespec::test::require(ir.entities.size() == 1, "IR should lower entities");
+    const auto& entity = ir.entities[0];
+    statespec::test::require(entity.indexes.size() == 2, "IR should lower entity indexes");
+    statespec::test::require(
+        entity.indexes[0].name == "by_tenant_status", "IR should lower index name"
+    );
+    statespec::test::require(!entity.indexes[0].unique, "IR should lower non-unique index");
+    statespec::test::require(entity.indexes[1].unique, "IR should lower unique index");
+    statespec::test::require(entity.transitions.size() == 1, "IR should lower state transitions");
+    statespec::test::require(
+        entity.transitions[0].from == "Pending" && entity.transitions[0].to == "Active",
+        "IR should lower transition endpoints"
+    );
+
+    statespec::test::require(ir.queues.size() == 1, "IR should lower queues");
+    const auto& queue = ir.queues[0];
+    statespec::test::require(queue.namespace_name == "workflow_ns", "IR should lower namespace");
+    statespec::test::require(queue.messages.size() == 1, "IR should lower queue messages");
+    statespec::test::require(
+        queue.messages[0].idempotency_key == "message_id", "IR should lower message idempotency key"
+    );
+    statespec::test::require(
+        queue.messages[0].payload_fields.size() == 2, "IR should lower message payload fields"
+    );
+
+    statespec::test::require(ir.leases.size() == 1, "IR should lower leases");
+    statespec::test::require(ir.leases[0].holder == "worker_id", "IR should lower lease holder");
+    statespec::test::require(
+        ir.leases[0].fencing_token == true, "IR should lower lease fencing token"
+    );
+
+    statespec::test::require(ir.workers.size() == 1, "IR should lower workers");
+    const auto& worker = ir.workers[0];
+    statespec::test::require(worker.name == "OrderWorker", "IR should lower worker name");
+    statespec::test::require(worker.singleton == true, "IR should lower worker singleton");
+    statespec::test::require(
+        worker.polls == "EmailDispatch.SendConfirmation", "IR should lower worker polls"
+    );
+    statespec::test::require(
+        worker.executes == "OrderProcessing", "IR should lower worker execution target"
+    );
+    statespec::test::require(worker.concurrency == 4, "IR should lower worker concurrency");
+
+    statespec::test::require(ir.apis.size() == 1, "IR should lower APIs");
+    const auto& api = ir.apis[0];
+    statespec::test::require(api.method == "POST", "IR should lower API method");
+    statespec::test::require(
+        api.starts_workflow == "OrderProcessing", "IR should lower API workflow target"
+    );
+    statespec::test::require(
+        api.enqueues == "EmailDispatch.SendConfirmation", "IR should lower API queue target"
+    );
+
+    statespec::test::require(ir.workflows.size() == 1, "IR should lower workflows");
+    statespec::test::require(ir.workflows[0].steps.size() == 1, "IR should lower workflow steps");
+
+    statespec::test::require(ir.policies.size() == 1, "IR should lower policies");
+    const auto& policy = ir.policies[0];
+    statespec::test::require(
+        policy.tenant_scoped_by == "tenant_id", "IR should lower policy tenant scope"
+    );
+    statespec::test::require(policy.allows.size() == 1, "IR should lower allow rules");
+    statespec::test::require(policy.denies.size() == 1, "IR should lower deny rules");
+    statespec::test::require(policy.quotas.size() == 1, "IR should lower quotas");
+    statespec::test::require(policy.audits.size() == 1, "IR should lower audit actions");
+    statespec::test::require(
+        policy.allows[0].condition == "caller . role == operator",
+        "IR should lower allow condition"
+    );
+}
+
 } // namespace
 
 TEST_CASE("IR lowers terminal garbage collection policy")
@@ -129,4 +302,9 @@ TEST_CASE("IR lowers terminal garbage collection policy")
 TEST_CASE("IR lowers logs and metrics")
 {
     ir_lowers_logs_and_metrics();
+}
+
+TEST_CASE("IR lowers system runtime contracts")
+{
+    ir_lowers_system_runtime_contracts();
 }
