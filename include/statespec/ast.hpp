@@ -113,6 +113,25 @@ struct FeatureFlagDecl
     SourceRange range;
 };
 
+struct LogDecl
+{
+    std::string name;
+    std::optional<std::string> level;
+    std::optional<std::string> event_name;
+    std::vector<FieldDecl> fields;
+    SourceRange range;
+};
+
+struct MetricDecl
+{
+    std::string name;
+    std::optional<std::string> kind;
+    std::optional<std::string> backend_name;
+    std::optional<std::string> unit;
+    std::vector<FieldDecl> labels;
+    SourceRange range;
+};
+
 struct MessageDecl
 {
     std::string name;
@@ -219,6 +238,8 @@ struct SystemDecl
     std::optional<TenantScopeDecl> tenant_scope;
     std::optional<SystemTenantDecl> system_tenant;
     std::vector<FeatureFlagDecl> feature_flags;
+    std::vector<LogDecl> logs;
+    std::vector<MetricDecl> metrics;
     std::vector<EntityDecl> entities;
     std::vector<QueueDecl> queues;
     std::vector<LeaseDecl> leases;

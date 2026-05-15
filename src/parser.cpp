@@ -259,6 +259,14 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         {
             system.feature_flags.push_back(parse_feature_flag_decl(diagnostics));
         }
+        else if (check(TokenKind::KeywordLog))
+        {
+            system.logs.push_back(parse_log_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordMetric))
+        {
+            system.metrics.push_back(parse_metric_decl(diagnostics));
+        }
         else if (check(TokenKind::KeywordQueue))
         {
             system.queues.push_back(parse_queue_decl(diagnostics));
@@ -388,6 +396,100 @@ FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)
 
     feature_flag.range = SourceRange{start.range.begin, previous().range.end};
     return feature_flag;
+}
+
+LogDecl Parser::parse_log_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordLog, "expected log declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected log name", diagnostics);
+    LogDecl log;
+    log.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after log name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (is_named_identifier(peek(), "level"))
+        {
+            advance();
+            log.level = consume(TokenKind::Identifier, "expected log level", diagnostics).lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "event_name"))
+        {
+            advance();
+            log.event_name = parse_simple_value(diagnostics, "log event_name");
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordFields))
+        {
+            advance();
+            consume(TokenKind::LeftBrace, "expected '{' after log fields", diagnostics);
+            while (!check(TokenKind::RightBrace) && !is_at_end())
+            {
+                log.fields.push_back(parse_field_decl(diagnostics));
+            }
+            consume(TokenKind::RightBrace, "expected '}' after log fields block", diagnostics);
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after log block", diagnostics);
+
+    log.range = SourceRange{start.range.begin, previous().range.end};
+    return log;
+}
+
+MetricDecl Parser::parse_metric_decl(DiagnosticBag& diagnostics)
+{
+    const auto start =
+        consume(TokenKind::KeywordMetric, "expected metric declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected metric name", diagnostics);
+    MetricDecl metric;
+    metric.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after metric name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (is_named_identifier(peek(), "kind"))
+        {
+            advance();
+            metric.kind =
+                consume(TokenKind::Identifier, "expected metric kind", diagnostics).lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "name"))
+        {
+            advance();
+            metric.backend_name = parse_simple_value(diagnostics, "metric name");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "unit"))
+        {
+            advance();
+            metric.unit = parse_simple_value(diagnostics, "metric unit");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "labels"))
+        {
+            advance();
+            consume(TokenKind::LeftBrace, "expected '{' after metric labels", diagnostics);
+            while (!check(TokenKind::RightBrace) && !is_at_end())
+            {
+                metric.labels.push_back(parse_field_decl(diagnostics));
+            }
+            consume(TokenKind::RightBrace, "expected '}' after metric labels block", diagnostics);
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after metric block", diagnostics);
+
+    metric.range = SourceRange{start.range.begin, previous().range.end};
+    return metric;
 }
 
 EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)

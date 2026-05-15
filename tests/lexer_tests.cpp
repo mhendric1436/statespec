@@ -78,6 +78,24 @@ void lexer_skips_comments()
     );
 }
 
+void lexer_tokenizes_observability_keywords()
+{
+    const auto tokens =
+        statespec::test::lex_text("log WorkflowDecision {} metric WorkflowAttempts {}");
+    statespec::test::require(
+        tokens[0].kind == statespec::TokenKind::KeywordLog, "log should be a keyword"
+    );
+    statespec::test::require(
+        tokens[1].kind == statespec::TokenKind::Identifier, "log name should be identifier"
+    );
+    statespec::test::require(
+        tokens[4].kind == statespec::TokenKind::KeywordMetric, "metric should be a keyword"
+    );
+    statespec::test::require(
+        tokens[5].kind == statespec::TokenKind::Identifier, "metric name should be identifier"
+    );
+}
+
 void lexer_tokenizes_literals()
 {
     const auto tokens =
@@ -195,6 +213,11 @@ TEST_CASE("lexer tokenizes system declarations")
 TEST_CASE("lexer skips comments")
 {
     lexer_skips_comments();
+}
+
+TEST_CASE("lexer tokenizes observability keywords")
+{
+    lexer_tokenizes_observability_keywords();
 }
 
 TEST_CASE("lexer tokenizes literals")

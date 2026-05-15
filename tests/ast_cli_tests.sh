@@ -32,6 +32,8 @@ printf '%s\n' "$AST_OUTPUT" | grep -q '"system"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"name": "OrderSystem"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"entities"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"feature_flags"'
+printf '%s\n' "$AST_OUTPUT" | grep -q '"logs"'
+printf '%s\n' "$AST_OUTPUT" | grep -q '"metrics"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"queues"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"leases"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"workers"'
@@ -50,6 +52,59 @@ assert "feature_flags" in document["system"]
 assert len(document["system"]["entities"]) >= 1
 assert len(document["system"]["queues"]) >= 1
 assert len(document["system"]["workflows"]) >= 1
+'
+
+OBSERVABILITY_EXAMPLE="$TMPDIR/observability.sspec"
+cat > "$OBSERVABILITY_EXAMPLE" <<'SSPEC'
+statespec 0.1;
+
+system ObservabilityDemo {
+  log WorkflowLaunchDecision {
+    level info
+    event_name "workflow.launch.decision"
+    fields {
+      tenant_id string
+      decision string
+    }
+  }
+
+  metric WorkflowLaunchAttempts {
+    kind counter
+    name "workflow_launch_attempts_total"
+    unit count
+    labels {
+      tenant_id string
+      decision string
+    }
+  }
+}
+SSPEC
+
+OBSERVABILITY_AST_OUTPUT="$($CLI ast "$OBSERVABILITY_EXAMPLE")"
+
+printf '%s\n' "$OBSERVABILITY_AST_OUTPUT" | grep -q '"logs"'
+printf '%s\n' "$OBSERVABILITY_AST_OUTPUT" | grep -q '"metrics"'
+printf '%s\n' "$OBSERVABILITY_AST_OUTPUT" | grep -q '"event_name": "workflow.launch.decision"'
+printf '%s\n' "$OBSERVABILITY_AST_OUTPUT" | grep -q '"backend_name": "workflow_launch_attempts_total"'
+
+printf '%s\n' "$OBSERVABILITY_AST_OUTPUT" | python3 -c '
+import json
+import sys
+
+document = json.load(sys.stdin)
+logs = document["system"]["logs"]
+metrics = document["system"]["metrics"]
+assert len(logs) == 1
+assert logs[0]["name"] == "WorkflowLaunchDecision"
+assert logs[0]["level"] == "info"
+assert logs[0]["event_name"] == "workflow.launch.decision"
+assert logs[0]["fields"][0]["name"] == "tenant_id"
+assert len(metrics) == 1
+assert metrics[0]["name"] == "WorkflowLaunchAttempts"
+assert metrics[0]["kind"] == "counter"
+assert metrics[0]["backend_name"] == "workflow_launch_attempts_total"
+assert metrics[0]["unit"] == "count"
+assert metrics[0]["labels"][1]["name"] == "decision"
 '
 
 FEATURE_FLAGS_AST_OUTPUT="$($CLI ast "$FEATURE_FLAGS_EXAMPLE")"

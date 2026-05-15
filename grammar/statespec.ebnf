@@ -57,6 +57,8 @@ system_member           ::= system_tenant_scope_decl
                           | shape_decl
                           | external_system_decl
                           | feature_flag_decl
+                          | log_decl
+                          | metric_decl
                           | entity_decl
                           | event_decl
                           | queue_decl
@@ -227,6 +229,42 @@ feature_flag_scope      ::= "system"
                           | "tenant"
                           | "user"
                           | "entity" QualifiedName ;
+
+
+(* ============================================================ *)
+(* Observability                                                *)
+(* ============================================================ *)
+
+log_decl                ::= "log" Identifier log_block ;
+
+log_block               ::= "{"
+                              log_member*
+                            "}" ;
+
+log_member              ::= "level" log_level ";"?
+                          | "event_name" StringLiteral ";"?
+                          | "fields" "{"
+                              field_decl*
+                            "}"
+                          | annotations_block ;
+
+log_level               ::= "debug" | "info" | "warn" | "error" ;
+
+metric_decl             ::= "metric" Identifier metric_block ;
+
+metric_block            ::= "{"
+                              metric_member*
+                            "}" ;
+
+metric_member           ::= "kind" metric_kind ";"?
+                          | "name" StringLiteral ";"?
+                          | "unit" Identifier ";"?
+                          | "labels" "{"
+                              field_decl*
+                            "}"
+                          | annotations_block ;
+
+metric_kind             ::= "counter" | "gauge" | "histogram" ;
 
 
 (* ============================================================ *)

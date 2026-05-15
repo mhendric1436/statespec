@@ -41,6 +41,8 @@ TokenKind keyword_kind(std::string_view text)
         {"shape", TokenKind::KeywordShape},
         {"external_system", TokenKind::KeywordExternalSystem},
         {"feature_flag", TokenKind::KeywordFeatureFlag},
+        {"log", TokenKind::KeywordLog},
+        {"metric", TokenKind::KeywordMetric},
         {"entity", TokenKind::KeywordEntity},
         {"key", TokenKind::KeywordKey},
         {"version", TokenKind::KeywordVersion},

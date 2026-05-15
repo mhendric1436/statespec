@@ -111,6 +111,8 @@ void append_system_members(
     target.feature_flags.insert(
         target.feature_flags.end(), source.feature_flags.begin(), source.feature_flags.end()
     );
+    target.logs.insert(target.logs.end(), source.logs.begin(), source.logs.end());
+    target.metrics.insert(target.metrics.end(), source.metrics.begin(), source.metrics.end());
     target.entities.insert(target.entities.end(), source.entities.begin(), source.entities.end());
     target.queues.insert(target.queues.end(), source.queues.begin(), source.queues.end());
     target.leases.insert(target.leases.end(), source.leases.begin(), source.leases.end());
@@ -199,6 +201,8 @@ statespec::Spec load_composed_spec(
     {
         statespec::SystemDecl composed_system = *spec.system;
         composed_system.feature_flags.clear();
+        composed_system.logs.clear();
+        composed_system.metrics.clear();
         composed_system.entities.clear();
         composed_system.queues.clear();
         composed_system.leases.clear();
@@ -418,6 +422,60 @@ void write_feature_flags(
     out << ']';
 }
 
+void write_logs(
+    std::ostream& out,
+    const std::vector<statespec::LogDecl>& logs
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < logs.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& log = logs[i];
+        out << "{\"name\": ";
+        write_json_string(out, log.name);
+        out << ", \"level\": ";
+        write_json_optional_string(out, log.level);
+        out << ", \"event_name\": ";
+        write_json_optional_string(out, log.event_name);
+        out << ", \"fields\": ";
+        write_fields(out, log.fields);
+        out << '}';
+    }
+    out << ']';
+}
+
+void write_metrics(
+    std::ostream& out,
+    const std::vector<statespec::MetricDecl>& metrics
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < metrics.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& metric = metrics[i];
+        out << "{\"name\": ";
+        write_json_string(out, metric.name);
+        out << ", \"kind\": ";
+        write_json_optional_string(out, metric.kind);
+        out << ", \"backend_name\": ";
+        write_json_optional_string(out, metric.backend_name);
+        out << ", \"unit\": ";
+        write_json_optional_string(out, metric.unit);
+        out << ", \"labels\": ";
+        write_fields(out, metric.labels);
+        out << '}';
+    }
+    out << ']';
+}
+
 void write_includes(
     std::ostream& out,
     const std::vector<statespec::IncludeDecl>& includes
@@ -483,6 +541,12 @@ void write_spec_json(
 
     out << "    \"feature_flags\": ";
     write_feature_flags(out, system.feature_flags);
+    out << ",\n";
+    out << "    \"logs\": ";
+    write_logs(out, system.logs);
+    out << ",\n";
+    out << "    \"metrics\": ";
+    write_metrics(out, system.metrics);
     out << ",\n";
 
     out << "    \"entities\": [";

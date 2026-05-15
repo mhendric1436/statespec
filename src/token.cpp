@@ -97,6 +97,10 @@ std::string token_kind_name(TokenKind kind)
         return "KeywordExternalSystem";
     case TokenKind::KeywordFeatureFlag:
         return "KeywordFeatureFlag";
+    case TokenKind::KeywordLog:
+        return "KeywordLog";
+    case TokenKind::KeywordMetric:
+        return "KeywordMetric";
     case TokenKind::KeywordEntity:
         return "KeywordEntity";
     case TokenKind::KeywordKey:

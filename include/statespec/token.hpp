@@ -56,6 +56,8 @@ enum class TokenKind
     KeywordShape,
     KeywordExternalSystem,
     KeywordFeatureFlag,
+    KeywordLog,
+    KeywordMetric,
     KeywordEntity,
     KeywordKey,
     KeywordVersion,

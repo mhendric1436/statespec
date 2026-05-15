@@ -30,6 +30,8 @@ bool is_word_token(TokenKind kind)
     case TokenKind::KeywordShape:
     case TokenKind::KeywordExternalSystem:
     case TokenKind::KeywordFeatureFlag:
+    case TokenKind::KeywordLog:
+    case TokenKind::KeywordMetric:
     case TokenKind::KeywordEntity:
     case TokenKind::KeywordKey:
     case TokenKind::KeywordVersion:
