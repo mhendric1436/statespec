@@ -287,8 +287,7 @@ void ir_lowers_system_runtime_contracts()
     statespec::test::require(policy.quotas.size() == 1, "IR should lower quotas");
     statespec::test::require(policy.audits.size() == 1, "IR should lower audit actions");
     statespec::test::require(
-        policy.allows[0].condition == "caller . role == operator",
-        "IR should lower allow condition"
+        policy.allows[0].condition == "caller . role == operator", "IR should lower allow condition"
     );
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "statespec/ast.hpp"
+#include "statespec/semantic.hpp"
 
 #include <optional>
 #include <string>
@@ -199,6 +200,7 @@ struct IrSystem
     std::vector<IrPolicy> policies;
 };
 
+IrSystem lower_to_ir(const SemanticSystem& system);
 IrSystem lower_to_ir(const Spec& spec);
 
 } // namespace statespec
