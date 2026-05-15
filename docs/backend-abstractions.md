@@ -7,12 +7,12 @@ The repository includes reference interface definitions in several implementatio
 languages. Runtime interfaces are decomposed by component so users can depend only on
 leases, queues, workflows, or any subset their system requires.
 
-| Language | Backend path | Lease path | Queue path | Workflow path | Intended use |
-|---|---|---|---|---|---|
-| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | [`bindings/cpp/lease.hpp`](../bindings/cpp/lease.hpp) | [`bindings/cpp/queue.hpp`](../bindings/cpp/queue.hpp) | [`bindings/cpp/workflow.hpp`](../bindings/cpp/workflow.hpp) | C++ runtime/backend adapter reference. |
-| Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | [`bindings/rust/lease.rs`](../bindings/rust/lease.rs) | [`bindings/rust/queue.rs`](../bindings/rust/queue.rs) | [`bindings/rust/workflow.rs`](../bindings/rust/workflow.rs) | Rust runtime/backend adapter reference. |
-| Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | [`bindings/go/backend/lease.go`](../bindings/go/backend/lease.go) | [`bindings/go/backend/queue.go`](../bindings/go/backend/queue.go) | [`bindings/go/backend/workflow.go`](../bindings/go/backend/workflow.go) | Go API, worker, and backend adapter reference. |
-| Java | [`bindings/java/com/statespec/backend/Backend.java`](../bindings/java/com/statespec/backend/Backend.java) | [`bindings/java/com/statespec/backend/Lease.java`](../bindings/java/com/statespec/backend/Lease.java) | [`bindings/java/com/statespec/backend/Queue.java`](../bindings/java/com/statespec/backend/Queue.java) | [`bindings/java/com/statespec/backend/Workflow.java`](../bindings/java/com/statespec/backend/Workflow.java) | JVM service/backend adapter reference. |
+| Language | Backend path | Lease path | Queue path | Workflow path | Observability path | Intended use |
+|---|---|---|---|---|---|---|
+| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | [`bindings/cpp/lease.hpp`](../bindings/cpp/lease.hpp) | [`bindings/cpp/queue.hpp`](../bindings/cpp/queue.hpp) | [`bindings/cpp/workflow.hpp`](../bindings/cpp/workflow.hpp) | [`bindings/cpp/observability.hpp`](../bindings/cpp/observability.hpp) | C++ runtime/backend adapter reference. |
+| Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | [`bindings/rust/lease.rs`](../bindings/rust/lease.rs) | [`bindings/rust/queue.rs`](../bindings/rust/queue.rs) | [`bindings/rust/workflow.rs`](../bindings/rust/workflow.rs) | [`bindings/rust/observability.rs`](../bindings/rust/observability.rs) | Rust runtime/backend adapter reference. |
+| Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | [`bindings/go/backend/lease.go`](../bindings/go/backend/lease.go) | [`bindings/go/backend/queue.go`](../bindings/go/backend/queue.go) | [`bindings/go/backend/workflow.go`](../bindings/go/backend/workflow.go) | [`bindings/go/backend/observability.go`](../bindings/go/backend/observability.go) | Go API, worker, and backend adapter reference. |
+| Java | [`bindings/java/com/statespec/backend/Backend.java`](../bindings/java/com/statespec/backend/Backend.java) | [`bindings/java/com/statespec/backend/Lease.java`](../bindings/java/com/statespec/backend/Lease.java) | [`bindings/java/com/statespec/backend/Queue.java`](../bindings/java/com/statespec/backend/Queue.java) | [`bindings/java/com/statespec/backend/Workflow.java`](../bindings/java/com/statespec/backend/Workflow.java) | [`bindings/java/com/statespec/backend/Observability.java`](../bindings/java/com/statespec/backend/Observability.java) | JVM service/backend adapter reference. |
 
 ## Shared Backend Model
 
@@ -127,8 +127,8 @@ Each language also defines runtime-facing interfaces for higher-level primitives
 separate files:
 
 ```text
-LeaseStore / QueueStore / WorkflowStore  C++, Rust, Go
-Lease / Queue / Workflow                 Java
+LeaseStore / QueueStore / WorkflowStore / ObservabilitySink  C++, Rust, Go
+Lease / Queue / Workflow / Observability                     Java
 ```
 
 The runtime files expose request, result, and record types for:
@@ -139,6 +139,8 @@ queue create / inspect definition
 queue enqueue / claim / acknowledge / fail / inspect
 workflow register definition / inspect definition
 workflow start / claim steps / complete step / fail step / cancel / inspect
+log event emission
+metric sample recording
 ```
 
 Runtime APIs support two call styles in the same component interface:
@@ -167,6 +169,11 @@ OperationTx(ctx, tx, req)        Go
 operation(backend, request)      Java
 operationTx(tx, request)         Java
 ```
+
+Observability follows the same transaction doctrine. A runtime may emit logs or record
+metrics through backend-managed calls, or it may use `Tx` variants to make observability
+part of the same caller-managed transaction that mutates entity, queue, lease, or workflow
+state.
 
 Queues are created explicitly and idempotently with `QueueDefinition` and
 `CreateQueueRequest`. The queue identity is the pair `(queue, channel)`. `QueueCreation`
@@ -235,6 +242,8 @@ The higher-level runtimes should compose on this model:
 - Lease runtimes implement conditional ownership and fencing through backend records.
 - Queue runtimes implement idempotent queue creation and claimable message records.
 - Workflow runtimes implement immutable registered definitions and claimable execution records.
+- Observability runtimes implement log emission and metric sample recording with typed JSON
+  fields and labels.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
 straightforward to build.

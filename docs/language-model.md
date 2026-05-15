@@ -51,6 +51,8 @@ rules.
 | `lease` | Exclusive ownership or fencing primitive. |
 | `worker` | Runtime actor that polls queues or executes workflows. |
 | `feature_flag` | Declared rollout or configuration switch referenced from expressions. |
+| `log` | Structured event contract for operational logging. |
+| `metric` | Counter, gauge, or histogram contract for operational measurement. |
 | `workflow` | Long-running orchestration composed from named steps. |
 | `step` | Unit of workflow execution with timing and retry metadata. |
 | `api` | External operation such as a REST endpoint. |
@@ -107,6 +109,40 @@ entity mt_Table_Order {
 
 Runtime-specific output belongs in tooling and binding generators, not in the canonical
 model.
+
+## Observability
+
+Logs and metrics are top-level system declarations:
+
+```statespec
+log WorkflowLaunchDecision {
+  level info
+  event_name "workflow.launch.decision"
+
+  fields {
+    tenant_id string
+    decision string
+  }
+}
+
+metric WorkflowLaunchAttempts {
+  kind counter
+  name "workflow_launch_attempts_total"
+  unit count
+
+  labels {
+    tenant_id string
+    decision string
+  }
+}
+```
+
+The declarations define stable signal names and typed payloads. They do not select a
+specific logging framework, metrics exporter, backend, sampling policy, or storage
+implementation.
+
+See [observability.md](observability.md) for validation rules, generated descriptor
+behavior, and runtime binding contracts.
 
 ## Type Model
 

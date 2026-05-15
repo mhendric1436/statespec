@@ -33,8 +33,8 @@ When `--out` is omitted, the CLI writes to `generated/<language>`.
 ## Generated Metadata
 
 Binding generators consume the lowered StateSpec IR, not raw AST declarations. Feature
-flags are currently emitted as descriptor metadata in each binding target so downstream
-tools can inspect rollout configuration consistently.
+flags, logs, metrics, entities, queues, leases, and workflows are emitted as descriptor
+metadata where supported so downstream tools can inspect runtime contracts consistently.
 
 Generated feature flag metadata includes:
 
@@ -48,6 +48,39 @@ Generated feature flag metadata includes:
 
 Runtime feature flag storage and evaluation are not generated yet. Generated descriptors
 should be treated as passive metadata until runtime support is added.
+
+Generated log metadata includes:
+
+- name
+- level
+- event name
+- typed fields
+
+Generated metric metadata includes:
+
+- name
+- kind
+- backend metric name
+- unit
+- typed labels
+
+The generated observability descriptor APIs are:
+
+| Language | Log descriptors | Metric descriptors |
+|---|---|---|
+| C++ | `log_definitions()` | `metric_definitions()` |
+| Go | `LogDefinitions()` | `MetricDefinitions()` |
+| Java | `logDefinitions()` | `metricDefinitions()` |
+| Rust | `log_definitions()` | `metric_definitions()` |
+
+Generated binding packages also include runtime observability request and sink types:
+
+| Language | Runtime file |
+|---|---|
+| C++ | `observability.hpp` |
+| Go | `backend/observability.go` |
+| Java | `com/statespec/backend/Observability.java` |
+| Rust | `observability.rs` |
 
 ## Authoring Guidelines
 

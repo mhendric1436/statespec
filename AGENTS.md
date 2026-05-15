@@ -160,6 +160,8 @@ StateSpec v0.1 includes these system-level concepts:
 - `shape`
 - `external_system`
 - `feature_flag`
+- `log`
+- `metric`
 - `entity`
 - `event`
 - `queue`
@@ -174,10 +176,11 @@ StateSpec v0.1 includes these system-level concepts:
 `state_machine`.
 
 Entities are durable system objects. Feature flags model declared rollout and
-configuration switches. Queues and leases model durable runtime coordination. Workers
-bind execution to queues, leases, and workflows. Workflows describe asynchronous
-execution. APIs expose external contracts. Events connect APIs, workflows, and workers.
-Policies express authorization, tenancy, quota, and audit intent.
+configuration switches. Logs and metrics model declared observability signals. Queues and
+leases model durable runtime coordination. Workers bind execution to queues, leases, and
+workflows. Workflows describe asynchronous execution. APIs expose external contracts.
+Events connect APIs, workflows, and workers. Policies express authorization, tenancy,
+quota, and audit intent.
 
 ---
 
