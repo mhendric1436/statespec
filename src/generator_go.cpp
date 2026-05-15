@@ -430,6 +430,10 @@ GenerationResult generate_go_bindings(
         result, options.output_dir, template_root / "lease.go", "backend/lease.go", diagnostics
     );
     add_template_file(
+        result, options.output_dir, template_root / "observability.go", "backend/observability.go",
+        diagnostics
+    );
+    add_template_file(
         result, options.output_dir, template_root / "queue.go", "backend/queue.go", diagnostics
     );
     add_template_file(

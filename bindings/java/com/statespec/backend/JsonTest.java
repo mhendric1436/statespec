@@ -15,6 +15,7 @@ public final class JsonTest
         rejectsMalformedInput();
         backendSurfacesUseTypedJson();
         featureFlagBindingsExposeTypedValues();
+        observabilityBindingsExposeTypedEventsAndSamples();
     }
 
     private static void parsesObjectsAndArrays()
@@ -156,6 +157,41 @@ public final class JsonTest
         require(
             request.context().tenantId().orElseThrow().equals("tenant-a"),
             "request should expose context"
+        );
+    }
+
+    private static void observabilityBindingsExposeTypedEventsAndSamples()
+    {
+        Observability.LogEvent event = new Observability.LogEvent(
+            "WorkflowLaunchDecision", Observability.LogLevel.INFO, "workflow.launch.decision",
+            Map.of("tenant_id", Json.string("tenant-a"), "decision", Json.string("accepted"))
+        );
+
+        require(event.level() == Observability.LogLevel.INFO, "event should expose level");
+        require(
+            event.eventName().equals("workflow.launch.decision"),
+            "event should expose backend event name"
+        );
+        require(
+            event.fields().get("tenant_id").equals(Json.string("tenant-a")),
+            "event fields should use typed JSON"
+        );
+
+        Observability.MetricSample sample = new Observability.MetricSample(
+            "WorkflowLaunchAttempts", Observability.MetricKind.COUNTER,
+            "workflow_launch_attempts_total", 1.0, "count",
+            Map.of("workflow_name", Json.string("OrderProcessing"))
+        );
+
+        require(sample.kind() == Observability.MetricKind.COUNTER, "sample should expose kind");
+        require(
+            sample.backendName().equals("workflow_launch_attempts_total"),
+            "sample should expose backend name"
+        );
+        require(sample.value() == 1.0, "sample should expose value");
+        require(
+            sample.labels().get("workflow_name").equals(Json.string("OrderProcessing")),
+            "sample labels should use typed JSON"
         );
     }
 

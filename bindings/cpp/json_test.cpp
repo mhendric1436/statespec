@@ -1,5 +1,6 @@
 #include "backend.hpp"
 #include "feature_flag.hpp"
+#include "observability.hpp"
 
 #include "catch2/catch_amalgamated.hpp"
 
@@ -168,4 +169,33 @@ TEST_CASE("C++ feature flag bindings expose typed values and metadata")
     REQUIRE(context.tenant_id == "tenant-a");
     REQUIRE(request.name == "NewScheduler");
     REQUIRE(request.context.tenant_id == "tenant-a");
+}
+
+TEST_CASE("C++ observability bindings expose typed events and samples")
+{
+    statespec::backend::LogEvent event{
+        .name = "WorkflowLaunchDecision",
+        .level = statespec::backend::LogLevel::Info,
+        .event_name = "workflow.launch.decision",
+        .fields =
+            statespec::backend::Json::object({{"tenant_id", "tenant-a"}, {"decision", "accepted"}}),
+    };
+
+    REQUIRE(event.level == statespec::backend::LogLevel::Info);
+    REQUIRE(event.event_name == "workflow.launch.decision");
+    REQUIRE(event.fields["tenant_id"].as_string() == "tenant-a");
+
+    statespec::backend::MetricSample sample{
+        .name = "WorkflowLaunchAttempts",
+        .kind = statespec::backend::MetricKind::Counter,
+        .backend_name = "workflow_launch_attempts_total",
+        .value = 1.0,
+        .unit = "count",
+        .labels = statespec::backend::Json::object({{"workflow_name", "OrderProcessing"}}),
+    };
+
+    REQUIRE(sample.kind == statespec::backend::MetricKind::Counter);
+    REQUIRE(sample.backend_name == "workflow_launch_attempts_total");
+    REQUIRE(sample.value == 1.0);
+    REQUIRE(sample.labels["workflow_name"].as_string() == "OrderProcessing");
 }
