@@ -73,14 +73,15 @@ The generated observability descriptor APIs are:
 | Java | `logDefinitions()` | `metricDefinitions()` |
 | Rust | `log_definitions()` | `metric_definitions()` |
 
-Generated binding packages also include runtime observability request and sink types:
+Generated binding packages also include separate runtime log and metric request and sink
+types:
 
-| Language | Runtime file |
-|---|---|
-| C++ | `observability.hpp` |
-| Go | `backend/observability.go` |
-| Java | `com/statespec/backend/Observability.java` |
-| Rust | `observability.rs` |
+| Language | Log runtime file | Metric runtime file |
+|---|---|---|
+| C++ | `log.hpp` | `metric.hpp` |
+| Go | `backend/log.go` | `backend/metric.go` |
+| Java | `com/statespec/backend/Log.java` | `com/statespec/backend/Metric.java` |
+| Rust | `log.rs` | `metric.rs` |
 
 ## Authoring Guidelines
 

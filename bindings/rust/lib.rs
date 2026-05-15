@@ -1,7 +1,8 @@
 pub mod backend;
 pub mod feature_flag;
 pub mod json;
-pub mod observability;
+pub mod log;
+pub mod metric;
 
 #[cfg(test)]
 mod feature_flag_tests;
@@ -10,4 +11,7 @@ mod feature_flag_tests;
 mod json_tests;
 
 #[cfg(test)]
-mod observability_tests;
+mod log_tests;
+
+#[cfg(test)]
+mod metric_tests;

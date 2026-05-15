@@ -1,6 +1,7 @@
 #include "backend.hpp"
 #include "feature_flag.hpp"
-#include "observability.hpp"
+#include "log.hpp"
+#include "metric.hpp"
 
 #include "catch2/catch_amalgamated.hpp"
 
@@ -171,7 +172,7 @@ TEST_CASE("C++ feature flag bindings expose typed values and metadata")
     REQUIRE(request.context.tenant_id == "tenant-a");
 }
 
-TEST_CASE("C++ observability bindings expose typed events and samples")
+TEST_CASE("C++ log bindings expose typed events")
 {
     statespec::backend::LogEvent event{
         .name = "WorkflowLaunchDecision",
@@ -184,7 +185,10 @@ TEST_CASE("C++ observability bindings expose typed events and samples")
     REQUIRE(event.level == statespec::backend::LogLevel::Info);
     REQUIRE(event.event_name == "workflow.launch.decision");
     REQUIRE(event.fields["tenant_id"].as_string() == "tenant-a");
+}
 
+TEST_CASE("C++ metric bindings expose typed samples")
+{
     statespec::backend::MetricSample sample{
         .name = "WorkflowLaunchAttempts",
         .kind = statespec::backend::MetricKind::Counter,

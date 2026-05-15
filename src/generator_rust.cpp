@@ -446,9 +446,9 @@ GenerationResult generate_rust_bindings(
     add_template_file(
         result, options.output_dir, template_root / "lease.rs", "lease.rs", diagnostics
     );
+    add_template_file(result, options.output_dir, template_root / "log.rs", "log.rs", diagnostics);
     add_template_file(
-        result, options.output_dir, template_root / "observability.rs", "observability.rs",
-        diagnostics
+        result, options.output_dir, template_root / "metric.rs", "metric.rs", diagnostics
     );
     add_template_file(
         result, options.output_dir, template_root / "queue.rs", "queue.rs", diagnostics

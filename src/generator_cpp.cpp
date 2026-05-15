@@ -472,8 +472,10 @@ GenerationResult generate_cpp_bindings(
         result, options.output_dir, template_root / "lease.hpp", "lease.hpp", diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "observability.hpp", "observability.hpp",
-        diagnostics
+        result, options.output_dir, template_root / "log.hpp", "log.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "metric.hpp", "metric.hpp", diagnostics
     );
     add_template_file(
         result, options.output_dir, template_root / "queue.hpp", "queue.hpp", diagnostics

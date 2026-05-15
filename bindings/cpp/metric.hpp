@@ -7,27 +7,11 @@
 namespace statespec::backend
 {
 
-enum class LogLevel
-{
-    Debug,
-    Info,
-    Warn,
-    Error,
-};
-
 enum class MetricKind
 {
     Counter,
     Gauge,
     Histogram,
-};
-
-struct LogEvent
-{
-    std::string name;
-    LogLevel level = LogLevel::Info;
-    std::string event_name;
-    Json fields = Json::object({});
 };
 
 struct MetricSample
@@ -40,20 +24,10 @@ struct MetricSample
     Json labels = Json::object({});
 };
 
-class IObservabilitySink
+class IMetricSink
 {
   public:
-    virtual ~IObservabilitySink() = default;
-
-    virtual void emit_log(
-        IBackend& backend,
-        const LogEvent& event
-    ) = 0;
-
-    virtual void emit_logTx(
-        ITransaction& tx,
-        const LogEvent& event
-    ) = 0;
+    virtual ~IMetricSink() = default;
 
     virtual void record_metric(
         IBackend& backend,

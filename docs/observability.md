@@ -122,14 +122,14 @@ The generated descriptor APIs are:
 
 ## Runtime Binding Model
 
-Generated bindings also include a runtime observability surface:
+Generated bindings also include separate runtime surfaces for logs and metrics:
 
-| Language | Runtime file |
-|---|---|
-| C++ | `observability.hpp` |
-| Go | `backend/observability.go` |
-| Java | `com/statespec/backend/Observability.java` |
-| Rust | `observability.rs` |
+| Language | Log runtime file | Metric runtime file |
+|---|---|---|
+| C++ | `log.hpp` | `metric.hpp` |
+| Go | `backend/log.go` | `backend/metric.go` |
+| Java | `com/statespec/backend/Log.java` | `com/statespec/backend/Metric.java` |
+| Rust | `log.rs` | `metric.rs` |
 
 The runtime model is deliberately small:
 
@@ -151,9 +151,9 @@ MetricSample
 
 Fields and labels use the typed JSON value already shared by the backend bindings.
 
-Each language exposes an observability sink interface with backend-managed and
+Each language exposes separate log and metric sink interfaces with backend-managed and
 caller-managed transaction variants. This lets generated workers emit logs and record
-metrics either as a standalone operation or as part of the same OCC transaction that
+metrics either as standalone operations or as part of the same OCC transaction that
 mutates entity, queue, lease, or workflow state.
 
 ## Authoring Guidelines

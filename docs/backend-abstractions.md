@@ -7,12 +7,12 @@ The repository includes reference interface definitions in several implementatio
 languages. Runtime interfaces are decomposed by component so users can depend only on
 leases, queues, workflows, or any subset their system requires.
 
-| Language | Backend path | Lease path | Queue path | Workflow path | Observability path | Intended use |
-|---|---|---|---|---|---|---|
-| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | [`bindings/cpp/lease.hpp`](../bindings/cpp/lease.hpp) | [`bindings/cpp/queue.hpp`](../bindings/cpp/queue.hpp) | [`bindings/cpp/workflow.hpp`](../bindings/cpp/workflow.hpp) | [`bindings/cpp/observability.hpp`](../bindings/cpp/observability.hpp) | C++ runtime/backend adapter reference. |
-| Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | [`bindings/rust/lease.rs`](../bindings/rust/lease.rs) | [`bindings/rust/queue.rs`](../bindings/rust/queue.rs) | [`bindings/rust/workflow.rs`](../bindings/rust/workflow.rs) | [`bindings/rust/observability.rs`](../bindings/rust/observability.rs) | Rust runtime/backend adapter reference. |
-| Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | [`bindings/go/backend/lease.go`](../bindings/go/backend/lease.go) | [`bindings/go/backend/queue.go`](../bindings/go/backend/queue.go) | [`bindings/go/backend/workflow.go`](../bindings/go/backend/workflow.go) | [`bindings/go/backend/observability.go`](../bindings/go/backend/observability.go) | Go API, worker, and backend adapter reference. |
-| Java | [`bindings/java/com/statespec/backend/Backend.java`](../bindings/java/com/statespec/backend/Backend.java) | [`bindings/java/com/statespec/backend/Lease.java`](../bindings/java/com/statespec/backend/Lease.java) | [`bindings/java/com/statespec/backend/Queue.java`](../bindings/java/com/statespec/backend/Queue.java) | [`bindings/java/com/statespec/backend/Workflow.java`](../bindings/java/com/statespec/backend/Workflow.java) | [`bindings/java/com/statespec/backend/Observability.java`](../bindings/java/com/statespec/backend/Observability.java) | JVM service/backend adapter reference. |
+| Language | Backend path | Lease path | Queue path | Workflow path | Log path | Metric path | Intended use |
+|---|---|---|---|---|---|---|---|
+| C++20 | [`bindings/cpp/backend.hpp`](../bindings/cpp/backend.hpp) | [`bindings/cpp/lease.hpp`](../bindings/cpp/lease.hpp) | [`bindings/cpp/queue.hpp`](../bindings/cpp/queue.hpp) | [`bindings/cpp/workflow.hpp`](../bindings/cpp/workflow.hpp) | [`bindings/cpp/log.hpp`](../bindings/cpp/log.hpp) | [`bindings/cpp/metric.hpp`](../bindings/cpp/metric.hpp) | C++ runtime/backend adapter reference. |
+| Rust | [`bindings/rust/backend.rs`](../bindings/rust/backend.rs) | [`bindings/rust/lease.rs`](../bindings/rust/lease.rs) | [`bindings/rust/queue.rs`](../bindings/rust/queue.rs) | [`bindings/rust/workflow.rs`](../bindings/rust/workflow.rs) | [`bindings/rust/log.rs`](../bindings/rust/log.rs) | [`bindings/rust/metric.rs`](../bindings/rust/metric.rs) | Rust runtime/backend adapter reference. |
+| Go | [`bindings/go/backend/backend.go`](../bindings/go/backend/backend.go) | [`bindings/go/backend/lease.go`](../bindings/go/backend/lease.go) | [`bindings/go/backend/queue.go`](../bindings/go/backend/queue.go) | [`bindings/go/backend/workflow.go`](../bindings/go/backend/workflow.go) | [`bindings/go/backend/log.go`](../bindings/go/backend/log.go) | [`bindings/go/backend/metric.go`](../bindings/go/backend/metric.go) | Go API, worker, and backend adapter reference. |
+| Java | [`bindings/java/com/statespec/backend/Backend.java`](../bindings/java/com/statespec/backend/Backend.java) | [`bindings/java/com/statespec/backend/Lease.java`](../bindings/java/com/statespec/backend/Lease.java) | [`bindings/java/com/statespec/backend/Queue.java`](../bindings/java/com/statespec/backend/Queue.java) | [`bindings/java/com/statespec/backend/Workflow.java`](../bindings/java/com/statespec/backend/Workflow.java) | [`bindings/java/com/statespec/backend/Log.java`](../bindings/java/com/statespec/backend/Log.java) | [`bindings/java/com/statespec/backend/Metric.java`](../bindings/java/com/statespec/backend/Metric.java) | JVM service/backend adapter reference. |
 
 ## Shared Backend Model
 
@@ -127,8 +127,8 @@ Each language also defines runtime-facing interfaces for higher-level primitives
 separate files:
 
 ```text
-LeaseStore / QueueStore / WorkflowStore / ObservabilitySink  C++, Rust, Go
-Lease / Queue / Workflow / Observability                     Java
+LeaseStore / QueueStore / WorkflowStore / LogSink / MetricSink  C++, Rust, Go
+Lease / Queue / Workflow / Log / Metric                         Java
 ```
 
 The runtime files expose request, result, and record types for:
@@ -170,10 +170,10 @@ operation(backend, request)      Java
 operationTx(tx, request)         Java
 ```
 
-Observability follows the same transaction doctrine. A runtime may emit logs or record
-metrics through backend-managed calls, or it may use `Tx` variants to make observability
-part of the same caller-managed transaction that mutates entity, queue, lease, or workflow
-state.
+Logs and metrics follow the same transaction doctrine. A runtime may emit logs or record
+metrics through backend-managed calls, or it may use `Tx` variants to make each operation
+part of the same caller-managed transaction that mutates entity, queue, lease, or
+workflow state.
 
 Queues are created explicitly and idempotently with `QueueDefinition` and
 `CreateQueueRequest`. The queue identity is the pair `(queue, channel)`. `QueueCreation`

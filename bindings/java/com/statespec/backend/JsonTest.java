@@ -15,7 +15,8 @@ public final class JsonTest
         rejectsMalformedInput();
         backendSurfacesUseTypedJson();
         featureFlagBindingsExposeTypedValues();
-        observabilityBindingsExposeTypedEventsAndSamples();
+        logBindingsExposeTypedEvents();
+        metricBindingsExposeTypedSamples();
     }
 
     private static void parsesObjectsAndArrays()
@@ -160,14 +161,14 @@ public final class JsonTest
         );
     }
 
-    private static void observabilityBindingsExposeTypedEventsAndSamples()
+    private static void logBindingsExposeTypedEvents()
     {
-        Observability.LogEvent event = new Observability.LogEvent(
-            "WorkflowLaunchDecision", Observability.LogLevel.INFO, "workflow.launch.decision",
+        Log.Event event = new Log.Event(
+            "WorkflowLaunchDecision", Log.Level.INFO, "workflow.launch.decision",
             Map.of("tenant_id", Json.string("tenant-a"), "decision", Json.string("accepted"))
         );
 
-        require(event.level() == Observability.LogLevel.INFO, "event should expose level");
+        require(event.level() == Log.Level.INFO, "event should expose level");
         require(
             event.eventName().equals("workflow.launch.decision"),
             "event should expose backend event name"
@@ -176,14 +177,16 @@ public final class JsonTest
             event.fields().get("tenant_id").equals(Json.string("tenant-a")),
             "event fields should use typed JSON"
         );
+    }
 
-        Observability.MetricSample sample = new Observability.MetricSample(
-            "WorkflowLaunchAttempts", Observability.MetricKind.COUNTER,
-            "workflow_launch_attempts_total", 1.0, "count",
-            Map.of("workflow_name", Json.string("OrderProcessing"))
+    private static void metricBindingsExposeTypedSamples()
+    {
+        Metric.Sample sample = new Metric.Sample(
+            "WorkflowLaunchAttempts", Metric.Kind.COUNTER, "workflow_launch_attempts_total", 1.0,
+            "count", Map.of("workflow_name", Json.string("OrderProcessing"))
         );
 
-        require(sample.kind() == Observability.MetricKind.COUNTER, "sample should expose kind");
+        require(sample.kind() == Metric.Kind.COUNTER, "sample should expose kind");
         require(
             sample.backendName().equals("workflow_launch_attempts_total"),
             "sample should expose backend name"

@@ -20,7 +20,7 @@ build: $(JSON_TEST)
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
 
-$(JSON_TEST): json_test.cpp backend.hpp feature_flag.hpp json.hpp observability.hpp $(CATCH_SRC)
+$(JSON_TEST): json_test.cpp backend.hpp feature_flag.hpp json.hpp log.hpp metric.hpp $(CATCH_SRC)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party json_test.cpp $(CATCH_SRC) -o $@ $(LDFLAGS)
 

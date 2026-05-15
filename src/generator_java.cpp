@@ -471,8 +471,12 @@ GenerationResult generate_java_bindings(
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "Observability.java",
-        output_root / "Observability.java", diagnostics
+        result, options.output_dir, template_root / "Log.java", output_root / "Log.java",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "Metric.java", output_root / "Metric.java",
+        diagnostics
     );
     add_template_file(
         result, options.output_dir, template_root / "Queue.java", output_root / "Queue.java",
