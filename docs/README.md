@@ -12,6 +12,7 @@ policies. A `.sspec` file should be treated as the source of truth for system be
 |---|---|
 | [getting-started.md](getting-started.md) | Minimal workflow for creating, validating, and generating from a `.sspec` file. |
 | [language-model.md](language-model.md) | The core StateSpec mental model and declaration types. |
+| [includes.md](includes.md) | Include directives, path resolution, system composition, and file-local tooling behavior. |
 | [entities-and-state.md](entities-and-state.md) | Entity, field, key, state machine, relationship, invariant, and index authoring. |
 | [queues-leases-workers.md](queues-leases-workers.md) | Durable queue, message, lease, and worker declarations. |
 | [workflows-and-apis.md](workflows-and-apis.md) | Workflow, step, API, behavior, and orchestration declarations. |

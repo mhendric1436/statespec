@@ -37,6 +37,9 @@ final system name.
 `statespec ast` continues to show the parsed file-level AST without expanding includes.
 Formatting also operates on the file being formatted and does not inline included files.
 
+See [includes.md](includes.md) for detailed include resolution and system composition
+rules.
+
 ## First-Class Concepts
 
 | Concept | Purpose |
