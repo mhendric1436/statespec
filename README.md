@@ -5,12 +5,13 @@
 > A canonical design language for distributed systems and their backend-neutral runtime model.
 
 StateSpec is a structured specification language for describing distributed systems with
-explicit entities, lifecycle state, APIs, workflows, queues, leases, policies, and
-backend requirements.
+explicit entities, lifecycle state, APIs, workflows, queues, leases, logs, metrics,
+policies, and backend requirements.
 
 A StateSpec file is intended to be the source of truth for system behavior. From that
 source, tooling can derive schemas, API contracts, workflow definitions, queue and lease
-metadata, validators, tests, diagrams, and integration scaffolding.
+metadata, log and metric descriptors, validators, tests, diagrams, and integration
+scaffolding.
 
 ---
 
@@ -23,6 +24,8 @@ spread across disconnected artifacts:
 - Database schemas describe storage but not invariants or orchestration.
 - Queue and worker code often embeds retry, ownership, and idempotency rules in ad hoc ways.
 - Lease and coordination logic is often reimplemented differently across services.
+- Logs and metrics are frequently implicit in application code rather than declared as
+  stable operational contracts.
 - Design documents become stale and are not executable or mechanically validated.
 
 StateSpec addresses this by making system behavior explicit, structured, canonical, and
@@ -45,6 +48,8 @@ StateSpec captures the main concepts in one place:
 | Workflows | Long-running asynchronous orchestration |
 | Queues | Durable async commands, events, and worker dispatch |
 | Leases | Exclusive ownership, leadership, fencing, and coordination |
+| Logs | Structured operational event contracts |
+| Metrics | Counter, gauge, and histogram contracts |
 | Policies | Tenant, authorization, quota, and operational constraints |
 | Generators | Deterministic output from the canonical model |
 
@@ -64,6 +69,8 @@ step
 queue
 message
 lease
+log
+metric
 worker
 policy
 generator
@@ -81,9 +88,41 @@ system OrderSystem {
   workflow OrderProcessing { ... }
   queue EmailDispatch { ... }
   lease OrderReconciler { ... }
+  log WorkflowLaunchDecision { ... }
+  metric WorkflowLaunchAttempts { ... }
   api StartOrderProcessing { ... }
 }
 ```
+
+Log and metric declarations are system-level grammar constructs:
+
+```statespec
+log Name {
+  level info
+  event_name "stable.event.name"
+
+  fields {
+    field_name string
+  }
+}
+
+metric Name {
+  kind counter
+  name "stable_metric_name_total"
+  unit count
+
+  labels {
+    label_name string
+  }
+}
+```
+
+Logs require `level` and `event_name`. Supported levels are `debug`, `info`, `warn`, and
+`error`. Metrics require `kind`, `name`, and `unit`. Supported kinds are `counter`,
+`gauge`, and `histogram`.
+
+See [`docs/observability.md`](docs/observability.md) for the full log and metric
+authoring guide.
 
 ---
 
@@ -113,6 +152,11 @@ storage engine, database, or transport.
 Workflow communication, queue dispatch, and exclusive ownership should be expressed in
 terms of durable state, durable messages, or explicit leases rather than transient
 in-memory coordination.
+
+### Declared observability
+
+Logs and metrics should be declared as stable contracts with typed fields and labels
+rather than hidden in runtime implementation code.
 
 ### Text is the source of truth
 
@@ -261,6 +305,59 @@ Workflow definition registration is immutable. The workflow definition identity 
 
 A changed workflow definition should be registered with a new incremented version.
 
+### Logs
+
+Logs model structured operational events with stable backend event names and typed
+fields.
+
+Typical operations:
+
+```text
+emit log event
+```
+
+Example declaration:
+
+```statespec
+log WorkflowLaunchDecision {
+  level info
+  event_name "workflow.launch.decision"
+
+  fields {
+    tenant_id string
+    workflow_name string
+    decision string
+  }
+}
+```
+
+### Metrics
+
+Metrics model operational measurements with stable backend metric names, units, and
+low-cardinality labels.
+
+Typical operations:
+
+```text
+record metric sample
+```
+
+Example declaration:
+
+```statespec
+metric WorkflowLaunchAttempts {
+  kind counter
+  name "workflow_launch_attempts_total"
+  unit count
+
+  labels {
+    tenant_id string
+    workflow_name string
+    decision string
+  }
+}
+```
+
 ---
 
 ## Transaction Call Styles
@@ -281,7 +378,7 @@ abort on failure
 ### Caller-managed calls
 
 Transaction methods receive an existing transaction so a caller can compose entity,
-lease, queue, workflow, and policy operations into one atomic unit.
+lease, queue, workflow, log, metric, and policy operations into one atomic unit.
 
 All bindings use a `Tx` suffix for caller-managed transaction variants, adapted to each
 language's naming conventions.
@@ -301,6 +398,18 @@ Reference backend and runtime component bindings are provided for:
 
 The shared binding documentation is in
 [`docs/backend-abstractions.md`](docs/backend-abstractions.md).
+
+Generated binding packages include split runtime component files for logs and metrics:
+
+| Language | Log runtime | Metric runtime |
+|---|---|---|
+| C++ | `log.hpp` | `metric.hpp` |
+| Go | `backend/log.go` | `backend/metric.go` |
+| Java | `com/statespec/backend/Log.java` | `com/statespec/backend/Metric.java` |
+| Rust | `log.rs` | `metric.rs` |
+
+These files expose separate log and metric sink interfaces so applications can depend on
+only the runtime surface they need.
 
 Build tool installation and binding-local build instructions are documented in
 [`docs/build-tools.md`](docs/build-tools.md).
@@ -360,6 +469,29 @@ system OrderSystem {
     fencing_token true
   }
 
+  log WorkflowLaunchDecision {
+    level info
+    event_name "workflow.launch.decision"
+
+    fields {
+      tenant_id string
+      order_id string
+      decision string
+    }
+  }
+
+  metric WorkflowLaunchAttempts {
+    kind counter
+    name "workflow_launch_attempts_total"
+    unit count
+
+    labels {
+      tenant_id string
+      workflow_name string
+      decision string
+    }
+  }
+
   workflow OrderProcessing {
     version 1
     start validate_order
@@ -387,7 +519,7 @@ From a single `.sspec` file, StateSpec tooling can derive:
 |---|---|
 | Schemas | entity metadata, collection descriptors, indexes, validation metadata |
 | APIs | OpenAPI, RPC contracts, request/response models, error models |
-| Runtime metadata | workflow definitions, queue definitions, lease definitions |
+| Runtime metadata | workflow definitions, queue definitions, lease definitions, log definitions, metric definitions |
 | Code scaffolding | server stubs, client stubs, integration helpers, worker skeletons |
 | Tests | state transition tests, invariant tests, runtime behavior tests |
 | Documentation | architecture docs, diagrams, state machine graphs |
@@ -468,7 +600,7 @@ internal platforms and service orchestration layers
 
 | Tool | Scope | Limitation |
 |---|---|---|
-| OpenAPI | APIs | Does not model lifecycle state, queues, leases, or workflows |
+| OpenAPI | APIs | Does not model lifecycle state, queues, leases, logs, metrics, or workflows |
 | Protobuf | RPC schemas | Does not model lifecycle or orchestration semantics |
 | Terraform | Infrastructure | Does not model runtime behavior |
 | BPMN | Business workflows | Not usually a system implementation specification |
