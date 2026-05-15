@@ -29,9 +29,12 @@ system OrderSystem {
 }
 ```
 
-In the current parser milestone, include directives are parsed and surfaced in the AST.
-Resolution, cycle detection, and composition of included declarations are handled by a
-later compiler-loading milestone.
+`statespec validate` resolves include paths relative to the including file, detects
+include cycles, and validates the composed system. Included system declarations
+contribute their members to the root system; the root file keeps the final system name.
+
+`statespec ast` continues to show the parsed file-level AST without expanding includes.
+Formatting also operates on the file being formatted and does not inline included files.
 
 ## First-Class Concepts
 

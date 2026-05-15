@@ -79,3 +79,18 @@ Each shard should have:
 See [`examples/workflow-launch-control.sspec`](../examples/workflow-launch-control.sspec)
 for a complete validating baseline with launch and completion queues, capacity tracking,
 reservations, singleton workers, and API declarations.
+
+Other specs can reuse this baseline with an include directive:
+
+```statespec
+statespec 0.1;
+include "./workflow-launch-control.sspec";
+
+system OrderSystem {
+  // service-specific declarations
+}
+```
+
+Validation composes included declarations into the root system before semantic checks, so
+local policies, workers, and APIs can reference declarations from the launch-control
+baseline.

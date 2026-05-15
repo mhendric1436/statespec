@@ -17,6 +17,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -88,6 +89,179 @@ statespec::Spec parse_and_validate_file(
 )
 {
     auto spec = parse_file(path, diagnostics);
+    if (!diagnostics.has_errors())
+    {
+        statespec::Validator validator;
+        validator.validate(spec, diagnostics);
+    }
+    return spec;
+}
+
+std::filesystem::path normalized_existing_path(const std::filesystem::path& path)
+{
+    return std::filesystem::weakly_canonical(path);
+}
+
+void append_system_members(
+    statespec::SystemDecl& target,
+    const statespec::SystemDecl& source
+)
+{
+    target.feature_flags.insert(
+        target.feature_flags.end(), source.feature_flags.begin(), source.feature_flags.end()
+    );
+    target.entities.insert(target.entities.end(), source.entities.begin(), source.entities.end());
+    target.queues.insert(target.queues.end(), source.queues.begin(), source.queues.end());
+    target.leases.insert(target.leases.end(), source.leases.begin(), source.leases.end());
+    target.workers.insert(target.workers.end(), source.workers.begin(), source.workers.end());
+    target.apis.insert(target.apis.end(), source.apis.begin(), source.apis.end());
+    target.workflows.insert(
+        target.workflows.end(), source.workflows.begin(), source.workflows.end()
+    );
+    target.policies.insert(target.policies.end(), source.policies.begin(), source.policies.end());
+}
+
+void merge_system_level_declarations(
+    statespec::SystemDecl& target,
+    const statespec::SystemDecl& source,
+    statespec::DiagnosticBag& diagnostics
+)
+{
+    if (source.tenant_scope.has_value())
+    {
+        if (!target.tenant_scope.has_value())
+        {
+            target.tenant_scope = source.tenant_scope;
+        }
+        else if (target.tenant_scope->field_name != source.tenant_scope->field_name)
+        {
+            diagnostics.error(
+                source.tenant_scope->range, "SSPEC5004",
+                "included system tenant scope conflicts with root system tenant scope"
+            );
+        }
+    }
+
+    if (source.system_tenant.has_value() && !target.system_tenant.has_value())
+    {
+        target.system_tenant = source.system_tenant;
+    }
+}
+
+statespec::Spec load_composed_spec(
+    const std::filesystem::path& input_path,
+    statespec::DiagnosticBag& diagnostics,
+    std::vector<std::filesystem::path>& include_stack,
+    std::unordered_set<std::string>& loaded_paths
+)
+{
+    const auto absolute_path = normalized_existing_path(input_path);
+    const auto absolute_path_text = absolute_path.string();
+
+    for (const auto& stacked_path : include_stack)
+    {
+        if (stacked_path == absolute_path)
+        {
+            diagnostics.error(
+                statespec::SourceRange{}, "SSPEC5002",
+                "include cycle detected at '" + absolute_path_text + "'"
+            );
+            return statespec::Spec{};
+        }
+    }
+
+    if (!std::filesystem::exists(absolute_path))
+    {
+        diagnostics.error(
+            statespec::SourceRange{}, "SSPEC5001",
+            "included file does not exist: '" + absolute_path_text + "'"
+        );
+        return statespec::Spec{};
+    }
+
+    if (!loaded_paths.insert(absolute_path_text).second)
+    {
+        return statespec::Spec{};
+    }
+
+    include_stack.push_back(absolute_path);
+    auto spec = parse_file(absolute_path_text, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        include_stack.pop_back();
+        return spec;
+    }
+
+    statespec::Spec composed;
+    composed.version = spec.version;
+    composed.imports = spec.imports;
+    composed.system = spec.system;
+
+    if (spec.system.has_value())
+    {
+        statespec::SystemDecl composed_system = *spec.system;
+        composed_system.feature_flags.clear();
+        composed_system.entities.clear();
+        composed_system.queues.clear();
+        composed_system.leases.clear();
+        composed_system.workers.clear();
+        composed_system.apis.clear();
+        composed_system.workflows.clear();
+        composed_system.policies.clear();
+
+        for (const auto& include : spec.includes)
+        {
+            const auto include_path = absolute_path.parent_path() / include.path;
+            const auto included_spec =
+                load_composed_spec(include_path, diagnostics, include_stack, loaded_paths);
+            if (diagnostics.has_errors())
+            {
+                continue;
+            }
+
+            if (spec.version.has_value() && included_spec.version.has_value() &&
+                spec.version != included_spec.version)
+            {
+                diagnostics.error(
+                    include.range, "SSPEC5003",
+                    "included file '" + include.path + "' has incompatible StateSpec version " +
+                        *included_spec.version
+                );
+            }
+
+            if (!included_spec.system.has_value())
+            {
+                continue;
+            }
+
+            merge_system_level_declarations(composed_system, *included_spec.system, diagnostics);
+            append_system_members(composed_system, *included_spec.system);
+        }
+
+        append_system_members(composed_system, *spec.system);
+        composed.system = composed_system;
+    }
+
+    include_stack.pop_back();
+    return composed;
+}
+
+statespec::Spec load_composed_spec(
+    const std::string& path,
+    statespec::DiagnosticBag& diagnostics
+)
+{
+    std::vector<std::filesystem::path> include_stack;
+    std::unordered_set<std::string> loaded_paths;
+    return load_composed_spec(path, diagnostics, include_stack, loaded_paths);
+}
+
+statespec::Spec load_composed_and_validate_file(
+    const std::string& path,
+    statespec::DiagnosticBag& diagnostics
+)
+{
+    auto spec = load_composed_spec(path, diagnostics);
     if (!diagnostics.has_errors())
     {
         statespec::Validator validator;
@@ -390,7 +564,7 @@ int ast_file(const std::string& path)
 int validate_file(const std::string& path)
 {
     statespec::DiagnosticBag diagnostics;
-    parse_and_validate_file(path, diagnostics);
+    load_composed_and_validate_file(path, diagnostics);
 
     if (diagnostics.has_errors())
     {
