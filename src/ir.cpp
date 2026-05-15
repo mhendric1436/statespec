@@ -31,6 +31,33 @@ IrSystem lower_to_ir(const Spec& spec)
         );
     }
 
+    for (const auto& log : system.logs)
+    {
+        IrLog ir_log;
+        ir_log.name = log.name;
+        ir_log.level = log.level.value_or("");
+        ir_log.event_name = log.event_name.value_or("");
+        for (const auto& field : log.fields)
+        {
+            ir_log.fields.push_back(IrField{field.name, field.type});
+        }
+        ir.logs.push_back(std::move(ir_log));
+    }
+
+    for (const auto& metric : system.metrics)
+    {
+        IrMetric ir_metric;
+        ir_metric.name = metric.name;
+        ir_metric.kind = metric.kind.value_or("");
+        ir_metric.backend_name = metric.backend_name.value_or("");
+        ir_metric.unit = metric.unit.value_or("");
+        for (const auto& label : metric.labels)
+        {
+            ir_metric.labels.push_back(IrField{label.name, label.type});
+        }
+        ir.metrics.push_back(std::move(ir_metric));
+    }
+
     for (const auto& entity : system.entities)
     {
         IrEntity ir_entity;

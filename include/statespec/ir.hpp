@@ -86,10 +86,29 @@ struct IrFeatureFlag
     std::optional<std::string> expires;
 };
 
+struct IrLog
+{
+    std::string name;
+    std::string level;
+    std::string event_name;
+    std::vector<IrField> fields;
+};
+
+struct IrMetric
+{
+    std::string name;
+    std::string kind;
+    std::string backend_name;
+    std::string unit;
+    std::vector<IrField> labels;
+};
+
 struct IrSystem
 {
     std::string name;
     std::vector<IrFeatureFlag> feature_flags;
+    std::vector<IrLog> logs;
+    std::vector<IrMetric> metrics;
     std::vector<IrEntity> entities;
     std::vector<IrQueue> queues;
     std::vector<IrLease> leases;
