@@ -4,6 +4,7 @@ set -eu
 CLI="${1:-build/bin/statespec}"
 EXAMPLE="examples/order-system.sspec"
 FEATURE_FLAGS_EXAMPLE="examples/feature-flags.sspec"
+PARITY_FIXTURE="testdata/parity/kitchen-sink.sspec"
 TMPDIR="$(mktemp -d)"
 cleanup() {
   rm -rf "$TMPDIR"
@@ -22,6 +23,11 @@ fi
 
 if [ ! -f "$FEATURE_FLAGS_EXAMPLE" ]; then
   echo "test failed: missing example file: $FEATURE_FLAGS_EXAMPLE" >&2
+  exit 1
+fi
+
+if [ ! -f "$PARITY_FIXTURE" ]; then
+  echo "test failed: missing parity fixture: $PARITY_FIXTURE" >&2
   exit 1
 fi
 
@@ -130,6 +136,46 @@ assert flags[0]["owner"] == "platform"
 assert flags[1]["name"] == "MaxPendingOrders"
 assert flags[1]["type"] == "int"
 assert flags[1]["default"] == "100"
+'
+
+PARITY_AST_OUTPUT="$($CLI ast "$PARITY_FIXTURE")"
+
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"name": "KitchenSink"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"feature_flags"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"logs"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"metrics"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"entities"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"queues"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"leases"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"workers"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"apis"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"workflows"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"policies"'
+
+printf '%s\n' "$PARITY_AST_OUTPUT" | python3 -c '
+import json
+import sys
+
+document = json.load(sys.stdin)
+system = document["system"]
+assert system["name"] == "KitchenSink"
+for key in [
+    "feature_flags",
+    "logs",
+    "metrics",
+    "entities",
+    "queues",
+    "leases",
+    "workers",
+    "apis",
+    "workflows",
+    "policies",
+]:
+    assert len(system[key]) == 1, key
+assert system["entities"][0]["key_fields"] == ["tenant_id", "order_id"]
+assert system["queues"][0]["name"] == "EmailDispatch"
+assert system["workers"][0]["name"] == "OrderWorker"
+assert system["apis"][0]["name"] == "StartOrderProcessing"
 '
 
 INCLUDE_EXAMPLE="$TMPDIR/include-root.sspec"

@@ -1,0 +1,131 @@
+statespec 0.1;
+system KitchenSink {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  feature_flag NewScheduler {
+    type bool
+    default false
+    scope entity Order
+    owner "platform"
+    description "Route order processing through the new scheduler"
+    expires "2026-12-31"
+  }
+
+  log WorkflowLaunchDecision {
+    level info
+    event_name "workflow.launch.decision"
+    fields {
+      tenant_id string
+      order_id string
+      decision string
+    }
+  }
+
+  metric WorkflowLaunchAttempts {
+    kind counter
+    name "workflow_launch_attempts_total"
+    unit count
+    labels {
+      tenant_id string
+      workflow_name string
+      decision string
+    }
+  }
+
+  entity Order {
+    key tenant_id, order_id
+    fields {
+      tenant_id string
+      order_id string
+      created_at timestamp
+      updated_at timestamp
+      status string
+    }
+    indexes {
+      index by_tenant_status on tenant_id, status
+      unique by_tenant_order on tenant_id, order_id
+    }
+    state_machine {
+      state Pending
+      state Active
+      state Failed {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      initial Pending
+      terminal Failed
+      Pending -> Active
+      Pending -> Failed
+    }
+  }
+
+  queue EmailDispatch {
+    namespace workflow_ns
+    channel email
+    visibility_timeout PT30S
+    max_attempts 3
+    dead_letter EmailDispatch.SendFailed
+    message SendConfirmation {
+      idempotency_key message_id
+      payload {
+        message_id string
+        order_id string
+      }
+    }
+    message SendFailed {
+      idempotency_key message_id
+      payload {
+        message_id string
+        order_id string
+        reason string
+      }
+    }
+  }
+
+  lease OrderWorkerLease {
+    resource "orders:worker"
+    ttl PT30S
+    renew_every PT10S
+    holder worker_id
+    fencing_token true
+    max_ttl PT5M
+  }
+
+  worker OrderWorker {
+    singleton true
+    lease OrderWorkerLease
+    polls EmailDispatch.SendConfirmation
+    executes OrderProcessing
+    concurrency 2
+  }
+
+  api StartOrderProcessing {
+    method POST
+    path "/v1/orders/{order_id}/start"
+    starts workflow OrderProcessing
+    enqueues EmailDispatch.SendConfirmation
+  }
+
+  workflow OrderProcessing {
+    version 1
+    singleton false
+    expected_execution_time PT60S
+    start validate_order
+    step validate_order {
+      expected_execution_time PT10S
+      max_retries 1
+    }
+  }
+
+  policy OrderAccess {
+    tenant scoped_by tenant_id
+    allow StartOrderProcessing when caller.role == operator;
+    deny StartOrderProcessing when caller.suspended == true;
+    quota starts_per_minute: 60;
+    audit StartOrderProcessing;
+  }
+}

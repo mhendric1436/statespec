@@ -17,6 +17,7 @@ GC_EXPECTED="$TMPDIR/gc-expected.sspec"
 INCLUDE_UNFORMATTED="$TMPDIR/include-unformatted.sspec"
 INCLUDE_FORMATTED="$TMPDIR/include-formatted.sspec"
 INCLUDE_EXPECTED="$TMPDIR/include-expected.sspec"
+PARITY_FIXTURE="testdata/parity/kitchen-sink.sspec"
 
 cat > "$UNFORMATTED" <<'SSPEC'
 statespec 0.1; system Demo { feature_flag NewScheduler { type bool default false scope tenant owner "platform" description "New scheduler" expires "2026-12-31" } }
@@ -100,5 +101,7 @@ SSPEC
 
 "$CLI" fmt "$INCLUDE_UNFORMATTED" > "$INCLUDE_FORMATTED"
 diff -u "$INCLUDE_EXPECTED" "$INCLUDE_FORMATTED"
+
+"$CLI" fmt --check "$PARITY_FIXTURE"
 
 echo "formatter CLI tests passed"
