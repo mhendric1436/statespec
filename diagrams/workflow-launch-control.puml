@@ -1,0 +1,66 @@
+@startuml
+title StateSpec Workflow Launch Control
+
+skinparam shadowing false
+skinparam linetype ortho
+
+actor "API caller" as Caller
+
+package "External API" {
+  rectangle "RequestWorkflowLaunch\nPOST /workflow-launches" as LaunchApi
+  rectangle "202 Accepted\nreservation_id" as Accepted
+}
+
+package "Launch admission path" {
+  queue "WorkflowLaunchQueue\nLaunchWorkflow" as LaunchQueue
+  rectangle "WorkflowLaunchScheduler\nsingleton worker\nlease protected" as Scheduler
+  rectangle "WorkflowLaunchAdmission\nreserve_capacity\ncreate_reservation\nstart_workflow" as Admission
+}
+
+package "OCC state" {
+  database "WorkflowCapacity\nmax_in_progress\nin_progress\nlaunch tokens" as Capacity
+  database "WorkflowStartReservation\nPending\nAdmitted\nLaunched\nCompleted / Rejected / Expired" as Reservation
+}
+
+package "Workflow runtime" {
+  rectangle "Target workflow\nworkflow_name + version" as TargetWorkflow
+}
+
+package "Completion accounting path" {
+  queue "WorkflowCompletionQueue\nWorkflowCompleted" as CompletionQueue
+  rectangle "WorkflowCompletionAccountingWorker\nsingleton worker\nlease protected" as CompletionWorker
+  rectangle "WorkflowCompletionAccounting\nmark_completed\nrelease_capacity" as CompletionWorkflow
+}
+
+Caller --> LaunchApi : submit launch request
+LaunchApi --> LaunchQueue : enqueue durable request
+LaunchApi --> Accepted : return without starting workflow directly
+
+LaunchQueue --> Scheduler : claim message
+Scheduler --> Admission : execute admission workflow
+Admission --> Capacity : OCC read capacity and token budget
+Admission --> Reservation : read or create by idempotency key
+Admission --> Capacity : increment in_progress\nconsume launch token
+Admission --> Reservation : Pending -> Admitted -> Launched
+Admission --> TargetWorkflow : start workflow after capacity is reserved
+
+TargetWorkflow --> CompletionQueue : enqueue terminal completion
+CompletionQueue --> CompletionWorker : claim message
+CompletionWorker --> CompletionWorkflow : execute completion accounting
+CompletionWorkflow --> Reservation : Launched -> Completed
+CompletionWorkflow --> Capacity : decrement in_progress
+
+note right of Scheduler
+The scheduler serializes launch admission.
+The singleton can later be sharded by tenant,
+workflow type, region, or hash bucket.
+end note
+
+note bottom of Capacity
+Capacity and reservation updates occur in
+OCC transactions so duplicate launch requests,
+retry attempts, and concurrent schedulers do
+not over-admit work.
+end note
+
+@enduml
