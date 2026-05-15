@@ -77,6 +77,8 @@ std::string token_kind_name(TokenKind kind)
         return "OrOr";
     case TokenKind::KeywordStatespec:
         return "KeywordStatespec";
+    case TokenKind::KeywordInclude:
+        return "KeywordInclude";
     case TokenKind::KeywordImport:
         return "KeywordImport";
     case TokenKind::KeywordAs:

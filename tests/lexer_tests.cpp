@@ -21,9 +21,11 @@ void lexer_emits_eof_for_empty_source()
 
 void lexer_tokenizes_system_declaration()
 {
-    const auto tokens = statespec::test::lex_text("statespec 0.1; system OrderSystem {}");
+    const auto tokens = statespec::test::lex_text(
+        "statespec 0.1; include \"./workflow-launch-control.sspec\"; system OrderSystem {}"
+    );
     statespec::test::require(
-        tokens.size() == 8, "system declaration should produce expected token count including EOF"
+        tokens.size() == 11, "system declaration should produce expected token count including EOF"
     );
     statespec::test::require(
         tokens[0].kind == statespec::TokenKind::KeywordStatespec, "statespec should be a keyword"
@@ -35,22 +37,29 @@ void lexer_tokenizes_system_declaration()
         tokens[2].kind == statespec::TokenKind::Semicolon, "semicolon should be tokenized"
     );
     statespec::test::require(
-        tokens[3].kind == statespec::TokenKind::KeywordSystem, "system should be a keyword"
+        tokens[3].kind == statespec::TokenKind::KeywordInclude, "include should be a keyword"
     );
     statespec::test::require(
-        tokens[4].kind == statespec::TokenKind::Identifier, "system name should be identifier"
+        tokens[4].kind == statespec::TokenKind::StringLiteral,
+        "include path should be string literal"
     );
     statespec::test::require(
-        tokens[4].lexeme == "OrderSystem", "identifier lexeme should be preserved"
+        tokens[6].kind == statespec::TokenKind::KeywordSystem, "system should be a keyword"
     );
     statespec::test::require(
-        tokens[5].kind == statespec::TokenKind::LeftBrace, "left brace should be tokenized"
+        tokens[7].kind == statespec::TokenKind::Identifier, "system name should be identifier"
     );
     statespec::test::require(
-        tokens[6].kind == statespec::TokenKind::RightBrace, "right brace should be tokenized"
+        tokens[7].lexeme == "OrderSystem", "identifier lexeme should be preserved"
     );
     statespec::test::require(
-        tokens[7].kind == statespec::TokenKind::EndOfFile, "last token should be EOF"
+        tokens[8].kind == statespec::TokenKind::LeftBrace, "left brace should be tokenized"
+    );
+    statespec::test::require(
+        tokens[9].kind == statespec::TokenKind::RightBrace, "right brace should be tokenized"
+    );
+    statespec::test::require(
+        tokens[10].kind == statespec::TokenKind::EndOfFile, "last token should be EOF"
     );
 }
 

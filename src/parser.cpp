@@ -151,6 +151,12 @@ Spec Parser::parse_spec(DiagnosticBag& diagnostics)
         consume(TokenKind::Semicolon, "expected ';' after StateSpec version", diagnostics);
     }
 
+    while (match(TokenKind::KeywordInclude))
+    {
+        --current_;
+        spec.includes.push_back(parse_include_decl(diagnostics));
+    }
+
     while (match(TokenKind::KeywordImport))
     {
         --current_;
@@ -173,6 +179,19 @@ Spec Parser::parse_spec(DiagnosticBag& diagnostics)
     }
 
     return spec;
+}
+
+IncludeDecl Parser::parse_include_decl(DiagnosticBag& diagnostics)
+{
+    const auto start =
+        consume(TokenKind::KeywordInclude, "expected include declaration", diagnostics);
+    const auto path = consume(TokenKind::StringLiteral, "expected include path", diagnostics);
+    consume(TokenKind::Semicolon, "expected ';' after include declaration", diagnostics);
+
+    IncludeDecl include_decl;
+    include_decl.path = strip_quotes(path.lexeme);
+    include_decl.range = SourceRange{start.range.begin, previous().range.end};
+    return include_decl;
 }
 
 ImportDecl Parser::parse_import_decl(DiagnosticBag& diagnostics)

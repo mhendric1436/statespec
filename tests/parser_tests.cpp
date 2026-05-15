@@ -16,6 +16,28 @@ void parser_parses_empty_system()
     );
 }
 
+void parser_parses_include_declarations()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        statespec 0.1;
+        include "./workflow-launch-control.sspec";
+        include "../shared/tenant-model.sspec";
+
+        system OrderSystem {}
+    )sspec");
+
+    statespec::test::require(spec.includes.size() == 2, "parser should parse includes");
+    statespec::test::require(
+        spec.includes[0].path == "./workflow-launch-control.sspec",
+        "parser should strip quotes from include path"
+    );
+    statespec::test::require(
+        spec.includes[1].path == "../shared/tenant-model.sspec",
+        "parser should preserve relative include path"
+    );
+    statespec::test::require(spec.system.has_value(), "parser should still parse root system");
+}
+
 void parser_parses_entity_fields_and_state_machine()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -370,6 +392,11 @@ void parser_reports_missing_system()
 TEST_CASE("parser parses empty systems")
 {
     parser_parses_empty_system();
+}
+
+TEST_CASE("parser parses include declarations")
+{
+    parser_parses_include_declarations();
 }
 
 TEST_CASE("parser parses entity fields, indexes, and state machines")

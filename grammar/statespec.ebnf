@@ -6,7 +6,7 @@
 
   Scope:
     - system declarations
-    - imports and namespaces
+    - includes, imports, and namespaces
     - system-wide tenant scoping
     - values and reusable data shapes
     - feature flags
@@ -35,11 +35,12 @@
 (* Root                                                         *)
 (* ============================================================ *)
 
-spec                    ::= file_header? import_decl* system_decl EOF ;
+spec                    ::= file_header? include_decl* import_decl* system_decl EOF ;
 
 file_header             ::= "statespec" version_literal ";" ;
 version_literal         ::= IntegerLiteral "." IntegerLiteral ;
 
+include_decl            ::= "include" StringLiteral ";" ;
 import_decl             ::= "import" QualifiedName ("as" Identifier)? ";" ;
 
 system_decl             ::= "system" Identifier system_block ;

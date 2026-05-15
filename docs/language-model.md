@@ -18,6 +18,21 @@ system OrderSystem {
 The `system` block is the top-level scope for names. Names declared inside a system are
 referenced by APIs, workflows, queues, leases, workers, and policies.
 
+Files may also declare `include` directives before imports and the root system:
+
+```statespec
+statespec 0.1;
+include "./workflow-launch-control.sspec";
+
+system OrderSystem {
+  // local declarations go here
+}
+```
+
+In the current parser milestone, include directives are parsed and surfaced in the AST.
+Resolution, cycle detection, and composition of included declarations are handled by a
+later compiler-loading milestone.
+
 ## First-Class Concepts
 
 | Concept | Purpose |

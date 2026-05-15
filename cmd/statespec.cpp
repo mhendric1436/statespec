@@ -224,6 +224,25 @@ void write_feature_flags(
     out << ']';
 }
 
+void write_includes(
+    std::ostream& out,
+    const std::vector<statespec::IncludeDecl>& includes
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < includes.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        out << "{\"path\": ";
+        write_json_string(out, includes[i].path);
+        out << '}';
+    }
+    out << ']';
+}
+
 void write_string_array(
     std::ostream& out,
     const std::vector<std::string>& values
@@ -249,6 +268,9 @@ void write_spec_json(
     out << "{\n";
     out << "  \"version\": ";
     write_json_optional_string(out, spec.version);
+    out << ",\n";
+    out << "  \"includes\": ";
+    write_includes(out, spec.includes);
     out << ",\n";
     out << "  \"imports\": [],\n";
     out << "  \"system\": ";

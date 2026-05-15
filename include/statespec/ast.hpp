@@ -19,6 +19,12 @@ struct ImportDecl
     SourceRange range;
 };
 
+struct IncludeDecl
+{
+    std::string path;
+    SourceRange range;
+};
+
 struct FieldDecl
 {
     std::string name;
@@ -226,6 +232,7 @@ struct SystemDecl
 struct Spec
 {
     std::optional<std::string> version;
+    std::vector<IncludeDecl> includes;
     std::vector<ImportDecl> imports;
     std::optional<SystemDecl> system;
 };

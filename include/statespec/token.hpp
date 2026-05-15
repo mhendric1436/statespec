@@ -46,6 +46,7 @@ enum class TokenKind
     OrOr,
 
     KeywordStatespec,
+    KeywordInclude,
     KeywordImport,
     KeywordAs,
     KeywordSystem,

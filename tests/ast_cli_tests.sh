@@ -4,6 +4,11 @@ set -eu
 CLI="${1:-build/bin/statespec}"
 EXAMPLE="examples/order-system.sspec"
 FEATURE_FLAGS_EXAMPLE="examples/feature-flags.sspec"
+TMPDIR="$(mktemp -d)"
+cleanup() {
+  rm -rf "$TMPDIR"
+}
+trap cleanup EXIT
 
 if [ ! -x "$CLI" ]; then
   echo "test failed: CLI not found or not executable: $CLI" >&2
@@ -70,6 +75,28 @@ assert flags[0]["owner"] == "platform"
 assert flags[1]["name"] == "MaxPendingOrders"
 assert flags[1]["type"] == "int"
 assert flags[1]["default"] == "100"
+'
+
+INCLUDE_EXAMPLE="$TMPDIR/include-root.sspec"
+cat > "$INCLUDE_EXAMPLE" <<'SSPEC'
+statespec 0.1;
+include "./workflow-launch-control.sspec";
+
+system IncludeDemo {}
+SSPEC
+
+INCLUDE_AST_OUTPUT="$($CLI ast "$INCLUDE_EXAMPLE")"
+
+printf '%s\n' "$INCLUDE_AST_OUTPUT" | grep -q '"includes"'
+printf '%s\n' "$INCLUDE_AST_OUTPUT" | grep -q '"path": "./workflow-launch-control.sspec"'
+
+printf '%s\n' "$INCLUDE_AST_OUTPUT" | python3 -c '
+import json
+import sys
+
+document = json.load(sys.stdin)
+assert document["includes"] == [{"path": "./workflow-launch-control.sspec"}]
+assert document["system"]["name"] == "IncludeDemo"
 '
 
 echo "ast CLI tests passed"

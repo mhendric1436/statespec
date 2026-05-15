@@ -31,6 +31,7 @@ TokenKind keyword_kind(std::string_view text)
 {
     static const std::unordered_map<std::string_view, TokenKind> keywords{
         {"statespec", TokenKind::KeywordStatespec},
+        {"include", TokenKind::KeywordInclude},
         {"import", TokenKind::KeywordImport},
         {"as", TokenKind::KeywordAs},
         {"system", TokenKind::KeywordSystem},
