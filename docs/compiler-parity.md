@@ -50,7 +50,7 @@ Status meanings:
 | Construct | Grammar | Parser/AST | Validator | Semantic | IR | Formatter | Generators | Priority | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | `key` | complete | complete | complete | complete | complete | complete | complete | P0 | Composite keys are supported. |
-| `fields` | complete | complete | complete | complete | complete | complete | complete | P0 | Mandatory lifecycle fields are validated. |
+| `fields` | complete | complete | complete | complete | complete | complete | complete | P0 | Mandatory lifecycle fields are validated and must appear first in canonical order. |
 | `state_machine` | complete | complete | complete | complete | complete | complete | complete | P0 | Initial, terminal, transitions, and GC metadata are represented. |
 | `indexes` | complete | complete | complete | complete | complete | complete | partial | P1 | IR has indexes; collection descriptor generation should populate `IndexDescriptor`. |
 | `ownership` | complete | complete | complete | complete | complete | not-started | complete | P1 | Represented in AST, validation, semantic model, IR, and binding descriptors; formatter support is still token-preserving. |

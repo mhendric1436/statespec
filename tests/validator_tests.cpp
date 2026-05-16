@@ -40,10 +40,10 @@ void validator_accepts_entity_relationship_model()
               orders: Order by account_id
             }
             fields {
-              account_id string
               created_at timestamp
               updated_at timestamp
               status string
+              account_id string
             }
             state_machine {
               state Active
@@ -67,11 +67,11 @@ void validator_accepts_entity_relationship_model()
               }
             }
             fields {
-              order_id string
-              account_id string
               created_at timestamp
               updated_at timestamp
               status string
+              order_id string
+              account_id string
             }
             invariants {
               valid_status: status != ""

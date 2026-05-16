@@ -45,11 +45,11 @@ system KitchenSink {
   entity Order {
     key tenant_id, order_id
     fields {
-      tenant_id string
-      order_id string
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
+      order_id string
     }
     indexes {
       index by_tenant_status on tenant_id, status

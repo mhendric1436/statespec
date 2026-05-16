@@ -439,10 +439,11 @@ system OrderSystem {
     key tenant_id, order_id
 
     fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
       tenant_id string
       order_id string
-      status string
-      created_at timestamp
     }
 
     state_machine {

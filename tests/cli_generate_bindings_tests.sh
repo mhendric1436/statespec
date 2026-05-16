@@ -63,10 +63,10 @@ system Demo {
       orders: Order by account_id
     }
     fields {
-      account_id string
       created_at timestamp
       updated_at timestamp
       status string
+      account_id string
     }
     state_machine {
       state Active
@@ -90,12 +90,12 @@ system Demo {
       }
     }
     fields {
-      tenant_id string
-      order_id string
-      account_id string
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
+      order_id string
+      account_id string
       retry_count int?
     }
     invariants {
@@ -175,10 +175,10 @@ system IncludedBindings {
   entity IncludedEntity {
     key included_id
     fields {
-      included_id string
       created_at timestamp
       updated_at timestamp
       status string
+      included_id string
     }
     state_machine {
       state Active

@@ -77,10 +77,10 @@ void validator_accepts_resolved_references()
           entity Order {
             key order_id
             fields {
-              order_id string
               created_at timestamp
               updated_at timestamp
               status string
+              order_id string
             }
             state_machine {
               state Creating
@@ -183,10 +183,10 @@ void validator_accepts_terminal_garbage_collection_modes()
           entity Order {
             key order_id
             fields {
-              order_id string
               created_at timestamp
               updated_at timestamp
               status string
+              order_id string
             }
             state_machine {
               state Creating
@@ -343,7 +343,7 @@ void validator_rejects_invalid_entity_management_field_types()
     );
 }
 
-void validator_rejects_invalid_terminal_garbage_collection()
+void validator_rejects_noncanonical_entity_management_field_order()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
@@ -354,6 +354,32 @@ void validator_rejects_invalid_terminal_garbage_collection()
               created_at timestamp
               updated_at timestamp
               status string
+            }
+            state_machine {
+              state Pending
+              initial Pending
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3106"),
+        "validator should reject noncanonical entity management field order"
+    );
+}
+
+void validator_rejects_invalid_terminal_garbage_collection()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              order_id string
             }
             state_machine {
               state Creating {
@@ -550,10 +576,10 @@ void validator_accepts_feature_flags()
           entity Order {
             key order_id
             fields {
-              order_id string
               created_at timestamp
               updated_at timestamp
               status string
+              order_id string
             }
             state_machine {
               state Pending
@@ -809,6 +835,11 @@ TEST_CASE("validator rejects missing entity management model")
 TEST_CASE("validator rejects invalid entity management field types")
 {
     validator_rejects_invalid_entity_management_field_types();
+}
+
+TEST_CASE("validator rejects noncanonical entity management field order")
+{
+    validator_rejects_noncanonical_entity_management_field_order();
 }
 
 TEST_CASE("validator accepts terminal garbage collection modes")

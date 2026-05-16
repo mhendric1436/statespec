@@ -27,10 +27,10 @@ system Demo {
   entity Order {
     key order_id
     fields {
-      order_id string
       created_at timestamp
       updated_at timestamp
       status string
+      order_id string
     }
     state_machine {
       state Creating {
@@ -59,10 +59,10 @@ system Demo {
   entity Order {
     key order_id
     fields {
-      order_id string
       created_at timestamp
       updated_at timestamp
       status string
+      order_id string
     }
     state_machine {
       state Creating
@@ -88,10 +88,10 @@ system SharedModel {
   entity SharedEntity {
     key shared_id
     fields {
-      shared_id string
       created_at timestamp
       updated_at timestamp
       status string
+      shared_id string
     }
     state_machine {
       state Active
@@ -142,10 +142,10 @@ system DuplicateInclude {
   entity SharedEntity {
     key shared_id
     fields {
-      shared_id string
       created_at timestamp
       updated_at timestamp
       status string
+      shared_id string
     }
     state_machine {
       state Active
@@ -163,10 +163,10 @@ system DuplicateRoot {
   entity SharedEntity {
     key shared_id
     fields {
-      shared_id string
       created_at timestamp
       updated_at timestamp
       status string
+      shared_id string
     }
     state_machine {
       state Active

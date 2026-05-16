@@ -10,11 +10,11 @@ entity Order {
   key tenant_id, order_id
 
   fields {
-    tenant_id string
-    order_id string
     created_at timestamp
     updated_at timestamp
     status string
+    tenant_id string
+    order_id string
   }
 
   state_machine {
@@ -64,18 +64,31 @@ Fields use the form:
 field_name type
 ```
 
+The first fields in every entity must be the canonical management fields, in this
+exact order:
+
+```statespec
+created_at timestamp
+updated_at timestamp
+status string
+```
+
+`status` is the durable lifecycle field associated with the entity `state_machine`.
+Domain fields, key fields, relation fields, and optional timestamps follow these
+management fields.
+
 Examples:
 
 ```statespec
 fields {
+  created_at timestamp
+  updated_at timestamp
+  status string
   id uuid
   display_name string
   active bool
   revision int64
   metadata json
-  created_at timestamp
-  updated_at timestamp
-  status string
   deleted_at timestamp?
 }
 ```

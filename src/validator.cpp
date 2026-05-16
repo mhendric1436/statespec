@@ -716,6 +716,30 @@ void validate_entity_management_fields(
     validate_required_entity_field(entity, "created_at", "timestamp", diagnostics);
     validate_required_entity_field(entity, "updated_at", "timestamp", diagnostics);
     validate_required_entity_field(entity, "status", "string", diagnostics);
+
+    static const std::vector<std::string> canonical_fields{
+        "created_at",
+        "updated_at",
+        "status",
+    };
+    if (entity.fields.size() < canonical_fields.size())
+    {
+        return;
+    }
+
+    for (std::size_t i = 0; i < canonical_fields.size(); ++i)
+    {
+        if (entity.fields[i].name != canonical_fields[i])
+        {
+            diagnostics.error(
+                entity.fields[i].range, "SSPEC3106",
+                "entity '" + entity.name +
+                    "' fields must begin with canonical management fields: created_at "
+                    "timestamp, updated_at timestamp, status string"
+            );
+            return;
+        }
+    }
 }
 
 void validate_indexes(
