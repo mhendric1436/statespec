@@ -4,6 +4,7 @@ import com.statespec.backend.Backend.BackendException;
 import com.statespec.backend.Backend.Transaction;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 
 public interface Log
@@ -58,6 +59,16 @@ public interface Log
     DefinitionRegistration registerDefinitionTx(
         Transaction tx,
         Definition definition
+    ) throws BackendException;
+
+    Optional<Definition> inspectDefinition(
+        Backend backend,
+        String name
+    ) throws BackendException;
+
+    Optional<Definition> inspectDefinitionTx(
+        Transaction tx,
+        String name
     ) throws BackendException;
 
     void emit(

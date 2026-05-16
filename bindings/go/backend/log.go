@@ -37,6 +37,10 @@ type LogSink interface {
 
 	RegisterDefinitionTx(ctx context.Context, tx Transaction, definition LogSignalDefinition) (LogSignalRegistration, error)
 
+	InspectDefinition(ctx context.Context, backend Backend, name string) (*LogSignalDefinition, error)
+
+	InspectDefinitionTx(ctx context.Context, tx Transaction, name string) (*LogSignalDefinition, error)
+
 	// EmitLogTx stages the event in the caller's OCC transaction. Commit makes it
 	// visible to exporters; rollback drops it.
 	EmitLog(ctx context.Context, backend Backend, event LogEvent) error

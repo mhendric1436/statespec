@@ -2,6 +2,7 @@
 
 #include "backend.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -53,6 +54,16 @@ class ILogSink
     virtual LogDefinitionRegistration register_definitionTx(
         ITransaction& tx,
         const LogDefinition& definition
+    ) = 0;
+
+    virtual std::optional<LogDefinition> inspect_definition(
+        IBackend& backend,
+        const std::string& name
+    ) = 0;
+
+    virtual std::optional<LogDefinition> inspect_definitionTx(
+        ITransaction& tx,
+        const std::string& name
     ) = 0;
 
     // Transactional emits are staged in the caller's OCC transaction. A commit

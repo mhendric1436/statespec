@@ -46,6 +46,14 @@ pub trait LogSink<B: Backend> {
         definition: &LogDefinition,
     ) -> BackendResult<LogDefinitionRegistration>;
 
+    fn inspect_definition(&self, backend: &B, name: &str) -> BackendResult<Option<LogDefinition>>;
+
+    fn inspect_definition_tx(
+        &self,
+        tx: &mut B::Tx,
+        name: &str,
+    ) -> BackendResult<Option<LogDefinition>>;
+
     /// Transactional emits are staged in the caller's OCC transaction. Commit
     /// makes the log visible to exporters; rollback drops it.
     fn emit_log(&self, backend: &B, event: &LogEvent) -> BackendResult<()>;

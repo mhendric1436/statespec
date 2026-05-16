@@ -48,6 +48,18 @@ pub trait MetricSink<B: Backend> {
         definition: &MetricDefinition,
     ) -> BackendResult<MetricDefinitionRegistration>;
 
+    fn inspect_definition(
+        &self,
+        backend: &B,
+        name: &str,
+    ) -> BackendResult<Option<MetricDefinition>>;
+
+    fn inspect_definition_tx(
+        &self,
+        tx: &mut B::Tx,
+        name: &str,
+    ) -> BackendResult<Option<MetricDefinition>>;
+
     /// Transactional records are staged in the caller's OCC transaction. Commit
     /// makes the sample visible to exporters; rollback drops it. Implementations
     /// should validate labels against the registered metric definition.

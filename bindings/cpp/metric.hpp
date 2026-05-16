@@ -2,6 +2,7 @@
 
 #include "backend.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -55,6 +56,16 @@ class IMetricSink
     virtual MetricDefinitionRegistration register_definitionTx(
         ITransaction& tx,
         const MetricDefinition& definition
+    ) = 0;
+
+    virtual std::optional<MetricDefinition> inspect_definition(
+        IBackend& backend,
+        const std::string& name
+    ) = 0;
+
+    virtual std::optional<MetricDefinition> inspect_definitionTx(
+        ITransaction& tx,
+        const std::string& name
     ) = 0;
 
     // Transactional records are staged in the caller's OCC transaction. A

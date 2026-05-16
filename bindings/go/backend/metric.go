@@ -39,6 +39,10 @@ type MetricSink interface {
 
 	RegisterDefinitionTx(ctx context.Context, tx Transaction, definition MetricInstrumentDefinition) (MetricInstrumentRegistration, error)
 
+	InspectDefinition(ctx context.Context, backend Backend, name string) (*MetricInstrumentDefinition, error)
+
+	InspectDefinitionTx(ctx context.Context, tx Transaction, name string) (*MetricInstrumentDefinition, error)
+
 	// RecordMetricTx stages the sample in the caller's OCC transaction. Commit
 	// makes it visible to exporters; rollback drops it. Implementations should
 	// validate labels against the registered metric definition.
