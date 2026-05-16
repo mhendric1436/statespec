@@ -4,6 +4,37 @@ system WorkflowLaunchControl {
   tenant scoped_by tenant_id
   system_tenant configured
 
+  shape RequestWorkflowLaunchRequest {
+    tenant_id string
+    reservation_id string
+    workflow_name string
+    workflow_version int
+    target_entity_id string
+    capacity_id string
+    requested_at timestamp
+  }
+
+  shape WorkflowLaunchAcceptedResponse {
+    reservation_id string
+    accepted bool
+  }
+
+  shape WorkflowCompletedRequest {
+    tenant_id string
+    reservation_id string
+    workflow_execution_id string
+    completed_at timestamp
+  }
+
+  shape WorkflowCompletedResponse {
+    accepted bool
+  }
+
+  shape ProblemDetails {
+    code string
+    detail string
+  }
+
   entity WorkflowCapacity {
     key capacity_id
 

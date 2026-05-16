@@ -255,6 +255,10 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         {
             system.entities.push_back(parse_entity_decl(diagnostics));
         }
+        else if (check(TokenKind::KeywordShape))
+        {
+            system.shapes.push_back(parse_shape_decl(diagnostics));
+        }
         else if (check(TokenKind::KeywordFeatureFlag))
         {
             system.feature_flags.push_back(parse_feature_flag_decl(diagnostics));
@@ -300,6 +304,24 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 
     system.range = SourceRange{start.range.begin, previous().range.end};
     return system;
+}
+
+ShapeDecl Parser::parse_shape_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordShape, "expected shape declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected shape name", diagnostics);
+    ShapeDecl shape;
+    shape.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after shape name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        shape.fields.push_back(parse_field_decl(diagnostics));
+    }
+    consume(TokenKind::RightBrace, "expected '}' after shape block", diagnostics);
+
+    shape.range = SourceRange{start.range.begin, previous().range.end};
+    return shape;
 }
 
 FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)

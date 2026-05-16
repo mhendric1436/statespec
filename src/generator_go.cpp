@@ -176,6 +176,10 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tDescription *string\n";
     out << "\tExpires *string\n";
     out << "}\n\n";
+    out << "type ShapeDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tFields []FieldDescriptor\n";
+    out << "}\n\n";
     out << "type LogDefinition struct {\n";
     out << "\tName string\n";
     out << "\tLevel string\n";
@@ -220,6 +224,25 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tOwner: " << string_ptr_expr(flag.owner) << ",\n";
         out << "\t\t\tDescription: " << string_ptr_expr(flag.description) << ",\n";
         out << "\t\t\tExpires: " << string_ptr_expr(flag.expires) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func ShapeDescriptors() []ShapeDescriptor {\n";
+    out << "\treturn []ShapeDescriptor{\n";
+    for (const auto& shape : system.shapes)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(shape.name) << ",\n";
+        out << "\t\t\tFields: []FieldDescriptor{\n";
+        for (const auto& field : shape.fields)
+        {
+            out << "\t\t\t\t{Name: " << go_string(field.name)
+                << ", Type: " << go_string(strip_optional_suffix(field.type))
+                << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+        }
+        out << "\t\t\t},\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";

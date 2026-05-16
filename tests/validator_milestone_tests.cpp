@@ -68,6 +68,12 @@ void validator_accepts_resolved_references()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          shape StartOrderProcessingRequest {
+            order_id string
+          }
+          shape StartOrderProcessingResponse {
+            accepted bool
+          }
           entity Order {
             key order_id
             fields {
@@ -128,6 +134,8 @@ void validator_accepts_resolved_references()
           api StartOrderProcessing {
             method POST
             path "/v1/orders/start"
+            input StartOrderProcessingRequest
+            output StartOrderProcessingResponse
             starts workflow OrderProcessing
             enqueues EmailQueue.SendConfirmation
           }
@@ -139,6 +147,33 @@ void validator_accepts_resolved_references()
     )sspec");
 
     require(!diagnostics.has_errors(), "validator should accept resolved references");
+}
+
+void validator_rejects_invalid_shapes()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          shape createOrderRequest {
+            order_id MissingType
+            order_id string
+          }
+
+          shape EmptyShape {
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3201"), "validator should reject non-PascalCase shapes"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown shape field types"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3001"), "validator should reject duplicate shape fields"
+    );
+    require(has_error_code(diagnostics, "SSPEC4001"), "validator should reject empty shapes");
 }
 
 void validator_accepts_terminal_garbage_collection_modes()
@@ -424,6 +459,9 @@ void validator_rejects_unknown_api_references()
           api StartOrderProcessing {
             method POST
             path "/v1/orders/start"
+            input MissingRequest
+            output MissingResponse
+            error MissingError
             starts workflow MissingWorkflow
             enqueues MissingQueue.Message
           }
@@ -746,6 +784,11 @@ TEST_CASE("validator accepts resolved references")
 TEST_CASE("validator rejects duplicate top-level names")
 {
     validator_rejects_duplicate_top_level_names();
+}
+
+TEST_CASE("validator rejects invalid shapes")
+{
+    validator_rejects_invalid_shapes();
 }
 
 TEST_CASE("validator rejects missing entity key fields")

@@ -180,6 +180,11 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub expires: Option<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ShapeDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub fields: Vec<FieldDescriptor>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct LogDefinition {\n";
     out << "    pub name: String,\n";
     out << "    pub level: String,\n";
@@ -227,6 +232,26 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            owner: " << optional_string_expr(flag.owner) << ",\n";
         out << "            description: " << optional_string_expr(flag.description) << ",\n";
         out << "            expires: " << optional_string_expr(flag.expires) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn shape_descriptors() -> Vec<ShapeDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& shape : system.shapes)
+    {
+        out << "        ShapeDescriptor {\n";
+        out << "            name: " << rust_string(shape.name) << ".to_string(),\n";
+        out << "            fields: vec![\n";
+        for (const auto& field : shape.fields)
+        {
+            out << "                FieldDescriptor { name: " << rust_string(field.name)
+                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(field.type))
+                << ".to_string(), required: " << (is_optional_type(field.type) ? "false" : "true")
+                << " },\n";
+        }
+        out << "            ],\n";
         out << "        },\n";
     }
     out << "    ]\n";

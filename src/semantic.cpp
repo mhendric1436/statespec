@@ -37,6 +37,10 @@ SymbolTable build_symbols(const SystemDecl& system)
     {
         insert_symbol(symbols, SymbolKind::FeatureFlag, flag.name, flag.range);
     }
+    for (const auto& shape : system.shapes)
+    {
+        insert_symbol(symbols, SymbolKind::Shape, shape.name, shape.range);
+    }
     for (const auto& log : system.logs)
     {
         insert_symbol(symbols, SymbolKind::Log, log.name, log.range);
@@ -195,6 +199,11 @@ SemanticSystem resolve_semantics(const Spec& spec)
     {
         resolved.system_tenant =
             SemanticSystemTenant{"configured", system.system_tenant->config_key};
+    }
+
+    for (const auto& shape : system.shapes)
+    {
+        resolved.shapes.push_back(SemanticShape{shape.name, resolve_fields(shape.fields)});
     }
 
     for (const auto& flag : system.feature_flags)

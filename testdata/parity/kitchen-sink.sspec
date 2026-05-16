@@ -33,6 +33,15 @@ system KitchenSink {
     }
   }
 
+  shape StartOrderProcessingRequest {
+    tenant_id string
+    order_id string
+  }
+
+  shape StartOrderProcessingResponse {
+    accepted bool
+  }
+
   entity Order {
     key tenant_id, order_id
     fields {
@@ -106,6 +115,8 @@ system KitchenSink {
   api StartOrderProcessing {
     method POST
     path "/v1/orders/{order_id}/start"
+    input StartOrderProcessingRequest
+    output StartOrderProcessingResponse
     starts workflow OrderProcessing
     enqueues EmailDispatch.SendConfirmation
   }

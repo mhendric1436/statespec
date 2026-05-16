@@ -37,6 +37,7 @@ printf '%s\n' "$AST_OUTPUT" | grep -q '"version": "0.1"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"system"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"name": "OrderSystem"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"entities"'
+printf '%s\n' "$AST_OUTPUT" | grep -q '"shapes"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"feature_flags"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"logs"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"metrics"'
@@ -54,6 +55,7 @@ import sys
 document = json.load(sys.stdin)
 assert document["version"] == "0.1"
 assert document["system"]["name"] == "OrderSystem"
+assert "shapes" in document["system"]
 assert "feature_flags" in document["system"]
 assert len(document["system"]["entities"]) >= 1
 assert len(document["system"]["queues"]) >= 1
@@ -142,6 +144,7 @@ PARITY_AST_OUTPUT="$($CLI ast "$PARITY_FIXTURE")"
 
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"name": "KitchenSink"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"feature_flags"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"shapes"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"logs"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"metrics"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"entities"'
@@ -161,6 +164,7 @@ system = document["system"]
 assert system["name"] == "KitchenSink"
 for key in [
     "feature_flags",
+    "shapes",
     "logs",
     "metrics",
     "entities",
@@ -171,7 +175,9 @@ for key in [
     "workflows",
     "policies",
 ]:
-    assert len(system[key]) == 1, key
+    assert len(system[key]) >= 1, key
+assert system["shapes"][0]["name"] == "StartOrderProcessingRequest"
+assert system["shapes"][0]["fields"][0]["name"] == "tenant_id"
 assert system["entities"][0]["key_fields"] == ["tenant_id", "order_id"]
 assert system["queues"][0]["name"] == "EmailDispatch"
 assert system["workers"][0]["name"] == "OrderWorker"

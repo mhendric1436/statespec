@@ -185,6 +185,12 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<std::string> expires;\n";
     out << "};\n\n";
 
+    out << "struct ShapeDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::vector<statespec::backend::FieldDescriptor> fields;\n";
+    out << "};\n\n";
+
     out << "struct LogDefinition\n";
     out << "{\n";
     out << "    std::string name;\n";
@@ -237,6 +243,26 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            " << optional_string_expr(flag.owner) << ",\n";
         out << "            " << optional_string_expr(flag.description) << ",\n";
         out << "            " << optional_string_expr(flag.expires) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<ShapeDescriptor> shape_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& shape : system.shapes)
+    {
+        out << "        ShapeDescriptor{\n";
+        out << "            " << cpp_string(shape.name) << ",\n";
+        out << "            {\n";
+        for (const auto& field : shape.fields)
+        {
+            out << "                statespec::backend::FieldDescriptor{" << cpp_string(field.name)
+                << ", " << cpp_string(strip_optional_suffix(field.type)) << ", "
+                << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+        }
+        out << "            },\n";
         out << "        },\n";
     }
     out << "    };\n";

@@ -88,6 +88,12 @@ struct SemanticFeatureFlag
     std::optional<std::string> expires;
 };
 
+struct SemanticShape
+{
+    std::string name;
+    std::vector<SemanticField> fields;
+};
+
 struct SemanticLog
 {
     std::string name;
@@ -200,6 +206,7 @@ struct SemanticSystem
     std::string name;
     std::optional<SemanticTenantScope> tenant_scope;
     std::optional<SemanticSystemTenant> system_tenant;
+    std::vector<SemanticShape> shapes;
     std::vector<SemanticFeatureFlag> feature_flags;
     std::vector<SemanticLog> logs;
     std::vector<SemanticMetric> metrics;

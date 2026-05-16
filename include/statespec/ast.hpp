@@ -113,6 +113,13 @@ struct FeatureFlagDecl
     SourceRange range;
 };
 
+struct ShapeDecl
+{
+    std::string name;
+    std::vector<FieldDecl> fields;
+    SourceRange range;
+};
+
 struct LogDecl
 {
     std::string name;
@@ -237,6 +244,7 @@ struct SystemDecl
     std::string name;
     std::optional<TenantScopeDecl> tenant_scope;
     std::optional<SystemTenantDecl> system_tenant;
+    std::vector<ShapeDecl> shapes;
     std::vector<FeatureFlagDecl> feature_flags;
     std::vector<LogDecl> logs;
     std::vector<MetricDecl> metrics;

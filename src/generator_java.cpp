@@ -185,6 +185,10 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        Optional<String> description,\n";
     out << "        Optional<String> expires\n";
     out << "    ) {}\n\n";
+    out << "    public record ShapeDescriptor(\n";
+    out << "        String name,\n";
+    out << "        List<FieldDescriptor> fields\n";
+    out << "    ) {}\n\n";
     out << "    public record LogDefinition(\n";
     out << "        String name,\n";
     out << "        String level,\n";
@@ -229,6 +233,28 @@ std::string generate_descriptors_java(const IrSystem& system)
         out << "                " << optional_string_expr(flag.description) << ",\n";
         out << "                " << optional_string_expr(flag.expires) << "\n";
         out << "            )" << (i + 1 < system.feature_flags.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t shape_index = 0; shape_index < system.shapes.size(); ++shape_index)
+    {
+        const auto& shape = system.shapes[shape_index];
+        out << "            new ShapeDescriptor(\n";
+        out << "                " << java_string(shape.name) << ",\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < shape.fields.size(); ++i)
+        {
+            const auto& field = shape.fields[i];
+            out << "                    new FieldDescriptor(" << java_string(field.name) << ", "
+                << java_string(strip_optional_suffix(field.type)) << ", "
+                << (is_optional_type(field.type) ? "false" : "true") << ")";
+            out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
+        }
+        out << "                )\n";
+        out << "            )" << (shape_index + 1 < system.shapes.size() ? "," : "") << "\n";
     }
     out << "        );\n";
     out << "    }\n\n";

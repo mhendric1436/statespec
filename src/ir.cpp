@@ -45,6 +45,11 @@ IrSystem lower_to_ir(const SemanticSystem& system)
             IrSystemTenant{system.system_tenant->source, system.system_tenant->config_key};
     }
 
+    for (const auto& shape : system.shapes)
+    {
+        ir.shapes.push_back(IrShape{shape.name, lower_fields(shape.fields)});
+    }
+
     for (const auto& flag : system.feature_flags)
     {
         ir.feature_flags.push_back(

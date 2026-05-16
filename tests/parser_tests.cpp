@@ -178,6 +178,31 @@ void parser_parses_feature_flags()
     );
 }
 
+void parser_parses_shapes()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          shape CreateOrderRequest {
+            tenant_id string
+            order_id string
+            priority int?
+          }
+        }
+    )sspec");
+
+    statespec::test::require(spec.system.has_value(), "parser should parse system");
+    statespec::test::require(spec.system->shapes.size() == 1, "parser should parse shapes");
+    const auto& shape = spec.system->shapes[0];
+    statespec::test::require(shape.name == "CreateOrderRequest", "parser should parse shape name");
+    statespec::test::require(shape.fields.size() == 3, "parser should parse shape fields");
+    statespec::test::require(
+        shape.fields[0].name == "tenant_id", "parser should parse shape field name"
+    );
+    statespec::test::require(
+        shape.fields[2].type == "int?", "parser should parse optional shape field type"
+    );
+}
+
 void parser_parses_logs_and_metrics()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -468,6 +493,11 @@ TEST_CASE("parser parses entity fields, indexes, and state machines")
 TEST_CASE("parser parses feature flags")
 {
     parser_parses_feature_flags();
+}
+
+TEST_CASE("parser parses shapes")
+{
+    parser_parses_shapes();
 }
 
 TEST_CASE("parser parses logs and metrics")

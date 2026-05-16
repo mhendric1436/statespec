@@ -10,6 +10,14 @@ void semantic_resolver_resolves_runtime_references()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
         system OrderSystem {
+          shape StartOrderProcessingRequest {
+            order_id string
+          }
+
+          shape StartOrderProcessingResponse {
+            accepted bool
+          }
+
           entity Order {
             key order_id
             fields {
@@ -56,6 +64,8 @@ void semantic_resolver_resolves_runtime_references()
           api StartOrderProcessing {
             method POST
             path "/v1/orders/{order_id}/start"
+            input StartOrderProcessingRequest
+            output StartOrderProcessingResponse
             starts workflow OrderProcessing
             enqueues EmailDispatch.SendConfirmation
           }
@@ -104,6 +114,15 @@ void semantic_resolver_resolves_runtime_references()
     );
 
     const auto& api = resolved.apis[0];
+    statespec::test::require(resolved.shapes.size() == 2, "semantic resolver should lower shapes");
+    statespec::test::require(
+        api.input.has_value() && api.input->kind == statespec::SymbolKind::Shape,
+        "semantic resolver should resolve API input shape"
+    );
+    statespec::test::require(
+        api.output.has_value() && api.output->kind == statespec::SymbolKind::Shape,
+        "semantic resolver should resolve API output shape"
+    );
     statespec::test::require(
         api.starts_workflow.has_value() &&
             api.starts_workflow->kind == statespec::SymbolKind::Workflow,

@@ -32,9 +32,15 @@ When `--out` is omitted, the CLI writes to `generated/<language>`.
 
 ## Generated Metadata
 
-Binding generators consume the lowered StateSpec IR, not raw AST declarations. Feature
-flags, logs, metrics, entities, queues, leases, and workflows are emitted as descriptor
-metadata where supported so downstream tools can inspect runtime contracts consistently.
+Binding generators consume the lowered StateSpec IR, not raw AST declarations. Shapes,
+feature flags, logs, metrics, entities, queues, leases, and workflows are emitted as
+descriptor metadata where supported so downstream tools can inspect runtime contracts
+consistently.
+
+Generated shape metadata includes:
+
+- name
+- typed fields
 
 Generated feature flag metadata includes:
 

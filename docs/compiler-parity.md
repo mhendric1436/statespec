@@ -30,7 +30,7 @@ Status meanings:
 | `system_tenant configured` | complete | complete | complete | complete | complete | complete | partial | P1 | Lowered into IR; generated runtime config contract should be expanded. |
 | `value` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed for reusable constants and policy expressions. |
 | `enum` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed before named type generation is complete. |
-| `shape` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P1 | API input/output/error references depend on shaped payloads. |
+| `shape` | complete | complete | complete | complete | complete | complete | partial | P1 | Shape descriptors are generated; target-language type generation is still pending. |
 | `external_system` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P3 | Required for explicit managed/observed ownership modeling. |
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors and bindings exist; generated registration helpers are not complete across all languages/catalogs. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
@@ -89,9 +89,9 @@ Status meanings:
    Preserve current entity, state machine, log, metric, queue, lease, workflow, include,
    and binding generation behavior while closing known descriptor gaps.
 
-2. **P1: Add `shape` end to end.**
-   Shapes unlock typed API inputs/outputs/errors and reduce stringly references in API
-   and policy declarations.
+2. **P1: Generate target-language types from `shape`.**
+   Shapes now flow through the compiler and descriptor generators. The next increment is
+   emitting typed request/response structs or classes for each binding language.
 
 3. **P1: Add ownership, relations, and invariants for entities.**
    These are foundational for entity lifecycle, parent-child orchestration, and generated

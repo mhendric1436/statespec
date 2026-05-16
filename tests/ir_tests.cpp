@@ -123,6 +123,47 @@ void ir_lowers_logs_and_metrics()
     );
 }
 
+void ir_lowers_shapes()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          shape CreateOrderRequest {
+            tenant_id string
+            order_id string
+            priority int?
+          }
+
+          shape CreateOrderResponse {
+            accepted bool
+          }
+
+          api CreateOrder {
+            method POST
+            path "/v1/orders"
+            input CreateOrderRequest
+            output CreateOrderResponse
+          }
+        }
+    )sspec");
+
+    const auto ir = statespec::lower_to_ir(spec);
+
+    statespec::test::require(ir.shapes.size() == 2, "IR should lower shapes");
+    statespec::test::require(
+        ir.shapes[0].name == "CreateOrderRequest", "IR should lower shape name"
+    );
+    statespec::test::require(ir.shapes[0].fields.size() == 3, "IR should lower shape fields");
+    statespec::test::require(
+        ir.shapes[0].fields[2].type == "int?", "IR should lower optional shape field"
+    );
+    statespec::test::require(
+        ir.apis[0].input == "CreateOrderRequest", "IR should lower API input shape reference"
+    );
+    statespec::test::require(
+        ir.apis[0].output == "CreateOrderResponse", "IR should lower API output shape reference"
+    );
+}
+
 void ir_lowers_system_runtime_contracts()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -352,6 +393,11 @@ TEST_CASE("IR lowers terminal garbage collection policy")
 TEST_CASE("IR lowers logs and metrics")
 {
     ir_lowers_logs_and_metrics();
+}
+
+TEST_CASE("IR lowers shapes")
+{
+    ir_lowers_shapes();
 }
 
 TEST_CASE("IR lowers system runtime contracts")

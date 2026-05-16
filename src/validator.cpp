@@ -251,16 +251,6 @@ std::unordered_set<std::string> field_names(const std::vector<FieldDecl>& fields
     return names;
 }
 
-std::unordered_set<std::string> step_names(const WorkflowDecl& workflow)
-{
-    std::unordered_set<std::string> names;
-    for (const auto& step : workflow.steps)
-    {
-        names.insert(step.name);
-    }
-    return names;
-}
-
 void duplicate_error(
     DiagnosticBag& diagnostics,
     const SourceRange& range,
@@ -363,6 +353,15 @@ void validate_field_types(
             unknown_reference_error(diagnostics, field.range, "type", base_type);
         }
     }
+}
+
+bool is_known_type_reference(
+    const std::string& type,
+    const SymbolTable& symbols
+)
+{
+    const auto base_type = base_type_name(type);
+    return is_builtin_type(base_type) || symbols.find(base_type).has_value();
 }
 
 const FeatureFlagDecl* find_feature_flag(
@@ -720,6 +719,29 @@ void validate_entities(
 
         validate_indexes(entity, fields, diagnostics);
         validate_state_machine(entity, diagnostics);
+    }
+}
+
+void validate_shapes(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    DiagnosticBag& diagnostics
+)
+{
+    for (const auto& shape : system.shapes)
+    {
+        if (!is_pascal_case_name(shape.name))
+        {
+            diagnostics.error(
+                shape.range, "SSPEC3201", "shape '" + shape.name + "' must use PascalCase"
+            );
+        }
+        if (shape.fields.empty())
+        {
+            required_error(diagnostics, shape.range, "shape '" + shape.name + "'", "fields");
+        }
+        validate_field_duplicates(shape.fields, diagnostics);
+        validate_field_types(shape.fields, symbols, diagnostics);
     }
 }
 
@@ -1129,6 +1151,18 @@ void validate_apis(
         {
             required_error(diagnostics, api.range, "api '" + api.name + "'", "path");
         }
+        if (api.input.has_value() && !is_known_type_reference(*api.input, symbols))
+        {
+            unknown_reference_error(diagnostics, api.range, "API input", *api.input);
+        }
+        if (api.output.has_value() && !is_known_type_reference(*api.output, symbols))
+        {
+            unknown_reference_error(diagnostics, api.range, "API output", *api.output);
+        }
+        if (api.error.has_value() && !is_known_type_reference(*api.error, symbols))
+        {
+            unknown_reference_error(diagnostics, api.range, "API error", *api.error);
+        }
         if (api.starts_workflow.has_value() && !symbols.find(*api.starts_workflow).has_value())
         {
             unknown_reference_error(
@@ -1193,6 +1227,10 @@ SymbolTable build_symbol_table(
     for (const auto& entity : system.entities)
     {
         add_symbol(symbols, diagnostics, SymbolKind::Entity, entity.name, entity.range);
+    }
+    for (const auto& shape : system.shapes)
+    {
+        add_symbol(symbols, diagnostics, SymbolKind::Shape, shape.name, shape.range);
     }
     for (const auto& flag : system.feature_flags)
     {
@@ -1265,6 +1303,7 @@ void Validator::validate(
     auto symbols = build_symbol_table(system, diagnostics);
 
     validate_feature_flags(system, symbols, diagnostics);
+    validate_shapes(system, symbols, diagnostics);
     validate_logs(system, symbols, diagnostics);
     validate_metrics(system, symbols, diagnostics);
     validate_entities(system, symbols, diagnostics);

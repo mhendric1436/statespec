@@ -171,9 +171,30 @@ fields {
 }
 ```
 
+Shapes define reusable named payloads for APIs, events, logs, metrics, messages, and
+future generated validators:
+
+```statespec
+shape StartOrderProcessingRequest {
+  tenant_id string
+  order_id string
+  priority int?
+}
+
+api StartOrderProcessing {
+  method POST
+  path "/v1/orders/{order_id}/start"
+  input StartOrderProcessingRequest
+}
+```
+
+The compiler parses, validates, lowers, formats, and emits descriptors for shapes. Target
+language generators do not yet emit dedicated request/response structs or classes from
+shape declarations.
+
 The grammar also reserves richer type forms such as `optional<T>`, `list<T>`, `set<T>`,
-`map<K,V>`, `ref<T>`, and named shapes. Support in individual binding generators may lag
-behind the grammar as the compiler matures.
+`map<K,V>`, and `ref<T>`. Support in individual binding generators may lag behind the
+grammar as the compiler matures.
 
 ## References
 

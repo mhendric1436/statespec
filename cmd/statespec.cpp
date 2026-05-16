@@ -111,6 +111,7 @@ void append_system_members(
     target.feature_flags.insert(
         target.feature_flags.end(), source.feature_flags.begin(), source.feature_flags.end()
     );
+    target.shapes.insert(target.shapes.end(), source.shapes.begin(), source.shapes.end());
     target.logs.insert(target.logs.end(), source.logs.begin(), source.logs.end());
     target.metrics.insert(target.metrics.end(), source.metrics.begin(), source.metrics.end());
     target.entities.insert(target.entities.end(), source.entities.begin(), source.entities.end());
@@ -201,6 +202,7 @@ statespec::Spec load_composed_spec(
     {
         statespec::SystemDecl composed_system = *spec.system;
         composed_system.feature_flags.clear();
+        composed_system.shapes.clear();
         composed_system.logs.clear();
         composed_system.metrics.clear();
         composed_system.entities.clear();
@@ -422,6 +424,28 @@ void write_feature_flags(
     out << ']';
 }
 
+void write_shapes(
+    std::ostream& out,
+    const std::vector<statespec::ShapeDecl>& shapes
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < shapes.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& shape = shapes[i];
+        out << "{\"name\": ";
+        write_json_string(out, shape.name);
+        out << ", \"fields\": ";
+        write_fields(out, shape.fields);
+        out << '}';
+    }
+    out << ']';
+}
+
 void write_logs(
     std::ostream& out,
     const std::vector<statespec::LogDecl>& logs
@@ -541,6 +565,9 @@ void write_spec_json(
 
     out << "    \"feature_flags\": ";
     write_feature_flags(out, system.feature_flags);
+    out << ",\n";
+    out << "    \"shapes\": ";
+    write_shapes(out, system.shapes);
     out << ",\n";
     out << "    \"logs\": ";
     write_logs(out, system.logs);

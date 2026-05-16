@@ -1,6 +1,29 @@
 statespec 0.1;
 
 system OrderSystem {
+  shape StartOrderProcessingRequest {
+    tenant_id string
+    order_id string
+  }
+
+  shape StartOrderProcessingResponse {
+    accepted bool
+  }
+
+  shape SendOrderConfirmationRequest {
+    tenant_id string
+    order_id string
+  }
+
+  shape SendOrderConfirmationResponse {
+    accepted bool
+  }
+
+  shape ProblemDetails {
+    code string
+    detail string
+  }
+
   entity Order {
     key tenant_id, order_id
 

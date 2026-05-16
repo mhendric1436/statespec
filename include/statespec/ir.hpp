@@ -122,6 +122,12 @@ struct IrFeatureFlag
     std::optional<std::string> expires;
 };
 
+struct IrShape
+{
+    std::string name;
+    std::vector<IrField> fields;
+};
+
 struct IrLog
 {
     std::string name;
@@ -188,6 +194,7 @@ struct IrSystem
     std::string name;
     std::optional<IrTenantScope> tenant_scope;
     std::optional<IrSystemTenant> system_tenant;
+    std::vector<IrShape> shapes;
     std::vector<IrFeatureFlag> feature_flags;
     std::vector<IrLog> logs;
     std::vector<IrMetric> metrics;
