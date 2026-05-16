@@ -1,5 +1,6 @@
 #include "statespec/semantic.hpp"
 
+#include <string_view>
 #include <utility>
 
 namespace statespec
@@ -138,7 +139,29 @@ std::optional<SemanticReference> resolve_feature_flag_scope_target(
     return resolve_reference(symbols, scope->substr(prefix.size()));
 }
 
-SemanticEntity resolve_entity(const EntityDecl& entity)
+std::string relation_target_name(std::string target)
+{
+    if (!target.empty() && target.back() == '?')
+    {
+        target.pop_back();
+    }
+    constexpr std::string_view optional_prefix{"optional "};
+    if (target.rfind(std::string{optional_prefix}, 0) == 0)
+    {
+        target = target.substr(optional_prefix.size());
+    }
+    constexpr std::string_view ref_prefix{"ref<"};
+    if (target.rfind(std::string{ref_prefix}, 0) == 0 && target.back() == '>')
+    {
+        return target.substr(ref_prefix.size(), target.size() - ref_prefix.size() - 1);
+    }
+    return target;
+}
+
+SemanticEntity resolve_entity(
+    const SymbolTable& symbols,
+    const EntityDecl& entity
+)
 {
     SemanticEntity resolved;
     resolved.name = entity.name;
@@ -147,6 +170,43 @@ SemanticEntity resolve_entity(const EntityDecl& entity)
     for (const auto& index : entity.indexes)
     {
         resolved.indexes.push_back(SemanticIndex{index.name, index.fields, index.unique});
+    }
+    if (entity.ownership.has_value())
+    {
+        resolved.ownership = SemanticOwnership{
+            entity.ownership->authority.value_or(""),
+            entity.ownership->system_of_record.value_or(""),
+            entity.ownership->lifecycle.value_or(""),
+        };
+    }
+    for (const auto& relation : entity.relations)
+    {
+        resolved.relations.push_back(
+            SemanticRelation{
+                relation.kind,
+                relation.name,
+                resolve_reference(symbols, relation_target_name(relation.target)),
+                relation.optional,
+                relation.relation_kind,
+                relation.on_parent_delete,
+                relation.parent_must_be_in,
+                relation.unique_within_parent,
+            }
+        );
+    }
+    for (const auto& child : entity.children)
+    {
+        resolved.children.push_back(
+            SemanticChild{
+                child.name,
+                resolve_reference(symbols, child.target_entity),
+                child.relation,
+            }
+        );
+    }
+    for (const auto& invariant : entity.invariants)
+    {
+        resolved.invariants.push_back(SemanticInvariant{invariant.name, invariant.expression});
     }
 
     if (entity.state_machine.has_value())
@@ -249,7 +309,7 @@ SemanticSystem resolve_semantics(const Spec& spec)
 
     for (const auto& entity : system.entities)
     {
-        resolved.entities.push_back(resolve_entity(entity));
+        resolved.entities.push_back(resolve_entity(symbols, entity));
     }
 
     for (const auto& queue : system.queues)

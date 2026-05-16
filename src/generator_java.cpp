@@ -211,9 +211,37 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        boolean terminal,\n";
     out << "        Optional<GarbageCollectionPolicy> garbageCollection\n";
     out << "    ) {}\n\n";
+    out << "    public record EntityOwnershipDescriptor(\n";
+    out << "        String authority,\n";
+    out << "        String systemOfRecord,\n";
+    out << "        String lifecycle\n";
+    out << "    ) {}\n\n";
+    out << "    public record EntityRelationDescriptor(\n";
+    out << "        String kind,\n";
+    out << "        String name,\n";
+    out << "        String target,\n";
+    out << "        boolean optional,\n";
+    out << "        Optional<String> relationKind,\n";
+    out << "        Optional<String> onParentDelete,\n";
+    out << "        List<String> parentMustBeIn,\n";
+    out << "        List<String> uniqueWithinParent\n";
+    out << "    ) {}\n\n";
+    out << "    public record EntityChildDescriptor(\n";
+    out << "        String name,\n";
+    out << "        String targetEntity,\n";
+    out << "        String relation\n";
+    out << "    ) {}\n\n";
+    out << "    public record EntityInvariantDescriptor(\n";
+    out << "        String name,\n";
+    out << "        String expression\n";
+    out << "    ) {}\n\n";
     out << "    public record EntityDescriptor(\n";
     out << "        String name,\n";
     out << "        List<String> keyFields,\n";
+    out << "        Optional<EntityOwnershipDescriptor> ownership,\n";
+    out << "        List<EntityRelationDescriptor> relations,\n";
+    out << "        List<EntityChildDescriptor> children,\n";
+    out << "        List<EntityInvariantDescriptor> invariants,\n";
     out << "        List<EntityStateDescriptor> states,\n";
     out << "        Optional<String> initialState,\n";
     out << "        List<String> terminalStates\n";
@@ -325,6 +353,76 @@ std::string generate_descriptors_java(const IrSystem& system)
             out << java_string(entity.key_fields[i]);
         }
         out << "),\n";
+        if (entity.ownership.has_value())
+        {
+            out << "                Optional.of(new EntityOwnershipDescriptor(\n";
+            out << "                    " << java_string(entity.ownership->authority) << ",\n";
+            out << "                    " << java_string(entity.ownership->system_of_record)
+                << ",\n";
+            out << "                    " << java_string(entity.ownership->lifecycle) << "\n";
+            out << "                )),\n";
+        }
+        else
+        {
+            out << "                Optional.empty(),\n";
+        }
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < entity.relations.size(); ++i)
+        {
+            const auto& relation = entity.relations[i];
+            out << "                    new EntityRelationDescriptor(\n";
+            out << "                        " << java_string(relation.kind) << ",\n";
+            out << "                        " << java_string(relation.name) << ",\n";
+            out << "                        " << java_string(relation.target) << ",\n";
+            out << "                        " << (relation.optional ? "true" : "false") << ",\n";
+            out << "                        " << optional_string_expr(relation.relation_kind)
+                << ",\n";
+            out << "                        " << optional_string_expr(relation.on_parent_delete)
+                << ",\n";
+            out << "                        List.of(";
+            for (std::size_t state_index = 0; state_index < relation.parent_must_be_in.size();
+                 ++state_index)
+            {
+                if (state_index > 0)
+                {
+                    out << ", ";
+                }
+                out << java_string(relation.parent_must_be_in[state_index]);
+            }
+            out << "),\n";
+            out << "                        List.of(";
+            for (std::size_t field_index = 0; field_index < relation.unique_within_parent.size();
+                 ++field_index)
+            {
+                if (field_index > 0)
+                {
+                    out << ", ";
+                }
+                out << java_string(relation.unique_within_parent[field_index]);
+            }
+            out << ")\n";
+            out << "                    )" << (i + 1 < entity.relations.size() ? "," : "") << "\n";
+        }
+        out << "                ),\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < entity.children.size(); ++i)
+        {
+            const auto& child = entity.children[i];
+            out << "                    new EntityChildDescriptor(" << java_string(child.name)
+                << ", " << java_string(child.target_entity) << ", " << java_string(child.relation)
+                << ")";
+            out << (i + 1 < entity.children.size() ? "," : "") << "\n";
+        }
+        out << "                ),\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < entity.invariants.size(); ++i)
+        {
+            const auto& invariant = entity.invariants[i];
+            out << "                    new EntityInvariantDescriptor("
+                << java_string(invariant.name) << ", " << java_string(invariant.expression) << ")";
+            out << (i + 1 < entity.invariants.size() ? "," : "") << "\n";
+        }
+        out << "                ),\n";
         out << "                List.of(\n";
         for (std::size_t i = 0; i < entity.states.size(); ++i)
         {

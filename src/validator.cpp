@@ -173,6 +173,27 @@ bool is_garbage_collection_mode(const std::string& value)
     return value == "delete" || value == "tombstone" || value == "archive";
 }
 
+bool is_ownership_authority(const std::string& value)
+{
+    return value == "system" || value == "external";
+}
+
+bool is_lifecycle_mode(const std::string& value)
+{
+    return value == "authoritative" || value == "managed" || value == "observed" ||
+           value == "projected";
+}
+
+bool is_relation_kind(const std::string& value)
+{
+    return value == "composition" || value == "aggregation" || value == "reference";
+}
+
+bool is_parent_delete_behavior(const std::string& value)
+{
+    return value == "cascade" || value == "block" || value == "detach" || value == "fail";
+}
+
 bool is_integer_text(const std::string& value)
 {
     if (value.empty())
@@ -249,6 +270,54 @@ std::unordered_set<std::string> field_names(const std::vector<FieldDecl>& fields
         names.insert(field.name);
     }
     return names;
+}
+
+std::string relation_target_name(std::string target)
+{
+    if (!target.empty() && target.back() == '?')
+    {
+        target.pop_back();
+    }
+    constexpr std::string_view optional_prefix{"optional "};
+    if (target.rfind(std::string{optional_prefix}, 0) == 0)
+    {
+        target = target.substr(optional_prefix.size());
+    }
+    constexpr std::string_view ref_prefix{"ref<"};
+    if (target.rfind(std::string{ref_prefix}, 0) == 0 && target.back() == '>')
+    {
+        return target.substr(ref_prefix.size(), target.size() - ref_prefix.size() - 1);
+    }
+    return target;
+}
+
+const EntityDecl* find_entity(
+    const SystemDecl& system,
+    const std::string& name
+)
+{
+    for (const auto& entity : system.entities)
+    {
+        if (entity.name == name)
+        {
+            return &entity;
+        }
+    }
+    return nullptr;
+}
+
+std::unordered_set<std::string> entity_state_names(const EntityDecl& entity)
+{
+    std::unordered_set<std::string> states;
+    if (!entity.state_machine.has_value())
+    {
+        return states;
+    }
+    for (const auto& state : entity.state_machine->states)
+    {
+        states.insert(state.name);
+    }
+    return states;
 }
 
 void duplicate_error(
@@ -685,6 +754,186 @@ void validate_indexes(
     }
 }
 
+void validate_ownership(
+    const EntityDecl& entity,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!entity.ownership.has_value())
+    {
+        return;
+    }
+    const auto& ownership = *entity.ownership;
+    if (!ownership.authority.has_value())
+    {
+        required_error(
+            diagnostics, ownership.range, "ownership for entity '" + entity.name + "'", "authority"
+        );
+    }
+    else if (!is_ownership_authority(*ownership.authority))
+    {
+        diagnostics.error(
+            ownership.range, "SSPEC3301", "ownership authority must be system or external"
+        );
+    }
+    if (!ownership.system_of_record.has_value())
+    {
+        required_error(
+            diagnostics, ownership.range, "ownership for entity '" + entity.name + "'",
+            "system_of_record"
+        );
+    }
+    if (!ownership.lifecycle.has_value())
+    {
+        required_error(
+            diagnostics, ownership.range, "ownership for entity '" + entity.name + "'", "lifecycle"
+        );
+    }
+    else if (!is_lifecycle_mode(*ownership.lifecycle))
+    {
+        diagnostics.error(
+            ownership.range, "SSPEC3302",
+            "ownership lifecycle must be authoritative, managed, observed, or projected"
+        );
+    }
+}
+
+void validate_relations(
+    const SystemDecl& system,
+    const EntityDecl& entity,
+    const std::unordered_set<std::string>& fields,
+    DiagnosticBag& diagnostics
+)
+{
+    std::unordered_set<std::string> relation_names;
+    for (const auto& relation : entity.relations)
+    {
+        if (!relation_names.insert(relation.name).second)
+        {
+            duplicate_error(diagnostics, relation.range, relation.name);
+        }
+        if (!contains(fields, relation.name))
+        {
+            unknown_reference_error(diagnostics, relation.range, "relation field", relation.name);
+        }
+
+        const auto target_name = relation_target_name(relation.target);
+        const auto* target_entity = find_entity(system, target_name);
+        if (target_entity == nullptr)
+        {
+            unknown_reference_error(
+                diagnostics, relation.range, "relation target entity", target_name
+            );
+        }
+
+        if (relation.relation_kind.has_value() && !is_relation_kind(*relation.relation_kind))
+        {
+            diagnostics.error(
+                relation.range, "SSPEC3303",
+                "relation kind must be composition, aggregation, or reference"
+            );
+        }
+        if (relation.on_parent_delete.has_value() &&
+            !is_parent_delete_behavior(*relation.on_parent_delete))
+        {
+            diagnostics.error(
+                relation.range, "SSPEC3304",
+                "on_parent_delete must be cascade, block, detach, or fail"
+            );
+        }
+        if (relation.on_parent_delete.has_value() && *relation.on_parent_delete == "detach" &&
+            !relation.optional)
+        {
+            diagnostics.error(
+                relation.range, "SSPEC3305",
+                "detach parent delete behavior requires an optional parent relation"
+            );
+        }
+        for (const auto& field : relation.unique_within_parent)
+        {
+            if (!contains(fields, field))
+            {
+                unknown_reference_error(
+                    diagnostics, relation.range, "unique_within_parent field", field
+                );
+            }
+        }
+        if (target_entity != nullptr)
+        {
+            const auto states = entity_state_names(*target_entity);
+            for (const auto& state : relation.parent_must_be_in)
+            {
+                if (!contains(states, state))
+                {
+                    unknown_reference_error(diagnostics, relation.range, "parent state", state);
+                }
+            }
+        }
+    }
+}
+
+void validate_children(
+    const SystemDecl& system,
+    const EntityDecl& entity,
+    DiagnosticBag& diagnostics
+)
+{
+    std::unordered_set<std::string> child_names;
+    for (const auto& child : entity.children)
+    {
+        if (!child_names.insert(child.name).second)
+        {
+            duplicate_error(diagnostics, child.range, child.name);
+        }
+        const auto* target_entity = find_entity(system, child.target_entity);
+        if (target_entity == nullptr)
+        {
+            unknown_reference_error(diagnostics, child.range, "child entity", child.target_entity);
+            continue;
+        }
+        const auto relation = std::find_if(
+            target_entity->relations.begin(), target_entity->relations.end(),
+            [&](const RelationDecl& candidate)
+            { return candidate.kind == "parent" && candidate.name == child.relation; }
+        );
+        if (relation == target_entity->relations.end())
+        {
+            unknown_reference_error(
+                diagnostics, child.range, "child parent relation", child.relation
+            );
+        }
+        else if (relation_target_name(relation->target) != entity.name)
+        {
+            diagnostics.error(
+                child.range, "SSPEC3306",
+                "child collection '" + child.name +
+                    "' must reference a parent relation to entity '" + entity.name + "'"
+            );
+        }
+    }
+}
+
+void validate_invariants(
+    const EntityDecl& entity,
+    DiagnosticBag& diagnostics
+)
+{
+    std::unordered_set<std::string> invariant_names;
+    for (const auto& invariant : entity.invariants)
+    {
+        if (!invariant_names.insert(invariant.name).second)
+        {
+            duplicate_error(diagnostics, invariant.range, invariant.name);
+        }
+        if (invariant.expression.empty())
+        {
+            required_error(
+                diagnostics, invariant.range, "invariant '" + invariant.name + "'", "expression"
+            );
+        }
+    }
+}
+
 void validate_entities(
     const SystemDecl& system,
     const SymbolTable& symbols,
@@ -717,6 +966,10 @@ void validate_entities(
             }
         }
 
+        validate_ownership(entity, diagnostics);
+        validate_relations(system, entity, fields, diagnostics);
+        validate_children(system, entity, diagnostics);
+        validate_invariants(entity, diagnostics);
         validate_indexes(entity, fields, diagnostics);
         validate_state_machine(entity, diagnostics);
     }

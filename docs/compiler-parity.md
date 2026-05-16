@@ -35,7 +35,7 @@ Status meanings:
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors and bindings exist; generated registration helpers are not complete across all languages/catalogs. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
-| `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, and state machine exist; ownership/relations/children/invariants are not represented end to end. |
+| `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; expression typing and index descriptors remain incomplete. |
 | `event` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed to connect APIs, workflows, queues, and workers explicitly. |
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors and bindings exist; generated runtime registration helper is still missing. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors and bindings exist; generated runtime registration helper is still missing. |
@@ -53,11 +53,11 @@ Status meanings:
 | `fields` | complete | complete | complete | complete | complete | complete | complete | P0 | Mandatory lifecycle fields are validated. |
 | `state_machine` | complete | complete | complete | complete | complete | complete | complete | P0 | Initial, terminal, transitions, and GC metadata are represented. |
 | `indexes` | complete | complete | complete | complete | complete | complete | partial | P1 | IR has indexes; collection descriptor generation should populate `IndexDescriptor`. |
-| `ownership` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P1 | Needed for authoritative/managed/observed/projected entity modeling. |
-| `relations` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P1 | Required for parent-child and reference semantics. |
-| `children` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P2 | Should derive from child-owned relations where possible. |
+| `ownership` | complete | complete | complete | complete | complete | not-started | complete | P1 | Represented in AST, validation, semantic model, IR, and binding descriptors; formatter support is still token-preserving. |
+| `relations` | complete | complete | complete | complete | complete | not-started | complete | P1 | Parent/reference metadata is validated and emitted in descriptors; composition-cycle checks remain future work. |
+| `children` | complete | complete | complete | complete | complete | not-started | complete | P2 | Parent-side declarations are validated against child-owned parent relations. |
 | `transitions` block | complete | not-started | not-started | not-started | not-started | not-started | not-started | P2 | Separate from `state_machine` transitions; clarify or merge syntax before implementation. |
-| `invariants` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P1 | Needed for generated validators and runtime checks. |
+| `invariants` | complete | complete | partial | complete | complete | not-started | complete | P1 | Names and raw expressions flow through descriptors; expression parsing/type checking is still pending. |
 | entity `annotations` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P4 | Low priority by doctrine. |
 
 ## Workflow Construct Parity
@@ -94,8 +94,9 @@ Status meanings:
    emitting typed request/response structs or classes for each binding language.
 
 3. **P1: Add ownership, relations, and invariants for entities.**
-   These are foundational for entity lifecycle, parent-child orchestration, and generated
-   validation.
+   Initial descriptor-oriented support is in place. Remaining work is formatter ownership
+   for canonical block ordering, typed invariant expressions, composition-cycle checks,
+   and richer generator usage.
 
 4. **P1: Expand runtime bootstrap helpers across all runtime catalogs.**
    Feature flags, queues, and leases should have generated transaction-scoped bootstrap

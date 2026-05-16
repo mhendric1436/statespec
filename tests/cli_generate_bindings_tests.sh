@@ -57,15 +57,49 @@ system Demo {
     accepted bool
   }
 
+  entity Account {
+    key account_id
+    children {
+      orders: Order by account_id
+    }
+    fields {
+      account_id string
+      created_at timestamp
+      updated_at timestamp
+      status string
+    }
+    state_machine {
+      state Active
+      initial Active
+    }
+  }
+
   entity Order {
     key tenant_id, order_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    relations {
+      parent account_id: ref<Account> {
+        kind: composition
+        on_parent_delete: block
+        parent_must_be_in: [Active]
+        unique_within_parent: [order_id]
+      }
+    }
     fields {
       tenant_id string
       order_id string
+      account_id string
       created_at timestamp
       updated_at timestamp
       status string
       retry_count int?
+    }
+    invariants {
+      valid_status: status != ""
     }
     state_machine {
       state Pending
@@ -267,6 +301,10 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ShapeDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "shape_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "GarbageCollectionPolicy"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityStateDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityOwnershipDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityRelationDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityChildDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityInvariantDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "entity_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "CollectionDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "queue_definitions"
@@ -289,6 +327,9 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ensure_system_col
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "register_observability_catalogTx"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "register_workflow_definitionsTx"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "workflow_launch_attempts_total"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"composition\""
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"account_id\""
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"valid_status\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"P30D\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"tombstone\""
 
@@ -310,6 +351,10 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ShapeDescript
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ShapeDescriptors() []ShapeDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type GarbageCollectionPolicy struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityStateDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityOwnershipDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityRelationDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityChildDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityInvariantDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func EntityDescriptors() []EntityDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func CollectionDescriptors() []CollectionDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func QueueDefinitions() []QueueDefinition"
@@ -332,6 +377,8 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func RegisterObser
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func RegisterWorkflowDefinitionsTx"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "BackendName: \"workflow_launch_attempts_total\""
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Metadata: JSONObject(map[string]JSON{})"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "RelationKind: stringPtr(\"composition\")"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Name: \"valid_status\""
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "GarbageCollection: &GarbageCollectionPolicy{After: \"P30D\", Mode: \"tombstone\"}"
 
 # Positive generation: Java.
@@ -351,6 +398,10 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ShapeDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record GarbageCollectionPolicy"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityStateDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityOwnershipDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityRelationDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityChildDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityInvariantDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "entityDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "featureFlagDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "shapeDescriptors"
@@ -372,6 +423,8 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "registerObservabilityCatalogTx"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "registerWorkflowDefinitionsTx"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflow_launch_attempts_total"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional.of(\"composition\")"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "new EntityInvariantDescriptor(\"valid_status\""
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "new GarbageCollectionPolicy(\"P30D\", \"tombstone\")"
 
 # Positive generation: Rust.
@@ -392,6 +445,10 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ShapeDescript
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn shape_descriptors() -> Vec<ShapeDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct GarbageCollectionPolicy"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityStateDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityOwnershipDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityRelationDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityChildDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityInvariantDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn entity_descriptors() -> Vec<EntityDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn collection_descriptors() -> Vec<CollectionDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn queue_definitions() -> Vec<QueueDefinition>"
@@ -412,6 +469,8 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn ensure_system_col
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn register_observability_catalog_tx"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn register_workflow_definitions_tx"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "backend_name: \"workflow_launch_attempts_total\".to_string()"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "relation_kind: Some(\"composition\".to_string())"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "name: \"valid_status\".to_string()"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "garbage_collection: Some(GarbageCollectionPolicy { after: \"P30D\".to_string(), mode: \"tombstone\".to_string() })"
 
 # Include composition is used by binding generation.

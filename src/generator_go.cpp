@@ -202,9 +202,37 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tTerminal bool\n";
     out << "\tGarbageCollection *GarbageCollectionPolicy\n";
     out << "}\n\n";
+    out << "type EntityOwnershipDescriptor struct {\n";
+    out << "\tAuthority string\n";
+    out << "\tSystemOfRecord string\n";
+    out << "\tLifecycle string\n";
+    out << "}\n\n";
+    out << "type EntityRelationDescriptor struct {\n";
+    out << "\tKind string\n";
+    out << "\tName string\n";
+    out << "\tTarget string\n";
+    out << "\tOptional bool\n";
+    out << "\tRelationKind *string\n";
+    out << "\tOnParentDelete *string\n";
+    out << "\tParentMustBeIn []string\n";
+    out << "\tUniqueWithinParent []string\n";
+    out << "}\n\n";
+    out << "type EntityChildDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tTargetEntity string\n";
+    out << "\tRelation string\n";
+    out << "}\n\n";
+    out << "type EntityInvariantDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tExpression string\n";
+    out << "}\n\n";
     out << "type EntityDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tKeyFields []string\n";
+    out << "\tOwnership *EntityOwnershipDescriptor\n";
+    out << "\tRelations []EntityRelationDescriptor\n";
+    out << "\tChildren []EntityChildDescriptor\n";
+    out << "\tInvariants []EntityInvariantDescriptor\n";
     out << "\tStates []EntityStateDescriptor\n";
     out << "\tInitialState *string\n";
     out << "\tTerminalStates []string\n";
@@ -307,6 +335,66 @@ std::string generate_descriptors_go(const IrSystem& system)
             out << go_string(entity.key_fields[i]);
         }
         out << "},\n";
+        if (entity.ownership.has_value())
+        {
+            out << "\t\t\tOwnership: &EntityOwnershipDescriptor{Authority: "
+                << go_string(entity.ownership->authority)
+                << ", SystemOfRecord: " << go_string(entity.ownership->system_of_record)
+                << ", Lifecycle: " << go_string(entity.ownership->lifecycle) << "},\n";
+        }
+        else
+        {
+            out << "\t\t\tOwnership: nil,\n";
+        }
+        out << "\t\t\tRelations: []EntityRelationDescriptor{\n";
+        for (const auto& relation : entity.relations)
+        {
+            out << "\t\t\t\t{\n";
+            out << "\t\t\t\t\tKind: " << go_string(relation.kind) << ",\n";
+            out << "\t\t\t\t\tName: " << go_string(relation.name) << ",\n";
+            out << "\t\t\t\t\tTarget: " << go_string(relation.target) << ",\n";
+            out << "\t\t\t\t\tOptional: " << (relation.optional ? "true" : "false") << ",\n";
+            out << "\t\t\t\t\tRelationKind: " << string_ptr_expr(relation.relation_kind) << ",\n";
+            out << "\t\t\t\t\tOnParentDelete: " << string_ptr_expr(relation.on_parent_delete)
+                << ",\n";
+            out << "\t\t\t\t\tParentMustBeIn: []string{";
+            for (std::size_t i = 0; i < relation.parent_must_be_in.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << go_string(relation.parent_must_be_in[i]);
+            }
+            out << "},\n";
+            out << "\t\t\t\t\tUniqueWithinParent: []string{";
+            for (std::size_t i = 0; i < relation.unique_within_parent.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << go_string(relation.unique_within_parent[i]);
+            }
+            out << "},\n";
+            out << "\t\t\t\t},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t\tChildren: []EntityChildDescriptor{\n";
+        for (const auto& child : entity.children)
+        {
+            out << "\t\t\t\t{Name: " << go_string(child.name)
+                << ", TargetEntity: " << go_string(child.target_entity)
+                << ", Relation: " << go_string(child.relation) << "},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t\tInvariants: []EntityInvariantDescriptor{\n";
+        for (const auto& invariant : entity.invariants)
+        {
+            out << "\t\t\t\t{Name: " << go_string(invariant.name)
+                << ", Expression: " << go_string(invariant.expression) << "},\n";
+        }
+        out << "\t\t\t},\n";
         out << "\t\t\tStates: []EntityStateDescriptor{\n";
         for (const auto& state : entity.states)
         {

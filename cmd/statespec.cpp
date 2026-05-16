@@ -536,6 +536,105 @@ void write_string_array(
     out << ']';
 }
 
+void write_ownership(
+    std::ostream& out,
+    const std::optional<statespec::OwnershipDecl>& ownership
+)
+{
+    if (!ownership.has_value())
+    {
+        out << "null";
+        return;
+    }
+
+    out << "{\"authority\": ";
+    write_json_optional_string(out, ownership->authority);
+    out << ", \"system_of_record\": ";
+    write_json_optional_string(out, ownership->system_of_record);
+    out << ", \"lifecycle\": ";
+    write_json_optional_string(out, ownership->lifecycle);
+    out << '}';
+}
+
+void write_relations(
+    std::ostream& out,
+    const std::vector<statespec::RelationDecl>& relations
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < relations.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& relation = relations[i];
+        out << "{\"kind\": ";
+        write_json_string(out, relation.kind);
+        out << ", \"name\": ";
+        write_json_string(out, relation.name);
+        out << ", \"target\": ";
+        write_json_string(out, relation.target);
+        out << ", \"optional\": " << (relation.optional ? "true" : "false");
+        out << ", \"relation_kind\": ";
+        write_json_optional_string(out, relation.relation_kind);
+        out << ", \"on_parent_delete\": ";
+        write_json_optional_string(out, relation.on_parent_delete);
+        out << ", \"parent_must_be_in\": ";
+        write_string_array(out, relation.parent_must_be_in);
+        out << ", \"unique_within_parent\": ";
+        write_string_array(out, relation.unique_within_parent);
+        out << '}';
+    }
+    out << ']';
+}
+
+void write_children(
+    std::ostream& out,
+    const std::vector<statespec::ChildDecl>& children
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < children.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& child = children[i];
+        out << "{\"name\": ";
+        write_json_string(out, child.name);
+        out << ", \"target_entity\": ";
+        write_json_string(out, child.target_entity);
+        out << ", \"relation\": ";
+        write_json_string(out, child.relation);
+        out << '}';
+    }
+    out << ']';
+}
+
+void write_invariants(
+    std::ostream& out,
+    const std::vector<statespec::InvariantDecl>& invariants
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < invariants.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& invariant = invariants[i];
+        out << "{\"name\": ";
+        write_json_string(out, invariant.name);
+        out << ", \"expression\": ";
+        write_json_string(out, invariant.expression);
+        out << '}';
+    }
+    out << ']';
+}
+
 void write_spec_json(
     std::ostream& out,
     const statespec::Spec& spec
@@ -588,6 +687,14 @@ void write_spec_json(
         write_json_string(out, entity.name);
         out << ", \"key_fields\": ";
         write_string_array(out, entity.key_fields);
+        out << ", \"ownership\": ";
+        write_ownership(out, entity.ownership);
+        out << ", \"relations\": ";
+        write_relations(out, entity.relations);
+        out << ", \"children\": ";
+        write_children(out, entity.children);
+        out << ", \"invariants\": ";
+        write_invariants(out, entity.invariants);
         out << ", \"fields\": ";
         write_fields(out, entity.fields);
         out << '}';

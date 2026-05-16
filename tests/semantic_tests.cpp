@@ -176,6 +176,84 @@ void semantic_resolver_preserves_unresolved_references()
     );
 }
 
+void semantic_resolver_resolves_entity_relationship_references()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          entity Account {
+            key account_id
+            children {
+              orders: Order by account_id
+            }
+            fields {
+              account_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          entity Order {
+            key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            relations {
+              parent account_id: ref<Account> {
+                kind: composition
+              }
+            }
+            fields {
+              order_id string
+              account_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            invariants {
+              valid_status: status != ""
+            }
+            state_machine {
+              state Pending
+              initial Pending
+            }
+          }
+        }
+    )sspec");
+
+    const auto resolved = statespec::resolve_semantics(spec);
+
+    statespec::test::require(
+        resolved.entities.size() == 2, "semantic resolver should lower entities"
+    );
+    statespec::test::require(
+        resolved.entities[0].children.size() == 1, "semantic resolver should lower children"
+    );
+    statespec::test::require(
+        resolved.entities[0].children[0].target_entity.kind == statespec::SymbolKind::Entity,
+        "semantic resolver should resolve child target entity"
+    );
+    statespec::test::require(
+        resolved.entities[1].relations.size() == 1, "semantic resolver should lower relations"
+    );
+    statespec::test::require(
+        resolved.entities[1].relations[0].target.kind == statespec::SymbolKind::Entity,
+        "semantic resolver should resolve relation target entity"
+    );
+    statespec::test::require(
+        resolved.entities[1].ownership.has_value(), "semantic resolver should lower ownership"
+    );
+    statespec::test::require(
+        resolved.entities[1].invariants.size() == 1, "semantic resolver should lower invariants"
+    );
+}
+
 } // namespace
 
 TEST_CASE("semantic resolver resolves runtime references")
@@ -186,4 +264,9 @@ TEST_CASE("semantic resolver resolves runtime references")
 TEST_CASE("semantic resolver preserves unresolved references")
 {
     semantic_resolver_preserves_unresolved_references();
+}
+
+TEST_CASE("semantic resolver resolves entity relationship references")
+{
+    semantic_resolver_resolves_entity_relationship_references();
 }

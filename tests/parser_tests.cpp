@@ -123,6 +123,116 @@ void parser_parses_entity_fields_and_state_machine()
     );
 }
 
+void parser_parses_entity_ownership_relations_children_and_invariants()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          entity Account {
+            key account_id
+            children {
+              orders: Order by account_id
+            }
+            fields {
+              account_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          entity Order {
+            key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            relations {
+              parent account_id: ref<Account> {
+                kind: composition
+                on_parent_delete: block
+                parent_must_be_in: [Active]
+                unique_within_parent: [order_id]
+              }
+            }
+            fields {
+              order_id string
+              account_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            invariants {
+              valid_status: status != ""
+            }
+            state_machine {
+              state Pending
+              state Active
+              initial Pending
+              Pending -> Active
+            }
+          }
+        }
+    )sspec");
+
+    statespec::test::require(spec.system.has_value(), "parser should parse system");
+    statespec::test::require(spec.system->entities.size() == 2, "parser should parse entities");
+
+    const auto& account = spec.system->entities[0];
+    statespec::test::require(account.children.size() == 1, "parser should parse children");
+    statespec::test::require(
+        account.children[0].name == "orders", "parser should parse child name"
+    );
+    statespec::test::require(
+        account.children[0].target_entity == "Order", "parser should parse child target"
+    );
+    statespec::test::require(
+        account.children[0].relation == "account_id", "parser should parse child relation"
+    );
+
+    const auto& order = spec.system->entities[1];
+    statespec::test::require(order.ownership.has_value(), "parser should parse ownership");
+    statespec::test::require(
+        order.ownership->authority == "system", "parser should parse ownership authority"
+    );
+    statespec::test::require(
+        order.ownership->system_of_record == "self",
+        "parser should parse ownership system_of_record"
+    );
+    statespec::test::require(
+        order.ownership->lifecycle == "authoritative", "parser should parse ownership lifecycle"
+    );
+    statespec::test::require(order.relations.size() == 1, "parser should parse relations");
+    const auto& relation = order.relations[0];
+    statespec::test::require(relation.kind == "parent", "parser should parse relation kind");
+    statespec::test::require(relation.name == "account_id", "parser should parse relation name");
+    statespec::test::require(
+        relation.target == "ref<Account>", "parser should parse relation target"
+    );
+    statespec::test::require(
+        relation.relation_kind == "composition", "parser should parse relation options"
+    );
+    statespec::test::require(
+        relation.parent_must_be_in.size() == 1 && relation.parent_must_be_in[0] == "Active",
+        "parser should parse parent state guard"
+    );
+    statespec::test::require(
+        relation.unique_within_parent.size() == 1 && relation.unique_within_parent[0] == "order_id",
+        "parser should parse unique_within_parent"
+    );
+    statespec::test::require(order.invariants.size() == 1, "parser should parse invariants");
+    statespec::test::require(
+        order.invariants[0].name == "valid_status", "parser should parse invariant name"
+    );
+    statespec::test::require(
+        !order.invariants[0].expression.empty(), "parser should parse invariant expression"
+    );
+}
+
 void parser_parses_feature_flags()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -488,6 +598,11 @@ TEST_CASE("parser parses include declarations")
 TEST_CASE("parser parses entity fields, indexes, and state machines")
 {
     parser_parses_entity_fields_and_state_machine();
+}
+
+TEST_CASE("parser parses entity ownership, relations, children, and invariants")
+{
+    parser_parses_entity_ownership_relations_children_and_invariants();
 }
 
 TEST_CASE("parser parses feature flags")

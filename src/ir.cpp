@@ -96,6 +96,39 @@ IrSystem lower_to_ir(const SemanticSystem& system)
         {
             ir_entity.indexes.push_back(IrIndex{index.name, index.fields, index.unique});
         }
+        if (entity.ownership.has_value())
+        {
+            ir_entity.ownership = IrOwnership{
+                entity.ownership->authority,
+                entity.ownership->system_of_record,
+                entity.ownership->lifecycle,
+            };
+        }
+        for (const auto& relation : entity.relations)
+        {
+            ir_entity.relations.push_back(
+                IrRelation{
+                    relation.kind,
+                    relation.name,
+                    relation.target.name,
+                    relation.optional,
+                    relation.relation_kind,
+                    relation.on_parent_delete,
+                    relation.parent_must_be_in,
+                    relation.unique_within_parent,
+                }
+            );
+        }
+        for (const auto& child : entity.children)
+        {
+            ir_entity.children.push_back(
+                IrChild{child.name, child.target_entity.name, child.relation}
+            );
+        }
+        for (const auto& invariant : entity.invariants)
+        {
+            ir_entity.invariants.push_back(IrInvariant{invariant.name, invariant.expression});
+        }
         ir_entity.initial_state = entity.initial_state;
         ir_entity.terminal_states = entity.terminal_states;
         for (const auto& state : entity.states)

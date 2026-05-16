@@ -90,12 +90,52 @@ struct IndexDecl
     SourceRange range;
 };
 
+struct OwnershipDecl
+{
+    std::optional<std::string> authority;
+    std::optional<std::string> system_of_record;
+    std::optional<std::string> lifecycle;
+    SourceRange range;
+};
+
+struct RelationDecl
+{
+    std::string kind;
+    std::string name;
+    std::string target;
+    bool optional = false;
+    std::optional<std::string> relation_kind;
+    std::optional<std::string> on_parent_delete;
+    std::vector<std::string> parent_must_be_in;
+    std::vector<std::string> unique_within_parent;
+    SourceRange range;
+};
+
+struct ChildDecl
+{
+    std::string name;
+    std::string target_entity;
+    std::string relation;
+    SourceRange range;
+};
+
+struct InvariantDecl
+{
+    std::string name;
+    std::string expression;
+    SourceRange range;
+};
+
 struct EntityDecl
 {
     std::string name;
     std::vector<std::string> key_fields;
     std::vector<FieldDecl> fields;
     std::vector<IndexDecl> indexes;
+    std::optional<OwnershipDecl> ownership;
+    std::vector<RelationDecl> relations;
+    std::vector<ChildDecl> children;
+    std::vector<InvariantDecl> invariants;
     std::optional<StateMachineDecl> state_machine;
     SourceRange range;
 };

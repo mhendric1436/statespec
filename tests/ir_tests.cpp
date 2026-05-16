@@ -164,6 +164,87 @@ void ir_lowers_shapes()
     );
 }
 
+void ir_lowers_entity_relationship_metadata()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          entity Account {
+            key account_id
+            children {
+              orders: Order by account_id
+            }
+            fields {
+              account_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          entity Order {
+            key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            relations {
+              parent account_id: ref<Account> {
+                kind: composition
+                on_parent_delete: block
+                parent_must_be_in: [Active]
+                unique_within_parent: [order_id]
+              }
+            }
+            fields {
+              order_id string
+              account_id string
+              created_at timestamp
+              updated_at timestamp
+              status string
+            }
+            invariants {
+              valid_status: status != ""
+            }
+            state_machine {
+              state Pending
+              initial Pending
+            }
+          }
+        }
+    )sspec");
+
+    const auto resolved = statespec::resolve_semantics(spec);
+    const auto ir = statespec::lower_to_ir(resolved);
+
+    statespec::test::require(ir.entities.size() == 2, "IR should lower entities");
+    statespec::test::require(ir.entities[0].children.size() == 1, "IR should lower children");
+    statespec::test::require(
+        ir.entities[0].children[0].target_entity == "Order", "IR should lower child target"
+    );
+
+    const auto& order = ir.entities[1];
+    statespec::test::require(order.ownership.has_value(), "IR should lower ownership");
+    statespec::test::require(
+        order.ownership->authority == "system", "IR should lower ownership authority"
+    );
+    statespec::test::require(order.relations.size() == 1, "IR should lower relations");
+    statespec::test::require(
+        order.relations[0].target == "Account", "IR should lower resolved relation target"
+    );
+    statespec::test::require(
+        order.relations[0].relation_kind == "composition", "IR should lower relation options"
+    );
+    statespec::test::require(order.invariants.size() == 1, "IR should lower invariants");
+    statespec::test::require(
+        order.invariants[0].name == "valid_status", "IR should lower invariant name"
+    );
+}
+
 void ir_lowers_system_runtime_contracts()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -398,6 +479,11 @@ TEST_CASE("IR lowers logs and metrics")
 TEST_CASE("IR lowers shapes")
 {
     ir_lowers_shapes();
+}
+
+TEST_CASE("IR lowers entity relationship metadata")
+{
+    ir_lowers_entity_relationship_metadata();
 }
 
 TEST_CASE("IR lowers system runtime contracts")

@@ -180,7 +180,8 @@ indexes, and backend-specific retention tuning is intentionally deferred.
 
 ## Relationships
 
-The grammar reserves relationship constructs for parent-child and reference models.
+Relationships are supported as entity metadata and flow through parsing, validation,
+semantic resolution, IR lowering, and binding descriptors.
 
 ```statespec
 relations {
@@ -208,6 +209,8 @@ children {
 ```
 
 Child collection declarations should align with the child entity's parent relation.
+The validator checks that the referenced child entity exists and owns the named parent
+relation.
 
 ## Invariants
 
@@ -221,6 +224,8 @@ invariants {
 ```
 
 Keep invariants deterministic and side-effect free.
+Current compiler support preserves invariant names and raw expressions for descriptors.
+Typed expression parsing and generated runtime enforcement are future work.
 
 ## Indexes
 

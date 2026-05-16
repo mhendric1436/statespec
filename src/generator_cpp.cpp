@@ -221,10 +221,46 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<GarbageCollectionPolicy> garbage_collection;\n";
     out << "};\n\n";
 
+    out << "struct EntityOwnershipDescriptor\n";
+    out << "{\n";
+    out << "    std::string authority;\n";
+    out << "    std::string system_of_record;\n";
+    out << "    std::string lifecycle;\n";
+    out << "};\n\n";
+
+    out << "struct EntityRelationDescriptor\n";
+    out << "{\n";
+    out << "    std::string kind;\n";
+    out << "    std::string name;\n";
+    out << "    std::string target;\n";
+    out << "    bool optional = false;\n";
+    out << "    std::optional<std::string> relation_kind;\n";
+    out << "    std::optional<std::string> on_parent_delete;\n";
+    out << "    std::vector<std::string> parent_must_be_in;\n";
+    out << "    std::vector<std::string> unique_within_parent;\n";
+    out << "};\n\n";
+
+    out << "struct EntityChildDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::string target_entity;\n";
+    out << "    std::string relation;\n";
+    out << "};\n\n";
+
+    out << "struct EntityInvariantDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::string expression;\n";
+    out << "};\n\n";
+
     out << "struct EntityDescriptor\n";
     out << "{\n";
     out << "    std::string name;\n";
     out << "    std::vector<std::string> key_fields;\n";
+    out << "    std::optional<EntityOwnershipDescriptor> ownership;\n";
+    out << "    std::vector<EntityRelationDescriptor> relations;\n";
+    out << "    std::vector<EntityChildDescriptor> children;\n";
+    out << "    std::vector<EntityInvariantDescriptor> invariants;\n";
     out << "    std::vector<EntityStateDescriptor> states;\n";
     out << "    std::optional<std::string> initial_state;\n";
     out << "    std::vector<std::string> terminal_states;\n";
@@ -330,6 +366,65 @@ std::string generate_system_descriptors_header(const IrSystem& system)
             out << cpp_string(entity.key_fields[i]);
         }
         out << "},\n";
+        if (entity.ownership.has_value())
+        {
+            out << "            std::optional<EntityOwnershipDescriptor>{EntityOwnershipDescriptor{"
+                << cpp_string(entity.ownership->authority) << ", "
+                << cpp_string(entity.ownership->system_of_record) << ", "
+                << cpp_string(entity.ownership->lifecycle) << "}},\n";
+        }
+        else
+        {
+            out << "            std::nullopt,\n";
+        }
+        out << "            {\n";
+        for (const auto& relation : entity.relations)
+        {
+            out << "                EntityRelationDescriptor{\n";
+            out << "                    " << cpp_string(relation.kind) << ",\n";
+            out << "                    " << cpp_string(relation.name) << ",\n";
+            out << "                    " << cpp_string(relation.target) << ",\n";
+            out << "                    " << (relation.optional ? "true" : "false") << ",\n";
+            out << "                    " << optional_string_expr(relation.relation_kind) << ",\n";
+            out << "                    " << optional_string_expr(relation.on_parent_delete)
+                << ",\n";
+            out << "                    {";
+            for (std::size_t i = 0; i < relation.parent_must_be_in.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << cpp_string(relation.parent_must_be_in[i]);
+            }
+            out << "},\n";
+            out << "                    {";
+            for (std::size_t i = 0; i < relation.unique_within_parent.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << cpp_string(relation.unique_within_parent[i]);
+            }
+            out << "},\n";
+            out << "                },\n";
+        }
+        out << "            },\n";
+        out << "            {\n";
+        for (const auto& child : entity.children)
+        {
+            out << "                EntityChildDescriptor{" << cpp_string(child.name) << ", "
+                << cpp_string(child.target_entity) << ", " << cpp_string(child.relation) << "},\n";
+        }
+        out << "            },\n";
+        out << "            {\n";
+        for (const auto& invariant : entity.invariants)
+        {
+            out << "                EntityInvariantDescriptor{" << cpp_string(invariant.name)
+                << ", " << cpp_string(invariant.expression) << "},\n";
+        }
+        out << "            },\n";
         out << "            {\n";
         for (const auto& state : entity.states)
         {

@@ -54,6 +54,10 @@ class Parser
     StateMachineDecl parse_state_machine_decl(DiagnosticBag& diagnostics);
     StateDecl parse_state_decl(DiagnosticBag& diagnostics);
     GarbageCollectionPolicyDecl parse_garbage_collection_policy_decl(DiagnosticBag& diagnostics);
+    OwnershipDecl parse_ownership_decl(DiagnosticBag& diagnostics);
+    RelationDecl parse_relation_decl(DiagnosticBag& diagnostics);
+    ChildDecl parse_child_decl(DiagnosticBag& diagnostics);
+    InvariantDecl parse_invariant_decl(DiagnosticBag& diagnostics);
     FieldDecl parse_field_decl(DiagnosticBag& diagnostics);
     IndexDecl parse_index_decl(DiagnosticBag& diagnostics);
 
