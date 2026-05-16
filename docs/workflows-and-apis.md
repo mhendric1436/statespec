@@ -109,6 +109,12 @@ Common statement families include:
 Generator support for workflow statements can evolve over time. Use the validator and
 generator output to confirm which statements are active for a given target.
 
+The compiler currently preserves the first linear workflow behavior slice in AST,
+semantic model, and IR: `on`, `input`, `state`, workflow-level `load`, and step-level
+`require`, `set`, `emit`, `enqueue`, lease operations, `start workflow`, `transition_to`,
+`complete`, and `fail`. Payload-bearing statements should use an explicit semicolon after
+the payload block in the current parser milestone.
+
 ## Parent-Child Orchestration
 
 StateSpec supports a durable parent-child orchestration pattern.

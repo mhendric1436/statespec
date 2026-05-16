@@ -130,11 +130,35 @@ struct IrLease
     std::optional<std::string> max_ttl;
 };
 
+struct IrWorkflowLoad
+{
+    std::string entity;
+    std::string key_field;
+    std::string binding;
+};
+
+struct IrWorkflowAssignment
+{
+    std::string name;
+    std::string expression;
+};
+
+struct IrWorkflowStatement
+{
+    std::string kind;
+    std::optional<std::string> target;
+    std::optional<std::string> expression;
+    std::optional<std::string> assignable;
+    std::optional<std::string> binding;
+    std::vector<IrWorkflowAssignment> payload;
+};
+
 struct IrWorkflowStep
 {
     std::string name;
     std::optional<std::string> expected_execution_time;
     std::optional<int> max_retries;
+    std::vector<IrWorkflowStatement> statements;
 };
 
 struct IrWorkflow
@@ -144,6 +168,10 @@ struct IrWorkflow
     std::optional<bool> singleton;
     std::optional<std::string> expected_execution_time;
     std::optional<std::string> start_step;
+    std::optional<std::string> on;
+    std::optional<std::string> input;
+    std::optional<std::string> state;
+    std::vector<IrWorkflowLoad> loads;
     std::vector<IrWorkflowStep> steps;
 };
 

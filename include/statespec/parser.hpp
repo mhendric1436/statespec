@@ -49,7 +49,10 @@ class Parser
     WorkerDecl parse_worker_decl(DiagnosticBag& diagnostics);
     ApiDecl parse_api_decl(DiagnosticBag& diagnostics);
     WorkflowDecl parse_workflow_decl(DiagnosticBag& diagnostics);
+    WorkflowLoadDecl parse_workflow_load_decl(DiagnosticBag& diagnostics);
     WorkflowStepDecl parse_workflow_step_decl(DiagnosticBag& diagnostics);
+    WorkflowStatementDecl parse_workflow_statement_decl(DiagnosticBag& diagnostics);
+    std::vector<WorkflowAssignmentDecl> parse_workflow_payload(DiagnosticBag& diagnostics);
     PolicyDecl parse_policy_decl(DiagnosticBag& diagnostics);
     StateMachineDecl parse_state_machine_decl(DiagnosticBag& diagnostics);
     StateDecl parse_state_decl(DiagnosticBag& diagnostics);
@@ -72,6 +75,7 @@ class Parser
         const std::string& context
     );
     std::string parse_simple_expression_until_boundary();
+    std::string parse_expression_until(TokenKind kind);
 
     void consume_optional_semicolon();
     void skip_unknown_declaration(DiagnosticBag& diagnostics);

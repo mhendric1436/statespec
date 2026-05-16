@@ -1056,7 +1056,7 @@ IndexDecl Parser::parse_index_decl(DiagnosticBag& diagnostics)
     }
 
     const auto name = consume(TokenKind::Identifier, "expected index name", diagnostics);
-    if (!is_named_identifier(peek(), "on"))
+    if (!is_named_identifier(peek(), "on") && !check(TokenKind::KeywordOn))
     {
         diagnostics.error(peek().range, "SSPEC0200", "expected 'on' after index name");
     }
@@ -1263,21 +1263,24 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
                 consume(TokenKind::Identifier, "expected start step name", diagnostics).lexeme;
             consume_optional_semicolon();
         }
+        else if (match(TokenKind::KeywordOn))
+        {
+            workflow.on = parse_qualified_name(diagnostics, "workflow trigger");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordInput))
+        {
+            workflow.input = parse_qualified_name(diagnostics, "workflow input");
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordState))
+        {
+            workflow.state = parse_qualified_name(diagnostics, "workflow state");
+            consume_optional_semicolon();
+        }
         else if (match(TokenKind::KeywordLoad))
         {
-            parse_qualified_name(diagnostics, "workflow load entity");
-            if (!is_named_identifier(peek(), "by"))
-            {
-                diagnostics.error(peek().range, "SSPEC0200", "expected by in workflow load");
-            }
-            else
-            {
-                advance();
-            }
-            consume(TokenKind::Identifier, "expected workflow load key", diagnostics);
-            consume(TokenKind::KeywordAs, "expected as in workflow load", diagnostics);
-            consume(TokenKind::Identifier, "expected workflow load binding", diagnostics);
-            consume_optional_semicolon();
+            workflow.loads.push_back(parse_workflow_load_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordStep))
         {
@@ -1292,6 +1295,29 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
 
     workflow.range = SourceRange{start.range.begin, previous().range.end};
     return workflow;
+}
+
+WorkflowLoadDecl Parser::parse_workflow_load_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = previous();
+    WorkflowLoadDecl load;
+    load.entity = parse_qualified_name(diagnostics, "workflow load entity");
+    if (!is_named_identifier(peek(), "by"))
+    {
+        diagnostics.error(peek().range, "SSPEC0200", "expected by in workflow load");
+    }
+    else
+    {
+        advance();
+    }
+    load.key_field =
+        consume(TokenKind::Identifier, "expected workflow load key", diagnostics).lexeme;
+    consume(TokenKind::KeywordAs, "expected as in workflow load", diagnostics);
+    load.binding =
+        consume(TokenKind::Identifier, "expected workflow load binding", diagnostics).lexeme;
+    consume_optional_semicolon();
+    load.range = SourceRange{start.range.begin, previous().range.end};
+    return load;
 }
 
 WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
@@ -1320,10 +1346,15 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
             );
             consume_optional_semicolon();
         }
-        else if (match(TokenKind::KeywordRequire))
+        else if (check_any(
+                     {TokenKind::KeywordRequire, TokenKind::KeywordSet, TokenKind::KeywordEmit,
+                      TokenKind::KeywordEnqueue, TokenKind::KeywordAcquire, TokenKind::KeywordRenew,
+                      TokenKind::KeywordRelease, TokenKind::KeywordStart,
+                      TokenKind::KeywordTransitionTo, TokenKind::KeywordComplete,
+                      TokenKind::KeywordFail}
+                 ))
         {
-            parse_simple_expression_until_boundary();
-            consume_optional_semicolon();
+            step.statements.push_back(parse_workflow_statement_decl(diagnostics));
         }
         else if (match(TokenKind::KeywordWhen))
         {
@@ -1336,15 +1367,6 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
                 skip_balanced_block();
             }
         }
-        else if (match(TokenKind::KeywordTransitionTo))
-        {
-            consume(TokenKind::Identifier, "expected transition_to target", diagnostics);
-            consume_optional_semicolon();
-        }
-        else if (match(TokenKind::KeywordComplete))
-        {
-            consume_optional_semicolon();
-        }
         else
         {
             skip_unknown_declaration(diagnostics);
@@ -1354,6 +1376,109 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
 
     step.range = SourceRange{start.range.begin, previous().range.end};
     return step;
+}
+
+WorkflowStatementDecl Parser::parse_workflow_statement_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = advance();
+    WorkflowStatementDecl statement;
+
+    switch (start.kind)
+    {
+    case TokenKind::KeywordRequire:
+        statement.kind = "require";
+        statement.expression = parse_simple_expression_until_boundary();
+        break;
+    case TokenKind::KeywordSet:
+        statement.kind = "set";
+        statement.assignable = parse_expression_until(TokenKind::Equals);
+        consume(TokenKind::Equals, "expected '=' in set statement", diagnostics);
+        statement.expression = parse_simple_expression_until_boundary();
+        break;
+    case TokenKind::KeywordEmit:
+        statement.kind = "emit";
+        statement.target = parse_qualified_name(diagnostics, "emitted event");
+        statement.payload = parse_workflow_payload(diagnostics);
+        break;
+    case TokenKind::KeywordEnqueue:
+        statement.kind = "enqueue";
+        statement.target = parse_qualified_name(diagnostics, "enqueued message");
+        statement.payload = parse_workflow_payload(diagnostics);
+        break;
+    case TokenKind::KeywordAcquire:
+        statement.kind = "acquire_lease";
+        consume(TokenKind::KeywordLease, "expected lease after acquire", diagnostics);
+        statement.target = parse_qualified_name(diagnostics, "acquired lease");
+        if (match(TokenKind::KeywordAs))
+        {
+            statement.binding =
+                consume(TokenKind::Identifier, "expected lease binding", diagnostics).lexeme;
+        }
+        break;
+    case TokenKind::KeywordRenew:
+        statement.kind = "renew_lease";
+        consume(TokenKind::KeywordLease, "expected lease after renew", diagnostics);
+        statement.target = parse_qualified_name(diagnostics, "renewed lease");
+        break;
+    case TokenKind::KeywordRelease:
+        statement.kind = "release_lease";
+        consume(TokenKind::KeywordLease, "expected lease after release", diagnostics);
+        statement.target = parse_qualified_name(diagnostics, "released lease");
+        break;
+    case TokenKind::KeywordStart:
+        statement.kind = "start_workflow";
+        consume(TokenKind::KeywordWorkflow, "expected workflow after start", diagnostics);
+        statement.target = parse_qualified_name(diagnostics, "started workflow");
+        statement.payload = parse_workflow_payload(diagnostics);
+        break;
+    case TokenKind::KeywordTransitionTo:
+        statement.kind = "transition_to";
+        statement.target =
+            consume(TokenKind::Identifier, "expected transition_to target", diagnostics).lexeme;
+        break;
+    case TokenKind::KeywordComplete:
+        statement.kind = "complete";
+        break;
+    case TokenKind::KeywordFail:
+        statement.kind = "fail";
+        if (!check(TokenKind::Semicolon) && !check(TokenKind::RightBrace))
+        {
+            statement.expression = parse_simple_expression_until_boundary();
+        }
+        break;
+    default:
+        statement.kind = "unknown";
+        synchronize_to_member_boundary();
+        break;
+    }
+
+    consume_optional_semicolon();
+    statement.range = SourceRange{start.range.begin, previous().range.end};
+    return statement;
+}
+
+std::vector<WorkflowAssignmentDecl> Parser::parse_workflow_payload(DiagnosticBag& diagnostics)
+{
+    std::vector<WorkflowAssignmentDecl> payload;
+    if (!match(TokenKind::LeftBrace))
+    {
+        return payload;
+    }
+
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        const auto name = consume(TokenKind::Identifier, "expected payload field", diagnostics);
+        consume(TokenKind::Equals, "expected '=' in payload assignment", diagnostics);
+        WorkflowAssignmentDecl assignment;
+        assignment.name = name.lexeme;
+        assignment.expression = parse_simple_expression_until_boundary();
+        consume_optional_semicolon();
+        assignment.range = SourceRange{name.range.begin, previous().range.end};
+        payload.push_back(std::move(assignment));
+    }
+
+    consume(TokenKind::RightBrace, "expected '}' after workflow payload", diagnostics);
+    return payload;
 }
 
 PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
@@ -1547,6 +1672,22 @@ std::string Parser::parse_simple_expression_until_boundary()
             expression += ' ';
         }
         expression += previous().lexeme.empty() ? peek().lexeme : peek().lexeme;
+        advance();
+    }
+    return expression;
+}
+
+std::string Parser::parse_expression_until(TokenKind kind)
+{
+    std::string expression;
+    while (!is_at_end() && !check(kind) && !check(TokenKind::Semicolon) &&
+           !check(TokenKind::RightBrace))
+    {
+        if (!expression.empty())
+        {
+            expression += ' ';
+        }
+        expression += peek().lexeme;
         advance();
     }
     return expression;

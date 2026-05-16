@@ -198,11 +198,36 @@ struct SemanticApi
     std::optional<SemanticReference> enqueues;
 };
 
+struct SemanticWorkflowLoad
+{
+    SemanticReference entity;
+    std::string key_field;
+    std::string binding;
+};
+
+struct SemanticWorkflowAssignment
+{
+    std::string name;
+    std::string expression;
+};
+
+struct SemanticWorkflowStatement
+{
+    std::string kind;
+    std::optional<std::string> target;
+    std::optional<SemanticReference> resolved_target;
+    std::optional<std::string> expression;
+    std::optional<std::string> assignable;
+    std::optional<std::string> binding;
+    std::vector<SemanticWorkflowAssignment> payload;
+};
+
 struct SemanticWorkflowStep
 {
     std::string name;
     std::optional<std::string> expected_execution_time;
     std::optional<int> max_retries;
+    std::vector<SemanticWorkflowStatement> statements;
 };
 
 struct SemanticWorkflow
@@ -212,6 +237,10 @@ struct SemanticWorkflow
     std::optional<bool> singleton;
     std::optional<std::string> expected_execution_time;
     std::optional<std::string> start_step;
+    std::optional<SemanticReference> on;
+    std::optional<SemanticReference> input;
+    std::optional<SemanticReference> state;
+    std::vector<SemanticWorkflowLoad> loads;
     std::vector<SemanticWorkflowStep> steps;
 };
 

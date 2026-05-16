@@ -41,7 +41,7 @@ Status meanings:
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve; generator output currently does not produce worker scaffolding. |
 | `api` | complete | complete | partial | partial | partial | complete | not-started | P1 | References resolve, but OpenAPI/server generation and shaped request/response support are not implemented. |
-| `workflow` | complete | complete | complete | complete | complete | complete | partial | P1 | Step descriptors and registration helpers exist; workflow behavior syntax is not represented. |
+| `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
 | `policy` | complete | complete | partial | partial | partial | complete | not-started | P2 | Rules lower as strings/references; expression parsing and policy generation are not implemented. |
 | `annotations` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P4 | Keep low priority; annotations must not become a semantic escape hatch. |
 
@@ -66,11 +66,11 @@ Status meanings:
 |---|---|---|---|---|---|---|---|---|---|
 | workflow metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Version, singleton, timing, start step, and retry metadata are supported. |
 | `step` metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Current step model is descriptor-oriented. |
-| `on` trigger | complete | not-started | not-started | not-started | not-started | not-started | not-started | P1 | Needed to connect workflows to events and APIs. |
-| `load` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P1 | Needed for entity-centric workflow validation. |
-| `require` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P1 | Requires expression parsing and type checking. |
+| `on` trigger | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered as a resolved reference where possible; trigger-specific semantic rules remain future work. |
+| `load` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered with entity, key field, and binding metadata; entity key validation remains future work. |
+| `require` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered as a raw expression string; expression parsing and type checking remain future work. |
 | `child_set` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P2 | Needed for first-class child orchestration generation. |
-| workflow operations | complete | not-started | not-started | not-started | not-started | not-started | not-started | P2 | `emit`, `enqueue`, `call`, `transition_to`, and similar operations need a typed model. |
+| workflow operations | complete | partial | partial | partial | partial | not-started | not-started | P2 | Linear `set`, `emit`, `enqueue`, lease, `start workflow`, `transition_to`, `complete`, and `fail` statements lower into IR. Nested blocks and typed expression validation remain future work. |
 
 ## Generator Parity
 
@@ -104,7 +104,10 @@ Status meanings:
    the same caller-managed transaction model.
 
 5. **P1: Add workflow behavior IR.**
-   Implement `on`, `load`, `require`, and typed step operations before generating worker
+   Initial workflow behavior IR is in place for `on`, `input`, `state`, `load`, `require`,
+   `set`, `emit`, `enqueue`, lease operations, `start workflow`, `transition_to`,
+   `complete`, and `fail`. The next increment is semantic validation for loaded entity
+   keys, resolved targets, nested blocks, and typed expressions before generating worker
    bodies.
 
 6. **P2: Add reusable `value`, `enum`, and `event` support.**

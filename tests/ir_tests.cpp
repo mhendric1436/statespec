@@ -252,6 +252,15 @@ void ir_lowers_system_runtime_contracts()
           tenant scoped_by tenant_id
           system_tenant configured
 
+          shape StartOrderRequest {
+            tenant_id string
+            order_id string
+          }
+
+          shape OrderProcessingState {
+            attempt int
+          }
+
           entity Order {
             key tenant_id, order_id
             fields {
@@ -319,10 +328,24 @@ void ir_lowers_system_runtime_contracts()
             version 2
             singleton false
             expected_execution_time PT60S
+            on StartOrderProcessing
+            input StartOrderRequest
+            state OrderProcessingState
+            load Order by order_id as order
             start validate_order
             step validate_order {
               expected_execution_time PT10S
               max_retries 2
+              require order.status == "Pending";
+              set order.status = "Active";
+              enqueue EmailDispatch.SendConfirmation {
+                order_id = order.order_id;
+              };
+              acquire lease OrderReconcilerLease as leaseToken;
+              start workflow OrderProcessing {
+                order_id = order.order_id;
+              };
+              transition_to validate_order;
             }
           }
 
@@ -401,7 +424,51 @@ void ir_lowers_system_runtime_contracts()
     );
 
     statespec::test::require(ir.workflows.size() == 1, "IR should lower workflows");
-    statespec::test::require(ir.workflows[0].steps.size() == 1, "IR should lower workflow steps");
+    const auto& workflow = ir.workflows[0];
+    statespec::test::require(workflow.steps.size() == 1, "IR should lower workflow steps");
+    statespec::test::require(
+        workflow.on == "StartOrderProcessing", "IR should lower workflow trigger"
+    );
+    statespec::test::require(
+        workflow.input == "StartOrderRequest", "IR should lower workflow input"
+    );
+    statespec::test::require(
+        workflow.state == "OrderProcessingState", "IR should lower workflow state"
+    );
+    statespec::test::require(workflow.loads.size() == 1, "IR should lower workflow loads");
+    statespec::test::require(
+        workflow.loads[0].entity == "Order", "IR should lower workflow load entity"
+    );
+    statespec::test::require(
+        workflow.loads[0].key_field == "order_id", "IR should lower workflow load key"
+    );
+    statespec::test::require(
+        workflow.loads[0].binding == "order", "IR should lower workflow load binding"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements.size() == 6, "IR should lower workflow statements"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[0].kind == "require", "IR should lower require statement kind"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[1].assignable == "order . status",
+        "IR should lower set statement assignable"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[2].target == "EmailDispatch.SendConfirmation",
+        "IR should lower enqueue target"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[2].payload.size() == 1, "IR should lower enqueue payload"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[3].binding == "leaseToken", "IR should lower lease binding"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[5].target == "validate_order",
+        "IR should lower transition target"
+    );
 
     statespec::test::require(ir.policies.size() == 1, "IR should lower policies");
     const auto& policy = ir.policies[0];

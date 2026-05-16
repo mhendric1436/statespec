@@ -237,6 +237,50 @@ SemanticEntity resolve_entity(
     return resolved;
 }
 
+std::optional<SemanticReference> resolve_workflow_statement_target(
+    const SymbolTable& symbols,
+    const std::string& workflow_name,
+    const WorkflowStatementDecl& statement
+)
+{
+    if (!statement.target.has_value())
+    {
+        return std::nullopt;
+    }
+
+    if (statement.kind == "transition_to")
+    {
+        return resolve_reference(symbols, workflow_name + "." + *statement.target);
+    }
+
+    return resolve_reference(symbols, *statement.target);
+}
+
+SemanticWorkflowStatement resolve_workflow_statement(
+    const SymbolTable& symbols,
+    const std::string& workflow_name,
+    const WorkflowStatementDecl& statement
+)
+{
+    SemanticWorkflowStatement resolved;
+    resolved.kind = statement.kind;
+    resolved.target = statement.target;
+    resolved.resolved_target = resolve_workflow_statement_target(symbols, workflow_name, statement);
+    resolved.expression = statement.expression;
+    resolved.assignable = statement.assignable;
+    resolved.binding = statement.binding;
+    for (const auto& assignment : statement.payload)
+    {
+        resolved.payload.push_back(
+            SemanticWorkflowAssignment{
+                assignment.name,
+                assignment.expression,
+            }
+        );
+    }
+    return resolved;
+}
+
 } // namespace
 
 SemanticSystem resolve_semantics(const Spec& spec)
@@ -387,11 +431,32 @@ SemanticSystem resolve_semantics(const Spec& spec)
         resolved_workflow.singleton = workflow.singleton;
         resolved_workflow.expected_execution_time = workflow.expected_execution_time;
         resolved_workflow.start_step = workflow.start_step;
+        resolved_workflow.on = resolve_optional_reference(symbols, workflow.on);
+        resolved_workflow.input = resolve_optional_reference(symbols, workflow.input);
+        resolved_workflow.state = resolve_optional_reference(symbols, workflow.state);
+        for (const auto& load : workflow.loads)
+        {
+            resolved_workflow.loads.push_back(
+                SemanticWorkflowLoad{
+                    resolve_reference(symbols, load.entity),
+                    load.key_field,
+                    load.binding,
+                }
+            );
+        }
         for (const auto& step : workflow.steps)
         {
-            resolved_workflow.steps.push_back(
-                SemanticWorkflowStep{step.name, step.expected_execution_time, step.max_retries}
-            );
+            SemanticWorkflowStep resolved_step;
+            resolved_step.name = step.name;
+            resolved_step.expected_execution_time = step.expected_execution_time;
+            resolved_step.max_retries = step.max_retries;
+            for (const auto& statement : step.statements)
+            {
+                resolved_step.statements.push_back(
+                    resolve_workflow_statement(symbols, workflow.name, statement)
+                );
+            }
+            resolved_workflow.steps.push_back(std::move(resolved_step));
         }
         resolved.workflows.push_back(std::move(resolved_workflow));
     }
