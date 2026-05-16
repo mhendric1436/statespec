@@ -152,6 +152,10 @@ std::string generate_descriptors_java(const IrSystem& system)
 {
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.Log;\n";
+    out << "import com.statespec.backend.Metric;\n";
+    out << "import com.statespec.backend.Workflow;\n";
     out << "import com.statespec.backend.Backend.CollectionDescriptor;\n";
     out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
     out << "import com.statespec.backend.Queue.QueueDefinition;\n";
@@ -159,6 +163,7 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "import com.statespec.backend.Workflow.WorkflowStepDefinition;\n";
     out << "import java.time.Duration;\n";
     out << "import java.util.List;\n";
+    out << "import java.util.Locale;\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class Descriptors {\n";
     out << "    private Descriptors() {}\n\n";
@@ -445,6 +450,84 @@ std::string generate_descriptors_java(const IrSystem& system)
         }
     }
     out << "        );\n";
+    out << "    }\n";
+
+    out << "\n    private static Log.Level logLevelFromDescriptor(String level) {\n";
+    out << "        return switch (level.toLowerCase(Locale.ROOT)) {\n";
+    out << "            case \"debug\" -> Log.Level.DEBUG;\n";
+    out << "            case \"warn\" -> Log.Level.WARN;\n";
+    out << "            case \"error\" -> Log.Level.ERROR;\n";
+    out << "            default -> Log.Level.INFO;\n";
+    out << "        };\n";
+    out << "    }\n\n";
+
+    out << "    private static Metric.Kind metricKindFromDescriptor(String kind) {\n";
+    out << "        return switch (kind.toLowerCase(Locale.ROOT)) {\n";
+    out << "            case \"gauge\" -> Metric.Kind.GAUGE;\n";
+    out << "            case \"histogram\" -> Metric.Kind.HISTOGRAM;\n";
+    out << "            default -> Metric.Kind.COUNTER;\n";
+    out << "        };\n";
+    out << "    }\n\n";
+
+    out << "    public static void ensureSystemCollections(Backend backend)\n";
+    out << "        throws Backend.BackendException {\n";
+    out << "        backend.ensureCollections(collectionDescriptors());\n";
+    out << "    }\n\n";
+
+    out << "    public static void registerLogDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Log sink\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        for (var definition : logDefinitions()) {\n";
+    out << "            sink.registerDefinitionTx(\n";
+    out << "                tx,\n";
+    out << "                new Log.Definition(\n";
+    out << "                    definition.name(),\n";
+    out << "                    logLevelFromDescriptor(definition.level()),\n";
+    out << "                    definition.eventName(),\n";
+    out << "                    definition.fields()\n";
+    out << "                )\n";
+    out << "            );\n";
+    out << "        }\n";
+    out << "    }\n\n";
+
+    out << "    public static void registerMetricDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Metric sink\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        for (var definition : metricDefinitions()) {\n";
+    out << "            sink.registerDefinitionTx(\n";
+    out << "                tx,\n";
+    out << "                new Metric.Definition(\n";
+    out << "                    definition.name(),\n";
+    out << "                    metricKindFromDescriptor(definition.kind()),\n";
+    out << "                    definition.backendName(),\n";
+    out << "                    definition.unit(),\n";
+    out << "                    definition.labels()\n";
+    out << "                )\n";
+    out << "            );\n";
+    out << "        }\n";
+    out << "    }\n\n";
+
+    out << "    public static void registerObservabilityCatalogTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Log logSink,\n";
+    out << "        Metric metricSink\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        registerLogDefinitionsTx(tx, logSink);\n";
+    out << "        registerMetricDefinitionsTx(tx, metricSink);\n";
+    out << "    }\n\n";
+
+    out << "    public static void registerWorkflowDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Workflow store\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        for (var definition : workflowDefinitions()) {\n";
+    out << "            store.registerDefinitionTx(\n";
+    out << "                tx,\n";
+    out << "                new Workflow.RegisterWorkflowDefinitionRequest(definition)\n";
+    out << "            );\n";
+    out << "        }\n";
     out << "    }\n";
     out << "}\n";
     return out.str();

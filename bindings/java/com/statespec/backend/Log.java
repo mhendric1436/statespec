@@ -30,6 +30,36 @@ public interface Log
         }
     }
 
+    record Definition(
+        String name,
+        Level level,
+        String eventName,
+        java.util.List<Backend.FieldDescriptor> fields
+    )
+    {
+        public Definition
+        {
+            fields = java.util.List.copyOf(fields);
+        }
+    }
+
+    record DefinitionRegistration(
+        boolean registeredNew,
+        Definition definition
+    )
+    {
+    }
+
+    DefinitionRegistration registerDefinition(
+        Backend backend,
+        Definition definition
+    ) throws BackendException;
+
+    DefinitionRegistration registerDefinitionTx(
+        Transaction tx,
+        Definition definition
+    ) throws BackendException;
+
     void emit(
         Backend backend,
         Event event

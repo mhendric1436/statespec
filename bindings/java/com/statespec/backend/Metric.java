@@ -31,6 +31,37 @@ public interface Metric
         }
     }
 
+    record Definition(
+        String name,
+        Kind kind,
+        String backendName,
+        String unit,
+        java.util.List<Backend.FieldDescriptor> labels
+    )
+    {
+        public Definition
+        {
+            labels = java.util.List.copyOf(labels);
+        }
+    }
+
+    record DefinitionRegistration(
+        boolean registeredNew,
+        Definition definition
+    )
+    {
+    }
+
+    DefinitionRegistration registerDefinition(
+        Backend backend,
+        Definition definition
+    ) throws BackendException;
+
+    DefinitionRegistration registerDefinitionTx(
+        Transaction tx,
+        Definition definition
+    ) throws BackendException;
+
     void record(
         Backend backend,
         Sample sample

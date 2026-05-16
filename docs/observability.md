@@ -107,9 +107,11 @@ IrMetric
   labels
 ```
 
-Binding generators consume this IR and emit passive descriptor catalogs in C++, Go, Java,
-and Rust. Descriptor catalogs are intended for runtime registration, documentation,
-configuration checks, and adapter setup.
+Binding generators consume this IR and emit descriptor catalogs in C++, Go, Java, and
+Rust. Descriptor catalogs are intended for runtime registration, documentation,
+configuration checks, and adapter setup. Generated descriptors also include bootstrap
+helpers that register observability and workflow catalogs through the runtime binding
+interfaces.
 
 The generated descriptor APIs are:
 
@@ -119,6 +121,15 @@ The generated descriptor APIs are:
 | Go | `LogDefinitions()` | `MetricDefinitions()` |
 | Java | `logDefinitions()` | `metricDefinitions()` |
 | Rust | `log_definitions()` | `metric_definitions()` |
+
+Generated bootstrap helpers include:
+
+| Language | Collections | Observability | Workflows |
+|---|---|---|---|
+| C++ | `ensure_system_collections(...)` | `register_observability_catalogTx(...)` | `register_workflow_definitionsTx(...)` |
+| Go | `EnsureSystemCollections(...)` | `RegisterObservabilityCatalogTx(...)` | `RegisterWorkflowDefinitionsTx(...)` |
+| Java | `ensureSystemCollections(...)` | `registerObservabilityCatalogTx(...)` | `registerWorkflowDefinitionsTx(...)` |
+| Rust | `ensure_system_collections(...)` | `register_observability_catalog_tx(...)` | `register_workflow_definitions_tx(...)` |
 
 ## Runtime Binding Model
 
@@ -155,6 +166,26 @@ Each language exposes separate log and metric sink interfaces with backend-manag
 caller-managed transaction variants. This lets generated workers emit logs and record
 metrics either as standalone operations or as part of the same OCC transaction that
 mutates entity, queue, lease, or workflow state.
+
+### Transaction Semantics
+
+Log and metric `Tx` methods participate in the caller-managed OCC transaction. A
+transactional log event or metric sample is staged with the transaction and becomes
+visible to exporters only after commit. If the transaction aborts or rolls back, staged
+observability records are discarded.
+
+Backend-managed log and metric methods may open and commit their own transaction, or use
+an adapter-specific durable write path, but they must preserve the same validation and
+idempotency rules as the `Tx` methods.
+
+Log and metric definition registration is idempotent. Registering the same definition
+again is a no-op. Registering the same logical name with an incompatible shape should
+fail through the binding's backend error mechanism.
+
+Runtime implementations should validate emitted log fields and metric labels against the
+registered definitions. Required fields or labels must be present, unexpected fields or
+labels should be rejected unless an adapter explicitly documents a compatibility mode,
+and metric label values should remain low-cardinality.
 
 ## Authoring Guidelines
 

@@ -152,9 +152,13 @@ std::string generate_descriptors_rs(const IrSystem& system)
 {
     std::ostringstream out;
     out << "use std::time::Duration;\n\n";
-    out << "use crate::backend::{CollectionDescriptor, FieldDescriptor};\n";
+    out << "use crate::backend::{Backend, BackendResult, CollectionDescriptor, FieldDescriptor};\n";
+    out << "use crate::log::{LogDefinition as RuntimeLogDefinition, LogLevel, LogSink};\n";
+    out << "use crate::metric::{MetricDefinition as RuntimeMetricDefinition, MetricKind, "
+           "MetricSink};\n";
     out << "use crate::queue::QueueDefinition;\n";
-    out << "use crate::workflow::{WorkflowDefinition, WorkflowStepDefinition};\n\n";
+    out << "use crate::workflow::{RegisterWorkflowDefinitionRequest, WorkflowDefinition, "
+           "WorkflowStepDefinition, WorkflowStore};\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct LeaseDefinition {\n";
     out << "    pub name: String,\n";
@@ -425,6 +429,91 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "        },\n";
     }
     out << "    ]\n";
+    out << "}\n";
+
+    out << "\nfn log_level_from_descriptor(level: &str) -> LogLevel {\n";
+    out << "    match level {\n";
+    out << "        \"debug\" => LogLevel::Debug,\n";
+    out << "        \"warn\" => LogLevel::Warn,\n";
+    out << "        \"error\" => LogLevel::Error,\n";
+    out << "        _ => LogLevel::Info,\n";
+    out << "    }\n";
+    out << "}\n\n";
+
+    out << "fn metric_kind_from_descriptor(kind: &str) -> MetricKind {\n";
+    out << "    match kind {\n";
+    out << "        \"gauge\" => MetricKind::Gauge,\n";
+    out << "        \"histogram\" => MetricKind::Histogram,\n";
+    out << "        _ => MetricKind::Counter,\n";
+    out << "    }\n";
+    out << "}\n\n";
+
+    out << "pub fn ensure_system_collections<B: Backend>(backend: &B) -> BackendResult<()> {\n";
+    out << "    backend.ensure_collections(&collection_descriptors())\n";
+    out << "}\n\n";
+
+    out << "pub fn register_log_definitions_tx<B: Backend, S: LogSink<B>>(\n";
+    out << "    tx: &mut B::Tx,\n";
+    out << "    sink: &S,\n";
+    out << ") -> BackendResult<()> {\n";
+    out << "    for definition in log_definitions() {\n";
+    out << "        sink.register_definition_tx(\n";
+    out << "            tx,\n";
+    out << "            &RuntimeLogDefinition {\n";
+    out << "                name: definition.name,\n";
+    out << "                level: log_level_from_descriptor(&definition.level),\n";
+    out << "                event_name: definition.event_name,\n";
+    out << "                fields: definition.fields,\n";
+    out << "            },\n";
+    out << "        )?;\n";
+    out << "    }\n";
+    out << "    Ok(())\n";
+    out << "}\n\n";
+
+    out << "pub fn register_metric_definitions_tx<B: Backend, S: MetricSink<B>>(\n";
+    out << "    tx: &mut B::Tx,\n";
+    out << "    sink: &S,\n";
+    out << ") -> BackendResult<()> {\n";
+    out << "    for definition in metric_definitions() {\n";
+    out << "        sink.register_definition_tx(\n";
+    out << "            tx,\n";
+    out << "            &RuntimeMetricDefinition {\n";
+    out << "                name: definition.name,\n";
+    out << "                kind: metric_kind_from_descriptor(&definition.kind),\n";
+    out << "                backend_name: definition.backend_name,\n";
+    out << "                unit: definition.unit,\n";
+    out << "                labels: definition.labels,\n";
+    out << "            },\n";
+    out << "        )?;\n";
+    out << "    }\n";
+    out << "    Ok(())\n";
+    out << "}\n\n";
+
+    out << "pub fn register_observability_catalog_tx<B, L, M>(\n";
+    out << "    tx: &mut B::Tx,\n";
+    out << "    log_sink: &L,\n";
+    out << "    metric_sink: &M,\n";
+    out << ") -> BackendResult<()>\n";
+    out << "where\n";
+    out << "    B: Backend,\n";
+    out << "    L: LogSink<B>,\n";
+    out << "    M: MetricSink<B>,\n";
+    out << "{\n";
+    out << "    register_log_definitions_tx(tx, log_sink)?;\n";
+    out << "    register_metric_definitions_tx(tx, metric_sink)\n";
+    out << "}\n\n";
+
+    out << "pub fn register_workflow_definitions_tx<B: Backend, S: WorkflowStore<B>>(\n";
+    out << "    tx: &mut B::Tx,\n";
+    out << "    store: &S,\n";
+    out << ") -> BackendResult<()> {\n";
+    out << "    for definition in workflow_definitions() {\n";
+    out << "        store.register_definition_tx(\n";
+    out << "            tx,\n";
+    out << "            &RegisterWorkflowDefinitionRequest { definition },\n";
+    out << "        )?;\n";
+    out << "    }\n";
+    out << "    Ok(())\n";
     out << "}\n";
     return out.str();
 }

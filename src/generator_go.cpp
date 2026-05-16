@@ -154,7 +154,10 @@ std::string generate_descriptors_go(const IrSystem& system)
 {
     std::ostringstream out;
     out << "package backend\n\n";
-    out << "import \"time\"\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n";
+    out << "\t\"time\"\n";
+    out << ")\n\n";
     out << "type LeaseDefinition struct {\n";
     out << "\tName string\n";
     out << "\tResource *string\n";
@@ -408,6 +411,87 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t},\n";
     }
     out << "\t}\n";
+    out << "}\n";
+
+    out << "\nfunc logLevelFromDescriptor(level string) LogLevel {\n";
+    out << "\tswitch level {\n";
+    out << "\tcase \"debug\":\n";
+    out << "\t\treturn LogLevelDebug\n";
+    out << "\tcase \"warn\":\n";
+    out << "\t\treturn LogLevelWarn\n";
+    out << "\tcase \"error\":\n";
+    out << "\t\treturn LogLevelError\n";
+    out << "\tdefault:\n";
+    out << "\t\treturn LogLevelInfo\n";
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func metricKindFromDescriptor(kind string) MetricKind {\n";
+    out << "\tswitch kind {\n";
+    out << "\tcase \"gauge\":\n";
+    out << "\t\treturn MetricGauge\n";
+    out << "\tcase \"histogram\":\n";
+    out << "\t\treturn MetricHistogram\n";
+    out << "\tdefault:\n";
+    out << "\t\treturn MetricCounter\n";
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func EnsureSystemCollections(ctx context.Context, backend Backend) error {\n";
+    out << "\treturn backend.EnsureCollections(ctx, CollectionDescriptors())\n";
+    out << "}\n\n";
+
+    out << "func RegisterLogDefinitionsTx(ctx context.Context, tx Transaction, sink LogSink) error "
+           "{\n";
+    out << "\tfor _, definition := range LogDefinitions() {\n";
+    out << "\t\t_, err := sink.RegisterDefinitionTx(ctx, tx, LogSignalDefinition{\n";
+    out << "\t\t\tName: definition.Name,\n";
+    out << "\t\t\tLevel: logLevelFromDescriptor(definition.Level),\n";
+    out << "\t\t\tEventName: definition.EventName,\n";
+    out << "\t\t\tFields: definition.Fields,\n";
+    out << "\t\t})\n";
+    out << "\t\tif err != nil {\n";
+    out << "\t\t\treturn err\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn nil\n";
+    out << "}\n\n";
+
+    out << "func RegisterMetricDefinitionsTx(ctx context.Context, tx Transaction, sink MetricSink) "
+           "error {\n";
+    out << "\tfor _, definition := range MetricDefinitions() {\n";
+    out << "\t\t_, err := sink.RegisterDefinitionTx(ctx, tx, MetricInstrumentDefinition{\n";
+    out << "\t\t\tName: definition.Name,\n";
+    out << "\t\t\tKind: metricKindFromDescriptor(definition.Kind),\n";
+    out << "\t\t\tBackendName: definition.BackendName,\n";
+    out << "\t\t\tUnit: definition.Unit,\n";
+    out << "\t\t\tLabels: definition.Labels,\n";
+    out << "\t\t})\n";
+    out << "\t\tif err != nil {\n";
+    out << "\t\t\treturn err\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn nil\n";
+    out << "}\n\n";
+
+    out << "func RegisterObservabilityCatalogTx(ctx context.Context, tx Transaction, logSink "
+           "LogSink, metricSink MetricSink) error {\n";
+    out << "\tif err := RegisterLogDefinitionsTx(ctx, tx, logSink); err != nil {\n";
+    out << "\t\treturn err\n";
+    out << "\t}\n";
+    out << "\treturn RegisterMetricDefinitionsTx(ctx, tx, metricSink)\n";
+    out << "}\n\n";
+
+    out << "func RegisterWorkflowDefinitionsTx(ctx context.Context, tx Transaction, store "
+           "WorkflowStore) error {\n";
+    out << "\tfor _, definition := range WorkflowDefinitions() {\n";
+    out << "\t\t_, err := store.RegisterDefinitionTx(ctx, tx, "
+           "RegisterWorkflowDefinitionRequest{Definition: definition})\n";
+    out << "\t\tif err != nil {\n";
+    out << "\t\t\treturn err\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn nil\n";
     out << "}\n";
     return out.str();
 }

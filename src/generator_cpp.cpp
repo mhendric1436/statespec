@@ -153,11 +153,14 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"backend.hpp\"\n";
+    out << "#include \"log.hpp\"\n";
+    out << "#include \"metric.hpp\"\n";
     out << "#include \"queue.hpp\"\n";
     out << "#include \"workflow.hpp\"\n\n";
     out << "#include <chrono>\n";
     out << "#include <optional>\n";
     out << "#include <string>\n";
+    out << "#include <string_view>\n";
     out << "#include <vector>\n\n";
     out << "namespace statespec_generated\n";
     out << "{\n\n";
@@ -448,6 +451,89 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "        },\n";
     }
     out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline statespec::backend::LogLevel log_level_from_string(std::string_view level)\n";
+    out << "{\n";
+    out << "    if (level == \"debug\") { return statespec::backend::LogLevel::Debug; }\n";
+    out << "    if (level == \"warn\") { return statespec::backend::LogLevel::Warn; }\n";
+    out << "    if (level == \"error\") { return statespec::backend::LogLevel::Error; }\n";
+    out << "    return statespec::backend::LogLevel::Info;\n";
+    out << "}\n\n";
+
+    out << "inline statespec::backend::MetricKind metric_kind_from_string(std::string_view kind)\n";
+    out << "{\n";
+    out << "    if (kind == \"gauge\") { return statespec::backend::MetricKind::Gauge; }\n";
+    out << "    if (kind == \"histogram\") { return statespec::backend::MetricKind::Histogram; }\n";
+    out << "    return statespec::backend::MetricKind::Counter;\n";
+    out << "}\n\n";
+
+    out << "inline void ensure_system_collections(statespec::backend::IBackend& backend)\n";
+    out << "{\n";
+    out << "    backend.ensure_collections(collection_descriptors());\n";
+    out << "}\n\n";
+
+    out << "inline void register_log_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::ILogSink& sink\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    for (const auto& definition : log_definitions())\n";
+    out << "    {\n";
+    out << "        sink.register_definitionTx(\n";
+    out << "            tx,\n";
+    out << "            statespec::backend::LogDefinition{\n";
+    out << "                definition.name,\n";
+    out << "                log_level_from_string(definition.level),\n";
+    out << "                definition.event_name,\n";
+    out << "                definition.fields,\n";
+    out << "            }\n";
+    out << "        );\n";
+    out << "    }\n";
+    out << "}\n\n";
+
+    out << "inline void register_metric_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::IMetricSink& sink\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    for (const auto& definition : metric_definitions())\n";
+    out << "    {\n";
+    out << "        sink.register_definitionTx(\n";
+    out << "            tx,\n";
+    out << "            statespec::backend::MetricDefinition{\n";
+    out << "                definition.name,\n";
+    out << "                metric_kind_from_string(definition.kind),\n";
+    out << "                definition.backend_name,\n";
+    out << "                definition.unit,\n";
+    out << "                definition.labels,\n";
+    out << "            }\n";
+    out << "        );\n";
+    out << "    }\n";
+    out << "}\n\n";
+
+    out << "inline void register_observability_catalogTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::ILogSink& log_sink,\n";
+    out << "    statespec::backend::IMetricSink& metric_sink\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    register_log_definitionsTx(tx, log_sink);\n";
+    out << "    register_metric_definitionsTx(tx, metric_sink);\n";
+    out << "}\n\n";
+
+    out << "inline void register_workflow_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::IWorkflowStore& workflow_store\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    for (const auto& definition : workflow_definitions())\n";
+    out << "    {\n";
+    out << "        workflow_store.register_definitionTx(\n";
+    out << "            tx,\n";
+    out << "            statespec::backend::RegisterWorkflowDefinitionRequest{definition}\n";
+    out << "        );\n";
+    out << "    }\n";
     out << "}\n\n";
 
     out << "} // namespace statespec_generated\n";
