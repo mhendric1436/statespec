@@ -101,6 +101,10 @@ system Demo {
     invariants {
       valid_status: status != ""
     }
+    indexes {
+      index by_tenant_status on tenant_id, status
+      unique by_tenant_order on tenant_id, order_id
+    }
     state_machine {
       state Pending
       state Active
@@ -307,6 +311,7 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityChildDescri
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityInvariantDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "entity_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "CollectionDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "IndexDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "queue_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "lease_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "workflow_definitions"
@@ -330,6 +335,8 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "workflow_launch_a
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"composition\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"account_id\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"valid_status\""
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"by_tenant_status\""
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"by_tenant_order\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"P30D\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"tombstone\""
 
@@ -357,6 +364,7 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityChildDe
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityInvariantDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func EntityDescriptors() []EntityDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func CollectionDescriptors() []CollectionDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Indexes: []IndexDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func QueueDefinitions() []QueueDefinition"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func LeaseDefinitions() []LeaseDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func WorkflowDefinitions() []WorkflowDefinition"
@@ -379,6 +387,8 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "BackendName: \"wor
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Metadata: JSONObject(map[string]JSON{})"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "RelationKind: stringPtr(\"composition\")"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Name: \"valid_status\""
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Name: \"by_tenant_status\""
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Unique: true"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "GarbageCollection: &GarbageCollectionPolicy{After: \"P30D\", Mode: \"tombstone\"}"
 
 # Positive generation: Java.
@@ -420,11 +430,14 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record MetricDefinition"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "metricDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "ensureSystemCollections"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "new IndexDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "registerObservabilityCatalogTx"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "registerWorkflowDefinitionsTx"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflow_launch_attempts_total"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional.of(\"composition\")"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "new EntityInvariantDescriptor(\"valid_status\""
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"by_tenant_status\""
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"by_tenant_order\""
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "new GarbageCollectionPolicy(\"P30D\", \"tombstone\")"
 
 # Positive generation: Rust.
@@ -451,6 +464,7 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityChildDe
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityInvariantDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn entity_descriptors() -> Vec<EntityDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn collection_descriptors() -> Vec<CollectionDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "IndexDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn queue_definitions() -> Vec<QueueDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn lease_definitions() -> Vec<LeaseDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn workflow_definitions() -> Vec<WorkflowDefinition>"
@@ -471,6 +485,8 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn register_workflow
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "backend_name: \"workflow_launch_attempts_total\".to_string()"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "relation_kind: Some(\"composition\".to_string())"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "name: \"valid_status\".to_string()"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "name: \"by_tenant_status\".to_string()"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "unique: true"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "garbage_collection: Some(GarbageCollectionPolicy { after: \"P30D\".to_string(), mode: \"tombstone\".to_string() })"
 
 # Include composition is used by binding generation.

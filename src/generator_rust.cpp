@@ -152,7 +152,8 @@ std::string generate_descriptors_rs(const IrSystem& system)
 {
     std::ostringstream out;
     out << "use std::time::Duration;\n\n";
-    out << "use crate::backend::{Backend, BackendResult, CollectionDescriptor, FieldDescriptor};\n";
+    out << "use crate::backend::{Backend, BackendResult, CollectionDescriptor, FieldDescriptor, "
+           "IndexDescriptor};\n";
     out << "use crate::log::{LogDefinition as RuntimeLogDefinition, LogLevel, LogSink};\n";
     out << "use crate::metric::{MetricDefinition as RuntimeMetricDefinition, MetricKind, "
            "MetricSink};\n";
@@ -483,7 +484,25 @@ std::string generate_descriptors_rs(const IrSystem& system)
             out << rust_string(entity.key_fields[i]) << ".to_string()";
         }
         out << "],\n";
-        out << "            indexes: vec![],\n";
+        out << "            indexes: vec![\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "                IndexDescriptor {\n";
+            out << "                    name: " << rust_string(index.name) << ".to_string(),\n";
+            out << "                    fields: vec![";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << rust_string(index.fields[i]) << ".to_string()";
+            }
+            out << "],\n";
+            out << "                    unique: " << (index.unique ? "true" : "false") << ",\n";
+            out << "                },\n";
+        }
+        out << "            ],\n";
         out << "            schema_version: 1,\n";
         out << "        },\n";
     }

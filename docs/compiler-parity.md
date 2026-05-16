@@ -35,7 +35,7 @@ Status meanings:
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors and bindings exist; generated registration helpers are not complete across all languages/catalogs. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
-| `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; expression typing and index descriptors remain incomplete. |
+| `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; expression typing remains incomplete. |
 | `event` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed to connect APIs, workflows, queues, and workers explicitly. |
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors and bindings exist; generated runtime registration helper is still missing. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors and bindings exist; generated runtime registration helper is still missing. |
@@ -52,7 +52,7 @@ Status meanings:
 | `key` | complete | complete | complete | complete | complete | complete | complete | P0 | Composite keys are supported. |
 | `fields` | complete | complete | complete | complete | complete | complete | complete | P0 | Mandatory lifecycle fields are validated and must appear first in canonical order. |
 | `state_machine` | complete | complete | complete | complete | complete | complete | complete | P0 | Initial, terminal, transitions, and GC metadata are represented. |
-| `indexes` | complete | complete | complete | complete | complete | complete | partial | P1 | IR has indexes; collection descriptor generation should populate `IndexDescriptor`. |
+| `indexes` | complete | complete | complete | complete | complete | complete | complete | P1 | Index declarations populate generated collection `IndexDescriptor` metadata. |
 | `ownership` | complete | complete | complete | complete | complete | not-started | complete | P1 | Represented in AST, validation, semantic model, IR, and binding descriptors; formatter support is still token-preserving. |
 | `relations` | complete | complete | complete | complete | complete | not-started | complete | P1 | Parent/reference metadata is validated and emitted in descriptors; composition-cycle checks remain future work. |
 | `children` | complete | complete | complete | complete | complete | not-started | complete | P2 | Parent-side declarations are validated against child-owned parent relations. |
@@ -77,7 +77,7 @@ Status meanings:
 | Area | Current Status | Priority | Next Work |
 |---|---|---|---|
 | Binding template emission | partial | P0 | Keep generated packages self-contained; add package manifests where practical. |
-| Descriptor generation | partial | P0 | Fill missing entity indexes and runtime catalog bootstrap helpers. |
+| Descriptor generation | partial | P0 | Runtime catalog bootstrap helpers remain the main descriptor-generation gap. |
 | Runtime bootstrap helpers | partial | P1 | Add feature flag, queue, and lease registration/provisioning helpers. |
 | Worker scaffolding | not-started | P2 | Generate language-specific worker skeletons from worker/workflow/queue IR. |
 | API generation | not-started | P1 | Generate OpenAPI or endpoint descriptors once `shape` support exists. |

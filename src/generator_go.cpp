@@ -455,7 +455,25 @@ std::string generate_descriptors_go(const IrSystem& system)
             out << go_string(entity.key_fields[i]);
         }
         out << "},\n";
-        out << "\t\t\tIndexes: []IndexDescriptor{},\n";
+        out << "\t\t\tIndexes: []IndexDescriptor{\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "\t\t\t\t{\n";
+            out << "\t\t\t\t\tName: " << go_string(index.name) << ",\n";
+            out << "\t\t\t\t\tFields: []string{";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << go_string(index.fields[i]);
+            }
+            out << "},\n";
+            out << "\t\t\t\t\tUnique: " << (index.unique ? "true" : "false") << ",\n";
+            out << "\t\t\t\t},\n";
+        }
+        out << "\t\t\t},\n";
         out << "\t\t\tSchemaVersion: 1,\n";
         out << "\t\t},\n";
     }

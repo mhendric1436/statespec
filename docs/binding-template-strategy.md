@@ -180,13 +180,13 @@ Current descriptor generation includes:
 ```text
 CollectionDescriptor records
 FieldDescriptor records
+IndexDescriptor records
 key_fields
 schema_version = 1
 ```
 
-The current AST does not yet expose explicit entity index declarations, so generated
-`indexes` lists are empty. Once index declarations are added to the grammar and AST, the
-same descriptor files should populate `IndexDescriptor` values from the parsed model.
+Entity `indexes` declarations are lowered through IR and emitted as generated
+`IndexDescriptor` values in C++, Go, Java, and Rust collection descriptors.
 
 ## Why Use Reference Bindings as Templates?
 

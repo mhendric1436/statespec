@@ -158,6 +158,7 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "import com.statespec.backend.Workflow;\n";
     out << "import com.statespec.backend.Backend.CollectionDescriptor;\n";
     out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
+    out << "import com.statespec.backend.Backend.IndexDescriptor;\n";
     out << "import com.statespec.backend.Queue.QueueDefinition;\n";
     out << "import com.statespec.backend.Workflow.WorkflowDefinition;\n";
     out << "import com.statespec.backend.Workflow.WorkflowStepDefinition;\n";
@@ -489,7 +490,27 @@ std::string generate_descriptors_java(const IrSystem& system)
                 out << java_string(entity.key_fields[i]);
             }
             out << "),\n";
-            out << "                List.of(),\n";
+            out << "                List.of(\n";
+            for (std::size_t i = 0; i < entity.indexes.size(); ++i)
+            {
+                const auto& index = entity.indexes[i];
+                out << "                    new IndexDescriptor(\n";
+                out << "                        " << java_string(index.name) << ",\n";
+                out << "                        List.of(";
+                for (std::size_t field_index = 0; field_index < index.fields.size(); ++field_index)
+                {
+                    if (field_index > 0)
+                    {
+                        out << ", ";
+                    }
+                    out << java_string(index.fields[field_index]);
+                }
+                out << "),\n";
+                out << "                        " << (index.unique ? "true" : "false") << "\n";
+                out << "                    )" << (i + 1 < entity.indexes.size() ? "," : "")
+                    << "\n";
+            }
+            out << "                ),\n";
             out << "                1L\n";
             out << "            )";
             out << (entity_index + 1 < system.entities.size() ? "," : "") << "\n";

@@ -487,7 +487,25 @@ std::string generate_system_descriptors_header(const IrSystem& system)
             out << cpp_string(entity.key_fields[i]);
         }
         out << "},\n";
-        out << "            {},\n";
+        out << "            {\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "                statespec::backend::IndexDescriptor{\n";
+            out << "                    " << cpp_string(index.name) << ",\n";
+            out << "                    {";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << cpp_string(index.fields[i]);
+            }
+            out << "},\n";
+            out << "                    " << (index.unique ? "true" : "false") << ",\n";
+            out << "                },\n";
+        }
+        out << "            },\n";
         out << "            1,\n";
         out << "        },\n";
     }
