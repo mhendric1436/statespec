@@ -60,8 +60,12 @@ include/statespec/generator_rust.hpp
 Template source:
 
 ```text
+bindings/cpp/json.hpp
 bindings/cpp/backend.hpp
+bindings/cpp/feature_flag.hpp
 bindings/cpp/lease.hpp
+bindings/cpp/log.hpp
+bindings/cpp/metric.hpp
 bindings/cpp/queue.hpp
 bindings/cpp/workflow.hpp
 ```
@@ -69,8 +73,12 @@ bindings/cpp/workflow.hpp
 Generated output layout:
 
 ```text
+<out>/json.hpp
 <out>/backend.hpp
+<out>/feature_flag.hpp
 <out>/lease.hpp
+<out>/log.hpp
+<out>/metric.hpp
 <out>/queue.hpp
 <out>/workflow.hpp
 <out>/system_descriptors.hpp
@@ -81,8 +89,12 @@ Generated output layout:
 Template source:
 
 ```text
+bindings/go/backend/json.go
 bindings/go/backend/backend.go
+bindings/go/backend/feature_flag.go
 bindings/go/backend/lease.go
+bindings/go/backend/log.go
+bindings/go/backend/metric.go
 bindings/go/backend/queue.go
 bindings/go/backend/workflow.go
 ```
@@ -90,8 +102,12 @@ bindings/go/backend/workflow.go
 Generated output layout:
 
 ```text
+<out>/backend/json.go
 <out>/backend/backend.go
+<out>/backend/feature_flag.go
 <out>/backend/lease.go
+<out>/backend/log.go
+<out>/backend/metric.go
 <out>/backend/queue.go
 <out>/backend/workflow.go
 <out>/backend/descriptors.go
@@ -102,8 +118,12 @@ Generated output layout:
 Template source:
 
 ```text
+bindings/java/com/statespec/backend/Json.java
 bindings/java/com/statespec/backend/Backend.java
+bindings/java/com/statespec/backend/FeatureFlag.java
 bindings/java/com/statespec/backend/Lease.java
+bindings/java/com/statespec/backend/Log.java
+bindings/java/com/statespec/backend/Metric.java
 bindings/java/com/statespec/backend/Queue.java
 bindings/java/com/statespec/backend/Workflow.java
 ```
@@ -111,8 +131,12 @@ bindings/java/com/statespec/backend/Workflow.java
 Generated output layout:
 
 ```text
+<out>/com/statespec/backend/Json.java
 <out>/com/statespec/backend/Backend.java
+<out>/com/statespec/backend/FeatureFlag.java
 <out>/com/statespec/backend/Lease.java
+<out>/com/statespec/backend/Log.java
+<out>/com/statespec/backend/Metric.java
 <out>/com/statespec/backend/Queue.java
 <out>/com/statespec/backend/Workflow.java
 <out>/com/statespec/generated/Descriptors.java
@@ -123,8 +147,12 @@ Generated output layout:
 Template source:
 
 ```text
+bindings/rust/json.rs
 bindings/rust/backend.rs
+bindings/rust/feature_flag.rs
 bindings/rust/lease.rs
+bindings/rust/log.rs
+bindings/rust/metric.rs
 bindings/rust/queue.rs
 bindings/rust/workflow.rs
 ```
@@ -132,8 +160,12 @@ bindings/rust/workflow.rs
 Generated output layout:
 
 ```text
+<out>/json.rs
 <out>/backend.rs
+<out>/feature_flag.rs
 <out>/lease.rs
+<out>/log.rs
+<out>/metric.rs
 <out>/queue.rs
 <out>/workflow.rs
 <out>/descriptors.rs

@@ -552,7 +552,14 @@ GenerationResult generate_cpp_bindings(
     const std::filesystem::path template_root{"bindings/cpp"};
 
     add_template_file(
+        result, options.output_dir, template_root / "json.hpp", "json.hpp", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, template_root / "backend.hpp", "backend.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "feature_flag.hpp", "feature_flag.hpp",
+        diagnostics
     );
     add_template_file(
         result, options.output_dir, template_root / "lease.hpp", "lease.hpp", diagnostics

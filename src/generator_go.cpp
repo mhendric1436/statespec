@@ -158,7 +158,7 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\t\"context\"\n";
     out << "\t\"time\"\n";
     out << ")\n\n";
-    out << "type LeaseDefinition struct {\n";
+    out << "type LeaseDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tResource *string\n";
     out << "\tTTL time.Duration\n";
@@ -167,7 +167,7 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tFencingToken bool\n";
     out << "\tMaxTTL *time.Duration\n";
     out << "}\n\n";
-    out << "type FeatureFlagDefinition struct {\n";
+    out << "type FeatureFlagDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tType string\n";
     out << "\tDefaultValue string\n";
@@ -208,8 +208,8 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "func stringPtr(value string) *string { return &value }\n";
     out << "func durationPtr(value time.Duration) *time.Duration { return &value }\n\n";
 
-    out << "func FeatureFlagDefinitions() []FeatureFlagDefinition {\n";
-    out << "\treturn []FeatureFlagDefinition{\n";
+    out << "func FeatureFlagDefinitions() []FeatureFlagDescriptor {\n";
+    out << "\treturn []FeatureFlagDescriptor{\n";
     for (const auto& flag : system.feature_flags)
     {
         out << "\t\t{\n";
@@ -363,14 +363,14 @@ std::string generate_descriptors_go(const IrSystem& system)
             << " * time.Second,\n";
         out << "\t\t\tMaxAttempts: " << queue.max_attempts.value_or(1) << ",\n";
         out << "\t\t\tDeadLetterQueue: " << string_ptr_expr(queue.dead_letter) << ",\n";
-        out << "\t\t\tMetadata: JSON(`{}`),\n";
+        out << "\t\t\tMetadata: JSONObject(map[string]JSON{}),\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";
     out << "}\n\n";
 
-    out << "func LeaseDefinitions() []LeaseDefinition {\n";
-    out << "\treturn []LeaseDefinition{\n";
+    out << "func LeaseDefinitions() []LeaseDescriptor {\n";
+    out << "\treturn []LeaseDescriptor{\n";
     for (const auto& lease : system.leases)
     {
         out << "\t\t{\n";
@@ -407,7 +407,7 @@ std::string generate_descriptors_go(const IrSystem& system)
                 << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
         }
         out << "\t\t\t},\n";
-        out << "\t\t\tMetadata: JSON(`{}`),\n";
+        out << "\t\t\tMetadata: JSONObject(map[string]JSON{}),\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";
@@ -508,7 +508,14 @@ GenerationResult generate_go_bindings(
     const std::filesystem::path template_root{"bindings/go/backend"};
 
     add_template_file(
+        result, options.output_dir, template_root / "json.go", "backend/json.go", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, template_root / "backend.go", "backend/backend.go", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "feature_flag.go", "backend/feature_flag.go",
+        diagnostics
     );
     add_template_file(
         result, options.output_dir, template_root / "lease.go", "backend/lease.go", diagnostics

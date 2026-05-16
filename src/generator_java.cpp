@@ -546,8 +546,16 @@ GenerationResult generate_java_bindings(
     const std::filesystem::path output_root{"com/statespec/backend"};
 
     add_template_file(
+        result, options.output_dir, template_root / "Json.java", output_root / "Json.java",
+        diagnostics
+    );
+    add_template_file(
         result, options.output_dir, template_root / "Backend.java", output_root / "Backend.java",
         diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "FeatureFlag.java",
+        output_root / "FeatureFlag.java", diagnostics
     );
     add_template_file(
         result, options.output_dir, template_root / "Lease.java", output_root / "Lease.java",

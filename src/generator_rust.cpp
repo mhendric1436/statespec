@@ -530,7 +530,14 @@ GenerationResult generate_rust_bindings(
     const std::filesystem::path template_root{"bindings/rust"};
 
     add_template_file(
+        result, options.output_dir, template_root / "json.rs", "json.rs", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, template_root / "backend.rs", "backend.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "feature_flag.rs", "feature_flag.rs",
+        diagnostics
     );
     add_template_file(
         result, options.output_dir, template_root / "lease.rs", "lease.rs", diagnostics
