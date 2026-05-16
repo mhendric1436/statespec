@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{Backend, BackendResult, Transaction};
+use crate::backend::{Backend, BackendResult};
 
 #[derive(Debug, Clone)]
 pub struct LeaseDefinitionId {

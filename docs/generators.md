@@ -52,8 +52,8 @@ Generated feature flag metadata includes:
 - description
 - expires
 
-Runtime feature flag storage and evaluation are not generated yet. Generated descriptors
-should be treated as passive metadata until runtime support is added.
+Runtime feature flag evaluation is not generated yet. Generated descriptors can be used
+to register feature flag definitions into a backend-provided feature flag store.
 
 Generated log metadata includes:
 
@@ -78,6 +78,18 @@ The generated observability descriptor APIs are:
 | Go | `LogDefinitions()` | `MetricDefinitions()` |
 | Java | `logDefinitions()` | `metricDefinitions()` |
 | Rust | `log_definitions()` | `metric_definitions()` |
+
+The generated transaction-scoped runtime bootstrap APIs are:
+
+| Language | Feature flags | Queues | Leases | Full catalog |
+|---|---|---|---|---|
+| C++ | `register_feature_flag_definitionsTx` | `create_queue_definitionsTx` | `register_lease_definitionsTx` | `register_runtime_catalogTx` |
+| Go | `RegisterFeatureFlagDefinitionsTx` | `CreateQueueDefinitionsTx` | `RegisterLeaseDefinitionsTx` | `RegisterRuntimeCatalogTx` |
+| Java | `registerFeatureFlagDefinitionsTx` | `createQueueDefinitionsTx` | `registerLeaseDefinitionsTx` | `registerRuntimeCatalogTx` |
+| Rust | `register_feature_flag_definitions_tx` | `create_queue_definitions_tx` | `register_lease_definitions_tx` | `register_runtime_catalog_tx` |
+
+These helpers accept caller-managed OCC transaction objects and backend catalog stores,
+matching the binding model used for leases, queues, workflows, logs, and metrics.
 
 Generated binding packages also include separate runtime log and metric request and sink
 types:

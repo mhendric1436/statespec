@@ -1,6 +1,7 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{Backend, BackendResult, Json};
+use crate::backend::{Backend, BackendResult};
+use crate::json::Json;
 
 #[derive(Debug, Clone)]
 pub struct QueueDefinition {

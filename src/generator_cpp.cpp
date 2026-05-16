@@ -153,6 +153,8 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"backend.hpp\"\n";
+    out << "#include \"feature_flag.hpp\"\n";
+    out << "#include \"lease.hpp\"\n";
     out << "#include \"log.hpp\"\n";
     out << "#include \"metric.hpp\"\n";
     out << "#include \"queue.hpp\"\n";
@@ -607,9 +609,117 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    return statespec::backend::MetricKind::Counter;\n";
     out << "}\n\n";
 
+    out << "inline statespec::backend::FeatureFlagType feature_flag_type_from_string(\n";
+    out << "    std::string_view type\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    if (type == \"string\") { return statespec::backend::FeatureFlagType::String; }\n";
+    out << "    if (type == \"int\") { return statespec::backend::FeatureFlagType::Integer; }\n";
+    out << "    if (type == \"decimal\") { return statespec::backend::FeatureFlagType::Decimal; "
+           "}\n";
+    out << "    return statespec::backend::FeatureFlagType::Bool;\n";
+    out << "}\n\n";
+
+    out << "inline statespec::backend::FeatureFlagScopeKind feature_flag_scope_from_string(\n";
+    out << "    std::string_view scope\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    if (scope == \"system\") { return "
+           "statespec::backend::FeatureFlagScopeKind::System; }\n";
+    out << "    if (scope == \"user\") { return statespec::backend::FeatureFlagScopeKind::User; "
+           "}\n";
+    out << "    if (scope.rfind(\"entity \", 0) == 0) { return "
+           "statespec::backend::FeatureFlagScopeKind::Entity; }\n";
+    out << "    return statespec::backend::FeatureFlagScopeKind::Tenant;\n";
+    out << "}\n\n";
+
+    out << "inline statespec::backend::FeatureFlagValue feature_flag_value_from_descriptor(\n";
+    out << "    const FeatureFlagDefinition& definition\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    if (definition.type == \"string\")\n";
+    out << "    {\n";
+    out << "        return "
+           "statespec::backend::FeatureFlagValue::string_value(definition.default_value);\n";
+    out << "    }\n";
+    out << "    if (definition.type == \"int\")\n";
+    out << "    {\n";
+    out << "        return "
+           "statespec::backend::FeatureFlagValue::integer_value(std::stoll(definition.default_"
+           "value));\n";
+    out << "    }\n";
+    out << "    if (definition.type == \"decimal\")\n";
+    out << "    {\n";
+    out << "        return "
+           "statespec::backend::FeatureFlagValue::decimal_value(std::stod(definition.default_value)"
+           ");\n";
+    out << "    }\n";
+    out << "    return statespec::backend::FeatureFlagValue::bool_value(definition.default_value "
+           "== \"true\");\n";
+    out << "}\n\n";
+
     out << "inline void ensure_system_collections(statespec::backend::IBackend& backend)\n";
     out << "{\n";
     out << "    backend.ensure_collections(collection_descriptors());\n";
+    out << "}\n\n";
+
+    out << "inline void register_feature_flag_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::IFeatureFlagStore& store\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    for (const auto& definition : feature_flag_definitions())\n";
+    out << "    {\n";
+    out << "        store.register_definitionTx(\n";
+    out << "            tx,\n";
+    out << "            statespec::backend::FeatureFlagDefinition{\n";
+    out << "                definition.name,\n";
+    out << "                feature_flag_type_from_string(definition.type),\n";
+    out << "                feature_flag_value_from_descriptor(definition),\n";
+    out << "                feature_flag_scope_from_string(definition.scope),\n";
+    out << "                definition.owner,\n";
+    out << "                definition.description,\n";
+    out << "                definition.expires,\n";
+    out << "            }\n";
+    out << "        );\n";
+    out << "    }\n";
+    out << "}\n\n";
+
+    out << "inline void create_queue_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::IQueueStore& store\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    for (const auto& definition : queue_definitions())\n";
+    out << "    {\n";
+    out << "        store.createTx(tx, statespec::backend::CreateQueueRequest{definition});\n";
+    out << "    }\n";
+    out << "}\n\n";
+
+    out << "inline statespec::backend::LeaseDefinition lease_definition_from_descriptor(\n";
+    out << "    const LeaseDefinition& definition\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    return statespec::backend::LeaseDefinition{\n";
+    out << "        statespec::backend::LeaseDefinitionId{definition.name, 1},\n";
+    out << "        definition.resource.value_or(definition.name),\n";
+    out << "        definition.ttl,\n";
+    out << "        definition.renew_every.value_or(definition.ttl),\n";
+    out << "        definition.max_ttl,\n";
+    out << "        definition.fencing_token,\n";
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline void register_lease_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::ILeaseStore& store\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    for (const auto& definition : lease_definitions())\n";
+    out << "    {\n";
+    out << "        store.register_definitionTx(tx, "
+           "lease_definition_from_descriptor(definition));\n";
+    out << "    }\n";
     out << "}\n\n";
 
     out << "inline void register_log_definitionsTx(\n";
@@ -673,6 +783,23 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "            statespec::backend::RegisterWorkflowDefinitionRequest{definition}\n";
     out << "        );\n";
     out << "    }\n";
+    out << "}\n\n";
+
+    out << "inline void register_runtime_catalogTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::IFeatureFlagStore& feature_flag_store,\n";
+    out << "    statespec::backend::IQueueStore& queue_store,\n";
+    out << "    statespec::backend::ILeaseStore& lease_store,\n";
+    out << "    statespec::backend::IWorkflowStore& workflow_store,\n";
+    out << "    statespec::backend::ILogSink& log_sink,\n";
+    out << "    statespec::backend::IMetricSink& metric_sink\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    register_feature_flag_definitionsTx(tx, feature_flag_store);\n";
+    out << "    create_queue_definitionsTx(tx, queue_store);\n";
+    out << "    register_lease_definitionsTx(tx, lease_store);\n";
+    out << "    register_workflow_definitionsTx(tx, workflow_store);\n";
+    out << "    register_observability_catalogTx(tx, log_sink, metric_sink);\n";
     out << "}\n\n";
 
     out << "} // namespace statespec_generated\n";

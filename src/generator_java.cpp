@@ -153,8 +153,11 @@ std::string generate_descriptors_java(const IrSystem& system)
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
     out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.FeatureFlag;\n";
+    out << "import com.statespec.backend.Lease;\n";
     out << "import com.statespec.backend.Log;\n";
     out << "import com.statespec.backend.Metric;\n";
+    out << "import com.statespec.backend.Queue;\n";
     out << "import com.statespec.backend.Workflow;\n";
     out << "import com.statespec.backend.Backend.CollectionDescriptor;\n";
     out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
@@ -614,9 +617,99 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        };\n";
     out << "    }\n\n";
 
+    out << "    private static FeatureFlag.Type featureFlagTypeFromDescriptor(String type) {\n";
+    out << "        return switch (type) {\n";
+    out << "            case \"string\" -> FeatureFlag.Type.STRING;\n";
+    out << "            case \"int\" -> FeatureFlag.Type.INT;\n";
+    out << "            case \"decimal\" -> FeatureFlag.Type.DECIMAL;\n";
+    out << "            default -> FeatureFlag.Type.BOOL;\n";
+    out << "        };\n";
+    out << "    }\n\n";
+
+    out << "    private static FeatureFlag.ScopeKind featureFlagScopeFromDescriptor(String scope) "
+           "{\n";
+    out << "        if (scope.equals(\"system\")) {\n";
+    out << "            return FeatureFlag.ScopeKind.SYSTEM;\n";
+    out << "        }\n";
+    out << "        if (scope.equals(\"user\")) {\n";
+    out << "            return FeatureFlag.ScopeKind.USER;\n";
+    out << "        }\n";
+    out << "        if (scope.startsWith(\"entity \")) {\n";
+    out << "            return FeatureFlag.ScopeKind.ENTITY;\n";
+    out << "        }\n";
+    out << "        return FeatureFlag.ScopeKind.TENANT;\n";
+    out << "    }\n\n";
+
+    out << "    private static FeatureFlag.Value featureFlagValueFromDescriptor(\n";
+    out << "        FeatureFlagDefinition definition\n";
+    out << "    ) {\n";
+    out << "        return switch (definition.type()) {\n";
+    out << "            case \"string\" -> new "
+           "FeatureFlag.Value.StringValue(definition.defaultValue());\n";
+    out << "            case \"int\" -> new "
+           "FeatureFlag.Value.IntValue(Long.parseLong(definition.defaultValue()));\n";
+    out << "            case \"decimal\" -> new "
+           "FeatureFlag.Value.DecimalValue(definition.defaultValue());\n";
+    out << "            default -> new "
+           "FeatureFlag.Value.BoolValue(Boolean.parseBoolean(definition.defaultValue()));\n";
+    out << "        };\n";
+    out << "    }\n\n";
+
+    out << "    private static Lease.LeaseDefinition leaseDefinitionFromDescriptor(\n";
+    out << "        LeaseDefinition definition\n";
+    out << "    ) {\n";
+    out << "        return new Lease.LeaseDefinition(\n";
+    out << "            new Lease.LeaseDefinitionId(definition.name(), 1L),\n";
+    out << "            definition.resource().orElse(definition.name()),\n";
+    out << "            definition.ttl(),\n";
+    out << "            definition.renewEvery().orElse(definition.ttl()),\n";
+    out << "            definition.maxTtl(),\n";
+    out << "            definition.fencingToken()\n";
+    out << "        );\n";
+    out << "    }\n\n";
+
     out << "    public static void ensureSystemCollections(Backend backend)\n";
     out << "        throws Backend.BackendException {\n";
     out << "        backend.ensureCollections(collectionDescriptors());\n";
+    out << "    }\n\n";
+
+    out << "    public static void registerFeatureFlagDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        FeatureFlag store\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        for (var definition : featureFlagDefinitions()) {\n";
+    out << "            store.registerDefinitionTx(\n";
+    out << "                tx,\n";
+    out << "                new FeatureFlag.Definition(\n";
+    out << "                    definition.name(),\n";
+    out << "                    featureFlagTypeFromDescriptor(definition.type()),\n";
+    out << "                    featureFlagValueFromDescriptor(definition),\n";
+    out << "                    featureFlagScopeFromDescriptor(definition.scope()),\n";
+    out << "                    definition.owner(),\n";
+    out << "                    definition.description(),\n";
+    out << "                    definition.expires()\n";
+    out << "                )\n";
+    out << "            );\n";
+    out << "        }\n";
+    out << "    }\n\n";
+
+    out << "    public static void createQueueDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Queue store\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        for (var definition : queueDefinitions()) {\n";
+    out << "            store.createTx(tx, new Queue.CreateQueueRequest(definition));\n";
+    out << "        }\n";
+    out << "    }\n\n";
+
+    out << "    public static void registerLeaseDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Lease store\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        for (var definition : leaseDefinitions()) {\n";
+    out << "            store.registerDefinitionTx(tx, "
+           "leaseDefinitionFromDescriptor(definition));\n";
+    out << "        }\n";
     out << "    }\n\n";
 
     out << "    public static void registerLogDefinitionsTx(\n";
@@ -673,6 +766,21 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "                new Workflow.RegisterWorkflowDefinitionRequest(definition)\n";
     out << "            );\n";
     out << "        }\n";
+    out << "    }\n";
+    out << "\n    public static void registerRuntimeCatalogTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        FeatureFlag featureFlagStore,\n";
+    out << "        Queue queueStore,\n";
+    out << "        Lease leaseStore,\n";
+    out << "        Workflow workflowStore,\n";
+    out << "        Log logSink,\n";
+    out << "        Metric metricSink\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        registerFeatureFlagDefinitionsTx(tx, featureFlagStore);\n";
+    out << "        createQueueDefinitionsTx(tx, queueStore);\n";
+    out << "        registerLeaseDefinitionsTx(tx, leaseStore);\n";
+    out << "        registerWorkflowDefinitionsTx(tx, workflowStore);\n";
+    out << "        registerObservabilityCatalogTx(tx, logSink, metricSink);\n";
     out << "    }\n";
     out << "}\n";
     return out.str();

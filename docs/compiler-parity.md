@@ -32,13 +32,13 @@ Status meanings:
 | `enum` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed before named type generation is complete. |
 | `shape` | complete | complete | complete | complete | complete | complete | partial | P1 | Shape descriptors are generated; target-language type generation is still pending. |
 | `external_system` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P3 | Required for explicit managed/observed ownership modeling. |
-| `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors and bindings exist; generated registration helpers are not complete across all languages/catalogs. |
+| `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime evaluator generation remains future work. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
 | `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; expression typing remains incomplete. |
 | `event` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed to connect APIs, workflows, queues, and workers explicitly. |
-| `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors and bindings exist; generated runtime registration helper is still missing. |
-| `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors and bindings exist; generated runtime registration helper is still missing. |
+| `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding remains future work. |
+| `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve; generator output currently does not produce worker scaffolding. |
 | `api` | complete | complete | partial | partial | partial | complete | not-started | P1 | References resolve, but OpenAPI/server generation and shaped request/response support are not implemented. |
 | `workflow` | complete | complete | complete | complete | complete | complete | partial | P1 | Step descriptors and registration helpers exist; workflow behavior syntax is not represented. |
@@ -77,8 +77,8 @@ Status meanings:
 | Area | Current Status | Priority | Next Work |
 |---|---|---|---|
 | Binding template emission | partial | P0 | Keep generated packages self-contained; add package manifests where practical. |
-| Descriptor generation | partial | P0 | Runtime catalog bootstrap helpers remain the main descriptor-generation gap. |
-| Runtime bootstrap helpers | partial | P1 | Add feature flag, queue, and lease registration/provisioning helpers. |
+| Descriptor generation | partial | P0 | Expand descriptor usage into shape/API generation and worker scaffolding. |
+| Runtime bootstrap helpers | complete | P1 | Transaction-scoped helpers cover feature flags, queues, leases, workflows, logs, and metrics in all generated bindings. |
 | Worker scaffolding | not-started | P2 | Generate language-specific worker skeletons from worker/workflow/queue IR. |
 | API generation | not-started | P1 | Generate OpenAPI or endpoint descriptors once `shape` support exists. |
 | Policy generation | not-started | P3 | Wait for expression parsing/type checking. |
@@ -99,8 +99,9 @@ Status meanings:
    and richer generator usage.
 
 4. **P1: Expand runtime bootstrap helpers across all runtime catalogs.**
-   Feature flags, queues, and leases should have generated transaction-scoped bootstrap
-   helpers like workflows and observability.
+   Implemented: generated bindings now include transaction-scoped helpers for feature
+   flags, queues, leases, workflows, logs, and metrics. Keep future runtime catalogs on
+   the same caller-managed transaction model.
 
 5. **P1: Add workflow behavior IR.**
    Implement `on`, `load`, `require`, and typed step operations before generating worker
