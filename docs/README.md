@@ -13,6 +13,7 @@ system behavior.
 |---|---|
 | [getting-started.md](getting-started.md) | Minimal workflow for creating, validating, and generating from a `.sspec` file. |
 | [language-model.md](language-model.md) | The core StateSpec mental model and declaration types. |
+| [compiler-parity.md](compiler-parity.md) | Grammar-to-compiler implementation matrix and priority order. |
 | [includes.md](includes.md) | Include directives, path resolution, system composition, and file-local tooling behavior. |
 | [entities-and-state.md](entities-and-state.md) | Entity, field, key, state machine, relationship, invariant, and index authoring. |
 | [queues-leases-workers.md](queues-leases-workers.md) | Durable queue, message, lease, and worker declarations. |
@@ -29,9 +30,10 @@ system behavior.
 
 1. Start with [getting-started.md](getting-started.md).
 2. Read [language-model.md](language-model.md) to understand how declarations fit together.
-3. Use the focused guides while authoring specific sections.
-4. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
-5. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
+3. Check [compiler-parity.md](compiler-parity.md) before relying on newer grammar constructs.
+4. Use the focused guides while authoring specific sections.
+5. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
+6. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
 
 ## Source Of Truth
 
