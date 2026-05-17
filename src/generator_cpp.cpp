@@ -97,6 +97,50 @@ std::string strip_optional_suffix(const std::string& type)
     return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
+std::string pascal_identifier(const std::string& value)
+{
+    std::string result;
+    bool upper_next = true;
+    for (const auto ch : value)
+    {
+        if (std::isalnum(static_cast<unsigned char>(ch)) == 0)
+        {
+            upper_next = true;
+            continue;
+        }
+        result.push_back(
+            upper_next ? static_cast<char>(std::toupper(static_cast<unsigned char>(ch))) : ch
+        );
+        upper_next = false;
+    }
+    return result.empty() ? "GeneratedShape" : result;
+}
+
+std::string cpp_shape_type(const std::string& type)
+{
+    const auto optional = is_optional_type(type);
+    const auto base = strip_optional_suffix(type);
+    std::string mapped = "std::string";
+    if (base == "bool")
+    {
+        mapped = "bool";
+    }
+    else if (base == "int" || base == "int32")
+    {
+        mapped = "std::int32_t";
+    }
+    else if (base == "int64" || base == "long")
+    {
+        mapped = "std::int64_t";
+    }
+    else if (base == "double" || base == "decimal")
+    {
+        mapped = "double";
+    }
+
+    return optional ? "std::optional<" + mapped + ">" : mapped;
+}
+
 std::int64_t parse_duration_seconds(const std::optional<std::string>& value)
 {
     if (!value.has_value() || value->empty())
@@ -160,12 +204,24 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "#include \"queue.hpp\"\n";
     out << "#include \"workflow.hpp\"\n\n";
     out << "#include <chrono>\n";
+    out << "#include <cstdint>\n";
     out << "#include <optional>\n";
     out << "#include <string>\n";
     out << "#include <string_view>\n";
     out << "#include <vector>\n\n";
     out << "namespace statespec_generated\n";
     out << "{\n\n";
+    for (const auto& shape : system.shapes)
+    {
+        out << "struct " << pascal_identifier(shape.name) << "\n";
+        out << "{\n";
+        for (const auto& field : shape.fields)
+        {
+            out << "    " << cpp_shape_type(field.type) << " " << field.name << "{};\n";
+        }
+        out << "};\n\n";
+    }
+
     out << "struct LeaseDefinition\n";
     out << "{\n";
     out << "    std::string name;\n";

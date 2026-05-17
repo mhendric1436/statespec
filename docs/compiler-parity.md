@@ -30,7 +30,7 @@ Status meanings:
 | `system_tenant configured` | complete | complete | complete | complete | complete | complete | partial | P1 | Lowered into IR; generated runtime config contract should be expanded. |
 | `value` | complete | complete | complete | complete | complete | complete | partial | P2 | Reusable named value types flow through IR and binding descriptors; target-language type generation remains future work. |
 | `enum` | complete | complete | complete | complete | complete | complete | partial | P2 | Enum declarations and members flow through IR and binding descriptors; target-language enum generation remains future work. |
-| `shape` | complete | complete | complete | complete | complete | complete | partial | P1 | Shape descriptors are generated; target-language type generation is still pending. |
+| `shape` | complete | complete | complete | complete | complete | complete | partial | P1 | Shape descriptors and conservative target-language DTOs are generated; richer custom type mapping remains future work. |
 | `external_system` | complete | complete | complete | complete | complete | complete | partial | P3 | External system properties flow through IR and binding descriptors; ownership-specific semantics remain future work. |
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime evaluator generation remains future work. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
@@ -90,8 +90,10 @@ Status meanings:
    and binding generation behavior while closing known descriptor gaps.
 
 2. **P1: Generate target-language types from `shape`.**
-   Shapes now flow through the compiler and descriptor generators. The next increment is
-   emitting typed request/response structs or classes for each binding language.
+   Implemented: generated bindings now include C++ structs, Go structs, Java records,
+   and Rust structs for each shape using conservative scalar mappings. Next work is
+   richer custom type mapping for value, enum, event, collection, and nested shape
+   fields.
 
 3. **P1: Add ownership, relations, and invariants for entities.**
    Initial descriptor-oriented support is in place. Remaining work is formatter ownership
@@ -122,6 +124,11 @@ Status meanings:
    parsed and validated as named property catalogs, and policies now emit passive
    binding descriptor metadata. Next work is relative namespace lookup, external
    ownership semantics, and generated policy enforcement hooks.
+
+8. **P1: Generate API descriptors from typed shapes.**
+   With shape DTO generation in place, the next API-oriented increment is emitting
+   passive API descriptor metadata for method, path, input, output, error, workflow
+   starts, and queue enqueue targets.
 
 ## Pull Request Rule
 

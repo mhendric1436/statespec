@@ -95,6 +95,50 @@ std::string strip_optional_suffix(const std::string& type)
     return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
+std::string pascal_identifier(const std::string& value)
+{
+    std::string result;
+    bool upper_next = true;
+    for (const auto ch : value)
+    {
+        if (std::isalnum(static_cast<unsigned char>(ch)) == 0)
+        {
+            upper_next = true;
+            continue;
+        }
+        result.push_back(
+            upper_next ? static_cast<char>(std::toupper(static_cast<unsigned char>(ch))) : ch
+        );
+        upper_next = false;
+    }
+    return result.empty() ? "GeneratedShape" : result;
+}
+
+std::string rust_shape_type(const std::string& type)
+{
+    const auto optional = is_optional_type(type);
+    const auto base = strip_optional_suffix(type);
+    std::string mapped = "String";
+    if (base == "bool")
+    {
+        mapped = "bool";
+    }
+    else if (base == "int" || base == "int32")
+    {
+        mapped = "i32";
+    }
+    else if (base == "int64" || base == "long")
+    {
+        mapped = "i64";
+    }
+    else if (base == "double" || base == "decimal")
+    {
+        mapped = "f64";
+    }
+
+    return optional ? "Option<" + mapped + ">" : mapped;
+}
+
 long long parse_duration_seconds(const std::optional<std::string>& value)
 {
     if (!value.has_value() || value->empty())
@@ -166,6 +210,17 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "use crate::queue::{CreateQueueRequest, QueueDefinition, QueueStore};\n";
     out << "use crate::workflow::{RegisterWorkflowDefinitionRequest, WorkflowDefinition, "
            "WorkflowStepDefinition, WorkflowStore};\n\n";
+    for (const auto& shape : system.shapes)
+    {
+        out << "#[derive(Debug, Clone)]\n";
+        out << "pub struct " << pascal_identifier(shape.name) << " {\n";
+        for (const auto& field : shape.fields)
+        {
+            out << "    pub " << field.name << ": " << rust_shape_type(field.type) << ",\n";
+        }
+        out << "}\n\n";
+    }
+
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct LeaseDefinition {\n";
     out << "    pub name: String,\n";

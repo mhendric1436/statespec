@@ -70,6 +70,17 @@ Generated shape metadata includes:
 - name
 - typed fields
 
+Generated bindings also include conservative target-language DTOs for shapes:
+
+- C++ emits a `struct` per shape in `system_descriptors.hpp`.
+- Go emits an exported `struct` per shape in `backend/descriptors.go`.
+- Java emits a `record` per shape in `Descriptors.java`.
+- Rust emits a `struct` per shape in `descriptors.rs`.
+
+Initial DTO type mapping covers scalar primitives directly and represents custom,
+temporal, UUID, JSON, collection, and reference types as strings. Descriptor metadata
+continues to preserve the exact StateSpec type for downstream tools.
+
 Generated feature flag metadata includes:
 
 - name
