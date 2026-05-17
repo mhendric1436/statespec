@@ -152,6 +152,8 @@ print-files:
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -rf bindings/rust/target
+	rm -f bindings/rust/Cargo.lock
 	rm -f $(DIAGRAMS_DIR)/*.png
 	$(MAKE) -C bindings/cpp clean
 	$(MAKE) -C bindings/go clean
