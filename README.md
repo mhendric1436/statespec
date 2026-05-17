@@ -2,175 +2,283 @@
 
 # StateSpec
 
-> A canonical design language for distributed systems and their backend-neutral runtime model.
+> A canonical design language and C++20 compiler/generator toolchain for backend-neutral distributed system specifications.
 
-StateSpec is a structured specification language for describing distributed systems with
-explicit entities, lifecycle state, APIs, workflows, queues, leases, logs, metrics,
-policies, and backend requirements.
+StateSpec describes distributed systems as durable state, explicit lifecycle transitions, asynchronous workflows, queues, leases, workers, APIs, policies, observability contracts, feature flags, and generator targets.
 
-A StateSpec file is intended to be the source of truth for system behavior. From that
-source, tooling can derive schemas, API contracts, workflow definitions, queue and lease
-metadata, log and metric descriptors, validators, tests, diagrams, and integration
-scaffolding.
+A `.sspec` file is intended to be the source of truth for system behavior. Tooling can validate it, inspect tokens and AST output, and generate language binding metadata for runtime libraries.
 
 ---
 
-## Why StateSpec?
+## Current Implementation
 
-Modern distributed systems are difficult to reason about because behavior is usually
-spread across disconnected artifacts:
-
-- API contracts describe external shape but not lifecycle state.
-- Database schemas describe storage but not invariants or orchestration.
-- Queue and worker code often embeds retry, ownership, and idempotency rules in ad hoc ways.
-- Lease and coordination logic is often reimplemented differently across services.
-- Logs and metrics are frequently implicit in application code rather than declared as
-  stable operational contracts.
-- Design documents become stale and are not executable or mechanically validated.
-
-StateSpec addresses this by making system behavior explicit, structured, canonical, and
-generator-friendly.
-
----
-
-## Core Idea
-
-A distributed system can be modeled as durable state plus deterministic transitions over
-that state.
-
-StateSpec captures the main concepts in one place:
-
-| Concept | Purpose |
-|---|---|
-| Entities | Durable domain objects, fields, keys, relationships, indexes, and invariants |
-| State machines | Legal lifecycle states, transitions, and transition guards |
-| APIs | External contracts and intent-oriented operations |
-| Workflows | Long-running asynchronous orchestration |
-| Queues | Durable async commands, events, and worker dispatch |
-| Leases | Exclusive ownership, leadership, fencing, and coordination |
-| Logs | Structured operational event contracts |
-| Metrics | Counter, gauge, and histogram contracts |
-| Policies | Tenant, authorization, quota, and operational constraints |
-| Generators | Deterministic output from the canonical model |
-
----
-
-## Canonical Language Model
-
-StateSpec models these first-class concepts:
+This repository is a C++20 implementation of the StateSpec compiler and generator toolchain.
 
 ```text
+include/statespec/   public compiler and generator headers
+src/                 lexer, parser, validator, and generator implementation
+cmd/                 statespec CLI
+tests/               C++ and shell-based regression tests
+grammar/             StateSpec grammar reference
+examples/            example .sspec files
+bindings/            generated/runtime binding surfaces for supported languages
+diagrams/            PlantUML architecture diagrams
+docs/                design notes and binding documentation
+```
+
+The build produces:
+
+```text
+build/libstatespec.a       compiler and generator library
+build/bin/statespec        CLI
+build/bin/statespec_tests  regression test binary
+```
+
+---
+
+## Build and Test
+
+```sh
+make all
+make test
+make cli
+make help
+```
+
+Useful maintenance targets:
+
+```sh
+make format
+make format-check
+make test-bindings
+make diagrams-png
+make clean
+```
+
+`make diagrams-png` renders `diagrams/*.puml` into PNG files with PlantUML. The target uses these variables:
+
+```text
+PLANTUML ?= plantuml
+PLANTUML_FLAGS ?= -DPLANTUML_LIMIT_SIZE=16384 -Xmx512m
+```
+
+---
+
+## CLI
+
+```sh
+statespec help
+statespec validate <file.sspec>
+statespec tokens <file.sspec>
+statespec ast <file.sspec>
+statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]
+```
+
+The CLI currently supports validation, token inspection, AST inspection, and binding generation for C++, Go, Java, and Rust.
+
+---
+
+## Language Model
+
+StateSpec models these top-level and nested concepts:
+
+```text
+statespec version
+include
+import
 system
+tenant_scope
+system_tenant
+namespace
+value
+enum
+shape
+external_system
+feature_flag
 entity
 state_machine
-api
-workflow
-step
+state
+transition
+garbage_collection
 queue
 message
 lease
+worker
+api
+workflow
+step
+policy
 log
 metric
-worker
-policy
-generator
+generate
 ```
 
-The language should remain backend-neutral. A specification should describe system
-semantics rather than binding itself to a specific storage engine, queue implementation,
-or workflow runtime.
+The language is backend-neutral. Specifications describe system semantics rather than binding themselves to a specific storage engine, queue implementation, workflow runtime, or transport.
 
-Example:
+---
+
+## Core Concepts
+
+| Concept | Purpose |
+|---|---|
+| Tenant scope | Default tenant field and system tenant configuration |
+| Namespaces | Logical grouping for generated/runtime resources |
+| Values, enums, shapes | Reusable typed model definitions |
+| External systems | Named integration dependencies and properties |
+| Feature flags | Persisted, scoped runtime behavior controls |
+| Entities | Durable domain objects, keys, fields, indexes, relationships, invariants, and state machines |
+| State machines | Lifecycle states, initial state, terminal states, transitions, and terminal cleanup policies |
+| Queues and messages | Durable async dispatch with channels, visibility timeouts, retry limits, and typed payloads |
+| Leases | Exclusive ownership, renewal, max TTL, holders, and fencing tokens |
+| Workers | Queue polling, workflow execution, singleton mode, leases, and concurrency |
+| APIs | External operations, request/response/error shapes, workflow starts, and message enqueue behavior |
+| Workflows | Versioned long-running orchestration with steps, loads, statements, retry limits, and expected execution time |
+| Policies | Tenant scoping, allow/deny rules, quotas, and audit declarations |
+| Logs and metrics | Stable operational event and measurement contracts |
+| Generators | Deterministic output targets from the canonical model |
+
+---
+
+## Example
+
+See [`examples/order-system.sspec`](examples/order-system.sspec) for a complete example. A shortened shape is shown below.
 
 ```statespec
+statespec 0.1;
+
 system OrderSystem {
-  entity Order { ... }
-  workflow OrderProcessing { ... }
-  queue EmailDispatch { ... }
-  lease OrderReconciler { ... }
-  log WorkflowLaunchDecision { ... }
-  metric WorkflowLaunchAttempts { ... }
-  api StartOrderProcessing { ... }
+  entity Order {
+    key tenant_id, order_id
+
+    fields {
+      tenant_id string
+      order_id string
+      customer_id string
+      status string
+      total_cents int64
+      created_at timestamp
+      updated_at timestamp?
+    }
+
+    state_machine {
+      state Created
+      state Validated
+      state PaymentPending
+      state Paid
+      state Fulfilled
+      state Cancelled
+      state Failed
+
+      initial Created
+      terminal [Fulfilled, Cancelled, Failed]
+
+      Created -> Validated
+      Validated -> PaymentPending
+      PaymentPending -> Paid
+      Paid -> Fulfilled
+      Created -> Cancelled
+      PaymentPending -> Failed
+    }
+  }
+
+  queue OrderEvents {
+    namespace workflow_ns
+    channel order-events
+    visibility_timeout PT30S
+    max_attempts 5
+
+    message OrderValidated {
+      idempotency_key message_id
+      payload {
+        message_id string
+        tenant_id string
+        order_id string
+      }
+    }
+  }
+
+  lease OrderWorkflowLease {
+    resource "workflow:order-processing"
+    ttl PT30S
+    renew_every PT10S
+    holder worker_id
+    fencing_token true
+    max_ttl PT5M
+  }
+
+  workflow OrderProcessing {
+    version 1
+    singleton false
+    expected_execution_time PT5M
+    start validate_order
+
+    step validate_order {
+      expected_execution_time PT10S
+      max_retries 2
+    }
+  }
+
+  worker OrderWorkflowWorker {
+    singleton true
+    lease OrderWorkflowLease
+    polls OrderEvents.OrderValidated
+    executes OrderProcessing
+    concurrency 4
+  }
+
+  api StartOrderProcessing {
+    method POST
+    path "/v1/tenants/{tenantId}/orders/{orderId}/start"
+    input StartOrderProcessingRequest
+    output StartOrderProcessingResponse
+    error ProblemDetails
+    starts workflow OrderProcessing
+    enqueues OrderEvents.OrderValidated
+  }
+
+  policy OrderAccess {
+    tenant scoped_by tenant_id
+    allow StartOrderProcessing when caller.role == operator;
+    deny StartOrderProcessing when caller.suspended == true;
+    quota starts_per_minute: 60;
+    audit StartOrderProcessing;
+  }
+
+  generate mt { out "generated/mt" }
+  generate dl { out "generated/dl" }
+  generate qu { out "generated/qu" }
+  generate wf { out "generated/wf" }
+  generate openapi { out "generated/openapi" }
 }
 ```
 
-Log and metric declarations are system-level grammar constructs:
+---
 
-```statespec
-log Name {
-  level info
-  event_name "stable.event.name"
+## Feature Flags
 
-  fields {
-    field_name string
-  }
-}
+Feature flags are first-class system declarations. They are modeled as persisted-state runtime controls so generated services and workflows can evaluate them inside the same optimistic-concurrency transaction as other behavior-affecting reads.
 
-metric Name {
-  kind counter
-  name "stable_metric_name_total"
-  unit count
+A feature flag can describe:
 
-  labels {
-    label_name string
-  }
-}
+```text
+name
+type
+default
+scope
+owner
+description
+expires
 ```
 
-Logs require `level` and `event_name`. Supported levels are `debug`, `info`, `warn`, and
-`error`. Metrics require `kind`, `name`, and `unit`. Supported kinds are `counter`,
-`gauge`, and `histogram`.
-
-See [`docs/observability.md`](docs/observability.md) for the full log and metric
-authoring guide.
+Feature flag runtime support is represented in the binding/OCC model through a `FeatureFlagStore` with transaction-aware evaluation APIs.
 
 ---
 
-## Design Principles
+## Backend Abstraction and OCC Model
 
-### Canonical structure
+StateSpec defines an OCC-centered backend abstraction so generated runtimes can share one consistency doctrine across concrete implementations.
 
-There should be one preferred way to express each concept.
-
-### Explicit state
-
-Important lifecycle states, transitions, ownership rules, retry behavior, and invariants
-should be represented directly in the specification.
-
-### Deterministic behavior
-
-Generated artifacts should be deterministic. Hidden side effects and ambiguous
-transitions should be avoided.
-
-### Backend independence
-
-The language should describe the system without depending on a concrete runtime,
-storage engine, database, or transport.
-
-### Durable coordination
-
-Workflow communication, queue dispatch, and exclusive ownership should be expressed in
-terms of durable state, durable messages, or explicit leases rather than transient
-in-memory coordination.
-
-### Declared observability
-
-Logs and metrics should be declared as stable contracts with typed fields and labels
-rather than hidden in runtime implementation code.
-
-### Text is the source of truth
-
-Visual tools, diagrams, generated code, runtime configuration, and tests should be
-derived from the canonical text specification.
-
----
-
-## Backend Abstraction Model
-
-StateSpec defines an OCC-centered backend abstraction so generated runtimes can share one
-consistency doctrine across multiple concrete implementations.
-
-The backend model is intentionally small:
+The core backend model includes:
 
 ```text
 CollectionDescriptor
@@ -184,36 +292,6 @@ Transaction
 Backend
 ```
 
-The core backend contract provides:
-
-```text
-capabilities
-ensure_collection
-ensure_collections
-begin
-get
-query
-put
-erase
-commit
-abort
-```
-
-`ensure_collections` accepts a list of `CollectionDescriptor` records so generated
-systems can provision all required collections with one API call.
-
----
-
-## Optimistic Concurrency Control
-
-Optimistic concurrency control is the shared consistency model behind the backend
-abstraction.
-
-A transaction reads versioned records, computes deterministic changes, and commits only
-if the state it depended on has not changed. If another writer changes a record or
-predicate first, the commit reports a semantic conflict and the caller can retry from a
-fresh read.
-
 The common rule is:
 
 ```text
@@ -224,164 +302,7 @@ commit only if observed versions are still current
 retry safely on conflict
 ```
 
-Concrete backend adapters may implement this with different native mechanisms:
-
-```text
-in-memory maps and version counters
-SQL rows, indexes, transactions, and version columns
-key-value prefixes and conditional updates
-MVCC snapshots and conflict ranges
-future durable storage engines
-```
-
-StateSpec-generated semantics should depend on the abstraction rather than the physical
-implementation details.
-
----
-
-## Runtime Component Abstractions
-
-The backend bindings define generalized component abstractions for common distributed
-systems primitives.
-
-### Leases
-
-Leases model exclusive ownership with expiry and fencing tokens.
-
-Typical operations:
-
-```text
-acquire
-renew
-release
-inspect
-```
-
-### Queues
-
-Queues model durable messages with explicit queue definitions, visibility timeouts,
-claiming, retries, acknowledgement, and optional dead-letter routing.
-
-Typical operations:
-
-```text
-create
-inspect definition
-enqueue
-claim
-acknowledge
-fail
-inspect message
-```
-
-Queue creation is idempotent. The queue identity is:
-
-```text
-(queue, channel)
-```
-
-### Workflows
-
-Workflows model immutable workflow definitions and durable workflow executions.
-
-Typical operations:
-
-```text
-register definition
-inspect definition
-start
-claim steps
-complete step
-fail step
-cancel
-inspect execution
-```
-
-Workflow definition registration is immutable. The workflow definition identity is:
-
-```text
-(workflow_name, workflow_version)
-```
-
-A changed workflow definition should be registered with a new incremented version.
-
-### Logs
-
-Logs model structured operational events with stable backend event names and typed
-fields.
-
-Typical operations:
-
-```text
-emit log event
-```
-
-Example declaration:
-
-```statespec
-log WorkflowLaunchDecision {
-  level info
-  event_name "workflow.launch.decision"
-
-  fields {
-    tenant_id string
-    workflow_name string
-    decision string
-  }
-}
-```
-
-### Metrics
-
-Metrics model operational measurements with stable backend metric names, units, and
-low-cardinality labels.
-
-Typical operations:
-
-```text
-record metric sample
-```
-
-Example declaration:
-
-```statespec
-metric WorkflowLaunchAttempts {
-  kind counter
-  name "workflow_launch_attempts_total"
-  unit count
-
-  labels {
-    tenant_id string
-    workflow_name string
-    decision string
-  }
-}
-```
-
----
-
-## Transaction Call Styles
-
-Runtime component APIs support two call styles.
-
-### Backend-managed calls
-
-Backend-managed methods receive a backend and manage the transaction internally:
-
-```text
-begin transaction
-perform component operation
-commit on success
-abort on failure
-```
-
-### Caller-managed calls
-
-Transaction methods receive an existing transaction so a caller can compose entity,
-lease, queue, workflow, log, metric, and policy operations into one atomic unit.
-
-All bindings use a `Tx` suffix for caller-managed transaction variants, adapted to each
-language's naming conventions.
+Runtime component APIs support backend-managed calls and caller-managed transaction calls. Caller-managed variants use a `Tx` suffix, adapted to each language's naming conventions.
 
 ---
 
@@ -396,119 +317,59 @@ Reference backend and runtime component bindings are provided for:
 | Java | [`bindings/java/README.md`](bindings/java/README.md) |
 | Rust | [`bindings/rust/README.md`](bindings/rust/README.md) |
 
-The shared binding documentation is in
-[`docs/backend-abstractions.md`](docs/backend-abstractions.md).
+Shared binding documentation is in [`docs/backend-abstractions.md`](docs/backend-abstractions.md).
 
-Generated binding packages include split runtime component files for logs and metrics:
-
-| Language | Log runtime | Metric runtime |
-|---|---|---|
-| C++ | `log.hpp` | `metric.hpp` |
-| Go | `backend/log.go` | `backend/metric.go` |
-| Java | `com/statespec/backend/Log.java` | `com/statespec/backend/Metric.java` |
-| Rust | `log.rs` | `metric.rs` |
-
-These files expose separate log and metric sink interfaces so applications can depend on
-only the runtime surface they need.
-
-Build tool installation and binding-local build instructions are documented in
-[`docs/build-tools.md`](docs/build-tools.md).
+Generated binding packages include separate runtime surfaces for backend operations, queues, leases, workflows, logs, metrics, and feature flags where supported by the binding.
 
 ---
 
-## Repository Layout
+## Diagrams
+
+PlantUML source diagrams are maintained in [`diagrams/`](diagrams/):
 
 ```text
-bindings/            reference backend and runtime component interfaces
-cmd/                 StateSpec CLI entry points
-docs/                programmer guides and abstraction documentation
-examples/            example specifications
-grammar/             grammar reference
-include/             public compiler/generator headers
-src/                 lexer, parser, validator, and generator implementation
-tests/               regression tests
+diagrams/compiler-pipeline.puml
+diagrams/language-model.puml
+diagrams/runtime-occ-bindings.puml
+```
+
+Generate PNG diagrams with:
+
+```sh
+make diagrams-png
 ```
 
 ---
 
-## Example Specification Shape
+## Design Principles
 
-```statespec
-system OrderSystem {
-  entity Order {
-    key tenant_id, order_id
+### Canonical structure
 
-    fields {
-      created_at timestamp
-      updated_at timestamp
-      status string
-      tenant_id string
-      order_id string
-    }
+There should be one preferred way to express each concept.
 
-    state_machine {
-      Creating -> Active
-      Creating -> Failed
-      Active -> Updating
-      Active -> Deleting
-      Updating -> Active
-      Updating -> Failed
-      Deleting -> Deleted
-      Deleting -> Failed
-      Failed -> Deleting
-    }
-  }
+### Explicit state
 
-  queue EmailDispatch {
-    channel email
-    visibility_timeout PT30S
-  }
+Important lifecycle states, transitions, ownership rules, retry behavior, feature flag decisions, and invariants should be represented directly in the specification.
 
-  lease OrderReconciler {
-    resource "reconciler:orders"
-    ttl PT30S
-    fencing_token true
-  }
+### Deterministic behavior
 
-  log WorkflowLaunchDecision {
-    level info
-    event_name "workflow.launch.decision"
+Generated artifacts should be deterministic. Hidden side effects and ambiguous transitions should be avoided.
 
-    fields {
-      tenant_id string
-      order_id string
-      decision string
-    }
-  }
+### Backend independence
 
-  metric WorkflowLaunchAttempts {
-    kind counter
-    name "workflow_launch_attempts_total"
-    unit count
+The language should describe the system without depending on a concrete runtime, storage engine, database, or transport.
 
-    labels {
-      tenant_id string
-      workflow_name string
-      decision string
-    }
-  }
+### Durable coordination
 
-  workflow OrderProcessing {
-    version 1
-    start validate_order
+Workflow communication, queue dispatch, and exclusive ownership should be expressed in terms of durable state, durable messages, or explicit leases rather than transient in-memory coordination.
 
-    step validate_order {
-      expected_execution_time PT10S
-      max_retries 2
-    }
+### Declared observability
 
-    step send_confirmation {
-      expected_execution_time PT10S
-      max_retries 3
-    }
-  }
-}
-```
+Logs and metrics should be declared as stable contracts with typed fields and labels rather than hidden in runtime implementation code.
+
+### Text is the source of truth
+
+Visual tools, diagrams, generated code, runtime configuration, and tests should be derived from the canonical text specification.
 
 ---
 
@@ -520,54 +381,11 @@ From a single `.sspec` file, StateSpec tooling can derive:
 |---|---|
 | Schemas | entity metadata, collection descriptors, indexes, validation metadata |
 | APIs | OpenAPI, RPC contracts, request/response models, error models |
-| Runtime metadata | workflow definitions, queue definitions, lease definitions, log definitions, metric definitions |
+| Runtime metadata | workflow, queue, lease, worker, log, metric, and feature flag definitions |
 | Code scaffolding | server stubs, client stubs, integration helpers, worker skeletons |
 | Tests | state transition tests, invariant tests, runtime behavior tests |
 | Documentation | architecture docs, diagrams, state machine graphs |
 | Tooling | syntax highlighting, validation, autocomplete, symbol navigation |
-
----
-
-## CLI Shape
-
-```sh
-statespec validate <file>
-statespec fmt <file>
-statespec generate <target> <file>
-statespec graph <file>
-statespec diff <old-file> <new-file>
-```
-
-Generator targets are implementation choices layered on top of the canonical model.
-StateSpec should keep the source language stable even as generator targets evolve.
-
----
-
-## Policy Model
-
-StateSpec can represent policy declarations for hosted or multi-tenant systems.
-
-Example:
-
-```statespec
-policy WorkflowAccess {
-  tenant scoped_by tenant_id
-
-  allow startWorkflowExecution when caller.role in ["operator", "control-plane"]
-  allow pollAndClaimWorkflowSteps when caller.role == "worker"
-}
-```
-
-Policies can derive:
-
-```text
-authorization hooks
-ownership checks
-tenant scoping rules
-quota checks
-audit event definitions
-service-layer validation scaffolding
-```
 
 ---
 
@@ -581,8 +399,7 @@ service-layer validation scaffolding
 
 ## Use Cases
 
-StateSpec is intended for systems where behavior must be precise, durable, and
-reviewable:
+StateSpec is intended for systems where behavior must be precise, durable, and reviewable:
 
 ```text
 cloud control planes
@@ -601,7 +418,7 @@ internal platforms and service orchestration layers
 
 | Tool | Scope | Limitation |
 |---|---|---|
-| OpenAPI | APIs | Does not model lifecycle state, queues, leases, logs, metrics, or workflows |
+| OpenAPI | APIs | Does not model lifecycle state, queues, leases, workers, policies, feature flags, logs, metrics, or workflows |
 | Protobuf | RPC schemas | Does not model lifecycle or orchestration semantics |
 | Terraform | Infrastructure | Does not model runtime behavior |
 | BPMN | Business workflows | Not usually a system implementation specification |
