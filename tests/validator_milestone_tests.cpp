@@ -74,6 +74,13 @@ void validator_accepts_resolved_references()
           shape StartOrderProcessingResponse {
             accepted bool
           }
+          shape OrderProcessingState {
+            attempt int
+          }
+          log OrderStarted {
+            level info
+            event_name "order.started"
+          }
           entity Order {
             key order_id
             fields {
@@ -119,10 +126,29 @@ void validator_accepts_resolved_references()
           }
           workflow OrderProcessing {
             version 1
+            on StartOrderProcessing
+            input StartOrderProcessingRequest
+            state OrderProcessingState
+            load Order by order_id as order
             start validate_order
             step validate_order {
               expected_execution_time PT10S
               max_retries 1
+              require order.status == "Creating";
+              emit OrderStarted {
+                order_id = order.order_id;
+              };
+              enqueue EmailQueue.SendConfirmation {
+                order_id = order.order_id;
+              };
+              acquire lease WorkerLease as workerLease;
+              renew lease WorkerLease;
+              release lease WorkerLease;
+              start workflow OrderProcessing {
+                order_id = order.order_id;
+              };
+              transition_to validate_order;
+              complete;
             }
           }
           worker OrderWorker {
@@ -456,6 +482,95 @@ void validator_rejects_unknown_workflow_start_step()
     require(
         has_error_code(diagnostics, "SSPEC3002"),
         "validator should reject unknown workflow start step"
+    );
+}
+
+void validator_rejects_invalid_workflow_behavior_references()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          shape WorkflowState {
+            attempt int
+          }
+
+          entity Order {
+            key order_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              order_id string
+            }
+            state_machine {
+              state Pending
+              initial Pending
+            }
+          }
+
+          workflow OrderProcessing {
+            version 1
+            on MissingTrigger
+            input MissingInput
+            state MissingState
+            load MissingEntity by order_id as missing
+            load Order by missing_key as order
+            start validate_order
+            step validate_order {
+              expected_execution_time PT10S
+              require feature_enabled(MissingFlag);
+              emit MissingEvent;
+              enqueue MissingQueue.Message;
+              acquire lease MissingLease;
+              start workflow MissingWorkflow;
+              transition_to missing_step;
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow trigger reference"),
+        "validator should reject unknown workflow trigger"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow input reference"),
+        "validator should reject unknown workflow input"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow state reference"),
+        "validator should reject unknown workflow state"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow load entity reference"),
+        "validator should reject unknown workflow load entity"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow load key field reference"),
+        "validator should reject workflow loads by non-key fields"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow emit target reference"),
+        "validator should reject unknown workflow emit targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow enqueue target reference"),
+        "validator should reject unknown workflow enqueue targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow lease target reference"),
+        "validator should reject unknown workflow lease targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow start target reference"),
+        "validator should reject unknown workflow start targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow transition target reference"),
+        "validator should reject unknown workflow transition targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown feature flag reference"),
+        "validator should validate feature flag references in workflow expressions"
     );
 }
 
@@ -855,6 +970,11 @@ TEST_CASE("validator rejects invalid terminal garbage collection")
 TEST_CASE("validator rejects unknown workflow start steps")
 {
     validator_rejects_unknown_workflow_start_step();
+}
+
+TEST_CASE("validator rejects invalid workflow behavior references")
+{
+    validator_rejects_invalid_workflow_behavior_references();
 }
 
 TEST_CASE("validator rejects unknown worker references")

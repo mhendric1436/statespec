@@ -306,6 +306,30 @@ const EntityDecl* find_entity(
     return nullptr;
 }
 
+bool symbol_is_one_of(
+    const Symbol& symbol,
+    const std::vector<SymbolKind>& kinds
+)
+{
+    return std::find(kinds.begin(), kinds.end(), symbol.kind) != kinds.end();
+}
+
+void validate_symbol_reference(
+    const SymbolTable& symbols,
+    const SourceRange& range,
+    const std::string& kind,
+    const std::string& name,
+    const std::vector<SymbolKind>& allowed_kinds,
+    DiagnosticBag& diagnostics
+)
+{
+    const auto symbol = symbols.find(name);
+    if (!symbol.has_value() || !symbol_is_one_of(*symbol, allowed_kinds))
+    {
+        diagnostics.error(range, "SSPEC3002", "unknown " + kind + " reference '" + name + "'");
+    }
+}
+
 std::unordered_set<std::string> entity_state_names(const EntityDecl& entity)
 {
     std::unordered_set<std::string> states;
@@ -1292,6 +1316,7 @@ void validate_leases(
 
 void validate_workflows(
     const SystemDecl& system,
+    const SymbolTable& symbols,
     DiagnosticBag& diagnostics
 )
 {
@@ -1329,6 +1354,49 @@ void validate_workflows(
                 "expected_execution_time"
             );
         }
+        if (workflow.on.has_value())
+        {
+            validate_symbol_reference(
+                symbols, workflow.range, "workflow trigger", *workflow.on,
+                {SymbolKind::Api, SymbolKind::Event, SymbolKind::Message}, diagnostics
+            );
+        }
+        if (workflow.input.has_value() && !is_known_type_reference(*workflow.input, symbols))
+        {
+            unknown_reference_error(diagnostics, workflow.range, "workflow input", *workflow.input);
+        }
+        if (workflow.state.has_value() && !is_known_type_reference(*workflow.state, symbols))
+        {
+            unknown_reference_error(diagnostics, workflow.range, "workflow state", *workflow.state);
+        }
+
+        std::unordered_set<std::string> load_bindings;
+        for (const auto& load : workflow.loads)
+        {
+            if (!load_bindings.insert(load.binding).second)
+            {
+                duplicate_error(diagnostics, load.range, load.binding);
+            }
+
+            const auto* entity = find_entity(system, load.entity);
+            if (entity == nullptr)
+            {
+                unknown_reference_error(
+                    diagnostics, load.range, "workflow load entity", load.entity
+                );
+                continue;
+            }
+
+            const auto key_fields = std::unordered_set<std::string>{
+                entity->key_fields.begin(), entity->key_fields.end()
+            };
+            if (!contains(key_fields, load.key_field))
+            {
+                unknown_reference_error(
+                    diagnostics, load.range, "workflow load key field", load.key_field
+                );
+            }
+        }
 
         std::unordered_set<std::string> steps;
         for (const auto& step : workflow.steps)
@@ -1360,6 +1428,53 @@ void validate_workflows(
                     "workflow step '" + workflow_step_name(workflow, step) + "'", "max_retries"
                 );
             }
+
+            for (const auto& statement : step.statements)
+            {
+                if (statement.expression.has_value())
+                {
+                    validate_feature_flag_expression(
+                        system, statement.range, *statement.expression, diagnostics
+                    );
+                }
+                for (const auto& assignment : statement.payload)
+                {
+                    validate_feature_flag_expression(
+                        system, assignment.range, assignment.expression, diagnostics
+                    );
+                }
+
+                if (statement.kind == "emit" && statement.target.has_value())
+                {
+                    validate_symbol_reference(
+                        symbols, statement.range, "workflow emit target", *statement.target,
+                        {SymbolKind::Event, SymbolKind::Log}, diagnostics
+                    );
+                }
+                else if (statement.kind == "enqueue" && statement.target.has_value())
+                {
+                    validate_symbol_reference(
+                        symbols, statement.range, "workflow enqueue target", *statement.target,
+                        {SymbolKind::Message}, diagnostics
+                    );
+                }
+                else if ((statement.kind == "acquire_lease" || statement.kind == "renew_lease" ||
+                          statement.kind == "release_lease") &&
+                         statement.target.has_value())
+                {
+                    validate_symbol_reference(
+                        symbols, statement.range, "workflow lease target", *statement.target,
+                        {SymbolKind::Lease}, diagnostics
+                    );
+                }
+                else if (statement.kind == "start_workflow" && statement.target.has_value())
+                {
+                    validate_symbol_reference(
+                        symbols, statement.range, "workflow start target", *statement.target,
+                        {SymbolKind::Workflow}, diagnostics
+                    );
+                }
+            }
         }
 
         if (workflow.start_step.has_value() && !contains(steps, *workflow.start_step))
@@ -1367,6 +1482,20 @@ void validate_workflows(
             unknown_reference_error(
                 diagnostics, workflow.range, "workflow start step", *workflow.start_step
             );
+        }
+        for (const auto& step : workflow.steps)
+        {
+            for (const auto& statement : step.statements)
+            {
+                if (statement.kind == "transition_to" && statement.target.has_value() &&
+                    !contains(steps, *statement.target))
+                {
+                    unknown_reference_error(
+                        diagnostics, statement.range, "workflow transition target",
+                        *statement.target
+                    );
+                }
+            }
         }
     }
 }
@@ -1586,7 +1715,7 @@ void Validator::validate(
     validate_entities(system, symbols, diagnostics);
     validate_queues(system, symbols, diagnostics);
     validate_leases(system, diagnostics);
-    validate_workflows(system, diagnostics);
+    validate_workflows(system, symbols, diagnostics);
     validate_workers(system, symbols, diagnostics);
     validate_apis(system, symbols, diagnostics);
     validate_policies(system, symbols, diagnostics);

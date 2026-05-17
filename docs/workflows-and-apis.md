@@ -115,6 +115,11 @@ semantic model, and IR: `on`, `input`, `state`, workflow-level `load`, and step-
 `complete`, and `fail`. Payload-bearing statements should use an explicit semicolon after
 the payload block in the current parser milestone.
 
+Validation checks that workflow triggers, input/state types, loaded entities, load key
+fields, queue messages, leases, started workflows, transition targets, and feature flag
+references resolve against the current system model. General expression type checking and
+nested workflow blocks remain future compiler work.
+
 ## Parent-Child Orchestration
 
 StateSpec supports a durable parent-child orchestration pattern.

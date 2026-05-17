@@ -66,11 +66,11 @@ Status meanings:
 |---|---|---|---|---|---|---|---|---|---|
 | workflow metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Version, singleton, timing, start step, and retry metadata are supported. |
 | `step` metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Current step model is descriptor-oriented. |
-| `on` trigger | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered as a resolved reference where possible; trigger-specific semantic rules remain future work. |
-| `load` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered with entity, key field, and binding metadata; entity key validation remains future work. |
-| `require` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered as a raw expression string; expression parsing and type checking remain future work. |
+| `on` trigger | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed, resolved, and validated against known trigger targets; trigger-specific execution semantics remain future work. |
+| `load` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed, resolved, and validated against entity key fields; loaded binding type propagation remains future work. |
+| `require` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered as a raw expression string; feature flag references are validated, while general expression parsing and type checking remain future work. |
 | `child_set` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P2 | Needed for first-class child orchestration generation. |
-| workflow operations | complete | partial | partial | partial | partial | not-started | not-started | P2 | Linear `set`, `emit`, `enqueue`, lease, `start workflow`, `transition_to`, `complete`, and `fail` statements lower into IR. Nested blocks and typed expression validation remain future work. |
+| workflow operations | complete | partial | partial | partial | partial | not-started | not-started | P2 | Linear `set`, `emit`, `enqueue`, lease, `start workflow`, `transition_to`, `complete`, and `fail` statements lower into IR with target validation. Nested blocks and typed expression validation remain future work. |
 
 ## Generator Parity
 
@@ -106,9 +106,10 @@ Status meanings:
 5. **P1: Add workflow behavior IR.**
    Initial workflow behavior IR is in place for `on`, `input`, `state`, `load`, `require`,
    `set`, `emit`, `enqueue`, lease operations, `start workflow`, `transition_to`,
-   `complete`, and `fail`. The next increment is semantic validation for loaded entity
-   keys, resolved targets, nested blocks, and typed expressions before generating worker
-   bodies.
+   `complete`, and `fail`, with validation for loaded entity keys, resolved statement
+   targets, workflow input/state types, and feature flag references in workflow
+   expressions. The next increment is nested blocks and typed expression validation
+   before generating worker bodies.
 
 6. **P2: Add reusable `value`, `enum`, and `event` support.**
    These make specs more expressive and reduce repeated string literals.
