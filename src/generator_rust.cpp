@@ -187,6 +187,27 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub expires: Option<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ValueDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub value_type: String,\n";
+    out << "    pub constraint: Option<String>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct EnumMemberDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub value: Option<String>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct EnumDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub members: Vec<EnumMemberDescriptor>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct EventDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub fields: Vec<FieldDescriptor>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ShapeDescriptor {\n";
     out << "    pub name: String,\n";
     out << "    pub fields: Vec<FieldDescriptor>,\n";
@@ -271,6 +292,57 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            owner: " << optional_string_expr(flag.owner) << ",\n";
         out << "            description: " << optional_string_expr(flag.description) << ",\n";
         out << "            expires: " << optional_string_expr(flag.expires) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn value_descriptors() -> Vec<ValueDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& value : system.values)
+    {
+        out << "        ValueDescriptor {\n";
+        out << "            name: " << rust_string(value.name) << ".to_string(),\n";
+        out << "            value_type: " << rust_string(value.type) << ".to_string(),\n";
+        out << "            constraint: " << optional_string_expr(value.constraint) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn enum_descriptors() -> Vec<EnumDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& enum_decl : system.enums)
+    {
+        out << "        EnumDescriptor {\n";
+        out << "            name: " << rust_string(enum_decl.name) << ".to_string(),\n";
+        out << "            members: vec![\n";
+        for (const auto& member : enum_decl.members)
+        {
+            out << "                EnumMemberDescriptor { name: " << rust_string(member.name)
+                << ".to_string(), value: " << optional_string_expr(member.value) << " },\n";
+        }
+        out << "            ],\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn event_descriptors() -> Vec<EventDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& event : system.events)
+    {
+        out << "        EventDescriptor {\n";
+        out << "            name: " << rust_string(event.name) << ".to_string(),\n";
+        out << "            fields: vec![\n";
+        for (const auto& field : event.fields)
+        {
+            out << "                FieldDescriptor { name: " << rust_string(field.name)
+                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(field.type))
+                << ".to_string(), required: " << (is_optional_type(field.type) ? "false" : "true")
+                << " },\n";
+        }
+        out << "            ],\n";
         out << "        },\n";
     }
     out << "    ]\n";

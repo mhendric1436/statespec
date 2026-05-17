@@ -255,6 +255,18 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         {
             system.entities.push_back(parse_entity_decl(diagnostics));
         }
+        else if (check(TokenKind::KeywordValue))
+        {
+            system.values.push_back(parse_value_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordEnum))
+        {
+            system.enums.push_back(parse_enum_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordEvent))
+        {
+            system.events.push_back(parse_event_decl(diagnostics));
+        }
         else if (check(TokenKind::KeywordShape))
         {
             system.shapes.push_back(parse_shape_decl(diagnostics));
@@ -304,6 +316,105 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 
     system.range = SourceRange{start.range.begin, previous().range.end};
     return system;
+}
+
+ValueDecl Parser::parse_value_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordValue, "expected value declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected value name", diagnostics);
+    ValueDecl value;
+    value.name = name.lexeme;
+
+    consume(TokenKind::Colon, "expected ':' after value name", diagnostics);
+    value.type = parse_type_name(diagnostics);
+    if (check(TokenKind::KeywordWhere) || is_named_identifier(peek(), "where"))
+    {
+        advance();
+        value.constraint = parse_simple_expression_until_boundary();
+    }
+    consume_optional_semicolon();
+
+    value.range = SourceRange{start.range.begin, previous().range.end};
+    return value;
+}
+
+EnumDecl Parser::parse_enum_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordEnum, "expected enum declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected enum name", diagnostics);
+    EnumDecl enum_decl;
+    enum_decl.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after enum name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        const auto member_start =
+            consume(TokenKind::Identifier, "expected enum member name", diagnostics);
+        EnumMemberDecl member;
+        member.name = member_start.lexeme;
+        if (match(TokenKind::Equals))
+        {
+            if (check_any({
+                    TokenKind::StringLiteral,
+                    TokenKind::IntegerLiteral,
+                    TokenKind::DecimalLiteral,
+                    TokenKind::BooleanLiteral,
+                    TokenKind::Identifier,
+                }))
+            {
+                const auto value = advance();
+                member.value = strip_quotes(value.lexeme);
+                member.value_kind = token_kind_name(value.kind);
+            }
+            else
+            {
+                diagnostics.error(peek().range, "SSPEC0200", "expected enum member value");
+            }
+        }
+        consume_optional_semicolon();
+        member.range = SourceRange{member_start.range.begin, previous().range.end};
+        enum_decl.members.push_back(member);
+    }
+    consume(TokenKind::RightBrace, "expected '}' after enum block", diagnostics);
+
+    enum_decl.range = SourceRange{start.range.begin, previous().range.end};
+    return enum_decl;
+}
+
+EventDecl Parser::parse_event_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordEvent, "expected event declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected event name", diagnostics);
+    EventDecl event;
+    event.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after event name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (check(TokenKind::KeywordFields))
+        {
+            advance();
+            consume(TokenKind::LeftBrace, "expected '{' after event fields", diagnostics);
+            while (!check(TokenKind::RightBrace) && !is_at_end())
+            {
+                event.fields.push_back(parse_field_decl(diagnostics));
+            }
+            consume(TokenKind::RightBrace, "expected '}' after event fields block", diagnostics);
+        }
+        else if (check(TokenKind::KeywordAnnotations))
+        {
+            advance();
+            skip_balanced_block();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after event block", diagnostics);
+
+    event.range = SourceRange{start.range.begin, previous().range.end};
+    return event;
 }
 
 ShapeDecl Parser::parse_shape_decl(DiagnosticBag& diagnostics)

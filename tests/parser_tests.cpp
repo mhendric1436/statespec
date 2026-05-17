@@ -288,6 +288,60 @@ void parser_parses_feature_flags()
     );
 }
 
+void parser_parses_values_enums_and_events()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          value OrderAmount: decimal where OrderAmount >= 0;
+
+          enum OrderStatus {
+            Pending = "pending"
+            Processing = "processing"
+            Complete
+          }
+
+          event OrderAccepted {
+            fields {
+              order_id uuid
+              status OrderStatus
+              amount OrderAmount
+            }
+          }
+        }
+    )sspec");
+
+    statespec::test::require(spec.system.has_value(), "parser should parse system");
+    statespec::test::require(spec.system->values.size() == 1, "parser should parse values");
+    statespec::test::require(
+        spec.system->values[0].name == "OrderAmount", "parser should parse value name"
+    );
+    statespec::test::require(
+        spec.system->values[0].type == "decimal", "parser should parse value type"
+    );
+    statespec::test::require(
+        spec.system->values[0].constraint.has_value(), "parser should parse value constraint"
+    );
+
+    statespec::test::require(spec.system->enums.size() == 1, "parser should parse enums");
+    const auto& enum_decl = spec.system->enums[0];
+    statespec::test::require(enum_decl.name == "OrderStatus", "parser should parse enum name");
+    statespec::test::require(enum_decl.members.size() == 3, "parser should parse enum members");
+    statespec::test::require(
+        enum_decl.members[0].value == "pending", "parser should parse enum member value"
+    );
+    statespec::test::require(
+        enum_decl.members[2].name == "Complete", "parser should parse value-less enum member"
+    );
+
+    statespec::test::require(spec.system->events.size() == 1, "parser should parse events");
+    const auto& event = spec.system->events[0];
+    statespec::test::require(event.name == "OrderAccepted", "parser should parse event name");
+    statespec::test::require(event.fields.size() == 3, "parser should parse event fields");
+    statespec::test::require(
+        event.fields[2].type == "OrderAmount", "parser should parse event field value type"
+    );
+}
+
 void parser_parses_shapes()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -673,6 +727,11 @@ TEST_CASE("parser parses entity ownership, relations, children, and invariants")
 TEST_CASE("parser parses feature flags")
 {
     parser_parses_feature_flags();
+}
+
+TEST_CASE("parser parses values, enums, and events")
+{
+    parser_parses_values_enums_and_events();
 }
 
 TEST_CASE("parser parses shapes")

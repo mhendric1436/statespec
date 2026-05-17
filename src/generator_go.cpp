@@ -178,6 +178,23 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tDescription *string\n";
     out << "\tExpires *string\n";
     out << "}\n\n";
+    out << "type ValueDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tType string\n";
+    out << "\tConstraint *string\n";
+    out << "}\n\n";
+    out << "type EnumMemberDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tValue *string\n";
+    out << "}\n\n";
+    out << "type EnumDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tMembers []EnumMemberDescriptor\n";
+    out << "}\n\n";
+    out << "type EventDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tFields []FieldDescriptor\n";
+    out << "}\n\n";
     out << "type ShapeDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tFields []FieldDescriptor\n";
@@ -254,6 +271,56 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tOwner: " << string_ptr_expr(flag.owner) << ",\n";
         out << "\t\t\tDescription: " << string_ptr_expr(flag.description) << ",\n";
         out << "\t\t\tExpires: " << string_ptr_expr(flag.expires) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func ValueDescriptors() []ValueDescriptor {\n";
+    out << "\treturn []ValueDescriptor{\n";
+    for (const auto& value : system.values)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(value.name) << ",\n";
+        out << "\t\t\tType: " << go_string(value.type) << ",\n";
+        out << "\t\t\tConstraint: " << string_ptr_expr(value.constraint) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func EnumDescriptors() []EnumDescriptor {\n";
+    out << "\treturn []EnumDescriptor{\n";
+    for (const auto& enum_decl : system.enums)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(enum_decl.name) << ",\n";
+        out << "\t\t\tMembers: []EnumMemberDescriptor{\n";
+        for (const auto& member : enum_decl.members)
+        {
+            out << "\t\t\t\t{Name: " << go_string(member.name)
+                << ", Value: " << string_ptr_expr(member.value) << "},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func EventDescriptors() []EventDescriptor {\n";
+    out << "\treturn []EventDescriptor{\n";
+    for (const auto& event : system.events)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(event.name) << ",\n";
+        out << "\t\t\tFields: []FieldDescriptor{\n";
+        for (const auto& field : event.fields)
+        {
+            out << "\t\t\t\t{Name: " << go_string(field.name)
+                << ", Type: " << go_string(strip_optional_suffix(field.type))
+                << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+        }
+        out << "\t\t\t},\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";

@@ -28,15 +28,15 @@ Status meanings:
 | `namespace` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Queue `namespace` property is supported; declaration block namespaces are not. |
 | `tenant scoped_by` | complete | complete | complete | complete | complete | complete | partial | P1 | Lowered into IR; runtime enforcement and generator usage remain limited. |
 | `system_tenant configured` | complete | complete | complete | complete | complete | complete | partial | P1 | Lowered into IR; generated runtime config contract should be expanded. |
-| `value` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed for reusable constants and policy expressions. |
-| `enum` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed before named type generation is complete. |
+| `value` | complete | complete | complete | complete | complete | complete | partial | P2 | Reusable named value types flow through IR and binding descriptors; target-language type generation remains future work. |
+| `enum` | complete | complete | complete | complete | complete | complete | partial | P2 | Enum declarations and members flow through IR and binding descriptors; target-language enum generation remains future work. |
 | `shape` | complete | complete | complete | complete | complete | complete | partial | P1 | Shape descriptors are generated; target-language type generation is still pending. |
 | `external_system` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P3 | Required for explicit managed/observed ownership modeling. |
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime evaluator generation remains future work. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
 | `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; expression typing remains incomplete. |
-| `event` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Needed to connect APIs, workflows, queues, and workers explicitly. |
+| `event` | complete | complete | complete | complete | complete | complete | partial | P2 | Event payload fields are validated and emitted in descriptors; generated event publisher/subscriber APIs remain future work. |
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding remains future work. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve; generator output currently does not produce worker scaffolding. |
@@ -112,7 +112,10 @@ Status meanings:
    before generating worker bodies.
 
 6. **P2: Add reusable `value`, `enum`, and `event` support.**
-   These make specs more expressive and reduce repeated string literals.
+   Implemented: value, enum, and event declarations are parsed, validated, lowered
+   through semantic/IR models, surfaced in AST JSON, and emitted as passive binding
+   descriptor metadata. Next work is target-language type generation and event runtime
+   helpers.
 
 7. **P2/P3: Add namespace, external systems, and policies.**
    Implement these once the core type/reference system is strong enough to support them

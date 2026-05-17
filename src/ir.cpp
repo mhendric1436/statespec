@@ -65,6 +65,27 @@ IrSystem lower_to_ir(const SemanticSystem& system)
             IrSystemTenant{system.system_tenant->source, system.system_tenant->config_key};
     }
 
+    for (const auto& value : system.values)
+    {
+        ir.values.push_back(IrValue{value.name, value.type, value.constraint});
+    }
+
+    for (const auto& enum_decl : system.enums)
+    {
+        IrEnum ir_enum;
+        ir_enum.name = enum_decl.name;
+        for (const auto& member : enum_decl.members)
+        {
+            ir_enum.members.push_back(IrEnumMember{member.name, member.value});
+        }
+        ir.enums.push_back(std::move(ir_enum));
+    }
+
+    for (const auto& event : system.events)
+    {
+        ir.events.push_back(IrEvent{event.name, lower_fields(event.fields)});
+    }
+
     for (const auto& shape : system.shapes)
     {
         ir.shapes.push_back(IrShape{shape.name, lower_fields(shape.fields)});

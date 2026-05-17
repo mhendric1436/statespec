@@ -101,6 +101,31 @@ struct IrEntity
     std::vector<IrTransition> transitions;
 };
 
+struct IrValue
+{
+    std::string name;
+    std::string type;
+    std::optional<std::string> constraint;
+};
+
+struct IrEnumMember
+{
+    std::string name;
+    std::optional<std::string> value;
+};
+
+struct IrEnum
+{
+    std::string name;
+    std::vector<IrEnumMember> members;
+};
+
+struct IrEvent
+{
+    std::string name;
+    std::vector<IrField> fields;
+};
+
 struct IrMessage
 {
     std::string name;
@@ -258,6 +283,9 @@ struct IrSystem
     std::string name;
     std::optional<IrTenantScope> tenant_scope;
     std::optional<IrSystemTenant> system_tenant;
+    std::vector<IrValue> values;
+    std::vector<IrEnum> enums;
+    std::vector<IrEvent> events;
     std::vector<IrShape> shapes;
     std::vector<IrFeatureFlag> feature_flags;
     std::vector<IrLog> logs;

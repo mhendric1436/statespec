@@ -38,6 +38,18 @@ SymbolTable build_symbols(const SystemDecl& system)
     {
         insert_symbol(symbols, SymbolKind::FeatureFlag, flag.name, flag.range);
     }
+    for (const auto& value : system.values)
+    {
+        insert_symbol(symbols, SymbolKind::Value, value.name, value.range);
+    }
+    for (const auto& enum_decl : system.enums)
+    {
+        insert_symbol(symbols, SymbolKind::Enum, enum_decl.name, enum_decl.range);
+    }
+    for (const auto& event : system.events)
+    {
+        insert_symbol(symbols, SymbolKind::Event, event.name, event.range);
+    }
     for (const auto& shape : system.shapes)
     {
         insert_symbol(symbols, SymbolKind::Shape, shape.name, shape.range);
@@ -308,6 +320,27 @@ SemanticSystem resolve_semantics(const Spec& spec)
     for (const auto& shape : system.shapes)
     {
         resolved.shapes.push_back(SemanticShape{shape.name, resolve_fields(shape.fields)});
+    }
+
+    for (const auto& value : system.values)
+    {
+        resolved.values.push_back(SemanticValue{value.name, value.type, value.constraint});
+    }
+
+    for (const auto& enum_decl : system.enums)
+    {
+        SemanticEnum resolved_enum;
+        resolved_enum.name = enum_decl.name;
+        for (const auto& member : enum_decl.members)
+        {
+            resolved_enum.members.push_back(SemanticEnumMember{member.name, member.value});
+        }
+        resolved.enums.push_back(std::move(resolved_enum));
+    }
+
+    for (const auto& event : system.events)
+    {
+        resolved.events.push_back(SemanticEvent{event.name, resolve_fields(event.fields)});
     }
 
     for (const auto& flag : system.feature_flags)

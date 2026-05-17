@@ -796,6 +796,91 @@ void validator_rejects_invalid_feature_flag_expression_references()
     );
 }
 
+void validator_accepts_values_enums_and_events()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          value OrderAmount: decimal where OrderAmount >= 0;
+
+          enum OrderStatus {
+            Pending = "pending"
+            Processing = "processing"
+            Complete
+          }
+
+          event OrderAccepted {
+            fields {
+              order_id uuid
+              amount OrderAmount
+              status OrderStatus
+            }
+          }
+
+          workflow AcceptOrder {
+            version 1
+            on OrderAccepted
+            expected_execution_time PT30S
+            start done
+            step done {
+              expected_execution_time PT1S
+              emit OrderAccepted;
+            }
+          }
+        }
+    )sspec");
+
+    require(!diagnostics.has_errors(), "validator should accept valid values, enums, and events");
+}
+
+void validator_rejects_invalid_values_enums_and_events()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          value orderAmount: MissingType;
+
+          enum orderStatus {
+            pending = "pending"
+            pending = "duplicate"
+          }
+
+          enum EmptyStatus {
+          }
+
+          event orderAccepted {
+            fields {
+              order_id MissingType
+              order_id string
+            }
+          }
+
+          event EmptyEvent {
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4501"), "validator should reject invalid value names"
+    );
+    require(has_error_code(diagnostics, "SSPEC4601"), "validator should reject invalid enum names");
+    require(
+        has_error_code(diagnostics, "SSPEC4602"), "validator should reject invalid enum members"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4701"), "validator should reject invalid event names"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3001"),
+        "validator should reject duplicate enum members and event fields"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown value and event field types"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4001"), "validator should reject empty enums and events"
+    );
+}
+
 void validator_accepts_logs_and_metrics()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1010,6 +1095,16 @@ TEST_CASE("validator rejects invalid feature flag declarations")
 TEST_CASE("validator rejects invalid feature flag expression references")
 {
     validator_rejects_invalid_feature_flag_expression_references();
+}
+
+TEST_CASE("validator accepts values, enums, and events")
+{
+    validator_accepts_values_enums_and_events();
+}
+
+TEST_CASE("validator rejects invalid values, enums, and events")
+{
+    validator_rejects_invalid_values_enums_and_events();
 }
 
 TEST_CASE("validator accepts logs and metrics")

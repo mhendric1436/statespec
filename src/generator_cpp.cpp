@@ -187,6 +187,31 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<std::string> expires;\n";
     out << "};\n\n";
 
+    out << "struct ValueDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::string type;\n";
+    out << "    std::optional<std::string> constraint;\n";
+    out << "};\n\n";
+
+    out << "struct EnumMemberDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::optional<std::string> value;\n";
+    out << "};\n\n";
+
+    out << "struct EnumDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::vector<EnumMemberDescriptor> members;\n";
+    out << "};\n\n";
+
+    out << "struct EventDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::vector<statespec::backend::FieldDescriptor> fields;\n";
+    out << "};\n\n";
+
     out << "struct ShapeDescriptor\n";
     out << "{\n";
     out << "    std::string name;\n";
@@ -281,6 +306,59 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            " << optional_string_expr(flag.owner) << ",\n";
         out << "            " << optional_string_expr(flag.description) << ",\n";
         out << "            " << optional_string_expr(flag.expires) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<ValueDescriptor> value_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& value : system.values)
+    {
+        out << "        ValueDescriptor{\n";
+        out << "            " << cpp_string(value.name) << ",\n";
+        out << "            " << cpp_string(value.type) << ",\n";
+        out << "            " << optional_string_expr(value.constraint) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<EnumDescriptor> enum_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& enum_decl : system.enums)
+    {
+        out << "        EnumDescriptor{\n";
+        out << "            " << cpp_string(enum_decl.name) << ",\n";
+        out << "            {\n";
+        for (const auto& member : enum_decl.members)
+        {
+            out << "                EnumMemberDescriptor{" << cpp_string(member.name) << ", "
+                << optional_string_expr(member.value) << "},\n";
+        }
+        out << "            },\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<EventDescriptor> event_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& event : system.events)
+    {
+        out << "        EventDescriptor{\n";
+        out << "            " << cpp_string(event.name) << ",\n";
+        out << "            {\n";
+        for (const auto& field : event.fields)
+        {
+            out << "                statespec::backend::FieldDescriptor{" << cpp_string(field.name)
+                << ", " << cpp_string(strip_optional_suffix(field.type)) << ", "
+                << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+        }
+        out << "            },\n";
         out << "        },\n";
     }
     out << "    };\n";

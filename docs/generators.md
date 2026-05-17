@@ -32,10 +32,27 @@ When `--out` is omitted, the CLI writes to `generated/<language>`.
 
 ## Generated Metadata
 
-Binding generators consume the lowered StateSpec IR, not raw AST declarations. Shapes,
-feature flags, logs, metrics, entities, queues, leases, and workflows are emitted as
-descriptor metadata where supported so downstream tools can inspect runtime contracts
-consistently.
+Binding generators consume the lowered StateSpec IR, not raw AST declarations. Values,
+enums, events, shapes, feature flags, logs, metrics, entities, queues, leases, and
+workflows are emitted as descriptor metadata where supported so downstream tools can
+inspect runtime contracts consistently.
+
+Generated value metadata includes:
+
+- name
+- type
+- optional constraint expression
+
+Generated enum metadata includes:
+
+- name
+- members
+- optional member values
+
+Generated event metadata includes:
+
+- name
+- typed fields
 
 Generated shape metadata includes:
 
@@ -54,6 +71,15 @@ Generated feature flag metadata includes:
 
 Runtime feature flag evaluation is not generated yet. Generated descriptors can be used
 to register feature flag definitions into a backend-provided feature flag store.
+
+The generated domain descriptor APIs are:
+
+| Language | Values | Enums | Events | Shapes |
+|---|---|---|---|---|
+| C++ | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `shape_descriptors()` |
+| Go | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ShapeDescriptors()` |
+| Java | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `shapeDescriptors()` |
+| Rust | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `shape_descriptors()` |
 
 Generated log metadata includes:
 

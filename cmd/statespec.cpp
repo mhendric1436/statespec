@@ -111,6 +111,9 @@ void append_system_members(
     target.feature_flags.insert(
         target.feature_flags.end(), source.feature_flags.begin(), source.feature_flags.end()
     );
+    target.values.insert(target.values.end(), source.values.begin(), source.values.end());
+    target.enums.insert(target.enums.end(), source.enums.begin(), source.enums.end());
+    target.events.insert(target.events.end(), source.events.begin(), source.events.end());
     target.shapes.insert(target.shapes.end(), source.shapes.begin(), source.shapes.end());
     target.logs.insert(target.logs.end(), source.logs.begin(), source.logs.end());
     target.metrics.insert(target.metrics.end(), source.metrics.begin(), source.metrics.end());
@@ -202,6 +205,9 @@ statespec::Spec load_composed_spec(
     {
         statespec::SystemDecl composed_system = *spec.system;
         composed_system.feature_flags.clear();
+        composed_system.values.clear();
+        composed_system.enums.clear();
+        composed_system.events.clear();
         composed_system.shapes.clear();
         composed_system.logs.clear();
         composed_system.metrics.clear();
@@ -419,6 +425,88 @@ void write_feature_flags(
         write_json_optional_string(out, feature_flag.description);
         out << ", \"expires\": ";
         write_json_optional_string(out, feature_flag.expires);
+        out << '}';
+    }
+    out << ']';
+}
+
+void write_values(
+    std::ostream& out,
+    const std::vector<statespec::ValueDecl>& values
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < values.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& value = values[i];
+        out << "{\"name\": ";
+        write_json_string(out, value.name);
+        out << ", \"type\": ";
+        write_json_string(out, value.type);
+        out << ", \"constraint\": ";
+        write_json_optional_string(out, value.constraint);
+        out << '}';
+    }
+    out << ']';
+}
+
+void write_enums(
+    std::ostream& out,
+    const std::vector<statespec::EnumDecl>& enums
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < enums.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& enum_decl = enums[i];
+        out << "{\"name\": ";
+        write_json_string(out, enum_decl.name);
+        out << ", \"members\": [";
+        for (std::size_t member_index = 0; member_index < enum_decl.members.size(); ++member_index)
+        {
+            if (member_index > 0)
+            {
+                out << ", ";
+            }
+            const auto& member = enum_decl.members[member_index];
+            out << "{\"name\": ";
+            write_json_string(out, member.name);
+            out << ", \"value\": ";
+            write_json_optional_string(out, member.value);
+            out << ", \"value_kind\": ";
+            write_json_optional_string(out, member.value_kind);
+            out << '}';
+        }
+        out << "]}";
+    }
+    out << ']';
+}
+
+void write_events(
+    std::ostream& out,
+    const std::vector<statespec::EventDecl>& events
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < events.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& event = events[i];
+        out << "{\"name\": ";
+        write_json_string(out, event.name);
+        out << ", \"fields\": ";
+        write_fields(out, event.fields);
         out << '}';
     }
     out << ']';
@@ -664,6 +752,15 @@ void write_spec_json(
 
     out << "    \"feature_flags\": ";
     write_feature_flags(out, system.feature_flags);
+    out << ",\n";
+    out << "    \"values\": ";
+    write_values(out, system.values);
+    out << ",\n";
+    out << "    \"enums\": ";
+    write_enums(out, system.enums);
+    out << ",\n";
+    out << "    \"events\": ";
+    write_events(out, system.events);
     out << ",\n";
     out << "    \"shapes\": ";
     write_shapes(out, system.shapes);

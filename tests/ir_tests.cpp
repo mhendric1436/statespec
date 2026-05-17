@@ -164,6 +164,64 @@ void ir_lowers_shapes()
     );
 }
 
+void ir_lowers_values_enums_and_events()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          value OrderAmount: decimal where OrderAmount >= 0;
+
+          enum OrderStatus {
+            Pending = "pending"
+            Processing = "processing"
+            Complete
+          }
+
+          event OrderAccepted {
+            fields {
+              order_id uuid
+              amount OrderAmount
+              status OrderStatus
+            }
+          }
+
+          workflow AcceptOrder {
+            version 1
+            on OrderAccepted
+            expected_execution_time PT30S
+            start done
+            step done {
+              expected_execution_time PT1S
+              emit OrderAccepted;
+            }
+          }
+        }
+    )sspec");
+
+    const auto ir = statespec::lower_to_ir(spec);
+
+    statespec::test::require(ir.values.size() == 1, "IR should lower values");
+    statespec::test::require(ir.values[0].name == "OrderAmount", "IR should lower value name");
+    statespec::test::require(ir.values[0].type == "decimal", "IR should lower value type");
+    statespec::test::require(
+        ir.values[0].constraint.has_value(), "IR should lower value constraint"
+    );
+
+    statespec::test::require(ir.enums.size() == 1, "IR should lower enums");
+    statespec::test::require(ir.enums[0].members.size() == 3, "IR should lower enum members");
+    statespec::test::require(
+        ir.enums[0].members[0].value == "pending", "IR should lower enum member values"
+    );
+
+    statespec::test::require(ir.events.size() == 1, "IR should lower events");
+    statespec::test::require(ir.events[0].fields.size() == 3, "IR should lower event fields");
+    statespec::test::require(
+        ir.events[0].fields[2].type == "OrderStatus", "IR should lower event enum field type"
+    );
+    statespec::test::require(
+        ir.workflows[0].on == "OrderAccepted", "IR should lower workflow event trigger"
+    );
+}
+
 void ir_lowers_entity_relationship_metadata()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -546,6 +604,11 @@ TEST_CASE("IR lowers logs and metrics")
 TEST_CASE("IR lowers shapes")
 {
     ir_lowers_shapes();
+}
+
+TEST_CASE("IR lowers values, enums, and events")
+{
+    ir_lowers_values_enums_and_events();
 }
 
 TEST_CASE("IR lowers entity relationship metadata")

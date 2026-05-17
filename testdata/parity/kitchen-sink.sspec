@@ -33,6 +33,21 @@ system KitchenSink {
     }
   }
 
+  value OrderAmount: decimal where OrderAmount >= 0;
+  enum OrderStatus {
+    Pending = "pending"
+    Active = "active"
+    Failed = "failed"
+  }
+
+  event OrderAccepted {
+    fields {
+      order_id string
+      amount OrderAmount
+      status OrderStatus
+    }
+  }
+
   shape StartOrderProcessingRequest {
     tenant_id string
     order_id string
@@ -123,12 +138,14 @@ system KitchenSink {
 
   workflow OrderProcessing {
     version 1
+    on OrderAccepted
     singleton false
     expected_execution_time PT60S
     start validate_order
     step validate_order {
       expected_execution_time PT10S
       max_retries 1
+      emit OrderAccepted;
     }
   }
 

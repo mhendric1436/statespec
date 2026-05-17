@@ -51,6 +51,9 @@ rules.
 | `lease` | Exclusive ownership or fencing primitive. |
 | `worker` | Runtime actor that polls queues or executes workflows. |
 | `feature_flag` | Declared rollout or configuration switch referenced from expressions. |
+| `value` | Reusable named scalar type with an optional constraint expression. |
+| `enum` | Reusable named set of allowed members. |
+| `event` | Typed domain event payload that can trigger or be emitted by workflows. |
 | `log` | Structured event contract for operational logging. |
 | `metric` | Counter, gauge, or histogram contract for operational measurement. |
 | `workflow` | Long-running orchestration composed from named steps. |
@@ -185,6 +188,25 @@ api StartOrderProcessing {
   method POST
   path "/v1/orders/{order_id}/start"
   input StartOrderProcessingRequest
+}
+```
+
+Values, enums, and events define reusable domain vocabulary:
+
+```statespec
+value OrderAmount: decimal where OrderAmount >= 0;
+
+enum OrderStatus {
+  Pending = "pending"
+  Complete = "complete"
+}
+
+event OrderAccepted {
+  fields {
+    order_id uuid
+    amount OrderAmount
+    status OrderStatus
+  }
 }
 ```
 

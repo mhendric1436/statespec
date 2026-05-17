@@ -18,6 +18,21 @@ void semantic_resolver_resolves_runtime_references()
             accepted bool
           }
 
+          value OrderAmount: decimal where OrderAmount >= 0;
+
+          enum OrderStatus {
+            Pending = "pending"
+            Complete = "complete"
+          }
+
+          event OrderAccepted {
+            fields {
+              order_id string
+              amount OrderAmount
+              status OrderStatus
+            }
+          }
+
           entity Order {
             key order_id
             fields {
@@ -72,6 +87,7 @@ void semantic_resolver_resolves_runtime_references()
 
           workflow OrderProcessing {
             version 1
+            on OrderAccepted
             singleton false
             expected_execution_time PT60S
             start validate_order
@@ -114,6 +130,13 @@ void semantic_resolver_resolves_runtime_references()
     );
 
     const auto& api = resolved.apis[0];
+    statespec::test::require(resolved.values.size() == 1, "semantic resolver should lower values");
+    statespec::test::require(resolved.enums.size() == 1, "semantic resolver should lower enums");
+    statespec::test::require(resolved.events.size() == 1, "semantic resolver should lower events");
+    statespec::test::require(
+        resolved.events[0].fields[1].type == "OrderAmount",
+        "semantic resolver should preserve event value field type"
+    );
     statespec::test::require(resolved.shapes.size() == 2, "semantic resolver should lower shapes");
     statespec::test::require(
         api.input.has_value() && api.input->kind == statespec::SymbolKind::Shape,
@@ -131,6 +154,12 @@ void semantic_resolver_resolves_runtime_references()
     statespec::test::require(
         api.enqueues.has_value() && api.enqueues->kind == statespec::SymbolKind::Message,
         "semantic resolver should resolve API queue message target"
+    );
+
+    const auto& workflow = resolved.workflows[0];
+    statespec::test::require(
+        workflow.on.has_value() && workflow.on->kind == statespec::SymbolKind::Event,
+        "semantic resolver should resolve workflow event trigger"
     );
 
     const auto& policy = resolved.policies[0];

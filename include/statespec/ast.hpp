@@ -140,6 +140,36 @@ struct EntityDecl
     SourceRange range;
 };
 
+struct ValueDecl
+{
+    std::string name;
+    std::string type;
+    std::optional<std::string> constraint;
+    SourceRange range;
+};
+
+struct EnumMemberDecl
+{
+    std::string name;
+    std::optional<std::string> value;
+    std::optional<std::string> value_kind;
+    SourceRange range;
+};
+
+struct EnumDecl
+{
+    std::string name;
+    std::vector<EnumMemberDecl> members;
+    SourceRange range;
+};
+
+struct EventDecl
+{
+    std::string name;
+    std::vector<FieldDecl> fields;
+    SourceRange range;
+};
+
 struct FeatureFlagDecl
 {
     std::string name;
@@ -315,6 +345,9 @@ struct SystemDecl
     std::string name;
     std::optional<TenantScopeDecl> tenant_scope;
     std::optional<SystemTenantDecl> system_tenant;
+    std::vector<ValueDecl> values;
+    std::vector<EnumDecl> enums;
+    std::vector<EventDecl> events;
     std::vector<ShapeDecl> shapes;
     std::vector<FeatureFlagDecl> feature_flags;
     std::vector<LogDecl> logs;

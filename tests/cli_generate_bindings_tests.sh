@@ -48,6 +48,22 @@ system Demo {
     }
   }
 
+  value OrderAmount: decimal where OrderAmount >= 0;
+
+  enum OrderStatus {
+    Pending = "pending"
+    Active = "active"
+    Failed = "failed"
+  }
+
+  event OrderAccepted {
+    fields {
+      order_id string
+      amount OrderAmount
+      status OrderStatus
+    }
+  }
+
   shape StartOrderProcessingRequest {
     tenant_id string
     order_id string
@@ -145,6 +161,7 @@ system Demo {
 
   workflow OrderProcessing {
     version 2
+    on OrderAccepted
     singleton false
     expected_execution_time PT60S
     start validate_order
@@ -152,6 +169,7 @@ system Demo {
     step validate_order {
       expected_execution_time PT10S
       max_retries 2
+      emit OrderAccepted;
     }
   }
 
@@ -303,6 +321,12 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "FeatureFlagDefini
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "feature_flag_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ShapeDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "shape_descriptors"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ValueDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "value_descriptors"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EnumDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "enum_descriptors"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EventDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "event_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "GarbageCollectionPolicy"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityStateDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "EntityOwnershipDescriptor"
@@ -322,6 +346,9 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "validate_order"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "NewScheduler"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "MaxPendingOrders"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "StartOrderProcessingRequest"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderAmount"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderStatus"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "OrderAccepted"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "struct LogDefinition"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "log_definitions"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "WorkflowLaunchDecision"
@@ -360,6 +387,12 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type FeatureFlagDe
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func FeatureFlagDefinitions() []FeatureFlagDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ShapeDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ShapeDescriptors() []ShapeDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ValueDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ValueDescriptors() []ValueDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EnumDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func EnumDescriptors() []EnumDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EventDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func EventDescriptors() []EventDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type GarbageCollectionPolicy struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityStateDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EntityOwnershipDescriptor struct"
@@ -379,6 +412,9 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "validate_order"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "NewScheduler"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "DefaultValue: \"false\""
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "StartOrderProcessingRequest"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "OrderAmount"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "OrderStatus"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "OrderAccepted"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type LogDefinition struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func LogDefinitions() []LogDefinition"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "EventName: \"workflow.launch.decision\""
@@ -414,6 +450,9 @@ assert_file_exists "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "class Descriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ShapeDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ValueDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EnumDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EventDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record GarbageCollectionPolicy"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityStateDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityOwnershipDescriptor"
@@ -423,6 +462,9 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "entityDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "featureFlagDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "shapeDescriptors"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "valueDescriptors"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "enumDescriptors"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "eventDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "queueDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "leaseDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflowDefinitions"
@@ -432,6 +474,9 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "validate_order"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "NewScheduler"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "StartOrderProcessingRequest"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "OrderAmount"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "OrderStatus"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "OrderAccepted"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record LogDefinition"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "logDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workflow.launch.decision"
@@ -468,6 +513,12 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct FeatureFlagDe
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn feature_flag_definitions() -> Vec<FeatureFlagDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ShapeDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn shape_descriptors() -> Vec<ShapeDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ValueDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn value_descriptors() -> Vec<ValueDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EnumDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn enum_descriptors() -> Vec<EnumDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EventDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn event_descriptors() -> Vec<EventDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct GarbageCollectionPolicy"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityStateDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EntityOwnershipDescriptor"
@@ -486,6 +537,9 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "workflow_version: 2"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "validate_order"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "NewScheduler"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "StartOrderProcessingRequest"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderAmount"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderStatus"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "OrderAccepted"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct LogDefinition"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn log_definitions() -> Vec<LogDefinition>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "event_name: \"workflow.launch.decision\".to_string()"

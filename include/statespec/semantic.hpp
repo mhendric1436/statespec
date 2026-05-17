@@ -124,6 +124,31 @@ struct SemanticFeatureFlag
     std::optional<std::string> expires;
 };
 
+struct SemanticValue
+{
+    std::string name;
+    std::string type;
+    std::optional<std::string> constraint;
+};
+
+struct SemanticEnumMember
+{
+    std::string name;
+    std::optional<std::string> value;
+};
+
+struct SemanticEnum
+{
+    std::string name;
+    std::vector<SemanticEnumMember> members;
+};
+
+struct SemanticEvent
+{
+    std::string name;
+    std::vector<SemanticField> fields;
+};
+
 struct SemanticShape
 {
     std::string name;
@@ -271,6 +296,9 @@ struct SemanticSystem
     std::string name;
     std::optional<SemanticTenantScope> tenant_scope;
     std::optional<SemanticSystemTenant> system_tenant;
+    std::vector<SemanticValue> values;
+    std::vector<SemanticEnum> enums;
+    std::vector<SemanticEvent> events;
     std::vector<SemanticShape> shapes;
     std::vector<SemanticFeatureFlag> feature_flags;
     std::vector<SemanticLog> logs;

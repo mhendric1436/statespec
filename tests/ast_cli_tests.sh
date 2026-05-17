@@ -39,6 +39,9 @@ printf '%s\n' "$AST_OUTPUT" | grep -q '"name": "OrderSystem"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"entities"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"shapes"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"feature_flags"'
+printf '%s\n' "$AST_OUTPUT" | grep -q '"values"'
+printf '%s\n' "$AST_OUTPUT" | grep -q '"enums"'
+printf '%s\n' "$AST_OUTPUT" | grep -q '"events"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"logs"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"metrics"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"queues"'
@@ -57,6 +60,9 @@ assert document["version"] == "0.1"
 assert document["system"]["name"] == "OrderSystem"
 assert "shapes" in document["system"]
 assert "feature_flags" in document["system"]
+assert "values" in document["system"]
+assert "enums" in document["system"]
+assert "events" in document["system"]
 assert len(document["system"]["entities"]) >= 1
 assert len(document["system"]["queues"]) >= 1
 assert len(document["system"]["workflows"]) >= 1
@@ -144,6 +150,9 @@ PARITY_AST_OUTPUT="$($CLI ast "$PARITY_FIXTURE")"
 
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"name": "KitchenSink"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"feature_flags"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"values"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"enums"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"events"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"shapes"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"logs"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"metrics"'
@@ -164,6 +173,9 @@ system = document["system"]
 assert system["name"] == "KitchenSink"
 for key in [
     "feature_flags",
+    "values",
+    "enums",
+    "events",
     "shapes",
     "logs",
     "metrics",
@@ -177,6 +189,9 @@ for key in [
 ]:
     assert len(system[key]) >= 1, key
 assert system["shapes"][0]["name"] == "StartOrderProcessingRequest"
+assert system["values"][0]["name"] == "OrderAmount"
+assert system["enums"][0]["name"] == "OrderStatus"
+assert system["events"][0]["name"] == "OrderAccepted"
 assert system["shapes"][0]["fields"][0]["name"] == "tenant_id"
 assert system["entities"][0]["key_fields"] == ["tenant_id", "order_id"]
 assert system["queues"][0]["name"] == "EmailDispatch"
