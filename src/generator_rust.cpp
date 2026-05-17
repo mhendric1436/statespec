@@ -278,6 +278,17 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub properties: Vec<ExternalSystemPropertyDescriptor>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ApiDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub method: Option<String>,\n";
+    out << "    pub path: Option<String>,\n";
+    out << "    pub input: Option<String>,\n";
+    out << "    pub output: Option<String>,\n";
+    out << "    pub error: Option<String>,\n";
+    out << "    pub starts_workflow: Option<String>,\n";
+    out << "    pub enqueues: Option<String>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct PolicyRuleDescriptor {\n";
     out << "    pub action: String,\n";
     out << "    pub condition: String,\n";
@@ -472,6 +483,25 @@ std::string generate_descriptors_rs(const IrSystem& system)
                 << ".to_string(), value: " << rust_string(property.value) << ".to_string() },\n";
         }
         out << "            ],\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& api : system.apis)
+    {
+        out << "        ApiDescriptor {\n";
+        out << "            name: " << rust_string(api.name) << ".to_string(),\n";
+        out << "            method: " << optional_string_expr(api.method) << ",\n";
+        out << "            path: " << optional_string_expr(api.path) << ",\n";
+        out << "            input: " << optional_string_expr(api.input) << ",\n";
+        out << "            output: " << optional_string_expr(api.output) << ",\n";
+        out << "            error: " << optional_string_expr(api.error) << ",\n";
+        out << "            starts_workflow: " << optional_string_expr(api.starts_workflow)
+            << ",\n";
+        out << "            enqueues: " << optional_string_expr(api.enqueues) << ",\n";
         out << "        },\n";
     }
     out << "    ]\n";

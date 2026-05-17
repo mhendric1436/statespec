@@ -65,6 +65,17 @@ Generated external system metadata includes:
 - name
 - named string properties
 
+Generated API metadata includes:
+
+- name
+- method
+- path
+- input type
+- output type
+- error type
+- workflow start target
+- queue enqueue target
+
 Generated shape metadata includes:
 
 - name
@@ -96,12 +107,12 @@ to register feature flag definitions into a backend-provided feature flag store.
 
 The generated domain descriptor APIs are:
 
-| Language | Namespaces | Values | Enums | Events | External systems | Shapes | Policies |
+| Language | Namespaces | Values | Enums | Events | External systems | Shapes | APIs | Policies |
 |---|---|---|---|---|---|---|---|
-| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `policy_descriptors()` |
-| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `PolicyDescriptors()` |
-| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `policyDescriptors()` |
-| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `policy_descriptors()` |
+| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `policy_descriptors()` |
+| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `PolicyDescriptors()` |
+| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `policyDescriptors()` |
+| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `policy_descriptors()` |
 
 Generated log metadata includes:
 

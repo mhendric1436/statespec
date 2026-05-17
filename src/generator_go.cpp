@@ -262,6 +262,16 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tName string\n";
     out << "\tProperties []ExternalSystemPropertyDescriptor\n";
     out << "}\n\n";
+    out << "type ApiDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tMethod *string\n";
+    out << "\tPath *string\n";
+    out << "\tInput *string\n";
+    out << "\tOutput *string\n";
+    out << "\tError *string\n";
+    out << "\tStartsWorkflow *string\n";
+    out << "\tEnqueues *string\n";
+    out << "}\n\n";
     out << "type PolicyRuleDescriptor struct {\n";
     out << "\tAction string\n";
     out << "\tCondition string\n";
@@ -443,6 +453,24 @@ std::string generate_descriptors_go(const IrSystem& system)
                 << ", Value: " << go_string(property.value) << "},\n";
         }
         out << "\t\t\t},\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func ApiDescriptors() []ApiDescriptor {\n";
+    out << "\treturn []ApiDescriptor{\n";
+    for (const auto& api : system.apis)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(api.name) << ",\n";
+        out << "\t\t\tMethod: " << string_ptr_expr(api.method) << ",\n";
+        out << "\t\t\tPath: " << string_ptr_expr(api.path) << ",\n";
+        out << "\t\t\tInput: " << string_ptr_expr(api.input) << ",\n";
+        out << "\t\t\tOutput: " << string_ptr_expr(api.output) << ",\n";
+        out << "\t\t\tError: " << string_ptr_expr(api.error) << ",\n";
+        out << "\t\t\tStartsWorkflow: " << string_ptr_expr(api.starts_workflow) << ",\n";
+        out << "\t\t\tEnqueues: " << string_ptr_expr(api.enqueues) << ",\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";

@@ -40,7 +40,7 @@ Status meanings:
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding remains future work. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve; generator output currently does not produce worker scaffolding. |
-| `api` | complete | complete | partial | partial | partial | complete | not-started | P1 | References resolve, but OpenAPI/server generation and shaped request/response support are not implemented. |
+| `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve and passive API descriptor metadata is generated; OpenAPI/server generation is not implemented. |
 | `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
 | `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression parsing and policy enforcement generation are not implemented. |
 | `annotations` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P4 | Keep low priority; annotations must not become a semantic escape hatch. |
@@ -126,9 +126,13 @@ Status meanings:
    ownership semantics, and generated policy enforcement hooks.
 
 8. **P1: Generate API descriptors from typed shapes.**
-   With shape DTO generation in place, the next API-oriented increment is emitting
-   passive API descriptor metadata for method, path, input, output, error, workflow
-   starts, and queue enqueue targets.
+   Implemented: generated bindings now include passive API descriptor metadata for
+   method, path, input, output, error, workflow starts, and queue enqueue targets.
+   Next work is OpenAPI or endpoint generation from these descriptors.
+
+9. **P2: Add event runtime helpers.**
+   Event declarations now flow through descriptors. The next event-oriented increment
+   is generated publisher/subscriber helper surfaces that preserve typed event payloads.
 
 ## Pull Request Rule
 

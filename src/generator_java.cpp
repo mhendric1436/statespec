@@ -274,6 +274,16 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        String name,\n";
     out << "        List<ExternalSystemPropertyDescriptor> properties\n";
     out << "    ) {}\n\n";
+    out << "    public record ApiDescriptor(\n";
+    out << "        String name,\n";
+    out << "        Optional<String> method,\n";
+    out << "        Optional<String> path,\n";
+    out << "        Optional<String> input,\n";
+    out << "        Optional<String> output,\n";
+    out << "        Optional<String> error,\n";
+    out << "        Optional<String> startsWorkflow,\n";
+    out << "        Optional<String> enqueues\n";
+    out << "    ) {}\n\n";
     out << "    public record PolicyRuleDescriptor(\n";
     out << "        String action,\n";
     out << "        String condition\n";
@@ -470,6 +480,25 @@ std::string generate_descriptors_java(const IrSystem& system)
         out << "                )\n";
         out << "            )" << (system_index + 1 < system.external_systems.size() ? "," : "")
             << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static List<ApiDescriptor> apiDescriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t api_index = 0; api_index < system.apis.size(); ++api_index)
+    {
+        const auto& api = system.apis[api_index];
+        out << "            new ApiDescriptor(\n";
+        out << "                " << java_string(api.name) << ",\n";
+        out << "                " << optional_string_expr(api.method) << ",\n";
+        out << "                " << optional_string_expr(api.path) << ",\n";
+        out << "                " << optional_string_expr(api.input) << ",\n";
+        out << "                " << optional_string_expr(api.output) << ",\n";
+        out << "                " << optional_string_expr(api.error) << ",\n";
+        out << "                " << optional_string_expr(api.starts_workflow) << ",\n";
+        out << "                " << optional_string_expr(api.enqueues) << "\n";
+        out << "            )" << (api_index + 1 < system.apis.size() ? "," : "") << "\n";
     }
     out << "        );\n";
     out << "    }\n\n";

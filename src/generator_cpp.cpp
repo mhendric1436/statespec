@@ -286,6 +286,18 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::vector<ExternalSystemPropertyDescriptor> properties;\n";
     out << "};\n\n";
 
+    out << "struct ApiDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::optional<std::string> method;\n";
+    out << "    std::optional<std::string> path;\n";
+    out << "    std::optional<std::string> input;\n";
+    out << "    std::optional<std::string> output;\n";
+    out << "    std::optional<std::string> error;\n";
+    out << "    std::optional<std::string> starts_workflow;\n";
+    out << "    std::optional<std::string> enqueues;\n";
+    out << "};\n\n";
+
     out << "struct PolicyRuleDescriptor\n";
     out << "{\n";
     out << "    std::string action;\n";
@@ -496,6 +508,25 @@ std::string generate_system_descriptors_header(const IrSystem& system)
                 << ", " << cpp_string(property.value) << "},\n";
         }
         out << "            },\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<ApiDescriptor> api_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& api : system.apis)
+    {
+        out << "        ApiDescriptor{\n";
+        out << "            " << cpp_string(api.name) << ",\n";
+        out << "            " << optional_string_expr(api.method) << ",\n";
+        out << "            " << optional_string_expr(api.path) << ",\n";
+        out << "            " << optional_string_expr(api.input) << ",\n";
+        out << "            " << optional_string_expr(api.output) << ",\n";
+        out << "            " << optional_string_expr(api.error) << ",\n";
+        out << "            " << optional_string_expr(api.starts_workflow) << ",\n";
+        out << "            " << optional_string_expr(api.enqueues) << ",\n";
         out << "        },\n";
     }
     out << "    };\n";
