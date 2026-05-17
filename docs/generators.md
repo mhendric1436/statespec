@@ -60,6 +60,11 @@ Generated event metadata includes:
 - name
 - typed fields
 
+Generated event helpers include a generic event envelope and one event-specific builder
+per declared event. Builders accept each payload field as the target binding's typed
+JSON value and return an envelope that preserves the declared event name and field map.
+Backend event transport is intentionally not generated yet.
+
 Generated external system metadata includes:
 
 - name

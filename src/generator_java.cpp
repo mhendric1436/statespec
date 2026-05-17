@@ -114,6 +114,17 @@ std::string pascal_identifier(const std::string& value)
     return result.empty() ? "GeneratedShape" : result;
 }
 
+std::string lower_camel_identifier(const std::string& value)
+{
+    auto identifier = pascal_identifier(value);
+    if (!identifier.empty())
+    {
+        identifier.front() =
+            static_cast<char>(std::tolower(static_cast<unsigned char>(identifier.front())));
+    }
+    return identifier.empty() ? "value" : identifier;
+}
+
 std::string java_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
@@ -198,6 +209,7 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "package com.statespec.generated;\n\n";
     out << "import com.statespec.backend.Backend;\n";
     out << "import com.statespec.backend.FeatureFlag;\n";
+    out << "import com.statespec.backend.Json;\n";
     out << "import com.statespec.backend.Lease;\n";
     out << "import com.statespec.backend.Log;\n";
     out << "import com.statespec.backend.Metric;\n";
@@ -212,9 +224,14 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "import java.time.Duration;\n";
     out << "import java.util.List;\n";
     out << "import java.util.Locale;\n";
+    out << "import java.util.Map;\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class Descriptors {\n";
     out << "    private Descriptors() {}\n\n";
+    out << "    public record EventEnvelope(\n";
+    out << "        String name,\n";
+    out << "        Map<String, Json> fields\n";
+    out << "    ) {}\n\n";
     for (const auto& shape : system.shapes)
     {
         out << "    public record " << pascal_identifier(shape.name) << "(\n";
@@ -225,6 +242,32 @@ std::string generate_descriptors_java(const IrSystem& system)
             out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
         }
         out << "    ) {}\n\n";
+    }
+
+    for (const auto& event : system.events)
+    {
+        out << "    public static EventEnvelope build" << pascal_identifier(event.name)
+            << "Event(\n";
+        for (std::size_t i = 0; i < event.fields.size(); ++i)
+        {
+            const auto& field = event.fields[i];
+            out << "        Json " << lower_camel_identifier(field.name);
+            out << (i + 1 < event.fields.size() ? "," : "") << "\n";
+        }
+        out << "    ) {\n";
+        out << "        return new EventEnvelope(\n";
+        out << "            " << java_string(event.name) << ",\n";
+        out << "            Map.of(\n";
+        for (std::size_t i = 0; i < event.fields.size(); ++i)
+        {
+            const auto& field = event.fields[i];
+            out << "                " << java_string(field.name) << ", "
+                << lower_camel_identifier(field.name);
+            out << (i + 1 < event.fields.size() ? "," : "") << "\n";
+        }
+        out << "            )\n";
+        out << "        );\n";
+        out << "    }\n\n";
     }
 
     out << "    public record LeaseDefinition(\n";

@@ -114,6 +114,32 @@ std::string pascal_identifier(const std::string& value)
     return result.empty() ? "GeneratedShape" : result;
 }
 
+std::string snake_identifier(const std::string& value)
+{
+    std::string result;
+    bool previous_was_separator = true;
+    for (const auto ch : value)
+    {
+        if (std::isalnum(static_cast<unsigned char>(ch)) == 0)
+        {
+            if (!result.empty() && !previous_was_separator)
+            {
+                result.push_back('_');
+            }
+            previous_was_separator = true;
+            continue;
+        }
+        if (std::isupper(static_cast<unsigned char>(ch)) != 0 && !previous_was_separator &&
+            !result.empty())
+        {
+            result.push_back('_');
+        }
+        result.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
+        previous_was_separator = false;
+    }
+    return result.empty() ? "generated_event" : result;
+}
+
 std::string rust_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
@@ -210,6 +236,11 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "use crate::queue::{CreateQueueRequest, QueueDefinition, QueueStore};\n";
     out << "use crate::workflow::{RegisterWorkflowDefinitionRequest, WorkflowDefinition, "
            "WorkflowStepDefinition, WorkflowStore};\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct EventEnvelope {\n";
+    out << "    pub name: String,\n";
+    out << "    pub fields: BTreeMap<String, Json>,\n";
+    out << "}\n\n";
     for (const auto& shape : system.shapes)
     {
         out << "#[derive(Debug, Clone)]\n";
@@ -218,6 +249,25 @@ std::string generate_descriptors_rs(const IrSystem& system)
         {
             out << "    pub " << field.name << ": " << rust_shape_type(field.type) << ",\n";
         }
+        out << "}\n\n";
+    }
+
+    for (const auto& event : system.events)
+    {
+        out << "pub fn make_" << snake_identifier(event.name) << "_event(\n";
+        for (const auto& field : event.fields)
+        {
+            out << "    " << field.name << ": Json,\n";
+        }
+        out << ") -> EventEnvelope {\n";
+        out << "    let mut fields = BTreeMap::new();\n";
+        for (const auto& field : event.fields)
+        {
+            out << "    fields.insert(" << rust_string(field.name) << ".to_string(), " << field.name
+                << ");\n";
+        }
+        out << "    EventEnvelope { name: " << rust_string(event.name)
+            << ".to_string(), fields }\n";
         out << "}\n\n";
     }
 

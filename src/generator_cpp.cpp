@@ -116,6 +116,32 @@ std::string pascal_identifier(const std::string& value)
     return result.empty() ? "GeneratedShape" : result;
 }
 
+std::string snake_identifier(const std::string& value)
+{
+    std::string result;
+    bool previous_was_separator = true;
+    for (const auto ch : value)
+    {
+        if (std::isalnum(static_cast<unsigned char>(ch)) == 0)
+        {
+            if (!result.empty() && !previous_was_separator)
+            {
+                result.push_back('_');
+            }
+            previous_was_separator = true;
+            continue;
+        }
+        if (std::isupper(static_cast<unsigned char>(ch)) != 0 && !previous_was_separator &&
+            !result.empty())
+        {
+            result.push_back('_');
+        }
+        result.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
+        previous_was_separator = false;
+    }
+    return result.empty() ? "generated_event" : result;
+}
+
 std::string cpp_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
@@ -205,12 +231,19 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "#include \"workflow.hpp\"\n\n";
     out << "#include <chrono>\n";
     out << "#include <cstdint>\n";
+    out << "#include <map>\n";
     out << "#include <optional>\n";
     out << "#include <string>\n";
     out << "#include <string_view>\n";
+    out << "#include <utility>\n";
     out << "#include <vector>\n\n";
     out << "namespace statespec_generated\n";
     out << "{\n\n";
+    out << "struct EventEnvelope\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::map<std::string, statespec::backend::Json> fields;\n";
+    out << "};\n\n";
     for (const auto& shape : system.shapes)
     {
         out << "struct " << pascal_identifier(shape.name) << "\n";
@@ -220,6 +253,30 @@ std::string generate_system_descriptors_header(const IrSystem& system)
             out << "    " << cpp_shape_type(field.type) << " " << field.name << "{};\n";
         }
         out << "};\n\n";
+    }
+
+    for (const auto& event : system.events)
+    {
+        out << "inline EventEnvelope make_" << snake_identifier(event.name) << "_event(\n";
+        for (std::size_t i = 0; i < event.fields.size(); ++i)
+        {
+            const auto& field = event.fields[i];
+            out << "    statespec::backend::Json " << field.name;
+            out << (i + 1 < event.fields.size() ? ",\n" : "\n");
+        }
+        out << ")\n";
+        out << "{\n";
+        out << "    return EventEnvelope{\n";
+        out << "        " << cpp_string(event.name) << ",\n";
+        out << "        {\n";
+        for (const auto& field : event.fields)
+        {
+            out << "            {" << cpp_string(field.name) << ", std::move(" << field.name
+                << ")},\n";
+        }
+        out << "        },\n";
+        out << "    };\n";
+        out << "}\n\n";
     }
 
     out << "struct LeaseDefinition\n";

@@ -114,6 +114,17 @@ std::string pascal_identifier(const std::string& value)
     return result.empty() ? "GeneratedShape" : result;
 }
 
+std::string lower_camel_identifier(const std::string& value)
+{
+    auto identifier = pascal_identifier(value);
+    if (!identifier.empty())
+    {
+        identifier.front() =
+            static_cast<char>(std::tolower(static_cast<unsigned char>(identifier.front())));
+    }
+    return identifier.empty() ? "value" : identifier;
+}
+
 std::string go_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
@@ -204,6 +215,10 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\t\"strings\"\n";
     out << "\t\"time\"\n";
     out << ")\n\n";
+    out << "type EventEnvelope struct {\n";
+    out << "\tName string\n";
+    out << "\tFields map[string]JSON\n";
+    out << "}\n\n";
     for (const auto& shape : system.shapes)
     {
         out << "type " << pascal_identifier(shape.name) << " struct {\n";
@@ -212,6 +227,32 @@ std::string generate_descriptors_go(const IrSystem& system)
             out << "\t" << pascal_identifier(field.name) << " " << go_shape_type(field.type)
                 << " `json:\"" << field.name << "\"`\n";
         }
+        out << "}\n\n";
+    }
+
+    for (const auto& event : system.events)
+    {
+        out << "func New" << pascal_identifier(event.name) << "Event(";
+        for (std::size_t i = 0; i < event.fields.size(); ++i)
+        {
+            const auto& field = event.fields[i];
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << lower_camel_identifier(field.name) << " JSON";
+        }
+        out << ") EventEnvelope {\n";
+        out << "\treturn EventEnvelope{\n";
+        out << "\t\tName: " << go_string(event.name) << ",\n";
+        out << "\t\tFields: map[string]JSON{\n";
+        for (const auto& field : event.fields)
+        {
+            out << "\t\t\t" << go_string(field.name) << ": " << lower_camel_identifier(field.name)
+                << ",\n";
+        }
+        out << "\t\t},\n";
+        out << "\t}\n";
         out << "}\n\n";
     }
 

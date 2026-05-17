@@ -36,7 +36,7 @@ Status meanings:
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
 | `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; expression typing remains incomplete. |
-| `event` | complete | complete | complete | complete | complete | complete | partial | P2 | Event payload fields are validated and emitted in descriptors; generated event publisher/subscriber APIs remain future work. |
+| `event` | complete | complete | complete | complete | complete | complete | partial | P2 | Event payload fields are validated, emitted in descriptors, and have generated payload envelope builders; backend event transport remains future work. |
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding remains future work. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve; generator output currently does not produce worker scaffolding. |
@@ -131,8 +131,15 @@ Status meanings:
    Next work is OpenAPI or endpoint generation from these descriptors.
 
 9. **P2: Add event runtime helpers.**
-   Event declarations now flow through descriptors. The next event-oriented increment
-   is generated publisher/subscriber helper surfaces that preserve typed event payloads.
+   Implemented: generated bindings now include event envelope types and event-specific
+   payload builder helpers backed by each language binding's typed JSON value. Next
+   work is backend event transport interfaces and generated publisher/subscriber
+   integration.
+
+10. **P2: Add worker scaffolding.**
+    Workflows, queues, workers, leases, and events now lower into descriptors. The
+    next worker-oriented increment is generating language-specific worker skeletons
+    from worker/workflow/queue IR.
 
 ## Pull Request Rule
 
