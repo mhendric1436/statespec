@@ -44,6 +44,7 @@ rules.
 
 | Concept | Purpose |
 |---|---|
+| `namespace` | Qualified grouping for reusable declarations. |
 | `entity` | Durable domain object with keys, fields, indexes, invariants, and lifecycle state. |
 | `state_machine` | Allowed lifecycle states and transitions for an entity. |
 | `queue` | Durable async command or event channel. |
@@ -54,6 +55,7 @@ rules.
 | `value` | Reusable named scalar type with an optional constraint expression. |
 | `enum` | Reusable named set of allowed members. |
 | `event` | Typed domain event payload that can trigger or be emitted by workflows. |
+| `external_system` | Named external authority or integration target with stable metadata. |
 | `log` | Structured event contract for operational logging. |
 | `metric` | Counter, gauge, or histogram contract for operational measurement. |
 | `workflow` | Long-running orchestration composed from named steps. |
@@ -209,6 +211,27 @@ event OrderAccepted {
   }
 }
 ```
+
+Namespace blocks qualify member declarations with the namespace path:
+
+```statespec
+namespace Billing {
+  external_system Stripe {
+    owner: "payments"
+    endpoint: "https://api.stripe.test"
+  }
+
+  event InvoiceAccepted {
+    fields {
+      invoice_id uuid
+    }
+  }
+}
+```
+
+The compiler records those declarations as `Billing.Stripe` and
+`Billing.InvoiceAccepted`. References should use qualified names until relative
+namespace lookup is added.
 
 The compiler parses, validates, lowers, formats, and emits descriptors for shapes. Target
 language generators do not yet emit dedicated request/response structs or classes from

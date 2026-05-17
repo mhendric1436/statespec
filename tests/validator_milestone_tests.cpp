@@ -881,6 +881,62 @@ void validator_rejects_invalid_values_enums_and_events()
     );
 }
 
+void validator_accepts_namespaces_external_systems_and_policies()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          namespace Billing {
+            external_system Stripe {
+              owner: "payments"
+              endpoint: "https://api.stripe.test"
+            }
+
+            api StartInvoice {
+              method POST
+              path "/v1/invoices/start"
+            }
+          }
+
+          policy BillingAccess {
+            allow Billing.StartInvoice when caller.role == billing_admin;
+            quota starts_per_minute: 60;
+            audit Billing.StartInvoice;
+          }
+        }
+    )sspec");
+
+    require(
+        !diagnostics.has_errors(),
+        "validator should accept valid namespaces, external systems, and policies"
+    );
+}
+
+void validator_rejects_invalid_namespaces_and_external_systems()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          namespace billing {
+            external_system stripe {
+              owner: "payments"
+              owner: "duplicate"
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4801"), "validator should reject invalid namespace names"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4901"),
+        "validator should reject invalid external system names"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3001"),
+        "validator should reject duplicate external system properties"
+    );
+}
+
 void validator_accepts_logs_and_metrics()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1105,6 +1161,16 @@ TEST_CASE("validator accepts values, enums, and events")
 TEST_CASE("validator rejects invalid values, enums, and events")
 {
     validator_rejects_invalid_values_enums_and_events();
+}
+
+TEST_CASE("validator accepts namespaces, external systems, and policies")
+{
+    validator_accepts_namespaces_external_systems_and_policies();
+}
+
+TEST_CASE("validator rejects invalid namespaces and external systems")
+{
+    validator_rejects_invalid_namespaces_and_external_systems();
 }
 
 TEST_CASE("validator accepts logs and metrics")

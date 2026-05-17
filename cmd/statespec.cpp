@@ -114,7 +114,14 @@ void append_system_members(
     target.values.insert(target.values.end(), source.values.begin(), source.values.end());
     target.enums.insert(target.enums.end(), source.enums.begin(), source.enums.end());
     target.events.insert(target.events.end(), source.events.begin(), source.events.end());
+    target.namespaces.insert(
+        target.namespaces.end(), source.namespaces.begin(), source.namespaces.end()
+    );
     target.shapes.insert(target.shapes.end(), source.shapes.begin(), source.shapes.end());
+    target.external_systems.insert(
+        target.external_systems.end(), source.external_systems.begin(),
+        source.external_systems.end()
+    );
     target.logs.insert(target.logs.end(), source.logs.begin(), source.logs.end());
     target.metrics.insert(target.metrics.end(), source.metrics.begin(), source.metrics.end());
     target.entities.insert(target.entities.end(), source.entities.begin(), source.entities.end());
@@ -208,7 +215,9 @@ statespec::Spec load_composed_spec(
         composed_system.values.clear();
         composed_system.enums.clear();
         composed_system.events.clear();
+        composed_system.namespaces.clear();
         composed_system.shapes.clear();
+        composed_system.external_systems.clear();
         composed_system.logs.clear();
         composed_system.metrics.clear();
         composed_system.entities.clear();
@@ -512,6 +521,70 @@ void write_events(
     out << ']';
 }
 
+void write_string_array(
+    std::ostream& out,
+    const std::vector<std::string>& values
+);
+
+void write_namespaces(
+    std::ostream& out,
+    const std::vector<statespec::NamespaceDecl>& namespaces
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < namespaces.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& namespace_decl = namespaces[i];
+        out << "{\"name\": ";
+        write_json_string(out, namespace_decl.name);
+        out << ", \"members\": ";
+        write_string_array(out, namespace_decl.members);
+        out << '}';
+    }
+    out << ']';
+}
+
+void write_external_systems(
+    std::ostream& out,
+    const std::vector<statespec::ExternalSystemDecl>& external_systems
+)
+{
+    out << '[';
+    for (std::size_t i = 0; i < external_systems.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << ", ";
+        }
+        const auto& external_system = external_systems[i];
+        out << "{\"name\": ";
+        write_json_string(out, external_system.name);
+        out << ", \"properties\": [";
+        for (std::size_t property_index = 0; property_index < external_system.properties.size();
+             ++property_index)
+        {
+            if (property_index > 0)
+            {
+                out << ", ";
+            }
+            const auto& property = external_system.properties[property_index];
+            out << "{\"name\": ";
+            write_json_string(out, property.name);
+            out << ", \"value\": ";
+            write_json_string(out, property.value);
+            out << ", \"value_kind\": ";
+            write_json_optional_string(out, property.value_kind);
+            out << '}';
+        }
+        out << "]}";
+    }
+    out << ']';
+}
+
 void write_shapes(
     std::ostream& out,
     const std::vector<statespec::ShapeDecl>& shapes
@@ -753,6 +826,9 @@ void write_spec_json(
     out << "    \"feature_flags\": ";
     write_feature_flags(out, system.feature_flags);
     out << ",\n";
+    out << "    \"namespaces\": ";
+    write_namespaces(out, system.namespaces);
+    out << ",\n";
     out << "    \"values\": ";
     write_values(out, system.values);
     out << ",\n";
@@ -764,6 +840,9 @@ void write_spec_json(
     out << ",\n";
     out << "    \"shapes\": ";
     write_shapes(out, system.shapes);
+    out << ",\n";
+    out << "    \"external_systems\": ";
+    write_external_systems(out, system.external_systems);
     out << ",\n";
     out << "    \"logs\": ";
     write_logs(out, system.logs);

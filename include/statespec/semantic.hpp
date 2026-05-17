@@ -149,6 +149,24 @@ struct SemanticEvent
     std::vector<SemanticField> fields;
 };
 
+struct SemanticNamespace
+{
+    std::string name;
+    std::vector<SemanticReference> members;
+};
+
+struct SemanticExternalSystemProperty
+{
+    std::string name;
+    std::string value;
+};
+
+struct SemanticExternalSystem
+{
+    std::string name;
+    std::vector<SemanticExternalSystemProperty> properties;
+};
+
 struct SemanticShape
 {
     std::string name;
@@ -296,10 +314,12 @@ struct SemanticSystem
     std::string name;
     std::optional<SemanticTenantScope> tenant_scope;
     std::optional<SemanticSystemTenant> system_tenant;
+    std::vector<SemanticNamespace> namespaces;
     std::vector<SemanticValue> values;
     std::vector<SemanticEnum> enums;
     std::vector<SemanticEvent> events;
     std::vector<SemanticShape> shapes;
+    std::vector<SemanticExternalSystem> external_systems;
     std::vector<SemanticFeatureFlag> feature_flags;
     std::vector<SemanticLog> logs;
     std::vector<SemanticMetric> metrics;

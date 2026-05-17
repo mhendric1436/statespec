@@ -40,6 +40,27 @@ bool is_named_identifier(
     return token.kind == TokenKind::Identifier && token.lexeme == name;
 }
 
+std::string qualify_name(
+    const std::string& prefix,
+    const std::string& name
+)
+{
+    if (prefix.empty())
+    {
+        return name;
+    }
+    return prefix + "." + name;
+}
+
+template <typename T>
+void qualify_decl_name(
+    T& decl,
+    const std::string& prefix
+)
+{
+    decl.name = qualify_name(prefix, decl.name);
+}
+
 } // namespace
 
 Parser::Parser(std::vector<Token> tokens)
@@ -251,6 +272,10 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
             system.system_tenant = system_tenant;
             consume_optional_semicolon();
         }
+        else if (check(TokenKind::KeywordNamespace))
+        {
+            system.namespaces.push_back(parse_namespace_decl(diagnostics, system));
+        }
         else if (check(TokenKind::KeywordEntity))
         {
             system.entities.push_back(parse_entity_decl(diagnostics));
@@ -270,6 +295,10 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         else if (check(TokenKind::KeywordShape))
         {
             system.shapes.push_back(parse_shape_decl(diagnostics));
+        }
+        else if (check(TokenKind::KeywordExternalSystem))
+        {
+            system.external_systems.push_back(parse_external_system_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordFeatureFlag))
         {
@@ -316,6 +345,144 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
 
     system.range = SourceRange{start.range.begin, previous().range.end};
     return system;
+}
+
+NamespaceDecl Parser::parse_namespace_decl(
+    DiagnosticBag& diagnostics,
+    SystemDecl& system,
+    const std::string& prefix
+)
+{
+    const auto start =
+        consume(TokenKind::KeywordNamespace, "expected namespace declaration", diagnostics);
+    const auto name = parse_qualified_name(diagnostics, "namespace name");
+    const auto namespace_name = qualify_name(prefix, name);
+    NamespaceDecl namespace_decl;
+    namespace_decl.name = namespace_name;
+
+    consume(TokenKind::LeftBrace, "expected '{' after namespace name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (check(TokenKind::KeywordNamespace))
+        {
+            auto nested = parse_namespace_decl(diagnostics, system, namespace_name);
+            namespace_decl.members.push_back(nested.name);
+            system.namespaces.push_back(std::move(nested));
+        }
+        else if (check(TokenKind::KeywordEntity))
+        {
+            auto decl = parse_entity_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.entities.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordValue))
+        {
+            auto decl = parse_value_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.values.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordEnum))
+        {
+            auto decl = parse_enum_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.enums.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordEvent))
+        {
+            auto decl = parse_event_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.events.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordShape))
+        {
+            auto decl = parse_shape_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.shapes.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordExternalSystem))
+        {
+            auto decl = parse_external_system_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.external_systems.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordFeatureFlag))
+        {
+            auto decl = parse_feature_flag_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.feature_flags.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordLog))
+        {
+            auto decl = parse_log_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.logs.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordMetric))
+        {
+            auto decl = parse_metric_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.metrics.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordQueue))
+        {
+            auto decl = parse_queue_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.queues.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordLease))
+        {
+            auto decl = parse_lease_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.leases.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordWorker))
+        {
+            auto decl = parse_worker_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.workers.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordApi))
+        {
+            auto decl = parse_api_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.apis.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordWorkflow))
+        {
+            auto decl = parse_workflow_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.workflows.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordPolicy))
+        {
+            auto decl = parse_policy_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.policies.push_back(std::move(decl));
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after namespace block", diagnostics);
+
+    namespace_decl.range = SourceRange{start.range.begin, previous().range.end};
+    return namespace_decl;
 }
 
 ValueDecl Parser::parse_value_decl(DiagnosticBag& diagnostics)
@@ -415,6 +582,57 @@ EventDecl Parser::parse_event_decl(DiagnosticBag& diagnostics)
 
     event.range = SourceRange{start.range.begin, previous().range.end};
     return event;
+}
+
+ExternalSystemDecl Parser::parse_external_system_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(
+        TokenKind::KeywordExternalSystem, "expected external_system declaration", diagnostics
+    );
+    const auto name = consume(TokenKind::Identifier, "expected external_system name", diagnostics);
+    ExternalSystemDecl external_system;
+    external_system.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after external_system name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (check(TokenKind::KeywordAnnotations))
+        {
+            advance();
+            skip_balanced_block();
+            continue;
+        }
+
+        const auto property_start =
+            consume(TokenKind::Identifier, "expected external_system property", diagnostics);
+        ExternalSystemPropertyDecl property;
+        property.name = property_start.lexeme;
+        consume(TokenKind::Colon, "expected ':' after external_system property", diagnostics);
+        if (check_any({
+                TokenKind::StringLiteral,
+                TokenKind::DurationLiteral,
+                TokenKind::IntegerLiteral,
+                TokenKind::DecimalLiteral,
+                TokenKind::BooleanLiteral,
+                TokenKind::Identifier,
+            }))
+        {
+            const auto value = advance();
+            property.value = strip_quotes(value.lexeme);
+            property.value_kind = token_kind_name(value.kind);
+        }
+        else
+        {
+            diagnostics.error(peek().range, "SSPEC0200", "expected external_system property value");
+        }
+        consume_optional_semicolon();
+        property.range = SourceRange{property_start.range.begin, previous().range.end};
+        external_system.properties.push_back(std::move(property));
+    }
+    consume(TokenKind::RightBrace, "expected '}' after external_system block", diagnostics);
+
+    external_system.range = SourceRange{start.range.begin, previous().range.end};
+    return external_system;
 }
 
 ShapeDecl Parser::parse_shape_decl(DiagnosticBag& diagnostics)

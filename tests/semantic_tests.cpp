@@ -25,6 +25,16 @@ void semantic_resolver_resolves_runtime_references()
             Complete = "complete"
           }
 
+          namespace Billing {
+            external_system Stripe {
+              owner: "payments"
+            }
+
+            shape InvoiceRequest {
+              invoice_id uuid
+            }
+          }
+
           event OrderAccepted {
             fields {
               order_id string
@@ -134,10 +144,20 @@ void semantic_resolver_resolves_runtime_references()
     statespec::test::require(resolved.enums.size() == 1, "semantic resolver should lower enums");
     statespec::test::require(resolved.events.size() == 1, "semantic resolver should lower events");
     statespec::test::require(
+        resolved.namespaces.size() == 1, "semantic resolver should lower namespaces"
+    );
+    statespec::test::require(
+        resolved.namespaces[0].members[0].kind == statespec::SymbolKind::ExternalSystem,
+        "semantic resolver should resolve namespace external system members"
+    );
+    statespec::test::require(
+        resolved.external_systems.size() == 1, "semantic resolver should lower external systems"
+    );
+    statespec::test::require(
         resolved.events[0].fields[1].type == "OrderAmount",
         "semantic resolver should preserve event value field type"
     );
-    statespec::test::require(resolved.shapes.size() == 2, "semantic resolver should lower shapes");
+    statespec::test::require(resolved.shapes.size() == 3, "semantic resolver should lower shapes");
     statespec::test::require(
         api.input.has_value() && api.input->kind == statespec::SymbolKind::Shape,
         "semantic resolver should resolve API input shape"

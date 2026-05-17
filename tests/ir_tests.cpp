@@ -222,6 +222,54 @@ void ir_lowers_values_enums_and_events()
     );
 }
 
+void ir_lowers_namespaces_external_systems_and_policy_descriptors()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          namespace Billing {
+            external_system Stripe {
+              owner: "payments"
+              endpoint: "https://api.stripe.test"
+            }
+
+            api StartInvoice {
+              method POST
+              path "/v1/invoices/start"
+            }
+          }
+
+          policy BillingAccess {
+            allow Billing.StartInvoice when caller.role == billing_admin;
+            quota starts_per_minute: 60;
+            audit Billing.StartInvoice;
+          }
+        }
+    )sspec");
+
+    const auto ir = statespec::lower_to_ir(spec);
+
+    statespec::test::require(ir.namespaces.size() == 1, "IR should lower namespaces");
+    statespec::test::require(ir.namespaces[0].name == "Billing", "IR should lower namespace name");
+    statespec::test::require(
+        ir.namespaces[0].members.size() == 2, "IR should lower namespace members"
+    );
+    statespec::test::require(ir.external_systems.size() == 1, "IR should lower external systems");
+    statespec::test::require(
+        ir.external_systems[0].name == "Billing.Stripe",
+        "IR should lower qualified external system name"
+    );
+    statespec::test::require(
+        ir.external_systems[0].properties[0].name == "owner",
+        "IR should lower external system properties"
+    );
+    statespec::test::require(ir.apis[0].name == "Billing.StartInvoice", "IR should qualify APIs");
+    statespec::test::require(ir.policies.size() == 1, "IR should lower policies");
+    statespec::test::require(
+        ir.policies[0].allows[0].action == "Billing.StartInvoice",
+        "IR should lower policy action references"
+    );
+}
+
 void ir_lowers_entity_relationship_metadata()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -609,6 +657,11 @@ TEST_CASE("IR lowers shapes")
 TEST_CASE("IR lowers values, enums, and events")
 {
     ir_lowers_values_enums_and_events();
+}
+
+TEST_CASE("IR lowers namespaces, external systems, and policies")
+{
+    ir_lowers_namespaces_external_systems_and_policy_descriptors();
 }
 
 TEST_CASE("IR lowers entity relationship metadata")

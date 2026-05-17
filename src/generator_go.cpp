@@ -178,6 +178,10 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tDescription *string\n";
     out << "\tExpires *string\n";
     out << "}\n\n";
+    out << "type NamespaceDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tMembers []string\n";
+    out << "}\n\n";
     out << "type ValueDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tType string\n";
@@ -194,6 +198,30 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "type EventDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tFields []FieldDescriptor\n";
+    out << "}\n\n";
+    out << "type ExternalSystemPropertyDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tValue string\n";
+    out << "}\n\n";
+    out << "type ExternalSystemDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tProperties []ExternalSystemPropertyDescriptor\n";
+    out << "}\n\n";
+    out << "type PolicyRuleDescriptor struct {\n";
+    out << "\tAction string\n";
+    out << "\tCondition string\n";
+    out << "}\n\n";
+    out << "type QuotaDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tExpression string\n";
+    out << "}\n\n";
+    out << "type PolicyDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tTenantScopedBy *string\n";
+    out << "\tAllows []PolicyRuleDescriptor\n";
+    out << "\tDenies []PolicyRuleDescriptor\n";
+    out << "\tQuotas []QuotaDescriptor\n";
+    out << "\tAudits []string\n";
     out << "}\n\n";
     out << "type ShapeDescriptor struct {\n";
     out << "\tName string\n";
@@ -276,6 +304,27 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\t}\n";
     out << "}\n\n";
 
+    out << "func NamespaceDescriptors() []NamespaceDescriptor {\n";
+    out << "\treturn []NamespaceDescriptor{\n";
+    for (const auto& namespace_decl : system.namespaces)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(namespace_decl.name) << ",\n";
+        out << "\t\t\tMembers: []string{";
+        for (std::size_t i = 0; i < namespace_decl.members.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_string(namespace_decl.members[i]);
+        }
+        out << "},\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
     out << "func ValueDescriptors() []ValueDescriptor {\n";
     out << "\treturn []ValueDescriptor{\n";
     for (const auto& value : system.values)
@@ -321,6 +370,67 @@ std::string generate_descriptors_go(const IrSystem& system)
                 << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
         }
         out << "\t\t\t},\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func ExternalSystemDescriptors() []ExternalSystemDescriptor {\n";
+    out << "\treturn []ExternalSystemDescriptor{\n";
+    for (const auto& external_system : system.external_systems)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(external_system.name) << ",\n";
+        out << "\t\t\tProperties: []ExternalSystemPropertyDescriptor{\n";
+        for (const auto& property : external_system.properties)
+        {
+            out << "\t\t\t\t{Name: " << go_string(property.name)
+                << ", Value: " << go_string(property.value) << "},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func PolicyDescriptors() []PolicyDescriptor {\n";
+    out << "\treturn []PolicyDescriptor{\n";
+    for (const auto& policy : system.policies)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(policy.name) << ",\n";
+        out << "\t\t\tTenantScopedBy: " << string_ptr_expr(policy.tenant_scoped_by) << ",\n";
+        out << "\t\t\tAllows: []PolicyRuleDescriptor{\n";
+        for (const auto& allow : policy.allows)
+        {
+            out << "\t\t\t\t{Action: " << go_string(allow.action)
+                << ", Condition: " << go_string(allow.condition) << "},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t\tDenies: []PolicyRuleDescriptor{\n";
+        for (const auto& deny : policy.denies)
+        {
+            out << "\t\t\t\t{Action: " << go_string(deny.action)
+                << ", Condition: " << go_string(deny.condition) << "},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t\tQuotas: []QuotaDescriptor{\n";
+        for (const auto& quota : policy.quotas)
+        {
+            out << "\t\t\t\t{Name: " << go_string(quota.name)
+                << ", Expression: " << go_string(quota.expression) << "},\n";
+        }
+        out << "\t\t\t},\n";
+        out << "\t\t\tAudits: []string{";
+        for (std::size_t i = 0; i < policy.audits.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_string(policy.audits[i]);
+        }
+        out << "},\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";

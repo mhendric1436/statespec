@@ -187,6 +187,12 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<std::string> expires;\n";
     out << "};\n\n";
 
+    out << "struct NamespaceDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::vector<std::string> members;\n";
+    out << "};\n\n";
+
     out << "struct ValueDescriptor\n";
     out << "{\n";
     out << "    std::string name;\n";
@@ -210,6 +216,40 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "{\n";
     out << "    std::string name;\n";
     out << "    std::vector<statespec::backend::FieldDescriptor> fields;\n";
+    out << "};\n\n";
+
+    out << "struct ExternalSystemPropertyDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::string value;\n";
+    out << "};\n\n";
+
+    out << "struct ExternalSystemDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::vector<ExternalSystemPropertyDescriptor> properties;\n";
+    out << "};\n\n";
+
+    out << "struct PolicyRuleDescriptor\n";
+    out << "{\n";
+    out << "    std::string action;\n";
+    out << "    std::string condition;\n";
+    out << "};\n\n";
+
+    out << "struct QuotaDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::string expression;\n";
+    out << "};\n\n";
+
+    out << "struct PolicyDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::optional<std::string> tenant_scoped_by;\n";
+    out << "    std::vector<PolicyRuleDescriptor> allows;\n";
+    out << "    std::vector<PolicyRuleDescriptor> denies;\n";
+    out << "    std::vector<QuotaDescriptor> quotas;\n";
+    out << "    std::vector<std::string> audits;\n";
     out << "};\n\n";
 
     out << "struct ShapeDescriptor\n";
@@ -311,6 +351,28 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    };\n";
     out << "}\n\n";
 
+    out << "inline std::vector<NamespaceDescriptor> namespace_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& namespace_decl : system.namespaces)
+    {
+        out << "        NamespaceDescriptor{\n";
+        out << "            " << cpp_string(namespace_decl.name) << ",\n";
+        out << "            {";
+        for (std::size_t i = 0; i < namespace_decl.members.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_string(namespace_decl.members[i]);
+        }
+        out << "},\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
     out << "inline std::vector<ValueDescriptor> value_descriptors()\n";
     out << "{\n";
     out << "    return {\n";
@@ -359,6 +421,69 @@ std::string generate_system_descriptors_header(const IrSystem& system)
                 << (is_optional_type(field.type) ? "false" : "true") << "},\n";
         }
         out << "            },\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<ExternalSystemDescriptor> external_system_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& external_system : system.external_systems)
+    {
+        out << "        ExternalSystemDescriptor{\n";
+        out << "            " << cpp_string(external_system.name) << ",\n";
+        out << "            {\n";
+        for (const auto& property : external_system.properties)
+        {
+            out << "                ExternalSystemPropertyDescriptor{" << cpp_string(property.name)
+                << ", " << cpp_string(property.value) << "},\n";
+        }
+        out << "            },\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<PolicyDescriptor> policy_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& policy : system.policies)
+    {
+        out << "        PolicyDescriptor{\n";
+        out << "            " << cpp_string(policy.name) << ",\n";
+        out << "            " << optional_string_expr(policy.tenant_scoped_by) << ",\n";
+        out << "            {\n";
+        for (const auto& allow : policy.allows)
+        {
+            out << "                PolicyRuleDescriptor{" << cpp_string(allow.action) << ", "
+                << cpp_string(allow.condition) << "},\n";
+        }
+        out << "            },\n";
+        out << "            {\n";
+        for (const auto& deny : policy.denies)
+        {
+            out << "                PolicyRuleDescriptor{" << cpp_string(deny.action) << ", "
+                << cpp_string(deny.condition) << "},\n";
+        }
+        out << "            },\n";
+        out << "            {\n";
+        for (const auto& quota : policy.quotas)
+        {
+            out << "                QuotaDescriptor{" << cpp_string(quota.name) << ", "
+                << cpp_string(quota.expression) << "},\n";
+        }
+        out << "            },\n";
+        out << "            {";
+        for (std::size_t i = 0; i < policy.audits.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_string(policy.audits[i]);
+        }
+        out << "},\n";
         out << "        },\n";
     }
     out << "    };\n";

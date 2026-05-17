@@ -25,13 +25,13 @@ Status meanings:
 | `include` | complete | complete | complete | complete | complete | partial | complete | P1 | Composition is supported for validation/generation; formatter keeps file-local includes. |
 | `import` | complete | complete | partial | not-started | not-started | partial | not-started | P3 | Parsed as metadata only; no module/import resolution semantics yet. |
 | `system` | complete | complete | complete | complete | complete | complete | complete | P0 | Root system is the implemented compilation unit. |
-| `namespace` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P2 | Queue `namespace` property is supported; declaration block namespaces are not. |
+| `namespace` | complete | complete | complete | complete | complete | complete | partial | P2 | Namespace blocks qualify member declarations and emit descriptor metadata; relative name lookup remains future work. |
 | `tenant scoped_by` | complete | complete | complete | complete | complete | complete | partial | P1 | Lowered into IR; runtime enforcement and generator usage remain limited. |
 | `system_tenant configured` | complete | complete | complete | complete | complete | complete | partial | P1 | Lowered into IR; generated runtime config contract should be expanded. |
 | `value` | complete | complete | complete | complete | complete | complete | partial | P2 | Reusable named value types flow through IR and binding descriptors; target-language type generation remains future work. |
 | `enum` | complete | complete | complete | complete | complete | complete | partial | P2 | Enum declarations and members flow through IR and binding descriptors; target-language enum generation remains future work. |
 | `shape` | complete | complete | complete | complete | complete | complete | partial | P1 | Shape descriptors are generated; target-language type generation is still pending. |
-| `external_system` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P3 | Required for explicit managed/observed ownership modeling. |
+| `external_system` | complete | complete | complete | complete | complete | complete | partial | P3 | External system properties flow through IR and binding descriptors; ownership-specific semantics remain future work. |
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime evaluator generation remains future work. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
@@ -42,7 +42,7 @@ Status meanings:
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve; generator output currently does not produce worker scaffolding. |
 | `api` | complete | complete | partial | partial | partial | complete | not-started | P1 | References resolve, but OpenAPI/server generation and shaped request/response support are not implemented. |
 | `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
-| `policy` | complete | complete | partial | partial | partial | complete | not-started | P2 | Rules lower as strings/references; expression parsing and policy generation are not implemented. |
+| `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression parsing and policy enforcement generation are not implemented. |
 | `annotations` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P4 | Keep low priority; annotations must not become a semantic escape hatch. |
 
 ## Entity Construct Parity
@@ -118,8 +118,10 @@ Status meanings:
    helpers.
 
 7. **P2/P3: Add namespace, external systems, and policies.**
-   Implement these once the core type/reference system is strong enough to support them
-   without duplicating semantic rules in generators.
+   Implemented: namespace blocks qualify member declarations, external systems are
+   parsed and validated as named property catalogs, and policies now emit passive
+   binding descriptor metadata. Next work is relative namespace lookup, external
+   ownership semantics, and generated policy enforcement hooks.
 
 ## Pull Request Rule
 

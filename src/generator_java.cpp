@@ -189,6 +189,10 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        Optional<String> description,\n";
     out << "        Optional<String> expires\n";
     out << "    ) {}\n\n";
+    out << "    public record NamespaceDescriptor(\n";
+    out << "        String name,\n";
+    out << "        List<String> members\n";
+    out << "    ) {}\n\n";
     out << "    public record ValueDescriptor(\n";
     out << "        String name,\n";
     out << "        String type,\n";
@@ -205,6 +209,30 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "    public record EventDescriptor(\n";
     out << "        String name,\n";
     out << "        List<FieldDescriptor> fields\n";
+    out << "    ) {}\n\n";
+    out << "    public record ExternalSystemPropertyDescriptor(\n";
+    out << "        String name,\n";
+    out << "        String value\n";
+    out << "    ) {}\n\n";
+    out << "    public record ExternalSystemDescriptor(\n";
+    out << "        String name,\n";
+    out << "        List<ExternalSystemPropertyDescriptor> properties\n";
+    out << "    ) {}\n\n";
+    out << "    public record PolicyRuleDescriptor(\n";
+    out << "        String action,\n";
+    out << "        String condition\n";
+    out << "    ) {}\n\n";
+    out << "    public record QuotaDescriptor(\n";
+    out << "        String name,\n";
+    out << "        String expression\n";
+    out << "    ) {}\n\n";
+    out << "    public record PolicyDescriptor(\n";
+    out << "        String name,\n";
+    out << "        Optional<String> tenantScopedBy,\n";
+    out << "        List<PolicyRuleDescriptor> allows,\n";
+    out << "        List<PolicyRuleDescriptor> denies,\n";
+    out << "        List<QuotaDescriptor> quotas,\n";
+    out << "        List<String> audits\n";
     out << "    ) {}\n\n";
     out << "    public record ShapeDescriptor(\n";
     out << "        String name,\n";
@@ -286,6 +314,30 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        );\n";
     out << "    }\n\n";
 
+    out << "    public static List<NamespaceDescriptor> namespaceDescriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t namespace_index = 0; namespace_index < system.namespaces.size();
+         ++namespace_index)
+    {
+        const auto& namespace_decl = system.namespaces[namespace_index];
+        out << "            new NamespaceDescriptor(\n";
+        out << "                " << java_string(namespace_decl.name) << ",\n";
+        out << "                List.of(";
+        for (std::size_t i = 0; i < namespace_decl.members.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << java_string(namespace_decl.members[i]);
+        }
+        out << ")\n";
+        out << "            )" << (namespace_index + 1 < system.namespaces.size() ? "," : "")
+            << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
     out << "    public static List<ValueDescriptor> valueDescriptors() {\n";
     out << "        return List.of(\n";
     for (std::size_t value_index = 0; value_index < system.values.size(); ++value_index)
@@ -339,6 +391,79 @@ std::string generate_descriptors_java(const IrSystem& system)
         }
         out << "                )\n";
         out << "            )" << (event_index + 1 < system.events.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static List<ExternalSystemDescriptor> externalSystemDescriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t system_index = 0; system_index < system.external_systems.size();
+         ++system_index)
+    {
+        const auto& external_system = system.external_systems[system_index];
+        out << "            new ExternalSystemDescriptor(\n";
+        out << "                " << java_string(external_system.name) << ",\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < external_system.properties.size(); ++i)
+        {
+            const auto& property = external_system.properties[i];
+            out << "                    new ExternalSystemPropertyDescriptor("
+                << java_string(property.name) << ", " << java_string(property.value) << ")";
+            out << (i + 1 < external_system.properties.size() ? "," : "") << "\n";
+        }
+        out << "                )\n";
+        out << "            )" << (system_index + 1 < system.external_systems.size() ? "," : "")
+            << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static List<PolicyDescriptor> policyDescriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t policy_index = 0; policy_index < system.policies.size(); ++policy_index)
+    {
+        const auto& policy = system.policies[policy_index];
+        out << "            new PolicyDescriptor(\n";
+        out << "                " << java_string(policy.name) << ",\n";
+        out << "                " << optional_string_expr(policy.tenant_scoped_by) << ",\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < policy.allows.size(); ++i)
+        {
+            const auto& allow = policy.allows[i];
+            out << "                    new PolicyRuleDescriptor(" << java_string(allow.action)
+                << ", " << java_string(allow.condition) << ")";
+            out << (i + 1 < policy.allows.size() ? "," : "") << "\n";
+        }
+        out << "                ),\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < policy.denies.size(); ++i)
+        {
+            const auto& deny = policy.denies[i];
+            out << "                    new PolicyRuleDescriptor(" << java_string(deny.action)
+                << ", " << java_string(deny.condition) << ")";
+            out << (i + 1 < policy.denies.size() ? "," : "") << "\n";
+        }
+        out << "                ),\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < policy.quotas.size(); ++i)
+        {
+            const auto& quota = policy.quotas[i];
+            out << "                    new QuotaDescriptor(" << java_string(quota.name) << ", "
+                << java_string(quota.expression) << ")";
+            out << (i + 1 < policy.quotas.size() ? "," : "") << "\n";
+        }
+        out << "                ),\n";
+        out << "                List.of(";
+        for (std::size_t i = 0; i < policy.audits.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << java_string(policy.audits[i]);
+        }
+        out << ")\n";
+        out << "            )" << (policy_index + 1 < system.policies.size() ? "," : "") << "\n";
     }
     out << "        );\n";
     out << "    }\n\n";

@@ -46,6 +46,10 @@ SymbolTable build_symbols(const SystemDecl& system)
     {
         insert_symbol(symbols, SymbolKind::Enum, enum_decl.name, enum_decl.range);
     }
+    for (const auto& namespace_decl : system.namespaces)
+    {
+        insert_symbol(symbols, SymbolKind::Namespace, namespace_decl.name, namespace_decl.range);
+    }
     for (const auto& event : system.events)
     {
         insert_symbol(symbols, SymbolKind::Event, event.name, event.range);
@@ -53,6 +57,12 @@ SymbolTable build_symbols(const SystemDecl& system)
     for (const auto& shape : system.shapes)
     {
         insert_symbol(symbols, SymbolKind::Shape, shape.name, shape.range);
+    }
+    for (const auto& external_system : system.external_systems)
+    {
+        insert_symbol(
+            symbols, SymbolKind::ExternalSystem, external_system.name, external_system.range
+        );
     }
     for (const auto& log : system.logs)
     {
@@ -327,6 +337,17 @@ SemanticSystem resolve_semantics(const Spec& spec)
         resolved.values.push_back(SemanticValue{value.name, value.type, value.constraint});
     }
 
+    for (const auto& namespace_decl : system.namespaces)
+    {
+        SemanticNamespace resolved_namespace;
+        resolved_namespace.name = namespace_decl.name;
+        for (const auto& member : namespace_decl.members)
+        {
+            resolved_namespace.members.push_back(resolve_reference(symbols, member));
+        }
+        resolved.namespaces.push_back(std::move(resolved_namespace));
+    }
+
     for (const auto& enum_decl : system.enums)
     {
         SemanticEnum resolved_enum;
@@ -341,6 +362,19 @@ SemanticSystem resolve_semantics(const Spec& spec)
     for (const auto& event : system.events)
     {
         resolved.events.push_back(SemanticEvent{event.name, resolve_fields(event.fields)});
+    }
+
+    for (const auto& external_system : system.external_systems)
+    {
+        SemanticExternalSystem resolved_external_system;
+        resolved_external_system.name = external_system.name;
+        for (const auto& property : external_system.properties)
+        {
+            resolved_external_system.properties.push_back(
+                SemanticExternalSystemProperty{property.name, property.value}
+            );
+        }
+        resolved.external_systems.push_back(std::move(resolved_external_system));
     }
 
     for (const auto& flag : system.feature_flags)

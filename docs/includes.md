@@ -72,9 +72,11 @@ the declarations in that file.
 The following system members are appended from included systems into the root system:
 
 - `feature_flag`
+- `namespace`
 - `value`
 - `enum`
 - `event`
+- `external_system`
 - `entity`
 - `queue`
 - `lease`

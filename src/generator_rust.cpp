@@ -187,6 +187,11 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub expires: Option<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct NamespaceDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub members: Vec<String>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ValueDescriptor {\n";
     out << "    pub name: String,\n";
     out << "    pub value_type: String,\n";
@@ -206,6 +211,35 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "pub struct EventDescriptor {\n";
     out << "    pub name: String,\n";
     out << "    pub fields: Vec<FieldDescriptor>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ExternalSystemPropertyDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub value: String,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ExternalSystemDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub properties: Vec<ExternalSystemPropertyDescriptor>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct PolicyRuleDescriptor {\n";
+    out << "    pub action: String,\n";
+    out << "    pub condition: String,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct QuotaDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub expression: String,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct PolicyDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub tenant_scoped_by: Option<String>,\n";
+    out << "    pub allows: Vec<PolicyRuleDescriptor>,\n";
+    out << "    pub denies: Vec<PolicyRuleDescriptor>,\n";
+    out << "    pub quotas: Vec<QuotaDescriptor>,\n";
+    out << "    pub audits: Vec<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ShapeDescriptor {\n";
@@ -297,6 +331,27 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    ]\n";
     out << "}\n\n";
 
+    out << "pub fn namespace_descriptors() -> Vec<NamespaceDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& namespace_decl : system.namespaces)
+    {
+        out << "        NamespaceDescriptor {\n";
+        out << "            name: " << rust_string(namespace_decl.name) << ".to_string(),\n";
+        out << "            members: vec![";
+        for (std::size_t i = 0; i < namespace_decl.members.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_string(namespace_decl.members[i]) << ".to_string()";
+        }
+        out << "],\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
     out << "pub fn value_descriptors() -> Vec<ValueDescriptor> {\n";
     out << "    vec![\n";
     for (const auto& value : system.values)
@@ -343,6 +398,72 @@ std::string generate_descriptors_rs(const IrSystem& system)
                 << " },\n";
         }
         out << "            ],\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn external_system_descriptors() -> Vec<ExternalSystemDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& external_system : system.external_systems)
+    {
+        out << "        ExternalSystemDescriptor {\n";
+        out << "            name: " << rust_string(external_system.name) << ".to_string(),\n";
+        out << "            properties: vec![\n";
+        for (const auto& property : external_system.properties)
+        {
+            out << "                ExternalSystemPropertyDescriptor { name: "
+                << rust_string(property.name)
+                << ".to_string(), value: " << rust_string(property.value) << ".to_string() },\n";
+        }
+        out << "            ],\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn policy_descriptors() -> Vec<PolicyDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& policy : system.policies)
+    {
+        out << "        PolicyDescriptor {\n";
+        out << "            name: " << rust_string(policy.name) << ".to_string(),\n";
+        out << "            tenant_scoped_by: " << optional_string_expr(policy.tenant_scoped_by)
+            << ",\n";
+        out << "            allows: vec![\n";
+        for (const auto& allow : policy.allows)
+        {
+            out << "                PolicyRuleDescriptor { action: " << rust_string(allow.action)
+                << ".to_string(), condition: " << rust_string(allow.condition)
+                << ".to_string() },\n";
+        }
+        out << "            ],\n";
+        out << "            denies: vec![\n";
+        for (const auto& deny : policy.denies)
+        {
+            out << "                PolicyRuleDescriptor { action: " << rust_string(deny.action)
+                << ".to_string(), condition: " << rust_string(deny.condition)
+                << ".to_string() },\n";
+        }
+        out << "            ],\n";
+        out << "            quotas: vec![\n";
+        for (const auto& quota : policy.quotas)
+        {
+            out << "                QuotaDescriptor { name: " << rust_string(quota.name)
+                << ".to_string(), expression: " << rust_string(quota.expression)
+                << ".to_string() },\n";
+        }
+        out << "            ],\n";
+        out << "            audits: vec![";
+        for (std::size_t i = 0; i < policy.audits.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_string(policy.audits[i]) << ".to_string()";
+        }
+        out << "],\n";
         out << "        },\n";
     }
     out << "    ]\n";

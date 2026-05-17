@@ -170,6 +170,28 @@ struct EventDecl
     SourceRange range;
 };
 
+struct NamespaceDecl
+{
+    std::string name;
+    std::vector<std::string> members;
+    SourceRange range;
+};
+
+struct ExternalSystemPropertyDecl
+{
+    std::string name;
+    std::string value;
+    std::optional<std::string> value_kind;
+    SourceRange range;
+};
+
+struct ExternalSystemDecl
+{
+    std::string name;
+    std::vector<ExternalSystemPropertyDecl> properties;
+    SourceRange range;
+};
+
 struct FeatureFlagDecl
 {
     std::string name;
@@ -345,10 +367,12 @@ struct SystemDecl
     std::string name;
     std::optional<TenantScopeDecl> tenant_scope;
     std::optional<SystemTenantDecl> system_tenant;
+    std::vector<NamespaceDecl> namespaces;
     std::vector<ValueDecl> values;
     std::vector<EnumDecl> enums;
     std::vector<EventDecl> events;
     std::vector<ShapeDecl> shapes;
+    std::vector<ExternalSystemDecl> external_systems;
     std::vector<FeatureFlagDecl> feature_flags;
     std::vector<LogDecl> logs;
     std::vector<MetricDecl> metrics;

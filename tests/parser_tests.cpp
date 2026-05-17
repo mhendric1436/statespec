@@ -342,6 +342,53 @@ void parser_parses_values_enums_and_events()
     );
 }
 
+void parser_parses_namespaces_and_external_systems()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          namespace Billing {
+            external_system Stripe {
+              owner: "payments"
+              endpoint: "https://api.stripe.test"
+            }
+
+            shape InvoiceRequest {
+              invoice_id uuid
+            }
+          }
+        }
+    )sspec");
+
+    statespec::test::require(spec.system.has_value(), "parser should parse system");
+    statespec::test::require(spec.system->namespaces.size() == 1, "parser should parse namespace");
+    const auto& namespace_decl = spec.system->namespaces[0];
+    statespec::test::require(
+        namespace_decl.name == "Billing", "parser should parse namespace name"
+    );
+    statespec::test::require(
+        namespace_decl.members.size() == 2, "parser should record namespace members"
+    );
+    statespec::test::require(
+        namespace_decl.members[0] == "Billing.Stripe",
+        "parser should qualify namespaced external systems"
+    );
+    statespec::test::require(
+        spec.system->external_systems.size() == 1, "parser should parse external systems"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].name == "Billing.Stripe",
+        "parser should qualify external system name"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].properties.size() == 2,
+        "parser should parse external system properties"
+    );
+    statespec::test::require(
+        spec.system->shapes[0].name == "Billing.InvoiceRequest",
+        "parser should qualify namespaced shape names"
+    );
+}
+
 void parser_parses_shapes()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -732,6 +779,11 @@ TEST_CASE("parser parses feature flags")
 TEST_CASE("parser parses values, enums, and events")
 {
     parser_parses_values_enums_and_events();
+}
+
+TEST_CASE("parser parses namespaces and external systems")
+{
+    parser_parses_namespaces_and_external_systems();
 }
 
 TEST_CASE("parser parses shapes")

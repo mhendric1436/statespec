@@ -32,10 +32,16 @@ When `--out` is omitted, the CLI writes to `generated/<language>`.
 
 ## Generated Metadata
 
-Binding generators consume the lowered StateSpec IR, not raw AST declarations. Values,
-enums, events, shapes, feature flags, logs, metrics, entities, queues, leases, and
-workflows are emitted as descriptor metadata where supported so downstream tools can
-inspect runtime contracts consistently.
+Binding generators consume the lowered StateSpec IR, not raw AST declarations.
+Namespaces, values, enums, events, external systems, shapes, feature flags, logs,
+metrics, entities, queues, leases, workflows, and policies are emitted as descriptor
+metadata where supported so downstream tools can inspect runtime contracts
+consistently.
+
+Generated namespace metadata includes:
+
+- name
+- qualified member names
 
 Generated value metadata includes:
 
@@ -53,6 +59,11 @@ Generated event metadata includes:
 
 - name
 - typed fields
+
+Generated external system metadata includes:
+
+- name
+- named string properties
 
 Generated shape metadata includes:
 
@@ -74,12 +85,12 @@ to register feature flag definitions into a backend-provided feature flag store.
 
 The generated domain descriptor APIs are:
 
-| Language | Values | Enums | Events | Shapes |
-|---|---|---|---|---|
-| C++ | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `shape_descriptors()` |
-| Go | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ShapeDescriptors()` |
-| Java | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `shapeDescriptors()` |
-| Rust | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `shape_descriptors()` |
+| Language | Namespaces | Values | Enums | Events | External systems | Shapes | Policies |
+|---|---|---|---|---|---|---|---|
+| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `policy_descriptors()` |
+| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `PolicyDescriptors()` |
+| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `policyDescriptors()` |
+| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `policy_descriptors()` |
 
 Generated log metadata includes:
 

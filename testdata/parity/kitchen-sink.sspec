@@ -48,6 +48,13 @@ system KitchenSink {
     }
   }
 
+  namespace Billing {
+    external_system Stripe {
+      owner: "payments"
+      endpoint: "https://api.stripe.test"
+    }
+  }
+
   shape StartOrderProcessingRequest {
     tenant_id string
     order_id string

@@ -119,6 +119,33 @@ bool is_pascal_case_name(const std::string& name)
     return true;
 }
 
+bool is_qualified_pascal_case_name(const std::string& name)
+{
+    if (name.empty())
+    {
+        return false;
+    }
+
+    std::size_t start = 0;
+    while (start < name.size())
+    {
+        const auto end = name.find('.', start);
+        const auto segment =
+            name.substr(start, end == std::string::npos ? std::string::npos : end - start);
+        if (!is_pascal_case_name(segment))
+        {
+            return false;
+        }
+        if (end == std::string::npos)
+        {
+            return true;
+        }
+        start = end + 1;
+    }
+
+    return false;
+}
+
 bool is_positive_integer(int value)
 {
     return value > 0;
@@ -1031,7 +1058,7 @@ void validate_shapes(
 {
     for (const auto& shape : system.shapes)
     {
-        if (!is_pascal_case_name(shape.name))
+        if (!is_qualified_pascal_case_name(shape.name))
         {
             diagnostics.error(
                 shape.range, "SSPEC3201", "shape '" + shape.name + "' must use PascalCase"
@@ -1054,7 +1081,7 @@ void validate_values(
 {
     for (const auto& value : system.values)
     {
-        if (!is_pascal_case_name(value.name))
+        if (!is_qualified_pascal_case_name(value.name))
         {
             diagnostics.error(
                 value.range, "SSPEC4501", "value '" + value.name + "' must use PascalCase"
@@ -1075,6 +1102,33 @@ void validate_values(
     }
 }
 
+void validate_namespaces(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    DiagnosticBag& diagnostics
+)
+{
+    for (const auto& namespace_decl : system.namespaces)
+    {
+        if (!is_qualified_pascal_case_name(namespace_decl.name))
+        {
+            diagnostics.error(
+                namespace_decl.range, "SSPEC4801",
+                "namespace '" + namespace_decl.name + "' must use PascalCase segments"
+            );
+        }
+        for (const auto& member : namespace_decl.members)
+        {
+            if (!symbols.find(member).has_value())
+            {
+                unknown_reference_error(
+                    diagnostics, namespace_decl.range, "namespace member", member
+                );
+            }
+        }
+    }
+}
+
 void validate_enums(
     DiagnosticBag& diagnostics,
     const SystemDecl& system
@@ -1082,7 +1136,7 @@ void validate_enums(
 {
     for (const auto& enum_decl : system.enums)
     {
-        if (!is_pascal_case_name(enum_decl.name))
+        if (!is_qualified_pascal_case_name(enum_decl.name))
         {
             diagnostics.error(
                 enum_decl.range, "SSPEC4601", "enum '" + enum_decl.name + "' must use PascalCase"
@@ -1119,7 +1173,7 @@ void validate_events(
 {
     for (const auto& event : system.events)
     {
-        if (!is_pascal_case_name(event.name))
+        if (!is_qualified_pascal_case_name(event.name))
         {
             diagnostics.error(
                 event.range, "SSPEC4701", "event '" + event.name + "' must use PascalCase"
@@ -1134,6 +1188,32 @@ void validate_events(
     }
 }
 
+void validate_external_systems(
+    const SystemDecl& system,
+    DiagnosticBag& diagnostics
+)
+{
+    for (const auto& external_system : system.external_systems)
+    {
+        if (!is_qualified_pascal_case_name(external_system.name))
+        {
+            diagnostics.error(
+                external_system.range, "SSPEC4901",
+                "external_system '" + external_system.name + "' must use PascalCase segments"
+            );
+        }
+
+        std::unordered_set<std::string> properties;
+        for (const auto& property : external_system.properties)
+        {
+            if (!properties.insert(property.name).second)
+            {
+                duplicate_error(diagnostics, property.range, property.name);
+            }
+        }
+    }
+}
+
 void validate_feature_flags(
     const SystemDecl& system,
     const SymbolTable& symbols,
@@ -1142,7 +1222,7 @@ void validate_feature_flags(
 {
     for (const auto& flag : system.feature_flags)
     {
-        if (!is_pascal_case_name(flag.name))
+        if (!is_qualified_pascal_case_name(flag.name))
         {
             diagnostics.error(
                 flag.range, "SSPEC4201", "feature flag '" + flag.name + "' must use PascalCase"
@@ -1199,7 +1279,7 @@ void validate_logs(
     std::unordered_set<std::string> event_names;
     for (const auto& log : system.logs)
     {
-        if (!is_pascal_case_name(log.name))
+        if (!is_qualified_pascal_case_name(log.name))
         {
             diagnostics.error(log.range, "SSPEC4301", "log '" + log.name + "' must use PascalCase");
         }
@@ -1241,7 +1321,7 @@ void validate_metrics(
     std::unordered_set<std::string> backend_names;
     for (const auto& metric : system.metrics)
     {
-        if (!is_pascal_case_name(metric.name))
+        if (!is_qualified_pascal_case_name(metric.name))
         {
             diagnostics.error(
                 metric.range, "SSPEC4401", "metric '" + metric.name + "' must use PascalCase"
@@ -1718,6 +1798,12 @@ SymbolTable build_symbol_table(
     SymbolTable symbols;
     add_symbol(symbols, diagnostics, SymbolKind::System, system.name, system.range);
 
+    for (const auto& namespace_decl : system.namespaces)
+    {
+        add_symbol(
+            symbols, diagnostics, SymbolKind::Namespace, namespace_decl.name, namespace_decl.range
+        );
+    }
     for (const auto& entity : system.entities)
     {
         add_symbol(symbols, diagnostics, SymbolKind::Entity, entity.name, entity.range);
@@ -1737,6 +1823,13 @@ SymbolTable build_symbol_table(
     for (const auto& shape : system.shapes)
     {
         add_symbol(symbols, diagnostics, SymbolKind::Shape, shape.name, shape.range);
+    }
+    for (const auto& external_system : system.external_systems)
+    {
+        add_symbol(
+            symbols, diagnostics, SymbolKind::ExternalSystem, external_system.name,
+            external_system.range
+        );
     }
     for (const auto& flag : system.feature_flags)
     {
@@ -1809,9 +1902,11 @@ void Validator::validate(
     auto symbols = build_symbol_table(system, diagnostics);
 
     validate_feature_flags(system, symbols, diagnostics);
+    validate_namespaces(system, symbols, diagnostics);
     validate_values(system, symbols, diagnostics);
     validate_enums(diagnostics, system);
     validate_events(system, symbols, diagnostics);
+    validate_external_systems(system, diagnostics);
     validate_shapes(system, symbols, diagnostics);
     validate_logs(system, symbols, diagnostics);
     validate_metrics(system, symbols, diagnostics);

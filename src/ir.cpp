@@ -65,6 +65,17 @@ IrSystem lower_to_ir(const SemanticSystem& system)
             IrSystemTenant{system.system_tenant->source, system.system_tenant->config_key};
     }
 
+    for (const auto& namespace_decl : system.namespaces)
+    {
+        IrNamespace ir_namespace;
+        ir_namespace.name = namespace_decl.name;
+        for (const auto& member : namespace_decl.members)
+        {
+            ir_namespace.members.push_back(member.name);
+        }
+        ir.namespaces.push_back(std::move(ir_namespace));
+    }
+
     for (const auto& value : system.values)
     {
         ir.values.push_back(IrValue{value.name, value.type, value.constraint});
@@ -84,6 +95,19 @@ IrSystem lower_to_ir(const SemanticSystem& system)
     for (const auto& event : system.events)
     {
         ir.events.push_back(IrEvent{event.name, lower_fields(event.fields)});
+    }
+
+    for (const auto& external_system : system.external_systems)
+    {
+        IrExternalSystem ir_external_system;
+        ir_external_system.name = external_system.name;
+        for (const auto& property : external_system.properties)
+        {
+            ir_external_system.properties.push_back(
+                IrExternalSystemProperty{property.name, property.value}
+            );
+        }
+        ir.external_systems.push_back(std::move(ir_external_system));
     }
 
     for (const auto& shape : system.shapes)
