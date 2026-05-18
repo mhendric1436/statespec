@@ -614,6 +614,39 @@ void validator_rejects_unknown_api_references()
     );
 }
 
+void validator_rejects_invalid_api_server_declarations()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          api ExistingApi {
+            method POST
+            path "/v1/existing"
+          }
+          workflow NotAnApi {
+            version 1
+            start begin
+            step begin {
+              expected_execution_time PT1S
+            }
+          }
+          api_server BrokenApiServer {
+            serves MissingApi
+            serves NotAnApi
+            concurrency 0
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown or non-API api_server serves targets"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4002"),
+        "validator should reject non-positive api_server concurrency"
+    );
+}
+
 void validator_rejects_missing_required_declarations()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1126,6 +1159,11 @@ TEST_CASE("validator rejects unknown worker references")
 TEST_CASE("validator rejects unknown API references")
 {
     validator_rejects_unknown_api_references();
+}
+
+TEST_CASE("validator rejects invalid API server declarations")
+{
+    validator_rejects_invalid_api_server_declarations();
 }
 
 TEST_CASE("validator rejects missing required declarations")

@@ -26,6 +26,7 @@ enum class SymbolKind
     Message,
     Lease,
     Worker,
+    ApiServer,
     Api,
     Workflow,
     WorkflowStep,

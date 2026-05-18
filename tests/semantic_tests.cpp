@@ -95,6 +95,11 @@ void semantic_resolver_resolves_runtime_references()
             enqueues EmailDispatch.SendConfirmation
           }
 
+          api_server OrderApi {
+            serves StartOrderProcessing
+            concurrency 16
+          }
+
           workflow OrderProcessing {
             version 1
             on OrderAccepted
@@ -137,6 +142,18 @@ void semantic_resolver_resolves_runtime_references()
     statespec::test::require(
         worker.executes.has_value() && worker.executes->kind == statespec::SymbolKind::Workflow,
         "semantic resolver should resolve worker workflow target"
+    );
+
+    const auto& api_server = resolved.api_servers[0];
+    statespec::test::require(
+        api_server.serves.size() == 1, "semantic resolver should lower API server serves"
+    );
+    statespec::test::require(
+        api_server.serves[0].kind == statespec::SymbolKind::Api,
+        "semantic resolver should resolve API server served API"
+    );
+    statespec::test::require(
+        api_server.concurrency == 16, "semantic resolver should preserve API server concurrency"
     );
 
     const auto& api = resolved.apis[0];

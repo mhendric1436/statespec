@@ -229,6 +229,13 @@ struct SemanticWorker
     std::optional<int> concurrency;
 };
 
+struct SemanticApiServer
+{
+    std::string name;
+    std::vector<SemanticReference> serves;
+    std::optional<int> concurrency;
+};
+
 struct SemanticApi
 {
     std::string name;
@@ -327,6 +334,7 @@ struct SemanticSystem
     std::vector<SemanticQueue> queues;
     std::vector<SemanticLease> leases;
     std::vector<SemanticWorker> workers;
+    std::vector<SemanticApiServer> api_servers;
     std::vector<SemanticApi> apis;
     std::vector<SemanticWorkflow> workflows;
     std::vector<SemanticPolicy> policies;

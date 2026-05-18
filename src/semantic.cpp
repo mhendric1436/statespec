@@ -94,6 +94,10 @@ SymbolTable build_symbols(const SystemDecl& system)
     {
         insert_symbol(symbols, SymbolKind::Worker, worker.name, worker.range);
     }
+    for (const auto& api_server : system.api_servers)
+    {
+        insert_symbol(symbols, SymbolKind::ApiServer, api_server.name, api_server.range);
+    }
     for (const auto& api : system.apis)
     {
         insert_symbol(symbols, SymbolKind::Api, api.name, api.range);
@@ -472,6 +476,18 @@ SemanticSystem resolve_semantics(const Spec& spec)
                 worker.concurrency,
             }
         );
+    }
+
+    for (const auto& api_server : system.api_servers)
+    {
+        SemanticApiServer resolved_api_server;
+        resolved_api_server.name = api_server.name;
+        resolved_api_server.concurrency = api_server.concurrency;
+        for (const auto& served_api : api_server.serves)
+        {
+            resolved_api_server.serves.push_back(resolve_reference(symbols, served_api));
+        }
+        resolved.api_servers.push_back(std::move(resolved_api_server));
     }
 
     for (const auto& api : system.apis)

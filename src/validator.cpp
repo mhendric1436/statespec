@@ -1750,6 +1750,31 @@ void validate_apis(
     }
 }
 
+void validate_api_servers(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    DiagnosticBag& diagnostics
+)
+{
+    for (const auto& api_server : system.api_servers)
+    {
+        if (api_server.concurrency.has_value() && !is_positive_integer(*api_server.concurrency))
+        {
+            positive_integer_error(
+                diagnostics, api_server.range, "api_server '" + api_server.name + "'", "concurrency"
+            );
+        }
+
+        for (const auto& served_api : api_server.serves)
+        {
+            validate_symbol_reference(
+                symbols, api_server.range, "api_server served API", served_api, {SymbolKind::Api},
+                diagnostics
+            );
+        }
+    }
+}
+
 void validate_policies(
     const SystemDecl& system,
     const SymbolTable& symbols,
@@ -1862,6 +1887,10 @@ SymbolTable build_symbol_table(
     {
         add_symbol(symbols, diagnostics, SymbolKind::Worker, worker.name, worker.range);
     }
+    for (const auto& api_server : system.api_servers)
+    {
+        add_symbol(symbols, diagnostics, SymbolKind::ApiServer, api_server.name, api_server.range);
+    }
     for (const auto& api : system.apis)
     {
         add_symbol(symbols, diagnostics, SymbolKind::Api, api.name, api.range);
@@ -1916,6 +1945,7 @@ void Validator::validate(
     validate_workflows(system, symbols, diagnostics);
     validate_workers(system, symbols, diagnostics);
     validate_apis(system, symbols, diagnostics);
+    validate_api_servers(system, symbols, diagnostics);
     validate_policies(system, symbols, diagnostics);
 }
 
