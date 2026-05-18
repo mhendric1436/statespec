@@ -3,6 +3,7 @@ build/
 out/
 docs/*.png
 diagrams/*.png
+bindings/rust/Cargo.lock
 cmake-build-*/
 tags
 

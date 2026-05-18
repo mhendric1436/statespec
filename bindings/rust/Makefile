@@ -1,13 +1,17 @@
+CARGO ?= cargo
+CARGO_TARGET_DIR ?= ../../build/rust-target
+
 .PHONY: test format clean help
 
 test:
-	cargo test
+	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) test
 
 format:
-	cargo fmt
+	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) fmt
 
 clean:
-	cargo clean
+	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) clean
+	rm -f Cargo.lock
 
 help:
 	@echo "StateSpec Rust binding targets:"
