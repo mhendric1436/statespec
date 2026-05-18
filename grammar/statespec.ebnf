@@ -907,35 +907,36 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
    52. Queue messages must have payload fields or reference a shape in later versions.
    53. idempotency_key must refer to a payload field or generated message metadata.
    54. dead_letter must reference a queue or queue message according to target policy.
-   55. visibility_timeout must be a supported duration.
+   55. visibility_timeout must be explicit and supported.
+   56. max_attempts must be explicit and positive.
 
   Leases:
-   56. Lease ttl and renew_every must be supported durations.
-   57. renew_every should be less than ttl.
-   58. holder must resolve to worker identity, caller identity, or generated context.
-   59. fencing_token true requires the selected runtime to support fencing tokens.
+   57. Lease ttl and renew_every must be supported durations.
+   58. renew_every should be less than ttl.
+   59. holder must resolve to worker identity, caller identity, or generated context.
+   60. fencing_token true requires the selected runtime to support fencing tokens.
 
   Workers:
-   60. singleton true requires either an inline lease or resolvable lease binding.
-   61. polls must reference a queue or queue message.
-   62. executes must reference a workflow or workflow step.
+   61. singleton true requires either an inline lease or resolvable lease binding.
+   62. polls must reference a queue or queue message.
+   63. executes must reference a workflow or workflow step.
 
   Policies:
-   63. Policy subjects and actions must resolve to APIs, workflows, queues, leases, or workers.
-   64. Policy expressions must type-check as boolean expressions.
-   65. Policies must declare tenant scoped_by matching the system tenant scope.
-   66. Policies must include at least one allow, deny, quota, or audit declaration.
-   67. Tenant scoped fields must exist on the relevant entity, payload, or request shape.
+   64. Policy subjects and actions must resolve to APIs, workflows, queues, leases, or workers.
+   65. Policy expressions must type-check as boolean expressions.
+   66. Policies must declare tenant scoped_by matching the system tenant scope.
+   67. Policies must include at least one allow, deny, quota, or audit declaration.
+   68. Tenant scoped fields must exist on the relevant entity, payload, or request shape.
 
   Child sets:
-   68. child_set.entity must refer to a valid child entity.
-   69. The child entity must have a parent relation to the workflow's loaded parent entity.
-   70. child_set.parent_field must match the child's parent relation field.
-   71. pending, creating, succeeded, and failed fields must exist on the parent entity.
-   72. Child bucket fields must all be list<id_type>.
-   73. desired_count must type-check as an integer.
-   74. Child buckets must be disjoint.
-   75. Child bucket union must represent the reserved child set.
+   69. child_set.entity must refer to a valid child entity.
+   70. The child entity must have a parent relation to the workflow's loaded parent entity.
+   71. child_set.parent_field must match the child's parent relation field.
+   72. pending, creating, succeeded, and failed fields must exist on the parent entity.
+   73. Child bucket fields must all be list<id_type>.
+   74. desired_count must type-check as an integer.
+   75. Child buckets must be disjoint.
+   76. Child bucket union must represent the reserved child set.
 
   Feature flags:
    67. Feature flag names must be unique within a system or namespace.

@@ -152,13 +152,23 @@ void validate_queues(
         {
             required_error(diagnostics, queue.range, "queue '" + queue.name + "'", "channel");
         }
-        if (queue.visibility_timeout.has_value() && !is_duration_literal(*queue.visibility_timeout))
+        if (!queue.visibility_timeout.has_value())
+        {
+            required_error(
+                diagnostics, queue.range, "queue '" + queue.name + "'", "visibility_timeout"
+            );
+        }
+        else if (!is_duration_literal(*queue.visibility_timeout))
         {
             duration_error(
                 diagnostics, queue.range, "queue '" + queue.name + "'", "visibility_timeout"
             );
         }
-        if (queue.max_attempts.has_value() && !is_positive_integer(*queue.max_attempts))
+        if (!queue.max_attempts.has_value())
+        {
+            required_error(diagnostics, queue.range, "queue '" + queue.name + "'", "max_attempts");
+        }
+        else if (!is_positive_integer(*queue.max_attempts))
         {
             positive_integer_error(
                 diagnostics, queue.range, "queue '" + queue.name + "'", "max_attempts"

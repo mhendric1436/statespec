@@ -138,6 +138,8 @@ void validator_accepts_resolved_references()
           queue EmailQueue {
             namespace workflow_ns
             channel email
+            visibility_timeout PT30S
+            max_attempts 3
             message SendConfirmation {
               idempotency_key message_id
               payload {
@@ -1064,6 +1066,7 @@ void validator_rejects_invalid_positive_and_non_negative_values()
           queue EmailQueue {
             namespace workflow_ns
             channel email
+            visibility_timeout PT30S
             max_attempts 0
             message SendConfirmation {
               idempotency_key message_id
@@ -1090,6 +1093,31 @@ void validator_rejects_invalid_positive_and_non_negative_values()
     );
     require(
         has_error_code(diagnostics, "SSPEC4003"), "validator should reject negative integer values"
+    );
+}
+
+void validator_rejects_incomplete_queue_canonical_shape()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          queue EmailQueue {
+            namespace workflow_ns
+            channel email
+            message SendConfirmation {
+              idempotency_key message_id
+              payload { message_id string }
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "visibility_timeout"),
+        "validator should require explicit queue visibility_timeout"
+    );
+    require(
+        has_error_message_containing(diagnostics, "max_attempts"),
+        "validator should require explicit queue max_attempts"
     );
 }
 
@@ -1647,6 +1675,11 @@ TEST_CASE("validator rejects missing required declarations")
 TEST_CASE("validator rejects invalid positive and non-negative values")
 {
     validator_rejects_invalid_positive_and_non_negative_values();
+}
+
+TEST_CASE("validator rejects incomplete queue canonical shape")
+{
+    validator_rejects_incomplete_queue_canonical_shape();
 }
 
 TEST_CASE("validator accepts feature flags")

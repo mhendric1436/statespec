@@ -38,6 +38,10 @@ Recommended queue fields:
 | `max_attempts` | Retry limit before failure/dead-letter behavior. |
 | `dead_letter` | Queue or message target for failed work, when supported. |
 
+The canonical queue shape requires explicit `namespace`, `channel`,
+`visibility_timeout`, `max_attempts`, and at least one `message`. StateSpec does not infer
+queue retry or visibility defaults.
+
 ## Messages
 
 Messages define queue payload shape.
