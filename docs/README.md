@@ -19,6 +19,7 @@ truth for system behavior.
 | [queues-leases-workers.md](queues-leases-workers.md) | Durable queue, message, lease, and worker declarations. |
 | [workflows-and-apis.md](workflows-and-apis.md) | Workflow, step, API, API server, behavior, and orchestration declarations. |
 | [workflow-launch-control.md](workflow-launch-control.md) | Durable launch queue, capacity, reservation, and singleton scheduler pattern for rate-controlled workflow starts. |
+| [external-system-metadata.md](external-system-metadata.md) | Tenant-scoped operator metadata model for external system runtime configuration. |
 | [expressions.md](expressions.md) | Expression operators, syntax shape, and allowed built-in functions. |
 | [feature-flags.md](feature-flags.md) | Feature flag declarations, rollout scopes, and expression usage. |
 | [observability.md](observability.md) | Log and metric declarations, generated descriptors, and runtime binding contracts. |

@@ -245,6 +245,13 @@ api CreateOrder {
 
 Keep API behavior deterministic and side-effect aware. External side effects should be
 modeled through durable queues, workflows, or explicit integration declarations.
+User-facing APIs should expose caller intent, not operator-only remote execution metadata
+such as endpoint URLs, credential references, retry policy, timeout policy, or service
+routing. Use tenant-scoped operator metadata APIs for those fields and resolve the
+metadata through backend/OCC helpers at execution time.
+
+See [external-system-metadata.md](external-system-metadata.md) for the recommended
+external-system metadata model.
 
 ## API Server Skeleton
 

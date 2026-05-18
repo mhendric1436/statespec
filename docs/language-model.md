@@ -155,6 +155,20 @@ entity mt_Table_Order {
 Runtime-specific output belongs in tooling and binding generators, not in the canonical
 model.
 
+## External Systems
+
+`external_system` declarations identify integration boundaries and ownership references.
+They should not force user-facing APIs to expose remote execution metadata such as
+endpoints, credential references, retry policies, timeout policies, or routing details.
+
+For production integrations, model that execution metadata as tenant-scoped
+operator-managed state. Operator APIs write the metadata through OCC-backed backend
+operations, and generated runtime helpers resolve it for the current tenant before a
+remote call executes.
+
+See [external-system-metadata.md](external-system-metadata.md) for the runtime metadata
+model and tenant-scoping rules.
+
 ## Observability
 
 Logs and metrics are top-level system declarations:
