@@ -498,6 +498,80 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"by_tenant_order
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"P30D\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"tombstone\""
 
+cat > "$TMPDIR/out-cpp/metadata_resolver_fixture.cpp" <<'CPP'
+#include "system_descriptors.hpp"
+
+#include <string>
+#include <vector>
+
+class FakeTx final : public statespec::backend::ITransaction
+{
+  public:
+    bool is_open() const override { return true; }
+    void abort() override {}
+};
+
+class FakeResolver final : public statespec::backend::IExternalSystemMetadataResolver
+{
+  public:
+    int calls = 0;
+
+    std::optional<statespec::backend::ExternalSystemMetadataResolution> resolve_metadata(
+        statespec::backend::IBackend&,
+        const statespec::backend::ExternalSystemMetadataLookup&
+    ) override
+    {
+        return std::nullopt;
+    }
+
+    std::optional<statespec::backend::ExternalSystemMetadataResolution> resolve_metadataTx(
+        statespec::backend::ITransaction&,
+        const statespec::backend::ExternalSystemMetadataLookup& lookup
+    ) override
+    {
+        ++calls;
+        const auto document = statespec::backend::Json::object(
+            {{"tenant_id", "tenant-a"}, {"base_url", "https://api.stripe.test"}}
+        );
+        return statespec::backend::ExternalSystemMetadataResolution{
+            statespec::backend::VersionedRecord{
+                lookup.metadata_entity,
+                "tenant-a/stripe/default",
+                1,
+                document,
+            },
+            statespec::backend::missing_required_metadata_fields(document, lookup.required_fields),
+        };
+    }
+};
+
+int main()
+{
+    FakeTx tx;
+    FakeResolver resolver;
+    std::vector<statespec::backend::ExternalSystemMetadataKeyValue> keys{
+        {"tenant_id", "tenant-a"},
+        {"external_system_id", "stripe"},
+        {"profile", "default"},
+    };
+    auto resolved = statespec_generated::resolve_external_system_metadataTx(
+        resolver, tx, "Billing.Stripe", keys
+    );
+    if (!resolved.has_value() || resolved->complete() || resolver.calls != 1)
+    {
+        return 1;
+    }
+
+    keys.pop_back();
+    auto skipped = statespec_generated::resolve_external_system_metadataTx(
+        resolver, tx, "Billing.Stripe", keys
+    );
+    return skipped.has_value() || resolver.calls != 1 ? 1 : 0;
+}
+CPP
+${CXX:-c++} -std=c++20 -I"$TMPDIR/out-cpp" "$TMPDIR/out-cpp/metadata_resolver_fixture.cpp" -o "$TMPDIR/out-cpp/metadata_resolver_fixture"
+"$TMPDIR/out-cpp/metadata_resolver_fixture"
+
 # Positive generation: Go.
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
 assert_output_contains "generated $TMPDIR/out-go/backend/backend.go"
@@ -607,6 +681,72 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Name: \"by_tenant_
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Unique: true"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "GarbageCollection: &GarbageCollectionPolicy{After: \"P30D\", Mode: \"tombstone\"}"
 
+cat > "$TMPDIR/out-go/backend/metadata_resolver_fixture_test.go" <<'GO'
+package backend
+
+import (
+	"context"
+	"testing"
+)
+
+type fixtureTx struct{}
+
+func (fixtureTx) IsOpen() bool { return true }
+func (fixtureTx) Abort(context.Context) error { return nil }
+
+type fixtureResolver struct {
+	calls int
+}
+
+func (r *fixtureResolver) ResolveMetadata(context.Context, Backend, ExternalSystemMetadataLookup) (*ExternalSystemMetadataResolution, error) {
+	return nil, nil
+}
+
+func (r *fixtureResolver) ResolveMetadataTx(ctx context.Context, tx Transaction, lookup ExternalSystemMetadataLookup) (*ExternalSystemMetadataResolution, error) {
+	r.calls++
+	document := JSONObject(map[string]JSON{
+		"tenant_id": JSONString("tenant-a"),
+		"base_url": JSONString("https://api.stripe.test"),
+	})
+	return &ExternalSystemMetadataResolution{
+		Record: VersionedRecord{
+			Collection: CollectionName(lookup.MetadataEntity),
+			Key:        Key("tenant-a/stripe/default"),
+			Version:    Version(1),
+			Document:   document,
+		},
+		MissingRequiredFields: MissingRequiredMetadataFields(document, lookup.RequiredFields),
+	}, nil
+}
+
+func TestGeneratedMetadataResolverFixture(t *testing.T) {
+	ctx := context.Background()
+	resolver := &fixtureResolver{}
+	tx := fixtureTx{}
+	keys := []ExternalSystemMetadataKeyValue{
+		{Field: "tenant_id", Value: JSONString("tenant-a")},
+		{Field: "external_system_id", Value: JSONString("stripe")},
+		{Field: "profile", Value: JSONString("default")},
+	}
+	resolved, ok, err := ResolveExternalSystemMetadataByNameTx(ctx, resolver, tx, "Billing.Stripe", keys)
+	if err != nil || !ok || resolved == nil || resolved.Complete() || resolver.calls != 1 {
+		t.Fatalf("expected incomplete metadata resolution through resolver, ok=%v resolved=%#v err=%v calls=%d", ok, resolved, err, resolver.calls)
+	}
+
+	keys = keys[:len(keys)-1]
+	skipped, ok, err := ResolveExternalSystemMetadataByNameTx(ctx, resolver, tx, "Billing.Stripe", keys)
+	if err != nil || !ok || skipped != nil || resolver.calls != 1 {
+		t.Fatalf("expected incomplete key to skip resolver, ok=%v skipped=%#v err=%v calls=%d", ok, skipped, err, resolver.calls)
+	}
+}
+GO
+cat > "$TMPDIR/out-go/go.mod" <<'GOMOD'
+module statespec-generated-fixture
+
+go 1.22
+GOMOD
+(cd "$TMPDIR/out-go" && go test ./...)
+
 # Positive generation: Java.
 run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
 assert_output_contains "generated $TMPDIR/out-java/com/statespec/backend/Backend.java"
@@ -710,6 +850,89 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"by_tenant_status\""
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"by_tenant_order\""
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "new GarbageCollectionPolicy(\"P30D\", \"tombstone\")"
+
+cat > "$TMPDIR/out-java/com/statespec/generated/MetadataResolverFixture.java" <<'JAVA'
+package com.statespec.generated;
+
+import com.statespec.backend.Backend;
+import com.statespec.backend.ExternalSystem;
+import com.statespec.backend.Json;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+public final class MetadataResolverFixture
+{
+    private static final class FixtureTx implements Backend.Transaction
+    {
+        @Override public boolean isOpen() { return true; }
+        @Override public void abort() throws Backend.BackendException {}
+    }
+
+    private static final class FixtureResolver implements ExternalSystem
+    {
+        int calls = 0;
+
+        @Override public Optional<MetadataResolution> resolveMetadata(
+            Backend backend,
+            MetadataLookup lookup
+        ) throws Backend.BackendException
+        {
+            return Optional.empty();
+        }
+
+        @Override public Optional<MetadataResolution> resolveMetadataTx(
+            Backend.Transaction tx,
+            MetadataLookup lookup
+        ) throws Backend.BackendException
+        {
+            calls++;
+            Json document = Json.object(Map.of(
+                "tenant_id", Json.string("tenant-a"),
+                "base_url", Json.string("https://api.stripe.test")
+            ));
+            return Optional.of(new MetadataResolution(
+                new Backend.VersionedRecord(
+                    lookup.metadataEntity(),
+                    "tenant-a/stripe/default",
+                    1L,
+                    document
+                ),
+                ExternalSystem.missingRequiredMetadataFields(document, lookup.requiredFields())
+            ));
+        }
+    }
+
+    public static void main(String[] args) throws Exception
+    {
+        FixtureResolver resolver = new FixtureResolver();
+        FixtureTx tx = new FixtureTx();
+        List<ExternalSystem.MetadataKeyValue> keys = List.of(
+            new ExternalSystem.MetadataKeyValue("tenant_id", Json.string("tenant-a")),
+            new ExternalSystem.MetadataKeyValue("external_system_id", Json.string("stripe")),
+            new ExternalSystem.MetadataKeyValue("profile", Json.string("default"))
+        );
+        Optional<ExternalSystem.MetadataResolution> resolved =
+            Descriptors.resolveExternalSystemMetadataTx(resolver, tx, "Billing.Stripe", keys);
+        if (resolved.isEmpty() || resolved.orElseThrow().complete() || resolver.calls != 1)
+        {
+            throw new AssertionError("expected incomplete metadata resolution through resolver");
+        }
+
+        Optional<ExternalSystem.MetadataResolution> skipped =
+            Descriptors.resolveExternalSystemMetadataTx(
+                resolver, tx, "Billing.Stripe", keys.subList(0, 2)
+            );
+        if (skipped.isPresent() || resolver.calls != 1)
+        {
+            throw new AssertionError("expected incomplete key to skip resolver");
+        }
+    }
+}
+JAVA
+find "$TMPDIR/out-java" -name '*.java' -print > "$TMPDIR/out-java/sources.list"
+${JAVAC:-javac} @"$TMPDIR/out-java/sources.list"
+${JAVA:-java} -cp "$TMPDIR/out-java" com.statespec.generated.MetadataResolverFixture
 
 # Positive generation: Rust.
 run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
@@ -817,6 +1040,200 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "name: \"valid_status\".t
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "name: \"by_tenant_status\".to_string()"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "unique: true"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "garbage_collection: Some(GarbageCollectionPolicy { after: \"P30D\".to_string(), mode: \"tombstone\".to_string() })"
+
+cat > "$TMPDIR/out-rust/Cargo.toml" <<'TOML'
+[package]
+name = "statespec-generated-fixture"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+TOML
+
+cat > "$TMPDIR/out-rust/lib.rs" <<'RUST'
+pub mod backend;
+pub mod descriptors;
+pub mod external_system;
+pub mod feature_flag;
+pub mod json;
+pub mod lease;
+pub mod log;
+pub mod metric;
+pub mod queue;
+pub mod workflow;
+
+#[cfg(test)]
+mod tests {
+    use std::cell::Cell;
+
+    use crate::backend::{
+        Backend, BackendCapabilities, BackendResult, CollectionDescriptor, Query, Transaction,
+        VersionedRecord,
+    };
+    use crate::external_system::{
+        ExternalSystemMetadataKeyValue, ExternalSystemMetadataLookup,
+        ExternalSystemMetadataResolution, ExternalSystemMetadataResolver,
+    };
+    use crate::json::Json;
+
+    #[derive(Default)]
+    struct FixtureTx;
+
+    impl Transaction for FixtureTx {
+        fn is_open(&self) -> bool {
+            true
+        }
+
+        fn abort(&mut self) -> BackendResult<()> {
+            Ok(())
+        }
+    }
+
+    struct FixtureBackend;
+
+    impl Backend for FixtureBackend {
+        type Tx = FixtureTx;
+
+        fn capabilities(&self) -> BackendCapabilities {
+            BackendCapabilities::default()
+        }
+
+        fn ensure_collection(&self, _descriptor: &CollectionDescriptor) -> BackendResult<()> {
+            Ok(())
+        }
+
+        fn ensure_collections(&self, _descriptors: &[CollectionDescriptor]) -> BackendResult<()> {
+            Ok(())
+        }
+
+        fn begin(&self) -> BackendResult<Self::Tx> {
+            Ok(FixtureTx)
+        }
+
+        fn get(
+            &self,
+            _tx: &mut Self::Tx,
+            _collection: &str,
+            _key: &str,
+        ) -> BackendResult<Option<VersionedRecord>> {
+            Ok(None)
+        }
+
+        fn query(
+            &self,
+            _tx: &mut Self::Tx,
+            _collection: &str,
+            _query: &Query,
+        ) -> BackendResult<Vec<VersionedRecord>> {
+            Ok(vec![])
+        }
+
+        fn put(
+            &self,
+            _tx: &mut Self::Tx,
+            _collection: &str,
+            _key: &str,
+            _document: Json,
+        ) -> BackendResult<()> {
+            Ok(())
+        }
+
+        fn erase(&self, _tx: &mut Self::Tx, _collection: &str, _key: &str) -> BackendResult<()> {
+            Ok(())
+        }
+
+        fn commit(&self, _tx: Self::Tx) -> BackendResult<()> {
+            Ok(())
+        }
+    }
+
+    struct FixtureResolver {
+        calls: Cell<usize>,
+    }
+
+    impl ExternalSystemMetadataResolver<FixtureBackend> for FixtureResolver {
+        fn resolve_metadata(
+            &self,
+            _backend: &FixtureBackend,
+            _lookup: &ExternalSystemMetadataLookup,
+        ) -> BackendResult<Option<ExternalSystemMetadataResolution>> {
+            Ok(None)
+        }
+
+        fn resolve_metadata_tx(
+            &self,
+            _tx: &mut FixtureTx,
+            lookup: &ExternalSystemMetadataLookup,
+        ) -> BackendResult<Option<ExternalSystemMetadataResolution>> {
+            self.calls.set(self.calls.get() + 1);
+            let document = Json::Object(
+                [
+                    ("tenant_id".to_string(), Json::String("tenant-a".to_string())),
+                    (
+                        "base_url".to_string(),
+                        Json::String("https://api.stripe.test".to_string()),
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            );
+            Ok(Some(ExternalSystemMetadataResolution {
+                record: VersionedRecord {
+                    collection: lookup.metadata_entity.clone(),
+                    key: "tenant-a/stripe/default".to_string(),
+                    version: 1,
+                    document: document.clone(),
+                },
+                missing_required_fields: crate::external_system::missing_required_metadata_fields(
+                    &document,
+                    &lookup.required_fields,
+                ),
+            }))
+        }
+    }
+
+    #[test]
+    fn generated_metadata_resolver_fixture() {
+        let resolver = FixtureResolver {
+            calls: Cell::new(0),
+        };
+        let mut tx = FixtureTx;
+        let keys = vec![
+            ExternalSystemMetadataKeyValue {
+                field: "tenant_id".to_string(),
+                value: Json::String("tenant-a".to_string()),
+            },
+            ExternalSystemMetadataKeyValue {
+                field: "external_system_id".to_string(),
+                value: Json::String("stripe".to_string()),
+            },
+            ExternalSystemMetadataKeyValue {
+                field: "profile".to_string(),
+                value: Json::String("default".to_string()),
+            },
+        ];
+
+        let resolved = crate::descriptors::resolve_external_system_metadata_by_name_tx::<
+            FixtureBackend,
+            FixtureResolver,
+        >(&resolver, &mut tx, "Billing.Stripe", keys.clone())
+        .expect("resolver call should not fail")
+        .expect("metadata should resolve");
+        assert!(!resolved.complete());
+        assert_eq!(resolver.calls.get(), 1);
+
+        let skipped = crate::descriptors::resolve_external_system_metadata_by_name_tx::<
+            FixtureBackend,
+            FixtureResolver,
+        >(&resolver, &mut tx, "Billing.Stripe", keys[..2].to_vec())
+        .expect("resolver call should not fail");
+        assert!(skipped.is_none());
+        assert_eq!(resolver.calls.get(), 1);
+    }
+}
+RUST
+(cd "$TMPDIR/out-rust" && CARGO_TARGET_DIR="$TMPDIR/rust-target" cargo test)
 
 # Include composition is used by binding generation.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$INCLUDE_ROOT_SPEC" --out "$TMPDIR/out-include-cpp"

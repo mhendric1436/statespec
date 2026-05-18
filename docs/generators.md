@@ -82,6 +82,10 @@ Generated external system metadata includes:
 - generated transaction-scoped helpers that call external system metadata resolvers
 - generated resolve helpers validate lookup key completeness before resolver calls
 
+The generator smoke tests compile small in-memory metadata resolver fixtures for C++, Go,
+Java, and Rust. Those fixtures verify the generated descriptor-to-lookup-to-transaction
+resolver path and the incomplete-key short-circuit behavior.
+
 Generated API metadata includes:
 
 - name
