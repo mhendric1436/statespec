@@ -37,9 +37,9 @@ Status meanings:
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
 | `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; expression typing remains incomplete. |
 | `event` | complete | complete | complete | complete | complete | complete | partial | P2 | Event payload fields are validated, emitted in descriptors, and have generated payload envelope builders; backend event transport remains future work. |
-| `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding remains future work. |
+| `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding consumes queue references as metadata. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
-| `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve; generator output currently does not produce worker scaffolding. |
+| `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve and generated bindings expose worker descriptors, contexts, and handler skeleton interfaces; executable worker bodies remain future work. |
 | `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve and passive API descriptor metadata is generated; OpenAPI/server generation is not implemented. |
 | `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
 | `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression parsing and policy enforcement generation are not implemented. |
@@ -77,9 +77,9 @@ Status meanings:
 | Area | Current Status | Priority | Next Work |
 |---|---|---|---|
 | Binding template emission | partial | P0 | Keep generated packages self-contained; add package manifests where practical. |
-| Descriptor generation | partial | P0 | Expand descriptor usage into shape/API generation and worker scaffolding. |
+| Descriptor generation | partial | P0 | Expand descriptor usage into richer endpoint, worker body, and policy generation. |
 | Runtime bootstrap helpers | complete | P1 | Transaction-scoped helpers cover feature flags, queues, leases, workflows, logs, and metrics in all generated bindings. |
-| Worker scaffolding | not-started | P2 | Generate language-specific worker skeletons from worker/workflow/queue IR. |
+| Worker scaffolding | partial | P2 | Generated bindings expose worker descriptors, contexts, and language-specific handler interfaces. Next work is runnable queue polling, lease acquisition, and workflow dispatch loops. |
 | API generation | not-started | P1 | Generate OpenAPI or endpoint descriptors once `shape` support exists. |
 | Policy generation | not-started | P3 | Wait for expression parsing/type checking. |
 
@@ -137,9 +137,10 @@ Status meanings:
    integration.
 
 10. **P2: Add worker scaffolding.**
-    Workflows, queues, workers, leases, and events now lower into descriptors. The
-    next worker-oriented increment is generating language-specific worker skeletons
-    from worker/workflow/queue IR.
+    Implemented: generated bindings now expose worker descriptor lists, worker runtime
+    contexts, and language-specific handler interfaces. Next work is generating runnable
+    queue polling, lease acquisition, and workflow dispatch loops from worker, workflow,
+    and queue IR.
 
 ## Pull Request Rule
 

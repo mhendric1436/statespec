@@ -65,6 +65,10 @@ per declared event. Builders accept each payload field as the target binding's t
 JSON value and return an envelope that preserves the declared event name and field map.
 Backend event transport is intentionally not generated yet.
 
+Generated worker scaffolding includes passive worker descriptors, runtime context
+records, and a language-specific handler interface. Queue polling, lease acquisition,
+and workflow dispatch loops are intentionally not generated yet.
+
 Generated external system metadata includes:
 
 - name
@@ -112,12 +116,12 @@ to register feature flag definitions into a backend-provided feature flag store.
 
 The generated domain descriptor APIs are:
 
-| Language | Namespaces | Values | Enums | Events | External systems | Shapes | APIs | Policies |
-|---|---|---|---|---|---|---|---|
-| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `policy_descriptors()` |
-| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `PolicyDescriptors()` |
-| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `policyDescriptors()` |
-| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `policy_descriptors()` |
+| Language | Namespaces | Values | Enums | Events | External systems | Shapes | APIs | Workers | Policies |
+|---|---|---|---|---|---|---|---|---|
+| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
+| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
+| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
 
 Generated log metadata includes:
 

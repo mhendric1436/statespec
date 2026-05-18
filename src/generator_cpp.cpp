@@ -355,6 +355,33 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<std::string> enqueues;\n";
     out << "};\n\n";
 
+    out << "struct WorkerDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    bool singleton = false;\n";
+    out << "    std::optional<std::string> lease;\n";
+    out << "    std::optional<std::string> polls;\n";
+    out << "    std::optional<std::string> executes;\n";
+    out << "    int concurrency = 1;\n";
+    out << "};\n\n";
+
+    out << "struct WorkerContext\n";
+    out << "{\n";
+    out << "    std::string worker_name;\n";
+    out << "    bool singleton = false;\n";
+    out << "    std::optional<std::string> lease;\n";
+    out << "    std::optional<std::string> polls;\n";
+    out << "    std::optional<std::string> executes;\n";
+    out << "    int concurrency = 1;\n";
+    out << "};\n\n";
+
+    out << "class IWorker\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    virtual ~IWorker() = default;\n";
+    out << "    virtual void run(const WorkerContext& context) = 0;\n";
+    out << "};\n\n";
+
     out << "struct PolicyRuleDescriptor\n";
     out << "{\n";
     out << "    std::string action;\n";
@@ -584,6 +611,40 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            " << optional_string_expr(api.error) << ",\n";
         out << "            " << optional_string_expr(api.starts_workflow) << ",\n";
         out << "            " << optional_string_expr(api.enqueues) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<WorkerDescriptor> worker_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "        WorkerDescriptor{\n";
+        out << "            " << cpp_string(worker.name) << ",\n";
+        out << "            " << (worker.singleton.value_or(false) ? "true" : "false") << ",\n";
+        out << "            " << optional_string_expr(worker.lease) << ",\n";
+        out << "            " << optional_string_expr(worker.polls) << ",\n";
+        out << "            " << optional_string_expr(worker.executes) << ",\n";
+        out << "            " << worker.concurrency.value_or(1) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<WorkerContext> worker_contexts()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "        WorkerContext{\n";
+        out << "            " << cpp_string(worker.name) << ",\n";
+        out << "            " << (worker.singleton.value_or(false) ? "true" : "false") << ",\n";
+        out << "            " << optional_string_expr(worker.lease) << ",\n";
+        out << "            " << optional_string_expr(worker.polls) << ",\n";
+        out << "            " << optional_string_expr(worker.executes) << ",\n";
+        out << "            " << worker.concurrency.value_or(1) << ",\n";
         out << "        },\n";
     }
     out << "    };\n";

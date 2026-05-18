@@ -339,6 +339,27 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub enqueues: Option<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct WorkerDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub singleton: bool,\n";
+    out << "    pub lease: Option<String>,\n";
+    out << "    pub polls: Option<String>,\n";
+    out << "    pub executes: Option<String>,\n";
+    out << "    pub concurrency: i32,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct WorkerContext {\n";
+    out << "    pub worker_name: String,\n";
+    out << "    pub singleton: bool,\n";
+    out << "    pub lease: Option<String>,\n";
+    out << "    pub polls: Option<String>,\n";
+    out << "    pub executes: Option<String>,\n";
+    out << "    pub concurrency: i32,\n";
+    out << "}\n\n";
+    out << "pub trait Worker {\n";
+    out << "    fn run(&self, context: &WorkerContext) -> BackendResult<()>;\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct PolicyRuleDescriptor {\n";
     out << "    pub action: String,\n";
     out << "    pub condition: String,\n";
@@ -552,6 +573,40 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            starts_workflow: " << optional_string_expr(api.starts_workflow)
             << ",\n";
         out << "            enqueues: " << optional_string_expr(api.enqueues) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn worker_descriptors() -> Vec<WorkerDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "        WorkerDescriptor {\n";
+        out << "            name: " << rust_string(worker.name) << ".to_string(),\n";
+        out << "            singleton: " << (worker.singleton.value_or(false) ? "true" : "false")
+            << ",\n";
+        out << "            lease: " << optional_string_expr(worker.lease) << ",\n";
+        out << "            polls: " << optional_string_expr(worker.polls) << ",\n";
+        out << "            executes: " << optional_string_expr(worker.executes) << ",\n";
+        out << "            concurrency: " << worker.concurrency.value_or(1) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn worker_contexts() -> Vec<WorkerContext> {\n";
+    out << "    vec![\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "        WorkerContext {\n";
+        out << "            worker_name: " << rust_string(worker.name) << ".to_string(),\n";
+        out << "            singleton: " << (worker.singleton.value_or(false) ? "true" : "false")
+            << ",\n";
+        out << "            lease: " << optional_string_expr(worker.lease) << ",\n";
+        out << "            polls: " << optional_string_expr(worker.polls) << ",\n";
+        out << "            executes: " << optional_string_expr(worker.executes) << ",\n";
+        out << "            concurrency: " << worker.concurrency.value_or(1) << ",\n";
         out << "        },\n";
     }
     out << "    ]\n";

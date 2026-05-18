@@ -180,6 +180,14 @@ system Demo {
     }
   }
 
+  worker OrderWorker {
+    singleton true
+    lease OrderReconciler
+    polls EmailDispatch.SendConfirmation
+    executes OrderProcessing
+    concurrency 4
+  }
+
   api StartOrderProcessing {
     method POST
     path "/v1/orders/{order_id}/start"
@@ -350,6 +358,13 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemDes
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "external_system_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ApiDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "api_descriptors"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "WorkerDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "WorkerContext"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "class IWorker"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "worker_descriptors"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "worker_contexts"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"OrderWorker\""
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"EmailDispatch.SendConfirmation\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "PolicyDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "policy_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "GarbageCollectionPolicy"
@@ -432,6 +447,13 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSyste
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ExternalSystemDescriptors() []ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ApiDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ApiDescriptors() []ApiDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type WorkerDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type WorkerContext struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type Worker interface"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func WorkerDescriptors() []WorkerDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func WorkerContexts() []WorkerContext"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Name: \"OrderWorker\""
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Polls: stringPtr(\"EmailDispatch.SendConfirmation\")"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type PolicyDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func PolicyDescriptors() []PolicyDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type GarbageCollectionPolicy struct"
@@ -505,6 +527,11 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "buildOrderAcceptedEvent"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ApiDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record WorkerDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record WorkerContext"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "interface Worker"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"OrderWorker\""
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional.of(\"EmailDispatch.SendConfirmation\")"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record PolicyDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record GarbageCollectionPolicy"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EntityStateDescriptor"
@@ -521,6 +548,8 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "eventDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "externalSystemDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "apiDescriptors"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workerDescriptors"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workerContexts"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "policyDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "queueDefinitions"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "leaseDefinitions"
@@ -590,6 +619,13 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSyste
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_descriptors() -> Vec<ExternalSystemDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ApiDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn api_descriptors() -> Vec<ApiDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct WorkerDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct WorkerContext"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub trait Worker"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn worker_descriptors() -> Vec<WorkerDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn worker_contexts() -> Vec<WorkerContext>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "name: \"OrderWorker\".to_string()"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "polls: Some(\"EmailDispatch.SendConfirmation\".to_string())"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct PolicyDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn policy_descriptors() -> Vec<PolicyDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct GarbageCollectionPolicy"

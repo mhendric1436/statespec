@@ -313,6 +313,25 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tStartsWorkflow *string\n";
     out << "\tEnqueues *string\n";
     out << "}\n\n";
+    out << "type WorkerDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tSingleton bool\n";
+    out << "\tLease *string\n";
+    out << "\tPolls *string\n";
+    out << "\tExecutes *string\n";
+    out << "\tConcurrency int\n";
+    out << "}\n\n";
+    out << "type WorkerContext struct {\n";
+    out << "\tWorkerName string\n";
+    out << "\tSingleton bool\n";
+    out << "\tLease *string\n";
+    out << "\tPolls *string\n";
+    out << "\tExecutes *string\n";
+    out << "\tConcurrency int\n";
+    out << "}\n\n";
+    out << "type Worker interface {\n";
+    out << "\tRun(context.Context, WorkerContext) error\n";
+    out << "}\n\n";
     out << "type PolicyRuleDescriptor struct {\n";
     out << "\tAction string\n";
     out << "\tCondition string\n";
@@ -512,6 +531,40 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tError: " << string_ptr_expr(api.error) << ",\n";
         out << "\t\t\tStartsWorkflow: " << string_ptr_expr(api.starts_workflow) << ",\n";
         out << "\t\t\tEnqueues: " << string_ptr_expr(api.enqueues) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func WorkerDescriptors() []WorkerDescriptor {\n";
+    out << "\treturn []WorkerDescriptor{\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(worker.name) << ",\n";
+        out << "\t\t\tSingleton: " << (worker.singleton.value_or(false) ? "true" : "false")
+            << ",\n";
+        out << "\t\t\tLease: " << string_ptr_expr(worker.lease) << ",\n";
+        out << "\t\t\tPolls: " << string_ptr_expr(worker.polls) << ",\n";
+        out << "\t\t\tExecutes: " << string_ptr_expr(worker.executes) << ",\n";
+        out << "\t\t\tConcurrency: " << worker.concurrency.value_or(1) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func WorkerContexts() []WorkerContext {\n";
+    out << "\treturn []WorkerContext{\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tWorkerName: " << go_string(worker.name) << ",\n";
+        out << "\t\t\tSingleton: " << (worker.singleton.value_or(false) ? "true" : "false")
+            << ",\n";
+        out << "\t\t\tLease: " << string_ptr_expr(worker.lease) << ",\n";
+        out << "\t\t\tPolls: " << string_ptr_expr(worker.polls) << ",\n";
+        out << "\t\t\tExecutes: " << string_ptr_expr(worker.executes) << ",\n";
+        out << "\t\t\tConcurrency: " << worker.concurrency.value_or(1) << ",\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";
