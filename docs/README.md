@@ -3,9 +3,9 @@
 This directory contains practical guidance for programmers who author `.sspec` files.
 
 StateSpec is a canonical language for describing distributed systems with explicit
-entities, lifecycle state, APIs, workflows, queues, leases, workers, feature flags, logs,
-metrics, and policies. A `.sspec` file should be treated as the source of truth for
-system behavior.
+entities, lifecycle state, APIs, API servers, workflows, queues, leases, workers, feature
+flags, logs, metrics, and policies. A `.sspec` file should be treated as the source of
+truth for system behavior.
 
 ## Guide Structure
 
@@ -17,7 +17,7 @@ system behavior.
 | [includes.md](includes.md) | Include directives, path resolution, system composition, and file-local tooling behavior. |
 | [entities-and-state.md](entities-and-state.md) | Entity, field, key, state machine, relationship, invariant, and index authoring. |
 | [queues-leases-workers.md](queues-leases-workers.md) | Durable queue, message, lease, and worker declarations. |
-| [workflows-and-apis.md](workflows-and-apis.md) | Workflow, step, API, behavior, and orchestration declarations. |
+| [workflows-and-apis.md](workflows-and-apis.md) | Workflow, step, API, API server, behavior, and orchestration declarations. |
 | [workflow-launch-control.md](workflow-launch-control.md) | Durable launch queue, capacity, reservation, and singleton scheduler pattern for rate-controlled workflow starts. |
 | [feature-flags.md](feature-flags.md) | Feature flag declarations, rollout scopes, and expression usage. |
 | [observability.md](observability.md) | Log and metric declarations, generated descriptors, and runtime binding contracts. |

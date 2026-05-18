@@ -131,13 +131,18 @@ Status meanings:
    method, path, input, output, error, workflow starts, and queue enqueue targets.
    Next work is OpenAPI or endpoint generation from these descriptors.
 
-9. **P2: Add event runtime helpers.**
+9. **P1: Add API server descriptors.**
+   Implemented: `api_server` declarations parse, validate served API references, lower
+   into IR, and emit passive binding descriptor metadata. Next work is runnable server
+   scaffolding: route registration, handler interfaces, and request/response adapters.
+
+10. **P2: Add event runtime helpers.**
    Implemented: generated bindings now include event envelope types and event-specific
    payload builder helpers backed by each language binding's typed JSON value. Next
    work is backend event transport interfaces and generated publisher/subscriber
    integration.
 
-10. **P2: Add worker scaffolding.**
+11. **P2: Add worker scaffolding.**
     Implemented: generated bindings now expose worker descriptor lists, worker runtime
     contexts, and language-specific handler interfaces. Next work is generating runnable
     queue polling, lease acquisition, and workflow dispatch loops from worker, workflow,

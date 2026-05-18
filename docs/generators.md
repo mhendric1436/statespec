@@ -34,7 +34,7 @@ When `--out` is omitted, the CLI writes to `generated/<language>`.
 
 Binding generators consume the lowered StateSpec IR, not raw AST declarations.
 Namespaces, values, enums, events, external systems, shapes, feature flags, logs,
-metrics, entities, queues, leases, workflows, and policies are emitted as descriptor
+metrics, entities, queues, leases, API servers, workflows, and policies are emitted as descriptor
 metadata where supported so downstream tools can inspect runtime contracts
 consistently.
 

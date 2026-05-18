@@ -105,6 +105,7 @@ message
 lease
 worker
 api
+api_server
 workflow
 step
 policy
@@ -132,6 +133,7 @@ The language is backend-neutral. Specifications describe system semantics rather
 | Leases | Exclusive ownership, renewal, max TTL, holders, and fencing tokens |
 | Workers | Queue polling, workflow execution, singleton mode, leases, and concurrency |
 | APIs | External operations, request/response/error shapes, workflow starts, and message enqueue behavior |
+| API servers | Runtime actors that serve one or more declared APIs with concurrency metadata |
 | Workflows | Versioned long-running orchestration with steps, loads, statements, retry limits, and expected execution time |
 | Policies | Tenant scoping, allow/deny rules, quotas, and audit declarations |
 | Logs and metrics | Stable operational event and measurement contracts |
@@ -234,6 +236,11 @@ system OrderSystem {
     error ProblemDetails
     starts workflow OrderProcessing
     enqueues OrderEvents.OrderValidated
+  }
+
+  api_server OrderApi {
+    serves StartOrderProcessing
+    concurrency 16
   }
 
   policy OrderAccess {
@@ -381,7 +388,7 @@ From a single `.sspec` file, StateSpec tooling can derive:
 |---|---|
 | Schemas | entity metadata, collection descriptors, indexes, validation metadata |
 | APIs | OpenAPI, RPC contracts, request/response models, error models |
-| Runtime metadata | workflow, queue, lease, worker, log, metric, and feature flag definitions |
+| Runtime metadata | workflow, queue, lease, worker, API server, log, metric, and feature flag definitions |
 | Code scaffolding | server stubs, client stubs, integration helpers, worker skeletons |
 | Tests | state transition tests, invariant tests, runtime behavior tests |
 | Documentation | architecture docs, diagrams, state machine graphs |

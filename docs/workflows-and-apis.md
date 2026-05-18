@@ -2,6 +2,7 @@
 
 Workflows describe long-running orchestration. APIs describe external operations that
 start workflows, enqueue messages, load entities, allocate entities, and return results.
+API servers describe runtime actors that host one or more declared APIs.
 
 ## Workflow Skeleton
 
@@ -219,3 +220,32 @@ api CreateOrder {
 
 Keep API behavior deterministic and side-effect aware. External side effects should be
 modeled through durable queues, workflows, or explicit integration declarations.
+
+## API Server Skeleton
+
+`api_server` declarations model the synchronous ingress/runtime actor that serves API
+contracts. They are the API-facing counterpart to `worker`: workers consume queues or
+execute workflows asynchronously, while API servers serve request/response operations.
+
+```statespec
+api_server OrderApi {
+  serves StartOrderProcessing
+  serves CreateOrder
+  concurrency 16
+}
+```
+
+API server members include:
+
+| Member | Purpose |
+|---|---|
+| `serves` | API declaration served by this runtime actor. |
+| `concurrency` | Intended request handling concurrency for generated metadata and runtime scaffolding. |
+
+Each `serves` target must resolve to an `api` declaration. An API can be served by zero
+or more API servers, which keeps API contracts reusable across deployment topologies and
+does not force every spec to model runtime hosting immediately.
+
+Generated bindings currently emit passive API server descriptors. Runnable HTTP server
+loops, route registration, handler interfaces, and request/response adapter generation
+remain future work.

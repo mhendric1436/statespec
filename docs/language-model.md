@@ -16,7 +16,7 @@ system OrderSystem {
 ```
 
 The `system` block is the top-level scope for names. Names declared inside a system are
-referenced by APIs, workflows, queues, leases, workers, and policies.
+referenced by APIs, API servers, workflows, queues, leases, workers, and policies.
 
 Files may also declare `include` directives before imports and the root system:
 
@@ -61,6 +61,7 @@ rules.
 | `workflow` | Long-running orchestration composed from named steps. |
 | `step` | Unit of workflow execution with timing and retry metadata. |
 | `api` | External operation such as a REST endpoint. |
+| `api_server` | Runtime actor that serves one or more declared APIs. |
 | `policy` | Authorization, tenancy, quota, and audit intent. |
 
 ## Backend-Neutral Authoring
@@ -190,6 +191,11 @@ api StartOrderProcessing {
   method POST
   path "/v1/orders/{order_id}/start"
   input StartOrderProcessingRequest
+}
+
+api_server OrderApi {
+  serves StartOrderProcessing
+  concurrency 16
 }
 ```
 
