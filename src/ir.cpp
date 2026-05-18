@@ -120,8 +120,8 @@ IrSystem lower_to_ir(const SemanticSystem& system)
         if (external_system.metadata.has_value())
         {
             ir_external_system.metadata = IrExternalSystemMetadata{
-                external_system.metadata->entity,
-                external_system.metadata->profile_field,
+                external_system.metadata->entity,          external_system.metadata->tenant_field,
+                external_system.metadata->profile_field,   external_system.metadata->key_fields,
                 external_system.metadata->required_fields,
             };
         }

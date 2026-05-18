@@ -349,7 +349,9 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ExternalSystemMetadataDescriptor {\n";
     out << "    pub entity: String,\n";
+    out << "    pub tenant_field: Option<String>,\n";
     out << "    pub profile_field: String,\n";
+    out << "    pub key_fields: Vec<String>,\n";
     out << "    pub required_fields: Vec<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
@@ -623,8 +625,27 @@ std::string generate_descriptors_rs(const IrSystem& system)
             out << "            metadata: Some(ExternalSystemMetadataDescriptor {\n";
             out << "                entity: " << rust_string(external_system.metadata->entity)
                 << ".to_string(),\n";
+            if (external_system.metadata->tenant_field.has_value())
+            {
+                out << "                tenant_field: Some("
+                    << rust_string(*external_system.metadata->tenant_field) << ".to_string()),\n";
+            }
+            else
+            {
+                out << "                tenant_field: None,\n";
+            }
             out << "                profile_field: "
                 << rust_string(external_system.metadata->profile_field) << ".to_string(),\n";
+            out << "                key_fields: vec![";
+            for (std::size_t i = 0; i < external_system.metadata->key_fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << rust_string(external_system.metadata->key_fields[i]) << ".to_string()";
+            }
+            out << "],\n";
             out << "                required_fields: vec![";
             for (std::size_t i = 0; i < external_system.metadata->required_fields.size(); ++i)
             {

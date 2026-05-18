@@ -164,7 +164,9 @@ struct SemanticExternalSystemProperty
 struct SemanticExternalSystemMetadata
 {
     std::string entity;
+    std::optional<std::string> tenant_field;
     std::string profile_field;
+    std::vector<std::string> key_fields;
     std::vector<std::string> required_fields;
 };
 

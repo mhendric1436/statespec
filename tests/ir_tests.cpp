@@ -226,6 +226,24 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+
+          entity ExternalSystemEndpoint {
+            key tenant_id, external_system_id, profile
+            fields {
+              tenant_id string
+              external_system_id string
+              profile string
+              base_url string
+              auth_ref string
+              timeout_ms int
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
           namespace Billing {
             external_system Stripe {
               owner: "payments"
@@ -274,6 +292,18 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
     statespec::test::require(
         ir.external_systems[0].metadata->entity == "ExternalSystemEndpoint",
         "IR should lower external system metadata entity"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata->tenant_field == "tenant_id",
+        "IR should lower external system metadata tenant field"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata->key_fields.size() == 3,
+        "IR should lower external system metadata key fields"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata->key_fields[0] == "tenant_id",
+        "IR should preserve metadata entity key field order"
     );
     statespec::test::require(
         ir.external_systems[0].metadata->required_fields.size() == 3,

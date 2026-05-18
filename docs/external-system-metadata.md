@@ -187,6 +187,11 @@ transaction model used for entities, queues, leases, workflows, logs, metrics, a
 flags. A workflow or API handler should resolve metadata inside its caller-managed
 transaction, then execute the remote call with the resolved configuration.
 
+Generated binding descriptors expose the metadata entity, tenant field, metadata entity key
+fields, profile field, and required execution metadata fields. Runtime adapters should use
+that descriptor contract to build tenant-scoped backend lookups instead of hard-coding
+metadata entity names or key shapes.
+
 Metadata writes should use compare-and-swap semantics so two operators cannot silently
 overwrite each other's endpoint, credential reference, or retry policy updates.
 

@@ -73,6 +73,11 @@ Generated external system metadata includes:
 
 - name
 - named string properties
+- optional metadata entity descriptor
+- metadata tenant field
+- metadata entity key fields
+- metadata profile field
+- required execution metadata fields
 
 Generated API metadata includes:
 

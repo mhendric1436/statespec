@@ -325,7 +325,9 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "}\n\n";
     out << "type ExternalSystemMetadataDescriptor struct {\n";
     out << "\tEntity string\n";
+    out << "\tTenantField *string\n";
     out << "\tProfileField string\n";
+    out << "\tKeyFields []string\n";
     out << "\tRequiredFields []string\n";
     out << "}\n\n";
     out << "type ExternalSystemDescriptor struct {\n";
@@ -576,8 +578,23 @@ std::string generate_descriptors_go(const IrSystem& system)
         {
             out << "\t\t\tMetadata: &ExternalSystemMetadataDescriptor{\n";
             out << "\t\t\t\tEntity: " << go_string(external_system.metadata->entity) << ",\n";
+            if (external_system.metadata->tenant_field.has_value())
+            {
+                out << "\t\t\t\tTenantField: stringPtr("
+                    << go_string(*external_system.metadata->tenant_field) << "),\n";
+            }
             out << "\t\t\t\tProfileField: " << go_string(external_system.metadata->profile_field)
                 << ",\n";
+            out << "\t\t\t\tKeyFields: []string{";
+            for (std::size_t i = 0; i < external_system.metadata->key_fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << go_string(external_system.metadata->key_fields[i]);
+            }
+            out << "},\n";
             out << "\t\t\t\tRequiredFields: []string{";
             for (std::size_t i = 0; i < external_system.metadata->required_fields.size(); ++i)
             {

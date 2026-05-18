@@ -339,7 +339,9 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "    ) {}\n\n";
     out << "    public record ExternalSystemMetadataDescriptor(\n";
     out << "        String entity,\n";
+    out << "        Optional<String> tenantField,\n";
     out << "        String profileField,\n";
+    out << "        List<String> keyFields,\n";
     out << "        List<String> requiredFields\n";
     out << "    ) {}\n\n";
     out << "    public record ExternalSystemDescriptor(\n";
@@ -603,8 +605,27 @@ std::string generate_descriptors_java(const IrSystem& system)
         {
             out << "                Optional.of(new ExternalSystemMetadataDescriptor(\n";
             out << "                    " << java_string(external_system.metadata->entity) << ",\n";
+            if (external_system.metadata->tenant_field.has_value())
+            {
+                out << "                    Optional.of("
+                    << java_string(*external_system.metadata->tenant_field) << "),\n";
+            }
+            else
+            {
+                out << "                    Optional.empty(),\n";
+            }
             out << "                    " << java_string(external_system.metadata->profile_field)
                 << ",\n";
+            out << "                    List.of(";
+            for (std::size_t i = 0; i < external_system.metadata->key_fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << java_string(external_system.metadata->key_fields[i]);
+            }
+            out << "),\n";
             out << "                    List.of(";
             for (std::size_t i = 0; i < external_system.metadata->required_fields.size(); ++i)
             {

@@ -19,6 +19,21 @@ std::vector<SemanticField> resolve_fields(const std::vector<FieldDecl>& fields)
     return resolved;
 }
 
+const EntityDecl* find_entity_decl(
+    const SystemDecl& system,
+    const std::string& name
+)
+{
+    for (const auto& entity : system.entities)
+    {
+        if (entity.name == name)
+        {
+            return &entity;
+        }
+    }
+    return nullptr;
+}
+
 void insert_symbol(
     SymbolTable& symbols,
     SymbolKind kind,
@@ -380,9 +395,16 @@ SemanticSystem resolve_semantics(const Spec& spec)
         }
         if (external_system.metadata.has_value())
         {
+            const auto entity_name = external_system.metadata->entity.value_or("");
+            const auto* metadata_entity = find_entity_decl(system, entity_name);
             resolved_external_system.metadata = SemanticExternalSystemMetadata{
-                external_system.metadata->entity.value_or(""),
+                entity_name,
+                system.tenant_scope.has_value()
+                    ? std::optional<std::string>{system.tenant_scope->field_name}
+                    : std::nullopt,
                 external_system.metadata->profile_field.value_or(""),
+                metadata_entity != nullptr ? metadata_entity->key_fields
+                                           : std::vector<std::string>{},
                 external_system.metadata->required_fields,
             };
         }
