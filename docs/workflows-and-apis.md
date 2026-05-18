@@ -211,6 +211,11 @@ Mutating APIs (`POST`, `PUT`, and `PATCH`) must declare `input`. All non-`DELETE
 must declare `output`. This keeps generated contracts explicit instead of relying on
 transport-specific empty request or response defaults.
 
+An API must choose one primary action model. Use `starts workflow` when the API admits a
+durable workflow, use `enqueues` when the API submits a queue message, or omit both for a
+synchronous request/response operation. Do not combine `starts workflow` and `enqueues`
+on the same API.
+
 In tenant-scoped systems, API paths must expose tenant identity. Use either the system
 tenant field as a path parameter, such as `{tenant_id}` or `{tenantId}`, or a `/tenants/`
 route segment.

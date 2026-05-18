@@ -890,71 +890,72 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
    38. POST, PUT, and PATCH APIs must declare input.
    39. Non-DELETE APIs must declare output.
    40. Tenant-scoped API paths must include tenant identity.
+   41. An API must choose at most one primary action model: starts workflow or enqueues.
 
   Workflows:
-   41. Workflow start must target a declared step.
-   42. Workflow singleton must be explicit.
-   43. Workflow expected_execution_time must be explicit and supported.
-   44. Workflow trigger events must resolve when specified.
-   45. Workflow load entity must resolve.
-   46. Workflow state mutations must follow declared state_machine transitions.
-   47. transition_to must target a declared step in the same workflow.
-   48. enqueue statements must target declared queue messages.
-   49. acquire/renew/release lease statements must target declared leases.
-   50. Step expected_execution_time must be explicit and supported.
-   51. Step max_retries must be explicit and non-negative.
+   42. Workflow start must target a declared step.
+   43. Workflow singleton must be explicit.
+   44. Workflow expected_execution_time must be explicit and supported.
+   45. Workflow trigger events must resolve when specified.
+   46. Workflow load entity must resolve.
+   47. Workflow state mutations must follow declared state_machine transitions.
+   48. transition_to must target a declared step in the same workflow.
+   49. enqueue statements must target declared queue messages.
+   50. acquire/renew/release lease statements must target declared leases.
+   51. Step expected_execution_time must be explicit and supported.
+   52. Step max_retries must be explicit and non-negative.
 
   Queues:
-   52. Queue messages must have payload fields or reference a shape in later versions.
-   53. idempotency_key must refer to a payload field or generated message metadata.
-   54. dead_letter must reference a queue or queue message according to target policy.
-   55. visibility_timeout must be explicit and supported.
-   56. max_attempts must be explicit and positive.
+   53. Queue messages must have payload fields or reference a shape in later versions.
+   54. idempotency_key must refer to a payload field or generated message metadata.
+   55. dead_letter must reference a queue or queue message according to target policy.
+   56. visibility_timeout must be explicit and supported.
+   57. max_attempts must be explicit and positive.
 
   Leases:
-   57. Lease ttl, renew_every, and max_ttl must be explicit and supported durations.
-   58. renew_every must be less than ttl.
-   59. ttl must be less than or equal to max_ttl.
-   60. holder must be explicit and resolve to worker identity, caller identity, or generated context.
-   61. fencing_token must be explicit; true requires the selected runtime to support fencing tokens.
+   58. Lease ttl, renew_every, and max_ttl must be explicit and supported durations.
+   59. renew_every must be less than ttl.
+   60. ttl must be less than or equal to max_ttl.
+   61. holder must be explicit and resolve to worker identity, caller identity, or generated context.
+   62. fencing_token must be explicit; true requires the selected runtime to support fencing tokens.
 
   Workers:
-   62. singleton true requires either an inline lease or resolvable lease binding.
-   63. polls must reference a queue or queue message.
-   64. executes must reference a workflow or workflow step.
+   63. singleton true requires either an inline lease or resolvable lease binding.
+   64. polls must reference a queue or queue message.
+   65. executes must reference a workflow or workflow step.
 
   Observability:
-   65. Tenant-scoped logs must include the system tenant field in fields.
-   66. Tenant-scoped metrics must include the system tenant field in labels.
-   67. Metric labels must avoid high-cardinality identifiers, timestamps, raw payloads,
+   66. Tenant-scoped logs must include the system tenant field in fields.
+   67. Tenant-scoped metrics must include the system tenant field in labels.
+   68. Metric labels must avoid high-cardinality identifiers, timestamps, raw payloads,
        and error messages, except for the system tenant field.
-   68. Logs should use canonical member order: level, event_name, fields.
-   69. Metrics should use canonical member order: kind, name, unit, labels.
+   69. Logs should use canonical member order: level, event_name, fields.
+   70. Metrics should use canonical member order: kind, name, unit, labels.
 
   Policies:
-   70. Policy subjects and actions must resolve to APIs, workflows, queues, leases, or workers.
-   71. Policy expressions must type-check as boolean expressions.
-   72. Policies must declare tenant scoped_by matching the system tenant scope.
-   73. Policies must include at least one allow, deny, quota, or audit declaration.
-   74. Tenant scoped fields must exist on the relevant entity, payload, or request shape.
+   71. Policy subjects and actions must resolve to APIs, workflows, queues, leases, or workers.
+   72. Policy expressions must type-check as boolean expressions.
+   73. Policies must declare tenant scoped_by matching the system tenant scope.
+   74. Policies must include at least one allow, deny, quota, or audit declaration.
+   75. Tenant scoped fields must exist on the relevant entity, payload, or request shape.
 
   Child sets:
-   75. child_set.entity must refer to a valid child entity.
-   76. The child entity must have a parent relation to the workflow's loaded parent entity.
-   77. child_set.parent_field must match the child's parent relation field.
-   78. pending, creating, succeeded, and failed fields must exist on the parent entity.
-   79. Child bucket fields must all be list<id_type>.
-   80. desired_count must type-check as an integer.
-   81. Child buckets must be disjoint.
-   82. Child bucket union must represent the reserved child set.
+   76. child_set.entity must refer to a valid child entity.
+   77. The child entity must have a parent relation to the workflow's loaded parent entity.
+   78. child_set.parent_field must match the child's parent relation field.
+   79. pending, creating, succeeded, and failed fields must exist on the parent entity.
+   80. Child bucket fields must all be list<id_type>.
+   81. desired_count must type-check as an integer.
+   82. Child buckets must be disjoint.
+   83. Child bucket union must represent the reserved child set.
 
   Feature flags:
-   83. Feature flag names must be unique within a system or namespace.
-   84. Feature flag names must use PascalCase.
-   85. Feature flags must declare type and default.
-   86. Feature flag defaults must match the declared feature flag type.
-   87. scope entity must reference an existing entity.
-   88. feature_enabled(flag) requires a declared bool feature flag.
-   89. feature_value(flag) requires a declared feature flag.
+   84. Feature flag names must be unique within a system or namespace.
+   85. Feature flag names must use PascalCase.
+   86. Feature flags must declare type and default.
+   87. Feature flag defaults must match the declared feature flag type.
+   88. scope entity must reference an existing entity.
+   89. feature_enabled(flag) requires a declared bool feature flag.
+   90. feature_value(flag) requires a declared feature flag.
 
 *)

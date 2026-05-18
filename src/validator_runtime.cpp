@@ -429,6 +429,13 @@ void validate_apis(
         {
             unknown_reference_error(diagnostics, api.range, "API error", *api.error);
         }
+        if (api.starts_workflow.has_value() && api.enqueues.has_value())
+        {
+            diagnostics.error(
+                api.range, "SSPEC4101",
+                "api '" + api.name + "' must choose one primary action: starts workflow or enqueues"
+            );
+        }
         if (api.starts_workflow.has_value() && !symbols.find(*api.starts_workflow).has_value())
         {
             unknown_reference_error(

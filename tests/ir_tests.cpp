@@ -428,7 +428,6 @@ void ir_lowers_system_runtime_contracts()
             output StartOrderResponse
             error ErrorResponse
             starts workflow OrderProcessing
-            enqueues EmailDispatch.SendConfirmation
           }
 
           api_server OrderApi {
@@ -542,9 +541,7 @@ void ir_lowers_system_runtime_contracts()
     statespec::test::require(
         api.starts_workflow == "OrderProcessing", "IR should lower API workflow target"
     );
-    statespec::test::require(
-        api.enqueues == "EmailDispatch.SendConfirmation", "IR should lower API queue target"
-    );
+    statespec::test::require(!api.enqueues.has_value(), "IR should omit API queue target");
 
     statespec::test::require(ir.workflows.size() == 1, "IR should lower workflows");
     const auto& workflow = ir.workflows[0];

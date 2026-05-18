@@ -202,7 +202,6 @@ void validator_accepts_resolved_references()
             input StartOrderProcessingRequest
             output StartOrderProcessingResponse
             starts workflow OrderProcessing
-            enqueues EmailQueue.SendConfirmation
           }
           policy WorkflowAccess {
             tenant scoped_by tenant_id
@@ -956,6 +955,61 @@ void validator_rejects_unknown_api_references()
 
     require(
         has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown API references"
+    );
+}
+
+void validator_rejects_api_with_multiple_primary_actions()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          shape StartOrderRequest {
+            tenant_id string
+            order_id string
+          }
+          shape StartOrderResponse {
+            accepted bool
+          }
+          queue OrderQueue {
+            namespace orders
+            channel order_starts
+            visibility_timeout PT30S
+            max_attempts 3
+            message StartOrder {
+              idempotency_key order_id
+              payload {
+                tenant_id string
+                order_id string
+              }
+            }
+          }
+          workflow OrderProcessing {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start process_order
+            step process_order {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+
+          api StartOrder {
+            method POST
+            path "/v1/tenants/{tenantId}/orders/start"
+            input StartOrderRequest
+            output StartOrderResponse
+            starts workflow OrderProcessing
+            enqueues OrderQueue.StartOrder
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4101"),
+        "validator should reject APIs with multiple primary actions"
     );
 }
 
@@ -1860,6 +1914,11 @@ TEST_CASE("validator rejects unknown worker references")
 TEST_CASE("validator rejects unknown API references")
 {
     validator_rejects_unknown_api_references();
+}
+
+TEST_CASE("validator rejects APIs with multiple primary actions")
+{
+    validator_rejects_api_with_multiple_primary_actions();
 }
 
 TEST_CASE("validator rejects incomplete API canonical shape")

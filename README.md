@@ -243,7 +243,6 @@ system OrderSystem {
     output StartOrderProcessingResponse
     error ProblemDetails
     starts workflow OrderProcessing
-    enqueues OrderEvents.OrderValidated
   }
 
   api_server OrderApi {

@@ -96,7 +96,6 @@ void semantic_resolver_resolves_runtime_references()
             input StartOrderProcessingRequest
             output StartOrderProcessingResponse
             starts workflow OrderProcessing
-            enqueues EmailDispatch.SendConfirmation
           }
 
           api_server OrderApi {
@@ -194,8 +193,7 @@ void semantic_resolver_resolves_runtime_references()
         "semantic resolver should resolve API workflow target"
     );
     statespec::test::require(
-        api.enqueues.has_value() && api.enqueues->kind == statespec::SymbolKind::Message,
-        "semantic resolver should resolve API queue message target"
+        !api.enqueues.has_value(), "semantic resolver should omit API queue target"
     );
 
     const auto& workflow = resolved.workflows[0];

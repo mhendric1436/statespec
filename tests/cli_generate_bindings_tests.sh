@@ -206,7 +206,6 @@ system Demo {
     input StartOrderProcessingRequest
     output StartOrderProcessingResponse
     starts workflow OrderProcessing
-    enqueues EmailDispatch.SendConfirmation
   }
 
   api_server OrderApi {
