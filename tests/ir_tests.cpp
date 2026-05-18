@@ -230,6 +230,11 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
             external_system Stripe {
               owner: "payments"
               endpoint: "https://api.stripe.test"
+              metadata {
+                entity ExternalSystemEndpoint
+                profile_field profile
+                required_fields [base_url, auth_ref, timeout_ms]
+              }
             }
 
             api StartInvoice {
@@ -262,6 +267,17 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
     statespec::test::require(
         ir.external_systems[0].properties[0].name == "owner",
         "IR should lower external system properties"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata.has_value(), "IR should lower external system metadata"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata->entity == "ExternalSystemEndpoint",
+        "IR should lower external system metadata entity"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata->required_fields.size() == 3,
+        "IR should lower external system required metadata fields"
     );
     statespec::test::require(ir.apis[0].name == "Billing.StartInvoice", "IR should qualify APIs");
     statespec::test::require(ir.policies.size() == 1, "IR should lower policies");

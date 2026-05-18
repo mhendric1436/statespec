@@ -117,6 +117,14 @@ IrSystem lower_to_ir(const SemanticSystem& system)
                 IrExternalSystemProperty{property.name, property.value}
             );
         }
+        if (external_system.metadata.has_value())
+        {
+            ir_external_system.metadata = IrExternalSystemMetadata{
+                external_system.metadata->entity,
+                external_system.metadata->profile_field,
+                external_system.metadata->required_fields,
+            };
+        }
         ir.external_systems.push_back(std::move(ir_external_system));
     }
 

@@ -583,7 +583,23 @@ void write_external_systems(
             write_json_optional_string(out, property.value_kind);
             out << '}';
         }
-        out << "]}";
+        out << "]";
+        out << ", \"metadata\": ";
+        if (external_system.metadata.has_value())
+        {
+            out << "{\"entity\": ";
+            write_json_optional_string(out, external_system.metadata->entity);
+            out << ", \"profile_field\": ";
+            write_json_optional_string(out, external_system.metadata->profile_field);
+            out << ", \"required_fields\": ";
+            write_string_array(out, external_system.metadata->required_fields);
+            out << '}';
+        }
+        else
+        {
+            out << "null";
+        }
+        out << "}";
     }
     out << ']';
 }

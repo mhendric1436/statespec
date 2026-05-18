@@ -347,9 +347,16 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub value: String,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ExternalSystemMetadataDescriptor {\n";
+    out << "    pub entity: String,\n";
+    out << "    pub profile_field: String,\n";
+    out << "    pub required_fields: Vec<String>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ExternalSystemDescriptor {\n";
     out << "    pub name: String,\n";
     out << "    pub properties: Vec<ExternalSystemPropertyDescriptor>,\n";
+    out << "    pub metadata: Option<ExternalSystemMetadataDescriptor>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ApiDescriptor {\n";
@@ -611,6 +618,29 @@ std::string generate_descriptors_rs(const IrSystem& system)
                 << ".to_string(), value: " << rust_string(property.value) << ".to_string() },\n";
         }
         out << "            ],\n";
+        if (external_system.metadata.has_value())
+        {
+            out << "            metadata: Some(ExternalSystemMetadataDescriptor {\n";
+            out << "                entity: " << rust_string(external_system.metadata->entity)
+                << ".to_string(),\n";
+            out << "                profile_field: "
+                << rust_string(external_system.metadata->profile_field) << ".to_string(),\n";
+            out << "                required_fields: vec![";
+            for (std::size_t i = 0; i < external_system.metadata->required_fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << rust_string(external_system.metadata->required_fields[i]) << ".to_string()";
+            }
+            out << "],\n";
+            out << "            }),\n";
+        }
+        else
+        {
+            out << "            metadata: None,\n";
+        }
         out << "        },\n";
     }
     out << "    ]\n";

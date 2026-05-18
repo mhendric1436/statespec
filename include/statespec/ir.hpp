@@ -138,10 +138,18 @@ struct IrExternalSystemProperty
     std::string value;
 };
 
+struct IrExternalSystemMetadata
+{
+    std::string entity;
+    std::string profile_field;
+    std::vector<std::string> required_fields;
+};
+
 struct IrExternalSystem
 {
     std::string name;
     std::vector<IrExternalSystemProperty> properties;
+    std::optional<IrExternalSystemMetadata> metadata;
 };
 
 struct IrMessage

@@ -1591,6 +1591,11 @@ void validator_accepts_namespaces_external_systems_and_policies()
             external_system Stripe {
               owner: "payments"
               endpoint: "https://api.stripe.test"
+              metadata {
+                entity ExternalSystemEndpoint
+                profile_field profile
+                required_fields [base_url, auth_ref, timeout_ms]
+              }
             }
 
             api StartInvoice {
@@ -1624,6 +1629,11 @@ void validator_rejects_invalid_namespaces_and_external_systems()
             external_system stripe {
               owner: "payments"
               owner: "duplicate"
+              metadata {
+                entity ExternalSystemEndpoint
+                profile_field profile
+                required_fields [base_url, base_url]
+              }
             }
           }
         }
@@ -1639,6 +1649,10 @@ void validator_rejects_invalid_namespaces_and_external_systems()
     require(
         has_error_code(diagnostics, "SSPEC3001"),
         "validator should reject duplicate external system properties"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3001"),
+        "validator should reject duplicate external system required metadata fields"
     );
 }
 

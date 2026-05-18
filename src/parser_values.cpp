@@ -127,6 +127,21 @@ ExternalSystemDecl Parser::parse_external_system_decl(DiagnosticBag& diagnostics
             skip_balanced_block();
             continue;
         }
+        if (is_named_identifier(peek(), "metadata"))
+        {
+            auto metadata = parse_external_system_metadata_decl(diagnostics);
+            if (external_system.metadata.has_value())
+            {
+                diagnostics.error(
+                    metadata.range, "SSPEC0200", "duplicate external_system metadata block"
+                );
+            }
+            else
+            {
+                external_system.metadata = std::move(metadata);
+            }
+            continue;
+        }
 
         const auto property_start =
             consume(TokenKind::Identifier, "expected external_system property", diagnostics);
@@ -158,6 +173,49 @@ ExternalSystemDecl Parser::parse_external_system_decl(DiagnosticBag& diagnostics
 
     external_system.range = SourceRange{start.range.begin, previous().range.end};
     return external_system;
+}
+
+ExternalSystemMetadataDecl Parser::parse_external_system_metadata_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::Identifier, "expected metadata block", diagnostics);
+    ExternalSystemMetadataDecl metadata;
+
+    consume(TokenKind::LeftBrace, "expected '{' after external_system metadata", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (check(TokenKind::KeywordEntity))
+        {
+            advance();
+            metadata.entity = parse_qualified_name(diagnostics, "external_system metadata entity");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "profile_field"))
+        {
+            advance();
+            metadata.profile_field =
+                consume(TokenKind::Identifier, "expected metadata profile_field", diagnostics)
+                    .lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "required_fields"))
+        {
+            advance();
+            metadata.required_fields = parse_identifier_list(diagnostics);
+            consume_optional_semicolon();
+        }
+        else
+        {
+            diagnostics.error(
+                peek().range, "SSPEC0200", "unexpected external_system metadata member"
+            );
+            advance();
+        }
+    }
+    consume(
+        TokenKind::RightBrace, "expected '}' after external_system metadata block", diagnostics
+    );
+    metadata.range = SourceRange{start.range.begin, previous().range.end};
+    return metadata;
 }
 
 ShapeDecl Parser::parse_shape_decl(DiagnosticBag& diagnostics)

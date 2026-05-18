@@ -400,6 +400,11 @@ void parser_parses_namespaces_and_external_systems()
             external_system Stripe {
               owner: "payments"
               endpoint: "https://api.stripe.test"
+              metadata {
+                entity ExternalSystemEndpoint
+                profile_field profile
+                required_fields [base_url, auth_ref, timeout_ms]
+              }
             }
 
             shape InvoiceRequest {
@@ -432,6 +437,22 @@ void parser_parses_namespaces_and_external_systems()
     statespec::test::require(
         spec.system->external_systems[0].properties.size() == 2,
         "parser should parse external system properties"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].metadata.has_value(),
+        "parser should parse external system metadata"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].metadata->entity == "ExternalSystemEndpoint",
+        "parser should parse external system metadata entity"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].metadata->profile_field == "profile",
+        "parser should parse external system metadata profile field"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].metadata->required_fields.size() == 3,
+        "parser should parse external system required metadata fields"
     );
     statespec::test::require(
         spec.system->shapes[0].name == "Billing.InvoiceRequest",

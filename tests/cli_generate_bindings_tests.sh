@@ -71,6 +71,11 @@ system Demo {
     external_system Stripe {
       owner: "payments"
       endpoint: "https://api.stripe.test"
+      metadata {
+        entity ExternalSystemEndpoint
+        profile_field profile
+        required_fields [base_url, auth_ref, timeout_ms]
+      }
     }
   }
 
@@ -382,6 +387,7 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "event_descriptors
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "struct EventEnvelope"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "make_order_accepted_event"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "external_system_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ApiDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "api_descriptors"
@@ -480,6 +486,7 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func EventDescript
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EventEnvelope struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func NewOrderAcceptedEvent"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ExternalSystemDescriptors() []ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ApiDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ApiDescriptors() []ApiDescriptor"
@@ -573,6 +580,7 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record EventEnvelope"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "buildOrderAcceptedEvent"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ApiDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ApiServerDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ApiRouteDescriptor"
@@ -673,6 +681,7 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn event_descriptors
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EventEnvelope"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn make_order_accepted_event"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_descriptors() -> Vec<ExternalSystemDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ApiDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn api_descriptors() -> Vec<ApiDescriptor>"

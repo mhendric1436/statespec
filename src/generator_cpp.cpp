@@ -361,10 +361,18 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::string value;\n";
     out << "};\n\n";
 
+    out << "struct ExternalSystemMetadataDescriptor\n";
+    out << "{\n";
+    out << "    std::string entity;\n";
+    out << "    std::string profile_field;\n";
+    out << "    std::vector<std::string> required_fields;\n";
+    out << "};\n\n";
+
     out << "struct ExternalSystemDescriptor\n";
     out << "{\n";
     out << "    std::string name;\n";
     out << "    std::vector<ExternalSystemPropertyDescriptor> properties;\n";
+    out << "    std::optional<ExternalSystemMetadataDescriptor> metadata;\n";
     out << "};\n\n";
 
     out << "struct ApiDescriptor\n";
@@ -657,6 +665,28 @@ std::string generate_system_descriptors_header(const IrSystem& system)
                 << ", " << cpp_string(property.value) << "},\n";
         }
         out << "            },\n";
+        if (external_system.metadata.has_value())
+        {
+            out << "            ExternalSystemMetadataDescriptor{\n";
+            out << "                " << cpp_string(external_system.metadata->entity) << ",\n";
+            out << "                " << cpp_string(external_system.metadata->profile_field)
+                << ",\n";
+            out << "                {";
+            for (std::size_t i = 0; i < external_system.metadata->required_fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << cpp_string(external_system.metadata->required_fields[i]);
+            }
+            out << "},\n";
+            out << "            },\n";
+        }
+        else
+        {
+            out << "            std::nullopt,\n";
+        }
         out << "        },\n";
     }
     out << "    };\n";

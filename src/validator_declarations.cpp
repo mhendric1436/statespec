@@ -967,6 +967,36 @@ void validate_external_systems(
                 duplicate_error(diagnostics, property.range, property.name);
             }
         }
+
+        if (external_system.metadata.has_value())
+        {
+            const auto& metadata = *external_system.metadata;
+            if (!metadata.entity.has_value())
+            {
+                required_error(diagnostics, metadata.range, "external_system metadata", "entity");
+            }
+            if (!metadata.profile_field.has_value())
+            {
+                required_error(
+                    diagnostics, metadata.range, "external_system metadata", "profile_field"
+                );
+            }
+            if (metadata.required_fields.empty())
+            {
+                required_error(
+                    diagnostics, metadata.range, "external_system metadata", "required_fields"
+                );
+            }
+
+            std::unordered_set<std::string> required_fields;
+            for (const auto& field : metadata.required_fields)
+            {
+                if (!required_fields.insert(field).second)
+                {
+                    duplicate_error(diagnostics, metadata.range, field);
+                }
+            }
+        }
     }
 }
 

@@ -144,10 +144,20 @@ Keep `external_system` declarations small and stable:
 external_system Stripe {
   owner: "billing"
   kind: "payments"
-  metadata_entity: "ExternalSystemEndpoint"
+
+  metadata {
+    entity ExternalSystemEndpoint
+    profile_field profile
+    required_fields [base_url, auth_ref, timeout_ms, retry_policy]
+  }
 }
 ```
 
 The `external_system` declaration identifies the integration boundary. Operator metadata
 entities describe runtime configuration. User APIs expose only the fields users can
 reasonably provide.
+
+The metadata block is intentionally narrow. `entity` names the operator-managed metadata
+entity, `profile_field` identifies the entity field used to select a metadata profile, and
+`required_fields` lists execution metadata fields that generated descriptors and future
+validators can require before making a remote call.

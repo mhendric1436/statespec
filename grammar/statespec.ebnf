@@ -198,9 +198,17 @@ external_system_block   ::= "{"
                             "}" ;
 
 external_system_member  ::= property_assignment
+                          | external_system_metadata_block
                           | annotations_block ;
 
 property_assignment     ::= Identifier ":" literal ";"? ;
+
+external_system_metadata_block ::= "metadata" "{"
+                                     external_system_metadata_member*
+                                   "}" ;
+external_system_metadata_member ::= "entity" QualifiedName ";"?
+                                  | "profile_field" Identifier ";"?
+                                  | "required_fields" identifier_list ";"? ;
 
 
 (* ============================================================ *)

@@ -166,6 +166,21 @@ operator-managed state. Operator APIs write the metadata through OCC-backed back
 operations, and generated runtime helpers resolve it for the current tenant before a
 remote call executes.
 
+An `external_system` can point at the operator metadata entity with a `metadata` block:
+
+```statespec
+external_system Stripe {
+  owner: "billing"
+  kind: "payments"
+
+  metadata {
+    entity ExternalSystemEndpoint
+    profile_field profile
+    required_fields [base_url, auth_ref, timeout_ms]
+  }
+}
+```
+
 See [external-system-metadata.md](external-system-metadata.md) for the runtime metadata
 model and tenant-scoping rules.
 

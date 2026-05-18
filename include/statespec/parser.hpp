@@ -30,6 +30,7 @@ class Parser : private ParserContext
     EnumDecl parse_enum_decl(DiagnosticBag& diagnostics);
     EventDecl parse_event_decl(DiagnosticBag& diagnostics);
     ExternalSystemDecl parse_external_system_decl(DiagnosticBag& diagnostics);
+    ExternalSystemMetadataDecl parse_external_system_metadata_decl(DiagnosticBag& diagnostics);
     ShapeDecl parse_shape_decl(DiagnosticBag& diagnostics);
     FeatureFlagDecl parse_feature_flag_decl(DiagnosticBag& diagnostics);
     LogDecl parse_log_decl(DiagnosticBag& diagnostics);

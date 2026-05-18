@@ -378,6 +378,14 @@ SemanticSystem resolve_semantics(const Spec& spec)
                 SemanticExternalSystemProperty{property.name, property.value}
             );
         }
+        if (external_system.metadata.has_value())
+        {
+            resolved_external_system.metadata = SemanticExternalSystemMetadata{
+                external_system.metadata->entity.value_or(""),
+                external_system.metadata->profile_field.value_or(""),
+                external_system.metadata->required_fields,
+            };
+        }
         resolved.external_systems.push_back(std::move(resolved_external_system));
     }
 
