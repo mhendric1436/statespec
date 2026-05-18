@@ -639,6 +639,30 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\treturn nil, false\n";
     out << "}\n\n";
 
+    out << "func ResolveExternalSystemMetadataTx(ctx context.Context, resolver "
+           "ExternalSystemMetadataResolver, tx Transaction, descriptor ExternalSystemDescriptor, "
+           "keyValues []ExternalSystemMetadataKeyValue) (*ExternalSystemMetadataResolution, "
+           "bool, error) {\n";
+    out << "\tlookup := BuildExternalSystemMetadataLookup(descriptor, keyValues)\n";
+    out << "\tif lookup == nil {\n";
+    out << "\t\treturn nil, false, nil\n";
+    out << "\t}\n";
+    out << "\tresolution, err := resolver.ResolveMetadataTx(ctx, tx, *lookup)\n";
+    out << "\treturn resolution, true, err\n";
+    out << "}\n\n";
+
+    out << "func ResolveExternalSystemMetadataByNameTx(ctx context.Context, resolver "
+           "ExternalSystemMetadataResolver, tx Transaction, externalSystem string, keyValues "
+           "[]ExternalSystemMetadataKeyValue) (*ExternalSystemMetadataResolution, bool, "
+           "error) {\n";
+    out << "\tlookup, ok := ExternalSystemMetadataLookupByName(externalSystem, keyValues)\n";
+    out << "\tif !ok || lookup == nil {\n";
+    out << "\t\treturn nil, ok, nil\n";
+    out << "\t}\n";
+    out << "\tresolution, err := resolver.ResolveMetadataTx(ctx, tx, *lookup)\n";
+    out << "\treturn resolution, true, err\n";
+    out << "}\n\n";
+
     out << "func ApiDescriptors() []ApiDescriptor {\n";
     out << "\treturn []ApiDescriptor{\n";
     for (const auto& api : system.apis)

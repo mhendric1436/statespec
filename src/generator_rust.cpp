@@ -250,7 +250,8 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "use crate::backend::{Backend, BackendResult, CollectionDescriptor, FieldDescriptor, "
            "IndexDescriptor};\n";
     out << "use crate::external_system::{ExternalSystemMetadataKeyValue, "
-           "ExternalSystemMetadataLookup};\n";
+           "ExternalSystemMetadataLookup, ExternalSystemMetadataResolution, "
+           "ExternalSystemMetadataResolver};\n";
     out << "use crate::feature_flag::{FeatureFlagDefinition as RuntimeFeatureFlagDefinition, "
            "FeatureFlagScopeKind, FeatureFlagStore, FeatureFlagType, FeatureFlagValue};\n";
     out << "use crate::lease::{LeaseDefinition as RuntimeLeaseDefinition, LeaseDefinitionId, "
@@ -693,6 +694,32 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "        .find(|descriptor| descriptor.name == external_system)\n";
     out << "        .and_then(|descriptor| external_system_metadata_lookup(descriptor, "
            "key_values))\n";
+    out << "}\n\n";
+
+    out << "pub fn resolve_external_system_metadata_tx<B: Backend, R: "
+           "ExternalSystemMetadataResolver<B>>(\n";
+    out << "    resolver: &R,\n";
+    out << "    tx: &mut B::Tx,\n";
+    out << "    descriptor: &ExternalSystemDescriptor,\n";
+    out << "    key_values: Vec<ExternalSystemMetadataKeyValue>,\n";
+    out << ") -> BackendResult<Option<ExternalSystemMetadataResolution>> {\n";
+    out << "    match external_system_metadata_lookup(descriptor, key_values) {\n";
+    out << "        Some(lookup) => resolver.resolve_metadata_tx(tx, &lookup),\n";
+    out << "        None => Ok(None),\n";
+    out << "    }\n";
+    out << "}\n\n";
+
+    out << "pub fn resolve_external_system_metadata_by_name_tx<B: Backend, R: "
+           "ExternalSystemMetadataResolver<B>>(\n";
+    out << "    resolver: &R,\n";
+    out << "    tx: &mut B::Tx,\n";
+    out << "    external_system: &str,\n";
+    out << "    key_values: Vec<ExternalSystemMetadataKeyValue>,\n";
+    out << ") -> BackendResult<Option<ExternalSystemMetadataResolution>> {\n";
+    out << "    match external_system_metadata_lookup_by_name(external_system, key_values) {\n";
+    out << "        Some(lookup) => resolver.resolve_metadata_tx(tx, &lookup),\n";
+    out << "        None => Ok(None),\n";
+    out << "    }\n";
     out << "}\n\n";
 
     out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";

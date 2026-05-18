@@ -683,6 +683,36 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        return Optional.empty();\n";
     out << "    }\n\n";
 
+    out << "    public static Optional<ExternalSystem.MetadataResolution> "
+           "resolveExternalSystemMetadataTx(\n";
+    out << "        ExternalSystem resolver,\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
+    out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        Optional<ExternalSystem.MetadataLookup> lookup = "
+           "externalSystemMetadataLookup(descriptor, keyValues);\n";
+    out << "        if (lookup.isEmpty()) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        return resolver.resolveMetadataTx(tx, lookup.orElseThrow());\n";
+    out << "    }\n\n";
+
+    out << "    public static Optional<ExternalSystem.MetadataResolution> "
+           "resolveExternalSystemMetadataTx(\n";
+    out << "        ExternalSystem resolver,\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        String externalSystem,\n";
+    out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        Optional<ExternalSystem.MetadataLookup> lookup = "
+           "externalSystemMetadataLookup(externalSystem, keyValues);\n";
+    out << "        if (lookup.isEmpty()) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        return resolver.resolveMetadataTx(tx, lookup.orElseThrow());\n";
+    out << "    }\n\n";
+
     out << "    public static List<ApiDescriptor> apiDescriptors() {\n";
     out << "        return List.of(\n";
     for (std::size_t api_index = 0; api_index < system.apis.size(); ++api_index)

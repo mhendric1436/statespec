@@ -201,6 +201,10 @@ Generated descriptor files include helper functions that convert an
 request. Runtime adapters should prefer those helpers over manually copying descriptor
 fields into lookup requests.
 
+Generated descriptor files also include transaction-scoped resolve helpers that call the
+binding resolver's `Tx` method. These helpers intentionally keep metadata reads inside the
+caller-managed OCC transaction.
+
 Metadata writes should use compare-and-swap semantics so two operators cannot silently
 overwrite each other's endpoint, credential reference, or retry policy updates.
 

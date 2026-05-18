@@ -79,6 +79,7 @@ Generated external system metadata includes:
 - metadata profile field
 - required execution metadata fields
 - generated lookup helpers that build runtime metadata lookup requests from descriptors
+- generated transaction-scoped helpers that call external system metadata resolvers
 
 Generated API metadata includes:
 

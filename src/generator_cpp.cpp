@@ -753,6 +753,40 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    return std::nullopt;\n";
     out << "}\n\n";
 
+    out << "inline std::optional<statespec::backend::ExternalSystemMetadataResolution> "
+           "resolve_external_system_metadataTx(\n";
+    out << "    statespec::backend::IExternalSystemMetadataResolver& resolver,\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    const ExternalSystemDescriptor& descriptor,\n";
+    out << "    std::vector<statespec::backend::ExternalSystemMetadataKeyValue> key_values\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    auto lookup = external_system_metadata_lookup(descriptor, "
+           "std::move(key_values));\n";
+    out << "    if (!lookup.has_value())\n";
+    out << "    {\n";
+    out << "        return std::nullopt;\n";
+    out << "    }\n";
+    out << "    return resolver.resolve_metadataTx(tx, *lookup);\n";
+    out << "}\n\n";
+
+    out << "inline std::optional<statespec::backend::ExternalSystemMetadataResolution> "
+           "resolve_external_system_metadataTx(\n";
+    out << "    statespec::backend::IExternalSystemMetadataResolver& resolver,\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    std::string_view external_system,\n";
+    out << "    std::vector<statespec::backend::ExternalSystemMetadataKeyValue> key_values\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    auto lookup = external_system_metadata_lookup(external_system, "
+           "std::move(key_values));\n";
+    out << "    if (!lookup.has_value())\n";
+    out << "    {\n";
+    out << "        return std::nullopt;\n";
+    out << "    }\n";
+    out << "    return resolver.resolve_metadataTx(tx, *lookup);\n";
+    out << "}\n\n";
+
     out << "inline std::vector<ApiDescriptor> api_descriptors()\n";
     out << "{\n";
     out << "    return {\n";
