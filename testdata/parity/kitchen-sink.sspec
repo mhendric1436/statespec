@@ -69,6 +69,33 @@ system KitchenSink {
     accepted bool
   }
 
+  shape UpsertExternalSystemEndpointRequest {
+    tenant_id string
+    external_system_id string
+    profile string
+    base_url string
+    auth_ref string
+    timeout_ms int
+    retry_policy string
+  }
+
+  shape ExternalSystemEndpointResponse {
+    tenant_id string
+    external_system_id string
+    profile string
+    base_url string
+    auth_ref string
+    timeout_ms int
+    retry_policy string
+    status string
+  }
+
+  shape DisableExternalSystemEndpointRequest {
+    tenant_id string
+    external_system_id string
+    profile string
+  }
+
   entity ExternalSystemEndpoint {
     key tenant_id, external_system_id, profile
     ownership {
@@ -195,8 +222,38 @@ system KitchenSink {
     starts workflow OrderProcessing
   }
 
+  api UpsertExternalSystemEndpoint {
+    method PUT
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    input UpsertExternalSystemEndpointRequest
+    output ExternalSystemEndpointResponse
+  }
+
+  api GetExternalSystemEndpoint {
+    method GET
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    output ExternalSystemEndpointResponse
+  }
+
+  api DisableExternalSystemEndpoint {
+    method PATCH
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}/disable"
+    input DisableExternalSystemEndpointRequest
+    output ExternalSystemEndpointResponse
+  }
+
+  api DeleteExternalSystemEndpoint {
+    method DELETE
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    output ExternalSystemEndpointResponse
+  }
+
   api_server OrderApi {
     serves StartOrderProcessing
+    serves UpsertExternalSystemEndpoint
+    serves GetExternalSystemEndpoint
+    serves DisableExternalSystemEndpoint
+    serves DeleteExternalSystemEndpoint
     concurrency 16
   }
 
@@ -216,8 +273,15 @@ system KitchenSink {
   policy OrderAccess {
     tenant scoped_by tenant_id
     allow StartOrderProcessing when caller.role == operator;
+    allow UpsertExternalSystemEndpoint when caller.role == operator;
+    allow GetExternalSystemEndpoint when caller.role == operator;
+    allow DisableExternalSystemEndpoint when caller.role == operator;
+    allow DeleteExternalSystemEndpoint when caller.role == operator;
     deny StartOrderProcessing when caller.suspended == true;
     quota starts_per_minute: 60;
     audit StartOrderProcessing;
+    audit UpsertExternalSystemEndpoint;
+    audit DisableExternalSystemEndpoint;
+    audit DeleteExternalSystemEndpoint;
   }
 }

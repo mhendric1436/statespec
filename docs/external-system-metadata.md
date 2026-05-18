@@ -89,16 +89,70 @@ Operator APIs manage metadata with OCC-backed writes. They are service-operator 
 not product-user contracts.
 
 ```statespec
+shape UpsertExternalSystemEndpointRequest {
+  tenant_id string
+  external_system_id string
+  profile string
+  base_url string
+  auth_ref string
+  timeout_ms int
+  retry_policy string
+}
+
+shape ExternalSystemEndpointResponse {
+  tenant_id string
+  external_system_id string
+  profile string
+  base_url string
+  auth_ref string
+  timeout_ms int
+  retry_policy string
+  status string
+}
+
+shape DisableExternalSystemEndpointRequest {
+  tenant_id string
+  external_system_id string
+  profile string
+}
+
 api UpsertExternalSystemEndpoint {
   method PUT
   path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
   input UpsertExternalSystemEndpointRequest
   output ExternalSystemEndpointResponse
 }
+
+api GetExternalSystemEndpoint {
+  method GET
+  path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+  output ExternalSystemEndpointResponse
+}
+
+api DisableExternalSystemEndpoint {
+  method PATCH
+  path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}/disable"
+  input DisableExternalSystemEndpointRequest
+  output ExternalSystemEndpointResponse
+}
+
+api DeleteExternalSystemEndpoint {
+  method DELETE
+  path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+  output ExternalSystemEndpointResponse
+}
+
+api_server OperatorApi {
+  serves UpsertExternalSystemEndpoint
+  serves GetExternalSystemEndpoint
+  serves DisableExternalSystemEndpoint
+  serves DeleteExternalSystemEndpoint
+  concurrency 4
+}
 ```
 
-The request and response shapes should include `tenant_id`. Policies should restrict
-these APIs to operator roles or control-plane callers.
+The request and response shapes include `tenant_id`. Policies should restrict these APIs
+to operator roles or control-plane callers.
 
 ## Remote Call Mapping
 

@@ -3,6 +3,33 @@ system ExternalMetadataExample {
   tenant scoped_by tenant_id
   system_tenant configured
 
+  shape UpsertExternalSystemEndpointRequest {
+    tenant_id string
+    external_system_id string
+    profile string
+    base_url string
+    auth_ref string
+    timeout_ms int
+    retry_policy string
+  }
+
+  shape ExternalSystemEndpointResponse {
+    tenant_id string
+    external_system_id string
+    profile string
+    base_url string
+    auth_ref string
+    timeout_ms int
+    retry_policy string
+    status string
+  }
+
+  shape DisableExternalSystemEndpointRequest {
+    tenant_id string
+    external_system_id string
+    profile string
+  }
+
   external_system Stripe {
     owner: "billing"
     kind: "payments"
@@ -58,5 +85,50 @@ system ExternalMetadataExample {
       Active -> Deleted
       Disabled -> Deleted
     }
+  }
+
+  api UpsertExternalSystemEndpoint {
+    method PUT
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    input UpsertExternalSystemEndpointRequest
+    output ExternalSystemEndpointResponse
+  }
+
+  api GetExternalSystemEndpoint {
+    method GET
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    output ExternalSystemEndpointResponse
+  }
+
+  api DisableExternalSystemEndpoint {
+    method PATCH
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}/disable"
+    input DisableExternalSystemEndpointRequest
+    output ExternalSystemEndpointResponse
+  }
+
+  api DeleteExternalSystemEndpoint {
+    method DELETE
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    output ExternalSystemEndpointResponse
+  }
+
+  api_server OperatorApi {
+    serves UpsertExternalSystemEndpoint
+    serves GetExternalSystemEndpoint
+    serves DisableExternalSystemEndpoint
+    serves DeleteExternalSystemEndpoint
+    concurrency 4
+  }
+
+  policy ExternalSystemMetadataOperators {
+    tenant scoped_by tenant_id
+    allow UpsertExternalSystemEndpoint when caller.role == operator;
+    allow GetExternalSystemEndpoint when caller.role == operator;
+    allow DisableExternalSystemEndpoint when caller.role == operator;
+    allow DeleteExternalSystemEndpoint when caller.role == operator;
+    audit UpsertExternalSystemEndpoint;
+    audit DisableExternalSystemEndpoint;
+    audit DeleteExternalSystemEndpoint;
   }
 }

@@ -647,7 +647,7 @@ void ir_lowers_kitchen_sink_fixture()
     statespec::test::require(ir.leases.size() == 1, "IR should lower fixture leases");
     statespec::test::require(ir.workers.size() == 1, "IR should lower fixture workers");
     statespec::test::require(ir.api_servers.size() == 1, "IR should lower fixture API servers");
-    statespec::test::require(ir.apis.size() == 1, "IR should lower fixture APIs");
+    statespec::test::require(ir.apis.size() == 5, "IR should lower fixture APIs");
     statespec::test::require(ir.workflows.size() == 1, "IR should lower fixture workflows");
     statespec::test::require(ir.policies.size() == 1, "IR should lower fixture policies");
 
