@@ -152,6 +152,10 @@ void validator_accepts_resolved_references()
           lease WorkerLease {
             resource "worker"
             ttl PT30S
+            renew_every PT10S
+            holder worker_id
+            fencing_token true
+            max_ttl PT5M
           }
           workflow OrderProcessing {
             version 1
@@ -1121,6 +1125,63 @@ void validator_rejects_incomplete_queue_canonical_shape()
     );
 }
 
+void validator_rejects_incomplete_lease_canonical_shape()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          lease WorkerLease {
+            resource "worker"
+            ttl PT30S
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "renew_every"),
+        "validator should require explicit lease renew_every"
+    );
+    require(
+        has_error_message_containing(diagnostics, "holder"),
+        "validator should require explicit lease holder"
+    );
+    require(
+        has_error_message_containing(diagnostics, "fencing_token"),
+        "validator should require explicit lease fencing_token"
+    );
+    require(
+        has_error_message_containing(diagnostics, "max_ttl"),
+        "validator should require explicit lease max_ttl"
+    );
+}
+
+void validator_rejects_invalid_lease_timing()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          lease SlowRenewal {
+            resource "worker"
+            ttl PT30S
+            renew_every PT30S
+            holder worker_id
+            fencing_token true
+            max_ttl PT5M
+          }
+
+          lease MaxTooShort {
+            resource "worker"
+            ttl PT5M
+            renew_every PT10S
+            holder worker_id
+            fencing_token true
+            max_ttl PT30S
+          }
+        }
+    )sspec");
+
+    require(has_error_code(diagnostics, "SSPEC3501"), "validator should reject renew_every >= ttl");
+    require(has_error_code(diagnostics, "SSPEC3502"), "validator should reject ttl > max_ttl");
+}
+
 void validator_accepts_feature_flags()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1680,6 +1741,16 @@ TEST_CASE("validator rejects invalid positive and non-negative values")
 TEST_CASE("validator rejects incomplete queue canonical shape")
 {
     validator_rejects_incomplete_queue_canonical_shape();
+}
+
+TEST_CASE("validator rejects incomplete lease canonical shape")
+{
+    validator_rejects_incomplete_lease_canonical_shape();
+}
+
+TEST_CASE("validator rejects invalid lease timing")
+{
+    validator_rejects_invalid_lease_timing();
 }
 
 TEST_CASE("validator accepts feature flags")

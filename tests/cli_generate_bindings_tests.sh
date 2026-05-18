@@ -173,7 +173,9 @@ system Demo {
     resource "orders:reconciler"
     ttl PT30S
     renew_every PT10S
+    holder worker_id
     fencing_token true
+    max_ttl PT5M
   }
 
   workflow OrderProcessing {

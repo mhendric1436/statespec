@@ -70,7 +70,9 @@ lease OrderReconcilerLease {
   resource "reconciler:orders"
   ttl PT30S
   renew_every PT10S
+  holder worker_id
   fencing_token true
+  max_ttl PT5M
 }
 ```
 
@@ -81,11 +83,12 @@ Recommended lease fields:
 | `resource` | Durable resource identifier. |
 | `ttl` | Maximum lease lifetime without renewal. |
 | `renew_every` | Expected renewal interval. |
-| `holder` | Optional holder identity source. |
+| `holder` | Holder identity source. |
 | `fencing_token` | Enables stale-owner protection where supported. |
-| `max_ttl` | Upper bound for total lease lifetime, when supported. |
+| `max_ttl` | Upper bound for total lease lifetime. |
 
-`renew_every` should normally be less than `ttl`.
+The canonical lease shape requires explicit `resource`, `ttl`, `renew_every`, `holder`,
+`fencing_token`, and `max_ttl`. Validation requires `renew_every < ttl <= max_ttl`.
 
 ## Workers
 
