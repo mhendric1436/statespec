@@ -28,7 +28,7 @@ system Demo {
   system_tenant configured
 
   entity Order {
-    key order_id
+    key tenant_id, order_id
     ownership {
       authority: system
       system_of_record: self
@@ -38,6 +38,7 @@ system Demo {
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
       order_id string
     }
     state_machine {
@@ -68,7 +69,7 @@ system Demo {
   system_tenant configured
 
   entity Order {
-    key order_id
+    key tenant_id, order_id
     ownership {
       authority: system
       system_of_record: self
@@ -78,6 +79,7 @@ system Demo {
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
       order_id string
     }
     state_machine {
@@ -105,7 +107,7 @@ system SharedModel {
   system_tenant configured
 
   entity SharedEntity {
-    key shared_id
+    key tenant_id, shared_id
     ownership {
       authority: system
       system_of_record: self
@@ -115,6 +117,7 @@ system SharedModel {
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
       shared_id string
     }
     state_machine {
@@ -167,7 +170,7 @@ system DuplicateInclude {
   system_tenant configured
 
   entity SharedEntity {
-    key shared_id
+    key tenant_id, shared_id
     ownership {
       authority: system
       system_of_record: self
@@ -177,6 +180,7 @@ system DuplicateInclude {
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
       shared_id string
     }
     state_machine {
@@ -196,7 +200,7 @@ system DuplicateRoot {
   system_tenant configured
 
   entity SharedEntity {
-    key shared_id
+    key tenant_id, shared_id
     ownership {
       authority: system
       system_of_record: self
@@ -206,6 +210,7 @@ system DuplicateRoot {
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
       shared_id string
     }
     state_machine {

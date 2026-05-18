@@ -38,7 +38,7 @@ void validator_accepts_entity_relationship_model()
           system_tenant configured
 
           entity Account {
-            key account_id
+            key tenant_id, account_id
             ownership {
               authority: system
               system_of_record: self
@@ -51,6 +51,7 @@ void validator_accepts_entity_relationship_model()
               created_at timestamp
               updated_at timestamp
               status string
+              tenant_id string
               account_id string
             }
             state_machine {
@@ -60,7 +61,7 @@ void validator_accepts_entity_relationship_model()
           }
 
           entity Order {
-            key order_id
+            key tenant_id, order_id
             ownership {
               authority: system
               system_of_record: self
@@ -78,6 +79,7 @@ void validator_accepts_entity_relationship_model()
               created_at timestamp
               updated_at timestamp
               status string
+              tenant_id string
               order_id string
               account_id string
             }

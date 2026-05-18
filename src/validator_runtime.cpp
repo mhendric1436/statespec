@@ -9,6 +9,79 @@
 namespace statespec::validator_detail
 {
 
+namespace
+{
+
+const ShapeDecl* find_shape(
+    const SystemDecl& system,
+    const std::string& name
+)
+{
+    for (const auto& shape : system.shapes)
+    {
+        if (shape.name == name)
+        {
+            return &shape;
+        }
+    }
+    return nullptr;
+}
+
+void validate_queue_message_tenant_field(
+    const SystemDecl& system,
+    const QueueDecl& queue,
+    const MessageDecl& message,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!system.tenant_scope.has_value())
+    {
+        return;
+    }
+
+    const auto payload_fields = field_names(message.payload_fields);
+    const auto& tenant_field = system.tenant_scope->field_name;
+    if (!contains(payload_fields, tenant_field))
+    {
+        diagnostics.error(
+            message.range, "SSPEC3402",
+            "message '" + queue_message_name(queue, message) +
+                "' payload must declare tenant field '" + tenant_field + "'"
+        );
+    }
+}
+
+void validate_api_input_tenant_field(
+    const SystemDecl& system,
+    const ApiDecl& api,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!system.tenant_scope.has_value() || !api.input.has_value())
+    {
+        return;
+    }
+
+    const auto* input_shape = find_shape(system, *api.input);
+    if (input_shape == nullptr)
+    {
+        return;
+    }
+
+    const auto fields = field_names(input_shape->fields);
+    const auto& tenant_field = system.tenant_scope->field_name;
+    if (!contains(fields, tenant_field))
+    {
+        diagnostics.error(
+            input_shape->range, "SSPEC3403",
+            "API '" + api.name + "' input shape '" + input_shape->name +
+                "' must declare tenant field '" + tenant_field + "'"
+        );
+    }
+}
+
+} // namespace
+
 void validate_queues(
     const SystemDecl& system,
     const SymbolTable& symbols,
@@ -68,6 +141,7 @@ void validate_queues(
 
             validate_field_duplicates(message.payload_fields, diagnostics);
             validate_field_types(message.payload_fields, symbols, diagnostics);
+            validate_queue_message_tenant_field(system, queue, message, diagnostics);
 
             if (message.idempotency_key.has_value())
             {
@@ -180,6 +254,7 @@ void validate_apis(
         {
             unknown_reference_error(diagnostics, api.range, "API input", *api.input);
         }
+        validate_api_input_tenant_field(system, api, diagnostics);
         if (api.output.has_value() && !is_known_type_reference(*api.output, symbols))
         {
             unknown_reference_error(diagnostics, api.range, "API output", *api.output);

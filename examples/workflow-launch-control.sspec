@@ -36,7 +36,7 @@ system WorkflowLaunchControl {
   }
 
   entity WorkflowCapacity {
-    key capacity_id
+    key tenant_id, capacity_id
     ownership {
       authority: system
       system_of_record: self
@@ -47,6 +47,7 @@ system WorkflowLaunchControl {
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
       capacity_id string
       max_in_progress int
       in_progress int

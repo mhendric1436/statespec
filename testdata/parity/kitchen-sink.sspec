@@ -108,6 +108,7 @@ system KitchenSink {
     message SendConfirmation {
       idempotency_key message_id
       payload {
+        tenant_id string
         message_id string
         order_id string
       }
@@ -115,6 +116,7 @@ system KitchenSink {
     message SendFailed {
       idempotency_key message_id
       payload {
+        tenant_id string
         message_id string
         order_id string
         reason string

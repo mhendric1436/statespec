@@ -84,7 +84,7 @@ system Demo {
   }
 
   entity Account {
-    key account_id
+    key tenant_id, account_id
     ownership {
       authority: system
       system_of_record: self
@@ -97,6 +97,7 @@ system Demo {
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
       account_id string
     }
     state_machine {
@@ -162,6 +163,7 @@ system Demo {
       idempotency_key message_id
       payload {
         message_id string
+        tenant_id string
         order_id string
       }
     }
@@ -232,7 +234,7 @@ system IncludedBindings {
   system_tenant configured
 
   entity IncludedEntity {
-    key included_id
+    key tenant_id, included_id
     ownership {
       authority: system
       system_of_record: self
@@ -242,6 +244,7 @@ system IncludedBindings {
       created_at timestamp
       updated_at timestamp
       status string
+      tenant_id string
       included_id string
     }
     state_machine {
@@ -259,6 +262,7 @@ system IncludedBindings {
       idempotency_key message_id
       payload {
         message_id string
+        tenant_id string
         included_id string
       }
     }

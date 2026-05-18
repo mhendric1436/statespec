@@ -88,6 +88,7 @@ void validator_accepts_resolved_references()
           system_tenant configured
 
           shape StartOrderProcessingRequest {
+            tenant_id string
             order_id string
           }
           shape StartOrderProcessingResponse {
@@ -101,7 +102,7 @@ void validator_accepts_resolved_references()
             event_name "order.started"
           }
           entity Order {
-            key order_id
+            key tenant_id, order_id
             ownership {
               authority: system
               system_of_record: self
@@ -111,6 +112,7 @@ void validator_accepts_resolved_references()
               created_at timestamp
               updated_at timestamp
               status string
+              tenant_id string
               order_id string
             }
             state_machine {
@@ -129,8 +131,8 @@ void validator_accepts_resolved_references()
               Creating -> Failed
             }
             indexes {
-              index by_status on status
-              unique by_order_id on order_id
+              index by_tenant_status on tenant_id, status
+              unique by_tenant_order_id on tenant_id, order_id
             }
           }
           queue EmailQueue {
@@ -139,6 +141,7 @@ void validator_accepts_resolved_references()
             message SendConfirmation {
               idempotency_key message_id
               payload {
+                tenant_id string
                 message_id string
                 order_id string
               }
@@ -207,11 +210,12 @@ void validator_warns_on_noncanonical_entity_and_workflow_order()
           system_tenant configured
 
           entity Order {
-            key order_id
+            key tenant_id, order_id
             fields {
               created_at timestamp
               updated_at timestamp
               status string
+              tenant_id string
               order_id string
             }
             ownership {
@@ -277,7 +281,7 @@ void validator_accepts_terminal_garbage_collection_modes()
           system_tenant configured
 
           entity Order {
-            key order_id
+            key tenant_id, order_id
             ownership {
               authority: system
               system_of_record: self
@@ -287,6 +291,7 @@ void validator_accepts_terminal_garbage_collection_modes()
               created_at timestamp
               updated_at timestamp
               status string
+              tenant_id string
               order_id string
             }
             state_machine {
@@ -476,6 +481,71 @@ void validator_rejects_missing_system_tenancy()
     require(
         has_error_message_containing(diagnostics, "system_tenant configured"),
         "validator should require system tenant configuration"
+    );
+}
+
+void validator_rejects_missing_tenant_field_propagation()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          shape StartOrderRequest {
+            order_id string
+          }
+
+          entity Order {
+            key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              order_id string
+            }
+            state_machine {
+              state Pending
+              initial Pending
+            }
+          }
+
+          queue OrderQueue {
+            namespace workflow_ns
+            channel orders
+            message StartOrder {
+              idempotency_key message_id
+              payload {
+                message_id string
+                order_id string
+              }
+            }
+          }
+
+          api StartOrder {
+            method POST
+            path "/v1/orders/start"
+            input StartOrderRequest
+            enqueues OrderQueue.StartOrder
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3401"),
+        "validator should require tenant field on tenant-scoped entities"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3402"),
+        "validator should require tenant field on tenant-scoped queue messages"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3403"),
+        "validator should require tenant field on tenant-scoped API input shapes"
     );
 }
 
@@ -861,7 +931,7 @@ void validator_accepts_feature_flags()
             scope entity Order
           }
           entity Order {
-            key order_id
+            key tenant_id, order_id
             ownership {
               authority: system
               system_of_record: self
@@ -871,6 +941,7 @@ void validator_accepts_feature_flags()
               created_at timestamp
               updated_at timestamp
               status string
+              tenant_id string
               order_id string
             }
             state_machine {
@@ -1282,6 +1353,11 @@ TEST_CASE("validator rejects missing entity management model")
 TEST_CASE("validator rejects missing system tenancy")
 {
     validator_rejects_missing_system_tenancy();
+}
+
+TEST_CASE("validator rejects missing tenant field propagation")
+{
+    validator_rejects_missing_tenant_field_propagation();
 }
 
 TEST_CASE("validator rejects invalid entity management field types")

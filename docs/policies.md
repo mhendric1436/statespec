@@ -29,6 +29,10 @@ tenant scoped_by tenant_id
 The scoped field should exist on the relevant entity, request shape, payload, or generated
 context used by the target runtime.
 
+Validation enforces this for tenant-addressable declarations: each entity must declare the
+scoped tenant field, each queue message payload must include it, and each API input shape
+must carry it.
+
 ## Allow And Deny Rules
 
 Authorization rules name an action and a boolean condition.
