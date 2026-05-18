@@ -612,6 +612,33 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\t}\n";
     out << "}\n\n";
 
+    out << "func BuildExternalSystemMetadataLookup(descriptor ExternalSystemDescriptor, "
+           "keyValues []ExternalSystemMetadataKeyValue) *ExternalSystemMetadataLookup {\n";
+    out << "\tif descriptor.Metadata == nil {\n";
+    out << "\t\treturn nil\n";
+    out << "\t}\n";
+    out << "\tmetadata := descriptor.Metadata\n";
+    out << "\treturn &ExternalSystemMetadataLookup{\n";
+    out << "\t\tExternalSystem: descriptor.Name,\n";
+    out << "\t\tMetadataEntity: metadata.Entity,\n";
+    out << "\t\tTenantField: metadata.TenantField,\n";
+    out << "\t\tProfileField: metadata.ProfileField,\n";
+    out << "\t\tKeyFields: append([]string{}, metadata.KeyFields...),\n";
+    out << "\t\tKeyValues: keyValues,\n";
+    out << "\t\tRequiredFields: append([]string{}, metadata.RequiredFields...),\n";
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func ExternalSystemMetadataLookupByName(externalSystem string, keyValues "
+           "[]ExternalSystemMetadataKeyValue) (*ExternalSystemMetadataLookup, bool) {\n";
+    out << "\tfor _, descriptor := range ExternalSystemDescriptors() {\n";
+    out << "\t\tif descriptor.Name == externalSystem {\n";
+    out << "\t\t\treturn BuildExternalSystemMetadataLookup(descriptor, keyValues), true\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn nil, false\n";
+    out << "}\n\n";
+
     out << "func ApiDescriptors() []ApiDescriptor {\n";
     out << "\treturn []ApiDescriptor{\n";
     for (const auto& api : system.apis)

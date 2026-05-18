@@ -714,6 +714,45 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    };\n";
     out << "}\n\n";
 
+    out << "inline std::optional<statespec::backend::ExternalSystemMetadataLookup> "
+           "external_system_metadata_lookup(\n";
+    out << "    const ExternalSystemDescriptor& descriptor,\n";
+    out << "    std::vector<statespec::backend::ExternalSystemMetadataKeyValue> key_values\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    if (!descriptor.metadata.has_value())\n";
+    out << "    {\n";
+    out << "        return std::nullopt;\n";
+    out << "    }\n";
+    out << "    const auto& metadata = *descriptor.metadata;\n";
+    out << "    return statespec::backend::ExternalSystemMetadataLookup{\n";
+    out << "        descriptor.name,\n";
+    out << "        metadata.entity,\n";
+    out << "        metadata.tenant_field,\n";
+    out << "        metadata.profile_field,\n";
+    out << "        metadata.key_fields,\n";
+    out << "        std::move(key_values),\n";
+    out << "        metadata.required_fields,\n";
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::optional<statespec::backend::ExternalSystemMetadataLookup> "
+           "external_system_metadata_lookup(\n";
+    out << "    std::string_view external_system,\n";
+    out << "    std::vector<statespec::backend::ExternalSystemMetadataKeyValue> key_values\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    for (const auto& descriptor : external_system_descriptors())\n";
+    out << "    {\n";
+    out << "        if (descriptor.name == external_system)\n";
+    out << "        {\n";
+    out << "            return external_system_metadata_lookup(descriptor, "
+           "std::move(key_values));\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+
     out << "inline std::vector<ApiDescriptor> api_descriptors()\n";
     out << "{\n";
     out << "    return {\n";

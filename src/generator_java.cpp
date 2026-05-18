@@ -232,6 +232,7 @@ std::string generate_descriptors_java(const IrSystem& system)
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
     out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.ExternalSystem;\n";
     out << "import com.statespec.backend.FeatureFlag;\n";
     out << "import com.statespec.backend.Json;\n";
     out << "import com.statespec.backend.Lease;\n";
@@ -646,6 +647,40 @@ std::string generate_descriptors_java(const IrSystem& system)
             << "\n";
     }
     out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static Optional<ExternalSystem.MetadataLookup> "
+           "externalSystemMetadataLookup(\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
+    out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
+    out << "    ) {\n";
+    out << "        if (descriptor.metadata().isEmpty()) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        ExternalSystemMetadataDescriptor metadata = "
+           "descriptor.metadata().orElseThrow();\n";
+    out << "        return Optional.of(new ExternalSystem.MetadataLookup(\n";
+    out << "            descriptor.name(),\n";
+    out << "            metadata.entity(),\n";
+    out << "            metadata.tenantField(),\n";
+    out << "            metadata.profileField(),\n";
+    out << "            metadata.keyFields(),\n";
+    out << "            keyValues,\n";
+    out << "            metadata.requiredFields()\n";
+    out << "        ));\n";
+    out << "    }\n\n";
+
+    out << "    public static Optional<ExternalSystem.MetadataLookup> "
+           "externalSystemMetadataLookup(\n";
+    out << "        String externalSystem,\n";
+    out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
+    out << "    ) {\n";
+    out << "        for (ExternalSystemDescriptor descriptor : externalSystemDescriptors()) {\n";
+    out << "            if (descriptor.name().equals(externalSystem)) {\n";
+    out << "                return externalSystemMetadataLookup(descriptor, keyValues);\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
     out << "    }\n\n";
 
     out << "    public static List<ApiDescriptor> apiDescriptors() {\n";

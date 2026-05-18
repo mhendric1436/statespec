@@ -196,6 +196,11 @@ The reference bindings expose external-system metadata lookup request and resolu
 plus resolver interfaces with transaction-aware methods. Resolvers should validate required
 metadata fields from the loaded document before remote execution.
 
+Generated descriptor files include helper functions that convert an
+`external_system` metadata descriptor and runtime key values into the binding-native lookup
+request. Runtime adapters should prefer those helpers over manually copying descriptor
+fields into lookup requests.
+
 Metadata writes should use compare-and-swap semantics so two operators cannot silently
 overwrite each other's endpoint, credential reference, or retry policy updates.
 

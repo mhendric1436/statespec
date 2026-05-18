@@ -249,6 +249,8 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "use std::time::Duration;\n\n";
     out << "use crate::backend::{Backend, BackendResult, CollectionDescriptor, FieldDescriptor, "
            "IndexDescriptor};\n";
+    out << "use crate::external_system::{ExternalSystemMetadataKeyValue, "
+           "ExternalSystemMetadataLookup};\n";
     out << "use crate::feature_flag::{FeatureFlagDefinition as RuntimeFeatureFlagDefinition, "
            "FeatureFlagScopeKind, FeatureFlagStore, FeatureFlagType, FeatureFlagValue};\n";
     out << "use crate::lease::{LeaseDefinition as RuntimeLeaseDefinition, LeaseDefinitionId, "
@@ -665,6 +667,32 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "        },\n";
     }
     out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn external_system_metadata_lookup(\n";
+    out << "    descriptor: &ExternalSystemDescriptor,\n";
+    out << "    key_values: Vec<ExternalSystemMetadataKeyValue>,\n";
+    out << ") -> Option<ExternalSystemMetadataLookup> {\n";
+    out << "    descriptor.metadata.as_ref().map(|metadata| ExternalSystemMetadataLookup {\n";
+    out << "        external_system: descriptor.name.clone(),\n";
+    out << "        metadata_entity: metadata.entity.clone(),\n";
+    out << "        tenant_field: metadata.tenant_field.clone(),\n";
+    out << "        profile_field: metadata.profile_field.clone(),\n";
+    out << "        key_fields: metadata.key_fields.clone(),\n";
+    out << "        key_values,\n";
+    out << "        required_fields: metadata.required_fields.clone(),\n";
+    out << "    })\n";
+    out << "}\n\n";
+
+    out << "pub fn external_system_metadata_lookup_by_name(\n";
+    out << "    external_system: &str,\n";
+    out << "    key_values: Vec<ExternalSystemMetadataKeyValue>,\n";
+    out << ") -> Option<ExternalSystemMetadataLookup> {\n";
+    out << "    external_system_descriptors()\n";
+    out << "        .iter()\n";
+    out << "        .find(|descriptor| descriptor.name == external_system)\n";
+    out << "        .and_then(|descriptor| external_system_metadata_lookup(descriptor, "
+           "key_values))\n";
     out << "}\n\n";
 
     out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
