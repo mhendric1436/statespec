@@ -17,6 +17,9 @@ GC_EXPECTED="$TMPDIR/gc-expected.sspec"
 INCLUDE_UNFORMATTED="$TMPDIR/include-unformatted.sspec"
 INCLUDE_FORMATTED="$TMPDIR/include-formatted.sspec"
 INCLUDE_EXPECTED="$TMPDIR/include-expected.sspec"
+API_SERVER_UNFORMATTED="$TMPDIR/api-server-unformatted.sspec"
+API_SERVER_FORMATTED="$TMPDIR/api-server-formatted.sspec"
+API_SERVER_EXPECTED="$TMPDIR/api-server-expected.sspec"
 PARITY_FIXTURE="testdata/parity/kitchen-sink.sspec"
 
 cat > "$UNFORMATTED" <<'SSPEC'
@@ -101,6 +104,26 @@ SSPEC
 
 "$CLI" fmt "$INCLUDE_UNFORMATTED" > "$INCLUDE_FORMATTED"
 diff -u "$INCLUDE_EXPECTED" "$INCLUDE_FORMATTED"
+
+cat > "$API_SERVER_UNFORMATTED" <<'SSPEC'
+system Demo { api StartOrderProcessing { method POST; path "/v1/orders/start"; } api_server OrderApi { serves StartOrderProcessing; concurrency 16; } }
+SSPEC
+
+cat > "$API_SERVER_EXPECTED" <<'SSPEC'
+system Demo {
+  api StartOrderProcessing {
+    method POST;
+    path "/v1/orders/start";
+  }
+  api_server OrderApi {
+    serves StartOrderProcessing;
+    concurrency 16;
+  }
+}
+SSPEC
+
+"$CLI" fmt "$API_SERVER_UNFORMATTED" > "$API_SERVER_FORMATTED"
+diff -u "$API_SERVER_EXPECTED" "$API_SERVER_FORMATTED"
 
 "$CLI" fmt --check "$PARITY_FIXTURE"
 

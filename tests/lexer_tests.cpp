@@ -96,6 +96,24 @@ void lexer_tokenizes_observability_keywords()
     );
 }
 
+void lexer_tokenizes_api_server_keywords()
+{
+    const auto tokens =
+        statespec::test::lex_text("api_server OrderApi { serves StartOrderProcessing }");
+    statespec::test::require(
+        tokens[0].kind == statespec::TokenKind::KeywordApiServer, "api_server should be a keyword"
+    );
+    statespec::test::require(
+        tokens[1].kind == statespec::TokenKind::Identifier, "api_server name should be identifier"
+    );
+    statespec::test::require(
+        tokens[3].kind == statespec::TokenKind::KeywordServes, "serves should be a keyword"
+    );
+    statespec::test::require(
+        tokens[4].kind == statespec::TokenKind::Identifier, "served API name should be identifier"
+    );
+}
+
 void lexer_tokenizes_literals()
 {
     const auto tokens =
@@ -218,6 +236,11 @@ TEST_CASE("lexer skips comments")
 TEST_CASE("lexer tokenizes observability keywords")
 {
     lexer_tokenizes_observability_keywords();
+}
+
+TEST_CASE("lexer tokenizes API server keywords")
+{
+    lexer_tokenizes_api_server_keywords();
 }
 
 TEST_CASE("lexer tokenizes literals")
