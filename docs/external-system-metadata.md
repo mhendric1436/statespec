@@ -161,3 +161,6 @@ The metadata block is intentionally narrow. `entity` names the operator-managed 
 entity, `profile_field` identifies the entity field used to select a metadata profile, and
 `required_fields` lists execution metadata fields that generated descriptors and future
 validators can require before making a remote call.
+
+A complete example is available in
+[`examples/external-system-metadata.sspec`](../examples/external-system-metadata.sspec).

@@ -206,7 +206,8 @@ assert system["events"][0]["name"] == "OrderAccepted"
 assert system["namespaces"][0]["name"] == "Billing"
 assert system["external_systems"][0]["name"] == "Billing.Stripe"
 assert system["shapes"][0]["fields"][0]["name"] == "tenant_id"
-assert system["entities"][0]["key_fields"] == ["tenant_id", "order_id"]
+order_entities = [entity for entity in system["entities"] if entity["name"] == "Order"]
+assert order_entities[0]["key_fields"] == ["tenant_id", "order_id"]
 assert system["queues"][0]["name"] == "EmailDispatch"
 assert system["workers"][0]["name"] == "OrderWorker"
 assert system["api_servers"][0]["name"] == "OrderApi"

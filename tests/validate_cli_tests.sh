@@ -3,6 +3,7 @@ set -eu
 
 CLI="$1"
 EXAMPLE="examples/order-system.sspec"
+EXTERNAL_METADATA_EXAMPLE="examples/external-system-metadata.sspec"
 LAUNCH_CONTROL_EXAMPLE="examples/workflow-launch-control.sspec"
 LAUNCH_CONTROL_INCLUDE_EXAMPLE="examples/order-system-with-launch-control.sspec"
 PARITY_FIXTURE="testdata/parity/kitchen-sink.sspec"
@@ -249,6 +250,9 @@ grep -F "valid" "$TMPDIR/valid-output.txt" >/dev/null
 
 "$CLI" validate "$EXAMPLE" > "$TMPDIR/example-output.txt" 2>&1
 grep -F "valid" "$TMPDIR/example-output.txt" >/dev/null
+
+"$CLI" validate "$EXTERNAL_METADATA_EXAMPLE" > "$TMPDIR/external-metadata-output.txt" 2>&1
+grep -F "valid" "$TMPDIR/external-metadata-output.txt" >/dev/null
 
 "$CLI" validate "$LAUNCH_CONTROL_EXAMPLE" > "$TMPDIR/launch-control-output.txt" 2>&1
 grep -F "valid" "$TMPDIR/launch-control-output.txt" >/dev/null

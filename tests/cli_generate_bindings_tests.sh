@@ -79,6 +79,40 @@ system Demo {
     }
   }
 
+  entity ExternalSystemEndpoint {
+    key tenant_id, external_system_id, profile
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      external_system_id string
+      profile string
+      base_url string
+      auth_ref string
+      timeout_ms int
+      retry_policy string
+    }
+    state_machine {
+      state Active
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      initial Active
+      terminal [Deleted]
+      Active -> Deleted
+    }
+  }
+
   shape StartOrderProcessingRequest {
     tenant_id string
     order_id string

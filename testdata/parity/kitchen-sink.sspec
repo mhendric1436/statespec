@@ -52,6 +52,11 @@ system KitchenSink {
     external_system Stripe {
       owner: "payments"
       endpoint: "https://api.stripe.test"
+      metadata {
+        entity ExternalSystemEndpoint
+        profile_field profile
+        required_fields[base_url, auth_ref, timeout_ms, retry_policy]
+      }
     }
   }
 
@@ -62,6 +67,47 @@ system KitchenSink {
 
   shape StartOrderProcessingResponse {
     accepted bool
+  }
+
+  entity ExternalSystemEndpoint {
+    key tenant_id, external_system_id, profile
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      external_system_id string
+      profile string
+      base_url string
+      auth_ref string
+      timeout_ms int
+      retry_policy string
+    }
+    indexes {
+      unique by_tenant_system_profile on tenant_id, external_system_id, profile
+    }
+    state_machine {
+      state Active
+      state Disabled
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      initial Active
+      terminal[Deleted]
+      Active -> Disabled
+      Disabled -> Active
+      Active -> Deleted
+      Disabled -> Deleted
+    }
   }
 
   entity Order {
