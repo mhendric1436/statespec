@@ -8,6 +8,7 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`com/statespec/backend/Backend.java`](com/statespec/backend/Backend.java) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
+| [`com/statespec/backend/ExternalSystem.java`](com/statespec/backend/ExternalSystem.java) | External system metadata lookup requests, resolution records, required-field inspection, and runtime resolver API. |
 | [`com/statespec/backend/FeatureFlag.java`](com/statespec/backend/FeatureFlag.java) | Feature flag types, descriptors, evaluation requests, and runtime API. |
 | [`com/statespec/backend/Json.java`](com/statespec/backend/Json.java) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`com/statespec/backend/Lease.java`](com/statespec/backend/Lease.java) | Lease records and lease runtime API. |
@@ -138,6 +139,7 @@ Lease
 Queue
 Workflow
 FeatureFlag
+ExternalSystem
 ```
 
 Each runtime component supports two method styles.

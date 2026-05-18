@@ -247,6 +247,7 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"backend.hpp\"\n";
+    out << "#include \"external_system.hpp\"\n";
     out << "#include \"feature_flag.hpp\"\n";
     out << "#include \"lease.hpp\"\n";
     out << "#include \"log.hpp\"\n";
@@ -1397,6 +1398,10 @@ GenerationResult generate_cpp_bindings(
     );
     add_template_file(
         result, options.output_dir, template_root / "backend.hpp", "backend.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, template_root / "external_system.hpp", "external_system.hpp",
+        diagnostics
     );
     add_template_file(
         result, options.output_dir, template_root / "feature_flag.hpp", "feature_flag.hpp",

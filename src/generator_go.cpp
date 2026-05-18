@@ -1264,6 +1264,10 @@ GenerationResult generate_go_bindings(
         result, options.output_dir, template_root / "backend.go", "backend/backend.go", diagnostics
     );
     add_template_file(
+        result, options.output_dir, template_root / "external_system.go",
+        "backend/external_system.go", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, template_root / "feature_flag.go", "backend/feature_flag.go",
         diagnostics
     );

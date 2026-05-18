@@ -8,6 +8,7 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`backend.hpp`](backend.hpp) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
+| [`external_system.hpp`](external_system.hpp) | External system metadata lookup requests, resolution records, required-field inspection, and runtime resolver API. |
 | [`feature_flag.hpp`](feature_flag.hpp) | Feature flag types, descriptors, evaluation requests, and runtime API. |
 | [`json.hpp`](json.hpp) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`lease.hpp`](lease.hpp) | Lease records and lease runtime API. |
@@ -168,6 +169,7 @@ ILeaseStore
 IQueueStore
 IWorkflowStore
 IFeatureFlagStore
+IExternalSystemMetadataResolver
 ```
 
 Each runtime component supports two method styles.

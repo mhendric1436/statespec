@@ -1346,6 +1346,10 @@ GenerationResult generate_java_bindings(
         diagnostics
     );
     add_template_file(
+        result, options.output_dir, template_root / "ExternalSystem.java",
+        output_root / "ExternalSystem.java", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, template_root / "FeatureFlag.java",
         output_root / "FeatureFlag.java", diagnostics
     );

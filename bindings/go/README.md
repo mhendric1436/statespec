@@ -8,6 +8,7 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`backend/backend.go`](backend/backend.go) | Core backend, transaction, collection, query, capability, and conflict interfaces. |
+| [`backend/external_system.go`](backend/external_system.go) | External system metadata lookup requests, resolution records, required-field inspection, and runtime resolver API. |
 | [`backend/feature_flag.go`](backend/feature_flag.go) | Feature flag types, descriptors, evaluation requests, and runtime API. |
 | [`backend/json.go`](backend/json.go) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`backend/lease.go`](backend/lease.go) | Lease records and lease runtime API. |
@@ -152,6 +153,7 @@ LeaseStore
 QueueStore
 WorkflowStore
 FeatureFlagStore
+ExternalSystemMetadataResolver
 ```
 
 Each runtime component supports two method styles.

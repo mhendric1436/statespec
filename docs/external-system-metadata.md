@@ -192,6 +192,10 @@ fields, profile field, and required execution metadata fields. Runtime adapters 
 that descriptor contract to build tenant-scoped backend lookups instead of hard-coding
 metadata entity names or key shapes.
 
+The reference bindings expose external-system metadata lookup request and resolution types,
+plus resolver interfaces with transaction-aware methods. Resolvers should validate required
+metadata fields from the loaded document before remote execution.
+
 Metadata writes should use compare-and-swap semantics so two operators cannot silently
 overwrite each other's endpoint, credential reference, or retry policy updates.
 

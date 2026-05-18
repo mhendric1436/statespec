@@ -1340,6 +1340,10 @@ GenerationResult generate_rust_bindings(
         result, options.output_dir, template_root / "backend.rs", "backend.rs", diagnostics
     );
     add_template_file(
+        result, options.output_dir, template_root / "external_system.rs", "external_system.rs",
+        diagnostics
+    );
+    add_template_file(
         result, options.output_dir, template_root / "feature_flag.rs", "feature_flag.rs",
         diagnostics
     );

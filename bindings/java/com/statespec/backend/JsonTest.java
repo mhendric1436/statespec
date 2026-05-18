@@ -15,6 +15,7 @@ public final class JsonTest
         rejectsMalformedInput();
         backendSurfacesUseTypedJson();
         featureFlagBindingsExposeTypedValues();
+        externalSystemMetadataBindingsExposeLookupContracts();
         logBindingsExposeTypedEvents();
         metricBindingsExposeTypedSamples();
     }
@@ -159,6 +160,44 @@ public final class JsonTest
             request.context().tenantId().orElseThrow().equals("tenant-a"),
             "request should expose context"
         );
+    }
+
+    private static void externalSystemMetadataBindingsExposeLookupContracts()
+    {
+        ExternalSystem.MetadataLookup lookup = new ExternalSystem.MetadataLookup(
+            "Billing.Stripe", "ExternalSystemEndpoint", Optional.of("tenant_id"), "profile",
+            List.of("tenant_id", "external_system_id", "profile"),
+            List.of(
+                new ExternalSystem.MetadataKeyValue("tenant_id", Json.string("tenant-a")),
+                new ExternalSystem.MetadataKeyValue("external_system_id", Json.string("stripe")),
+                new ExternalSystem.MetadataKeyValue("profile", Json.string("default"))
+            ),
+            List.of("base_url", "auth_ref", "timeout_ms")
+        );
+
+        Json document = Json.object(Map.of(
+            "tenant_id", Json.string("tenant-a"), "base_url", Json.string("https://api.stripe.test")
+        ));
+        List<String> missing =
+            ExternalSystem.missingRequiredMetadataFields(document, lookup.requiredFields());
+
+        require(
+            lookup.tenantField().orElseThrow().equals("tenant_id"),
+            "lookup should expose tenant field"
+        );
+        require(lookup.keyFields().size() == 3, "lookup should expose key fields");
+        require(
+            missing.size() == 2 && missing.get(0).equals("auth_ref"),
+            "required metadata inspection should report missing fields"
+        );
+
+        ExternalSystem.MetadataResolution resolution = new ExternalSystem.MetadataResolution(
+            new Backend.VersionedRecord(
+                lookup.metadataEntity(), "tenant-a/stripe/default", 1L, document
+            ),
+            missing
+        );
+        require(!resolution.complete(), "resolution should expose incomplete metadata");
     }
 
     private static void logBindingsExposeTypedEvents()

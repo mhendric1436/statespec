@@ -1,4 +1,5 @@
 #include "backend.hpp"
+#include "external_system.hpp"
 #include "feature_flag.hpp"
 #include "log.hpp"
 #include "metric.hpp"
@@ -170,6 +171,47 @@ TEST_CASE("C++ feature flag bindings expose typed values and metadata")
     REQUIRE(context.tenant_id == "tenant-a");
     REQUIRE(request.name == "NewScheduler");
     REQUIRE(request.context.tenant_id == "tenant-a");
+}
+
+TEST_CASE("C++ external system metadata bindings expose lookup contracts")
+{
+    statespec::backend::ExternalSystemMetadataLookup lookup{
+        .external_system = "Billing.Stripe",
+        .metadata_entity = "ExternalSystemEndpoint",
+        .tenant_field = "tenant_id",
+        .profile_field = "profile",
+        .key_fields = {"tenant_id", "external_system_id", "profile"},
+        .key_values =
+            {
+                {"tenant_id", "tenant-a"},
+                {"external_system_id", "stripe"},
+                {"profile", "default"},
+            },
+        .required_fields = {"base_url", "auth_ref", "timeout_ms"},
+    };
+
+    auto document = statespec::backend::Json::object(
+        {{"tenant_id", "tenant-a"}, {"base_url", "https://api.stripe.test"}}
+    );
+    const auto missing =
+        statespec::backend::missing_required_metadata_fields(document, lookup.required_fields);
+
+    REQUIRE(lookup.tenant_field == "tenant_id");
+    REQUIRE(lookup.key_fields.size() == 3);
+    REQUIRE(missing.size() == 2);
+    REQUIRE(missing[0] == "auth_ref");
+
+    statespec::backend::ExternalSystemMetadataResolution resolution{
+        .record =
+            statespec::backend::VersionedRecord{
+                .collection = lookup.metadata_entity,
+                .key = "tenant-a/stripe/default",
+                .version = 1,
+                .document = document,
+            },
+        .missing_required_fields = missing,
+    };
+    REQUIRE(!resolution.complete());
 }
 
 TEST_CASE("C++ log bindings expose typed events")

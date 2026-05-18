@@ -8,6 +8,7 @@ and runtime component model.
 | File | Purpose |
 |---|---|
 | [`backend.rs`](backend.rs) | Core backend, transaction, collection, query, capability, and conflict traits/types. |
+| [`external_system.rs`](external_system.rs) | External system metadata lookup requests, resolution records, required-field inspection, and runtime resolver API. |
 | [`feature_flag.rs`](feature_flag.rs) | Feature flag types, descriptors, evaluation requests, and runtime API. |
 | [`json.rs`](json.rs) | Typed JSON value model, parser, canonical serializer, and JSON utility helpers. |
 | [`lease.rs`](lease.rs) | Lease records and lease runtime API. |
@@ -130,6 +131,7 @@ LeaseStore
 QueueStore
 WorkflowStore
 FeatureFlagStore
+ExternalSystemMetadataResolver
 ```
 
 Each runtime component supports two method styles.
