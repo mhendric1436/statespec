@@ -46,6 +46,8 @@ require feature_value(MaxPendingOrders) >= count(order.pending_ids)
 
 Feature flag expressions can appear anywhere normal expressions are accepted, including
 workflow `when` blocks, `require` statements, transition conditions, and policy rules.
+See [expressions.md](expressions.md) for the shared expression grammar and allowed
+built-ins.
 
 ## Invalid Examples
 

@@ -1356,13 +1356,53 @@ void validator_accepts_feature_flags()
           }
           policy WorkflowAccess {
             tenant scoped_by tenant_id
-            allow StartOrderProcessing when feature_enabled(NewScheduler);
-            quota pending_orders: feature_value(MaxPendingOrders) >= 0;
+            allow StartOrderProcessing when feature_enabled(NewScheduler) && contains(["operator", "admin"], caller.role);
+            deny StartOrderProcessing when empty(caller.denied_permissions);
+            quota pending_orders: feature_value(MaxPendingOrders) >= count(order.pending_ids);
           }
         }
     )sspec");
 
     require(!diagnostics.has_errors(), "validator should accept valid feature flags");
+}
+
+void validator_rejects_invalid_expressions()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          value BrokenValue: int where count(;
+
+          shape StartOrderProcessingRequest {
+            tenant_id string
+            order_id string
+          }
+          shape StartOrderProcessingResponse {
+            accepted bool
+          }
+          api StartOrderProcessing {
+            method POST
+            path "/v1/tenants/{tenantId}/orders/start"
+            input StartOrderProcessingRequest
+            output StartOrderProcessingResponse
+          }
+          policy WorkflowAccess {
+            tenant scoped_by tenant_id
+            allow StartOrderProcessing when random(caller.role);
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC5201"),
+        "validator should reject invalid expression syntax"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC5202"),
+        "validator should reject unsupported expression functions"
+    );
 }
 
 void validator_rejects_invalid_feature_flag_declarations()
@@ -2029,6 +2069,11 @@ TEST_CASE("validator rejects invalid lease timing")
 TEST_CASE("validator accepts feature flags")
 {
     validator_accepts_feature_flags();
+}
+
+TEST_CASE("validator rejects invalid expressions")
+{
+    validator_rejects_invalid_expressions();
 }
 
 TEST_CASE("validator rejects invalid feature flag declarations")

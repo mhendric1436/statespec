@@ -218,13 +218,13 @@ void validate_workflows(
             {
                 if (statement.expression.has_value())
                 {
-                    validate_feature_flag_expression(
+                    validate_expression(
                         system, statement.range, *statement.expression, diagnostics
                     );
                 }
                 for (const auto& assignment : statement.payload)
                 {
-                    validate_feature_flag_expression(
+                    validate_expression(
                         system, assignment.range, assignment.expression, diagnostics
                     );
                 }

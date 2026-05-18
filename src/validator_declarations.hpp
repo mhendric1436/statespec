@@ -41,6 +41,13 @@ void validate_feature_flag_expression(
     DiagnosticBag& diagnostics
 );
 
+void validate_expression(
+    const SystemDecl& system,
+    const SourceRange& range,
+    const std::string& expression,
+    DiagnosticBag& diagnostics
+);
+
 void validate_feature_flags(
     const SystemDecl& system,
     const SymbolTable& symbols,

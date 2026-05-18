@@ -574,6 +574,7 @@ void validate_children(
 }
 
 void validate_invariants(
+    const SystemDecl& system,
     const EntityDecl& entity,
     DiagnosticBag& diagnostics
 )
@@ -590,6 +591,10 @@ void validate_invariants(
             required_error(
                 diagnostics, invariant.range, "invariant '" + invariant.name + "'", "expression"
             );
+        }
+        else
+        {
+            validate_expression(system, invariant.range, invariant.expression, diagnostics);
         }
     }
 }
@@ -635,7 +640,7 @@ void validate_entities(
         validate_ownership(entity, diagnostics);
         validate_relations(system, entity, fields, diagnostics);
         validate_children(system, entity, diagnostics);
-        validate_invariants(entity, diagnostics);
+        validate_invariants(system, entity, diagnostics);
         validate_indexes(entity, fields, diagnostics);
         validate_state_machine(entity, diagnostics);
     }

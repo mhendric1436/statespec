@@ -275,7 +275,8 @@ invariants {
 
 Keep invariants deterministic and side-effect free.
 Current compiler support preserves invariant names and raw expressions for descriptors.
-Typed expression parsing and generated runtime enforcement are future work.
+Expression syntax and allowed built-ins are validated. Type checking and generated
+runtime enforcement are future work.
 
 ## Indexes
 

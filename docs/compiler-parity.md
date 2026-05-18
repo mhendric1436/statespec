@@ -35,7 +35,7 @@ Status meanings:
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime evaluator generation remains future work. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
-| `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; validator warnings flag noncanonical member ordering; expression typing remains incomplete. |
+| `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; validator warnings flag noncanonical member ordering; expression syntax and built-ins are validated while type checking remains incomplete. |
 | `event` | complete | complete | complete | complete | complete | complete | partial | P2 | Event payload fields are validated, emitted in descriptors, and have generated payload envelope builders; backend event transport remains future work. |
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding consumes queue references as metadata. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
@@ -43,7 +43,7 @@ Status meanings:
 | `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve and passive API descriptor metadata is generated; OpenAPI/server generation is not implemented. |
 | `api_server` | complete | complete | complete | complete | complete | complete | partial | P1 | API server declarations resolve served APIs and generated bindings expose descriptors, route metadata, request/response contexts, and handler interfaces; concrete HTTP loops remain future work. |
 | `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
-| `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression parsing and policy enforcement generation are not implemented. |
+| `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression syntax and built-ins are validated while policy enforcement generation remains future work. |
 | `annotations` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P4 | Keep low priority; annotations must not become a semantic escape hatch. |
 
 ## Entity Construct Parity
@@ -58,7 +58,7 @@ Status meanings:
 | `relations` | complete | complete | complete | complete | complete | not-started | complete | P1 | Parent/reference metadata is validated and emitted in descriptors; composition-cycle checks remain future work. |
 | `children` | complete | complete | complete | complete | complete | not-started | complete | P2 | Parent-side declarations are validated against child-owned parent relations. |
 | entity-level `transitions` block | not-started | not-started | not-started | not-started | not-started | not-started | not-started | n/a | Removed before implementation. State transitions are authored only inside `state_machine`. |
-| `invariants` | complete | complete | partial | complete | complete | not-started | complete | P1 | Names and raw expressions flow through descriptors; expression parsing/type checking is still pending. |
+| `invariants` | complete | complete | partial | complete | complete | not-started | complete | P1 | Names and raw expressions flow through descriptors; expression syntax and built-ins are validated while type checking remains pending. |
 | entity `annotations` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P4 | Low priority by doctrine. |
 
 ## Workflow Construct Parity
@@ -69,7 +69,7 @@ Status meanings:
 | `step` metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Current step model is descriptor-oriented. |
 | `on` trigger | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed, resolved, and validated against known trigger targets; trigger-specific execution semantics remain future work. |
 | `load` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed, resolved, and validated against entity key fields; loaded binding type propagation remains future work. |
-| `require` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered as a raw expression string; feature flag references are validated, while general expression parsing and type checking remain future work. |
+| `require` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered as a raw expression string; expression syntax, allowed built-ins, and feature flag references are validated while type checking remains future work. |
 | `child_set` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P2 | Needed for first-class child orchestration generation. |
 | workflow operations | complete | partial | partial | partial | partial | not-started | not-started | P2 | Linear `set`, `emit`, `enqueue`, lease, `start workflow`, `transition_to`, `complete`, and `fail` statements lower into IR with target validation. Nested blocks and typed expression validation remain future work. |
 
@@ -82,7 +82,7 @@ Status meanings:
 | Runtime bootstrap helpers | complete | P1 | Transaction-scoped helpers cover feature flags, queues, leases, workflows, logs, and metrics in all generated bindings. |
 | Worker scaffolding | partial | P2 | Generated bindings expose worker descriptors, contexts, and language-specific handler interfaces. Next work is runnable queue polling, lease acquisition, and workflow dispatch loops. |
 | API generation | not-started | P1 | Generate OpenAPI or endpoint descriptors once `shape` support exists. |
-| Policy generation | not-started | P3 | Wait for expression parsing/type checking. |
+| Policy generation | not-started | P3 | Wait for expression type checking and runtime evaluator design. |
 
 ## Implementation Order
 
@@ -110,9 +110,9 @@ Status meanings:
    Initial workflow behavior IR is in place for `on`, `input`, `state`, `load`, `require`,
    `set`, `emit`, `enqueue`, lease operations, `start workflow`, `transition_to`,
    `complete`, and `fail`, with validation for loaded entity keys, resolved statement
-   targets, workflow input/state types, and feature flag references in workflow
-   expressions. The next increment is nested blocks and typed expression validation
-   before generating worker bodies.
+   targets, workflow input/state types, expression syntax, allowed expression built-ins,
+   and feature flag references in workflow expressions. The next increment is nested
+   blocks and typed expression validation before generating worker bodies.
 
 6. **P2: Add reusable `value`, `enum`, and `event` support.**
    Implemented: value, enum, and event declarations are parsed, validated, lowered
