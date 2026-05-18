@@ -126,6 +126,12 @@ struct InvariantDecl
     SourceRange range;
 };
 
+struct BlockMemberOrder
+{
+    std::string kind;
+    SourceRange range;
+};
+
 struct EntityDecl
 {
     std::string name;
@@ -137,6 +143,7 @@ struct EntityDecl
     std::vector<ChildDecl> children;
     std::vector<InvariantDecl> invariants;
     std::optional<StateMachineDecl> state_machine;
+    std::vector<BlockMemberOrder> member_order;
     SourceRange range;
 };
 
@@ -342,6 +349,7 @@ struct WorkflowDecl
     std::optional<std::string> state;
     std::vector<WorkflowLoadDecl> loads;
     std::vector<WorkflowStepDecl> steps;
+    std::vector<BlockMemberOrder> member_order;
     SourceRange range;
 };
 

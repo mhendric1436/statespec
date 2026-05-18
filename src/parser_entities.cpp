@@ -22,12 +22,14 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
     {
         if (match(TokenKind::KeywordKey))
         {
+            entity.member_order.push_back(BlockMemberOrder{"key", previous().range});
             entity.key_fields = parse_identifier_list(diagnostics);
             consume_optional_semicolon();
         }
         else if (check(TokenKind::KeywordFields))
         {
-            advance();
+            const auto fields_start = advance();
+            entity.member_order.push_back(BlockMemberOrder{"fields", fields_start.range});
             consume(TokenKind::LeftBrace, "expected '{' after fields", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -38,14 +40,19 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         else if (check(TokenKind::KeywordStateMachine))
         {
             entity.state_machine = parse_state_machine_decl(diagnostics);
+            entity.member_order.push_back(
+                BlockMemberOrder{"state_machine", entity.state_machine->range}
+            );
         }
         else if (check(TokenKind::KeywordOwnership))
         {
             entity.ownership = parse_ownership_decl(diagnostics);
+            entity.member_order.push_back(BlockMemberOrder{"ownership", entity.ownership->range});
         }
         else if (check(TokenKind::KeywordRelations))
         {
-            advance();
+            const auto relations_start = advance();
+            entity.member_order.push_back(BlockMemberOrder{"relations", relations_start.range});
             consume(TokenKind::LeftBrace, "expected '{' after relations", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -55,7 +62,8 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         }
         else if (check(TokenKind::KeywordChildren))
         {
-            advance();
+            const auto children_start = advance();
+            entity.member_order.push_back(BlockMemberOrder{"children", children_start.range});
             consume(TokenKind::LeftBrace, "expected '{' after children", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -65,7 +73,8 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         }
         else if (check(TokenKind::KeywordInvariants))
         {
-            advance();
+            const auto invariants_start = advance();
+            entity.member_order.push_back(BlockMemberOrder{"invariants", invariants_start.range});
             consume(TokenKind::LeftBrace, "expected '{' after invariants", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -75,7 +84,8 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         }
         else if (check(TokenKind::KeywordIndexes))
         {
-            advance();
+            const auto indexes_start = advance();
+            entity.member_order.push_back(BlockMemberOrder{"indexes", indexes_start.range});
             consume(TokenKind::LeftBrace, "expected '{' after indexes", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {

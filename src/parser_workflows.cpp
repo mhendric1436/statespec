@@ -24,6 +24,7 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
     {
         if (match(TokenKind::KeywordVersion))
         {
+            workflow.member_order.push_back(BlockMemberOrder{"version", previous().range});
             workflow.version = parse_int_or_zero(
                 consume(TokenKind::IntegerLiteral, "expected workflow version integer", diagnostics)
             );
@@ -31,6 +32,7 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordSingleton))
         {
+            workflow.member_order.push_back(BlockMemberOrder{"singleton", previous().range});
             const auto value =
                 consume(TokenKind::BooleanLiteral, "expected singleton boolean", diagnostics);
             workflow.singleton = value.lexeme == "true";
@@ -38,7 +40,10 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
         }
         else if (is_named_identifier(peek(), "expected_execution_time"))
         {
-            advance();
+            const auto expected_time_start = advance();
+            workflow.member_order.push_back(
+                BlockMemberOrder{"expected_execution_time", expected_time_start.range}
+            );
             auto value =
                 consume(TokenKind::DurationLiteral, "expected workflow duration", diagnostics);
             workflow.expected_execution_time = value.lexeme;
@@ -46,32 +51,40 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordStart))
         {
+            workflow.member_order.push_back(BlockMemberOrder{"start", previous().range});
             workflow.start_step =
                 consume(TokenKind::Identifier, "expected start step name", diagnostics).lexeme;
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordOn))
         {
+            workflow.member_order.push_back(BlockMemberOrder{"on", previous().range});
             workflow.on = parse_qualified_name(diagnostics, "workflow trigger");
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordInput))
         {
+            workflow.member_order.push_back(BlockMemberOrder{"input", previous().range});
             workflow.input = parse_qualified_name(diagnostics, "workflow input");
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordState))
         {
+            workflow.member_order.push_back(BlockMemberOrder{"state", previous().range});
             workflow.state = parse_qualified_name(diagnostics, "workflow state");
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordLoad))
         {
-            workflow.loads.push_back(parse_workflow_load_decl(diagnostics));
+            auto load = parse_workflow_load_decl(diagnostics);
+            workflow.member_order.push_back(BlockMemberOrder{"load", load.range});
+            workflow.loads.push_back(std::move(load));
         }
         else if (check(TokenKind::KeywordStep))
         {
-            workflow.steps.push_back(parse_workflow_step_decl(diagnostics));
+            auto step = parse_workflow_step_decl(diagnostics);
+            workflow.member_order.push_back(BlockMemberOrder{"step", step.range});
+            workflow.steps.push_back(std::move(step));
         }
         else
         {

@@ -14,6 +14,70 @@ namespace statespec::validator_detail
 namespace
 {
 
+int entity_member_order_index(const std::string& kind)
+{
+    if (kind == "key")
+    {
+        return 0;
+    }
+    if (kind == "ownership")
+    {
+        return 1;
+    }
+    if (kind == "version")
+    {
+        return 2;
+    }
+    if (kind == "fields")
+    {
+        return 3;
+    }
+    if (kind == "state_machine")
+    {
+        return 4;
+    }
+    if (kind == "relations")
+    {
+        return 5;
+    }
+    if (kind == "children")
+    {
+        return 6;
+    }
+    if (kind == "invariants")
+    {
+        return 7;
+    }
+    if (kind == "indexes")
+    {
+        return 8;
+    }
+    return 9;
+}
+
+void validate_entity_member_order(
+    const EntityDecl& entity,
+    DiagnosticBag& diagnostics
+)
+{
+    int previous_order = -1;
+    for (const auto& member : entity.member_order)
+    {
+        const auto order = entity_member_order_index(member.kind);
+        if (order < previous_order)
+        {
+            diagnostics.warning(
+                member.range, "SSPEC6101",
+                "entity '" + entity.name +
+                    "' members should use canonical order: key, ownership, version, fields, "
+                    "state_machine, relations, children, invariants, indexes"
+            );
+            return;
+        }
+        previous_order = order;
+    }
+}
+
 void validate_state_machine(
     const EntityDecl& entity,
     DiagnosticBag& diagnostics
@@ -459,6 +523,8 @@ void validate_entities(
 {
     for (const auto& entity : system.entities)
     {
+        validate_entity_member_order(entity, diagnostics);
+
         if (entity.key_fields.empty())
         {
             diagnostics.error(

@@ -9,6 +9,75 @@
 namespace statespec::validator_detail
 {
 
+namespace
+{
+
+int workflow_member_order_index(const std::string& kind)
+{
+    if (kind == "version")
+    {
+        return 0;
+    }
+    if (kind == "singleton")
+    {
+        return 1;
+    }
+    if (kind == "expected_execution_time")
+    {
+        return 2;
+    }
+    if (kind == "start")
+    {
+        return 3;
+    }
+    if (kind == "on")
+    {
+        return 4;
+    }
+    if (kind == "input")
+    {
+        return 5;
+    }
+    if (kind == "state")
+    {
+        return 6;
+    }
+    if (kind == "load")
+    {
+        return 7;
+    }
+    if (kind == "step")
+    {
+        return 8;
+    }
+    return 9;
+}
+
+void validate_workflow_member_order(
+    const WorkflowDecl& workflow,
+    DiagnosticBag& diagnostics
+)
+{
+    int previous_order = -1;
+    for (const auto& member : workflow.member_order)
+    {
+        const auto order = workflow_member_order_index(member.kind);
+        if (order < previous_order)
+        {
+            diagnostics.warning(
+                member.range, "SSPEC6102",
+                "workflow '" + workflow.name +
+                    "' members should use canonical order: version, singleton, "
+                    "expected_execution_time, start, on, input, state, load, step"
+            );
+            return;
+        }
+        previous_order = order;
+    }
+}
+
+} // namespace
+
 void validate_workflows(
     const SystemDecl& system,
     const SymbolTable& symbols,
@@ -17,6 +86,8 @@ void validate_workflows(
 {
     for (const auto& workflow : system.workflows)
     {
+        validate_workflow_member_order(workflow, diagnostics);
+
         if (!workflow.version.has_value())
         {
             required_error(

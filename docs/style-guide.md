@@ -75,7 +75,11 @@ Failed
 
 ## Entity Style
 
-Put `key` and `ownership` before `fields`.
+Use canonical entity member order:
+
+```text
+key, ownership, version, fields, state_machine, relations, children, invariants, indexes
+```
 
 ```statespec
 entity Order {
@@ -93,8 +97,15 @@ entity Order {
     tenant_id string
     order_id string
   }
+
+  state_machine {
+    state Active
+    initial Active
+  }
 }
 ```
+
+The validator emits a warning when entity members appear out of canonical order.
 
 For lifecycle entities, include a `state_machine` block. Prefer explicit state machines
 over prose descriptions.
@@ -102,6 +113,14 @@ over prose descriptions.
 ## Workflow Style
 
 Workflow steps should describe durable progress, not implementation details.
+
+Use canonical workflow member order:
+
+```text
+version, singleton, expected_execution_time, start, on, input, state, load, step
+```
+
+The validator emits a warning when workflow members appear out of canonical order.
 
 Good:
 

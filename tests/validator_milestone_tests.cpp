@@ -64,6 +64,22 @@ bool has_error_message_containing(
     return false;
 }
 
+bool has_warning_code(
+    const statespec::DiagnosticBag& diagnostics,
+    const std::string& code
+)
+{
+    for (const auto& diagnostic : diagnostics.all())
+    {
+        if (diagnostic.severity == statespec::DiagnosticSeverity::Warning &&
+            diagnostic.code == code)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void validator_accepts_resolved_references()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -178,6 +194,46 @@ void validator_accepts_resolved_references()
     )sspec");
 
     require(!diagnostics.has_errors(), "validator should accept resolved references");
+}
+
+void validator_warns_on_noncanonical_entity_and_workflow_order()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              order_id string
+            }
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          workflow OrderProcessing {
+            version 1
+            step process_order {
+              expected_execution_time PT10S
+            }
+            start process_order
+          }
+        }
+    )sspec");
+
+    require(
+        !diagnostics.has_errors(), "noncanonical order should warn without invalidating the spec"
+    );
+    require(has_warning_code(diagnostics, "SSPEC6101"), "validator should warn on entity order");
+    require(has_warning_code(diagnostics, "SSPEC6102"), "validator should warn on workflow order");
 }
 
 void validator_rejects_invalid_shapes()
@@ -1145,6 +1201,11 @@ TEST_CASE("validator rejects duplicate top-level names")
 TEST_CASE("validator rejects invalid shapes")
 {
     validator_rejects_invalid_shapes();
+}
+
+TEST_CASE("validator warns on noncanonical entity and workflow order")
+{
+    validator_warns_on_noncanonical_entity_and_workflow_order();
 }
 
 TEST_CASE("validator rejects missing entity key fields")
