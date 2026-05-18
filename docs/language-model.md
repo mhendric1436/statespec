@@ -177,6 +177,11 @@ external_system Stripe {
     entity ExternalSystemEndpoint
     profile_field profile
     required_fields [base_url, auth_ref, timeout_ms]
+    mappings {
+      metadata.base_url -> client.base_url
+      metadata.auth_ref -> client.auth_ref
+      input.invoice_id -> request.invoice_id
+    }
   }
 }
 ```

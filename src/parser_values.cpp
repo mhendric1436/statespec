@@ -10,6 +10,18 @@ namespace statespec
 using parser_detail::is_named_identifier;
 using parser_detail::strip_quotes;
 
+namespace
+{
+
+bool is_metadata_mapping_path_segment(TokenKind kind)
+{
+    return kind == TokenKind::Identifier || kind == TokenKind::KeywordEntity ||
+           kind == TokenKind::KeywordEvent || kind == TokenKind::KeywordInput ||
+           kind == TokenKind::KeywordWorkflow;
+}
+
+} // namespace
+
 ValueDecl Parser::parse_value_decl(DiagnosticBag& diagnostics)
 {
     const auto start = consume(TokenKind::KeywordValue, "expected value declaration", diagnostics);
@@ -203,6 +215,20 @@ ExternalSystemMetadataDecl Parser::parse_external_system_metadata_decl(Diagnosti
             metadata.required_fields = parse_identifier_list(diagnostics);
             consume_optional_semicolon();
         }
+        else if (is_named_identifier(peek(), "mappings"))
+        {
+            advance();
+            consume(TokenKind::LeftBrace, "expected '{' after metadata mappings", diagnostics);
+            while (!check(TokenKind::RightBrace) && !is_at_end())
+            {
+                metadata.mappings.push_back(
+                    parse_external_system_metadata_mapping_decl(diagnostics)
+                );
+            }
+            consume(
+                TokenKind::RightBrace, "expected '}' after metadata mappings block", diagnostics
+            );
+        }
         else
         {
             diagnostics.error(
@@ -216,6 +242,50 @@ ExternalSystemMetadataDecl Parser::parse_external_system_metadata_decl(Diagnosti
     );
     metadata.range = SourceRange{start.range.begin, previous().range.end};
     return metadata;
+}
+
+ExternalSystemMetadataMappingDecl
+Parser::parse_external_system_metadata_mapping_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = peek();
+    ExternalSystemMetadataMappingDecl mapping;
+
+    auto parse_mapping_path = [this, &diagnostics](const std::string& context)
+    {
+        if (!is_metadata_mapping_path_segment(peek().kind))
+        {
+            diagnostics.error(peek().range, "SSPEC0200", "expected " + context);
+            if (!is_at_end())
+            {
+                advance();
+            }
+            return std::string{};
+        }
+
+        std::string name = advance().lexeme;
+        while (match(TokenKind::Dot))
+        {
+            if (!is_metadata_mapping_path_segment(peek().kind))
+            {
+                diagnostics.error(peek().range, "SSPEC0200", "expected name after '.'");
+                if (!is_at_end())
+                {
+                    advance();
+                }
+                break;
+            }
+            name += ".";
+            name += advance().lexeme;
+        }
+        return name;
+    };
+
+    mapping.source = parse_mapping_path("metadata mapping source");
+    consume(TokenKind::Arrow, "expected '->' in metadata mapping", diagnostics);
+    mapping.target = parse_mapping_path("metadata mapping target");
+    consume_optional_semicolon();
+    mapping.range = SourceRange{start.range.begin, previous().range.end};
+    return mapping;
 }
 
 ShapeDecl Parser::parse_shape_decl(DiagnosticBag& diagnostics)

@@ -252,6 +252,11 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
                 entity ExternalSystemEndpoint
                 profile_field profile
                 required_fields [base_url, auth_ref, timeout_ms]
+                mappings {
+                  metadata.base_url -> client.base_url
+                  metadata.auth_ref -> client.auth_ref
+                  input.invoice_id -> request.invoice_id
+                }
               }
             }
 
@@ -308,6 +313,18 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
     statespec::test::require(
         ir.external_systems[0].metadata->required_fields.size() == 3,
         "IR should lower external system required metadata fields"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata->mappings.size() == 3,
+        "IR should lower external system metadata mappings"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata->mappings[0].source == "metadata.base_url",
+        "IR should lower external system metadata mapping source"
+    );
+    statespec::test::require(
+        ir.external_systems[0].metadata->mappings[0].target == "client.base_url",
+        "IR should lower external system metadata mapping target"
     );
     statespec::test::require(ir.apis[0].name == "Billing.StartInvoice", "IR should qualify APIs");
     statespec::test::require(ir.policies.size() == 1, "IR should lower policies");

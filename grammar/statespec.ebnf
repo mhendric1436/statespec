@@ -208,12 +208,22 @@ external_system_metadata_block ::= "metadata" "{"
                                    "}" ;
 external_system_metadata_member ::= "entity" QualifiedName ";"?
                                   | "profile_field" Identifier ";"?
-                                  | "required_fields" identifier_list ";"? ;
+                                  | "required_fields" identifier_list ";"?
+                                  | external_system_metadata_mappings_block ;
+
+external_system_metadata_mappings_block ::= "mappings" "{"
+                                              external_system_metadata_mapping*
+                                            "}" ;
+external_system_metadata_mapping ::= metadata_mapping_path "->" metadata_mapping_path ";"? ;
+metadata_mapping_path ::= metadata_mapping_segment ("." metadata_mapping_segment)* ;
+metadata_mapping_segment ::= Identifier | "entity" | "event" | "input" | "workflow" ;
 
 (*
   External system metadata semantic notes:
     - metadata.entity must reference a declared entity.
     - metadata.profile_field and metadata.required_fields must exist on that entity.
+    - metadata.mappings describe descriptor-level mappings from input, entity, workflow,
+      or metadata sources to generated client/request fields.
     - In tenant-scoped systems, the metadata entity must declare the tenant field and
       include it in the entity key.
 *)

@@ -323,12 +323,17 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tName string\n";
     out << "\tValue string\n";
     out << "}\n\n";
+    out << "type ExternalSystemMetadataMappingDescriptor struct {\n";
+    out << "\tSource string\n";
+    out << "\tTarget string\n";
+    out << "}\n\n";
     out << "type ExternalSystemMetadataDescriptor struct {\n";
     out << "\tEntity string\n";
     out << "\tTenantField *string\n";
     out << "\tProfileField string\n";
     out << "\tKeyFields []string\n";
     out << "\tRequiredFields []string\n";
+    out << "\tMappings []ExternalSystemMetadataMappingDescriptor\n";
     out << "}\n\n";
     out << "type ExternalSystemDescriptor struct {\n";
     out << "\tName string\n";
@@ -605,6 +610,13 @@ std::string generate_descriptors_go(const IrSystem& system)
                 out << go_string(external_system.metadata->required_fields[i]);
             }
             out << "},\n";
+            out << "\t\t\t\tMappings: []ExternalSystemMetadataMappingDescriptor{\n";
+            for (const auto& mapping : external_system.metadata->mappings)
+            {
+                out << "\t\t\t\t\t{Source: " << go_string(mapping.source)
+                    << ", Target: " << go_string(mapping.target) << "},\n";
+            }
+            out << "\t\t\t\t},\n";
             out << "\t\t\t},\n";
         }
         out << "\t\t},\n";

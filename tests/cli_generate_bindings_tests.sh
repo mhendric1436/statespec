@@ -75,6 +75,12 @@ system Demo {
         entity ExternalSystemEndpoint
         profile_field profile
         required_fields [base_url, auth_ref, timeout_ms]
+        mappings {
+          metadata.base_url -> client.base_url
+          metadata.auth_ref -> client.auth_ref
+          metadata.timeout_ms -> client.timeout_ms
+          input.order_id -> request.order_id
+        }
       }
     }
   }
@@ -423,8 +429,11 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "struct EventEnvel
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "make_order_accepted_event"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "std::optional<std::string> tenant_field"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "std::vector<std::string> key_fields"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"metadata.base_url\""
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"client.base_url\""
 assert_file_contains "$TMPDIR/out-cpp/external_system.hpp" "IExternalSystemMetadataResolver"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "external_system_metadata_lookup"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "resolve_external_system_metadataTx"
@@ -603,9 +612,12 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type EventEnvelope
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func NewOrderAcceptedEvent"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "TenantField *string"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "KeyFields []string"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "TenantField: stringPtr(\"tenant_id\")"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Source: \"metadata.base_url\""
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Target: \"client.base_url\""
 assert_file_contains "$TMPDIR/out-go/backend/external_system.go" "type ExternalSystemMetadataResolver interface"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func BuildExternalSystemMetadataLookup"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ExternalSystemMetadataLookupByName"
@@ -773,9 +785,12 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "buildOrderAcceptedEvent"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional<String> tenantField"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "List<String> keyFields"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional.of(\"tenant_id\")"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"metadata.base_url\""
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"client.base_url\""
 assert_file_contains "$TMPDIR/out-java/com/statespec/backend/ExternalSystem.java" "interface ExternalSystem"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "externalSystemMetadataLookup"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "resolveExternalSystemMetadataTx"
@@ -965,9 +980,12 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct EventEnvelope
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn make_order_accepted_event"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub tenant_field: Option<String>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub key_fields: Vec<String>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "tenant_field: Some(\"tenant_id\".to_string())"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "source: \"metadata.base_url\".to_string()"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "target: \"client.base_url\".to_string()"
 assert_file_contains "$TMPDIR/out-rust/external_system.rs" "pub trait ExternalSystemMetadataResolver"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_metadata_lookup"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_metadata_lookup_by_name"

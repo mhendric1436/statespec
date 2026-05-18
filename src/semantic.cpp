@@ -19,6 +19,18 @@ std::vector<SemanticField> resolve_fields(const std::vector<FieldDecl>& fields)
     return resolved;
 }
 
+std::vector<SemanticExternalSystemMetadataMapping> resolve_external_system_metadata_mappings(
+    const std::vector<ExternalSystemMetadataMappingDecl>& mappings
+)
+{
+    std::vector<SemanticExternalSystemMetadataMapping> resolved;
+    for (const auto& mapping : mappings)
+    {
+        resolved.push_back(SemanticExternalSystemMetadataMapping{mapping.source, mapping.target});
+    }
+    return resolved;
+}
+
 const EntityDecl* find_entity_decl(
     const SystemDecl& system,
     const std::string& name
@@ -406,6 +418,7 @@ SemanticSystem resolve_semantics(const Spec& spec)
                 metadata_entity != nullptr ? metadata_entity->key_fields
                                            : std::vector<std::string>{},
                 external_system.metadata->required_fields,
+                resolve_external_system_metadata_mappings(external_system.metadata->mappings),
             };
         }
         resolved.external_systems.push_back(std::move(resolved_external_system));

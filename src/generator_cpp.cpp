@@ -362,6 +362,12 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::string value;\n";
     out << "};\n\n";
 
+    out << "struct ExternalSystemMetadataMappingDescriptor\n";
+    out << "{\n";
+    out << "    std::string source;\n";
+    out << "    std::string target;\n";
+    out << "};\n\n";
+
     out << "struct ExternalSystemMetadataDescriptor\n";
     out << "{\n";
     out << "    std::string entity;\n";
@@ -369,6 +375,7 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::string profile_field;\n";
     out << "    std::vector<std::string> key_fields;\n";
     out << "    std::vector<std::string> required_fields;\n";
+    out << "    std::vector<ExternalSystemMetadataMappingDescriptor> mappings;\n";
     out << "};\n\n";
 
     out << "struct ExternalSystemDescriptor\n";
@@ -703,6 +710,13 @@ std::string generate_system_descriptors_header(const IrSystem& system)
                 out << cpp_string(external_system.metadata->required_fields[i]);
             }
             out << "},\n";
+            out << "                {\n";
+            for (const auto& mapping : external_system.metadata->mappings)
+            {
+                out << "                    ExternalSystemMetadataMappingDescriptor{"
+                    << cpp_string(mapping.source) << ", " << cpp_string(mapping.target) << "},\n";
+            }
+            out << "                },\n";
             out << "            },\n";
         }
         else

@@ -185,11 +185,19 @@ struct ExternalSystemPropertyDecl
     SourceRange range;
 };
 
+struct ExternalSystemMetadataMappingDecl
+{
+    std::string source;
+    std::string target;
+    SourceRange range;
+};
+
 struct ExternalSystemMetadataDecl
 {
     std::optional<std::string> entity;
     std::optional<std::string> profile_field;
     std::vector<std::string> required_fields;
+    std::vector<ExternalSystemMetadataMappingDecl> mappings;
     SourceRange range;
 };
 

@@ -161,6 +161,12 @@ struct SemanticExternalSystemProperty
     std::string value;
 };
 
+struct SemanticExternalSystemMetadataMapping
+{
+    std::string source;
+    std::string target;
+};
+
 struct SemanticExternalSystemMetadata
 {
     std::string entity;
@@ -168,6 +174,7 @@ struct SemanticExternalSystemMetadata
     std::string profile_field;
     std::vector<std::string> key_fields;
     std::vector<std::string> required_fields;
+    std::vector<SemanticExternalSystemMetadataMapping> mappings;
 };
 
 struct SemanticExternalSystem

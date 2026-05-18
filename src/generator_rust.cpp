@@ -350,12 +350,18 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub value: String,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ExternalSystemMetadataMappingDescriptor {\n";
+    out << "    pub source: String,\n";
+    out << "    pub target: String,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ExternalSystemMetadataDescriptor {\n";
     out << "    pub entity: String,\n";
     out << "    pub tenant_field: Option<String>,\n";
     out << "    pub profile_field: String,\n";
     out << "    pub key_fields: Vec<String>,\n";
     out << "    pub required_fields: Vec<String>,\n";
+    out << "    pub mappings: Vec<ExternalSystemMetadataMappingDescriptor>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ExternalSystemDescriptor {\n";
@@ -657,6 +663,19 @@ std::string generate_descriptors_rs(const IrSystem& system)
                     out << ", ";
                 }
                 out << rust_string(external_system.metadata->required_fields[i]) << ".to_string()";
+            }
+            out << "],\n";
+            out << "                mappings: vec![";
+            for (std::size_t i = 0; i < external_system.metadata->mappings.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                const auto& mapping = external_system.metadata->mappings[i];
+                out << "ExternalSystemMetadataMappingDescriptor { source: "
+                    << rust_string(mapping.source)
+                    << ".to_string(), target: " << rust_string(mapping.target) << ".to_string() }";
             }
             out << "],\n";
             out << "            }),\n";

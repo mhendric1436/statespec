@@ -138,6 +138,12 @@ struct IrExternalSystemProperty
     std::string value;
 };
 
+struct IrExternalSystemMetadataMapping
+{
+    std::string source;
+    std::string target;
+};
+
 struct IrExternalSystemMetadata
 {
     std::string entity;
@@ -145,6 +151,7 @@ struct IrExternalSystemMetadata
     std::string profile_field;
     std::vector<std::string> key_fields;
     std::vector<std::string> required_fields;
+    std::vector<IrExternalSystemMetadataMapping> mappings;
 };
 
 struct IrExternalSystem

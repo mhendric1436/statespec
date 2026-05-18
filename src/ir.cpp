@@ -18,6 +18,18 @@ std::vector<IrField> lower_fields(const std::vector<SemanticField>& fields)
     return lowered;
 }
 
+std::vector<IrExternalSystemMetadataMapping> lower_external_system_metadata_mappings(
+    const std::vector<SemanticExternalSystemMetadataMapping>& mappings
+)
+{
+    std::vector<IrExternalSystemMetadataMapping> lowered;
+    for (const auto& mapping : mappings)
+    {
+        lowered.push_back(IrExternalSystemMetadataMapping{mapping.source, mapping.target});
+    }
+    return lowered;
+}
+
 std::optional<std::string> reference_name(const std::optional<SemanticReference>& reference)
 {
     if (!reference.has_value())
@@ -120,9 +132,12 @@ IrSystem lower_to_ir(const SemanticSystem& system)
         if (external_system.metadata.has_value())
         {
             ir_external_system.metadata = IrExternalSystemMetadata{
-                external_system.metadata->entity,          external_system.metadata->tenant_field,
-                external_system.metadata->profile_field,   external_system.metadata->key_fields,
+                external_system.metadata->entity,
+                external_system.metadata->tenant_field,
+                external_system.metadata->profile_field,
+                external_system.metadata->key_fields,
                 external_system.metadata->required_fields,
+                lower_external_system_metadata_mappings(external_system.metadata->mappings),
             };
         }
         ir.external_systems.push_back(std::move(ir_external_system));

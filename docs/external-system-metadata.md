@@ -164,21 +164,32 @@ Remote calls combine fields from multiple sources:
 | Durable entity or workflow state | order ID, payment ID, idempotency key. |
 | Operator metadata entity | base URL, auth reference, timeout, retry policy. |
 
-The mapping from these sources to remote API fields should be explicit in future IR or
-grammar. The first implementation should prefer descriptors and generated helper APIs
-until several real integrations prove the stable syntax.
+External system metadata can declare descriptor-level mappings from user input, durable
+state, workflow state, or resolved metadata to generated client/request fields. These
+mappings make the remote call contract inspectable without forcing user-facing APIs to
+carry operator-only execution fields.
 
-Conceptual mapping:
-
-```text
-remote_call Stripe.CreatePayment
-  user.amount        -> request.amount
-  user.currency      -> request.currency
-  order.payment_id   -> request.idempotency_key
-  metadata.base_url  -> client.base_url
-  metadata.auth_ref  -> client.auth_ref
-  metadata.timeout_ms -> client.timeout_ms
+```sspec
+external_system Stripe {
+  metadata {
+    entity ExternalSystemEndpoint
+    profile_field profile
+    required_fields [base_url, auth_ref, timeout_ms]
+    mappings {
+      input.amount -> request.amount
+      input.currency -> request.currency
+      entity.payment_id -> request.idempotency_key
+      metadata.base_url -> client.base_url
+      metadata.auth_ref -> client.auth_ref
+      metadata.timeout_ms -> client.timeout_ms
+    }
+  }
+}
 ```
+
+Current generated descriptors preserve mapping source and target names. Detailed semantic
+validation of mapping source namespaces and target fields is intentionally handled by the
+compiler rather than by binding runtime adapters.
 
 ## OCC Requirement
 
@@ -188,9 +199,9 @@ flags. A workflow or API handler should resolve metadata inside its caller-manag
 transaction, then execute the remote call with the resolved configuration.
 
 Generated binding descriptors expose the metadata entity, tenant field, metadata entity key
-fields, profile field, and required execution metadata fields. Runtime adapters should use
-that descriptor contract to build tenant-scoped backend lookups instead of hard-coding
-metadata entity names or key shapes.
+fields, profile field, required execution metadata fields, and metadata field mappings.
+Runtime adapters should use that descriptor contract to build tenant-scoped backend lookups
+instead of hard-coding metadata entity names or key shapes.
 
 The reference bindings expose external-system metadata lookup request and resolution types,
 plus resolver interfaces with transaction-aware methods. Resolvers should validate required

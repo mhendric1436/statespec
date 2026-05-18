@@ -404,6 +404,11 @@ void parser_parses_namespaces_and_external_systems()
                 entity ExternalSystemEndpoint
                 profile_field profile
                 required_fields [base_url, auth_ref, timeout_ms]
+                mappings {
+                  metadata.base_url -> client.base_url
+                  metadata.auth_ref -> client.auth_ref
+                  input.invoice_id -> request.invoice_id
+                }
               }
             }
 
@@ -453,6 +458,18 @@ void parser_parses_namespaces_and_external_systems()
     statespec::test::require(
         spec.system->external_systems[0].metadata->required_fields.size() == 3,
         "parser should parse external system required metadata fields"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].metadata->mappings.size() == 3,
+        "parser should parse external system metadata field mappings"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].metadata->mappings[0].source == "metadata.base_url",
+        "parser should parse external system metadata mapping source"
+    );
+    statespec::test::require(
+        spec.system->external_systems[0].metadata->mappings[0].target == "client.base_url",
+        "parser should parse external system metadata mapping target"
     );
     statespec::test::require(
         spec.system->shapes[0].name == "Billing.InvoiceRequest",
