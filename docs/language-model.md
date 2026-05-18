@@ -11,12 +11,17 @@ A file normally starts with a version header and then declares a system:
 statespec 0.1;
 
 system OrderSystem {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   // declarations go here
 }
 ```
 
-The `system` block is the top-level scope for names. Names declared inside a system are
-referenced by APIs, API servers, workflows, queues, leases, workers, and policies.
+The `system` block is the top-level scope for names. Every system must declare the tenant
+field used for scoped resources and the configured system tenant used for control-plane
+resources. Names declared inside a system are referenced by APIs, API servers, workflows,
+queues, leases, workers, and policies.
 
 Files may also declare `include` directives before imports and the root system:
 
@@ -25,6 +30,9 @@ statespec 0.1;
 include "./workflow-launch-control.sspec";
 
 system OrderSystem {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   // local declarations go here
 }
 ```

@@ -13,6 +13,9 @@ A minimal file has an optional version header and one `system` declaration:
 statespec 0.1;
 
 system OrderSystem {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   entity Order {
     key order_id
     ownership {

@@ -84,6 +84,9 @@ void validator_accepts_resolved_references()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
           shape StartOrderProcessingRequest {
             order_id string
           }
@@ -200,6 +203,9 @@ void validator_warns_on_noncanonical_entity_and_workflow_order()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
           entity Order {
             key order_id
             fields {
@@ -267,6 +273,9 @@ void validator_accepts_terminal_garbage_collection_modes()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
           entity Order {
             key order_id
             ownership {
@@ -432,6 +441,41 @@ void validator_rejects_missing_entity_management_model()
     );
     require(
         has_error_message_containing(diagnostics, "ownership"), "validator should require ownership"
+    );
+}
+
+void validator_rejects_missing_system_tenancy()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              order_id string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "tenant scoped_by"),
+        "validator should require system tenant scope"
+    );
+    require(
+        has_error_message_containing(diagnostics, "system_tenant configured"),
+        "validator should require system tenant configuration"
     );
 }
 
@@ -803,6 +847,9 @@ void validator_accepts_feature_flags()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
           feature_flag NewScheduler {
             type bool
             default false
@@ -930,6 +977,9 @@ void validator_accepts_values_enums_and_events()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
           value OrderAmount: decimal where OrderAmount >= 0;
 
           enum OrderStatus {
@@ -1015,6 +1065,9 @@ void validator_accepts_namespaces_external_systems_and_policies()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
           namespace Billing {
             external_system Stripe {
               owner: "payments"
@@ -1071,6 +1124,9 @@ void validator_accepts_logs_and_metrics()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
           log WorkflowLaunchDecision {
             level info
             event_name "workflow.launch.decision"
@@ -1221,6 +1277,11 @@ TEST_CASE("validator rejects invalid entity indexes")
 TEST_CASE("validator rejects missing entity management model")
 {
     validator_rejects_missing_entity_management_model();
+}
+
+TEST_CASE("validator rejects missing system tenancy")
+{
+    validator_rejects_missing_system_tenancy();
 }
 
 TEST_CASE("validator rejects invalid entity management field types")

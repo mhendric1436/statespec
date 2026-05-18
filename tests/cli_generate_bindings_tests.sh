@@ -12,6 +12,9 @@ trap cleanup EXIT
 SPEC="$TMPDIR/minimal.sspec"
 cat > "$SPEC" <<'SSPEC'
 system Demo {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   feature_flag NewScheduler {
     type bool
     default false
@@ -225,6 +228,9 @@ cat > "$INCLUDED_SPEC" <<'SSPEC'
 statespec 0.1;
 
 system IncludedBindings {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   entity IncludedEntity {
     key included_id
     ownership {

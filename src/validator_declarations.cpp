@@ -113,6 +113,25 @@ bool is_known_type_reference(
     return is_builtin_type(base_type) || symbols.find(base_type).has_value();
 }
 
+void validate_system_tenancy(
+    const SystemDecl& system,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!system.tenant_scope.has_value())
+    {
+        required_error(
+            diagnostics, system.range, "system '" + system.name + "'", "tenant scoped_by"
+        );
+    }
+    if (!system.system_tenant.has_value())
+    {
+        required_error(
+            diagnostics, system.range, "system '" + system.name + "'", "system_tenant configured"
+        );
+    }
+}
+
 void validate_feature_flag_expression(
     const SystemDecl& system,
     const SourceRange& range,

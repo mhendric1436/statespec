@@ -149,6 +149,9 @@ See [`examples/order-system.sspec`](examples/order-system.sspec) for a complete 
 statespec 0.1;
 
 system OrderSystem {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   entity Order {
     key tenant_id, order_id
     ownership {

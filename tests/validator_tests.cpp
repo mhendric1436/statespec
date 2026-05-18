@@ -34,6 +34,9 @@ void validator_accepts_entity_relationship_model()
 {
     const auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
           entity Account {
             key account_id
             ownership {

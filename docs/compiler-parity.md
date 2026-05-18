@@ -26,8 +26,8 @@ Status meanings:
 | `import` | complete | complete | partial | not-started | not-started | partial | not-started | P3 | Parsed as metadata only; no module/import resolution semantics yet. |
 | `system` | complete | complete | complete | complete | complete | complete | complete | P0 | Root system is the implemented compilation unit. |
 | `namespace` | complete | complete | complete | complete | complete | complete | partial | P2 | Namespace blocks qualify member declarations and emit descriptor metadata; relative name lookup remains future work. |
-| `tenant scoped_by` | complete | complete | complete | complete | complete | complete | partial | P1 | Lowered into IR; runtime enforcement and generator usage remain limited. |
-| `system_tenant configured` | complete | complete | complete | complete | complete | complete | partial | P1 | Lowered into IR; generated runtime config contract should be expanded. |
+| `tenant scoped_by` | complete | complete | complete | complete | complete | complete | partial | P0 | Mandatory for every composed system and lowered into IR; runtime enforcement and generator usage remain limited. |
+| `system_tenant configured` | complete | complete | complete | complete | complete | complete | partial | P0 | Mandatory for every composed system and lowered into IR; generated runtime config contract should be expanded. |
 | `value` | complete | complete | complete | complete | complete | complete | partial | P2 | Reusable named value types flow through IR and binding descriptors; target-language type generation remains future work. |
 | `enum` | complete | complete | complete | complete | complete | complete | partial | P2 | Enum declarations and members flow through IR and binding descriptors; target-language enum generation remains future work. |
 | `shape` | complete | complete | complete | complete | complete | complete | partial | P1 | Shape descriptors and conservative target-language DTOs are generated; richer custom type mapping remains future work. |

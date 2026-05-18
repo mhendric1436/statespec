@@ -1,6 +1,9 @@
 statespec 0.1;
 
 system OrderSystem {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   shape StartOrderProcessingRequest {
     tenant_id string
     order_id string

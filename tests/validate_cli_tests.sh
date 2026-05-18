@@ -24,6 +24,9 @@ DUPLICATE_ROOT_SPEC="$TMPDIR/duplicate-root.sspec"
 
 cat > "$INVALID_GC_SPEC" <<'SSPEC'
 system Demo {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   entity Order {
     key order_id
     ownership {
@@ -61,6 +64,9 @@ SSPEC
 
 cat > "$VALID_GC_SPEC" <<'SSPEC'
 system Demo {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   entity Order {
     key order_id
     ownership {
@@ -95,6 +101,9 @@ cat > "$INCLUDE_SHARED_SPEC" <<'SSPEC'
 statespec 0.1;
 
 system SharedModel {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   entity SharedEntity {
     key shared_id
     ownership {
@@ -154,6 +163,9 @@ cat > "$DUPLICATE_INCLUDE_SPEC" <<'SSPEC'
 statespec 0.1;
 
 system DuplicateInclude {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   entity SharedEntity {
     key shared_id
     ownership {
@@ -180,6 +192,9 @@ statespec 0.1;
 include "./duplicate-include.sspec";
 
 system DuplicateRoot {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
   entity SharedEntity {
     key shared_id
     ownership {

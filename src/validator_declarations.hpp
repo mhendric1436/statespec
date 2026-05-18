@@ -24,6 +24,11 @@ bool is_known_type_reference(
     const SymbolTable& symbols
 );
 
+void validate_system_tenancy(
+    const SystemDecl& system,
+    DiagnosticBag& diagnostics
+);
+
 void validate_feature_flag_expression(
     const SystemDecl& system,
     const SourceRange& range,

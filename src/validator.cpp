@@ -26,6 +26,7 @@ void Validator::validate(
     auto symbols = build_symbol_table(system, diagnostics);
     const ValidatorContext context{spec, system, symbols, diagnostics};
 
+    validate_system_tenancy(context.system, context.diagnostics);
     validate_feature_flags(context.system, context.symbols, context.diagnostics);
     validate_namespaces(context.system, context.symbols, context.diagnostics);
     validate_values(context.system, context.symbols, context.diagnostics);
