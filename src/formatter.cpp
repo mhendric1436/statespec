@@ -21,7 +21,6 @@ bool is_word_token(TokenKind kind)
     case TokenKind::DurationLiteral:
     case TokenKind::KeywordStatespec:
     case TokenKind::KeywordInclude:
-    case TokenKind::KeywordImport:
     case TokenKind::KeywordAs:
     case TokenKind::KeywordSystem:
     case TokenKind::KeywordNamespace:

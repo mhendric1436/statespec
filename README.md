@@ -85,7 +85,6 @@ StateSpec models these top-level and nested concepts:
 ```text
 statespec version
 include
-import
 system
 tenant_scope
 system_tenant

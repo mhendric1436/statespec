@@ -20,7 +20,6 @@ class Parser : private ParserContext
   private:
     Spec parse_spec(DiagnosticBag& diagnostics);
     IncludeDecl parse_include_decl(DiagnosticBag& diagnostics);
-    ImportDecl parse_import_decl(DiagnosticBag& diagnostics);
     SystemDecl parse_system_decl(DiagnosticBag& diagnostics);
     NamespaceDecl parse_namespace_decl(
         DiagnosticBag& diagnostics,

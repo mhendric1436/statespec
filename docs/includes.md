@@ -11,8 +11,11 @@ system OrderSystem {
 }
 ```
 
-Include directives must appear after the optional `statespec` header and before imports
-or the root `system` declaration.
+Include directives must appear after the optional `statespec` header and before the root
+`system` declaration.
+
+StateSpec does not support a separate `import` directive. `include` is the only
+file-composition mechanism.
 
 ## Resolution
 

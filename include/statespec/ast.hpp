@@ -12,13 +12,6 @@ namespace statespec
 inline constexpr const char* DefaultTenantIdFieldName = "tenant_id";
 inline constexpr const char* DefaultSystemTenantIdConfigKey = "STATESPEC_SYSTEM_TENANT_ID";
 
-struct ImportDecl
-{
-    std::string name;
-    std::optional<std::string> alias;
-    SourceRange range;
-};
-
 struct IncludeDecl
 {
     std::string path;
@@ -411,7 +404,6 @@ struct Spec
 {
     std::optional<std::string> version;
     std::vector<IncludeDecl> includes;
-    std::vector<ImportDecl> imports;
     std::optional<SystemDecl> system;
 };
 

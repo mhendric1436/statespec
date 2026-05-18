@@ -47,7 +47,6 @@ enum class TokenKind
 
     KeywordStatespec,
     KeywordInclude,
-    KeywordImport,
     KeywordAs,
     KeywordSystem,
     KeywordNamespace,

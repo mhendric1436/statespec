@@ -38,6 +38,27 @@ void parser_parses_include_declarations()
     statespec::test::require(spec.system.has_value(), "parser should still parse root system");
 }
 
+void parser_rejects_import_declarations()
+{
+    statespec::DiagnosticBag diagnostics;
+    auto spec = statespec::test::parse_text(
+        R"sspec(
+        statespec 0.1;
+        import Shared.Model;
+
+        system OrderSystem {}
+    )sspec",
+        diagnostics
+    );
+
+    statespec::test::require(
+        !spec.system.has_value(), "parser should not accept import before the root system"
+    );
+    statespec::test::require(
+        diagnostics.has_errors(), "parser should report import as unsupported syntax"
+    );
+}
+
 void parser_tracks_system_member_order()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -819,6 +840,11 @@ TEST_CASE("parser parses empty systems")
 TEST_CASE("parser parses include declarations")
 {
     parser_parses_include_declarations();
+}
+
+TEST_CASE("parser rejects import declarations")
+{
+    parser_rejects_import_declarations();
 }
 
 TEST_CASE("parser tracks system member order")

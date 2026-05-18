@@ -208,7 +208,6 @@ statespec::Spec load_composed_spec(
 
     statespec::Spec composed;
     composed.version = spec.version;
-    composed.imports = spec.imports;
     composed.system = spec.system;
 
     if (spec.system.has_value())
@@ -812,7 +811,6 @@ void write_spec_json(
     out << "  \"includes\": ";
     write_includes(out, spec.includes);
     out << ",\n";
-    out << "  \"imports\": [],\n";
     out << "  \"system\": ";
 
     if (!spec.system.has_value())

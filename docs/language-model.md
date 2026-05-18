@@ -34,7 +34,7 @@ Policy-level `tenant scoped_by` declarations are required and must use the same 
 the system. A policy cannot introduce a second tenant identity for the same composed
 system.
 
-Files may also declare `include` directives before imports and the root system:
+Files may also declare `include` directives before the root system:
 
 ```statespec
 statespec 0.1;
@@ -55,6 +55,8 @@ final system name.
 
 `statespec ast` continues to show the parsed file-level AST without expanding includes.
 Formatting also operates on the file being formatted and does not inline included files.
+StateSpec does not support a separate `import` directive in v0; included declarations
+participate directly in the composed system model.
 
 See [includes.md](includes.md) for detailed include resolution and system composition
 rules.

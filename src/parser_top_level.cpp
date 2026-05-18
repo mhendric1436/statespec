@@ -30,12 +30,6 @@ Spec Parser::parse_spec(DiagnosticBag& diagnostics)
         spec.includes.push_back(parse_include_decl(diagnostics));
     }
 
-    while (match(TokenKind::KeywordImport))
-    {
-        rewind_one();
-        spec.imports.push_back(parse_import_decl(diagnostics));
-    }
-
     if (check(TokenKind::KeywordSystem))
     {
         spec.system = parse_system_decl(diagnostics);
@@ -65,22 +59,6 @@ IncludeDecl Parser::parse_include_decl(DiagnosticBag& diagnostics)
     include_decl.path = strip_quotes(path.lexeme);
     include_decl.range = SourceRange{start.range.begin, previous().range.end};
     return include_decl;
-}
-
-ImportDecl Parser::parse_import_decl(DiagnosticBag& diagnostics)
-{
-    const auto start =
-        consume(TokenKind::KeywordImport, "expected import declaration", diagnostics);
-    ImportDecl import_decl;
-    import_decl.name = parse_qualified_name(diagnostics, "import name");
-    if (match(TokenKind::KeywordAs))
-    {
-        import_decl.alias =
-            consume(TokenKind::Identifier, "expected import alias", diagnostics).lexeme;
-    }
-    consume(TokenKind::Semicolon, "expected ';' after import declaration", diagnostics);
-    import_decl.range = SourceRange{start.range.begin, previous().range.end};
-    return import_decl;
 }
 
 SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)

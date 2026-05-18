@@ -23,7 +23,6 @@ Status meanings:
 |---|---|---|---|---|---|---|---|---|---|
 | `statespec` header | complete | complete | partial | n/a | n/a | complete | n/a | P2 | Version is parsed; formal language-version compatibility policy is still minimal. |
 | `include` | complete | complete | complete | complete | complete | partial | complete | P1 | Composition is supported for validation/generation; formatter keeps file-local includes. |
-| `import` | complete | complete | partial | not-started | not-started | partial | not-started | P3 | Parsed as metadata only; no module/import resolution semantics yet. |
 | `system` | complete | complete | complete | complete | complete | complete | complete | P0 | Root system is the implemented compilation unit. |
 | `namespace` | complete | complete | complete | complete | complete | complete | partial | P2 | Namespace blocks qualify member declarations and emit descriptor metadata; relative name lookup remains future work. |
 | `tenant scoped_by` | complete | complete | complete | complete | complete | complete | partial | P0 | Mandatory for every composed system and lowered into IR; runtime enforcement and generator usage remain limited. |
