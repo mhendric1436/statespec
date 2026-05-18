@@ -843,7 +843,8 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
   General:
     1. All referenced identifiers must resolve within scope.
     2. Top-level names must be unique within a system or namespace.
-    3. Canonical declaration ordering should be enforced by formatter + validator.
+    3. Canonical declaration ordering should be enforced by formatter + validator, including
+       root system member order.
     4. Type names must resolve to scalar, enum, value, shape, entity, or collection types.
     5. Runtime targets must not leak runtime-specific symbols into the canonical model.
     6. Every system must declare tenant scoped_by and system_tenant configured.

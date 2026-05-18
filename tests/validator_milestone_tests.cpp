@@ -1710,6 +1710,51 @@ void validator_warns_on_noncanonical_observability_order()
     require(has_warning_code(diagnostics, "SSPEC6105"), "validator should warn on metric order");
 }
 
+void validator_warns_on_noncanonical_system_order()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          entity Order {
+            key tenant_id, order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              order_id string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          log WorkflowLaunchDecision {
+            level info
+            event_name "workflow.launch.decision"
+            fields {
+              tenant_id string
+              decision string
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        !diagnostics.has_errors(),
+        "noncanonical system order should warn without invalidating the spec"
+    );
+    require(has_warning_code(diagnostics, "SSPEC6106"), "validator should warn on system order");
+}
+
 } // namespace
 
 TEST_CASE("validator accepts resolved references")
@@ -1920,4 +1965,9 @@ TEST_CASE("validator rejects high-cardinality metric labels")
 TEST_CASE("validator warns on noncanonical observability order")
 {
     validator_warns_on_noncanonical_observability_order();
+}
+
+TEST_CASE("validator warns on noncanonical system order")
+{
+    validator_warns_on_noncanonical_system_order();
 }

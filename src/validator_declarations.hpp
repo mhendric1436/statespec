@@ -29,6 +29,11 @@ void validate_system_tenancy(
     DiagnosticBag& diagnostics
 );
 
+void validate_system_member_order(
+    const SystemDecl& system,
+    DiagnosticBag& diagnostics
+);
+
 void validate_feature_flag_expression(
     const SystemDecl& system,
     const SourceRange& range,

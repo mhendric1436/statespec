@@ -403,6 +403,7 @@ struct SystemDecl
     std::vector<ApiDecl> apis;
     std::vector<WorkflowDecl> workflows;
     std::vector<PolicyDecl> policies;
+    std::vector<BlockMemberOrder> member_order;
     SourceRange range;
 };
 

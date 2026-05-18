@@ -17,20 +17,23 @@ A good `.sspec` file should be:
 Recommended top-level order inside a `system` block:
 
 ```text
-1. values, enums, shapes, and external systems
-2. feature flags
-3. logs and metrics
-4. entities
-5. queues
-6. leases
-7. workers
-8. workflows
-9. APIs
-10. policies
+1. tenant and system_tenant
+2. namespaces
+3. values, enums, shapes, events, and external systems
+4. feature flags
+5. logs and metrics
+6. entities
+7. queues
+8. leases
+9. workers
+10. workflows
+11. APIs and API servers
+12. policies
 ```
 
 Keep related declarations close together. For example, put queue messages inside their
 queue and put workflow steps inside their workflow.
+The validator emits a warning when root `system` members appear out of canonical order.
 
 ## Naming
 

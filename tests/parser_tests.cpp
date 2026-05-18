@@ -38,6 +38,35 @@ void parser_parses_include_declarations()
     statespec::test::require(spec.system.has_value(), "parser should still parse root system");
 }
 
+void parser_tracks_system_member_order()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+          shape StartOrderRequest {
+            tenant_id string
+          }
+          feature_flag NewScheduler {
+            type bool
+            default false
+            scope tenant
+          }
+        }
+    )sspec");
+
+    statespec::test::require(spec.system.has_value(), "parser should parse system");
+    statespec::test::require(
+        spec.system->member_order.size() == 4, "parser should track system member order"
+    );
+    statespec::test::require(
+        spec.system->member_order[0].kind == "tenant", "parser should track tenant member"
+    );
+    statespec::test::require(
+        spec.system->member_order[2].kind == "shape", "parser should track shape member"
+    );
+}
+
 void parser_parses_entity_fields_and_state_machine()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -790,6 +819,11 @@ TEST_CASE("parser parses empty systems")
 TEST_CASE("parser parses include declarations")
 {
     parser_parses_include_declarations();
+}
+
+TEST_CASE("parser tracks system member order")
+{
+    parser_tracks_system_member_order();
 }
 
 TEST_CASE("parser parses entity fields, indexes, and state machines")
