@@ -2,17 +2,15 @@
 
 #include "statespec/ast.hpp"
 #include "statespec/diagnostic.hpp"
-#include "statespec/token.hpp"
+#include "statespec/parser_context.hpp"
 
-#include <cstddef>
-#include <initializer_list>
 #include <string>
 #include <vector>
 
 namespace statespec
 {
 
-class Parser
+class Parser : private ParserContext
 {
   public:
     explicit Parser(std::vector<Token> tokens);
@@ -20,20 +18,6 @@ class Parser
     Spec parse(DiagnosticBag& diagnostics);
 
   private:
-    const Token& peek(std::size_t offset = 0) const;
-    const Token& previous() const;
-    bool is_at_end() const;
-    bool check(TokenKind kind) const;
-    bool check_any(std::initializer_list<TokenKind> kinds) const;
-    bool match(TokenKind kind);
-    bool match_any(std::initializer_list<TokenKind> kinds);
-    Token advance();
-    Token consume(
-        TokenKind kind,
-        const std::string& message,
-        DiagnosticBag& diagnostics
-    );
-
     Spec parse_spec(DiagnosticBag& diagnostics);
     IncludeDecl parse_include_decl(DiagnosticBag& diagnostics);
     ImportDecl parse_import_decl(DiagnosticBag& diagnostics);
@@ -88,12 +72,6 @@ class Parser
     std::string parse_expression_until(TokenKind kind);
 
     void consume_optional_semicolon();
-    void skip_unknown_declaration(DiagnosticBag& diagnostics);
-    void skip_balanced_block();
-    void synchronize_to_member_boundary();
-
-    std::vector<Token> tokens_;
-    std::size_t current_ = 0;
 };
 
 } // namespace statespec

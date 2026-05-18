@@ -64,100 +64,13 @@ void qualify_decl_name(
 } // namespace
 
 Parser::Parser(std::vector<Token> tokens)
-    : tokens_(std::move(tokens))
+    : ParserContext(std::move(tokens))
 {
 }
 
 Spec Parser::parse(DiagnosticBag& diagnostics)
 {
     return parse_spec(diagnostics);
-}
-
-const Token& Parser::peek(std::size_t offset) const
-{
-    const auto index = current_ + offset;
-    if (index >= tokens_.size())
-    {
-        return tokens_.back();
-    }
-    return tokens_[index];
-}
-
-const Token& Parser::previous() const
-{
-    if (current_ == 0)
-    {
-        return tokens_.front();
-    }
-    return tokens_[current_ - 1];
-}
-
-bool Parser::is_at_end() const
-{
-    return peek().kind == TokenKind::EndOfFile;
-}
-
-bool Parser::check(TokenKind kind) const
-{
-    return !is_at_end() && peek().kind == kind;
-}
-
-bool Parser::check_any(std::initializer_list<TokenKind> kinds) const
-{
-    for (const auto kind : kinds)
-    {
-        if (check(kind))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Parser::match(TokenKind kind)
-{
-    if (!check(kind))
-    {
-        return false;
-    }
-    advance();
-    return true;
-}
-
-bool Parser::match_any(std::initializer_list<TokenKind> kinds)
-{
-    for (const auto kind : kinds)
-    {
-        if (match(kind))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-Token Parser::advance()
-{
-    if (!is_at_end())
-    {
-        ++current_;
-    }
-    return previous();
-}
-
-Token Parser::consume(
-    TokenKind kind,
-    const std::string& message,
-    DiagnosticBag& diagnostics
-)
-{
-    if (check(kind))
-    {
-        return advance();
-    }
-
-    diagnostics.error(peek().range, "SSPEC0200", message);
-    return Token{kind, "", peek().range};
 }
 
 Spec Parser::parse_spec(DiagnosticBag& diagnostics)
@@ -174,13 +87,13 @@ Spec Parser::parse_spec(DiagnosticBag& diagnostics)
 
     while (match(TokenKind::KeywordInclude))
     {
-        --current_;
+        rewind_one();
         spec.includes.push_back(parse_include_decl(diagnostics));
     }
 
     while (match(TokenKind::KeywordImport))
     {
-        --current_;
+        rewind_one();
         spec.imports.push_back(parse_import_decl(diagnostics));
     }
 
@@ -2070,69 +1983,6 @@ std::string Parser::parse_expression_until(TokenKind kind)
 void Parser::consume_optional_semicolon()
 {
     match(TokenKind::Semicolon);
-}
-
-void Parser::skip_unknown_declaration(DiagnosticBag& diagnostics)
-{
-    diagnostics.warning(
-        peek().range, "SSPEC0299", "skipping unsupported declaration in current parser milestone"
-    );
-
-    if (check(TokenKind::LeftBrace))
-    {
-        skip_balanced_block();
-        return;
-    }
-
-    advance();
-    if (check(TokenKind::LeftBrace))
-    {
-        skip_balanced_block();
-        return;
-    }
-
-    synchronize_to_member_boundary();
-}
-
-void Parser::skip_balanced_block()
-{
-    if (!match(TokenKind::LeftBrace))
-    {
-        return;
-    }
-
-    int depth = 1;
-    while (depth > 0 && !is_at_end())
-    {
-        if (match(TokenKind::LeftBrace))
-        {
-            ++depth;
-        }
-        else if (match(TokenKind::RightBrace))
-        {
-            --depth;
-        }
-        else
-        {
-            advance();
-        }
-    }
-}
-
-void Parser::synchronize_to_member_boundary()
-{
-    while (!is_at_end())
-    {
-        if (match(TokenKind::Semicolon))
-        {
-            return;
-        }
-        if (check(TokenKind::RightBrace))
-        {
-            return;
-        }
-        advance();
-    }
 }
 
 } // namespace statespec
