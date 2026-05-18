@@ -59,6 +59,7 @@ fields {
 
 step validate_order {
   expected_execution_time PT10S
+  max_retries 1
 }
 ```
 
@@ -121,6 +122,9 @@ version, singleton, expected_execution_time, start, on, input, state, load, step
 ```
 
 The validator emits a warning when workflow members appear out of canonical order.
+The validator rejects workflows that omit `singleton`, workflow-level
+`expected_execution_time`, or step-level `max_retries`; these runtime semantics must be
+authored explicitly.
 
 Good:
 

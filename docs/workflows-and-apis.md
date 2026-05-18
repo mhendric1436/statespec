@@ -41,6 +41,11 @@ Recommended workflow members:
 | `start` | First step name. |
 | `step` | Named execution unit. |
 
+The canonical workflow shape requires explicit `version`, `singleton`,
+`expected_execution_time`, `start`, and at least one `step`. Each step must declare both
+`expected_execution_time` and `max_retries`; StateSpec does not infer runtime retry or
+timing defaults for workflow definitions.
+
 ## Steps
 
 Each step should have a stable name, expected execution time, and retry intent.
@@ -138,6 +143,7 @@ The grammar reserves child-set declarations and child operations:
 ```statespec
 workflow CreateChildren {
   version 1
+  singleton false
   expected_execution_time PT10M
   start generate_child_ids
 
@@ -154,18 +160,21 @@ workflow CreateChildren {
 
   step generate_child_ids {
     expected_execution_time PT5S
+    max_retries 1
     reserve child_set children_to_create
     transition_to creating_children
   }
 
   step creating_children {
     expected_execution_time PT1M
+    max_retries 3
     materialize child_set children_to_create
     transition_to waiting_children
   }
 
   step waiting_children {
     expected_execution_time PT5M
+    max_retries 3
     reconcile child_set children_to_create
   }
 }

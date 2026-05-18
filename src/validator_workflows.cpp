@@ -106,14 +106,26 @@ void validate_workflows(
                 diagnostics, workflow.range, "workflow '" + workflow.name + "'", "start step"
             );
         }
+        if (!workflow.singleton.has_value())
+        {
+            required_error(
+                diagnostics, workflow.range, "workflow '" + workflow.name + "'", "singleton"
+            );
+        }
         if (workflow.steps.empty())
         {
             required_error(
                 diagnostics, workflow.range, "workflow '" + workflow.name + "'", "at least one step"
             );
         }
-        if (workflow.expected_execution_time.has_value() &&
-            !is_duration_literal(*workflow.expected_execution_time))
+        if (!workflow.expected_execution_time.has_value())
+        {
+            required_error(
+                diagnostics, workflow.range, "workflow '" + workflow.name + "'",
+                "expected_execution_time"
+            );
+        }
+        else if (!is_duration_literal(*workflow.expected_execution_time))
         {
             duration_error(
                 diagnostics, workflow.range, "workflow '" + workflow.name + "'",
@@ -187,7 +199,14 @@ void validate_workflows(
                     "expected_execution_time"
                 );
             }
-            if (step.max_retries.has_value() && !is_non_negative_integer(*step.max_retries))
+            if (!step.max_retries.has_value())
+            {
+                required_error(
+                    diagnostics, step.range,
+                    "workflow step '" + workflow_step_name(workflow, step) + "'", "max_retries"
+                );
+            }
+            else if (!is_non_negative_integer(*step.max_retries))
             {
                 non_negative_integer_error(
                     diagnostics, step.range,

@@ -153,6 +153,8 @@ void validator_accepts_resolved_references()
           }
           workflow OrderProcessing {
             version 1
+            singleton false
+            expected_execution_time PT60S
             on StartOrderProcessing
             input StartOrderProcessingRequest
             state OrderProcessingState
@@ -233,7 +235,10 @@ void validator_warns_on_noncanonical_entity_and_workflow_order()
             version 1
             step process_order {
               expected_execution_time PT10S
+              max_retries 1
             }
+            singleton false
+            expected_execution_time PT30S
             start process_order
           }
         }
@@ -720,6 +725,34 @@ void validator_rejects_unknown_workflow_start_step()
     );
 }
 
+void validator_rejects_incomplete_workflow_canonical_shape()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          workflow OrderProcessing {
+            version 1
+            start validate_order
+            step validate_order {
+              expected_execution_time PT10S
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "singleton"),
+        "validator should require explicit workflow singleton"
+    );
+    require(
+        has_error_message_containing(diagnostics, "expected_execution_time"),
+        "validator should require explicit workflow expected_execution_time"
+    );
+    require(
+        has_error_message_containing(diagnostics, "max_retries"),
+        "validator should require explicit step max_retries"
+    );
+}
+
 void validator_rejects_invalid_workflow_behavior_references()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1098,11 +1131,13 @@ void validator_accepts_values_enums_and_events()
 
           workflow AcceptOrder {
             version 1
+            singleton false
             on OrderAccepted
             expected_execution_time PT30S
             start done
             step done {
               expected_execution_time PT1S
+              max_retries 1
               emit OrderAccepted;
             }
           }
@@ -1417,6 +1452,11 @@ TEST_CASE("validator rejects invalid terminal garbage collection")
 TEST_CASE("validator rejects unknown workflow start steps")
 {
     validator_rejects_unknown_workflow_start_step();
+}
+
+TEST_CASE("validator rejects incomplete workflow canonical shape")
+{
+    validator_rejects_incomplete_workflow_canonical_shape();
 }
 
 TEST_CASE("validator rejects invalid workflow behavior references")

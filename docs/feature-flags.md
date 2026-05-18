@@ -78,7 +78,14 @@ feature_flag SchedulerMode {
 }
 
 workflow OrderProcessing {
+  version 1
+  singleton false
+  expected_execution_time PT1M
+  start route_order
+
   step route_order {
+    expected_execution_time PT10S
+    max_retries 1
     when feature_enabled(SchedulerMode) {
       complete
     }
