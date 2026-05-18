@@ -566,9 +566,19 @@ void validator_rejects_policy_tenant_scope_mismatch()
           tenant scoped_by tenant_id
           system_tenant configured
 
+          shape StartOrderRequest {
+            tenant_id string
+            order_id string
+          }
+          shape StartOrderResponse {
+            accepted bool
+          }
+
           api StartOrder {
             method POST
             path "/v1/orders/start"
+            input StartOrderRequest
+            output StartOrderResponse
           }
 
           policy OrderAccess {
@@ -613,9 +623,19 @@ void validator_warns_on_noncanonical_policy_order()
           tenant scoped_by tenant_id
           system_tenant configured
 
+          shape StartOrderRequest {
+            tenant_id string
+            order_id string
+          }
+          shape StartOrderResponse {
+            accepted bool
+          }
+
           api StartOrder {
             method POST
             path "/v1/orders/start"
+            input StartOrderRequest
+            output StartOrderResponse
           }
 
           policy OrderAccess {
@@ -929,6 +949,27 @@ void validator_rejects_unknown_api_references()
     );
 }
 
+void validator_rejects_incomplete_api_canonical_shape()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          api StartOrderProcessing {
+            method POST
+            path "/v1/orders/start"
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "input"),
+        "validator should require input on mutating APIs"
+    );
+    require(
+        has_error_message_containing(diagnostics, "output"),
+        "validator should require output on non-DELETE APIs"
+    );
+}
+
 void validator_rejects_invalid_api_server_declarations()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1039,6 +1080,13 @@ void validator_accepts_feature_flags()
             default 100
             scope entity Order
           }
+          shape StartOrderProcessingRequest {
+            tenant_id string
+            order_id string
+          }
+          shape StartOrderProcessingResponse {
+            accepted bool
+          }
           entity Order {
             key tenant_id, order_id
             ownership {
@@ -1066,6 +1114,8 @@ void validator_accepts_feature_flags()
           api StartOrderProcessing {
             method POST
             path "/v1/orders/start"
+            input StartOrderProcessingRequest
+            output StartOrderProcessingResponse
           }
           policy WorkflowAccess {
             tenant scoped_by tenant_id
@@ -1252,6 +1302,14 @@ void validator_accepts_namespaces_external_systems_and_policies()
           tenant scoped_by tenant_id
           system_tenant configured
 
+          shape StartInvoiceRequest {
+            tenant_id string
+            invoice_id string
+          }
+          shape StartInvoiceResponse {
+            accepted bool
+          }
+
           namespace Billing {
             external_system Stripe {
               owner: "payments"
@@ -1261,6 +1319,8 @@ void validator_accepts_namespaces_external_systems_and_policies()
             api StartInvoice {
               method POST
               path "/v1/invoices/start"
+              input StartInvoiceRequest
+              output StartInvoiceResponse
             }
           }
 
@@ -1532,6 +1592,11 @@ TEST_CASE("validator rejects unknown worker references")
 TEST_CASE("validator rejects unknown API references")
 {
     validator_rejects_unknown_api_references();
+}
+
+TEST_CASE("validator rejects incomplete API canonical shape")
+{
+    validator_rejects_incomplete_api_canonical_shape();
 }
 
 TEST_CASE("validator rejects invalid API server declarations")

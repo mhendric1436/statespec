@@ -291,6 +291,8 @@ References use declared names:
 api StartOrderProcessing {
   method POST
   path "/v1/orders/{orderId}/start"
+  input StartOrderProcessingRequest
+  output StartOrderProcessingResponse
   starts workflow OrderProcessing
 }
 ```

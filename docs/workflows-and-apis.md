@@ -188,6 +188,8 @@ Use durable parent fields to track pending, creating, succeeded, and failed chil
 api StartOrderProcessing {
   method POST
   path "/v1/orders/{orderId}/start"
+  input StartOrderProcessingRequest
+  output StartOrderProcessingResponse
   starts workflow OrderProcessing
 }
 ```
@@ -204,6 +206,10 @@ API members include:
 | `starts workflow` | Workflow started by the API. |
 | `enqueues` | Queue message submitted by the API. |
 | `behavior` | Detailed semantic behavior. |
+
+Mutating APIs (`POST`, `PUT`, and `PATCH`) must declare `input`. All non-`DELETE` APIs
+must declare `output`. This keeps generated contracts explicit instead of relying on
+transport-specific empty request or response defaults.
 
 ## API Behavior
 

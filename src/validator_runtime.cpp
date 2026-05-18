@@ -80,6 +80,11 @@ void validate_api_input_tenant_field(
     }
 }
 
+bool is_mutating_method(const std::string& method)
+{
+    return method == "POST" || method == "PUT" || method == "PATCH";
+}
+
 } // namespace
 
 void validate_queues(
@@ -250,11 +255,19 @@ void validate_apis(
         {
             required_error(diagnostics, api.range, "api '" + api.name + "'", "path");
         }
+        if (api.method.has_value() && is_mutating_method(*api.method) && !api.input.has_value())
+        {
+            required_error(diagnostics, api.range, "api '" + api.name + "'", "input");
+        }
         if (api.input.has_value() && !is_known_type_reference(*api.input, symbols))
         {
             unknown_reference_error(diagnostics, api.range, "API input", *api.input);
         }
         validate_api_input_tenant_field(system, api, diagnostics);
+        if (api.method.has_value() && *api.method != "DELETE" && !api.output.has_value())
+        {
+            required_error(diagnostics, api.range, "api '" + api.name + "'", "output");
+        }
         if (api.output.has_value() && !is_known_type_reference(*api.output, symbols))
         {
             unknown_reference_error(diagnostics, api.range, "API output", *api.output);
