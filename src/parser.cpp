@@ -324,6 +324,10 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         {
             system.workers.push_back(parse_worker_decl(diagnostics));
         }
+        else if (check(TokenKind::KeywordApiServer))
+        {
+            system.api_servers.push_back(parse_api_server_decl(diagnostics));
+        }
         else if (check(TokenKind::KeywordApi))
         {
             system.apis.push_back(parse_api_decl(diagnostics));
@@ -452,6 +456,13 @@ NamespaceDecl Parser::parse_namespace_decl(
             qualify_decl_name(decl, namespace_name);
             namespace_decl.members.push_back(decl.name);
             system.workers.push_back(std::move(decl));
+        }
+        else if (check(TokenKind::KeywordApiServer))
+        {
+            auto decl = parse_api_server_decl(diagnostics);
+            qualify_decl_name(decl, namespace_name);
+            namespace_decl.members.push_back(decl.name);
+            system.api_servers.push_back(std::move(decl));
         }
         else if (check(TokenKind::KeywordApi))
         {
@@ -1294,6 +1305,40 @@ WorkerDecl Parser::parse_worker_decl(DiagnosticBag& diagnostics)
 
     worker.range = SourceRange{start.range.begin, previous().range.end};
     return worker;
+}
+
+ApiServerDecl Parser::parse_api_server_decl(DiagnosticBag& diagnostics)
+{
+    const auto start =
+        consume(TokenKind::KeywordApiServer, "expected api_server declaration", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected api_server name", diagnostics);
+    ApiServerDecl api_server;
+    api_server.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after api_server name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (match(TokenKind::KeywordServes))
+        {
+            api_server.serves.push_back(parse_qualified_name(diagnostics, "served API"));
+            consume_optional_semicolon();
+        }
+        else if (match(TokenKind::KeywordConcurrency))
+        {
+            api_server.concurrency = parse_int_or_zero(
+                consume(TokenKind::IntegerLiteral, "expected concurrency integer", diagnostics)
+            );
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after api_server block", diagnostics);
+
+    api_server.range = SourceRange{start.range.begin, previous().range.end};
+    return api_server;
 }
 
 ApiDecl Parser::parse_api_decl(DiagnosticBag& diagnostics)

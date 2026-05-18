@@ -155,6 +155,8 @@ std::string token_kind_name(TokenKind kind)
         return "KeywordLease";
     case TokenKind::KeywordWorker:
         return "KeywordWorker";
+    case TokenKind::KeywordApiServer:
+        return "KeywordApiServer";
     case TokenKind::KeywordApi:
         return "KeywordApi";
     case TokenKind::KeywordBehavior:
@@ -255,6 +257,8 @@ std::string token_kind_name(TokenKind kind)
         return "KeywordStarts";
     case TokenKind::KeywordEnqueues:
         return "KeywordEnqueues";
+    case TokenKind::KeywordServes:
+        return "KeywordServes";
     case TokenKind::KeywordPolls:
         return "KeywordPolls";
     case TokenKind::KeywordExecutes:

@@ -49,6 +49,7 @@ printf '%s\n' "$AST_OUTPUT" | grep -q '"metrics"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"queues"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"leases"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"workers"'
+printf '%s\n' "$AST_OUTPUT" | grep -q '"api_servers"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"apis"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"workflows"'
 printf '%s\n' "$AST_OUTPUT" | grep -q '"policies"'
@@ -166,6 +167,7 @@ printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"entities"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"queues"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"leases"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"workers"'
+printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"api_servers"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"apis"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"workflows"'
 printf '%s\n' "$PARITY_AST_OUTPUT" | grep -q '"policies"'
@@ -191,6 +193,7 @@ for key in [
     "queues",
     "leases",
     "workers",
+    "api_servers",
     "apis",
     "workflows",
     "policies",
@@ -206,6 +209,7 @@ assert system["shapes"][0]["fields"][0]["name"] == "tenant_id"
 assert system["entities"][0]["key_fields"] == ["tenant_id", "order_id"]
 assert system["queues"][0]["name"] == "EmailDispatch"
 assert system["workers"][0]["name"] == "OrderWorker"
+assert system["api_servers"][0]["name"] == "OrderApi"
 assert system["apis"][0]["name"] == "StartOrderProcessing"
 '
 

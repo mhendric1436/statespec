@@ -56,6 +56,7 @@ class Parser
     MessageDecl parse_message_decl(DiagnosticBag& diagnostics);
     LeaseDecl parse_lease_decl(DiagnosticBag& diagnostics);
     WorkerDecl parse_worker_decl(DiagnosticBag& diagnostics);
+    ApiServerDecl parse_api_server_decl(DiagnosticBag& diagnostics);
     ApiDecl parse_api_decl(DiagnosticBag& diagnostics);
     WorkflowDecl parse_workflow_decl(DiagnosticBag& diagnostics);
     WorkflowLoadDecl parse_workflow_load_decl(DiagnosticBag& diagnostics);

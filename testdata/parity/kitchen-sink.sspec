@@ -143,6 +143,11 @@ system KitchenSink {
     enqueues EmailDispatch.SendConfirmation
   }
 
+  api_server OrderApi {
+    serves StartOrderProcessing
+    concurrency 16
+  }
+
   workflow OrderProcessing {
     version 1
     on OrderAccepted

@@ -59,6 +59,7 @@ bool is_word_token(TokenKind kind)
     case TokenKind::KeywordPayload:
     case TokenKind::KeywordLease:
     case TokenKind::KeywordWorker:
+    case TokenKind::KeywordApiServer:
     case TokenKind::KeywordApi:
     case TokenKind::KeywordBehavior:
     case TokenKind::KeywordWorkflow:
@@ -108,6 +109,7 @@ bool is_word_token(TokenKind kind)
     case TokenKind::KeywordAuthz:
     case TokenKind::KeywordStarts:
     case TokenKind::KeywordEnqueues:
+    case TokenKind::KeywordServes:
     case TokenKind::KeywordPolls:
     case TokenKind::KeywordExecutes:
     case TokenKind::KeywordSingleton:

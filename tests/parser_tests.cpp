@@ -700,6 +700,11 @@ void parser_parses_api_and_policy()
             starts workflow OrderProcessing
             enqueues EmailQueue.SendConfirmation
           }
+          api_server OrderApi {
+            serves StartOrderProcessing
+            serves Admin.ListOrders
+            concurrency 16
+          }
           policy WorkflowAccess {
             tenant scoped_by tenant_id
             allow StartOrderProcessing when caller.role == operator;
@@ -725,6 +730,22 @@ void parser_parses_api_and_policy()
     );
     statespec::test::require(
         api.enqueues == "EmailQueue.SendConfirmation", "parser should parse enqueued message"
+    );
+
+    statespec::test::require(
+        spec.system->api_servers.size() == 1, "parser should parse one API server"
+    );
+    const auto& api_server = spec.system->api_servers[0];
+    statespec::test::require(api_server.name == "OrderApi", "parser should parse API server name");
+    statespec::test::require(api_server.serves.size() == 2, "parser should parse served APIs");
+    statespec::test::require(
+        api_server.serves[0] == "StartOrderProcessing", "parser should parse first served API"
+    );
+    statespec::test::require(
+        api_server.serves[1] == "Admin.ListOrders", "parser should parse qualified served API"
+    );
+    statespec::test::require(
+        api_server.concurrency == 16, "parser should parse API server concurrency"
     );
 
     statespec::test::require(spec.system->policies.size() == 1, "parser should parse one policy");
