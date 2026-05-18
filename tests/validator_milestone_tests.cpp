@@ -553,6 +553,31 @@ void validator_rejects_missing_tenant_field_propagation()
     );
 }
 
+void validator_rejects_policy_tenant_scope_mismatch()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          api StartOrder {
+            method POST
+            path "/v1/orders/start"
+          }
+
+          policy OrderAccess {
+            tenant scoped_by account_id
+            allow StartOrder when caller.role == operator;
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3405"),
+        "validator should reject policy tenant scopes that differ from the system tenant scope"
+    );
+}
+
 void validator_rejects_invalid_entity_management_field_types()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1362,6 +1387,11 @@ TEST_CASE("validator rejects missing system tenancy")
 TEST_CASE("validator rejects missing tenant field propagation")
 {
     validator_rejects_missing_tenant_field_propagation();
+}
+
+TEST_CASE("validator rejects policy tenant scope mismatch")
+{
+    validator_rejects_policy_tenant_scope_mismatch();
 }
 
 TEST_CASE("validator rejects invalid entity management field types")

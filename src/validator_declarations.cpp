@@ -494,6 +494,16 @@ void validate_policies(
 {
     for (const auto& policy : system.policies)
     {
+        if (policy.tenant_scoped_by.has_value() && system.tenant_scope.has_value() &&
+            *policy.tenant_scoped_by != system.tenant_scope->field_name)
+        {
+            diagnostics.error(
+                policy.range, "SSPEC3405",
+                "policy '" + policy.name + "' tenant field '" + *policy.tenant_scoped_by +
+                    "' must match system tenant field '" + system.tenant_scope->field_name + "'"
+            );
+        }
+
         for (const auto& rule : policy.allows)
         {
             if (!symbols.find(rule.action).has_value())

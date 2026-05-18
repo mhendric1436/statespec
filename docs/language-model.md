@@ -29,6 +29,9 @@ tenant-addressable contract. Entities must declare the scoped field in both `key
 include it. This keeps durable state, async work, and synchronous ingress aligned on the
 same tenant boundary.
 
+Policy-level `tenant scoped_by` declarations must use the same field as the system. A
+policy cannot introduce a second tenant identity for the same composed system.
+
 Files may also declare `include` directives before imports and the root system:
 
 ```statespec
