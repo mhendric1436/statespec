@@ -135,7 +135,13 @@ state_machine {
   state Active
   state Updating
   state Deleting
-  state Deleted { terminal: true }
+  state Deleted {
+    terminal: true
+    garbage_collection {
+      after: P30D
+      mode: tombstone
+    }
+  }
   state Failed
 
   initial Creating
@@ -174,6 +180,10 @@ because they make lifecycle intent easier to review.
 
 Every entity must declare a `state_machine`. Entity state is durable lifecycle metadata,
 not a transient implementation detail.
+
+Terminal states must be declared in both places: the state itself uses `terminal: true`,
+and the state machine lists the same state in `terminal [...]`. Each terminal state must
+also declare `garbage_collection`, which makes retention explicit.
 
 ## Terminal Garbage Collection
 
@@ -214,8 +224,9 @@ Initial policy fields:
 | `after` | Duration after entering the terminal state before the entity is eligible for collection. |
 | `mode` | Collection behavior. Initial modes are `delete`, `tombstone`, and `archive`. |
 
-For v0.1, advanced GC behavior such as cascade cleanup, archive targets, retained
-indexes, and backend-specific retention tuning is intentionally deferred.
+For v0.1, every terminal state declares a cleanup policy. Advanced GC behavior such as
+cascade cleanup, archive targets, retained indexes, and backend-specific retention tuning
+is intentionally deferred.
 
 ## Relationships
 
@@ -288,7 +299,7 @@ Before committing an entity:
 - All key fields are declared in `fields`.
 - `created_at`, `updated_at`, and `status` are declared.
 - Lifecycle states and transitions are explicit.
-- Terminal cleanup policy is explicit when terminal records should be collected.
+- Terminal cleanup policy is explicit for every terminal state.
 - Parent-child relationships are durable, not implied.
 - Invariants are named and deterministic.
 - Index declarations match expected query patterns.

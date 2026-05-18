@@ -91,7 +91,8 @@ void validate_state_machine(
 
     const auto& state_machine = *entity.state_machine;
     std::unordered_set<std::string> states;
-    std::unordered_set<std::string> terminal_states;
+    std::unordered_set<std::string> inline_terminal_states;
+    std::unordered_set<std::string> declared_terminal_states;
     std::unordered_set<std::string> garbage_collected_states;
     for (const auto& state : state_machine.states)
     {
@@ -101,7 +102,7 @@ void validate_state_machine(
         }
         if (state.terminal)
         {
-            terminal_states.insert(state.name);
+            inline_terminal_states.insert(state.name);
         }
     }
 
@@ -132,25 +133,61 @@ void validate_state_machine(
         if (!contains(states, terminal))
         {
             unknown_reference_error(diagnostics, state_machine.range, "terminal state", terminal);
+            continue;
         }
-        terminal_states.insert(terminal);
+        declared_terminal_states.insert(terminal);
     }
 
     for (const auto& state : state_machine.states)
     {
+        if (contains(inline_terminal_states, state.name) &&
+            !contains(declared_terminal_states, state.name))
+        {
+            diagnostics.error(
+                state.range, "SSPEC3107",
+                "terminal state '" + state.name + "' must also appear in the terminal list"
+            );
+        }
+    }
+
+    for (const auto& terminal : declared_terminal_states)
+    {
+        if (!contains(inline_terminal_states, terminal))
+        {
+            diagnostics.error(
+                state_machine.range, "SSPEC3108",
+                "terminal state '" + terminal + "' must declare terminal: true"
+            );
+        }
+    }
+
+    for (const auto& state : state_machine.states)
+    {
+        const auto is_terminal_state = contains(inline_terminal_states, state.name) ||
+                                       contains(declared_terminal_states, state.name);
+        if (is_terminal_state && !state.garbage_collection.has_value())
+        {
+            diagnostics.error(
+                state.range, "SSPEC3109",
+                "terminal state '" + state.name + "' must declare garbage_collection"
+            );
+        }
+
         if (!state.garbage_collection.has_value())
         {
             continue;
         }
 
-        garbage_collected_states.insert(state.name);
-
-        if (!contains(terminal_states, state.name))
+        if (!is_terminal_state)
         {
             diagnostics.error(
                 state.garbage_collection->range, "SSPEC3103",
                 "garbage_collection for state '" + state.name + "' is valid only on terminal states"
             );
+        }
+        else
+        {
+            garbage_collected_states.insert(state.name);
         }
 
         if (!state.garbage_collection->after.has_value())

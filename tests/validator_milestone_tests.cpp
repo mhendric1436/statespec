@@ -781,6 +781,60 @@ void validator_rejects_invalid_terminal_garbage_collection()
     );
 }
 
+void validator_rejects_implicit_terminal_retention()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          entity Order {
+            key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              order_id string
+            }
+            state_machine {
+              state Creating
+              state InlineOnly {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
+              state ListedOnly
+              state MissingRetention {
+                terminal: true
+              }
+              initial Creating
+              terminal [ListedOnly, MissingRetention]
+              Creating -> InlineOnly
+              Creating -> ListedOnly
+              Creating -> MissingRetention
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3107"),
+        "validator should require inline terminal states in the terminal list"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3108"),
+        "validator should require terminal list states to declare terminal: true"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3109"),
+        "validator should require terminal states to declare garbage_collection"
+    );
+}
+
 void validator_rejects_unknown_workflow_start_step()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1281,7 +1335,13 @@ void validator_accepts_feature_flags()
             state_machine {
               state Pending
               state Active
-              state Failed { terminal: true }
+              state Failed {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
               initial Pending
               terminal Failed
               Pending -> Active
@@ -1889,6 +1949,11 @@ TEST_CASE("validator accepts terminal garbage collection modes")
 TEST_CASE("validator rejects invalid terminal garbage collection")
 {
     validator_rejects_invalid_terminal_garbage_collection();
+}
+
+TEST_CASE("validator rejects implicit terminal retention")
+{
+    validator_rejects_implicit_terminal_retention();
 }
 
 TEST_CASE("validator rejects unknown workflow start steps")

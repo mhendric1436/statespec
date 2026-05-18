@@ -175,9 +175,27 @@ system OrderSystem {
       state Validated
       state PaymentPending
       state Paid
-      state Fulfilled
-      state Cancelled
-      state Failed
+      state Fulfilled {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: archive
+        }
+      }
+      state Cancelled {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      state Failed {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
 
       initial Created
       terminal [Fulfilled, Cancelled, Failed]
