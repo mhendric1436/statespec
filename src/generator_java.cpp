@@ -327,6 +327,11 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        Optional<String> startsWorkflow,\n";
     out << "        Optional<String> enqueues\n";
     out << "    ) {}\n\n";
+    out << "    public record ApiServerDescriptor(\n";
+    out << "        String name,\n";
+    out << "        List<String> serves,\n";
+    out << "        int concurrency\n";
+    out << "    ) {}\n\n";
     out << "    public record WorkerDescriptor(\n";
     out << "        String name,\n";
     out << "        boolean singleton,\n";
@@ -561,6 +566,29 @@ std::string generate_descriptors_java(const IrSystem& system)
         out << "                " << optional_string_expr(api.starts_workflow) << ",\n";
         out << "                " << optional_string_expr(api.enqueues) << "\n";
         out << "            )" << (api_index + 1 < system.apis.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static List<ApiServerDescriptor> apiServerDescriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t server_index = 0; server_index < system.api_servers.size(); ++server_index)
+    {
+        const auto& api_server = system.api_servers[server_index];
+        out << "            new ApiServerDescriptor(\n";
+        out << "                " << java_string(api_server.name) << ",\n";
+        out << "                List.of(";
+        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << java_string(api_server.serves[i]);
+        }
+        out << "),\n";
+        out << "                " << api_server.concurrency.value_or(1) << "\n";
+        out << "            )" << (server_index + 1 < system.api_servers.size() ? "," : "") << "\n";
     }
     out << "        );\n";
     out << "    }\n\n";

@@ -355,6 +355,13 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<std::string> enqueues;\n";
     out << "};\n\n";
 
+    out << "struct ApiServerDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::vector<std::string> serves;\n";
+    out << "    int concurrency = 1;\n";
+    out << "};\n\n";
+
     out << "struct WorkerDescriptor\n";
     out << "{\n";
     out << "    std::string name;\n";
@@ -611,6 +618,29 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            " << optional_string_expr(api.error) << ",\n";
         out << "            " << optional_string_expr(api.starts_workflow) << ",\n";
         out << "            " << optional_string_expr(api.enqueues) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        out << "        ApiServerDescriptor{\n";
+        out << "            " << cpp_string(api_server.name) << ",\n";
+        out << "            {";
+        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_string(api_server.serves[i]);
+        }
+        out << "},\n";
+        out << "            " << api_server.concurrency.value_or(1) << ",\n";
         out << "        },\n";
     }
     out << "    };\n";

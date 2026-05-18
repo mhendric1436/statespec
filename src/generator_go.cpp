@@ -313,6 +313,11 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tStartsWorkflow *string\n";
     out << "\tEnqueues *string\n";
     out << "}\n\n";
+    out << "type ApiServerDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tServes []string\n";
+    out << "\tConcurrency int\n";
+    out << "}\n\n";
     out << "type WorkerDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tSingleton bool\n";
@@ -531,6 +536,28 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tError: " << string_ptr_expr(api.error) << ",\n";
         out << "\t\t\tStartsWorkflow: " << string_ptr_expr(api.starts_workflow) << ",\n";
         out << "\t\t\tEnqueues: " << string_ptr_expr(api.enqueues) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func ApiServerDescriptors() []ApiServerDescriptor {\n";
+    out << "\treturn []ApiServerDescriptor{\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(api_server.name) << ",\n";
+        out << "\t\t\tServes: []string{";
+        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_string(api_server.serves[i]);
+        }
+        out << "},\n";
+        out << "\t\t\tConcurrency: " << api_server.concurrency.value_or(1) << ",\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";

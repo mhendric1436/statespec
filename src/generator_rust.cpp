@@ -339,6 +339,12 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub enqueues: Option<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ApiServerDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub serves: Vec<String>,\n";
+    out << "    pub concurrency: i32,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct WorkerDescriptor {\n";
     out << "    pub name: String,\n";
     out << "    pub singleton: bool,\n";
@@ -573,6 +579,28 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            starts_workflow: " << optional_string_expr(api.starts_workflow)
             << ",\n";
         out << "            enqueues: " << optional_string_expr(api.enqueues) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        out << "        ApiServerDescriptor {\n";
+        out << "            name: " << rust_string(api_server.name) << ".to_string(),\n";
+        out << "            serves: vec![";
+        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_string(api_server.serves[i]) << ".to_string()";
+        }
+        out << "],\n";
+        out << "            concurrency: " << api_server.concurrency.value_or(1) << ",\n";
         out << "        },\n";
     }
     out << "    ]\n";

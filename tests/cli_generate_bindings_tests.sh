@@ -197,6 +197,11 @@ system Demo {
     enqueues EmailDispatch.SendConfirmation
   }
 
+  api_server OrderApi {
+    serves StartOrderProcessing
+    concurrency 16
+  }
+
   policy OrderAccess {
     allow StartOrderProcessing when caller.role == operator;
     quota starts_per_minute: 60;
@@ -358,6 +363,9 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemDes
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "external_system_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ApiDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "api_descriptors"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ApiServerDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "api_server_descriptors"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"OrderApi\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "WorkerDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "WorkerContext"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "class IWorker"
@@ -447,6 +455,10 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSyste
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ExternalSystemDescriptors() []ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ApiDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ApiDescriptors() []ApiDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ApiServerDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ApiServerDescriptors() []ApiServerDescriptor"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Name: \"OrderApi\""
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Serves: []string{\"StartOrderProcessing\"}"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type WorkerDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type WorkerContext struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type Worker interface"
@@ -527,6 +539,9 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "buildOrderAcceptedEvent"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ApiDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ApiServerDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"OrderApi\""
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "List.of(\"StartOrderProcessing\")"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record WorkerDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record WorkerContext"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "interface Worker"
@@ -548,6 +563,7 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "eventDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "externalSystemDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "apiDescriptors"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "apiServerDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workerDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "workerContexts"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "policyDescriptors"
@@ -619,6 +635,10 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSyste
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_descriptors() -> Vec<ExternalSystemDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ApiDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn api_descriptors() -> Vec<ApiDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ApiServerDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor>"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "name: \"OrderApi\".to_string()"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "serves: vec![\"StartOrderProcessing\".to_string()]"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct WorkerDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct WorkerContext"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub trait Worker"

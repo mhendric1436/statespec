@@ -85,6 +85,12 @@ Generated API metadata includes:
 - workflow start target
 - queue enqueue target
 
+Generated API server metadata includes:
+
+- name
+- served APIs
+- concurrency
+
 Generated shape metadata includes:
 
 - name
@@ -116,12 +122,12 @@ to register feature flag definitions into a backend-provided feature flag store.
 
 The generated domain descriptor APIs are:
 
-| Language | Namespaces | Values | Enums | Events | External systems | Shapes | APIs | Workers | Policies |
-|---|---|---|---|---|---|---|---|---|
-| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
-| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
-| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
-| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| Language | Namespaces | Values | Enums | Events | External systems | Shapes | APIs | API servers | Workers | Policies |
+|---|---|---|---|---|---|---|---|---|---|
+| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `ApiServerDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
+| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `apiServerDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
+| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
 
 Generated log metadata includes:
 
