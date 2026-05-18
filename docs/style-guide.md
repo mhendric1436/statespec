@@ -199,7 +199,7 @@ GetOrder
 Paths should be versioned and resource-oriented:
 
 ```statespec
-path "/v1/orders/{orderId}/start"
+path "/v1/tenants/{tenantId}/orders/{orderId}/start"
 ```
 
 Use APIs to declare external contracts. Use workflows and queues to model durable async

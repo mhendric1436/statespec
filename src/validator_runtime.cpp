@@ -3,6 +3,7 @@
 #include "validator_declarations.hpp"
 #include "validator_helpers.hpp"
 
+#include <cctype>
 #include <string>
 #include <unordered_set>
 
@@ -83,6 +84,54 @@ void validate_api_input_tenant_field(
 bool is_mutating_method(const std::string& method)
 {
     return method == "POST" || method == "PUT" || method == "PATCH";
+}
+
+std::string lower_camel_field_name(const std::string& field_name)
+{
+    std::string result;
+    bool uppercase_next = false;
+    for (const auto ch : field_name)
+    {
+        if (ch == '_')
+        {
+            uppercase_next = true;
+            continue;
+        }
+        if (uppercase_next)
+        {
+            result.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(ch))));
+            uppercase_next = false;
+            continue;
+        }
+        result.push_back(ch);
+    }
+    return result;
+}
+
+void validate_api_tenant_path(
+    const SystemDecl& system,
+    const ApiDecl& api,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!system.tenant_scope.has_value() || !api.path.has_value())
+    {
+        return;
+    }
+
+    const auto& tenant_field = system.tenant_scope->field_name;
+    const auto lower_camel_tenant_field = lower_camel_field_name(tenant_field);
+    const auto& path = *api.path;
+    if (path.find("/tenants/") == std::string::npos &&
+        path.find("{" + tenant_field + "}") == std::string::npos &&
+        path.find("{" + lower_camel_tenant_field + "}") == std::string::npos)
+    {
+        diagnostics.error(
+            api.range, "SSPEC3406",
+            "API '" + api.name + "' path must include tenant identity for tenant field '" +
+                tenant_field + "'"
+        );
+    }
 }
 
 } // namespace
@@ -255,6 +304,7 @@ void validate_apis(
         {
             required_error(diagnostics, api.range, "api '" + api.name + "'", "path");
         }
+        validate_api_tenant_path(system, api, diagnostics);
         if (api.method.has_value() && is_mutating_method(*api.method) && !api.input.has_value())
         {
             required_error(diagnostics, api.range, "api '" + api.name + "'", "input");

@@ -139,7 +139,7 @@ void ir_lowers_shapes()
 
           api CreateOrder {
             method POST
-            path "/v1/orders"
+            path "/v1/tenants/{tenantId}/orders"
             input CreateOrderRequest
             output CreateOrderResponse
           }
@@ -234,7 +234,7 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
 
             api StartInvoice {
               method POST
-              path "/v1/invoices/start"
+              path "/v1/tenants/{tenantId}/invoices/start"
             }
           }
 
@@ -423,7 +423,7 @@ void ir_lowers_system_runtime_contracts()
 
           api StartOrderProcessing {
             method POST
-            path "/v1/orders/{order_id}/start"
+            path "/v1/tenants/{tenantId}/orders/{order_id}/start"
             input StartOrderRequest
             output StartOrderResponse
             error ErrorResponse

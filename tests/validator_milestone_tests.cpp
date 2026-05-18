@@ -188,7 +188,7 @@ void validator_accepts_resolved_references()
           }
           api StartOrderProcessing {
             method POST
-            path "/v1/orders/start"
+            path "/v1/tenants/{tenantId}/orders/start"
             input StartOrderProcessingRequest
             output StartOrderProcessingResponse
             starts workflow OrderProcessing
@@ -534,7 +534,7 @@ void validator_rejects_missing_tenant_field_propagation()
 
           api StartOrder {
             method POST
-            path "/v1/orders/start"
+            path "/v1/tenants/{tenantId}/orders/start"
             input StartOrderRequest
             enqueues OrderQueue.StartOrder
           }
@@ -576,7 +576,7 @@ void validator_rejects_policy_tenant_scope_mismatch()
 
           api StartOrder {
             method POST
-            path "/v1/orders/start"
+            path "/v1/tenants/{tenantId}/orders/start"
             input StartOrderRequest
             output StartOrderResponse
           }
@@ -633,7 +633,7 @@ void validator_warns_on_noncanonical_policy_order()
 
           api StartOrder {
             method POST
-            path "/v1/orders/start"
+            path "/v1/tenants/{tenantId}/orders/start"
             input StartOrderRequest
             output StartOrderResponse
           }
@@ -934,7 +934,7 @@ void validator_rejects_unknown_api_references()
         system OrderSystem {
           api StartOrderProcessing {
             method POST
-            path "/v1/orders/start"
+            path "/v1/tenants/{tenantId}/orders/start"
             input MissingRequest
             output MissingResponse
             error MissingError
@@ -955,7 +955,7 @@ void validator_rejects_incomplete_api_canonical_shape()
         system OrderSystem {
           api StartOrderProcessing {
             method POST
-            path "/v1/orders/start"
+            path "/v1/tenants/{tenantId}/orders/start"
           }
         }
     )sspec");
@@ -967,6 +967,36 @@ void validator_rejects_incomplete_api_canonical_shape()
     require(
         has_error_message_containing(diagnostics, "output"),
         "validator should require output on non-DELETE APIs"
+    );
+}
+
+void validator_rejects_tenant_scoped_api_path_without_tenant_identity()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          shape StartOrderRequest {
+            tenant_id string
+            order_id string
+          }
+          shape StartOrderResponse {
+            accepted bool
+          }
+
+          api StartOrder {
+            method POST
+            path "/v1/orders/start"
+            input StartOrderRequest
+            output StartOrderResponse
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3406"),
+        "validator should reject tenant-scoped API paths without tenant identity"
     );
 }
 
@@ -1113,7 +1143,7 @@ void validator_accepts_feature_flags()
           }
           api StartOrderProcessing {
             method POST
-            path "/v1/orders/start"
+            path "/v1/tenants/{tenantId}/orders/start"
             input StartOrderProcessingRequest
             output StartOrderProcessingResponse
           }
@@ -1185,7 +1215,7 @@ void validator_rejects_invalid_feature_flag_expression_references()
           }
           api StartOrderProcessing {
             method POST
-            path "/v1/orders/start"
+            path "/v1/tenants/{tenantId}/orders/start"
           }
           policy WorkflowAccess {
             tenant scoped_by tenant_id
@@ -1318,7 +1348,7 @@ void validator_accepts_namespaces_external_systems_and_policies()
 
             api StartInvoice {
               method POST
-              path "/v1/invoices/start"
+              path "/v1/tenants/{tenantId}/invoices/start"
               input StartInvoiceRequest
               output StartInvoiceResponse
             }
@@ -1597,6 +1627,11 @@ TEST_CASE("validator rejects unknown API references")
 TEST_CASE("validator rejects incomplete API canonical shape")
 {
     validator_rejects_incomplete_api_canonical_shape();
+}
+
+TEST_CASE("validator rejects tenant-scoped API path without tenant identity")
+{
+    validator_rejects_tenant_scoped_api_path_without_tenant_identity();
 }
 
 TEST_CASE("validator rejects invalid API server declarations")

@@ -225,8 +225,9 @@ shape StartOrderProcessingRequest {
 
 api StartOrderProcessing {
   method POST
-  path "/v1/orders/{order_id}/start"
+  path "/v1/tenants/{tenantId}/orders/{order_id}/start"
   input StartOrderProcessingRequest
+  output StartOrderProcessingResponse
 }
 
 api_server OrderApi {

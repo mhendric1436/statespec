@@ -187,7 +187,7 @@ Use durable parent fields to track pending, creating, succeeded, and failed chil
 ```statespec
 api StartOrderProcessing {
   method POST
-  path "/v1/orders/{orderId}/start"
+  path "/v1/tenants/{tenantId}/orders/{orderId}/start"
   input StartOrderProcessingRequest
   output StartOrderProcessingResponse
   starts workflow OrderProcessing
@@ -211,6 +211,10 @@ Mutating APIs (`POST`, `PUT`, and `PATCH`) must declare `input`. All non-`DELETE
 must declare `output`. This keeps generated contracts explicit instead of relying on
 transport-specific empty request or response defaults.
 
+In tenant-scoped systems, API paths must expose tenant identity. Use either the system
+tenant field as a path parameter, such as `{tenant_id}` or `{tenantId}`, or a `/tenants/`
+route segment.
+
 ## API Behavior
 
 Behavior blocks describe implementation intent without committing to a server framework.
@@ -218,7 +222,7 @@ Behavior blocks describe implementation intent without committing to a server fr
 ```statespec
 api CreateOrder {
   method POST
-  path "/v1/orders"
+  path "/v1/tenants/{tenantId}/orders"
   input CreateOrderRequest
   output Order
 
