@@ -15,12 +15,17 @@ statespec 0.1;
 system OrderSystem {
   entity Order {
     key order_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
 
     fields {
-      order_id string
       created_at timestamp
       updated_at timestamp
       status string
+      order_id string
     }
 
     state_machine {

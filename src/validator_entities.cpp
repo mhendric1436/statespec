@@ -275,6 +275,7 @@ void validate_ownership(
 {
     if (!entity.ownership.has_value())
     {
+        required_error(diagnostics, entity.range, "entity '" + entity.name + "'", "ownership");
         return;
     }
     const auto& ownership = *entity.ownership;

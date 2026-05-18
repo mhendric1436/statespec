@@ -54,10 +54,10 @@ Status meanings:
 | `fields` | complete | complete | complete | complete | complete | complete | complete | P0 | Mandatory lifecycle fields are validated and must appear first in canonical order. |
 | `state_machine` | complete | complete | complete | complete | complete | complete | complete | P0 | Initial, terminal, transitions, and GC metadata are represented. |
 | `indexes` | complete | complete | complete | complete | complete | complete | complete | P1 | Index declarations populate generated collection `IndexDescriptor` metadata. |
-| `ownership` | complete | complete | complete | complete | complete | not-started | complete | P1 | Represented in AST, validation, semantic model, IR, and binding descriptors; formatter support is still token-preserving. |
+| `ownership` | complete | complete | complete | complete | complete | not-started | complete | P0 | Mandatory for every entity. Represented in AST, validation, semantic model, IR, and binding descriptors; formatter support is still token-preserving. |
 | `relations` | complete | complete | complete | complete | complete | not-started | complete | P1 | Parent/reference metadata is validated and emitted in descriptors; composition-cycle checks remain future work. |
 | `children` | complete | complete | complete | complete | complete | not-started | complete | P2 | Parent-side declarations are validated against child-owned parent relations. |
-| `transitions` block | complete | not-started | not-started | not-started | not-started | not-started | not-started | P2 | Separate from `state_machine` transitions; clarify or merge syntax before implementation. |
+| entity-level `transitions` block | not-started | not-started | not-started | not-started | not-started | not-started | not-started | n/a | Removed before implementation. State transitions are authored only inside `state_machine`. |
 | `invariants` | complete | complete | partial | complete | complete | not-started | complete | P1 | Names and raw expressions flow through descriptors; expression parsing/type checking is still pending. |
 | entity `annotations` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P4 | Low priority by doctrine. |
 
@@ -96,10 +96,10 @@ Status meanings:
    richer custom type mapping for value, enum, event, collection, and nested shape
    fields.
 
-3. **P1: Add ownership, relations, and invariants for entities.**
-   Initial descriptor-oriented support is in place. Remaining work is formatter ownership
-   for canonical block ordering, typed invariant expressions, composition-cycle checks,
-   and richer generator usage.
+3. **P1: Expand relationship and invariant semantics for entities.**
+   Ownership is mandatory and descriptor-oriented support for relations and invariants is
+   in place. Remaining work is formatter ownership for canonical block ordering, typed
+   invariant expressions, composition-cycle checks, and richer generator usage.
 
 4. **P1: Expand runtime bootstrap helpers across all runtime catalogs.**
    Implemented: generated bindings now include transaction-scoped helpers for feature

@@ -83,6 +83,11 @@ void validator_accepts_resolved_references()
           }
           entity Order {
             key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
             fields {
               created_at timestamp
               updated_at timestamp
@@ -208,6 +213,11 @@ void validator_accepts_terminal_garbage_collection_modes()
         system OrderSystem {
           entity Order {
             key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
             fields {
               created_at timestamp
               updated_at timestamp
@@ -296,6 +306,11 @@ void validator_rejects_invalid_entity_indexes()
         system OrderSystem {
           entity Order {
             key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
             fields {
               order_id string
               status string
@@ -324,10 +339,28 @@ void validator_rejects_missing_entity_management_model()
         system OrderSystem {
           entity Order {
             key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
             fields {
               order_id string
               updated_at timestamp
               status string
+            }
+          }
+          entity MissingOwnership {
+            key missing_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              missing_id string
+            }
+            state_machine {
+              state Active
+              initial Active
             }
           }
         }
@@ -340,6 +373,9 @@ void validator_rejects_missing_entity_management_model()
     require(
         has_error_message_containing(diagnostics, "state_machine"),
         "validator should require state_machine"
+    );
+    require(
+        has_error_message_containing(diagnostics, "ownership"), "validator should require ownership"
     );
 }
 
@@ -723,6 +759,11 @@ void validator_accepts_feature_flags()
           }
           entity Order {
             key order_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
             fields {
               created_at timestamp
               updated_at timestamp

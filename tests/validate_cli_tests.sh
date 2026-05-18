@@ -26,6 +26,11 @@ cat > "$INVALID_GC_SPEC" <<'SSPEC'
 system Demo {
   entity Order {
     key order_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
     fields {
       created_at timestamp
       updated_at timestamp
@@ -58,6 +63,11 @@ cat > "$VALID_GC_SPEC" <<'SSPEC'
 system Demo {
   entity Order {
     key order_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
     fields {
       created_at timestamp
       updated_at timestamp
@@ -87,6 +97,11 @@ statespec 0.1;
 system SharedModel {
   entity SharedEntity {
     key shared_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
     fields {
       created_at timestamp
       updated_at timestamp
@@ -141,6 +156,11 @@ statespec 0.1;
 system DuplicateInclude {
   entity SharedEntity {
     key shared_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
     fields {
       created_at timestamp
       updated_at timestamp
@@ -162,6 +182,11 @@ include "./duplicate-include.sspec";
 system DuplicateRoot {
   entity SharedEntity {
     key shared_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
     fields {
       created_at timestamp
       updated_at timestamp

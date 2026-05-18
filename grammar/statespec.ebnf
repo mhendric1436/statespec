@@ -277,6 +277,8 @@ entity_decl             ::= "entity" Identifier entity_block ;
 
 entity_block            ::= "{"
                               entity_metadata_member*
+                              ownership_block
+                              entity_metadata_member*
                               fields_block
                               entity_metadata_member*
                               state_machine_block
@@ -285,7 +287,6 @@ entity_block            ::= "{"
 
 entity_metadata_member  ::= key_decl
                           | version_decl
-                          | ownership_block
                           | relations_block
                           | children_block
                           | invariants_block
@@ -889,7 +890,7 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
    37. Workflow start must target a declared step.
    38. Workflow trigger events must resolve when specified.
    39. Workflow load entity must resolve.
-   40. Workflow state mutations must follow declared entity transitions.
+   40. Workflow state mutations must follow declared state_machine transitions.
    41. transition_to must target a declared step in the same workflow.
    42. enqueue statements must target declared queue messages.
    43. acquire/renew/release lease statements must target declared leases.

@@ -8,6 +8,11 @@ relationships, invariants, and indexes.
 ```statespec
 entity Order {
   key tenant_id, order_id
+  ownership {
+    authority: system
+    system_of_record: self
+    lifecycle: authoritative
+  }
 
   fields {
     created_at timestamp
@@ -56,6 +61,22 @@ key tenant_id, order_id
 Key fields should also appear in the `fields` block unless a future runtime explicitly
 generates them.
 
+## Ownership
+
+Every entity must declare explicit ownership. The ownership block states whether this
+system or an external system is authoritative, identifies the system of record, and
+declares the lifecycle mode.
+
+```statespec
+ownership {
+  authority: system
+  system_of_record: self
+  lifecycle: authoritative
+}
+```
+
+Do not encode ownership only in prose, annotations, or workflow names.
+
 ## Fields
 
 Fields use the form:
@@ -101,7 +122,8 @@ failure_reason string?
 
 ## State Machines
 
-State machines define lifecycle states and legal transitions.
+State machines define lifecycle states and legal transitions. State transitions are
+authored only inside the `state_machine` block.
 
 ```statespec
 state_machine {

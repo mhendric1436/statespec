@@ -75,11 +75,16 @@ Failed
 
 ## Entity Style
 
-Put `key` before `fields`.
+Put `key` and `ownership` before `fields`.
 
 ```statespec
 entity Order {
   key tenant_id, order_id
+  ownership {
+    authority: system
+    system_of_record: self
+    lifecycle: authoritative
+  }
 
   fields {
     created_at timestamp

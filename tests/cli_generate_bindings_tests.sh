@@ -82,6 +82,11 @@ system Demo {
 
   entity Account {
     key account_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
     children {
       orders: Order by account_id
     }
@@ -222,6 +227,11 @@ statespec 0.1;
 system IncludedBindings {
   entity IncludedEntity {
     key included_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
     fields {
       created_at timestamp
       updated_at timestamp

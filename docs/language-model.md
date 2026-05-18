@@ -74,12 +74,17 @@ Prefer this:
 ```statespec
 entity Order {
   key order_id
+  ownership {
+    authority: system
+    system_of_record: self
+    lifecycle: authoritative
+  }
 
   fields {
-    order_id string
     created_at timestamp
     updated_at timestamp
     status string
+    order_id string
   }
 
   state_machine {
@@ -106,9 +111,22 @@ Avoid putting runtime-specific implementation symbols in the model:
 // Avoid using runtime implementation names as domain concepts.
 entity mt_Table_Order {
   key id
+  ownership {
+    authority: system
+    system_of_record: self
+    lifecycle: authoritative
+  }
 
   fields {
+    created_at timestamp
+    updated_at timestamp
+    status string
     id string
+  }
+
+  state_machine {
+    state Active
+    initial Active
   }
 }
 ```

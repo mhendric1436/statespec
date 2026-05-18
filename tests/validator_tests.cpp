@@ -36,6 +36,11 @@ void validator_accepts_entity_relationship_model()
         system OrderSystem {
           entity Account {
             key account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
             children {
               orders: Order by account_id
             }
