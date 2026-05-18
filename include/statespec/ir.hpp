@@ -262,6 +262,13 @@ struct IrWorker
     std::optional<int> concurrency;
 };
 
+struct IrApiServer
+{
+    std::string name;
+    std::vector<std::string> serves;
+    std::optional<int> concurrency;
+};
+
 struct IrApi
 {
     std::string name;
@@ -314,6 +321,7 @@ struct IrSystem
     std::vector<IrQueue> queues;
     std::vector<IrLease> leases;
     std::vector<IrWorker> workers;
+    std::vector<IrApiServer> api_servers;
     std::vector<IrApi> apis;
     std::vector<IrWorkflow> workflows;
     std::vector<IrPolicy> policies;

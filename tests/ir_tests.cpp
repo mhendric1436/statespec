@@ -430,6 +430,11 @@ void ir_lowers_system_runtime_contracts()
             enqueues EmailDispatch.SendConfirmation
           }
 
+          api_server OrderApi {
+            serves StartOrderProcessing
+            concurrency 16
+          }
+
           workflow OrderProcessing {
             version 2
             singleton false
@@ -518,6 +523,17 @@ void ir_lowers_system_runtime_contracts()
         worker.executes == "OrderProcessing", "IR should lower worker execution target"
     );
     statespec::test::require(worker.concurrency == 4, "IR should lower worker concurrency");
+
+    statespec::test::require(ir.api_servers.size() == 1, "IR should lower API servers");
+    const auto& api_server = ir.api_servers[0];
+    statespec::test::require(api_server.name == "OrderApi", "IR should lower API server name");
+    statespec::test::require(
+        api_server.serves.size() == 1 && api_server.serves[0] == "StartOrderProcessing",
+        "IR should lower API server served APIs"
+    );
+    statespec::test::require(
+        api_server.concurrency == 16, "IR should lower API server concurrency"
+    );
 
     statespec::test::require(ir.apis.size() == 1, "IR should lower APIs");
     const auto& api = ir.apis[0];
@@ -616,6 +632,7 @@ void ir_lowers_kitchen_sink_fixture()
     statespec::test::require(ir.queues.size() == 1, "IR should lower fixture queues");
     statespec::test::require(ir.leases.size() == 1, "IR should lower fixture leases");
     statespec::test::require(ir.workers.size() == 1, "IR should lower fixture workers");
+    statespec::test::require(ir.api_servers.size() == 1, "IR should lower fixture API servers");
     statespec::test::require(ir.apis.size() == 1, "IR should lower fixture APIs");
     statespec::test::require(ir.workflows.size() == 1, "IR should lower fixture workflows");
     statespec::test::require(ir.policies.size() == 1, "IR should lower fixture policies");
@@ -634,6 +651,10 @@ void ir_lowers_kitchen_sink_fixture()
         resolved.apis[0].starts_workflow.has_value() &&
             resolved.apis[0].starts_workflow->kind == statespec::SymbolKind::Workflow,
         "semantic resolver should resolve fixture API workflow target"
+    );
+    statespec::test::require(
+        resolved.api_servers[0].serves[0].kind == statespec::SymbolKind::Api,
+        "semantic resolver should resolve fixture API server served API"
     );
 }
 

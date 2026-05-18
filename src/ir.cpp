@@ -27,6 +27,16 @@ std::optional<std::string> reference_name(const std::optional<SemanticReference>
     return reference->name;
 }
 
+std::vector<std::string> reference_names(const std::vector<SemanticReference>& references)
+{
+    std::vector<std::string> names;
+    for (const auto& reference : references)
+    {
+        names.push_back(reference.name);
+    }
+    return names;
+}
+
 IrWorkflowStatement lower_workflow_statement(const SemanticWorkflowStatement& statement)
 {
     IrWorkflowStatement lowered;
@@ -262,6 +272,17 @@ IrSystem lower_to_ir(const SemanticSystem& system)
                 reference_name(worker.polls),
                 reference_name(worker.executes),
                 worker.concurrency,
+            }
+        );
+    }
+
+    for (const auto& api_server : system.api_servers)
+    {
+        ir.api_servers.push_back(
+            IrApiServer{
+                api_server.name,
+                reference_names(api_server.serves),
+                api_server.concurrency,
             }
         );
     }
