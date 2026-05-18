@@ -118,6 +118,48 @@ std::vector<std::string> feature_flag_function_arguments(
     return arguments;
 }
 
+std::string lowercase_copy(const std::string& value)
+{
+    std::string result;
+    result.reserve(value.size());
+    for (const auto ch : value)
+    {
+        result.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
+    }
+    return result;
+}
+
+bool ends_with(
+    const std::string& value,
+    const std::string& suffix
+)
+{
+    return value.size() >= suffix.size() &&
+           value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+bool is_high_cardinality_metric_label_name(
+    const SystemDecl& system,
+    const std::string& label_name
+)
+{
+    if (label_name == "tenant_id")
+    {
+        return false;
+    }
+    if (system.tenant_scope.has_value() && label_name == system.tenant_scope->field_name)
+    {
+        return false;
+    }
+
+    const auto name = lowercase_copy(label_name);
+    return name == "id" || name == "uuid" || name == "guid" || ends_with(name, "_id") ||
+           ends_with(name, "_ids") || ends_with(name, "_uuid") || ends_with(name, "_guid") ||
+           ends_with(name, "_at") || ends_with(name, "_time") || ends_with(name, "_timestamp") ||
+           name.find("payload") != std::string::npos ||
+           name.find("error_message") != std::string::npos;
+}
+
 void validate_log_tenant_field(
     const SystemDecl& system,
     const LogDecl& log,
@@ -573,6 +615,14 @@ void validate_metrics(
                     label.range, "SSPEC4404",
                     "metric '" + metric.name + "' label '" + label.name +
                         "' must use low-cardinality type string, bool, or int"
+                );
+            }
+            if (is_high_cardinality_metric_label_name(system, label.name))
+            {
+                diagnostics.error(
+                    label.range, "SSPEC4405",
+                    "metric '" + metric.name + "' label '" + label.name +
+                        "' looks high-cardinality; use a log field or aggregate dimension instead"
                 );
             }
         }

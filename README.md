@@ -380,7 +380,7 @@ Workflow communication, queue dispatch, and exclusive ownership should be expres
 
 ### Declared observability
 
-Logs and metrics should be declared as stable contracts with typed fields and labels rather than hidden in runtime implementation code. In tenant-scoped systems, log fields and metric labels must include the system tenant field.
+Logs and metrics should be declared as stable contracts with typed fields and labels rather than hidden in runtime implementation code. In tenant-scoped systems, log fields and metric labels must include the system tenant field. Metric labels must stay low-cardinality.
 
 ### Text is the source of truth
 

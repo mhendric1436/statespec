@@ -70,7 +70,10 @@ Validation requires metric declaration names to use PascalCase. Backend metric `
 values must be unique within the composed system.
 
 Metric labels are intentionally restricted to `string`, `bool`, and `int` so generated
-runtimes can keep metric cardinality and encoding portable.
+runtimes can keep metric cardinality and encoding portable. Label names must also avoid
+obvious high-cardinality dimensions such as IDs, UUIDs, GUIDs, timestamps, raw payloads,
+and error messages. The system tenant field is the only identifier-style metric label
+reserved by the language.
 
 In a tenant-scoped system, every metric declaration must include the system tenant field
 in its `labels` block. For example, `tenant scoped_by tenant_id` requires a `tenant_id`
@@ -203,7 +206,7 @@ and metric label values should remain low-cardinality.
 
 - Use stable `event_name` and metric backend `name` values. Treat them as external
   contracts once dashboards, alerts, or log queries depend on them.
-- Keep metric labels low-cardinality. Avoid IDs, raw user input, timestamps, request
+- Keep metric labels low-cardinality. The validator rejects obvious IDs, timestamps, raw
   payloads, and error messages as labels.
 - Include the tenant field in all log fields and metric labels for tenant-scoped systems.
 - Prefer explicit log fields over unstructured message text.

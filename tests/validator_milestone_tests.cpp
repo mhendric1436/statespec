@@ -1648,6 +1648,32 @@ void validator_rejects_invalid_metric_declarations()
     );
 }
 
+void validator_rejects_high_cardinality_metric_labels()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          metric WorkflowLaunchAttempts {
+            kind counter
+            name "workflow_launch_attempts_total"
+            unit count
+            labels {
+              tenant_id string
+              order_id string
+              workflow_name string
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4405"),
+        "validator should reject high-cardinality metric labels"
+    );
+}
+
 } // namespace
 
 TEST_CASE("validator accepts resolved references")
@@ -1848,4 +1874,9 @@ TEST_CASE("validator rejects invalid log declarations")
 TEST_CASE("validator rejects invalid metric declarations")
 {
     validator_rejects_invalid_metric_declarations();
+}
+
+TEST_CASE("validator rejects high-cardinality metric labels")
+{
+    validator_rejects_high_cardinality_metric_labels();
 }
