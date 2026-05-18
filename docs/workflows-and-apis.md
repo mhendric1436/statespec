@@ -246,6 +246,6 @@ Each `serves` target must resolve to an `api` declaration. An API can be served 
 or more API servers, which keeps API contracts reusable across deployment topologies and
 does not force every spec to model runtime hosting immediately.
 
-Generated bindings currently emit passive API server descriptors. Runnable HTTP server
-loops, route registration, handler interfaces, and request/response adapter generation
-remain future work.
+Generated bindings emit API server descriptors, route descriptors, request/response
+context types, and handler interfaces. Runnable HTTP server loops, concrete framework
+route registration, and request/response adapter generation remain future work.

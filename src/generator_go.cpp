@@ -196,6 +196,30 @@ std::string string_ptr_expr(const std::optional<std::string>& value)
     return value.has_value() ? "stringPtr(" + go_string(*value) + ")" : "nil";
 }
 
+const IrApi* find_api(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& api : system.apis)
+    {
+        if (api.name == name)
+        {
+            return &api;
+        }
+    }
+    return nullptr;
+}
+
+const std::optional<std::string>& optional_api_field(
+    const IrApi* api,
+    const std::optional<std::string> IrApi::* field
+)
+{
+    static const std::optional<std::string> empty;
+    return api == nullptr ? empty : api->*field;
+}
+
 std::string duration_ptr_expr(const std::optional<std::string>& value)
 {
     if (!value.has_value())
@@ -317,6 +341,30 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tName string\n";
     out << "\tServes []string\n";
     out << "\tConcurrency int\n";
+    out << "}\n\n";
+    out << "type ApiRouteDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tServerName string\n";
+    out << "\tApiName string\n";
+    out << "\tMethod *string\n";
+    out << "\tPath *string\n";
+    out << "\tInput *string\n";
+    out << "\tOutput *string\n";
+    out << "\tError *string\n";
+    out << "}\n\n";
+    out << "type APIRequestContext struct {\n";
+    out << "\tServerName string\n";
+    out << "\tAPIName string\n";
+    out << "\tMethod *string\n";
+    out << "\tPath *string\n";
+    out << "\tBody JSON\n";
+    out << "}\n\n";
+    out << "type APIResponse struct {\n";
+    out << "\tStatusCode int\n";
+    out << "\tBody JSON\n";
+    out << "}\n\n";
+    out << "type APIHandler interface {\n";
+    out << "\tHandle(context.Context, APIRequestContext) (APIResponse, error)\n";
     out << "}\n\n";
     out << "type WorkerDescriptor struct {\n";
     out << "\tName string\n";
@@ -559,6 +607,33 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "},\n";
         out << "\t\t\tConcurrency: " << api_server.concurrency.value_or(1) << ",\n";
         out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func ApiRouteDescriptors() []ApiRouteDescriptor {\n";
+    out << "\treturn []ApiRouteDescriptor{\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        for (const auto& api_name : api_server.serves)
+        {
+            const auto* api = find_api(system, api_name);
+            out << "\t\t{\n";
+            out << "\t\t\tName: " << go_string(api_server.name + "." + api_name) << ",\n";
+            out << "\t\t\tServerName: " << go_string(api_server.name) << ",\n";
+            out << "\t\t\tApiName: " << go_string(api_name) << ",\n";
+            out << "\t\t\tMethod: " << string_ptr_expr(optional_api_field(api, &IrApi::method))
+                << ",\n";
+            out << "\t\t\tPath: " << string_ptr_expr(optional_api_field(api, &IrApi::path))
+                << ",\n";
+            out << "\t\t\tInput: " << string_ptr_expr(optional_api_field(api, &IrApi::input))
+                << ",\n";
+            out << "\t\t\tOutput: " << string_ptr_expr(optional_api_field(api, &IrApi::output))
+                << ",\n";
+            out << "\t\t\tError: " << string_ptr_expr(optional_api_field(api, &IrApi::error))
+                << ",\n";
+            out << "\t\t},\n";
+        }
     }
     out << "\t}\n";
     out << "}\n\n";

@@ -41,7 +41,7 @@ Status meanings:
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve and generated bindings expose worker descriptors, contexts, and handler skeleton interfaces; executable worker bodies remain future work. |
 | `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve and passive API descriptor metadata is generated; OpenAPI/server generation is not implemented. |
-| `api_server` | complete | complete | complete | complete | complete | complete | partial | P1 | API server declarations resolve served APIs and emit passive binding descriptor metadata; runnable server scaffolding remains future work. |
+| `api_server` | complete | complete | complete | complete | complete | complete | partial | P1 | API server declarations resolve served APIs and generated bindings expose descriptors, route metadata, request/response contexts, and handler interfaces; concrete HTTP loops remain future work. |
 | `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
 | `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression parsing and policy enforcement generation are not implemented. |
 | `annotations` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P4 | Keep low priority; annotations must not become a semantic escape hatch. |
@@ -133,8 +133,9 @@ Status meanings:
 
 9. **P1: Add API server descriptors.**
    Implemented: `api_server` declarations parse, validate served API references, lower
-   into IR, and emit passive binding descriptor metadata. Next work is runnable server
-   scaffolding: route registration, handler interfaces, and request/response adapters.
+   into IR, and emit binding descriptor metadata, route descriptors, request/response
+   contexts, and handler interfaces. Next work is concrete HTTP framework adapters and
+   route registration loops.
 
 10. **P2: Add event runtime helpers.**
    Implemented: generated bindings now include event envelope types and event-specific

@@ -211,6 +211,30 @@ std::string optional_string_expr(const std::optional<std::string>& value)
     return value.has_value() ? "Some(" + rust_string(*value) + ".to_string())" : "None";
 }
 
+const IrApi* find_api(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& api : system.apis)
+    {
+        if (api.name == name)
+        {
+            return &api;
+        }
+    }
+    return nullptr;
+}
+
+const std::optional<std::string>& optional_api_field(
+    const IrApi* api,
+    const std::optional<std::string> IrApi::* field
+)
+{
+    static const std::optional<std::string> empty;
+    return api == nullptr ? empty : api->*field;
+}
+
 std::string optional_duration_expr(const std::optional<std::string>& value)
 {
     return value.has_value()
@@ -343,6 +367,33 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub name: String,\n";
     out << "    pub serves: Vec<String>,\n";
     out << "    pub concurrency: i32,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ApiRouteDescriptor {\n";
+    out << "    pub name: String,\n";
+    out << "    pub server_name: String,\n";
+    out << "    pub api_name: String,\n";
+    out << "    pub method: Option<String>,\n";
+    out << "    pub path: Option<String>,\n";
+    out << "    pub input: Option<String>,\n";
+    out << "    pub output: Option<String>,\n";
+    out << "    pub error: Option<String>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ApiRequestContext {\n";
+    out << "    pub server_name: String,\n";
+    out << "    pub api_name: String,\n";
+    out << "    pub method: Option<String>,\n";
+    out << "    pub path: Option<String>,\n";
+    out << "    pub body: Json,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ApiResponse {\n";
+    out << "    pub status_code: i32,\n";
+    out << "    pub body: Json,\n";
+    out << "}\n\n";
+    out << "pub trait ApiHandler {\n";
+    out << "    fn handle(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse>;\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct WorkerDescriptor {\n";
@@ -602,6 +653,34 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "],\n";
         out << "            concurrency: " << api_server.concurrency.value_or(1) << ",\n";
         out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
+
+    out << "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        for (const auto& api_name : api_server.serves)
+        {
+            const auto* api = find_api(system, api_name);
+            out << "        ApiRouteDescriptor {\n";
+            out << "            name: " << rust_string(api_server.name + "." + api_name)
+                << ".to_string(),\n";
+            out << "            server_name: " << rust_string(api_server.name) << ".to_string(),\n";
+            out << "            api_name: " << rust_string(api_name) << ".to_string(),\n";
+            out << "            method: "
+                << optional_string_expr(optional_api_field(api, &IrApi::method)) << ",\n";
+            out << "            path: "
+                << optional_string_expr(optional_api_field(api, &IrApi::path)) << ",\n";
+            out << "            input: "
+                << optional_string_expr(optional_api_field(api, &IrApi::input)) << ",\n";
+            out << "            output: "
+                << optional_string_expr(optional_api_field(api, &IrApi::output)) << ",\n";
+            out << "            error: "
+                << optional_string_expr(optional_api_field(api, &IrApi::error)) << ",\n";
+            out << "        },\n";
+        }
     }
     out << "    ]\n";
     out << "}\n\n";

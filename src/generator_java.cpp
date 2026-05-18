@@ -196,6 +196,30 @@ std::string optional_string_expr(const std::optional<std::string>& value)
     return value.has_value() ? "Optional.of(" + java_string(*value) + ")" : "Optional.empty()";
 }
 
+const IrApi* find_api(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& api : system.apis)
+    {
+        if (api.name == name)
+        {
+            return &api;
+        }
+    }
+    return nullptr;
+}
+
+const std::optional<std::string>& optional_api_field(
+    const IrApi* api,
+    const std::optional<std::string> IrApi::* field
+)
+{
+    static const std::optional<std::string> empty;
+    return api == nullptr ? empty : api->*field;
+}
+
 std::string optional_duration_expr(const std::optional<std::string>& value)
 {
     return value.has_value() ? "Optional.of(Duration.ofSeconds(" +
@@ -332,6 +356,30 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        List<String> serves,\n";
     out << "        int concurrency\n";
     out << "    ) {}\n\n";
+    out << "    public record ApiRouteDescriptor(\n";
+    out << "        String name,\n";
+    out << "        String serverName,\n";
+    out << "        String apiName,\n";
+    out << "        Optional<String> method,\n";
+    out << "        Optional<String> path,\n";
+    out << "        Optional<String> input,\n";
+    out << "        Optional<String> output,\n";
+    out << "        Optional<String> error\n";
+    out << "    ) {}\n\n";
+    out << "    public record ApiRequestContext(\n";
+    out << "        String serverName,\n";
+    out << "        String apiName,\n";
+    out << "        Optional<String> method,\n";
+    out << "        Optional<String> path,\n";
+    out << "        Json body\n";
+    out << "    ) {}\n\n";
+    out << "    public record ApiResponse(\n";
+    out << "        int statusCode,\n";
+    out << "        Json body\n";
+    out << "    ) {}\n\n";
+    out << "    public interface ApiHandler {\n";
+    out << "        ApiResponse handle(ApiRequestContext context) throws Exception;\n";
+    out << "    }\n\n";
     out << "    public record WorkerDescriptor(\n";
     out << "        String name,\n";
     out << "        boolean singleton,\n";
@@ -589,6 +637,40 @@ std::string generate_descriptors_java(const IrSystem& system)
         out << "),\n";
         out << "                " << api_server.concurrency.value_or(1) << "\n";
         out << "            )" << (server_index + 1 < system.api_servers.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+
+    std::size_t api_route_count = 0;
+    for (const auto& api_server : system.api_servers)
+    {
+        api_route_count += api_server.serves.size();
+    }
+    out << "    public static List<ApiRouteDescriptor> apiRouteDescriptors() {\n";
+    out << "        return List.of(\n";
+    std::size_t api_route_index = 0;
+    for (const auto& api_server : system.api_servers)
+    {
+        for (const auto& api_name : api_server.serves)
+        {
+            const auto* api = find_api(system, api_name);
+            out << "            new ApiRouteDescriptor(\n";
+            out << "                " << java_string(api_server.name + "." + api_name) << ",\n";
+            out << "                " << java_string(api_server.name) << ",\n";
+            out << "                " << java_string(api_name) << ",\n";
+            out << "                "
+                << optional_string_expr(optional_api_field(api, &IrApi::method)) << ",\n";
+            out << "                " << optional_string_expr(optional_api_field(api, &IrApi::path))
+                << ",\n";
+            out << "                "
+                << optional_string_expr(optional_api_field(api, &IrApi::input)) << ",\n";
+            out << "                "
+                << optional_string_expr(optional_api_field(api, &IrApi::output)) << ",\n";
+            out << "                "
+                << optional_string_expr(optional_api_field(api, &IrApi::error)) << "\n";
+            out << "            )" << (api_route_index + 1 < api_route_count ? "," : "") << "\n";
+            ++api_route_index;
+        }
     }
     out << "        );\n";
     out << "    }\n\n";

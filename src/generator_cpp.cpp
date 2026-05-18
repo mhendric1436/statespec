@@ -218,6 +218,30 @@ std::string optional_string_expr(const std::optional<std::string>& value)
     return "std::optional<std::string>{" + cpp_string(*value) + "}";
 }
 
+const IrApi* find_api(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& api : system.apis)
+    {
+        if (api.name == name)
+        {
+            return &api;
+        }
+    }
+    return nullptr;
+}
+
+const std::optional<std::string>& optional_api_field(
+    const IrApi* api,
+    const std::optional<std::string> IrApi::* field
+)
+{
+    static const std::optional<std::string> empty;
+    return api == nullptr ? empty : api->*field;
+}
+
 std::string generate_system_descriptors_header(const IrSystem& system)
 {
     std::ostringstream out;
@@ -360,6 +384,40 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::string name;\n";
     out << "    std::vector<std::string> serves;\n";
     out << "    int concurrency = 1;\n";
+    out << "};\n\n";
+
+    out << "struct ApiRouteDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::string server_name;\n";
+    out << "    std::string api_name;\n";
+    out << "    std::optional<std::string> method;\n";
+    out << "    std::optional<std::string> path;\n";
+    out << "    std::optional<std::string> input;\n";
+    out << "    std::optional<std::string> output;\n";
+    out << "    std::optional<std::string> error;\n";
+    out << "};\n\n";
+
+    out << "struct ApiRequestContext\n";
+    out << "{\n";
+    out << "    std::string server_name;\n";
+    out << "    std::string api_name;\n";
+    out << "    std::optional<std::string> method;\n";
+    out << "    std::optional<std::string> path;\n";
+    out << "    statespec::backend::Json body;\n";
+    out << "};\n\n";
+
+    out << "struct ApiResponse\n";
+    out << "{\n";
+    out << "    int status_code = 200;\n";
+    out << "    statespec::backend::Json body;\n";
+    out << "};\n\n";
+
+    out << "class IApiHandler\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    virtual ~IApiHandler() = default;\n";
+    out << "    virtual ApiResponse handle(const ApiRequestContext& context) = 0;\n";
     out << "};\n\n";
 
     out << "struct WorkerDescriptor\n";
@@ -642,6 +700,34 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "},\n";
         out << "            " << api_server.concurrency.value_or(1) << ",\n";
         out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<ApiRouteDescriptor> api_route_descriptors()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        for (const auto& api_name : api_server.serves)
+        {
+            const auto* api = find_api(system, api_name);
+            out << "        ApiRouteDescriptor{\n";
+            out << "            " << cpp_string(api_server.name + "." + api_name) << ",\n";
+            out << "            " << cpp_string(api_server.name) << ",\n";
+            out << "            " << cpp_string(api_name) << ",\n";
+            out << "            " << optional_string_expr(optional_api_field(api, &IrApi::method))
+                << ",\n";
+            out << "            " << optional_string_expr(optional_api_field(api, &IrApi::path))
+                << ",\n";
+            out << "            " << optional_string_expr(optional_api_field(api, &IrApi::input))
+                << ",\n";
+            out << "            " << optional_string_expr(optional_api_field(api, &IrApi::output))
+                << ",\n";
+            out << "            " << optional_string_expr(optional_api_field(api, &IrApi::error))
+                << ",\n";
+            out << "        },\n";
+        }
     }
     out << "    };\n";
     out << "}\n\n";

@@ -91,6 +91,12 @@ Generated API server metadata includes:
 - served APIs
 - concurrency
 
+Generated API server scaffolding also includes framework-neutral route descriptors,
+request/response context records, and handler interfaces. Route descriptors join each
+`api_server serves` target to the corresponding API method, path, input, output, and
+error metadata. Concrete HTTP server loops and framework adapters remain downstream
+runtime work.
+
 Generated shape metadata includes:
 
 - name
@@ -124,10 +130,10 @@ The generated domain descriptor APIs are:
 
 | Language | Namespaces | Values | Enums | Events | External systems | Shapes | APIs | API servers | Workers | Policies |
 |---|---|---|---|---|---|---|---|---|---|
-| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
-| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `ApiServerDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
-| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `apiServerDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
-| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `ApiServerDescriptors()`, `ApiRouteDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
+| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `apiServerDescriptors()`, `apiRouteDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
+| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
 
 Generated log metadata includes:
 
