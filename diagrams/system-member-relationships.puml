@@ -1,0 +1,229 @@
+@startuml
+title StateSpec Grammar System Member Relationships
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+class System <<system_decl>> {
+  name
+}
+
+abstract class SystemMember <<grammar alternative>>
+
+class TenantScope <<system_tenant_scope_decl>> {
+  scoped_by
+}
+
+class SystemTenant <<system_tenant_decl>> {
+  configured
+}
+
+class Namespace <<namespace_decl>> {
+  qualified_name
+}
+
+class Value <<value_decl>> {
+  name
+  type
+  constraint
+}
+
+class Enum <<enum_decl>> {
+  name
+  members
+}
+
+class Shape <<shape_decl>> {
+  name
+  fields
+}
+
+class ExternalSystem <<external_system_decl>> {
+  name
+  properties
+}
+
+class FeatureFlag <<feature_flag_decl>> {
+  name
+  type
+  default
+  scope
+}
+
+class Log <<log_decl>> {
+  name
+  level
+  event_name
+  fields
+}
+
+class Metric <<metric_decl>> {
+  name
+  kind
+  unit
+  labels
+}
+
+class Entity <<entity_decl>> {
+  name
+  key
+  ownership
+  fields
+}
+
+class StateMachine <<state_machine_decl>> {
+  initial
+  states
+  transitions
+}
+
+class Event <<event_decl>> {
+  name
+  fields
+}
+
+class Queue <<queue_decl>> {
+  name
+  namespace
+  channel
+}
+
+class Message <<message_decl>> {
+  name
+  idempotency_key
+  payload
+}
+
+class Lease <<lease_decl>> {
+  name
+  resource
+  ttl
+}
+
+class Worker <<worker_decl>> {
+  name
+  singleton
+  concurrency
+}
+
+class ApiServer <<api_server_decl>> {
+  name
+  serves
+  concurrency
+}
+
+class Api <<api_decl>> {
+  name
+  method
+  path
+  input
+  output
+  error
+}
+
+class Workflow <<workflow_decl>> {
+  name
+  version
+  on
+  start
+}
+
+class WorkflowStep <<workflow_step_decl>> {
+  name
+  expected_execution_time
+  max_retries
+}
+
+class Policy <<policy_decl>> {
+  name
+  allows
+  denies
+  quotas
+  audits
+}
+
+class Annotations <<annotations_block>> {
+  entries
+}
+
+System *-- SystemMember : system_member*
+Namespace *-- SystemMember : nested system_member*
+
+SystemMember <|-- TenantScope
+SystemMember <|-- SystemTenant
+SystemMember <|-- Namespace
+SystemMember <|-- Value
+SystemMember <|-- Enum
+SystemMember <|-- Shape
+SystemMember <|-- ExternalSystem
+SystemMember <|-- FeatureFlag
+SystemMember <|-- Log
+SystemMember <|-- Metric
+SystemMember <|-- Entity
+SystemMember <|-- Event
+SystemMember <|-- Queue
+SystemMember <|-- Lease
+SystemMember <|-- Worker
+SystemMember <|-- ApiServer
+SystemMember <|-- Api
+SystemMember <|-- Workflow
+SystemMember <|-- Policy
+SystemMember <|-- Annotations
+
+Entity *-- StateMachine : state_machine
+Queue *-- Message : messages
+Workflow *-- WorkflowStep : steps
+
+Value ..> FeatureFlag : constraint expression
+FeatureFlag ..> Entity : optional entity scope
+Log ..> Shape : typed fields
+Metric ..> Shape : typed labels
+Event ..> Shape : typed fields
+
+Entity ..> Entity : relations / children
+Entity ..> ExternalSystem : external ownership
+Entity ..> Value : field types
+Entity ..> Enum : field types
+Entity ..> Shape : field types
+
+ApiServer ..> Api : serves
+Api ..> Workflow : starts_workflow
+Api ..> Queue : enqueues message
+Api ..> Shape : input / output / error
+
+Workflow ..> Api : trigger
+Workflow ..> Event : trigger / emit
+Workflow ..> Message : trigger / enqueue
+Workflow ..> Entity : load / mutate
+Workflow ..> Lease : acquire / renew / release
+Workflow ..> Workflow : start_workflow
+Workflow ..> Log : emit
+Workflow ..> FeatureFlag : conditional behavior
+
+Worker ..> Queue : polls
+Worker ..> Lease : singleton lease
+Worker ..> Workflow : executes
+
+Policy ..> Api : allow / deny / audit actions
+Policy ..> Workflow : allow / deny / audit actions
+Policy ..> Queue : allow / deny / audit actions
+Policy ..> FeatureFlag : conditions / quotas
+
+note top of SystemMember
+system_member is the grammar union accepted directly
+inside system blocks and recursively inside namespace blocks.
+end note
+
+note right of Namespace
+Namespace members are qualified by the namespace path
+before participating in symbol resolution.
+end note
+
+note bottom of System
+The parser builds AST declarations from these members.
+The validator resolves references through the symbol table.
+end note
+
+@enduml
