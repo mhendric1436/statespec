@@ -118,6 +118,50 @@ std::vector<std::string> feature_flag_function_arguments(
     return arguments;
 }
 
+void validate_log_tenant_field(
+    const SystemDecl& system,
+    const LogDecl& log,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!system.tenant_scope.has_value())
+    {
+        return;
+    }
+
+    const auto fields = field_names(log.fields);
+    if (!contains(fields, system.tenant_scope->field_name))
+    {
+        diagnostics.error(
+            log.range, "SSPEC3407",
+            "log '" + log.name + "' fields must declare tenant field '" +
+                system.tenant_scope->field_name + "'"
+        );
+    }
+}
+
+void validate_metric_tenant_label(
+    const SystemDecl& system,
+    const MetricDecl& metric,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!system.tenant_scope.has_value())
+    {
+        return;
+    }
+
+    const auto labels = field_names(metric.labels);
+    if (!contains(labels, system.tenant_scope->field_name))
+    {
+        diagnostics.error(
+            metric.range, "SSPEC3408",
+            "metric '" + metric.name + "' labels must declare tenant field '" +
+                system.tenant_scope->field_name + "'"
+        );
+    }
+}
+
 } // namespace
 
 void validate_field_duplicates(
@@ -470,6 +514,7 @@ void validate_logs(
 
         validate_field_duplicates(log.fields, diagnostics);
         validate_field_types(log.fields, symbols, diagnostics);
+        validate_log_tenant_field(system, log, diagnostics);
     }
 }
 
@@ -519,6 +564,7 @@ void validate_metrics(
 
         validate_field_duplicates(metric.labels, diagnostics);
         validate_field_types(metric.labels, symbols, diagnostics);
+        validate_metric_tenant_label(system, metric, diagnostics);
         for (const auto& label : metric.labels)
         {
             if (!is_supported_metric_label_type(label.type))

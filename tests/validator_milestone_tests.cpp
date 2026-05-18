@@ -100,6 +100,10 @@ void validator_accepts_resolved_references()
           log OrderStarted {
             level info
             event_name "order.started"
+            fields {
+              tenant_id string
+              order_id string
+            }
           }
           entity Order {
             key tenant_id, order_id
@@ -1517,6 +1521,44 @@ void validator_accepts_logs_and_metrics()
     require(!diagnostics.has_errors(), "validator should accept valid logs and metrics");
 }
 
+void validator_rejects_missing_observability_tenant_fields()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          log WorkflowLaunchDecision {
+            level info
+            event_name "workflow.launch.decision"
+            fields {
+              workflow_name string
+              decision string
+            }
+          }
+
+          metric WorkflowLaunchAttempts {
+            kind counter
+            name "workflow_launch_attempts_total"
+            unit count
+            labels {
+              workflow_name string
+              decision string
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3407"),
+        "validator should reject tenant-scoped logs without the tenant field"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC3408"),
+        "validator should reject tenant-scoped metrics without the tenant label"
+    );
+}
+
 void validator_rejects_invalid_log_declarations()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -1791,6 +1833,11 @@ TEST_CASE("validator rejects invalid namespaces and external systems")
 TEST_CASE("validator accepts logs and metrics")
 {
     validator_accepts_logs_and_metrics();
+}
+
+TEST_CASE("validator rejects observability declarations missing tenant fields")
+{
+    validator_rejects_missing_observability_tenant_fields();
 }
 
 TEST_CASE("validator rejects invalid log declarations")

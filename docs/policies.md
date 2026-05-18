@@ -35,7 +35,8 @@ context used by the target runtime.
 
 Validation enforces this for tenant-addressable declarations: each entity must include the
 scoped tenant field in its key and fields, each queue message payload must include it, and
-each API input shape must carry it.
+each API input shape must carry it. Observability contracts must also carry the scoped
+tenant field through log fields and metric labels.
 
 ## Allow And Deny Rules
 

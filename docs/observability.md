@@ -37,6 +37,10 @@ unique within the composed system.
 Log fields use the normal StateSpec field type model. Optional fields may use the `?`
 suffix.
 
+In a tenant-scoped system, every log declaration must include the system tenant field in
+its `fields` block. For example, `tenant scoped_by tenant_id` requires a `tenant_id`
+field on each log.
+
 ## Metric Declarations
 
 A `metric` declaration names one metric instrument.
@@ -68,6 +72,10 @@ values must be unique within the composed system.
 Metric labels are intentionally restricted to `string`, `bool`, and `int` so generated
 runtimes can keep metric cardinality and encoding portable.
 
+In a tenant-scoped system, every metric declaration must include the system tenant field
+in its `labels` block. For example, `tenant scoped_by tenant_id` requires a `tenant_id`
+label on each metric.
+
 ## Include Composition
 
 Included `.sspec` files contribute their `log` and `metric` declarations to the composed
@@ -84,6 +92,10 @@ system OrderSystem {
   log OrderWorkflowStarted {
     level info
     event_name "order.workflow.started"
+    fields {
+      tenant_id string
+      order_id string
+    }
   }
 }
 ```
@@ -193,6 +205,7 @@ and metric label values should remain low-cardinality.
   contracts once dashboards, alerts, or log queries depend on them.
 - Keep metric labels low-cardinality. Avoid IDs, raw user input, timestamps, request
   payloads, and error messages as labels.
+- Include the tenant field in all log fields and metric labels for tenant-scoped systems.
 - Prefer explicit log fields over unstructured message text.
 - Do not encode business semantics in observability declarations that should belong in
   entities, workflows, policies, or APIs.

@@ -26,8 +26,9 @@ queues, leases, workers, and policies.
 When a system is scoped by a tenant field, that field must be propagated through every
 tenant-addressable contract. Entities must declare the scoped field in both `key` and
 `fields`, queue message `payload` blocks must carry it, and API `input` shapes must
-include it. This keeps durable state, async work, and synchronous ingress aligned on the
-same tenant boundary.
+include it. Logs must declare it in `fields`, and metrics must declare it in `labels`.
+This keeps durable state, async work, synchronous ingress, and observability aligned on
+the same tenant boundary.
 
 Policy-level `tenant scoped_by` declarations are required and must use the same field as
 the system. A policy cannot introduce a second tenant identity for the same composed

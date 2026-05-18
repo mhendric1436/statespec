@@ -922,30 +922,34 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
    63. polls must reference a queue or queue message.
    64. executes must reference a workflow or workflow step.
 
+  Observability:
+   65. Tenant-scoped logs must include the system tenant field in fields.
+   66. Tenant-scoped metrics must include the system tenant field in labels.
+
   Policies:
-   65. Policy subjects and actions must resolve to APIs, workflows, queues, leases, or workers.
-   66. Policy expressions must type-check as boolean expressions.
-   67. Policies must declare tenant scoped_by matching the system tenant scope.
-   68. Policies must include at least one allow, deny, quota, or audit declaration.
-   69. Tenant scoped fields must exist on the relevant entity, payload, or request shape.
+   67. Policy subjects and actions must resolve to APIs, workflows, queues, leases, or workers.
+   68. Policy expressions must type-check as boolean expressions.
+   69. Policies must declare tenant scoped_by matching the system tenant scope.
+   70. Policies must include at least one allow, deny, quota, or audit declaration.
+   71. Tenant scoped fields must exist on the relevant entity, payload, or request shape.
 
   Child sets:
-   70. child_set.entity must refer to a valid child entity.
-   71. The child entity must have a parent relation to the workflow's loaded parent entity.
-   72. child_set.parent_field must match the child's parent relation field.
-   73. pending, creating, succeeded, and failed fields must exist on the parent entity.
-   74. Child bucket fields must all be list<id_type>.
-   75. desired_count must type-check as an integer.
-   76. Child buckets must be disjoint.
-   77. Child bucket union must represent the reserved child set.
+   72. child_set.entity must refer to a valid child entity.
+   73. The child entity must have a parent relation to the workflow's loaded parent entity.
+   74. child_set.parent_field must match the child's parent relation field.
+   75. pending, creating, succeeded, and failed fields must exist on the parent entity.
+   76. Child bucket fields must all be list<id_type>.
+   77. desired_count must type-check as an integer.
+   78. Child buckets must be disjoint.
+   79. Child bucket union must represent the reserved child set.
 
   Feature flags:
-   67. Feature flag names must be unique within a system or namespace.
-   68. Feature flag names must use PascalCase.
-   69. Feature flags must declare type and default.
-   70. Feature flag defaults must match the declared feature flag type.
-   71. scope entity must reference an existing entity.
-   72. feature_enabled(flag) requires a declared bool feature flag.
-   73. feature_value(flag) requires a declared feature flag.
+   80. Feature flag names must be unique within a system or namespace.
+   81. Feature flag names must use PascalCase.
+   82. Feature flags must declare type and default.
+   83. Feature flag defaults must match the declared feature flag type.
+   84. scope entity must reference an existing entity.
+   85. feature_enabled(flag) requires a declared bool feature flag.
+   86. feature_value(flag) requires a declared feature flag.
 
 *)
