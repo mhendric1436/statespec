@@ -327,6 +327,14 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tSource string\n";
     out << "\tTarget string\n";
     out << "}\n\n";
+    out << "type ExternalSystemMetadataMappingAssignment struct {\n";
+    out << "\tSource string\n";
+    out << "\tField string\n";
+    out << "}\n\n";
+    out << "type ExternalSystemMetadataMappingPlan struct {\n";
+    out << "\tClientMappings []ExternalSystemMetadataMappingAssignment\n";
+    out << "\tRequestMappings []ExternalSystemMetadataMappingAssignment\n";
+    out << "}\n\n";
     out << "type ExternalSystemMetadataDescriptor struct {\n";
     out << "\tEntity string\n";
     out << "\tTenantField *string\n";
@@ -622,6 +630,26 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t},\n";
     }
     out << "\t}\n";
+    out << "}\n\n";
+
+    out << "func BuildExternalSystemMetadataMappingPlan(descriptor ExternalSystemDescriptor) "
+           "ExternalSystemMetadataMappingPlan {\n";
+    out << "\tplan := ExternalSystemMetadataMappingPlan{}\n";
+    out << "\tif descriptor.Metadata == nil {\n";
+    out << "\t\treturn plan\n";
+    out << "\t}\n";
+    out << "\tfor _, mapping := range descriptor.Metadata.Mappings {\n";
+    out << "\t\tif strings.HasPrefix(mapping.Target, \"client.\") {\n";
+    out << "\t\t\tplan.ClientMappings = append(plan.ClientMappings, "
+           "ExternalSystemMetadataMappingAssignment{Source: mapping.Source, Field: "
+           "strings.TrimPrefix(mapping.Target, \"client.\")})\n";
+    out << "\t\t} else if strings.HasPrefix(mapping.Target, \"request.\") {\n";
+    out << "\t\t\tplan.RequestMappings = append(plan.RequestMappings, "
+           "ExternalSystemMetadataMappingAssignment{Source: mapping.Source, Field: "
+           "strings.TrimPrefix(mapping.Target, \"request.\")})\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn plan\n";
     out << "}\n\n";
 
     out << "func BuildExternalSystemMetadataLookup(descriptor ExternalSystemDescriptor, "

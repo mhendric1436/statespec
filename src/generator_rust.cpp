@@ -355,6 +355,16 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub target: String,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct ExternalSystemMetadataMappingAssignment {\n";
+    out << "    pub source: String,\n";
+    out << "    pub field: String,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone, Default)]\n";
+    out << "pub struct ExternalSystemMetadataMappingPlan {\n";
+    out << "    pub client_mappings: Vec<ExternalSystemMetadataMappingAssignment>,\n";
+    out << "    pub request_mappings: Vec<ExternalSystemMetadataMappingAssignment>,\n";
+    out << "}\n\n";
+    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ExternalSystemMetadataDescriptor {\n";
     out << "    pub entity: String,\n";
     out << "    pub tenant_field: Option<String>,\n";
@@ -702,6 +712,27 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "        key_values,\n";
     out << "        required_fields: metadata.required_fields.clone(),\n";
     out << "    })\n";
+    out << "}\n\n";
+
+    out << "pub fn external_system_metadata_mapping_plan(\n";
+    out << "    descriptor: &ExternalSystemDescriptor,\n";
+    out << ") -> ExternalSystemMetadataMappingPlan {\n";
+    out << "    let mut plan = ExternalSystemMetadataMappingPlan::default();\n";
+    out << "    let Some(metadata) = descriptor.metadata.as_ref() else { return plan; };\n";
+    out << "    for mapping in &metadata.mappings {\n";
+    out << "        if let Some(field) = mapping.target.strip_prefix(\"client.\") {\n";
+    out << "            plan.client_mappings.push(ExternalSystemMetadataMappingAssignment {\n";
+    out << "                source: mapping.source.clone(),\n";
+    out << "                field: field.to_string(),\n";
+    out << "            });\n";
+    out << "        } else if let Some(field) = mapping.target.strip_prefix(\"request.\") {\n";
+    out << "            plan.request_mappings.push(ExternalSystemMetadataMappingAssignment {\n";
+    out << "                source: mapping.source.clone(),\n";
+    out << "                field: field.to_string(),\n";
+    out << "            });\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "    plan\n";
     out << "}\n\n";
 
     out << "pub fn external_system_metadata_lookup_by_name(\n";

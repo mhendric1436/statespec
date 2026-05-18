@@ -430,6 +430,8 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "make_order_accept
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingDescriptor"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "external_system_metadata_mapping_plan"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "std::optional<std::string> tenant_field"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "std::vector<std::string> key_fields"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"metadata.base_url\""
@@ -558,6 +560,14 @@ int main()
 {
     FakeTx tx;
     FakeResolver resolver;
+    const auto descriptors = statespec_generated::external_system_descriptors();
+    const auto plan = statespec_generated::external_system_metadata_mapping_plan(descriptors[0]);
+    if (plan.client_mappings.size() != 3 || plan.request_mappings.size() != 1 ||
+        plan.client_mappings[0].field != "base_url" ||
+        plan.request_mappings[0].field != "order_id")
+    {
+        return 1;
+    }
     std::vector<statespec::backend::ExternalSystemMetadataKeyValue> keys{
         {"tenant_id", "tenant-a"},
         {"external_system_id", "stripe"},
@@ -613,6 +623,8 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func NewOrderAccep
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingPlan struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func BuildExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "TenantField *string"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "KeyFields []string"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "TenantField: stringPtr(\"tenant_id\")"
@@ -735,6 +747,10 @@ func TestGeneratedMetadataResolverFixture(t *testing.T) {
 	ctx := context.Background()
 	resolver := &fixtureResolver{}
 	tx := fixtureTx{}
+	plan := BuildExternalSystemMetadataMappingPlan(ExternalSystemDescriptors()[0])
+	if len(plan.ClientMappings) != 3 || len(plan.RequestMappings) != 1 || plan.ClientMappings[0].Field != "base_url" || plan.RequestMappings[0].Field != "order_id" {
+		t.Fatalf("unexpected metadata mapping plan: %#v", plan)
+	}
 	keys := []ExternalSystemMetadataKeyValue{
 		{Field: "tenant_id", Value: JSONString("tenant-a")},
 		{Field: "external_system_id", Value: JSONString("stripe")},
@@ -786,6 +802,8 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingDescriptor"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "externalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional<String> tenantField"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "List<String> keyFields"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional.of(\"tenant_id\")"
@@ -922,6 +940,16 @@ public final class MetadataResolverFixture
     {
         FixtureResolver resolver = new FixtureResolver();
         FixtureTx tx = new FixtureTx();
+        Descriptors.ExternalSystemMetadataMappingPlan plan =
+            Descriptors.externalSystemMetadataMappingPlan(
+                Descriptors.externalSystemDescriptors().get(0)
+            );
+        if (plan.clientMappings().size() != 3 || plan.requestMappings().size() != 1 ||
+            !plan.clientMappings().get(0).field().equals("base_url") ||
+            !plan.requestMappings().get(0).field().equals("order_id"))
+        {
+            throw new AssertionError("unexpected metadata mapping plan");
+        }
         List<ExternalSystem.MetadataKeyValue> keys = List.of(
             new ExternalSystem.MetadataKeyValue("tenant_id", Json.string("tenant-a")),
             new ExternalSystem.MetadataKeyValue("external_system_id", Json.string("stripe")),
@@ -981,6 +1009,8 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn make_order_accept
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingDescriptor"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_metadata_mapping_plan"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub tenant_field: Option<String>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub key_fields: Vec<String>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "tenant_field: Some(\"tenant_id\".to_string())"
@@ -1217,6 +1247,12 @@ mod tests {
             calls: Cell::new(0),
         };
         let mut tx = FixtureTx;
+        let descriptors = crate::descriptors::external_system_descriptors();
+        let plan = crate::descriptors::external_system_metadata_mapping_plan(&descriptors[0]);
+        assert_eq!(plan.client_mappings.len(), 3);
+        assert_eq!(plan.request_mappings.len(), 1);
+        assert_eq!(plan.client_mappings[0].field, "base_url");
+        assert_eq!(plan.request_mappings[0].field, "order_id");
         let keys = vec![
             ExternalSystemMetadataKeyValue {
                 field: "tenant_id".to_string(),

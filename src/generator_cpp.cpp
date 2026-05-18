@@ -368,6 +368,18 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::string target;\n";
     out << "};\n\n";
 
+    out << "struct ExternalSystemMetadataMappingAssignment\n";
+    out << "{\n";
+    out << "    std::string source;\n";
+    out << "    std::string field;\n";
+    out << "};\n\n";
+
+    out << "struct ExternalSystemMetadataMappingPlan\n";
+    out << "{\n";
+    out << "    std::vector<ExternalSystemMetadataMappingAssignment> client_mappings;\n";
+    out << "    std::vector<ExternalSystemMetadataMappingAssignment> request_mappings;\n";
+    out << "};\n\n";
+
     out << "struct ExternalSystemMetadataDescriptor\n";
     out << "{\n";
     out << "    std::string entity;\n";
@@ -726,6 +738,37 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "        },\n";
     }
     out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline ExternalSystemMetadataMappingPlan external_system_metadata_mapping_plan(\n";
+    out << "    const ExternalSystemDescriptor& descriptor\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    ExternalSystemMetadataMappingPlan plan;\n";
+    out << "    if (!descriptor.metadata.has_value())\n";
+    out << "    {\n";
+    out << "        return plan;\n";
+    out << "    }\n";
+    out << "    constexpr std::string_view client_prefix = \"client.\";\n";
+    out << "    constexpr std::string_view request_prefix = \"request.\";\n";
+    out << "    for (const auto& mapping : descriptor.metadata->mappings)\n";
+    out << "    {\n";
+    out << "        if (mapping.target.rfind(client_prefix, 0) == 0)\n";
+    out << "        {\n";
+    out << "            plan.client_mappings.push_back(ExternalSystemMetadataMappingAssignment{\n";
+    out << "                mapping.source,\n";
+    out << "                mapping.target.substr(client_prefix.size()),\n";
+    out << "            });\n";
+    out << "        }\n";
+    out << "        else if (mapping.target.rfind(request_prefix, 0) == 0)\n";
+    out << "        {\n";
+    out << "            plan.request_mappings.push_back(ExternalSystemMetadataMappingAssignment{\n";
+    out << "                mapping.source,\n";
+    out << "                mapping.target.substr(request_prefix.size()),\n";
+    out << "            });\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "    return plan;\n";
     out << "}\n\n";
 
     out << "inline std::optional<statespec::backend::ExternalSystemMetadataLookup> "
