@@ -1628,6 +1628,12 @@ void validator_accepts_namespaces_external_systems_and_policies()
                 entity ExternalSystemEndpoint
                 profile_field profile
                 required_fields [base_url, auth_ref, timeout_ms]
+                mappings {
+                  metadata.base_url -> client.base_url
+                  metadata.auth_ref -> client.auth_ref
+                  metadata.timeout_ms -> client.timeout_ms
+                  input.invoice_id -> request.invoice_id
+                }
               }
             }
 
@@ -1763,6 +1769,86 @@ void validator_rejects_invalid_external_system_metadata_model()
     require(
         has_error_code(diagnostics, "SSPEC4905"),
         "validator should reject metadata entity keys missing the tenant field"
+    );
+}
+
+void validator_rejects_invalid_external_system_metadata_mappings()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          entity ExternalSystemEndpoint {
+            key tenant_id, external_system_id, profile
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              external_system_id string
+              profile string
+              base_url string
+              auth_ref string
+            }
+            state_machine {
+              state Active
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
+              initial Active
+              terminal Deleted
+              Active -> Deleted
+            }
+          }
+
+          external_system Stripe {
+            metadata {
+              entity ExternalSystemEndpoint
+              profile_field profile
+              required_fields [base_url]
+              mappings {
+                metadata.auth_ref -> client.auth_ref
+                metadata.missing -> client.missing
+                operator.base_url -> client.operator_base_url
+                metadata.base_url -> response.base_url
+                input -> request.id
+                input.order_id -> request.id
+                entity.order_id -> request.id
+              }
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC4906"),
+        "validator should reject metadata mapping paths without a field segment"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4907"),
+        "validator should reject unsupported metadata mapping roots"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4908"),
+        "validator should reject duplicate metadata mapping targets"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4909"),
+        "validator should reject metadata mapping fields missing from the metadata entity"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4910"),
+        "validator should require mapped metadata fields to be required metadata fields"
     );
 }
 
@@ -2233,6 +2319,11 @@ TEST_CASE("validator rejects invalid namespaces and external systems")
 TEST_CASE("validator rejects invalid external system metadata model")
 {
     validator_rejects_invalid_external_system_metadata_model();
+}
+
+TEST_CASE("validator rejects invalid external system metadata mappings")
+{
+    validator_rejects_invalid_external_system_metadata_mappings();
 }
 
 TEST_CASE("validator accepts logs and metrics")

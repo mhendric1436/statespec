@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -39,6 +40,64 @@ std::unordered_set<std::string> entity_field_names(const EntityDecl& entity)
         fields.insert(field.name);
     }
     return fields;
+}
+
+std::vector<std::string> split_path(const std::string& path)
+{
+    std::vector<std::string> segments;
+    std::string current;
+    for (const auto ch : path)
+    {
+        if (ch == '.')
+        {
+            segments.push_back(current);
+            current.clear();
+        }
+        else
+        {
+            current.push_back(ch);
+        }
+    }
+    segments.push_back(current);
+    return segments;
+}
+
+bool contains_name(
+    const std::unordered_set<std::string>& names,
+    const std::string& name
+)
+{
+    return names.find(name) != names.end();
+}
+
+void validate_metadata_mapping_path_shape(
+    const ExternalSystemDecl& external_system,
+    const ExternalSystemMetadataMappingDecl& mapping,
+    std::string_view side,
+    const std::string& path,
+    const std::unordered_set<std::string>& allowed_roots,
+    DiagnosticBag& diagnostics
+)
+{
+    const auto segments = split_path(path);
+    if (segments.size() < 2)
+    {
+        diagnostics.error(
+            mapping.range, "SSPEC4906",
+            "external_system '" + external_system.name + "' metadata mapping " + std::string(side) +
+                " '" + path + "' must include a root and field"
+        );
+        return;
+    }
+
+    if (!contains_name(allowed_roots, segments.front()))
+    {
+        diagnostics.error(
+            mapping.range, "SSPEC4907",
+            "external_system '" + external_system.name + "' metadata mapping " + std::string(side) +
+                " '" + path + "' uses unsupported root '" + segments.front() + "'"
+        );
+    }
 }
 
 bool is_expression_identifier_token(TokenKind kind)
@@ -1008,6 +1067,31 @@ void validate_external_systems(
                 }
             }
 
+            const std::unordered_set<std::string> allowed_source_roots{
+                "input", "entity", "workflow", "metadata"
+            };
+            const std::unordered_set<std::string> allowed_target_roots{"client", "request"};
+            std::unordered_set<std::string> mapping_targets;
+            for (const auto& mapping : metadata.mappings)
+            {
+                validate_metadata_mapping_path_shape(
+                    external_system, mapping, "source", mapping.source, allowed_source_roots,
+                    diagnostics
+                );
+                validate_metadata_mapping_path_shape(
+                    external_system, mapping, "target", mapping.target, allowed_target_roots,
+                    diagnostics
+                );
+                if (!mapping.target.empty() && !mapping_targets.insert(mapping.target).second)
+                {
+                    diagnostics.error(
+                        mapping.range, "SSPEC4908",
+                        "external_system '" + external_system.name + "' metadata mapping target '" +
+                            mapping.target + "' is mapped more than once"
+                    );
+                }
+            }
+
             if (!metadata.entity.has_value())
             {
                 continue;
@@ -1044,6 +1128,33 @@ void validate_external_systems(
                         "external_system '" + external_system.name + "' metadata required field '" +
                             field + "' must exist on entity '" + entity->name + "'"
                     );
+                }
+            }
+
+            for (const auto& mapping : metadata.mappings)
+            {
+                const auto source_segments = split_path(mapping.source);
+                if (source_segments.size() >= 2 && source_segments.front() == "metadata")
+                {
+                    const auto& field = source_segments[1];
+                    if (fields.find(field) == fields.end())
+                    {
+                        diagnostics.error(
+                            mapping.range, "SSPEC4909",
+                            "external_system '" + external_system.name +
+                                "' metadata mapping source field '" + field +
+                                "' must exist on entity '" + entity->name + "'"
+                        );
+                    }
+                    if (required_fields.find(field) == required_fields.end())
+                    {
+                        diagnostics.error(
+                            mapping.range, "SSPEC4910",
+                            "external_system '" + external_system.name +
+                                "' metadata mapping source field '" + field +
+                                "' must be listed in required_fields"
+                        );
+                    }
                 }
             }
 

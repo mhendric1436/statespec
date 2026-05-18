@@ -187,9 +187,17 @@ external_system Stripe {
 }
 ```
 
-Current generated descriptors preserve mapping source and target names. Detailed semantic
-validation of mapping source namespaces and target fields is intentionally handled by the
-compiler rather than by binding runtime adapters.
+The compiler validates mapping shape before generators run:
+
+- Source roots must be `input`, `entity`, `workflow`, or `metadata`.
+- Target roots must be `request` or `client`.
+- Each path must include a root and at least one field segment.
+- Each target field may be mapped at most once.
+- `metadata.*` source fields must exist on `metadata.entity` and be listed in
+  `required_fields`.
+
+Generated descriptors preserve validated mapping source and target names. Binding runtime
+adapters should consume those descriptors rather than reinterpreting raw `.sspec` text.
 
 ## OCC Requirement
 
