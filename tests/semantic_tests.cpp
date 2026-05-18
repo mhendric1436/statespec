@@ -113,6 +113,7 @@ void semantic_resolver_resolves_runtime_references()
           }
 
           policy OrderAccess {
+            tenant scoped_by tenant_id
             allow StartOrderProcessing when caller.role == operator;
             audit StartOrderProcessing;
           }

@@ -213,6 +213,7 @@ system Demo {
   }
 
   policy OrderAccess {
+    tenant scoped_by tenant_id
     allow StartOrderProcessing when caller.role == operator;
     quota starts_per_minute: 60;
     audit StartOrderProcessing;

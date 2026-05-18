@@ -375,6 +375,7 @@ struct PolicyDecl
     std::vector<PolicyRuleDecl> denies;
     std::vector<QuotaDecl> quotas;
     std::vector<std::string> audits;
+    std::vector<BlockMemberOrder> member_order;
     SourceRange range;
 };
 

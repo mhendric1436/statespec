@@ -215,6 +215,15 @@ OrderAccess
 TenantQuotaPolicy
 ```
 
+Use canonical policy member order:
+
+```text
+tenant, allow, deny, quota, audit
+```
+
+Each policy must declare `tenant scoped_by` and at least one policy action. The validator
+warns when policy members appear out of canonical order.
+
 Keep conditions simple and reviewable:
 
 ```statespec

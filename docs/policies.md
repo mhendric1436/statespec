@@ -26,9 +26,9 @@ Use tenant scoping to identify the field used for tenant isolation.
 tenant scoped_by tenant_id
 ```
 
-Policy tenant scoping must match the system-level tenant field. For a system declared with
-`tenant scoped_by tenant_id`, policies either use `tenant scoped_by tenant_id` or omit the
-policy-local tenant line when the policy is not tenant-specific.
+Policy tenant scoping is required and must match the system-level tenant field. For a
+system declared with `tenant scoped_by tenant_id`, every policy uses
+`tenant scoped_by tenant_id`.
 
 The scoped field should exist on the relevant entity, request shape, payload, or generated
 context used by the target runtime.
@@ -76,6 +76,8 @@ level helper functions.
 ## Authoring Guidelines
 
 - Keep policy names aligned with the system area they protect.
+- Use canonical policy member order: `tenant`, `allow`, `deny`, `quota`, `audit`.
+- Include at least one `allow`, `deny`, `quota`, or `audit` declaration.
 - Prefer positive `allow` rules and reserve `deny` for explicit exclusions.
 - Keep conditions simple enough to review.
 - Do not hide authorization-critical behavior in prose comments.

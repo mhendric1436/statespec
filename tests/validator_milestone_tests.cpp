@@ -195,6 +195,7 @@ void validator_accepts_resolved_references()
             enqueues EmailQueue.SendConfirmation
           }
           policy WorkflowAccess {
+            tenant scoped_by tenant_id
             allow StartOrderProcessing when caller.role == operator;
             audit StartOrderProcessing;
           }
@@ -581,6 +582,52 @@ void validator_rejects_policy_tenant_scope_mismatch()
         has_error_code(diagnostics, "SSPEC3405"),
         "validator should reject policy tenant scopes that differ from the system tenant scope"
     );
+}
+
+void validator_rejects_incomplete_policy_canonical_shape()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          policy EmptyAccess {
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "tenant scoped_by"),
+        "validator should require explicit policy tenant scope"
+    );
+    require(
+        has_error_message_containing(diagnostics, "at least one allow, deny, quota, or audit"),
+        "validator should require at least one policy action"
+    );
+}
+
+void validator_warns_on_noncanonical_policy_order()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          api StartOrder {
+            method POST
+            path "/v1/orders/start"
+          }
+
+          policy OrderAccess {
+            tenant scoped_by tenant_id
+            audit StartOrder;
+            allow StartOrder when caller.role == operator;
+          }
+        }
+    )sspec");
+
+    require(!diagnostics.has_errors(), "noncanonical policy order should remain valid");
+    require(has_warning_code(diagnostics, "SSPEC6103"), "validator should warn on policy order");
 }
 
 void validator_rejects_invalid_entity_management_field_types()
@@ -1021,6 +1068,7 @@ void validator_accepts_feature_flags()
             path "/v1/orders/start"
           }
           policy WorkflowAccess {
+            tenant scoped_by tenant_id
             allow StartOrderProcessing when feature_enabled(NewScheduler);
             quota pending_orders: feature_value(MaxPendingOrders) >= 0;
           }
@@ -1090,6 +1138,7 @@ void validator_rejects_invalid_feature_flag_expression_references()
             path "/v1/orders/start"
           }
           policy WorkflowAccess {
+            tenant scoped_by tenant_id
             allow StartOrderProcessing when feature_enabled(SchedulerMode);
             deny StartOrderProcessing when feature_value(MissingFlag) == "off";
           }
@@ -1216,6 +1265,7 @@ void validator_accepts_namespaces_external_systems_and_policies()
           }
 
           policy BillingAccess {
+            tenant scoped_by tenant_id
             allow Billing.StartInvoice when caller.role == billing_admin;
             quota starts_per_minute: 60;
             audit Billing.StartInvoice;
@@ -1427,6 +1477,16 @@ TEST_CASE("validator rejects missing tenant field propagation")
 TEST_CASE("validator rejects policy tenant scope mismatch")
 {
     validator_rejects_policy_tenant_scope_mismatch();
+}
+
+TEST_CASE("validator rejects incomplete policy canonical shape")
+{
+    validator_rejects_incomplete_policy_canonical_shape();
+}
+
+TEST_CASE("validator warns on noncanonical policy order")
+{
+    validator_warns_on_noncanonical_policy_order();
 }
 
 TEST_CASE("validator rejects invalid entity management field types")

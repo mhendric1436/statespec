@@ -239,6 +239,7 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
           }
 
           policy BillingAccess {
+            tenant scoped_by tenant_id
             allow Billing.StartInvoice when caller.role == billing_admin;
             quota starts_per_minute: 60;
             audit Billing.StartInvoice;
