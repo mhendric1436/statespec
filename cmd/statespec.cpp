@@ -128,6 +128,9 @@ void append_system_members(
     target.queues.insert(target.queues.end(), source.queues.begin(), source.queues.end());
     target.leases.insert(target.leases.end(), source.leases.begin(), source.leases.end());
     target.workers.insert(target.workers.end(), source.workers.begin(), source.workers.end());
+    target.api_servers.insert(
+        target.api_servers.end(), source.api_servers.begin(), source.api_servers.end()
+    );
     target.apis.insert(target.apis.end(), source.apis.begin(), source.apis.end());
     target.workflows.insert(
         target.workflows.end(), source.workflows.begin(), source.workflows.end()
@@ -224,6 +227,7 @@ statespec::Spec load_composed_spec(
         composed_system.queues.clear();
         composed_system.leases.clear();
         composed_system.workers.clear();
+        composed_system.api_servers.clear();
         composed_system.apis.clear();
         composed_system.workflows.clear();
         composed_system.policies.clear();
@@ -885,6 +889,9 @@ void write_spec_json(
     out << ",\n";
     out << "    \"workers\": ";
     write_named_array(out, system.workers);
+    out << ",\n";
+    out << "    \"api_servers\": ";
+    write_named_array(out, system.api_servers);
     out << ",\n";
     out << "    \"apis\": ";
     write_named_array(out, system.apis);

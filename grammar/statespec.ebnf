@@ -13,6 +13,7 @@
     - entities and state machines
     - entity relationships and ownership
     - APIs
+    - API servers
     - workflows and workflow steps
     - queues and messages
     - leases and workers
@@ -64,6 +65,7 @@ system_member           ::= system_tenant_scope_decl
                           | queue_decl
                           | lease_decl
                           | worker_decl
+                          | api_server_decl
                           | api_decl
                           | workflow_decl
                           | policy_decl
@@ -559,6 +561,16 @@ lease_ref_or_inline     ::= QualifiedName | lease_block ;
 (* ============================================================ *)
 (* APIs                                                         *)
 (* ============================================================ *)
+
+api_server_decl         ::= "api_server" Identifier api_server_block ;
+
+api_server_block        ::= "{"
+                              api_server_member*
+                            "}" ;
+
+api_server_member       ::= "serves" QualifiedName ";"?
+                          | "concurrency" IntegerLiteral ";"?
+                          | annotations_block ;
 
 api_decl                ::= "api" Identifier api_block ;
 

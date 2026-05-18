@@ -274,6 +274,14 @@ struct WorkerDecl
     SourceRange range;
 };
 
+struct ApiServerDecl
+{
+    std::string name;
+    std::vector<std::string> serves;
+    std::optional<int> concurrency;
+    SourceRange range;
+};
+
 struct ApiDecl
 {
     std::string name;
@@ -380,6 +388,7 @@ struct SystemDecl
     std::vector<QueueDecl> queues;
     std::vector<LeaseDecl> leases;
     std::vector<WorkerDecl> workers;
+    std::vector<ApiServerDecl> api_servers;
     std::vector<ApiDecl> apis;
     std::vector<WorkflowDecl> workflows;
     std::vector<PolicyDecl> policies;
