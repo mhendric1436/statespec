@@ -79,6 +79,7 @@ void validate_events(
 
 void validate_external_systems(
     const SystemDecl& system,
+    const SymbolTable& symbols,
     DiagnosticBag& diagnostics
 );
 

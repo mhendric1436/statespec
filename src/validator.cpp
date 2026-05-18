@@ -33,7 +33,7 @@ void Validator::validate(
     validate_values(context.system, context.symbols, context.diagnostics);
     validate_enums(context.diagnostics, context.system);
     validate_events(context.system, context.symbols, context.diagnostics);
-    validate_external_systems(context.system, context.diagnostics);
+    validate_external_systems(context.system, context.symbols, context.diagnostics);
     validate_shapes(context.system, context.symbols, context.diagnostics);
     validate_logs(context.system, context.symbols, context.diagnostics);
     validate_metrics(context.system, context.symbols, context.diagnostics);

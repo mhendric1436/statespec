@@ -1587,6 +1587,39 @@ void validator_accepts_namespaces_external_systems_and_policies()
             accepted bool
           }
 
+          entity ExternalSystemEndpoint {
+            key tenant_id, external_system_id, profile
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              external_system_id string
+              profile string
+              base_url string
+              auth_ref string
+              timeout_ms int
+            }
+            state_machine {
+              state Active
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
+              initial Active
+              terminal Deleted
+              Active -> Deleted
+            }
+          }
+
           namespace Billing {
             external_system Stripe {
               owner: "payments"
@@ -1653,6 +1686,83 @@ void validator_rejects_invalid_namespaces_and_external_systems()
     require(
         has_error_code(diagnostics, "SSPEC3001"),
         "validator should reject duplicate external system required metadata fields"
+    );
+}
+
+void validator_rejects_invalid_external_system_metadata_model()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          entity ExternalSystemEndpoint {
+            key external_system_id, profile
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              external_system_id string
+              profile string
+              base_url string
+            }
+            state_machine {
+              state Active
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
+              initial Active
+              terminal Deleted
+              Active -> Deleted
+            }
+          }
+
+          external_system Stripe {
+            metadata {
+              entity ExternalSystemEndpoint
+              profile_field missing_profile
+              required_fields [base_url, auth_ref]
+            }
+          }
+
+          external_system MissingMetadataTarget {
+            metadata {
+              entity MissingEndpoint
+              profile_field profile
+              required_fields [base_url]
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, "SSPEC3002"),
+        "validator should reject unknown external system metadata entities"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4902"),
+        "validator should reject metadata profile fields missing from the metadata entity"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4903"),
+        "validator should reject metadata required fields missing from the metadata entity"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4904"),
+        "validator should reject metadata entities missing the tenant field"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4905"),
+        "validator should reject metadata entity keys missing the tenant field"
     );
 }
 
@@ -2118,6 +2228,11 @@ TEST_CASE("validator accepts namespaces, external systems, and policies")
 TEST_CASE("validator rejects invalid namespaces and external systems")
 {
     validator_rejects_invalid_namespaces_and_external_systems();
+}
+
+TEST_CASE("validator rejects invalid external system metadata model")
+{
+    validator_rejects_invalid_external_system_metadata_model();
 }
 
 TEST_CASE("validator accepts logs and metrics")

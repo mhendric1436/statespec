@@ -210,6 +210,14 @@ external_system_metadata_member ::= "entity" QualifiedName ";"?
                                   | "profile_field" Identifier ";"?
                                   | "required_fields" identifier_list ";"? ;
 
+(*
+  External system metadata semantic notes:
+    - metadata.entity must reference a declared entity.
+    - metadata.profile_field and metadata.required_fields must exist on that entity.
+    - In tenant-scoped systems, the metadata entity must declare the tenant field and
+      include it in the entity key.
+*)
+
 
 (* ============================================================ *)
 (* Feature Flags                                                *)

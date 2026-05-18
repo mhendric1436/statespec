@@ -31,6 +31,16 @@ const FeatureFlagDecl* find_feature_flag(
     return nullptr;
 }
 
+std::unordered_set<std::string> entity_field_names(const EntityDecl& entity)
+{
+    std::unordered_set<std::string> fields;
+    for (const auto& field : entity.fields)
+    {
+        fields.insert(field.name);
+    }
+    return fields;
+}
+
 bool is_expression_identifier_token(TokenKind kind)
 {
     switch (kind)
@@ -946,6 +956,7 @@ void validate_events(
 
 void validate_external_systems(
     const SystemDecl& system,
+    const SymbolTable& symbols,
     DiagnosticBag& diagnostics
 )
 {
@@ -994,6 +1005,67 @@ void validate_external_systems(
                 if (!required_fields.insert(field).second)
                 {
                     duplicate_error(diagnostics, metadata.range, field);
+                }
+            }
+
+            if (!metadata.entity.has_value())
+            {
+                continue;
+            }
+
+            validate_symbol_reference(
+                symbols, metadata.range, "external_system metadata entity", *metadata.entity,
+                {SymbolKind::Entity}, diagnostics
+            );
+
+            const auto* entity = find_entity(system, *metadata.entity);
+            if (entity == nullptr)
+            {
+                continue;
+            }
+
+            const auto fields = entity_field_names(*entity);
+            if (metadata.profile_field.has_value() &&
+                fields.find(*metadata.profile_field) == fields.end())
+            {
+                diagnostics.error(
+                    metadata.range, "SSPEC4902",
+                    "external_system '" + external_system.name + "' metadata profile_field '" +
+                        *metadata.profile_field + "' must exist on entity '" + entity->name + "'"
+                );
+            }
+
+            for (const auto& field : metadata.required_fields)
+            {
+                if (fields.find(field) == fields.end())
+                {
+                    diagnostics.error(
+                        metadata.range, "SSPEC4903",
+                        "external_system '" + external_system.name + "' metadata required field '" +
+                            field + "' must exist on entity '" + entity->name + "'"
+                    );
+                }
+            }
+
+            if (system.tenant_scope.has_value())
+            {
+                const auto& tenant_field = system.tenant_scope->field_name;
+                if (fields.find(tenant_field) == fields.end())
+                {
+                    diagnostics.error(
+                        metadata.range, "SSPEC4904",
+                        "external_system '" + external_system.name + "' metadata entity '" +
+                            entity->name + "' must declare tenant field '" + tenant_field + "'"
+                    );
+                }
+                if (std::find(entity->key_fields.begin(), entity->key_fields.end(), tenant_field) ==
+                    entity->key_fields.end())
+                {
+                    diagnostics.error(
+                        metadata.range, "SSPEC4905",
+                        "external_system '" + external_system.name + "' metadata entity '" +
+                            entity->name + "' key must include tenant field '" + tenant_field + "'"
+                    );
                 }
             }
         }

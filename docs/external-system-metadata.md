@@ -216,5 +216,11 @@ entity, `profile_field` identifies the entity field used to select a metadata pr
 `required_fields` lists execution metadata fields that generated descriptors and future
 validators can require before making a remote call.
 
+The validator resolves `metadata.entity` to a declared entity and checks that
+`profile_field` and every `required_fields` entry exist on that entity. In tenant-scoped
+systems, the metadata entity must also declare the system tenant field and include it in
+the entity key, so operator configuration is isolated by the same tenant boundary as
+entities, APIs, queues, logs, and metrics.
+
 A complete example is available in
 [`examples/external-system-metadata.sspec`](../examples/external-system-metadata.sspec).
