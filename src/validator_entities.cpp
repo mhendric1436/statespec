@@ -318,6 +318,28 @@ void validate_entity_tenant_field(
     }
 }
 
+void validate_entity_tenant_key(
+    const SystemDecl& system,
+    const EntityDecl& entity,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!system.tenant_scope.has_value())
+    {
+        return;
+    }
+
+    const auto& tenant_field = system.tenant_scope->field_name;
+    if (std::find(entity.key_fields.begin(), entity.key_fields.end(), tenant_field) ==
+        entity.key_fields.end())
+    {
+        diagnostics.error(
+            entity.range, "SSPEC3404",
+            "entity '" + entity.name + "' key must include tenant field '" + tenant_field + "'"
+        );
+    }
+}
+
 void validate_indexes(
     const EntityDecl& entity,
     const std::unordered_set<std::string>& fields,
@@ -564,6 +586,7 @@ void validate_entities(
 
         const auto fields = field_names(entity.fields);
         validate_entity_tenant_field(system, entity, fields, diagnostics);
+        validate_entity_tenant_key(system, entity, diagnostics);
         for (const auto& key_field : entity.key_fields)
         {
             if (!contains(fields, key_field))

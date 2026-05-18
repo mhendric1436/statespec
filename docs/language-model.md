@@ -24,9 +24,10 @@ resources. Names declared inside a system are referenced by APIs, API servers, w
 queues, leases, workers, and policies.
 
 When a system is scoped by a tenant field, that field must be propagated through every
-tenant-addressable contract. Entities must declare the scoped field in `fields`, queue
-message `payload` blocks must carry it, and API `input` shapes must include it. This keeps
-durable state, async work, and synchronous ingress aligned on the same tenant boundary.
+tenant-addressable contract. Entities must declare the scoped field in both `key` and
+`fields`, queue message `payload` blocks must carry it, and API `input` shapes must
+include it. This keeps durable state, async work, and synchronous ingress aligned on the
+same tenant boundary.
 
 Files may also declare `include` directives before imports and the root system:
 

@@ -61,6 +61,10 @@ key tenant_id, order_id
 Key fields should also appear in the `fields` block unless a future runtime explicitly
 generates them.
 
+Tenant-scoped systems must include the scoped tenant field in every entity key. For the
+canonical `tenant scoped_by tenant_id` declaration, durable tenant-owned entities use a
+composite key such as `key tenant_id, order_id`.
+
 ## Ownership
 
 Every entity must declare explicit ownership. The ownership block states whether this

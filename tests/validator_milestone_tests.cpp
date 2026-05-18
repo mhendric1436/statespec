@@ -547,6 +547,10 @@ void validator_rejects_missing_tenant_field_propagation()
         has_error_code(diagnostics, "SSPEC3403"),
         "validator should require tenant field on tenant-scoped API input shapes"
     );
+    require(
+        has_error_code(diagnostics, "SSPEC3404"),
+        "validator should require tenant field in tenant-scoped entity keys"
+    );
 }
 
 void validator_rejects_invalid_entity_management_field_types()

@@ -73,7 +73,7 @@ system WorkflowLaunchControl {
   }
 
   entity WorkflowStartReservation {
-    key reservation_id
+    key tenant_id, reservation_id
     ownership {
       authority: system
       system_of_record: self
