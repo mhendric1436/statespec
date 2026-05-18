@@ -695,7 +695,11 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        if (lookup.isEmpty()) {\n";
     out << "            return Optional.empty();\n";
     out << "        }\n";
-    out << "        return resolver.resolveMetadataTx(tx, lookup.orElseThrow());\n";
+    out << "        ExternalSystem.MetadataLookup resolvedLookup = lookup.orElseThrow();\n";
+    out << "        if (!resolvedLookup.keyComplete()) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        return resolver.resolveMetadataTx(tx, resolvedLookup);\n";
     out << "    }\n\n";
 
     out << "    public static Optional<ExternalSystem.MetadataResolution> "
@@ -710,7 +714,11 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        if (lookup.isEmpty()) {\n";
     out << "            return Optional.empty();\n";
     out << "        }\n";
-    out << "        return resolver.resolveMetadataTx(tx, lookup.orElseThrow());\n";
+    out << "        ExternalSystem.MetadataLookup resolvedLookup = lookup.orElseThrow();\n";
+    out << "        if (!resolvedLookup.keyComplete()) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        return resolver.resolveMetadataTx(tx, resolvedLookup);\n";
     out << "    }\n\n";
 
     out << "    public static List<ApiDescriptor> apiDescriptors() {\n";

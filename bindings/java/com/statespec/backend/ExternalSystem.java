@@ -26,6 +26,10 @@ public interface ExternalSystem
         List<String> requiredFields
     )
     {
+        public boolean keyComplete()
+        {
+            return missingMetadataKeyFields(this).isEmpty();
+        }
     }
 
     record MetadataResolution(
@@ -50,6 +54,28 @@ public interface ExternalSystem
             if (document.find(field).isEmpty())
             {
                 missing.add(field);
+            }
+        }
+        return missing;
+    }
+
+    static List<String> missingMetadataKeyFields(MetadataLookup lookup)
+    {
+        List<String> missing = new ArrayList<>();
+        for (String keyField : lookup.keyFields())
+        {
+            boolean found = false;
+            for (MetadataKeyValue keyValue : lookup.keyValues())
+            {
+                if (keyValue.field().equals(keyField))
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                missing.add(keyField);
             }
         }
         return missing;

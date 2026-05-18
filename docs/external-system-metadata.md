@@ -205,6 +205,10 @@ Generated descriptor files also include transaction-scoped resolve helpers that 
 binding resolver's `Tx` method. These helpers intentionally keep metadata reads inside the
 caller-managed OCC transaction.
 
+The binding lookup types expose key-completeness helpers. Generated resolve helpers check
+that every metadata entity key field has a provided runtime key value before calling the
+resolver, preventing malformed lookups from reaching backend-specific implementations.
+
 Metadata writes should use compare-and-swap semantics so two operators cannot silently
 overwrite each other's endpoint, credential reference, or retry policy updates.
 

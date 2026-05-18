@@ -198,8 +198,17 @@ TEST_CASE("C++ external system metadata bindings expose lookup contracts")
 
     REQUIRE(lookup.tenant_field == "tenant_id");
     REQUIRE(lookup.key_fields.size() == 3);
+    REQUIRE(lookup.key_complete());
     REQUIRE(missing.size() == 2);
     REQUIRE(missing[0] == "auth_ref");
+
+    auto incomplete_lookup = lookup;
+    incomplete_lookup.key_values.pop_back();
+    const auto missing_key_fields =
+        statespec::backend::missing_metadata_key_fields(incomplete_lookup);
+    REQUIRE(!incomplete_lookup.key_complete());
+    REQUIRE(missing_key_fields.size() == 1);
+    REQUIRE(missing_key_fields[0] == "profile");
 
     statespec::backend::ExternalSystemMetadataResolution resolution{
         .record =

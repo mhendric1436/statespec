@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -25,6 +26,8 @@ struct ExternalSystemMetadataLookup
     std::vector<std::string> key_fields;
     std::vector<ExternalSystemMetadataKeyValue> key_values;
     std::vector<std::string> required_fields;
+
+    bool key_complete() const;
 };
 
 struct ExternalSystemMetadataResolution
@@ -52,6 +55,31 @@ inline std::vector<std::string> missing_required_metadata_fields(
         }
     }
     return missing;
+}
+
+inline std::vector<std::string>
+missing_metadata_key_fields(const ExternalSystemMetadataLookup& lookup)
+{
+    std::unordered_set<std::string> provided;
+    for (const auto& key_value : lookup.key_values)
+    {
+        provided.insert(key_value.field);
+    }
+
+    std::vector<std::string> missing;
+    for (const auto& key_field : lookup.key_fields)
+    {
+        if (provided.find(key_field) == provided.end())
+        {
+            missing.push_back(key_field);
+        }
+    }
+    return missing;
+}
+
+inline bool ExternalSystemMetadataLookup::key_complete() const
+{
+    return missing_metadata_key_fields(*this).empty();
 }
 
 class IExternalSystemMetadataResolver

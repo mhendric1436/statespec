@@ -17,6 +17,10 @@ type ExternalSystemMetadataLookup struct {
 	RequiredFields []string
 }
 
+func (l ExternalSystemMetadataLookup) KeyComplete() bool {
+	return len(MissingMetadataKeyFields(l)) == 0
+}
+
 type ExternalSystemMetadataResolution struct {
 	Record                VersionedRecord
 	MissingRequiredFields []string
@@ -31,6 +35,21 @@ func MissingRequiredMetadataFields(document JSON, requiredFields []string) []str
 	for _, field := range requiredFields {
 		if _, ok := document.Find(field); !ok {
 			missing = append(missing, field)
+		}
+	}
+	return missing
+}
+
+func MissingMetadataKeyFields(lookup ExternalSystemMetadataLookup) []string {
+	provided := map[string]bool{}
+	for _, keyValue := range lookup.KeyValues {
+		provided[keyValue.Field] = true
+	}
+
+	missing := []string{}
+	for _, keyField := range lookup.KeyFields {
+		if !provided[keyField] {
+			missing = append(missing, keyField)
 		}
 	}
 	return missing

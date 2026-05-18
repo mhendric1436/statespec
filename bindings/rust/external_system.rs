@@ -18,6 +18,12 @@ pub struct ExternalSystemMetadataLookup {
     pub required_fields: Vec<String>,
 }
 
+impl ExternalSystemMetadataLookup {
+    pub fn key_complete(&self) -> bool {
+        missing_metadata_key_fields(self).is_empty()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ExternalSystemMetadataResolution {
     pub record: VersionedRecord,
@@ -37,6 +43,20 @@ pub fn missing_required_metadata_fields(
     required_fields
         .iter()
         .filter(|field| document.find(field).is_none())
+        .cloned()
+        .collect()
+}
+
+pub fn missing_metadata_key_fields(lookup: &ExternalSystemMetadataLookup) -> Vec<String> {
+    lookup
+        .key_fields
+        .iter()
+        .filter(|key_field| {
+            !lookup
+                .key_values
+                .iter()
+                .any(|key_value| key_value.field == **key_field)
+        })
         .cloned()
         .collect()
 }

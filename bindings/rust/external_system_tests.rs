@@ -4,8 +4,9 @@ mod tests {
 
     use crate::backend::VersionedRecord;
     use crate::external_system::{
-        missing_required_metadata_fields, ExternalSystemMetadataKeyValue,
-        ExternalSystemMetadataLookup, ExternalSystemMetadataResolution,
+        missing_metadata_key_fields, missing_required_metadata_fields,
+        ExternalSystemMetadataKeyValue, ExternalSystemMetadataLookup,
+        ExternalSystemMetadataResolution,
     };
     use crate::json::Json;
 
@@ -56,10 +57,17 @@ mod tests {
 
         assert_eq!(lookup.tenant_field.as_deref(), Some("tenant_id"));
         assert_eq!(lookup.key_fields.len(), 3);
+        assert!(lookup.key_complete());
         assert_eq!(
             missing,
             vec!["auth_ref".to_string(), "timeout_ms".to_string()]
         );
+
+        let mut incomplete_lookup = lookup.clone();
+        incomplete_lookup.key_values.pop();
+        let missing_key_fields = missing_metadata_key_fields(&incomplete_lookup);
+        assert!(!incomplete_lookup.key_complete());
+        assert_eq!(missing_key_fields, vec!["profile".to_string()]);
 
         let resolution = ExternalSystemMetadataResolution {
             record: VersionedRecord {

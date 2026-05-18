@@ -767,6 +767,10 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    {\n";
     out << "        return std::nullopt;\n";
     out << "    }\n";
+    out << "    if (!lookup->key_complete())\n";
+    out << "    {\n";
+    out << "        return std::nullopt;\n";
+    out << "    }\n";
     out << "    return resolver.resolve_metadataTx(tx, *lookup);\n";
     out << "}\n\n";
 
@@ -781,6 +785,10 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    auto lookup = external_system_metadata_lookup(external_system, "
            "std::move(key_values));\n";
     out << "    if (!lookup.has_value())\n";
+    out << "    {\n";
+    out << "        return std::nullopt;\n";
+    out << "    }\n";
+    out << "    if (!lookup->key_complete())\n";
     out << "    {\n";
     out << "        return std::nullopt;\n";
     out << "    }\n";

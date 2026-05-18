@@ -29,8 +29,17 @@ func TestExternalSystemMetadataLookupContracts(t *testing.T) {
 	if len(lookup.KeyFields) != 3 {
 		t.Fatalf("expected metadata key fields")
 	}
+	if !lookup.KeyComplete() {
+		t.Fatalf("expected complete metadata key")
+	}
 	if len(missing) != 2 || missing[0] != "auth_ref" {
 		t.Fatalf("unexpected missing fields: %#v", missing)
+	}
+	incompleteLookup := lookup
+	incompleteLookup.KeyValues = incompleteLookup.KeyValues[:len(incompleteLookup.KeyValues)-1]
+	missingKeyFields := MissingMetadataKeyFields(incompleteLookup)
+	if incompleteLookup.KeyComplete() || len(missingKeyFields) != 1 || missingKeyFields[0] != "profile" {
+		t.Fatalf("unexpected missing key fields: %#v", missingKeyFields)
 	}
 
 	resolution := ExternalSystemMetadataResolution{

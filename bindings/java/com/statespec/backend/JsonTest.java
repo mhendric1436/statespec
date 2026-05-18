@@ -190,6 +190,19 @@ public final class JsonTest
             missing.size() == 2 && missing.get(0).equals("auth_ref"),
             "required metadata inspection should report missing fields"
         );
+        require(lookup.keyComplete(), "lookup key should be complete");
+
+        ExternalSystem.MetadataLookup incompleteLookup = new ExternalSystem.MetadataLookup(
+            lookup.externalSystem(), lookup.metadataEntity(), lookup.tenantField(),
+            lookup.profileField(), lookup.keyFields(), lookup.keyValues().subList(0, 2),
+            lookup.requiredFields()
+        );
+        List<String> missingKeyFields = ExternalSystem.missingMetadataKeyFields(incompleteLookup);
+        require(!incompleteLookup.keyComplete(), "lookup key should report missing fields");
+        require(
+            missingKeyFields.size() == 1 && missingKeyFields.get(0).equals("profile"),
+            "lookup key inspection should report missing profile"
+        );
 
         ExternalSystem.MetadataResolution resolution = new ExternalSystem.MetadataResolution(
             new Backend.VersionedRecord(

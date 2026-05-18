@@ -647,6 +647,9 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tif lookup == nil {\n";
     out << "\t\treturn nil, false, nil\n";
     out << "\t}\n";
+    out << "\tif !lookup.KeyComplete() {\n";
+    out << "\t\treturn nil, true, nil\n";
+    out << "\t}\n";
     out << "\tresolution, err := resolver.ResolveMetadataTx(ctx, tx, *lookup)\n";
     out << "\treturn resolution, true, err\n";
     out << "}\n\n";
@@ -658,6 +661,9 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tlookup, ok := ExternalSystemMetadataLookupByName(externalSystem, keyValues)\n";
     out << "\tif !ok || lookup == nil {\n";
     out << "\t\treturn nil, ok, nil\n";
+    out << "\t}\n";
+    out << "\tif !lookup.KeyComplete() {\n";
+    out << "\t\treturn nil, true, nil\n";
     out << "\t}\n";
     out << "\tresolution, err := resolver.ResolveMetadataTx(ctx, tx, *lookup)\n";
     out << "\treturn resolution, true, err\n";

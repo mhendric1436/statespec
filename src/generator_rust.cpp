@@ -704,7 +704,9 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    key_values: Vec<ExternalSystemMetadataKeyValue>,\n";
     out << ") -> BackendResult<Option<ExternalSystemMetadataResolution>> {\n";
     out << "    match external_system_metadata_lookup(descriptor, key_values) {\n";
-    out << "        Some(lookup) => resolver.resolve_metadata_tx(tx, &lookup),\n";
+    out << "        Some(lookup) if lookup.key_complete() => resolver.resolve_metadata_tx(tx, "
+           "&lookup),\n";
+    out << "        Some(_) => Ok(None),\n";
     out << "        None => Ok(None),\n";
     out << "    }\n";
     out << "}\n\n";
@@ -717,7 +719,9 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    key_values: Vec<ExternalSystemMetadataKeyValue>,\n";
     out << ") -> BackendResult<Option<ExternalSystemMetadataResolution>> {\n";
     out << "    match external_system_metadata_lookup_by_name(external_system, key_values) {\n";
-    out << "        Some(lookup) => resolver.resolve_metadata_tx(tx, &lookup),\n";
+    out << "        Some(lookup) if lookup.key_complete() => resolver.resolve_metadata_tx(tx, "
+           "&lookup),\n";
+    out << "        Some(_) => Ok(None),\n";
     out << "        None => Ok(None),\n";
     out << "    }\n";
     out << "}\n\n";
