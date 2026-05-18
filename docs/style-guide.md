@@ -153,6 +153,24 @@ max_retries 3
 
 Use ISO-8601-style duration literals such as `PT5S`, `PT30S`, `PT5M`, and `P1D`.
 
+## Observability Style
+
+Use canonical log member order:
+
+```text
+level, event_name, fields
+```
+
+Use canonical metric member order:
+
+```text
+kind, name, unit, labels
+```
+
+The validator emits warnings when log or metric members appear out of canonical order.
+Metric labels should be low-cardinality dimensions; use log fields for high-cardinality
+identifiers and detailed payload data.
+
 ## Queue Style
 
 Queue names should end in `Queue` unless the domain name is already clearly a queue.

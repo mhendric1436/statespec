@@ -225,6 +225,7 @@ struct LogDecl
     std::optional<std::string> level;
     std::optional<std::string> event_name;
     std::vector<FieldDecl> fields;
+    std::vector<BlockMemberOrder> member_order;
     SourceRange range;
 };
 
@@ -235,6 +236,7 @@ struct MetricDecl
     std::optional<std::string> backend_name;
     std::optional<std::string> unit;
     std::vector<FieldDecl> labels;
+    std::vector<BlockMemberOrder> member_order;
     SourceRange range;
 };
 

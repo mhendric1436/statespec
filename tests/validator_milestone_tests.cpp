@@ -1674,6 +1674,42 @@ void validator_rejects_high_cardinality_metric_labels()
     );
 }
 
+void validator_warns_on_noncanonical_observability_order()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          log WorkflowLaunchDecision {
+            fields {
+              tenant_id string
+              decision string
+            }
+            event_name "workflow.launch.decision"
+            level info
+          }
+
+          metric WorkflowLaunchAttempts {
+            labels {
+              tenant_id string
+              decision string
+            }
+            unit count
+            name "workflow_launch_attempts_total"
+            kind counter
+          }
+        }
+    )sspec");
+
+    require(
+        !diagnostics.has_errors(),
+        "noncanonical observability order should warn without invalidating the spec"
+    );
+    require(has_warning_code(diagnostics, "SSPEC6104"), "validator should warn on log order");
+    require(has_warning_code(diagnostics, "SSPEC6105"), "validator should warn on metric order");
+}
+
 } // namespace
 
 TEST_CASE("validator accepts resolved references")
@@ -1879,4 +1915,9 @@ TEST_CASE("validator rejects invalid metric declarations")
 TEST_CASE("validator rejects high-cardinality metric labels")
 {
     validator_rejects_high_cardinality_metric_labels();
+}
+
+TEST_CASE("validator warns on noncanonical observability order")
+{
+    validator_warns_on_noncanonical_observability_order();
 }

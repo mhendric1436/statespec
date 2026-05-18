@@ -454,6 +454,10 @@ void parser_parses_logs_and_metrics()
         log.fields[0].name == "tenant_id", "parser should parse log field name"
     );
     statespec::test::require(log.fields[0].type == "string", "parser should parse log field type");
+    statespec::test::require(log.member_order.size() == 3, "parser should track log member order");
+    statespec::test::require(
+        log.member_order[0].kind == "level", "parser should track first log member"
+    );
 
     statespec::test::require(spec.system->metrics.size() == 1, "parser should parse one metric");
     const auto& metric = spec.system->metrics[0];
@@ -472,6 +476,12 @@ void parser_parses_logs_and_metrics()
     );
     statespec::test::require(
         metric.labels[1].type == "string", "parser should parse metric label type"
+    );
+    statespec::test::require(
+        metric.member_order.size() == 4, "parser should track metric member order"
+    );
+    statespec::test::require(
+        metric.member_order[0].kind == "kind", "parser should track first metric member"
     );
 }
 

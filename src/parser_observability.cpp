@@ -116,19 +116,22 @@ LogDecl Parser::parse_log_decl(DiagnosticBag& diagnostics)
     {
         if (is_named_identifier(peek(), "level"))
         {
-            advance();
+            const auto level = advance();
+            log.member_order.push_back(BlockMemberOrder{"level", level.range});
             log.level = consume(TokenKind::Identifier, "expected log level", diagnostics).lexeme;
             consume_optional_semicolon();
         }
         else if (is_named_identifier(peek(), "event_name"))
         {
-            advance();
+            const auto event_name = advance();
+            log.member_order.push_back(BlockMemberOrder{"event_name", event_name.range});
             log.event_name = parse_simple_value(diagnostics, "log event_name");
             consume_optional_semicolon();
         }
         else if (check(TokenKind::KeywordFields))
         {
-            advance();
+            const auto fields = advance();
+            log.member_order.push_back(BlockMemberOrder{"fields", fields.range});
             consume(TokenKind::LeftBrace, "expected '{' after log fields", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -160,26 +163,30 @@ MetricDecl Parser::parse_metric_decl(DiagnosticBag& diagnostics)
     {
         if (is_named_identifier(peek(), "kind"))
         {
-            advance();
+            const auto kind = advance();
+            metric.member_order.push_back(BlockMemberOrder{"kind", kind.range});
             metric.kind =
                 consume(TokenKind::Identifier, "expected metric kind", diagnostics).lexeme;
             consume_optional_semicolon();
         }
         else if (is_named_identifier(peek(), "name"))
         {
-            advance();
+            const auto name_member = advance();
+            metric.member_order.push_back(BlockMemberOrder{"name", name_member.range});
             metric.backend_name = parse_simple_value(diagnostics, "metric name");
             consume_optional_semicolon();
         }
         else if (is_named_identifier(peek(), "unit"))
         {
-            advance();
+            const auto unit = advance();
+            metric.member_order.push_back(BlockMemberOrder{"unit", unit.range});
             metric.unit = parse_simple_value(diagnostics, "metric unit");
             consume_optional_semicolon();
         }
         else if (is_named_identifier(peek(), "labels"))
         {
-            advance();
+            const auto labels = advance();
+            metric.member_order.push_back(BlockMemberOrder{"labels", labels.range});
             consume(TokenKind::LeftBrace, "expected '{' after metric labels", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {

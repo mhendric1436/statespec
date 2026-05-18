@@ -52,6 +52,44 @@ int policy_member_order_index(const std::string& kind)
     return 5;
 }
 
+int log_member_order_index(const std::string& kind)
+{
+    if (kind == "level")
+    {
+        return 0;
+    }
+    if (kind == "event_name")
+    {
+        return 1;
+    }
+    if (kind == "fields")
+    {
+        return 2;
+    }
+    return 3;
+}
+
+int metric_member_order_index(const std::string& kind)
+{
+    if (kind == "kind")
+    {
+        return 0;
+    }
+    if (kind == "name")
+    {
+        return 1;
+    }
+    if (kind == "unit")
+    {
+        return 2;
+    }
+    if (kind == "labels")
+    {
+        return 3;
+    }
+    return 4;
+}
+
 void validate_policy_member_order(
     const PolicyDecl& policy,
     DiagnosticBag& diagnostics
@@ -67,6 +105,50 @@ void validate_policy_member_order(
                 member.range, "SSPEC6103",
                 "policy '" + policy.name +
                     "' members should use canonical order: tenant, allow, deny, quota, audit"
+            );
+            return;
+        }
+        previous_order = order;
+    }
+}
+
+void validate_log_member_order(
+    const LogDecl& log,
+    DiagnosticBag& diagnostics
+)
+{
+    int previous_order = -1;
+    for (const auto& member : log.member_order)
+    {
+        const auto order = log_member_order_index(member.kind);
+        if (order < previous_order)
+        {
+            diagnostics.warning(
+                member.range, "SSPEC6104",
+                "log '" + log.name +
+                    "' members should use canonical order: level, event_name, fields"
+            );
+            return;
+        }
+        previous_order = order;
+    }
+}
+
+void validate_metric_member_order(
+    const MetricDecl& metric,
+    DiagnosticBag& diagnostics
+)
+{
+    int previous_order = -1;
+    for (const auto& member : metric.member_order)
+    {
+        const auto order = metric_member_order_index(member.kind);
+        if (order < previous_order)
+        {
+            diagnostics.warning(
+                member.range, "SSPEC6105",
+                "metric '" + metric.name +
+                    "' members should use canonical order: kind, name, unit, labels"
             );
             return;
         }
@@ -526,6 +608,8 @@ void validate_logs(
     std::unordered_set<std::string> event_names;
     for (const auto& log : system.logs)
     {
+        validate_log_member_order(log, diagnostics);
+
         if (!is_qualified_pascal_case_name(log.name))
         {
             diagnostics.error(log.range, "SSPEC4301", "log '" + log.name + "' must use PascalCase");
@@ -569,6 +653,8 @@ void validate_metrics(
     std::unordered_set<std::string> backend_names;
     for (const auto& metric : system.metrics)
     {
+        validate_metric_member_order(metric, diagnostics);
+
         if (!is_qualified_pascal_case_name(metric.name))
         {
             diagnostics.error(
