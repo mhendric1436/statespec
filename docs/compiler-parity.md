@@ -30,7 +30,7 @@ Status meanings:
 | `value` | complete | complete | complete | complete | complete | complete | partial | P2 | Reusable named value types flow through IR and binding descriptors; target-language type generation remains future work. |
 | `enum` | complete | complete | complete | complete | complete | complete | partial | P2 | Enum declarations and members flow through IR and binding descriptors; target-language enum generation remains future work. |
 | `shape` | complete | complete | complete | complete | complete | complete | partial | P1 | Shape descriptors and conservative target-language DTOs are generated; richer custom type mapping remains future work. |
-| `external_system` | complete | complete | complete | complete | complete | complete | partial | P3 | External system properties and validated metadata contracts flow through IR and binding descriptors, including tenant and key fields for metadata lookup; ownership-specific semantics remain future work. |
+| `external_system` | complete | complete | complete | complete | complete | complete | partial | P1 | External system properties, metadata entity references, tenant/key/profile metadata, required metadata fields, and source-to-target mapping descriptors flow through IR and generators. Operator metadata repository/API contracts and OpenAPI routes are generated; concrete persistence and remote clients are runtime-owned. |
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime evaluator generation remains future work. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
@@ -39,11 +39,35 @@ Status meanings:
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding consumes queue references as metadata. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve and generated bindings expose worker descriptors, contexts, and handler skeleton interfaces; executable worker bodies remain future work. |
-| `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve and passive API descriptor metadata is generated; OpenAPI/server generation is not implemented. |
+| `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve, passive API descriptor metadata is generated, and OpenAPI generation emits declared API operations. Request decoding, auth, framework routing, and concrete server adapters remain runtime-owned. |
 | `api_server` | complete | complete | complete | complete | complete | complete | partial | P1 | API server declarations resolve served APIs and generated bindings expose descriptors, route metadata, request/response contexts, and handler interfaces; concrete HTTP loops remain future work. |
 | `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
 | `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression syntax and built-ins are validated while policy enforcement generation remains future work. |
 | `annotations` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P4 | Keep low priority; annotations must not become a semantic escape hatch. |
+
+## External-System Metadata Pipeline
+
+| Stage | Status | Notes |
+|---|---|---|
+| Grammar | complete | `external_system metadata` supports `entity`, `profile_field`, `required_fields`, and `mappings`. Operator APIs are ordinary `api` declarations served by ordinary `api_server` declarations. |
+| Parser/AST | complete | Metadata declarations and mapping paths are parsed into AST nodes; operator API and API server declarations reuse the normal API AST. |
+| Validator | complete | Metadata entities must resolve, include tenant/profile/key fields, declare a unique key index, use authoritative system ownership, and model the canonical `Active`/`Disabled`/`Deleted` lifecycle with `Deleted` as a terminal GC state. Mapping roots and target uniqueness are validated. `metadata.*` mapping sources must exist and be listed in `required_fields`. Operator API shapes follow normal tenant validation. |
+| Semantic model | complete | External system metadata references, mappings, API declarations, and API server serves references resolve through the shared symbol model. |
+| IR | complete | IR preserves metadata entity name, tenant field, profile field, metadata key fields, required fields, mapping source/target pairs, APIs, and API server route inputs. |
+| Formatter | partial | Token-preserving formatting handles the syntax and canonical-order warnings cover the containing declarations. Full AST-owned reordering for all nested metadata/API forms remains future work. |
+| Binding generators | complete for contracts | C++, Go, Java, and Rust emit external-system descriptors, mapping-plan helpers, mapping applicator contracts, missing-source diagnostics, metadata lookup helpers, transaction-scoped resolver helpers, OCC repository contracts, and operator metadata API handler contracts. |
+| OpenAPI generator | partial | OpenAPI emits declared API operations and metadata-derived operator routes when explicit routes are absent. It emits schema contracts, not framework glue. Protobuf generation is intentionally not implemented. |
+| Regression fixture | complete | `testdata/generators/external-system-metadata-e2e.sspec` validates the end-to-end pass across metadata, mappings, explicit operator APIs, API servers, OpenAPI, and generated bindings. |
+
+Runtime-owned responsibilities are intentionally outside the compiler contract:
+
+- backend-specific persistence for metadata entities
+- transaction begin/commit/retry orchestration
+- HTTP framework routing and request decoding
+- authentication and authorization enforcement
+- concrete remote clients, serialization, retry, timeout, and circuit-breaker behavior
+- secret resolution for credential references
+- event transport and worker execution loops
 
 ## Entity Construct Parity
 
@@ -80,7 +104,8 @@ Status meanings:
 | Descriptor generation | partial | P0 | Expand descriptor usage into richer endpoint, worker body, and policy generation. |
 | Runtime bootstrap helpers | complete | P1 | Transaction-scoped helpers cover feature flags, queues, leases, workflows, logs, and metrics in all generated bindings. |
 | Worker scaffolding | partial | P2 | Generated bindings expose worker descriptors, contexts, and language-specific handler interfaces. Next work is runnable queue polling, lease acquisition, and workflow dispatch loops. |
-| API generation | not-started | P1 | Generate OpenAPI or endpoint descriptors once `shape` support exists. |
+| API generation | partial | P1 | OpenAPI generation exists for declared APIs and generated operator metadata API surfaces. Next work is richer OpenAPI schemas, error model coverage, and optional framework adapters. |
+| External-system metadata generation | partial | P1 | Descriptor, mapping, lookup, OCC repository, operator API handler, and OpenAPI contracts exist. Runtime persistence, remote clients, auth, retries, and HTTP framework adapters remain runtime-owned. |
 | Policy generation | not-started | P3 | Wait for expression type checking and runtime evaluator design. |
 
 ## Implementation Order
@@ -121,14 +146,18 @@ Status meanings:
 
 7. **P2/P3: Add namespace, external systems, and policies.**
    Implemented: namespace blocks qualify member declarations, external systems are
-   parsed and validated as named property catalogs, and policies now emit passive
-   binding descriptor metadata. Next work is relative namespace lookup, external
-   ownership semantics, and generated policy enforcement hooks.
+   parsed and validated as named property catalogs, external-system metadata maps to
+   operator-managed durable state, and policies now emit passive binding descriptor
+   metadata. Metadata mapping and operator API contracts are generated; next work is
+   relative namespace lookup, external ownership semantics, and generated policy
+   enforcement hooks.
 
 8. **P1: Generate API descriptors from typed shapes.**
    Implemented: generated bindings now include passive API descriptor metadata for
    method, path, input, output, error, workflow starts, and queue enqueue targets.
-   Next work is OpenAPI or endpoint generation from these descriptors.
+   OpenAPI generation now emits declared API operations and operator metadata API
+   surfaces. Next work is richer schema lowering, error contract coverage, and optional
+   endpoint adapter generation.
 
 9. **P1: Add API server descriptors.**
    Implemented: `api_server` declarations parse, validate served API references, lower

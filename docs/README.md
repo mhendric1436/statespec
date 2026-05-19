@@ -14,6 +14,7 @@ truth for system behavior.
 | [getting-started.md](getting-started.md) | Minimal workflow for creating, validating, and generating from a `.sspec` file. |
 | [language-model.md](language-model.md) | The core StateSpec mental model and declaration types. |
 | [compiler-parity.md](compiler-parity.md) | Grammar-to-compiler implementation matrix and priority order. |
+| [roadmap.md](roadmap.md) | Current implementation roadmap and runtime-owned boundaries. |
 | [includes.md](includes.md) | Include directives, path resolution, system composition, and file-local tooling behavior. |
 | [entities-and-state.md](entities-and-state.md) | Entity, field, key, state machine, relationship, invariant, and index authoring. |
 | [queues-leases-workers.md](queues-leases-workers.md) | Durable queue, message, lease, and worker declarations. |
