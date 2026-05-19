@@ -36,7 +36,8 @@ void add_template_file(
     const std::filesystem::path& output_dir,
     const std::filesystem::path& template_path,
     const std::filesystem::path& relative_output_path,
-    DiagnosticBag& diagnostics
+    DiagnosticBag& diagnostics,
+    GeneratedArtifactTier tier = GeneratedArtifactTier::Common
 )
 {
     const auto content = read_template_file(template_path, diagnostics);
@@ -49,6 +50,7 @@ void add_template_file(
         GeneratedFile{
             (output_dir / relative_output_path).string(),
             content,
+            tier,
         }
     );
 }
@@ -1675,6 +1677,7 @@ GenerationResult generate_java_bindings(
             GeneratedFile{
                 (options.output_dir / "com/statespec/generated/Descriptors.java").string(),
                 generate_descriptors_java(system),
+                GeneratedArtifactTier::Common,
             }
         );
     }

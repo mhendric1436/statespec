@@ -3,6 +3,7 @@
 #include "statespec/generator_bindings.hpp"
 
 #include <exception>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -191,6 +192,58 @@ void test_field_descriptor_type_classification()
     require_field_type("  uuid  ", statespec::FieldDescriptorType::Uuid, "uuid");
 }
 
+statespec::Spec empty_system_spec()
+{
+    statespec::Spec spec;
+    statespec::SystemDecl system;
+    system.name = "EmptySystem";
+    spec.system = system;
+    return spec;
+}
+
+void require_generated_files_are_common(
+    statespec::BindingLanguage language,
+    const std::string& language_name
+)
+{
+    statespec::DiagnosticBag diagnostics;
+    const auto result = statespec::generate_bindings(
+        empty_system_spec(),
+        statespec::BindingGeneratorOptions{
+            language,
+            std::filesystem::path{"/tmp/statespec-artifact-tier-test"} / language_name,
+        },
+        diagnostics
+    );
+
+    require(!diagnostics.has_errors(), (language_name + " generation should not fail").c_str());
+    require(!result.files.empty(), (language_name + " generation should emit files").c_str());
+    for (const auto& file : result.files)
+    {
+        require(
+            file.tier == statespec::GeneratedArtifactTier::Common,
+            (language_name + " generated file should be tagged as common: " + file.path).c_str()
+        );
+    }
+}
+
+void test_generated_artifact_tiers_default_to_common()
+{
+    const statespec::GeneratedFile file{"generated.txt", "content"};
+    require(
+        file.tier == statespec::GeneratedArtifactTier::Common,
+        "generated files should default to common tier"
+    );
+}
+
+void test_binding_generators_assign_artifact_tiers()
+{
+    require_generated_files_are_common(statespec::BindingLanguage::Cpp, "cpp");
+    require_generated_files_are_common(statespec::BindingLanguage::Go, "go");
+    require_generated_files_are_common(statespec::BindingLanguage::Java, "java");
+    require_generated_files_are_common(statespec::BindingLanguage::Rust, "rust");
+}
+
 } // namespace
 
 TEST_CASE("binding language parses canonical names")
@@ -226,4 +279,14 @@ TEST_CASE("binding language rejects unsupported languages")
 TEST_CASE("field descriptor type classification normalizes grammar types")
 {
     test_field_descriptor_type_classification();
+}
+
+TEST_CASE("generated artifact tier defaults to common")
+{
+    test_generated_artifact_tiers_default_to_common();
+}
+
+TEST_CASE("binding generators tag current files as common artifacts")
+{
+    test_binding_generators_assign_artifact_tiers();
 }
