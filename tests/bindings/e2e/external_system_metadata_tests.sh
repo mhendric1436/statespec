@@ -4,17 +4,16 @@ set -eu
 CLI="$1"
 TMPDIR="$(mktemp -d)"
 cleanup() {
-    rm -rf "$TMPDIR" generated/cpp generated/go generated/java generated/rust generated/openapi
-    rmdir generated 2>/dev/null || true
+    rm -rf "$TMPDIR"
 }
 trap cleanup EXIT
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-FIXTURES_DIR="$SCRIPT_DIR/fixtures"
-. "$SCRIPT_DIR/cli/common.sh"
+REPO_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd)"
+TESTS_DIR="$REPO_DIR/tests"
+. "$TESTS_DIR/cli/common.sh"
 
-SPEC="$FIXTURES_DIR/bindings-full.sspec"
-E2E_SPEC="testdata/generators/external-system-metadata-e2e.sspec"
+E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
 
 # End-to-end external-system metadata generated binding regression.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPDIR/out-e2e-cpp"
