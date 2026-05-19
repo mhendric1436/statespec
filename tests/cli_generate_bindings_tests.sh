@@ -562,12 +562,15 @@ int main()
     FakeResolver resolver;
     const auto descriptors = statespec_generated::external_system_descriptors();
     const auto plan = statespec_generated::external_system_metadata_mapping_plan(descriptors[0]);
-    if (plan.client_mappings.size() != 3 || plan.request_mappings.size() != 1 ||
+    if (plan.all_mappings.size() != 4 ||
+        plan.client_mappings.size() != 3 || plan.request_mappings.size() != 1 ||
         plan.client_mappings[0].source_root != "metadata" ||
         plan.client_mappings[0].source_field != "base_url" ||
+        plan.client_mappings[0].target_root != "client" ||
         plan.client_mappings[0].field != "base_url" ||
         plan.request_mappings[0].source_root != "input" ||
         plan.request_mappings[0].source_field != "order_id" ||
+        plan.request_mappings[0].target_root != "request" ||
         plan.request_mappings[0].field != "order_id")
     {
         return 1;
@@ -752,7 +755,7 @@ func TestGeneratedMetadataResolverFixture(t *testing.T) {
 	resolver := &fixtureResolver{}
 	tx := fixtureTx{}
 	plan := BuildExternalSystemMetadataMappingPlan(ExternalSystemDescriptors()[0])
-	if len(plan.ClientMappings) != 3 || len(plan.RequestMappings) != 1 || plan.ClientMappings[0].SourceRoot != "metadata" || plan.ClientMappings[0].SourceField != "base_url" || plan.ClientMappings[0].Field != "base_url" || plan.RequestMappings[0].SourceRoot != "input" || plan.RequestMappings[0].SourceField != "order_id" || plan.RequestMappings[0].Field != "order_id" {
+	if len(plan.AllMappings) != 4 || len(plan.ClientMappings) != 3 || len(plan.RequestMappings) != 1 || plan.ClientMappings[0].SourceRoot != "metadata" || plan.ClientMappings[0].SourceField != "base_url" || plan.ClientMappings[0].TargetRoot != "client" || plan.ClientMappings[0].Field != "base_url" || plan.RequestMappings[0].SourceRoot != "input" || plan.RequestMappings[0].SourceField != "order_id" || plan.RequestMappings[0].TargetRoot != "request" || plan.RequestMappings[0].Field != "order_id" {
 		t.Fatalf("unexpected metadata mapping plan: %#v", plan)
 	}
 	keys := []ExternalSystemMetadataKeyValue{
@@ -948,12 +951,15 @@ public final class MetadataResolverFixture
             Descriptors.externalSystemMetadataMappingPlan(
                 Descriptors.externalSystemDescriptors().get(0)
             );
-        if (plan.clientMappings().size() != 3 || plan.requestMappings().size() != 1 ||
+        if (plan.allMappings().size() != 4 ||
+            plan.clientMappings().size() != 3 || plan.requestMappings().size() != 1 ||
             !plan.clientMappings().get(0).sourceRoot().equals("metadata") ||
             !plan.clientMappings().get(0).sourceField().equals("base_url") ||
+            !plan.clientMappings().get(0).targetRoot().equals("client") ||
             !plan.clientMappings().get(0).field().equals("base_url") ||
             !plan.requestMappings().get(0).sourceRoot().equals("input") ||
             !plan.requestMappings().get(0).sourceField().equals("order_id") ||
+            !plan.requestMappings().get(0).targetRoot().equals("request") ||
             !plan.requestMappings().get(0).field().equals("order_id"))
         {
             throw new AssertionError("unexpected metadata mapping plan");
@@ -1257,13 +1263,16 @@ mod tests {
         let mut tx = FixtureTx;
         let descriptors = crate::descriptors::external_system_descriptors();
         let plan = crate::descriptors::external_system_metadata_mapping_plan(&descriptors[0]);
+        assert_eq!(plan.all_mappings.len(), 4);
         assert_eq!(plan.client_mappings.len(), 3);
         assert_eq!(plan.request_mappings.len(), 1);
         assert_eq!(plan.client_mappings[0].source_root, "metadata");
         assert_eq!(plan.client_mappings[0].source_field, "base_url");
+        assert_eq!(plan.client_mappings[0].target_root, "client");
         assert_eq!(plan.client_mappings[0].field, "base_url");
         assert_eq!(plan.request_mappings[0].source_root, "input");
         assert_eq!(plan.request_mappings[0].source_field, "order_id");
+        assert_eq!(plan.request_mappings[0].target_root, "request");
         assert_eq!(plan.request_mappings[0].field, "order_id");
         let keys = vec![
             ExternalSystemMetadataKeyValue {

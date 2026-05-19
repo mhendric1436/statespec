@@ -331,9 +331,11 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tSource string\n";
     out << "\tSourceRoot string\n";
     out << "\tSourceField string\n";
+    out << "\tTargetRoot string\n";
     out << "\tField string\n";
     out << "}\n\n";
     out << "type ExternalSystemMetadataMappingPlan struct {\n";
+    out << "\tAllMappings []ExternalSystemMetadataMappingAssignment\n";
     out << "\tClientMappings []ExternalSystemMetadataMappingAssignment\n";
     out << "\tRequestMappings []ExternalSystemMetadataMappingAssignment\n";
     out << "}\n\n";
@@ -648,15 +650,17 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\t\t\tsourceField = sourceParts[1]\n";
     out << "\t\t}\n";
     out << "\t\tif strings.HasPrefix(mapping.Target, \"client.\") {\n";
-    out << "\t\t\tplan.ClientMappings = append(plan.ClientMappings, "
-           "ExternalSystemMetadataMappingAssignment{Source: mapping.Source, SourceRoot: "
-           "sourceRoot, SourceField: sourceField, Field: strings.TrimPrefix(mapping.Target, "
-           "\"client.\")})\n";
+    out << "\t\t\tassignment := ExternalSystemMetadataMappingAssignment{Source: "
+           "mapping.Source, SourceRoot: sourceRoot, SourceField: sourceField, TargetRoot: "
+           "\"client\", Field: strings.TrimPrefix(mapping.Target, \"client.\")}\n";
+    out << "\t\t\tplan.AllMappings = append(plan.AllMappings, assignment)\n";
+    out << "\t\t\tplan.ClientMappings = append(plan.ClientMappings, assignment)\n";
     out << "\t\t} else if strings.HasPrefix(mapping.Target, \"request.\") {\n";
-    out << "\t\t\tplan.RequestMappings = append(plan.RequestMappings, "
-           "ExternalSystemMetadataMappingAssignment{Source: mapping.Source, SourceRoot: "
-           "sourceRoot, SourceField: sourceField, Field: strings.TrimPrefix(mapping.Target, "
-           "\"request.\")})\n";
+    out << "\t\t\tassignment := ExternalSystemMetadataMappingAssignment{Source: "
+           "mapping.Source, SourceRoot: sourceRoot, SourceField: sourceField, TargetRoot: "
+           "\"request\", Field: strings.TrimPrefix(mapping.Target, \"request.\")}\n";
+    out << "\t\t\tplan.AllMappings = append(plan.AllMappings, assignment)\n";
+    out << "\t\t\tplan.RequestMappings = append(plan.RequestMappings, assignment)\n";
     out << "\t\t}\n";
     out << "\t}\n";
     out << "\treturn plan\n";

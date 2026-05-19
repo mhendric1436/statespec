@@ -79,7 +79,7 @@ Generated external system metadata includes:
 - metadata profile field
 - required execution metadata fields
 - descriptor-level source-to-target metadata field mappings
-- generated mapping-plan helpers that split metadata mappings into normalized client and request assignments
+- generated mapping-plan helpers with ordered, client, and request assignment views
 - generated lookup helpers that build runtime metadata lookup requests from descriptors
 - generated transaction-scoped helpers that call external system metadata resolvers
 - generated resolve helpers validate lookup key completeness before resolver calls

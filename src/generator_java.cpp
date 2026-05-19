@@ -346,9 +346,11 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        String source,\n";
     out << "        String sourceRoot,\n";
     out << "        String sourceField,\n";
+    out << "        String targetRoot,\n";
     out << "        String field\n";
     out << "    ) {}\n\n";
     out << "    public record ExternalSystemMetadataMappingPlan(\n";
+    out << "        List<ExternalSystemMetadataMappingAssignment> allMappings,\n";
     out << "        List<ExternalSystemMetadataMappingAssignment> clientMappings,\n";
     out << "        List<ExternalSystemMetadataMappingAssignment> requestMappings\n";
     out << "    ) {}\n\n";
@@ -681,6 +683,8 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        ExternalSystemDescriptor descriptor\n";
     out << "    ) {\n";
     out << "        java.util.ArrayList<ExternalSystemMetadataMappingAssignment> "
+           "allMappings = new java.util.ArrayList<>();\n";
+    out << "        java.util.ArrayList<ExternalSystemMetadataMappingAssignment> "
            "clientMappings = new java.util.ArrayList<>();\n";
     out << "        java.util.ArrayList<ExternalSystemMetadataMappingAssignment> "
            "requestMappings = new java.util.ArrayList<>();\n";
@@ -695,19 +699,28 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "                    ? \"\"\n";
     out << "                    : mapping.source().substring(sourceSeparator + 1);\n";
     out << "                if (mapping.target().startsWith(\"client.\")) {\n";
-    out << "                    clientMappings.add(new ExternalSystemMetadataMappingAssignment(\n";
+    out << "                    ExternalSystemMetadataMappingAssignment assignment =\n";
+    out << "                        new ExternalSystemMetadataMappingAssignment(\n";
     out << "                        mapping.source(), sourceRoot, sourceField,\n"
+           "                        \"client\",\n"
            "mapping.target().substring(\"client.\".length())\n";
-    out << "                    ));\n";
+    out << "                    );\n";
+    out << "                    allMappings.add(assignment);\n";
+    out << "                    clientMappings.add(assignment);\n";
     out << "                } else if (mapping.target().startsWith(\"request.\")) {\n";
-    out << "                    requestMappings.add(new ExternalSystemMetadataMappingAssignment(\n";
+    out << "                    ExternalSystemMetadataMappingAssignment assignment =\n";
+    out << "                        new ExternalSystemMetadataMappingAssignment(\n";
     out << "                        mapping.source(), sourceRoot, sourceField,\n"
+           "                        \"request\",\n"
            "mapping.target().substring(\"request.\".length())\n";
-    out << "                    ));\n";
+    out << "                    );\n";
+    out << "                    allMappings.add(assignment);\n";
+    out << "                    requestMappings.add(assignment);\n";
     out << "                }\n";
     out << "            }\n";
     out << "        }\n";
     out << "        return new ExternalSystemMetadataMappingPlan(\n";
+    out << "            List.copyOf(allMappings),\n";
     out << "            List.copyOf(clientMappings),\n";
     out << "            List.copyOf(requestMappings)\n";
     out << "        );\n";
