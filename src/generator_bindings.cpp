@@ -1,6 +1,7 @@
 #include "statespec/generator_bindings.hpp"
 
 #include <cctype>
+#include <stdexcept>
 
 namespace statespec
 {
@@ -69,7 +70,95 @@ bool validate_binding_generation_request(
     return valid;
 }
 
+bool generated_file_selected_for_tier(
+    const GeneratedFile& file,
+    BindingGenerationTier tier
+)
+{
+    switch (tier)
+    {
+    case BindingGenerationTier::All:
+        return true;
+    case BindingGenerationTier::Common:
+        return file.tier == GeneratedArtifactTier::Common;
+    case BindingGenerationTier::Api:
+        return file.tier == GeneratedArtifactTier::Common ||
+               file.tier == GeneratedArtifactTier::Api;
+    case BindingGenerationTier::Worker:
+        return file.tier == GeneratedArtifactTier::Common ||
+               file.tier == GeneratedArtifactTier::Worker;
+    }
+    return true;
+}
+
+GenerationResult filter_generation_result_by_tier(
+    GenerationResult result,
+    BindingGenerationTier tier
+)
+{
+    if (tier == BindingGenerationTier::All)
+    {
+        return result;
+    }
+
+    GenerationResult filtered;
+    for (const auto& file : result.files)
+    {
+        if (generated_file_selected_for_tier(file, tier))
+        {
+            filtered.files.push_back(file);
+        }
+    }
+    return filtered;
+}
+
 } // namespace
+
+BindingGenerationTier parse_binding_generation_tier(const std::string& value)
+{
+    const auto normalized = trim_copy(value);
+    if (normalized == "all")
+    {
+        return BindingGenerationTier::All;
+    }
+    if (normalized == "common")
+    {
+        return BindingGenerationTier::Common;
+    }
+    if (normalized == "api")
+    {
+        return BindingGenerationTier::Api;
+    }
+    if (normalized == "worker")
+    {
+        return BindingGenerationTier::Worker;
+    }
+    throw std::invalid_argument(
+        "unsupported binding generation tier '" + value +
+        "'; supported tiers: " + supported_binding_generation_tiers_text()
+    );
+}
+
+std::string binding_generation_tier_name(BindingGenerationTier tier)
+{
+    switch (tier)
+    {
+    case BindingGenerationTier::All:
+        return "all";
+    case BindingGenerationTier::Common:
+        return "common";
+    case BindingGenerationTier::Api:
+        return "api";
+    case BindingGenerationTier::Worker:
+        return "worker";
+    }
+    return "all";
+}
+
+std::string supported_binding_generation_tiers_text()
+{
+    return "all|common|api|worker";
+}
 
 FieldDescriptorType classify_field_descriptor_type(const std::string& type_name)
 {
@@ -205,13 +294,21 @@ GenerationResult generate_bindings(
     switch (options.language)
     {
     case BindingLanguage::Cpp:
-        return generate_cpp_bindings(system, options, diagnostics);
+        return filter_generation_result_by_tier(
+            generate_cpp_bindings(system, options, diagnostics), options.tier
+        );
     case BindingLanguage::Go:
-        return generate_go_bindings(system, options, diagnostics);
+        return filter_generation_result_by_tier(
+            generate_go_bindings(system, options, diagnostics), options.tier
+        );
     case BindingLanguage::Java:
-        return generate_java_bindings(system, options, diagnostics);
+        return filter_generation_result_by_tier(
+            generate_java_bindings(system, options, diagnostics), options.tier
+        );
     case BindingLanguage::Rust:
-        return generate_rust_bindings(system, options, diagnostics);
+        return filter_generation_result_by_tier(
+            generate_rust_bindings(system, options, diagnostics), options.tier
+        );
     }
 
     diagnostics.error(SourceRange{}, "SSPEC5104", "unsupported binding generator language");

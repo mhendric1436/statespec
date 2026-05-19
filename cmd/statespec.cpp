@@ -30,6 +30,7 @@ struct GenerateBindingsArgs
     statespec::BindingLanguage language;
     std::string input_path;
     std::string output_dir;
+    statespec::BindingGenerationTier tier = statespec::BindingGenerationTier::All;
 };
 
 struct GenerateOpenApiArgs
@@ -1007,6 +1008,7 @@ GenerateBindingsArgs parse_generate_bindings_args(
     std::optional<statespec::BindingLanguage> language;
     std::optional<std::string> input_path;
     std::optional<std::string> output_dir;
+    statespec::BindingGenerationTier tier = statespec::BindingGenerationTier::All;
 
     for (int i = 3; i < argc; ++i)
     {
@@ -1028,6 +1030,17 @@ GenerateBindingsArgs parse_generate_bindings_args(
                 throw std::runtime_error("--out requires a directory");
             }
             output_dir = argv[++i];
+        }
+        else if (arg == "--tier")
+        {
+            if (i + 1 >= argc)
+            {
+                throw std::runtime_error(
+                    "--tier requires one of: " +
+                    statespec::supported_binding_generation_tiers_text()
+                );
+            }
+            tier = statespec::parse_binding_generation_tier(argv[++i]);
         }
         else if (!input_path.has_value())
         {
@@ -1055,7 +1068,7 @@ GenerateBindingsArgs parse_generate_bindings_args(
         output_dir = std::filesystem::path{"generated"} / statespec::to_string(*language);
     }
 
-    return GenerateBindingsArgs{*language, *input_path, *output_dir};
+    return GenerateBindingsArgs{*language, *input_path, *output_dir, tier};
 }
 
 GenerateOpenApiArgs parse_generate_openapi_args(
@@ -1112,6 +1125,7 @@ int generate_bindings_file(const GenerateBindingsArgs& args)
     const statespec::BindingGeneratorOptions options{
         args.language,
         std::filesystem::path{args.output_dir},
+        args.tier,
     };
 
     const auto result = statespec::generate_bindings(spec, options, diagnostics);
@@ -1168,7 +1182,8 @@ void print_usage(std::ostream& out)
     out << "  statespec fmt [--check] <file.sspec>\n";
     out << "  statespec tokens <file.sspec>\n";
     out << "  statespec ast <file.sspec>\n";
-    out << "  statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]\n";
+    out << "  statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR] "
+           "[--tier <all|common|api|worker>]\n";
     out << "  statespec generate openapi <file.sspec> [--out DIR]\n";
 }
 

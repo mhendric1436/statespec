@@ -43,6 +43,16 @@ assert_file_exists() {
     fi
 }
 
+assert_file_not_exists() {
+    require_test_tmpdir
+    path="$1"
+    if [ -e "$path" ]; then
+        echo "expected file to be absent: $path" >&2
+        cat "$TMPDIR/output.txt" >&2 || true
+        exit 1
+    fi
+}
+
 assert_file_contains() {
     path="$1"
     needle="$2"

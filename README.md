@@ -71,7 +71,7 @@ statespec help
 statespec validate <file.sspec>
 statespec tokens <file.sspec>
 statespec ast <file.sspec>
-statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]
+statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR] [--tier <all|common|api|worker>]
 ```
 
 The CLI currently supports validation, token inspection, AST inspection, and binding generation for C++, Go, Java, and Rust.

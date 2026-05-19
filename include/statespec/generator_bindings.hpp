@@ -12,11 +12,26 @@
 namespace statespec
 {
 
+enum class BindingGenerationTier
+{
+    All,
+    Common,
+    Api,
+    Worker,
+};
+
 struct BindingGeneratorOptions
 {
     BindingLanguage language;
     std::filesystem::path output_dir;
+    BindingGenerationTier tier = BindingGenerationTier::All;
 };
+
+BindingGenerationTier parse_binding_generation_tier(const std::string& value);
+
+std::string binding_generation_tier_name(BindingGenerationTier tier);
+
+std::string supported_binding_generation_tiers_text();
 
 enum class FieldDescriptorType
 {

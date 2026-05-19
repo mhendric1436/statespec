@@ -44,6 +44,21 @@ assert_file_exists "generated/rust/descriptors.rs"
 rm -rf generated/rust
 rmdir generated 2>/dev/null || true
 
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-common" --tier common
+assert_file_exists "$TMPDIR/tier-common/system_descriptors.hpp"
+assert_file_not_exists "$TMPDIR/tier-common/api_artifacts.hpp"
+assert_file_not_exists "$TMPDIR/tier-common/worker_artifacts.hpp"
+
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-api" --tier api
+assert_file_exists "$TMPDIR/tier-api/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/tier-api/api_artifacts.hpp"
+assert_file_not_exists "$TMPDIR/tier-api/worker_artifacts.hpp"
+
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-worker" --tier worker
+assert_file_exists "$TMPDIR/tier-worker/system_descriptors.hpp"
+assert_file_not_exists "$TMPDIR/tier-worker/api_artifacts.hpp"
+assert_file_exists "$TMPDIR/tier-worker/worker_artifacts.hpp"
+
 run_expect_status 2 "$CLI" generate bindings "$SPEC"
 assert_output_contains "generate bindings requires --lang <cpp|go|java|rust>"
 
@@ -59,6 +74,13 @@ assert_output_contains "generate bindings requires an input .sspec file"
 
 run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" --out
 assert_output_contains "--out requires a directory"
+
+run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" --tier
+assert_output_contains "--tier requires one of: all|common|api|worker"
+
+run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" --tier database
+assert_output_contains "unsupported binding generation tier 'database'"
+assert_output_contains "all|common|api|worker"
 
 run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" extra
 assert_output_contains "unexpected argument for generate bindings: extra"

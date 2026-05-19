@@ -7,7 +7,7 @@ which downstream artifact to emit.
 ## Commands
 
 ```sh
-statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]
+statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR] [--tier <all|common|api|worker>]
 statespec generate openapi <file.sspec> [--out DIR]
 ```
 
@@ -15,6 +15,10 @@ When `--out` is omitted, the CLI writes to `generated/<language>`.
 OpenAPI generation writes `generated/openapi/openapi.json` by default.
 
 Protocol buffer generation is not implemented yet.
+
+Binding generation writes all artifacts by default. Use `--tier common` to emit only
+shared descriptors and runtime support, `--tier api` to emit shared plus API-server
+artifacts, or `--tier worker` to emit shared plus worker artifacts.
 
 ## Supported Languages
 

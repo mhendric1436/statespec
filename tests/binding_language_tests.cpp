@@ -4,6 +4,7 @@
 
 #include <exception>
 #include <filesystem>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -22,6 +23,15 @@ void require(
 void require_equal(
     statespec::BindingLanguage actual,
     statespec::BindingLanguage expected,
+    const std::string& message
+)
+{
+    require(actual == expected, message);
+}
+
+void require_equal(
+    statespec::BindingGenerationTier actual,
+    statespec::BindingGenerationTier expected,
     const std::string& message
 )
 {
@@ -122,6 +132,61 @@ void test_supported_languages()
     );
 }
 
+void require_tier_parse(
+    const std::string& value,
+    statespec::BindingGenerationTier expected,
+    const std::string& expected_name
+)
+{
+    const auto actual = statespec::parse_binding_generation_tier(value);
+    require_equal(actual, expected, value + " should parse to expected binding generation tier");
+    require_string_equal(
+        statespec::binding_generation_tier_name(actual), expected_name,
+        value + " binding generation tier name"
+    );
+}
+
+void test_binding_generation_tier_parse()
+{
+    require_tier_parse("all", statespec::BindingGenerationTier::All, "all");
+    require_tier_parse("common", statespec::BindingGenerationTier::Common, "common");
+    require_tier_parse("api", statespec::BindingGenerationTier::Api, "api");
+    require_tier_parse("worker", statespec::BindingGenerationTier::Worker, "worker");
+    require_tier_parse(" api ", statespec::BindingGenerationTier::Api, "api");
+    require_string_equal(
+        statespec::supported_binding_generation_tiers_text(), "all|common|api|worker",
+        "supported binding generation tiers text"
+    );
+}
+
+void test_invalid_binding_generation_tier_throws()
+{
+    bool threw = false;
+    try
+    {
+        (void)statespec::parse_binding_generation_tier("database");
+    }
+    catch (const std::invalid_argument& ex)
+    {
+        threw = true;
+        const std::string message = ex.what();
+        require(
+            message.find("database") != std::string::npos,
+            "invalid binding generation tier error should include rejected value"
+        );
+        require(
+            message.find("all|common|api|worker") != std::string::npos,
+            "invalid binding generation tier error should include supported tiers"
+        );
+    }
+    catch (...)
+    {
+        require(false, "invalid binding generation tier should throw invalid_argument");
+    }
+
+    require(threw, "invalid binding generation tier should throw");
+}
+
 void test_invalid_language_throws()
 {
     bool threw = false;
@@ -212,6 +277,7 @@ void require_generated_files_have_tiered_artifact_paths(
         statespec::BindingGeneratorOptions{
             language,
             std::filesystem::path{"/tmp/statespec-artifact-tier-test"} / language_name,
+            statespec::BindingGenerationTier::All,
         },
         diagnostics
     );
@@ -300,6 +366,7 @@ void test_shared_descriptor_artifact_paths()
         statespec::BindingGeneratorOptions{
             statespec::BindingLanguage::Cpp,
             "/tmp/statespec-artifact-tier-test/cpp",
+            statespec::BindingGenerationTier::All,
         },
         diagnostics
     );
@@ -308,6 +375,7 @@ void test_shared_descriptor_artifact_paths()
         statespec::BindingGeneratorOptions{
             statespec::BindingLanguage::Go,
             "/tmp/statespec-artifact-tier-test/go",
+            statespec::BindingGenerationTier::All,
         },
         diagnostics
     );
@@ -316,6 +384,7 @@ void test_shared_descriptor_artifact_paths()
         statespec::BindingGeneratorOptions{
             statespec::BindingLanguage::Java,
             "/tmp/statespec-artifact-tier-test/java",
+            statespec::BindingGenerationTier::All,
         },
         diagnostics
     );
@@ -324,6 +393,7 @@ void test_shared_descriptor_artifact_paths()
         statespec::BindingGeneratorOptions{
             statespec::BindingLanguage::Rust,
             "/tmp/statespec-artifact-tier-test/rust",
+            statespec::BindingGenerationTier::All,
         },
         diagnostics
     );
@@ -382,6 +452,107 @@ void test_shared_descriptor_artifact_paths()
     );
 }
 
+statespec::GenerationResult generate_for_tier(
+    statespec::BindingLanguage language,
+    statespec::BindingGenerationTier tier,
+    const std::string& language_name,
+    statespec::DiagnosticBag& diagnostics
+)
+{
+    return statespec::generate_bindings(
+        empty_system_spec(),
+        statespec::BindingGeneratorOptions{
+            language,
+            std::filesystem::path{"/tmp/statespec-tier-selection-test"} / language_name /
+                statespec::binding_generation_tier_name(tier),
+            tier,
+        },
+        diagnostics
+    );
+}
+
+bool result_has_tier(
+    const statespec::GenerationResult& result,
+    statespec::GeneratedArtifactTier tier
+)
+{
+    for (const auto& file : result.files)
+    {
+        if (file.tier == tier)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void require_tier_selection(
+    statespec::BindingLanguage language,
+    const std::string& language_name
+)
+{
+    statespec::DiagnosticBag diagnostics;
+
+    const auto common_result = generate_for_tier(
+        language, statespec::BindingGenerationTier::Common, language_name, diagnostics
+    );
+    require(!diagnostics.has_errors(), language_name + " common tier generation should not fail");
+    require(
+        result_has_tier(common_result, statespec::GeneratedArtifactTier::Common),
+        language_name + " common tier should include common artifacts"
+    );
+    require(
+        !result_has_tier(common_result, statespec::GeneratedArtifactTier::Api),
+        language_name + " common tier should exclude API artifacts"
+    );
+    require(
+        !result_has_tier(common_result, statespec::GeneratedArtifactTier::Worker),
+        language_name + " common tier should exclude worker artifacts"
+    );
+
+    const auto api_result = generate_for_tier(
+        language, statespec::BindingGenerationTier::Api, language_name, diagnostics
+    );
+    require(!diagnostics.has_errors(), language_name + " API tier generation should not fail");
+    require(
+        result_has_tier(api_result, statespec::GeneratedArtifactTier::Common),
+        language_name + " API tier should include common artifacts"
+    );
+    require(
+        result_has_tier(api_result, statespec::GeneratedArtifactTier::Api),
+        language_name + " API tier should include API artifacts"
+    );
+    require(
+        !result_has_tier(api_result, statespec::GeneratedArtifactTier::Worker),
+        language_name + " API tier should exclude worker artifacts"
+    );
+
+    const auto worker_result = generate_for_tier(
+        language, statespec::BindingGenerationTier::Worker, language_name, diagnostics
+    );
+    require(!diagnostics.has_errors(), language_name + " worker tier generation should not fail");
+    require(
+        result_has_tier(worker_result, statespec::GeneratedArtifactTier::Common),
+        language_name + " worker tier should include common artifacts"
+    );
+    require(
+        !result_has_tier(worker_result, statespec::GeneratedArtifactTier::Api),
+        language_name + " worker tier should exclude API artifacts"
+    );
+    require(
+        result_has_tier(worker_result, statespec::GeneratedArtifactTier::Worker),
+        language_name + " worker tier should include worker artifacts"
+    );
+}
+
+void test_binding_generation_tier_selection()
+{
+    require_tier_selection(statespec::BindingLanguage::Cpp, "cpp");
+    require_tier_selection(statespec::BindingLanguage::Go, "go");
+    require_tier_selection(statespec::BindingLanguage::Java, "java");
+    require_tier_selection(statespec::BindingLanguage::Rust, "rust");
+}
+
 } // namespace
 
 TEST_CASE("binding language parses canonical names")
@@ -409,6 +580,16 @@ TEST_CASE("binding language lists supported languages")
     test_supported_languages();
 }
 
+TEST_CASE("binding generation tier parses canonical names")
+{
+    test_binding_generation_tier_parse();
+}
+
+TEST_CASE("binding generation tier rejects unsupported values")
+{
+    test_invalid_binding_generation_tier_throws();
+}
+
 TEST_CASE("binding language rejects unsupported languages")
 {
     test_invalid_language_throws();
@@ -432,4 +613,9 @@ TEST_CASE("binding generators tag current files as common artifacts")
 TEST_CASE("binding generators model shared descriptor artifact paths")
 {
     test_shared_descriptor_artifact_paths();
+}
+
+TEST_CASE("binding generators filter artifacts by selected tier")
+{
+    test_binding_generation_tier_selection();
 }
