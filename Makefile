@@ -20,9 +20,9 @@ SRC_ALL := $(wildcard src/*.cpp)
 SRC := $(SRC_ALL)
 CLI_SRC := $(wildcard cmd/*.cpp)
 TEST_SRC := $(wildcard tests/*.cpp)
-TEST_SCRIPTS := $(wildcard tests/*_tests.sh) $(wildcard tests/cli/*_tests.sh)
+TEST_SCRIPTS := $(wildcard tests/*_tests.sh) $(wildcard tests/cli/*_tests.sh) $(wildcard tests/bindings/cpp/*_tests.sh)
 CATCH_SRC := third_party/catch2/catch_amalgamated.cpp
-FORMAT_FILES := $(HEADERS) $(SRC_ALL) $(wildcard src/*.hpp) $(CLI_SRC) $(TEST_SRC)
+FORMAT_FILES := $(HEADERS) $(SRC_ALL) $(wildcard src/*.hpp) $(CLI_SRC) $(TEST_SRC) $(wildcard tests/bindings/cpp/*.cpp)
 
 OBJ := $(patsubst src/%.cpp,$(OBJ_DIR)/src/%.o,$(SRC))
 CLI_OBJ := $(patsubst cmd/%.cpp,$(OBJ_DIR)/cmd/%.o,$(CLI_SRC))
