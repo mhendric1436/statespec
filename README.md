@@ -321,6 +321,12 @@ Transaction
 Backend
 ```
 
+`FieldDescriptor` uses a language-native `FieldType` enum plus the original
+StateSpec type spelling. The enum gives backend adapters and generated runtime catalogs
+a stable classifier such as `string`, `timestamp`, `named`, `optional`, or `reference`,
+while the preserved type name keeps declarations like `OrderStatus` and `int?`
+available to downstream tooling.
+
 The common rule is:
 
 ```text

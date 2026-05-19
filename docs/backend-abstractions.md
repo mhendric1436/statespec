@@ -35,6 +35,43 @@ Backend
 The backend file intentionally stays component-neutral. Lease, queue, and workflow record
 shapes live with their respective runtime interface files.
 
+`FieldDescriptor` has the same conceptual shape in every binding:
+
+```text
+name
+field type enum
+original StateSpec type name
+required
+```
+
+The field type enum is intentionally smaller than the full grammar type expression. It
+classifies fields into the stable categories backends and runtime catalogs need:
+
+```text
+string
+bool
+int
+int32
+int64
+long
+double
+decimal
+json
+timestamp
+duration
+uuid
+named
+list
+set
+map
+optional
+reference
+```
+
+The original type name is preserved separately so a descriptor can still distinguish, for
+example, a named `OrderStatus` field from another named type, or an optional `int?` from
+another optional declaration.
+
 Backends expose both single-collection and bulk collection provisioning APIs:
 
 ```text

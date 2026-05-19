@@ -100,7 +100,7 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 | Area | Current Status | Priority | Next Work |
 |---|---|---|---|
 | Binding template emission | partial | P0 | Keep generated packages self-contained; add package manifests where practical. |
-| Descriptor generation | partial | P0 | Expand descriptor usage into richer endpoint, worker body, and policy generation. |
+| Descriptor generation | partial | P0 | Collection, event, shape, log, and metric field descriptors now use the shared compiler field type classifier and emit language-native `FieldType` enums plus preserved StateSpec type names in C++, Go, Java, and Rust. Next work is expanding descriptor usage into richer endpoint, worker body, and policy generation. |
 | Runtime bootstrap helpers | complete | P1 | Transaction-scoped helpers cover feature flags, queues, leases, workflows, logs, and metrics in all generated bindings. |
 | Worker scaffolding | partial | P2 | Generated bindings expose worker descriptors, contexts, and language-specific handler interfaces. Next work is runnable queue polling, lease acquisition, and workflow dispatch loops. |
 | API generation | partial | P1 | OpenAPI generation exists for declared APIs and generated operator metadata API surfaces. Next work is richer OpenAPI schemas, error model coverage, and optional framework adapters. |

@@ -188,6 +188,21 @@ schema_version = 1
 Entity `indexes` declarations are lowered through IR and emitted as generated
 `IndexDescriptor` values in C++, Go, Java, and Rust collection descriptors.
 
+`FieldDescriptor` records use the compiler-owned field type classifier instead of raw
+string-only type metadata. Each binding exposes a language-native `FieldType` enum and a
+separate original type-name field:
+
+```text
+C++   FieldType type, std::string type_name
+Go    Type FieldType, TypeName string
+Java  FieldType type, String typeName
+Rust  field_type: FieldType, type_name: String
+```
+
+Generators must continue to derive the enum value from
+`classify_field_descriptor_type(...)` so collection, event, shape, log, and metric
+descriptors classify fields consistently across all target languages.
+
 ## Why Use Reference Bindings as Templates?
 
 ### One source of truth

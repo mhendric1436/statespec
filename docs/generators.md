@@ -168,6 +168,20 @@ Initial DTO type mapping covers scalar primitives directly and represents custom
 temporal, UUID, JSON, collection, and reference types as strings. Descriptor metadata
 continues to preserve the exact StateSpec type for downstream tools.
 
+Descriptor field metadata is typed independently from generated DTO language types.
+Generated `FieldDescriptor` values include:
+
+- field name
+- language-native `FieldType` enum value
+- original StateSpec type name
+- required flag
+
+The shared compiler classifier maps grammar-level field types to `string`, `bool`,
+`int`, `int32`, `int64`, `long`, `double`, `decimal`, `json`, `timestamp`, `duration`,
+`uuid`, `named`, `list`, `set`, `map`, `optional`, and `reference`. Optional fields are
+classified as `optional` and retain their exact source type, such as `int?`, in the type
+name.
+
 Generated feature flag metadata includes:
 
 - name
