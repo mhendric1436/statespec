@@ -20,10 +20,11 @@ SRC_ALL := $(wildcard src/*.cpp)
 SRC := $(SRC_ALL)
 CLI_SRC := $(wildcard cmd/*.cpp)
 TEST_SRC := $(wildcard tests/*.cpp)
-TEST_SCRIPTS := $(wildcard tests/*_tests.sh) $(wildcard tests/cli/*_tests.sh) $(wildcard tests/bindings/cpp/*_tests.sh) $(wildcard tests/bindings/go/*_tests.sh)
+TEST_SCRIPTS := $(wildcard tests/*_tests.sh) $(wildcard tests/cli/*_tests.sh) $(wildcard tests/bindings/cpp/*_tests.sh) $(wildcard tests/bindings/go/*_tests.sh) $(wildcard tests/bindings/java/*_tests.sh)
 CATCH_SRC := third_party/catch2/catch_amalgamated.cpp
 FORMAT_FILES := $(HEADERS) $(SRC_ALL) $(wildcard src/*.hpp) $(CLI_SRC) $(TEST_SRC) $(wildcard tests/bindings/cpp/*.cpp)
 GO_FORMAT_FILES := $(wildcard tests/bindings/go/*.go)
+JAVA_FORMAT_FILES := $(wildcard tests/bindings/java/*.java)
 
 OBJ := $(patsubst src/%.cpp,$(OBJ_DIR)/src/%.o,$(SRC))
 CLI_OBJ := $(patsubst cmd/%.cpp,$(OBJ_DIR)/cmd/%.o,$(CLI_SRC))
@@ -119,6 +120,7 @@ test-bindings-rust:
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
 	@if [ -n "$(GO_FORMAT_FILES)" ]; then gofmt -w $(GO_FORMAT_FILES); fi
+	@if [ -n "$(JAVA_FORMAT_FILES)" ]; then $(CLANG_FORMAT) -i $(JAVA_FORMAT_FILES); fi
 	$(MAKE) format-bindings
 
 format-bindings: format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust
@@ -138,6 +140,7 @@ format-bindings-rust:
 format-check:
 	$(CLANG_FORMAT) --dry-run --Werror $(FORMAT_FILES)
 	@if [ -n "$(GO_FORMAT_FILES)" ]; then test -z "$$(gofmt -l $(GO_FORMAT_FILES))"; fi
+	@if [ -n "$(JAVA_FORMAT_FILES)" ]; then $(CLANG_FORMAT) --dry-run --Werror $(JAVA_FORMAT_FILES); fi
 
 diagrams-png: $(PNG_FILES)
 
@@ -152,6 +155,8 @@ print-files:
 	@echo "TEST_SRC=$(TEST_SRC)"
 	@echo "TEST_SCRIPTS=$(TEST_SCRIPTS)"
 	@echo "FORMAT_FILES=$(FORMAT_FILES)"
+	@echo "GO_FORMAT_FILES=$(GO_FORMAT_FILES)"
+	@echo "JAVA_FORMAT_FILES=$(JAVA_FORMAT_FILES)"
 
 clean:
 	rm -rf $(BUILD_DIR)
