@@ -6,9 +6,32 @@ import java.util.Optional;
 
 public interface Backend
 {
+    enum FieldType
+    {
+        STRING,
+        BOOL,
+        INT,
+        INT32,
+        INT64,
+        LONG,
+        DOUBLE,
+        DECIMAL,
+        JSON,
+        TIMESTAMP,
+        DURATION,
+        UUID,
+        NAMED,
+        LIST,
+        SET,
+        MAP,
+        OPTIONAL,
+        REFERENCE
+    }
+
     record FieldDescriptor(
         String name,
-        String type,
+        FieldType type,
+        String typeName,
         boolean required
     )
     {

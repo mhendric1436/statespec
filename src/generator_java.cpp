@@ -95,6 +95,63 @@ std::string strip_optional_suffix(const std::string& type)
     return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
+std::string java_field_type_expr(FieldDescriptorType type)
+{
+    switch (type)
+    {
+    case FieldDescriptorType::String:
+        return "FieldType.STRING";
+    case FieldDescriptorType::Bool:
+        return "FieldType.BOOL";
+    case FieldDescriptorType::Int:
+        return "FieldType.INT";
+    case FieldDescriptorType::Int32:
+        return "FieldType.INT32";
+    case FieldDescriptorType::Int64:
+        return "FieldType.INT64";
+    case FieldDescriptorType::Long:
+        return "FieldType.LONG";
+    case FieldDescriptorType::Double:
+        return "FieldType.DOUBLE";
+    case FieldDescriptorType::Decimal:
+        return "FieldType.DECIMAL";
+    case FieldDescriptorType::Json:
+        return "FieldType.JSON";
+    case FieldDescriptorType::Timestamp:
+        return "FieldType.TIMESTAMP";
+    case FieldDescriptorType::Duration:
+        return "FieldType.DURATION";
+    case FieldDescriptorType::Uuid:
+        return "FieldType.UUID";
+    case FieldDescriptorType::Named:
+        return "FieldType.NAMED";
+    case FieldDescriptorType::List:
+        return "FieldType.LIST";
+    case FieldDescriptorType::Set:
+        return "FieldType.SET";
+    case FieldDescriptorType::Map:
+        return "FieldType.MAP";
+    case FieldDescriptorType::Optional:
+        return "FieldType.OPTIONAL";
+    case FieldDescriptorType::Reference:
+        return "FieldType.REFERENCE";
+    }
+    return "FieldType.NAMED";
+}
+
+bool is_required_descriptor_field(const std::string& type)
+{
+    return classify_field_descriptor_type(type) != FieldDescriptorType::Optional;
+}
+
+std::string java_field_descriptor_expr(const IrField& field)
+{
+    return "new FieldDescriptor(" + java_string(field.name) + ", " +
+           java_field_type_expr(classify_field_descriptor_type(field.type)) + ", " +
+           java_string(field.type) + ", " +
+           (is_required_descriptor_field(field.type) ? "true" : "false") + ")";
+}
+
 std::string pascal_identifier(const std::string& value)
 {
     std::string result;
@@ -242,6 +299,7 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "import com.statespec.backend.Workflow;\n";
     out << "import com.statespec.backend.Backend.CollectionDescriptor;\n";
     out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
+    out << "import com.statespec.backend.Backend.FieldType;\n";
     out << "import com.statespec.backend.Backend.IndexDescriptor;\n";
     out << "import com.statespec.backend.Queue.QueueDefinition;\n";
     out << "import com.statespec.backend.Workflow.WorkflowDefinition;\n";
@@ -688,9 +746,7 @@ std::string generate_descriptors_java(const IrSystem& system)
         for (std::size_t i = 0; i < event.fields.size(); ++i)
         {
             const auto& field = event.fields[i];
-            out << "                    new FieldDescriptor(" << java_string(field.name) << ", "
-                << java_string(strip_optional_suffix(field.type)) << ", "
-                << (is_optional_type(field.type) ? "false" : "true") << ")";
+            out << "                    " << java_field_descriptor_expr(field);
             out << (i + 1 < event.fields.size() ? "," : "") << "\n";
         }
         out << "                )\n";
@@ -1066,9 +1122,7 @@ std::string generate_descriptors_java(const IrSystem& system)
         for (std::size_t i = 0; i < shape.fields.size(); ++i)
         {
             const auto& field = shape.fields[i];
-            out << "                    new FieldDescriptor(" << java_string(field.name) << ", "
-                << java_string(strip_optional_suffix(field.type)) << ", "
-                << (is_optional_type(field.type) ? "false" : "true") << ")";
+            out << "                    " << java_field_descriptor_expr(field);
             out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
         }
         out << "                )\n";
@@ -1090,9 +1144,7 @@ std::string generate_descriptors_java(const IrSystem& system)
         for (std::size_t i = 0; i < log.fields.size(); ++i)
         {
             const auto& field = log.fields[i];
-            out << "                    new FieldDescriptor(" << java_string(field.name) << ", "
-                << java_string(strip_optional_suffix(field.type)) << ", "
-                << (is_optional_type(field.type) ? "false" : "true") << ")";
+            out << "                    " << java_field_descriptor_expr(field);
             out << (i + 1 < log.fields.size() ? "," : "") << "\n";
         }
         out << "                )\n";
@@ -1115,9 +1167,7 @@ std::string generate_descriptors_java(const IrSystem& system)
         for (std::size_t i = 0; i < metric.labels.size(); ++i)
         {
             const auto& label = metric.labels[i];
-            out << "                    new FieldDescriptor(" << java_string(label.name) << ", "
-                << java_string(strip_optional_suffix(label.type)) << ", "
-                << (is_optional_type(label.type) ? "false" : "true") << ")";
+            out << "                    " << java_field_descriptor_expr(label);
             out << (i + 1 < metric.labels.size() ? "," : "") << "\n";
         }
         out << "                )\n";
@@ -1263,9 +1313,7 @@ std::string generate_descriptors_java(const IrSystem& system)
             for (std::size_t i = 0; i < entity.fields.size(); ++i)
             {
                 const auto& field = entity.fields[i];
-                out << "                    new FieldDescriptor(" << java_string(field.name) << ", "
-                    << java_string(strip_optional_suffix(field.type)) << ", "
-                    << (is_optional_type(field.type) ? "false" : "true") << ")";
+                out << "                    " << java_field_descriptor_expr(field);
                 out << (i + 1 < entity.fields.size() ? "," : "") << "\n";
             }
             out << "                ),\n";
