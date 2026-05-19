@@ -339,6 +339,13 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tClientMappings []ExternalSystemMetadataMappingAssignment\n";
     out << "\tRequestMappings []ExternalSystemMetadataMappingAssignment\n";
     out << "}\n\n";
+    out << "type ExternalSystemMetadataMissingMappingSource struct {\n";
+    out << "\tSource string\n";
+    out << "\tSourceRoot string\n";
+    out << "\tSourceField string\n";
+    out << "\tTargetRoot string\n";
+    out << "\tField string\n";
+    out << "}\n\n";
     out << "type ExternalSystemMetadataMappingInputs struct {\n";
     out << "\tInput map[string]JSON\n";
     out << "\tEntity map[string]JSON\n";
@@ -370,6 +377,24 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "type ExternalSystemMetadataMappingOutput struct {\n";
     out << "\tClientConfig map[string]JSON\n";
     out << "\tRequestPayload map[string]JSON\n";
+    out << "\tMissingSources []ExternalSystemMetadataMissingMappingSource\n";
+    out << "}\n\n";
+    out << "func MissingExternalSystemMetadataMappingSources(plan "
+           "ExternalSystemMetadataMappingPlan, inputs ExternalSystemMetadataMappingInputs) "
+           "[]ExternalSystemMetadataMissingMappingSource {\n";
+    out << "\tmissing := []ExternalSystemMetadataMissingMappingSource{}\n";
+    out << "\tfor _, assignment := range plan.AllMappings {\n";
+    out << "\t\tif _, ok := inputs.AssignmentValue(assignment); !ok {\n";
+    out << "\t\t\tmissing = append(missing, ExternalSystemMetadataMissingMappingSource{\n";
+    out << "\t\t\t\tSource: assignment.Source,\n";
+    out << "\t\t\t\tSourceRoot: assignment.SourceRoot,\n";
+    out << "\t\t\t\tSourceField: assignment.SourceField,\n";
+    out << "\t\t\t\tTargetRoot: assignment.TargetRoot,\n";
+    out << "\t\t\t\tField: assignment.Field,\n";
+    out << "\t\t\t})\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn missing\n";
     out << "}\n\n";
     out << "type ExternalSystemMetadataMappingApplicator interface {\n";
     out << "\tApplyExternalSystemMetadataMappings(context.Context, "

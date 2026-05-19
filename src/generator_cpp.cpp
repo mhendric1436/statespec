@@ -384,6 +384,15 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::vector<ExternalSystemMetadataMappingAssignment> request_mappings;\n";
     out << "};\n\n";
 
+    out << "struct ExternalSystemMetadataMissingMappingSource\n";
+    out << "{\n";
+    out << "    std::string source;\n";
+    out << "    std::string source_root;\n";
+    out << "    std::string source_field;\n";
+    out << "    std::string target_root;\n";
+    out << "    std::string field;\n";
+    out << "};\n\n";
+
     out << "struct ExternalSystemMetadataMappingInputs\n";
     out << "{\n";
     out << "    std::map<std::string, statespec::backend::Json> input;\n";
@@ -421,7 +430,31 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "{\n";
     out << "    std::map<std::string, statespec::backend::Json> client_config;\n";
     out << "    std::map<std::string, statespec::backend::Json> request_payload;\n";
+    out << "    std::vector<ExternalSystemMetadataMissingMappingSource> missing_sources;\n";
     out << "};\n\n";
+
+    out << "inline std::vector<ExternalSystemMetadataMissingMappingSource> "
+           "missing_external_system_metadata_mapping_sources(\n";
+    out << "    const ExternalSystemMetadataMappingPlan& plan,\n";
+    out << "    const ExternalSystemMetadataMappingInputs& inputs\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    std::vector<ExternalSystemMetadataMissingMappingSource> missing;\n";
+    out << "    for (const auto& assignment : plan.all_mappings)\n";
+    out << "    {\n";
+    out << "        if (inputs.source_value(assignment) == nullptr)\n";
+    out << "        {\n";
+    out << "            missing.push_back(ExternalSystemMetadataMissingMappingSource{\n";
+    out << "                assignment.source,\n";
+    out << "                assignment.source_root,\n";
+    out << "                assignment.source_field,\n";
+    out << "                assignment.target_root,\n";
+    out << "                assignment.field,\n";
+    out << "            });\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "    return missing;\n";
+    out << "}\n\n";
 
     out << "class IExternalSystemMetadataMappingApplicator\n";
     out << "{\n";

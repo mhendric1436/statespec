@@ -354,6 +354,13 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        List<ExternalSystemMetadataMappingAssignment> clientMappings,\n";
     out << "        List<ExternalSystemMetadataMappingAssignment> requestMappings\n";
     out << "    ) {}\n\n";
+    out << "    public record ExternalSystemMetadataMissingMappingSource(\n";
+    out << "        String source,\n";
+    out << "        String sourceRoot,\n";
+    out << "        String sourceField,\n";
+    out << "        String targetRoot,\n";
+    out << "        String field\n";
+    out << "    ) {}\n\n";
     out << "    public record ExternalSystemMetadataMappingInputs(\n";
     out << "        Map<String, Json> input,\n";
     out << "        Map<String, Json> entity,\n";
@@ -383,8 +390,30 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "    }\n\n";
     out << "    public record ExternalSystemMetadataMappingOutput(\n";
     out << "        Map<String, Json> clientConfig,\n";
-    out << "        Map<String, Json> requestPayload\n";
+    out << "        Map<String, Json> requestPayload,\n";
+    out << "        List<ExternalSystemMetadataMissingMappingSource> missingSources\n";
     out << "    ) {}\n\n";
+    out << "    public static List<ExternalSystemMetadataMissingMappingSource> "
+           "missingExternalSystemMetadataMappingSources(\n";
+    out << "        ExternalSystemMetadataMappingPlan plan,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) {\n";
+    out << "        java.util.ArrayList<ExternalSystemMetadataMissingMappingSource> "
+           "missing = new java.util.ArrayList<>();\n";
+    out << "        for (ExternalSystemMetadataMappingAssignment assignment : "
+           "plan.allMappings()) {\n";
+    out << "            if (inputs.assignmentValue(assignment).isEmpty()) {\n";
+    out << "                missing.add(new ExternalSystemMetadataMissingMappingSource(\n";
+    out << "                    assignment.source(),\n";
+    out << "                    assignment.sourceRoot(),\n";
+    out << "                    assignment.sourceField(),\n";
+    out << "                    assignment.targetRoot(),\n";
+    out << "                    assignment.field()\n";
+    out << "                ));\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return List.copyOf(missing);\n";
+    out << "    }\n\n";
     out << "    public interface ExternalSystemMetadataMappingApplicator {\n";
     out << "        ExternalSystemMetadataMappingOutput applyExternalSystemMetadataMappings(\n";
     out << "            ExternalSystemMetadataMappingPlan plan,\n";

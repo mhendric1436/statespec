@@ -210,8 +210,11 @@ accepts a mapping plan plus source-value maps for `input`, `entity`, `workflow`,
 `metadata`, and returns separate client configuration and request payload maps. The
 generated source-value container exposes root-aware lookup helpers, so applicators can ask
 for an assignment value without reimplementing `input`/`entity`/`workflow`/`metadata`
-dispatch. The generated contract does not prescribe a concrete HTTP client,
-serialization framework, or remote API transport.
+dispatch. Generated bindings also expose structured missing-source diagnostics for a
+mapping plan. Each diagnostic carries the original source path, normalized source root and
+field, target root, and target field so runtimes can reject incomplete remote-call
+assembly before invoking an external system. The generated contract does not prescribe a
+concrete HTTP client, serialization framework, or remote API transport.
 
 ## OCC Requirement
 

@@ -432,6 +432,8 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMet
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMissingMappingSource"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "missing_external_system_metadata_mapping_sources"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "source_value"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "IExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "external_system_metadata_mapping_plan"
@@ -569,6 +571,8 @@ class FakeMappingApplicator final
     ) override
     {
         statespec_generated::ExternalSystemMetadataMappingOutput output;
+        output.missing_sources =
+            statespec_generated::missing_external_system_metadata_mapping_sources(plan, inputs);
         for (const auto& assignment : plan.all_mappings)
         {
             const auto* source = inputs.source_value(assignment);
@@ -623,8 +627,25 @@ int main()
         }
     );
     if (mapped.client_config.size() != 3 || mapped.request_payload.size() != 1 ||
+        !mapped.missing_sources.empty() ||
         mapped.client_config.find("base_url") == mapped.client_config.end() ||
         mapped.request_payload.find("order_id") == mapped.request_payload.end())
+    {
+        return 1;
+    }
+    const auto missing_mapped = mapping_applicator.apply(
+        plan,
+        statespec_generated::ExternalSystemMetadataMappingInputs{
+            {{"order_id", "order-1"}},
+            {},
+            {},
+            {{"base_url", "https://api.stripe.test"}, {"auth_ref", "secret:stripe"}},
+        }
+    );
+    if (missing_mapped.missing_sources.size() != 1 ||
+        missing_mapped.missing_sources[0].source != "metadata.timeout_ms" ||
+        missing_mapped.missing_sources[0].target_root != "client" ||
+        missing_mapped.missing_sources[0].field != "timeout_ms")
     {
         return 1;
     }
@@ -685,6 +706,8 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSyste
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingPlan struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingInputs struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMissingMappingSource struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func MissingExternalSystemMetadataMappingSources"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func (i ExternalSystemMetadataMappingInputs) SourceValue"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingApplicator interface"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func BuildExternalSystemMetadataMappingPlan"
@@ -812,6 +835,7 @@ func (fixtureMappingApplicator) ApplyExternalSystemMetadataMappings(ctx context.
 	output := ExternalSystemMetadataMappingOutput{
 		ClientConfig:   map[string]JSON{},
 		RequestPayload: map[string]JSON{},
+		MissingSources: MissingExternalSystemMetadataMappingSources(plan, inputs),
 	}
 	for _, assignment := range plan.AllMappings {
 		value, ok := inputs.AssignmentValue(assignment)
@@ -846,8 +870,20 @@ func TestGeneratedMetadataResolverFixture(t *testing.T) {
 			"timeout_ms": JSONInt(5000),
 		},
 	})
-	if err != nil || len(mapped.ClientConfig) != 3 || len(mapped.RequestPayload) != 1 {
+	if err != nil || len(mapped.ClientConfig) != 3 || len(mapped.RequestPayload) != 1 || len(mapped.MissingSources) != 0 {
 		t.Fatalf("unexpected mapped metadata output: %#v err=%v", mapped, err)
+	}
+	missingMapped, err := applicator.ApplyExternalSystemMetadataMappings(ctx, plan, ExternalSystemMetadataMappingInputs{
+		Input: map[string]JSON{
+			"order_id": JSONString("order-1"),
+		},
+		Metadata: map[string]JSON{
+			"base_url": JSONString("https://api.stripe.test"),
+			"auth_ref": JSONString("secret:stripe"),
+		},
+	})
+	if err != nil || len(missingMapped.MissingSources) != 1 || missingMapped.MissingSources[0].Source != "metadata.timeout_ms" || missingMapped.MissingSources[0].TargetRoot != "client" || missingMapped.MissingSources[0].Field != "timeout_ms" {
+		t.Fatalf("unexpected missing mapping diagnostics: %#v err=%v", missingMapped, err)
 	}
 	keys := []ExternalSystemMetadataKeyValue{
 		{Field: "tenant_id", Value: JSONString("tenant-a")},
@@ -902,6 +938,8 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMissingMappingSource"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "missingExternalSystemMetadataMappingSources"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "sourceValue"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "interface ExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "externalSystemMetadataMappingPlan"
@@ -1067,7 +1105,8 @@ public final class MetadataResolverFixture
             }
             return new Descriptors.ExternalSystemMetadataMappingOutput(
                 clientConfig,
-                requestPayload
+                requestPayload,
+                Descriptors.missingExternalSystemMetadataMappingSources(plan, inputs)
             );
         }
     }
@@ -1109,9 +1148,30 @@ public final class MetadataResolverFixture
                     )
                 )
             );
-        if (mapped.clientConfig().size() != 3 || mapped.requestPayload().size() != 1)
+        if (mapped.clientConfig().size() != 3 || mapped.requestPayload().size() != 1 ||
+            !mapped.missingSources().isEmpty())
         {
             throw new AssertionError("unexpected mapped metadata output");
+        }
+        Descriptors.ExternalSystemMetadataMappingOutput missingMapped =
+            applicator.applyExternalSystemMetadataMappings(
+                plan,
+                new Descriptors.ExternalSystemMetadataMappingInputs(
+                    Map.of("order_id", Json.string("order-1")),
+                    Map.of(),
+                    Map.of(),
+                    Map.of(
+                        "base_url", Json.string("https://api.stripe.test"),
+                        "auth_ref", Json.string("secret:stripe")
+                    )
+                )
+            );
+        if (missingMapped.missingSources().size() != 1 ||
+            !missingMapped.missingSources().get(0).source().equals("metadata.timeout_ms") ||
+            !missingMapped.missingSources().get(0).targetRoot().equals("client") ||
+            !missingMapped.missingSources().get(0).field().equals("timeout_ms"))
+        {
+            throw new AssertionError("unexpected missing mapping diagnostics");
         }
         List<ExternalSystem.MetadataKeyValue> keys = List.of(
             new ExternalSystem.MetadataKeyValue("tenant_id", Json.string("tenant-a")),
@@ -1174,6 +1234,8 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSyste
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMissingMappingSource"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn missing_external_system_metadata_mapping_sources"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn source_value"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub trait ExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_metadata_mapping_plan"
@@ -1419,6 +1481,10 @@ mod tests {
             inputs: &crate::descriptors::ExternalSystemMetadataMappingInputs,
         ) -> BackendResult<crate::descriptors::ExternalSystemMetadataMappingOutput> {
             let mut output = crate::descriptors::ExternalSystemMetadataMappingOutput::default();
+            output.missing_sources =
+                crate::descriptors::missing_external_system_metadata_mapping_sources(
+                    plan, inputs,
+                );
             for assignment in &plan.all_mappings {
                 let source = inputs.assignment_value(assignment);
                 if let Some(value) = source {
@@ -1482,6 +1548,33 @@ mod tests {
         .expect("mapping applicator should not fail");
         assert_eq!(mapped.client_config.len(), 3);
         assert_eq!(mapped.request_payload.len(), 1);
+        assert_eq!(mapped.missing_sources.len(), 0);
+        let missing_mapped = crate::descriptors::ExternalSystemMetadataMappingApplicator::apply_external_system_metadata_mappings(
+            &applicator,
+            &plan,
+            &crate::descriptors::ExternalSystemMetadataMappingInputs {
+                input: BTreeMap::from([(
+                    "order_id".to_string(),
+                    Json::String("order-1".to_string()),
+                )]),
+                metadata: BTreeMap::from([
+                    (
+                        "base_url".to_string(),
+                        Json::String("https://api.stripe.test".to_string()),
+                    ),
+                    (
+                        "auth_ref".to_string(),
+                        Json::String("secret:stripe".to_string()),
+                    ),
+                ]),
+                ..Default::default()
+            },
+        )
+        .expect("mapping applicator should not fail");
+        assert_eq!(missing_mapped.missing_sources.len(), 1);
+        assert_eq!(missing_mapped.missing_sources[0].source, "metadata.timeout_ms");
+        assert_eq!(missing_mapped.missing_sources[0].target_root, "client");
+        assert_eq!(missing_mapped.missing_sources[0].field, "timeout_ms");
         let keys = vec![
             ExternalSystemMetadataKeyValue {
                 field: "tenant_id".to_string(),
