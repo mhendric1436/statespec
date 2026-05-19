@@ -82,6 +82,7 @@ Generated external system metadata includes:
 - generated mapping-plan helpers with ordered, client, and request assignment views
 - generated mapping applicator contracts for turning mapping inputs into client
   configuration and request payloads
+- generated root-aware source-value lookup helpers for mapping applicators
 - generated lookup helpers that build runtime metadata lookup requests from descriptors
 - generated transaction-scoped helpers that call external system metadata resolvers
 - generated resolve helpers validate lookup key completeness before resolver calls

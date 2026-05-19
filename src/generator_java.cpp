@@ -359,7 +359,28 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        Map<String, Json> entity,\n";
     out << "        Map<String, Json> workflow,\n";
     out << "        Map<String, Json> metadata\n";
-    out << "    ) {}\n\n";
+    out << "    ) {\n";
+    out << "        public Optional<Json> sourceValue(String sourceRoot, String sourceField) "
+           "{\n";
+    out << "            Map<String, Json> values = switch (sourceRoot) {\n";
+    out << "                case \"input\" -> input;\n";
+    out << "                case \"entity\" -> entity;\n";
+    out << "                case \"workflow\" -> workflow;\n";
+    out << "                case \"metadata\" -> metadata;\n";
+    out << "                default -> null;\n";
+    out << "            };\n";
+    out << "            if (values == null) {\n";
+    out << "                return Optional.empty();\n";
+    out << "            }\n";
+    out << "            return Optional.ofNullable(values.get(sourceField));\n";
+    out << "        }\n\n";
+    out << "        public Optional<Json> assignmentValue(\n";
+    out << "            ExternalSystemMetadataMappingAssignment assignment\n";
+    out << "        ) {\n";
+    out << "            return sourceValue(assignment.sourceRoot(), "
+           "assignment.sourceField());\n";
+    out << "        }\n";
+    out << "    }\n\n";
     out << "    public record ExternalSystemMetadataMappingOutput(\n";
     out << "        Map<String, Json> clientConfig,\n";
     out << "        Map<String, Json> requestPayload\n";

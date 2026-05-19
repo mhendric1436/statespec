@@ -432,6 +432,7 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMet
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "source_value"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "IExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "external_system_metadata_mapping_plan"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "std::optional<std::string> tenant_field"
@@ -570,16 +571,18 @@ class FakeMappingApplicator final
         statespec_generated::ExternalSystemMetadataMappingOutput output;
         for (const auto& assignment : plan.all_mappings)
         {
-            const auto& source = assignment.source_root == "metadata"
-                ? inputs.metadata.at(assignment.source_field)
-                : inputs.input.at(assignment.source_field);
+            const auto* source = inputs.source_value(assignment);
+            if (source == nullptr)
+            {
+                continue;
+            }
             if (assignment.target_root == "client")
             {
-                output.client_config.emplace(assignment.field, source);
+                output.client_config.emplace(assignment.field, *source);
             }
             else if (assignment.target_root == "request")
             {
-                output.request_payload.emplace(assignment.field, source);
+                output.request_payload.emplace(assignment.field, *source);
             }
         }
         return output;
@@ -682,6 +685,7 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSyste
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingPlan struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingInputs struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func (i ExternalSystemMetadataMappingInputs) SourceValue"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingApplicator interface"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func BuildExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "TenantField *string"
@@ -810,11 +814,9 @@ func (fixtureMappingApplicator) ApplyExternalSystemMetadataMappings(ctx context.
 		RequestPayload: map[string]JSON{},
 	}
 	for _, assignment := range plan.AllMappings {
-		var value JSON
-		if assignment.SourceRoot == "metadata" {
-			value = inputs.Metadata[assignment.SourceField]
-		} else {
-			value = inputs.Input[assignment.SourceField]
+		value, ok := inputs.AssignmentValue(assignment)
+		if !ok {
+			continue
 		}
 		if assignment.TargetRoot == "client" {
 			output.ClientConfig[assignment.Field] = value
@@ -900,6 +902,7 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "sourceValue"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "interface ExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "externalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional<String> tenantField"
@@ -1048,16 +1051,18 @@ public final class MetadataResolverFixture
             for (Descriptors.ExternalSystemMetadataMappingAssignment assignment :
                 plan.allMappings())
             {
-                Json value = assignment.sourceRoot().equals("metadata")
-                    ? inputs.metadata().get(assignment.sourceField())
-                    : inputs.input().get(assignment.sourceField());
+                Optional<Json> value = inputs.assignmentValue(assignment);
+                if (value.isEmpty())
+                {
+                    continue;
+                }
                 if (assignment.targetRoot().equals("client"))
                 {
-                    clientConfig.put(assignment.field(), value);
+                    clientConfig.put(assignment.field(), value.orElseThrow());
                 }
                 else if (assignment.targetRoot().equals("request"))
                 {
-                    requestPayload.put(assignment.field(), value);
+                    requestPayload.put(assignment.field(), value.orElseThrow());
                 }
             }
             return new Descriptors.ExternalSystemMetadataMappingOutput(
@@ -1169,6 +1174,7 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSyste
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn source_value"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub trait ExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_metadata_mapping_plan"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub tenant_field: Option<String>"
@@ -1414,11 +1420,7 @@ mod tests {
         ) -> BackendResult<crate::descriptors::ExternalSystemMetadataMappingOutput> {
             let mut output = crate::descriptors::ExternalSystemMetadataMappingOutput::default();
             for assignment in &plan.all_mappings {
-                let source = if assignment.source_root == "metadata" {
-                    inputs.metadata.get(&assignment.source_field)
-                } else {
-                    inputs.input.get(&assignment.source_field)
-                };
+                let source = inputs.assignment_value(assignment);
                 if let Some(value) = source {
                     if assignment.target_root == "client" {
                         output

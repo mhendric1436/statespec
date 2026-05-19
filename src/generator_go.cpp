@@ -345,6 +345,28 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tWorkflow map[string]JSON\n";
     out << "\tMetadata map[string]JSON\n";
     out << "}\n\n";
+    out << "func (i ExternalSystemMetadataMappingInputs) SourceValue(sourceRoot string, "
+           "sourceField string) (JSON, bool) {\n";
+    out << "\tvar values map[string]JSON\n";
+    out << "\tswitch sourceRoot {\n";
+    out << "\tcase \"input\":\n";
+    out << "\t\tvalues = i.Input\n";
+    out << "\tcase \"entity\":\n";
+    out << "\t\tvalues = i.Entity\n";
+    out << "\tcase \"workflow\":\n";
+    out << "\t\tvalues = i.Workflow\n";
+    out << "\tcase \"metadata\":\n";
+    out << "\t\tvalues = i.Metadata\n";
+    out << "\tdefault:\n";
+    out << "\t\treturn JSON{}, false\n";
+    out << "\t}\n";
+    out << "\tvalue, ok := values[sourceField]\n";
+    out << "\treturn value, ok\n";
+    out << "}\n\n";
+    out << "func (i ExternalSystemMetadataMappingInputs) AssignmentValue(assignment "
+           "ExternalSystemMetadataMappingAssignment) (JSON, bool) {\n";
+    out << "\treturn i.SourceValue(assignment.SourceRoot, assignment.SourceField)\n";
+    out << "}\n\n";
     out << "type ExternalSystemMetadataMappingOutput struct {\n";
     out << "\tClientConfig map[string]JSON\n";
     out << "\tRequestPayload map[string]JSON\n";

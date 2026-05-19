@@ -208,8 +208,10 @@ payloads from user input, loaded entity state, workflow state, and resolved meta
 Generated bindings define framework-neutral mapping applicator contracts. The contract
 accepts a mapping plan plus source-value maps for `input`, `entity`, `workflow`, and
 `metadata`, and returns separate client configuration and request payload maps. The
-generated contract does not prescribe a concrete HTTP client, serialization framework, or
-remote API transport.
+generated source-value container exposes root-aware lookup helpers, so applicators can ask
+for an assignment value without reimplementing `input`/`entity`/`workflow`/`metadata`
+dispatch. The generated contract does not prescribe a concrete HTTP client,
+serialization framework, or remote API transport.
 
 ## OCC Requirement
 

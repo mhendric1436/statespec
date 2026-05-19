@@ -375,6 +375,24 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub workflow: BTreeMap<String, Json>,\n";
     out << "    pub metadata: BTreeMap<String, Json>,\n";
     out << "}\n\n";
+    out << "impl ExternalSystemMetadataMappingInputs {\n";
+    out << "    pub fn source_value(&self, source_root: &str, source_field: &str) -> "
+           "Option<&Json> {\n";
+    out << "        match source_root {\n";
+    out << "            \"input\" => self.input.get(source_field),\n";
+    out << "            \"entity\" => self.entity.get(source_field),\n";
+    out << "            \"workflow\" => self.workflow.get(source_field),\n";
+    out << "            \"metadata\" => self.metadata.get(source_field),\n";
+    out << "            _ => None,\n";
+    out << "        }\n";
+    out << "    }\n\n";
+    out << "    pub fn assignment_value(\n";
+    out << "        &self,\n";
+    out << "        assignment: &ExternalSystemMetadataMappingAssignment,\n";
+    out << "    ) -> Option<&Json> {\n";
+    out << "        self.source_value(&assignment.source_root, &assignment.source_field)\n";
+    out << "    }\n";
+    out << "}\n\n";
     out << "#[derive(Debug, Clone, Default)]\n";
     out << "pub struct ExternalSystemMetadataMappingOutput {\n";
     out << "    pub client_config: BTreeMap<String, Json>,\n";
