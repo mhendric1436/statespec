@@ -431,6 +431,8 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemDes
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemOperatorMetadataUpsertRequest"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "IExternalSystemOperatorMetadataRepository"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingInputs"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMissingMappingSource"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "missing_external_system_metadata_mapping_sources"
@@ -593,6 +595,63 @@ class FakeMappingApplicator final
     }
 };
 
+class FakeOperatorMetadataRepository final
+    : public statespec_generated::IExternalSystemOperatorMetadataRepository
+{
+  public:
+    std::optional<statespec::backend::VersionedRecord> upsert_metadataTx(
+        statespec::backend::ITransaction&,
+        const statespec_generated::ExternalSystemOperatorMetadataUpsertRequest& request
+    ) override
+    {
+        return statespec::backend::VersionedRecord{
+            request.lookup.metadata_entity,
+            "tenant-a/stripe/default",
+            request.expected_version.value_or(0) + 1,
+            request.document,
+        };
+    }
+
+    std::optional<statespec::backend::VersionedRecord> get_metadataTx(
+        statespec::backend::ITransaction&,
+        const statespec_generated::ExternalSystemOperatorMetadataGetRequest& request
+    ) override
+    {
+        return statespec::backend::VersionedRecord{
+            request.lookup.metadata_entity,
+            "tenant-a/stripe/default",
+            1,
+            statespec::backend::Json::object({{"status", "Active"}}),
+        };
+    }
+
+    std::optional<statespec::backend::VersionedRecord> disable_metadataTx(
+        statespec::backend::ITransaction&,
+        const statespec_generated::ExternalSystemOperatorMetadataDisableRequest& request
+    ) override
+    {
+        return statespec::backend::VersionedRecord{
+            request.lookup.metadata_entity,
+            "tenant-a/stripe/default",
+            request.expected_version.value_or(0) + 1,
+            statespec::backend::Json::object({{"status", request.disabled_status}}),
+        };
+    }
+
+    std::optional<statespec::backend::VersionedRecord> delete_metadataTx(
+        statespec::backend::ITransaction&,
+        const statespec_generated::ExternalSystemOperatorMetadataDeleteRequest& request
+    ) override
+    {
+        return statespec::backend::VersionedRecord{
+            request.lookup.metadata_entity,
+            "tenant-a/stripe/default",
+            request.expected_version.value_or(0) + 1,
+            statespec::backend::Json::object({{"status", request.deleted_status}}),
+        };
+    }
+};
+
 int main()
 {
     FakeTx tx;
@@ -654,6 +713,51 @@ int main()
         {"external_system_id", "stripe"},
         {"profile", "default"},
     };
+    auto lookup = statespec_generated::external_system_metadata_lookup(
+        "Billing.Stripe",
+        keys
+    );
+    if (!lookup.has_value())
+    {
+        return 1;
+    }
+    FakeOperatorMetadataRepository repository;
+    statespec_generated::IExternalSystemOperatorMetadataRepository& metadata_repository =
+        repository;
+    const auto upserted = metadata_repository.upsert_metadataTx(
+        tx,
+        statespec_generated::ExternalSystemOperatorMetadataUpsertRequest{
+            *lookup,
+            statespec::backend::Json::object({{"tenant_id", "tenant-a"}}),
+            statespec::backend::Version{1},
+        }
+    );
+    const auto loaded = metadata_repository.get_metadataTx(
+        tx,
+        statespec_generated::ExternalSystemOperatorMetadataGetRequest{*lookup}
+    );
+    const auto disabled = metadata_repository.disable_metadataTx(
+        tx,
+        statespec_generated::ExternalSystemOperatorMetadataDisableRequest{
+            *lookup,
+            statespec::backend::Version{2},
+            "Disabled",
+        }
+    );
+    const auto deleted = metadata_repository.delete_metadataTx(
+        tx,
+        statespec_generated::ExternalSystemOperatorMetadataDeleteRequest{
+            *lookup,
+            statespec::backend::Version{3},
+            "Deleted",
+        }
+    );
+    if (!upserted.has_value() || upserted->version != 2 || !loaded.has_value() ||
+        !disabled.has_value() || disabled->version != 3 || !deleted.has_value() ||
+        deleted->version != 4)
+    {
+        return 1;
+    }
     auto resolved = statespec_generated::resolve_external_system_metadataTx(
         resolver, tx, "Billing.Stripe", keys
     );
@@ -705,6 +809,8 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSyste
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingPlan struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemOperatorMetadataUpsertRequest struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemOperatorMetadataRepository interface"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingInputs struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMissingMappingSource struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func MissingExternalSystemMetadataMappingSources"
@@ -851,6 +957,62 @@ func (fixtureMappingApplicator) ApplyExternalSystemMetadataMappings(ctx context.
 	return output, nil
 }
 
+type fixtureOperatorMetadataRepository struct{}
+
+func (fixtureOperatorMetadataRepository) UpsertMetadataTx(ctx context.Context, tx Transaction, request ExternalSystemOperatorMetadataUpsertRequest) (*VersionedRecord, error) {
+	version := Version(1)
+	if request.ExpectedVersion != nil {
+		version = *request.ExpectedVersion + 1
+	}
+	return &VersionedRecord{
+		Collection: CollectionName(request.Lookup.MetadataEntity),
+		Key:        Key("tenant-a/stripe/default"),
+		Version:    version,
+		Document:   request.Document,
+	}, nil
+}
+
+func (fixtureOperatorMetadataRepository) GetMetadataTx(ctx context.Context, tx Transaction, request ExternalSystemOperatorMetadataGetRequest) (*VersionedRecord, error) {
+	return &VersionedRecord{
+		Collection: CollectionName(request.Lookup.MetadataEntity),
+		Key:        Key("tenant-a/stripe/default"),
+		Version:    Version(1),
+		Document: JSONObject(map[string]JSON{
+			"status": JSONString("Active"),
+		}),
+	}, nil
+}
+
+func (fixtureOperatorMetadataRepository) DisableMetadataTx(ctx context.Context, tx Transaction, request ExternalSystemOperatorMetadataDisableRequest) (*VersionedRecord, error) {
+	version := Version(1)
+	if request.ExpectedVersion != nil {
+		version = *request.ExpectedVersion + 1
+	}
+	return &VersionedRecord{
+		Collection: CollectionName(request.Lookup.MetadataEntity),
+		Key:        Key("tenant-a/stripe/default"),
+		Version:    version,
+		Document: JSONObject(map[string]JSON{
+			"status": JSONString(request.DisabledStatus),
+		}),
+	}, nil
+}
+
+func (fixtureOperatorMetadataRepository) DeleteMetadataTx(ctx context.Context, tx Transaction, request ExternalSystemOperatorMetadataDeleteRequest) (*VersionedRecord, error) {
+	version := Version(1)
+	if request.ExpectedVersion != nil {
+		version = *request.ExpectedVersion + 1
+	}
+	return &VersionedRecord{
+		Collection: CollectionName(request.Lookup.MetadataEntity),
+		Key:        Key("tenant-a/stripe/default"),
+		Version:    version,
+		Document: JSONObject(map[string]JSON{
+			"status": JSONString(request.DeletedStatus),
+		}),
+	}, nil
+}
+
 func TestGeneratedMetadataResolverFixture(t *testing.T) {
 	ctx := context.Background()
 	resolver := &fixtureResolver{}
@@ -889,6 +1051,26 @@ func TestGeneratedMetadataResolverFixture(t *testing.T) {
 		{Field: "tenant_id", Value: JSONString("tenant-a")},
 		{Field: "external_system_id", Value: JSONString("stripe")},
 		{Field: "profile", Value: JSONString("default")},
+	}
+	lookup, ok := ExternalSystemMetadataLookupByName("Billing.Stripe", keys)
+	if !ok || lookup == nil {
+		t.Fatalf("expected metadata lookup")
+	}
+	version := Version(1)
+	repository := ExternalSystemOperatorMetadataRepository(fixtureOperatorMetadataRepository{})
+	upserted, err := repository.UpsertMetadataTx(ctx, tx, ExternalSystemOperatorMetadataUpsertRequest{
+		Lookup:          *lookup,
+		Document:        JSONObject(map[string]JSON{"tenant_id": JSONString("tenant-a")}),
+		ExpectedVersion: &version,
+	})
+	if err != nil || upserted == nil || upserted.Version != 2 {
+		t.Fatalf("unexpected metadata upsert result: %#v err=%v", upserted, err)
+	}
+	loaded, err := repository.GetMetadataTx(ctx, tx, ExternalSystemOperatorMetadataGetRequest{Lookup: *lookup})
+	disabled, err2 := repository.DisableMetadataTx(ctx, tx, ExternalSystemOperatorMetadataDisableRequest{Lookup: *lookup, ExpectedVersion: &upserted.Version, DisabledStatus: "Disabled"})
+	deleted, err3 := repository.DeleteMetadataTx(ctx, tx, ExternalSystemOperatorMetadataDeleteRequest{Lookup: *lookup, ExpectedVersion: &disabled.Version, DeletedStatus: "Deleted"})
+	if err != nil || err2 != nil || err3 != nil || loaded == nil || disabled == nil || disabled.Version != 3 || deleted == nil || deleted.Version != 4 {
+		t.Fatalf("unexpected metadata repository results loaded=%#v disabled=%#v deleted=%#v errs=%v/%v/%v", loaded, disabled, deleted, err, err2, err3)
 	}
 	resolved, ok, err := ResolveExternalSystemMetadataByNameTx(ctx, resolver, tx, "Billing.Stripe", keys)
 	if err != nil || !ok || resolved == nil || resolved.Complete() || resolver.calls != 1 {
@@ -937,6 +1119,8 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemOperatorMetadataUpsertRequest"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "interface ExternalSystemOperatorMetadataRepository"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingInputs"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMissingMappingSource"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "missingExternalSystemMetadataMappingSources"
@@ -1111,6 +1295,62 @@ public final class MetadataResolverFixture
         }
     }
 
+    private static final class FixtureOperatorMetadataRepository
+        implements Descriptors.ExternalSystemOperatorMetadataRepository
+    {
+        @Override public Optional<Backend.VersionedRecord> upsertMetadataTx(
+            Backend.Transaction tx,
+            Descriptors.ExternalSystemOperatorMetadataUpsertRequest request
+        )
+        {
+            return Optional.of(new Backend.VersionedRecord(
+                request.lookup().metadataEntity(),
+                "tenant-a/stripe/default",
+                request.expectedVersion().orElse(0L) + 1L,
+                request.document()
+            ));
+        }
+
+        @Override public Optional<Backend.VersionedRecord> getMetadataTx(
+            Backend.Transaction tx,
+            Descriptors.ExternalSystemOperatorMetadataGetRequest request
+        )
+        {
+            return Optional.of(new Backend.VersionedRecord(
+                request.lookup().metadataEntity(),
+                "tenant-a/stripe/default",
+                1L,
+                Json.object(Map.of("status", Json.string("Active")))
+            ));
+        }
+
+        @Override public Optional<Backend.VersionedRecord> disableMetadataTx(
+            Backend.Transaction tx,
+            Descriptors.ExternalSystemOperatorMetadataDisableRequest request
+        )
+        {
+            return Optional.of(new Backend.VersionedRecord(
+                request.lookup().metadataEntity(),
+                "tenant-a/stripe/default",
+                request.expectedVersion().orElse(0L) + 1L,
+                Json.object(Map.of("status", Json.string(request.disabledStatus())))
+            ));
+        }
+
+        @Override public Optional<Backend.VersionedRecord> deleteMetadataTx(
+            Backend.Transaction tx,
+            Descriptors.ExternalSystemOperatorMetadataDeleteRequest request
+        )
+        {
+            return Optional.of(new Backend.VersionedRecord(
+                request.lookup().metadataEntity(),
+                "tenant-a/stripe/default",
+                request.expectedVersion().orElse(0L) + 1L,
+                Json.object(Map.of("status", Json.string(request.deletedStatus())))
+            ));
+        }
+    }
+
     public static void main(String[] args) throws Exception
     {
         FixtureResolver resolver = new FixtureResolver();
@@ -1178,6 +1418,43 @@ public final class MetadataResolverFixture
             new ExternalSystem.MetadataKeyValue("external_system_id", Json.string("stripe")),
             new ExternalSystem.MetadataKeyValue("profile", Json.string("default"))
         );
+        ExternalSystem.MetadataLookup lookup =
+            Descriptors.externalSystemMetadataLookup("Billing.Stripe", keys).orElseThrow();
+        Descriptors.ExternalSystemOperatorMetadataRepository repository =
+            new FixtureOperatorMetadataRepository();
+        Backend.VersionedRecord upserted = repository.upsertMetadataTx(
+            tx,
+            new Descriptors.ExternalSystemOperatorMetadataUpsertRequest(
+                lookup,
+                Json.object(Map.of("tenant_id", Json.string("tenant-a"))),
+                Optional.of(1L)
+            )
+        ).orElseThrow();
+        Backend.VersionedRecord loaded = repository.getMetadataTx(
+            tx,
+            new Descriptors.ExternalSystemOperatorMetadataGetRequest(lookup)
+        ).orElseThrow();
+        Backend.VersionedRecord disabled = repository.disableMetadataTx(
+            tx,
+            new Descriptors.ExternalSystemOperatorMetadataDisableRequest(
+                lookup,
+                Optional.of(upserted.version()),
+                "Disabled"
+            )
+        ).orElseThrow();
+        Backend.VersionedRecord deleted = repository.deleteMetadataTx(
+            tx,
+            new Descriptors.ExternalSystemOperatorMetadataDeleteRequest(
+                lookup,
+                Optional.of(disabled.version()),
+                "Deleted"
+            )
+        ).orElseThrow();
+        if (upserted.version() != 2L || loaded.version() != 1L ||
+            disabled.version() != 3L || deleted.version() != 4L)
+        {
+            throw new AssertionError("unexpected metadata repository result");
+        }
         Optional<ExternalSystem.MetadataResolution> resolved =
             Descriptors.resolveExternalSystemMetadataTx(resolver, tx, "Billing.Stripe", keys);
         if (resolved.isEmpty() || resolved.orElseThrow().complete() || resolver.calls != 1)
@@ -1233,6 +1510,8 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSyste
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemOperatorMetadataUpsertRequest"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub trait ExternalSystemOperatorMetadataRepository"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingInputs"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMissingMappingSource"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn missing_external_system_metadata_mapping_sources"
@@ -1503,6 +1782,73 @@ mod tests {
         }
     }
 
+    struct FixtureOperatorMetadataRepository;
+
+    impl crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>
+        for FixtureOperatorMetadataRepository
+    {
+        fn upsert_metadata_tx(
+            &self,
+            _tx: &mut FixtureTx,
+            request: &crate::descriptors::ExternalSystemOperatorMetadataUpsertRequest,
+        ) -> BackendResult<Option<VersionedRecord>> {
+            Ok(Some(VersionedRecord {
+                collection: request.lookup.metadata_entity.clone(),
+                key: "tenant-a/stripe/default".to_string(),
+                version: request.expected_version.unwrap_or(0) + 1,
+                document: request.document.clone(),
+            }))
+        }
+
+        fn get_metadata_tx(
+            &self,
+            _tx: &mut FixtureTx,
+            request: &crate::descriptors::ExternalSystemOperatorMetadataGetRequest,
+        ) -> BackendResult<Option<VersionedRecord>> {
+            Ok(Some(VersionedRecord {
+                collection: request.lookup.metadata_entity.clone(),
+                key: "tenant-a/stripe/default".to_string(),
+                version: 1,
+                document: Json::Object(BTreeMap::from([(
+                    "status".to_string(),
+                    Json::String("Active".to_string()),
+                )])),
+            }))
+        }
+
+        fn disable_metadata_tx(
+            &self,
+            _tx: &mut FixtureTx,
+            request: &crate::descriptors::ExternalSystemOperatorMetadataDisableRequest,
+        ) -> BackendResult<Option<VersionedRecord>> {
+            Ok(Some(VersionedRecord {
+                collection: request.lookup.metadata_entity.clone(),
+                key: "tenant-a/stripe/default".to_string(),
+                version: request.expected_version.unwrap_or(0) + 1,
+                document: Json::Object(BTreeMap::from([(
+                    "status".to_string(),
+                    Json::String(request.disabled_status.clone()),
+                )])),
+            }))
+        }
+
+        fn delete_metadata_tx(
+            &self,
+            _tx: &mut FixtureTx,
+            request: &crate::descriptors::ExternalSystemOperatorMetadataDeleteRequest,
+        ) -> BackendResult<Option<VersionedRecord>> {
+            Ok(Some(VersionedRecord {
+                collection: request.lookup.metadata_entity.clone(),
+                key: "tenant-a/stripe/default".to_string(),
+                version: request.expected_version.unwrap_or(0) + 1,
+                document: Json::Object(BTreeMap::from([(
+                    "status".to_string(),
+                    Json::String(request.deleted_status.clone()),
+                )])),
+            }))
+        }
+    }
+
     #[test]
     fn generated_metadata_resolver_fixture() {
         let resolver = FixtureResolver {
@@ -1589,6 +1935,61 @@ mod tests {
                 value: Json::String("default".to_string()),
             },
         ];
+        let lookup = crate::descriptors::external_system_metadata_lookup_by_name(
+            "Billing.Stripe",
+            keys.clone(),
+        )
+        .expect("metadata lookup should build");
+        let repository = FixtureOperatorMetadataRepository;
+        let upserted = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::upsert_metadata_tx(
+            &repository,
+            &mut tx,
+            &crate::descriptors::ExternalSystemOperatorMetadataUpsertRequest {
+                lookup: lookup.clone(),
+                document: Json::Object(BTreeMap::from([(
+                    "tenant_id".to_string(),
+                    Json::String("tenant-a".to_string()),
+                )])),
+                expected_version: Some(1),
+            },
+        )
+        .expect("metadata upsert should not fail")
+        .expect("metadata upsert should return record");
+        let loaded = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::get_metadata_tx(
+            &repository,
+            &mut tx,
+            &crate::descriptors::ExternalSystemOperatorMetadataGetRequest {
+                lookup: lookup.clone(),
+            },
+        )
+        .expect("metadata get should not fail")
+        .expect("metadata get should return record");
+        let disabled = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::disable_metadata_tx(
+            &repository,
+            &mut tx,
+            &crate::descriptors::ExternalSystemOperatorMetadataDisableRequest {
+                lookup: lookup.clone(),
+                expected_version: Some(upserted.version),
+                disabled_status: "Disabled".to_string(),
+            },
+        )
+        .expect("metadata disable should not fail")
+        .expect("metadata disable should return record");
+        let deleted = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::delete_metadata_tx(
+            &repository,
+            &mut tx,
+            &crate::descriptors::ExternalSystemOperatorMetadataDeleteRequest {
+                lookup,
+                expected_version: Some(disabled.version),
+                deleted_status: "Deleted".to_string(),
+            },
+        )
+        .expect("metadata delete should not fail")
+        .expect("metadata delete should return record");
+        assert_eq!(upserted.version, 2);
+        assert_eq!(loaded.version, 1);
+        assert_eq!(disabled.version, 3);
+        assert_eq!(deleted.version, 4);
 
         let resolved = crate::descriptors::resolve_external_system_metadata_by_name_tx::<
             FixtureBackend,

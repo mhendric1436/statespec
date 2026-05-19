@@ -476,6 +476,54 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::vector<ExternalSystemMetadataMappingDescriptor> mappings;\n";
     out << "};\n\n";
 
+    out << "struct ExternalSystemOperatorMetadataUpsertRequest\n";
+    out << "{\n";
+    out << "    statespec::backend::ExternalSystemMetadataLookup lookup;\n";
+    out << "    statespec::backend::Json document;\n";
+    out << "    std::optional<statespec::backend::Version> expected_version;\n";
+    out << "};\n\n";
+
+    out << "struct ExternalSystemOperatorMetadataGetRequest\n";
+    out << "{\n";
+    out << "    statespec::backend::ExternalSystemMetadataLookup lookup;\n";
+    out << "};\n\n";
+
+    out << "struct ExternalSystemOperatorMetadataDisableRequest\n";
+    out << "{\n";
+    out << "    statespec::backend::ExternalSystemMetadataLookup lookup;\n";
+    out << "    std::optional<statespec::backend::Version> expected_version;\n";
+    out << "    std::string disabled_status = \"Disabled\";\n";
+    out << "};\n\n";
+
+    out << "struct ExternalSystemOperatorMetadataDeleteRequest\n";
+    out << "{\n";
+    out << "    statespec::backend::ExternalSystemMetadataLookup lookup;\n";
+    out << "    std::optional<statespec::backend::Version> expected_version;\n";
+    out << "    std::string deleted_status = \"Deleted\";\n";
+    out << "};\n\n";
+
+    out << "class IExternalSystemOperatorMetadataRepository\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    virtual ~IExternalSystemOperatorMetadataRepository() = default;\n";
+    out << "    virtual std::optional<statespec::backend::VersionedRecord> upsert_metadataTx(\n";
+    out << "        statespec::backend::ITransaction& tx,\n";
+    out << "        const ExternalSystemOperatorMetadataUpsertRequest& request\n";
+    out << "    ) = 0;\n";
+    out << "    virtual std::optional<statespec::backend::VersionedRecord> get_metadataTx(\n";
+    out << "        statespec::backend::ITransaction& tx,\n";
+    out << "        const ExternalSystemOperatorMetadataGetRequest& request\n";
+    out << "    ) = 0;\n";
+    out << "    virtual std::optional<statespec::backend::VersionedRecord> disable_metadataTx(\n";
+    out << "        statespec::backend::ITransaction& tx,\n";
+    out << "        const ExternalSystemOperatorMetadataDisableRequest& request\n";
+    out << "    ) = 0;\n";
+    out << "    virtual std::optional<statespec::backend::VersionedRecord> delete_metadataTx(\n";
+    out << "        statespec::backend::ITransaction& tx,\n";
+    out << "        const ExternalSystemOperatorMetadataDeleteRequest& request\n";
+    out << "    ) = 0;\n";
+    out << "};\n\n";
+
     out << "struct ExternalSystemDescriptor\n";
     out << "{\n";
     out << "    std::string name;\n";

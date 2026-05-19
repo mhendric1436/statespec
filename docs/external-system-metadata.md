@@ -248,6 +248,13 @@ resolver, preventing malformed lookups from reaching backend-specific implementa
 Metadata writes should use compare-and-swap semantics so two operators cannot silently
 overwrite each other's endpoint, credential reference, or retry policy updates.
 
+Generated bindings expose transaction-scoped operator metadata repository contracts for
+upsert, get, disable, and delete operations. Repository requests carry the resolved
+metadata lookup and optional expected version values so backend implementations can enforce
+OCC against the same `IBackend`/`ITransaction` model used by other durable StateSpec
+resources. The generated contracts intentionally do not implement persistence; runtime
+bindings provide the backend-specific repository implementation.
+
 ## Authoring Guidance
 
 Keep `external_system` declarations small and stable:

@@ -409,6 +409,34 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tRequiredFields []string\n";
     out << "\tMappings []ExternalSystemMetadataMappingDescriptor\n";
     out << "}\n\n";
+    out << "type ExternalSystemOperatorMetadataUpsertRequest struct {\n";
+    out << "\tLookup ExternalSystemMetadataLookup\n";
+    out << "\tDocument JSON\n";
+    out << "\tExpectedVersion *Version\n";
+    out << "}\n\n";
+    out << "type ExternalSystemOperatorMetadataGetRequest struct {\n";
+    out << "\tLookup ExternalSystemMetadataLookup\n";
+    out << "}\n\n";
+    out << "type ExternalSystemOperatorMetadataDisableRequest struct {\n";
+    out << "\tLookup ExternalSystemMetadataLookup\n";
+    out << "\tExpectedVersion *Version\n";
+    out << "\tDisabledStatus string\n";
+    out << "}\n\n";
+    out << "type ExternalSystemOperatorMetadataDeleteRequest struct {\n";
+    out << "\tLookup ExternalSystemMetadataLookup\n";
+    out << "\tExpectedVersion *Version\n";
+    out << "\tDeletedStatus string\n";
+    out << "}\n\n";
+    out << "type ExternalSystemOperatorMetadataRepository interface {\n";
+    out << "\tUpsertMetadataTx(context.Context, Transaction, "
+           "ExternalSystemOperatorMetadataUpsertRequest) (*VersionedRecord, error)\n";
+    out << "\tGetMetadataTx(context.Context, Transaction, "
+           "ExternalSystemOperatorMetadataGetRequest) (*VersionedRecord, error)\n";
+    out << "\tDisableMetadataTx(context.Context, Transaction, "
+           "ExternalSystemOperatorMetadataDisableRequest) (*VersionedRecord, error)\n";
+    out << "\tDeleteMetadataTx(context.Context, Transaction, "
+           "ExternalSystemOperatorMetadataDeleteRequest) (*VersionedRecord, error)\n";
+    out << "}\n\n";
     out << "type ExternalSystemDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tProperties []ExternalSystemPropertyDescriptor\n";
