@@ -202,21 +202,58 @@ std::string snake_identifier(const std::string& value)
     return result.empty() ? "generated_event" : result;
 }
 
-std::string generate_cmake_lists()
+std::string generate_makefile(BindingGenerationTier tier)
 {
     std::ostringstream out;
-    out << "cmake_minimum_required(VERSION 3.20)\n";
-    out << "project(statespec_generated_bindings LANGUAGES CXX)\n\n";
-    out << "add_library(statespec_generated_common INTERFACE)\n";
-    out << "target_compile_features(statespec_generated_common INTERFACE cxx_std_20)\n";
-    out << "target_include_directories(statespec_generated_common INTERFACE "
-           "${CMAKE_CURRENT_SOURCE_DIR})\n\n";
-    out << "add_library(statespec_generated_api INTERFACE)\n";
-    out << "target_link_libraries(statespec_generated_api INTERFACE "
-           "statespec_generated_common)\n\n";
-    out << "add_library(statespec_generated_worker INTERFACE)\n";
-    out << "target_link_libraries(statespec_generated_worker INTERFACE "
-           "statespec_generated_common)\n";
+    const auto include_api =
+        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
+    const auto include_worker =
+        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+
+    out << "CXX ?= clang++\n";
+    out << "CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -I.\n";
+    out << "BUILD_DIR ?= build\n\n";
+    out << "CHECK_TARGETS := check-common";
+    if (include_api)
+    {
+        out << " check-api";
+    }
+    if (include_worker)
+    {
+        out << " check-worker";
+    }
+    out << "\n\n";
+    out << ".PHONY: all check check-common";
+    if (include_api)
+    {
+        out << " check-api";
+    }
+    if (include_worker)
+    {
+        out << " check-worker";
+    }
+    out << " clean\n\n";
+    out << "all: check\n\n";
+    out << "check: $(CHECK_TARGETS)\n\n";
+    out << "$(BUILD_DIR):\n";
+    out << "\tmkdir -p $(BUILD_DIR)\n\n";
+    out << "check-common: $(BUILD_DIR)\n";
+    out << "\tprintf '#include \"system_descriptors.hpp\"\\nint main() { return 0; }\\n' | "
+           "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common\n\n";
+    if (include_api)
+    {
+        out << "check-api: $(BUILD_DIR)\n";
+        out << "\tprintf '#include \"api_artifacts.hpp\"\\nint main() { return 0; }\\n' | "
+               "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
+    }
+    if (include_worker)
+    {
+        out << "check-worker: $(BUILD_DIR)\n";
+        out << "\tprintf '#include \"worker_artifacts.hpp\"\\nint main() { return 0; }\\n' | "
+               "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
+    }
+    out << "clean:\n";
+    out << "\trm -rf $(BUILD_DIR)\n";
     return out.str();
 }
 
@@ -1871,10 +1908,10 @@ GenerationResult generate_cpp_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "CMakeLists.txt").string(),
-                generate_cmake_lists(),
+                (options.output_dir / "Makefile").string(),
+                generate_makefile(options.tier),
                 GeneratedArtifactTier::Common,
-                "common/CMakeLists.txt",
+                "common/Makefile",
             }
         );
         result.files.push_back(

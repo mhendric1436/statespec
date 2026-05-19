@@ -404,8 +404,7 @@ void test_shared_descriptor_artifact_paths()
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
-        cpp_result, "CMakeLists.txt", "common/CMakeLists.txt",
-        statespec::GeneratedArtifactTier::Common
+        cpp_result, "Makefile", "common/Makefile", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         go_result, "backend/descriptors.go", "common/backend/descriptors.go",
@@ -639,6 +638,62 @@ void test_rust_lib_rs_matches_selected_tier()
     require(!diagnostics.has_errors(), "rust tier-aware lib generation should not fail");
 }
 
+void test_cpp_makefile_matches_selected_tier()
+{
+    statespec::DiagnosticBag diagnostics;
+
+    const auto common_result = generate_for_tier(
+        statespec::BindingLanguage::Cpp, statespec::BindingGenerationTier::Common, "cpp",
+        diagnostics
+    );
+    const auto common_makefile = generated_file_content(common_result, "Makefile");
+    require(
+        common_makefile.find("CXX ?= clang++") != std::string::npos,
+        "common Makefile uses clang++ by default"
+    );
+    require(
+        common_makefile.find("check-common") != std::string::npos,
+        "common Makefile declares common check"
+    );
+    require(
+        common_makefile.find("api_artifacts.hpp") == std::string::npos,
+        "common Makefile excludes API header"
+    );
+    require(
+        common_makefile.find("worker_artifacts.hpp") == std::string::npos,
+        "common Makefile excludes worker header"
+    );
+
+    const auto api_result = generate_for_tier(
+        statespec::BindingLanguage::Cpp, statespec::BindingGenerationTier::Api, "cpp", diagnostics
+    );
+    const auto api_makefile = generated_file_content(api_result, "Makefile");
+    require(
+        api_makefile.find("api_artifacts.hpp") != std::string::npos,
+        "API Makefile includes API header"
+    );
+    require(
+        api_makefile.find("worker_artifacts.hpp") == std::string::npos,
+        "API Makefile excludes worker header"
+    );
+
+    const auto worker_result = generate_for_tier(
+        statespec::BindingLanguage::Cpp, statespec::BindingGenerationTier::Worker, "cpp",
+        diagnostics
+    );
+    const auto worker_makefile = generated_file_content(worker_result, "Makefile");
+    require(
+        worker_makefile.find("api_artifacts.hpp") == std::string::npos,
+        "worker Makefile excludes API header"
+    );
+    require(
+        worker_makefile.find("worker_artifacts.hpp") != std::string::npos,
+        "worker Makefile includes worker header"
+    );
+
+    require(!diagnostics.has_errors(), "cpp tier-aware Makefile generation should not fail");
+}
+
 } // namespace
 
 TEST_CASE("binding language parses canonical names")
@@ -709,4 +764,9 @@ TEST_CASE("binding generators filter artifacts by selected tier")
 TEST_CASE("rust package module declarations follow selected tier")
 {
     test_rust_lib_rs_matches_selected_tier();
+}
+
+TEST_CASE("cpp package Makefile declarations follow selected tier")
+{
+    test_cpp_makefile_matches_selected_tier();
 }
