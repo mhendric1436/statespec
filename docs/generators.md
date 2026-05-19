@@ -26,7 +26,7 @@ Generated bindings also include minimal language-native packaging metadata:
 |---|---|
 | `cpp` | `Makefile` with clang++-based common, API, and worker header checks |
 | `go` | `go.mod` for the generated module root |
-| `java` | `build.gradle` for the generated Java package tree |
+| `java` | `Makefile` with javac-based compile checks for generated sources |
 | `rust` | `Cargo.toml` and tier-aware `lib.rs` module declarations |
 
 ## Supported Languages

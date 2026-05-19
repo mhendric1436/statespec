@@ -185,26 +185,19 @@ std::string lower_camel_identifier(const std::string& value)
     return identifier.empty() ? "value" : identifier;
 }
 
-std::string generate_gradle_build()
+std::string generate_java_makefile()
 {
     std::ostringstream out;
-    out << "plugins {\n";
-    out << "    id 'java-library'\n";
-    out << "}\n\n";
-    out << "group = 'com.statespec.generated'\n";
-    out << "version = '0.1.0'\n\n";
-    out << "java {\n";
-    out << "    toolchain {\n";
-    out << "        languageVersion = JavaLanguageVersion.of(17)\n";
-    out << "    }\n";
-    out << "}\n\n";
-    out << "sourceSets {\n";
-    out << "    main {\n";
-    out << "        java {\n";
-    out << "            srcDirs = ['.']\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "}\n";
+    out << "JAVAC ?= javac\n";
+    out << "BUILD_DIR ?= build/classes\n";
+    out << "SOURCES := $(shell find . -name '*.java')\n\n";
+    out << ".PHONY: all check clean\n\n";
+    out << "all: check\n\n";
+    out << "check:\n";
+    out << "\tmkdir -p $(BUILD_DIR)\n";
+    out << "\t$(JAVAC) -d $(BUILD_DIR) $(SOURCES)\n\n";
+    out << "clean:\n";
+    out << "\trm -rf build\n";
     return out.str();
 }
 
@@ -1779,10 +1772,10 @@ GenerationResult generate_java_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "build.gradle").string(),
-                generate_gradle_build(),
+                (options.output_dir / "Makefile").string(),
+                generate_java_makefile(),
                 GeneratedArtifactTier::Common,
-                "common/build.gradle",
+                "common/Makefile",
             }
         );
         result.files.push_back(

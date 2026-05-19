@@ -418,7 +418,7 @@ void test_shared_descriptor_artifact_paths()
         "common/com/statespec/generated/Descriptors.java", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
-        java_result, "build.gradle", "common/build.gradle", statespec::GeneratedArtifactTier::Common
+        java_result, "Makefile", "common/Makefile", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         rust_result, "descriptors.rs", "common/descriptors.rs",
