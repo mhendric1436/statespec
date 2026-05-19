@@ -243,7 +243,11 @@ std::string generate_makefile(BindingGenerationTier tier)
     if (include_api)
     {
         out << "check-api: $(BUILD_DIR)\n";
-        out << "\tprintf '#include \"api_artifacts.hpp\"\\nint main() { return 0; }\\n' | "
+        out << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
+               "#include \"api/api_handlers.hpp\"\\n"
+               "#include \"api/api_routes.hpp\"\\n"
+               "#include \"api/external_system_operator_metadata_api.hpp\"\\n"
+               "int main() { return 0; }\\n' | "
                "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
     }
     if (include_worker)
@@ -1768,21 +1772,16 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_artifacts_header()
+std::string generate_api_descriptors_header()
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"common/system_descriptors.hpp\"\n\n";
+    out << "#include \"../common/system_descriptors.hpp\"\n\n";
     out << "namespace statespec_generated::api\n";
     out << "{\n\n";
     out << "using ApiDescriptor = ::statespec_generated::ApiDescriptor;\n";
-    out << "using ApiRequestContext = ::statespec_generated::ApiRequestContext;\n";
-    out << "using ApiResponse = ::statespec_generated::ApiResponse;\n";
-    out << "using ApiRouteDescriptor = ::statespec_generated::ApiRouteDescriptor;\n";
     out << "using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;\n";
-    out << "using IApiHandler = ::statespec_generated::IApiHandler;\n";
-    out << "using IExternalSystemOperatorMetadataApiHandler = "
-           "::statespec_generated::IExternalSystemOperatorMetadataApiHandler;\n\n";
+    out << "\n";
     out << "inline std::vector<ApiDescriptor> api_descriptors()\n";
     out << "{\n";
     out << "    return ::statespec_generated::api_descriptors();\n";
@@ -1791,10 +1790,49 @@ std::string generate_api_artifacts_header()
     out << "{\n";
     out << "    return ::statespec_generated::api_server_descriptors();\n";
     out << "}\n\n";
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
+std::string generate_api_routes_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../common/system_descriptors.hpp\"\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "using ApiRouteDescriptor = ::statespec_generated::ApiRouteDescriptor;\n\n";
     out << "inline std::vector<ApiRouteDescriptor> api_route_descriptors()\n";
     out << "{\n";
     out << "    return ::statespec_generated::api_route_descriptors();\n";
     out << "}\n\n";
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
+std::string generate_api_handlers_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../common/system_descriptors.hpp\"\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "using ApiRequestContext = ::statespec_generated::ApiRequestContext;\n";
+    out << "using ApiResponse = ::statespec_generated::ApiResponse;\n";
+    out << "using IApiHandler = ::statespec_generated::IApiHandler;\n\n";
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
+std::string generate_external_system_operator_metadata_api_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../common/system_descriptors.hpp\"\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "using IExternalSystemOperatorMetadataApiHandler = "
+           "::statespec_generated::IExternalSystemOperatorMetadataApiHandler;\n\n";
     out << "} // namespace statespec_generated::api\n";
     return out.str();
 }
@@ -1916,10 +1954,34 @@ GenerationResult generate_cpp_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "api_artifacts.hpp").string(),
-                generate_api_artifacts_header(),
+                (options.output_dir / "api/api_descriptors.hpp").string(),
+                generate_api_descriptors_header(),
                 GeneratedArtifactTier::Api,
-                "api/api_artifacts.hpp",
+                "api/api_descriptors.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/api_handlers.hpp").string(),
+                generate_api_handlers_header(),
+                GeneratedArtifactTier::Api,
+                "api/api_handlers.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/api_routes.hpp").string(),
+                generate_api_routes_header(),
+                GeneratedArtifactTier::Api,
+                "api/api_routes.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/external_system_operator_metadata_api.hpp").string(),
+                generate_external_system_operator_metadata_api_header(),
+                GeneratedArtifactTier::Api,
+                "api/external_system_operator_metadata_api.hpp",
             }
         );
         result.files.push_back(

@@ -1494,28 +1494,53 @@ std::string generate_descriptors_go(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_artifacts_go()
+std::string generate_api_descriptors_go()
 {
     std::ostringstream out;
     out << "package backend\n\n";
     out << "import common \"statespec-generated/common/backend\"\n\n";
     out << "type APITierDescriptor = common.ApiDescriptor\n";
-    out << "type APITierHandler = common.APIHandler\n";
-    out << "type APITierRequestContext = common.APIRequestContext\n";
-    out << "type APITierResponse = common.APIResponse\n";
-    out << "type APITierRouteDescriptor = common.ApiRouteDescriptor\n";
     out << "type APITierServerDescriptor = common.ApiServerDescriptor\n";
-    out << "type APITierExternalSystemOperatorMetadataHandler = "
-           "common.ExternalSystemOperatorMetadataAPIHandler\n\n";
+    out << "\n";
     out << "func APITierDescriptors() []common.ApiDescriptor {\n";
     out << "\treturn common.ApiDescriptors()\n";
     out << "}\n\n";
     out << "func APITierServerDescriptors() []common.ApiServerDescriptor {\n";
     out << "\treturn common.ApiServerDescriptors()\n";
     out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_api_handlers_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "type APITierHandler = common.APIHandler\n";
+    out << "type APITierRequestContext = common.APIRequestContext\n";
+    out << "type APITierResponse = common.APIResponse\n";
+    return out.str();
+}
+
+std::string generate_api_routes_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "type APITierRouteDescriptor = common.ApiRouteDescriptor\n\n";
     out << "func APITierRouteDescriptors() []common.ApiRouteDescriptor {\n";
     out << "\treturn common.ApiRouteDescriptors()\n";
     out << "}\n";
+    return out.str();
+}
+
+std::string generate_external_system_operator_metadata_api_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "type APITierExternalSystemOperatorMetadataHandler = "
+           "common.ExternalSystemOperatorMetadataAPIHandler\n";
     return out.str();
 }
 
@@ -1623,10 +1648,35 @@ GenerationResult generate_go_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "backend/api_artifacts.go").string(),
-                generate_api_artifacts_go(),
+                (options.output_dir / "api/backend/api_descriptors.go").string(),
+                generate_api_descriptors_go(),
                 GeneratedArtifactTier::Api,
-                "api/backend/api_artifacts.go",
+                "api/backend/api_descriptors.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/backend/api_handlers.go").string(),
+                generate_api_handlers_go(),
+                GeneratedArtifactTier::Api,
+                "api/backend/api_handlers.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/backend/api_routes.go").string(),
+                generate_api_routes_go(),
+                GeneratedArtifactTier::Api,
+                "api/backend/api_routes.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/backend/external_system_operator_metadata_api.go")
+                    .string(),
+                generate_external_system_operator_metadata_api_go(),
+                GeneratedArtifactTier::Api,
+                "api/backend/external_system_operator_metadata_api.go",
             }
         );
         result.files.push_back(

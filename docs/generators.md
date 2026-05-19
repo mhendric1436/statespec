@@ -30,8 +30,10 @@ Generated bindings also include minimal language-native packaging metadata:
 | `rust` | `Cargo.toml` and tier-aware `lib.rs` module declarations |
 
 Common-tier runtime support and descriptor source is physically emitted under a
-`common/` directory in each language output root. API and worker tier files keep their
-current compatibility paths until they are split into concept-specific production files.
+`common/` directory in each language output root. API-tier code is emitted under `api/`
+as focused files for descriptors, handlers, routes, and external-system operator
+metadata APIs. Worker-tier files keep their current compatibility paths until they are
+split into concept-specific production files.
 
 ## Supported Languages
 

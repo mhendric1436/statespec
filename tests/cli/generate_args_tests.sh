@@ -37,17 +37,17 @@ assert_file_exists "$TMPDIR/out-rust/common/descriptors.rs"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-common" --tier common
 assert_file_exists "$TMPDIR/tier-common/common/system_descriptors.hpp"
-assert_file_not_exists "$TMPDIR/tier-common/api_artifacts.hpp"
+assert_file_not_exists "$TMPDIR/tier-common/api/api_descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-common/worker_artifacts.hpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-api" --tier api
 assert_file_exists "$TMPDIR/tier-api/common/system_descriptors.hpp"
-assert_file_exists "$TMPDIR/tier-api/api_artifacts.hpp"
+assert_file_exists "$TMPDIR/tier-api/api/api_descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-api/worker_artifacts.hpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-worker" --tier worker
 assert_file_exists "$TMPDIR/tier-worker/common/system_descriptors.hpp"
-assert_file_not_exists "$TMPDIR/tier-worker/api_artifacts.hpp"
+assert_file_not_exists "$TMPDIR/tier-worker/api/api_descriptors.hpp"
 assert_file_exists "$TMPDIR/tier-worker/worker_artifacts.hpp"
 
 run_expect_status 2 "$CLI" generate bindings "$SPEC"

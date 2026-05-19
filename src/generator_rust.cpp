@@ -238,7 +238,14 @@ std::string generate_rust_lib(BindingGenerationTier tier)
 
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
     {
-        out << "pub mod api_artifacts;\n";
+        out << "#[path = \"api/api_descriptors.rs\"]\n";
+        out << "pub mod api_descriptors;\n";
+        out << "#[path = \"api/api_handlers.rs\"]\n";
+        out << "pub mod api_handlers;\n";
+        out << "#[path = \"api/api_routes.rs\"]\n";
+        out << "pub mod api_routes;\n";
+        out << "#[path = \"api/external_system_operator_metadata_api.rs\"]\n";
+        out << "pub mod external_system_operator_metadata_api;\n";
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker)
     {
@@ -1646,24 +1653,42 @@ std::string generate_descriptors_rs(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_artifacts_rs()
+std::string generate_api_descriptors_rs()
 {
     std::ostringstream out;
     out << "use crate::descriptors;\n\n";
-    out << "pub use crate::descriptors::{\n";
-    out << "    ApiDescriptor, ApiHandler, ApiRequestContext, ApiResponse, "
-           "ApiRouteDescriptor,\n";
-    out << "    ApiServerDescriptor, ExternalSystemOperatorMetadataApiHandler,\n";
-    out << "};\n\n";
+    out << "pub use crate::descriptors::{ApiDescriptor, ApiServerDescriptor};\n\n";
     out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
     out << "    descriptors::api_descriptors()\n";
     out << "}\n\n";
     out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
     out << "    descriptors::api_server_descriptors()\n";
     out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_api_routes_rs()
+{
+    std::ostringstream out;
+    out << "use crate::descriptors;\n\n";
+    out << "pub use crate::descriptors::ApiRouteDescriptor;\n\n";
     out << "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {\n";
     out << "    descriptors::api_route_descriptors()\n";
     out << "}\n";
+    return out.str();
+}
+
+std::string generate_api_handlers_rs()
+{
+    std::ostringstream out;
+    out << "pub use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse};\n";
+    return out.str();
+}
+
+std::string generate_external_system_operator_metadata_api_rs()
+{
+    std::ostringstream out;
+    out << "pub use crate::descriptors::ExternalSystemOperatorMetadataApiHandler;\n";
     return out.str();
 }
 
@@ -1760,10 +1785,34 @@ GenerationResult generate_rust_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "api_artifacts.rs").string(),
-                generate_api_artifacts_rs(),
+                (options.output_dir / "api/api_descriptors.rs").string(),
+                generate_api_descriptors_rs(),
                 GeneratedArtifactTier::Api,
-                "api/api_artifacts.rs",
+                "api/api_descriptors.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/api_handlers.rs").string(),
+                generate_api_handlers_rs(),
+                GeneratedArtifactTier::Api,
+                "api/api_handlers.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/api_routes.rs").string(),
+                generate_api_routes_rs(),
+                GeneratedArtifactTier::Api,
+                "api/api_routes.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/external_system_operator_metadata_api.rs").string(),
+                generate_external_system_operator_metadata_api_rs(),
+                GeneratedArtifactTier::Api,
+                "api/external_system_operator_metadata_api.rs",
             }
         );
         result.files.push_back(

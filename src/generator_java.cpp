@@ -1639,23 +1639,54 @@ std::string generate_descriptors_java(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_artifacts_java()
+std::string generate_api_descriptors_java()
 {
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
     out << "import java.util.List;\n\n";
-    out << "public final class ApiArtifacts {\n";
-    out << "    private ApiArtifacts() {}\n\n";
+    out << "public final class ApiDescriptors {\n";
+    out << "    private ApiDescriptors() {}\n\n";
     out << "    public static List<Descriptors.ApiDescriptor> apiDescriptors() {\n";
     out << "        return Descriptors.apiDescriptors();\n";
     out << "    }\n\n";
     out << "    public static List<Descriptors.ApiServerDescriptor> apiServerDescriptors() {\n";
     out << "        return Descriptors.apiServerDescriptors();\n";
     out << "    }\n\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_api_routes_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class ApiRoutes {\n";
+    out << "    private ApiRoutes() {}\n\n";
     out << "    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {\n";
     out << "        return Descriptors.apiRouteDescriptors();\n";
     out << "    }\n\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_api_handlers_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "public final class ApiHandlers {\n";
+    out << "    private ApiHandlers() {}\n\n";
     out << "    public interface Handler extends Descriptors.ApiHandler {}\n\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_external_system_operator_metadata_api_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "public final class ExternalSystemOperatorMetadataApi {\n";
+    out << "    private ExternalSystemOperatorMetadataApi() {}\n\n";
     out << "    public interface ExternalSystemOperatorMetadataHandler\n";
     out << "        extends Descriptors.ExternalSystemOperatorMetadataApiHandler {}\n";
     out << "}\n";
@@ -1780,10 +1811,36 @@ GenerationResult generate_java_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "com/statespec/generated/ApiArtifacts.java").string(),
-                generate_api_artifacts_java(),
+                (options.output_dir / "api/com/statespec/generated/ApiDescriptors.java").string(),
+                generate_api_descriptors_java(),
                 GeneratedArtifactTier::Api,
-                "api/com/statespec/generated/ApiArtifacts.java",
+                "api/com/statespec/generated/ApiDescriptors.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/com/statespec/generated/ApiHandlers.java").string(),
+                generate_api_handlers_java(),
+                GeneratedArtifactTier::Api,
+                "api/com/statespec/generated/ApiHandlers.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/com/statespec/generated/ApiRoutes.java").string(),
+                generate_api_routes_java(),
+                GeneratedArtifactTier::Api,
+                "api/com/statespec/generated/ApiRoutes.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir /
+                 "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java")
+                    .string(),
+                generate_external_system_operator_metadata_api_java(),
+                GeneratedArtifactTier::Api,
+                "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
             }
         );
         result.files.push_back(

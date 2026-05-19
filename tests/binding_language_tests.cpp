@@ -432,20 +432,69 @@ void test_shared_descriptor_artifact_paths()
     );
 
     require_generated_file_artifact_path(
-        cpp_result, "api_artifacts.hpp", "api/api_artifacts.hpp",
+        cpp_result, "api/api_descriptors.hpp", "api/api_descriptors.hpp",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        go_result, "backend/api_artifacts.go", "api/backend/api_artifacts.go",
+        cpp_result, "api/api_handlers.hpp", "api/api_handlers.hpp",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        java_result, "com/statespec/generated/ApiArtifacts.java",
-        "api/com/statespec/generated/ApiArtifacts.java", statespec::GeneratedArtifactTier::Api
+        cpp_result, "api/api_routes.hpp", "api/api_routes.hpp",
+        statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        rust_result, "api_artifacts.rs", "api/api_artifacts.rs",
+        cpp_result, "api/external_system_operator_metadata_api.hpp",
+        "api/external_system_operator_metadata_api.hpp", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        go_result, "api/backend/api_descriptors.go", "api/backend/api_descriptors.go",
         statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        go_result, "api/backend/api_handlers.go", "api/backend/api_handlers.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        go_result, "api/backend/api_routes.go", "api/backend/api_routes.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        go_result, "api/backend/external_system_operator_metadata_api.go",
+        "api/backend/external_system_operator_metadata_api.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        java_result, "api/com/statespec/generated/ApiDescriptors.java",
+        "api/com/statespec/generated/ApiDescriptors.java", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        java_result, "api/com/statespec/generated/ApiHandlers.java",
+        "api/com/statespec/generated/ApiHandlers.java", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        java_result, "api/com/statespec/generated/ApiRoutes.java",
+        "api/com/statespec/generated/ApiRoutes.java", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        java_result, "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
+        "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        rust_result, "api/api_descriptors.rs", "api/api_descriptors.rs",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        rust_result, "api/api_handlers.rs", "api/api_handlers.rs",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        rust_result, "api/api_routes.rs", "api/api_routes.rs", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        rust_result, "api/external_system_operator_metadata_api.rs",
+        "api/external_system_operator_metadata_api.rs", statespec::GeneratedArtifactTier::Api
     );
 
     require_generated_file_artifact_path(
@@ -601,8 +650,8 @@ void test_rust_lib_rs_matches_selected_tier()
         "common lib declares descriptors"
     );
     require(
-        common_lib.find("pub mod api_artifacts;") == std::string::npos,
-        "common lib excludes API module"
+        common_lib.find("pub mod api_descriptors;") == std::string::npos,
+        "common lib excludes API descriptor module"
     );
     require(
         common_lib.find("pub mod worker_artifacts;") == std::string::npos,
@@ -614,11 +663,20 @@ void test_rust_lib_rs_matches_selected_tier()
     );
     const auto api_lib = generated_file_content(api_result, "lib.rs");
     require(
-        api_lib.find("pub mod api_artifacts;") != std::string::npos, "API lib declares API module"
+        api_lib.find("pub mod api_descriptors;") != std::string::npos,
+        "API lib declares API descriptor module"
     );
     require(
-        api_lib.find("pub mod worker_artifacts;") == std::string::npos,
-        "API lib excludes worker module"
+        api_lib.find("pub mod api_handlers;") != std::string::npos,
+        "API lib declares API handler module"
+    );
+    require(
+        api_lib.find("pub mod api_routes;") != std::string::npos,
+        "API lib declares API route module"
+    );
+    require(
+        api_lib.find("pub mod external_system_operator_metadata_api;") != std::string::npos,
+        "API lib declares external-system operator metadata API module"
     );
 
     const auto worker_result = generate_for_tier(
@@ -627,7 +685,7 @@ void test_rust_lib_rs_matches_selected_tier()
     );
     const auto worker_lib = generated_file_content(worker_result, "lib.rs");
     require(
-        worker_lib.find("pub mod api_artifacts;") == std::string::npos,
+        worker_lib.find("pub mod api_descriptors;") == std::string::npos,
         "worker lib excludes API module"
     );
     require(
@@ -656,7 +714,7 @@ void test_cpp_makefile_matches_selected_tier()
         "common Makefile declares common check"
     );
     require(
-        common_makefile.find("api_artifacts.hpp") == std::string::npos,
+        common_makefile.find("api/api_descriptors.hpp") == std::string::npos,
         "common Makefile excludes API header"
     );
     require(
@@ -669,8 +727,16 @@ void test_cpp_makefile_matches_selected_tier()
     );
     const auto api_makefile = generated_file_content(api_result, "Makefile");
     require(
-        api_makefile.find("api_artifacts.hpp") != std::string::npos,
-        "API Makefile includes API header"
+        api_makefile.find("api/api_descriptors.hpp") != std::string::npos,
+        "API Makefile includes API descriptors header"
+    );
+    require(
+        api_makefile.find("api/api_handlers.hpp") != std::string::npos,
+        "API Makefile includes API handlers header"
+    );
+    require(
+        api_makefile.find("api/api_routes.hpp") != std::string::npos,
+        "API Makefile includes API routes header"
     );
     require(
         api_makefile.find("worker_artifacts.hpp") == std::string::npos,
@@ -683,7 +749,7 @@ void test_cpp_makefile_matches_selected_tier()
     );
     const auto worker_makefile = generated_file_content(worker_result, "Makefile");
     require(
-        worker_makefile.find("api_artifacts.hpp") == std::string::npos,
+        worker_makefile.find("api/api_descriptors.hpp") == std::string::npos,
         "worker Makefile excludes API header"
     );
     require(
