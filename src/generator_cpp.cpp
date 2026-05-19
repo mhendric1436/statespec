@@ -202,6 +202,24 @@ std::string snake_identifier(const std::string& value)
     return result.empty() ? "generated_event" : result;
 }
 
+std::string generate_cmake_lists()
+{
+    std::ostringstream out;
+    out << "cmake_minimum_required(VERSION 3.20)\n";
+    out << "project(statespec_generated_bindings LANGUAGES CXX)\n\n";
+    out << "add_library(statespec_generated_common INTERFACE)\n";
+    out << "target_compile_features(statespec_generated_common INTERFACE cxx_std_20)\n";
+    out << "target_include_directories(statespec_generated_common INTERFACE "
+           "${CMAKE_CURRENT_SOURCE_DIR})\n\n";
+    out << "add_library(statespec_generated_api INTERFACE)\n";
+    out << "target_link_libraries(statespec_generated_api INTERFACE "
+           "statespec_generated_common)\n\n";
+    out << "add_library(statespec_generated_worker INTERFACE)\n";
+    out << "target_link_libraries(statespec_generated_worker INTERFACE "
+           "statespec_generated_common)\n";
+    return out.str();
+}
+
 std::string cpp_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
@@ -1849,6 +1867,14 @@ GenerationResult generate_cpp_bindings(
                 generate_system_descriptors_header(system),
                 GeneratedArtifactTier::Common,
                 "common/system_descriptors.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "CMakeLists.txt").string(),
+                generate_cmake_lists(),
+                GeneratedArtifactTier::Common,
+                "common/CMakeLists.txt",
             }
         );
         result.files.push_back(

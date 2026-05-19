@@ -185,6 +185,14 @@ std::string lower_camel_identifier(const std::string& value)
     return identifier.empty() ? "value" : identifier;
 }
 
+std::string generate_go_mod()
+{
+    std::ostringstream out;
+    out << "module statespec-generated\n\n";
+    out << "go 1.22\n";
+    return out.str();
+}
+
 std::string go_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
@@ -1598,6 +1606,14 @@ GenerationResult generate_go_bindings(
                 generate_descriptors_go(system),
                 GeneratedArtifactTier::Common,
                 "common/backend/descriptors.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "go.mod").string(),
+                generate_go_mod(),
+                GeneratedArtifactTier::Common,
+                "common/go.mod",
             }
         );
         result.files.push_back(

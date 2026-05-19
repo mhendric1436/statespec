@@ -404,16 +404,32 @@ void test_shared_descriptor_artifact_paths()
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
+        cpp_result, "CMakeLists.txt", "common/CMakeLists.txt",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
         go_result, "backend/descriptors.go", "common/backend/descriptors.go",
         statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        go_result, "go.mod", "common/go.mod", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         java_result, "com/statespec/generated/Descriptors.java",
         "common/com/statespec/generated/Descriptors.java", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
+        java_result, "build.gradle", "common/build.gradle", statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
         rust_result, "descriptors.rs", "common/descriptors.rs",
         statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        rust_result, "Cargo.toml", "common/Cargo.toml", statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        rust_result, "lib.rs", "common/lib.rs", statespec::GeneratedArtifactTier::Common
     );
 
     require_generated_file_artifact_path(
@@ -486,6 +502,25 @@ bool result_has_tier(
     return false;
 }
 
+std::string generated_file_content(
+    const statespec::GenerationResult& result,
+    const std::string& emitted_suffix
+)
+{
+    for (const auto& file : result.files)
+    {
+        if (file.path.size() >= emitted_suffix.size() &&
+            file.path.compare(
+                file.path.size() - emitted_suffix.size(), emitted_suffix.size(), emitted_suffix
+            ) == 0)
+        {
+            return file.content;
+        }
+    }
+    require(false, "expected generated file ending in " + emitted_suffix);
+    return {};
+}
+
 void require_tier_selection(
     statespec::BindingLanguage language,
     const std::string& language_name
@@ -553,6 +588,57 @@ void test_binding_generation_tier_selection()
     require_tier_selection(statespec::BindingLanguage::Rust, "rust");
 }
 
+void test_rust_lib_rs_matches_selected_tier()
+{
+    statespec::DiagnosticBag diagnostics;
+
+    const auto common_result = generate_for_tier(
+        statespec::BindingLanguage::Rust, statespec::BindingGenerationTier::Common, "rust",
+        diagnostics
+    );
+    const auto common_lib = generated_file_content(common_result, "lib.rs");
+    require(
+        common_lib.find("pub mod descriptors;") != std::string::npos,
+        "common lib declares descriptors"
+    );
+    require(
+        common_lib.find("pub mod api_artifacts;") == std::string::npos,
+        "common lib excludes API module"
+    );
+    require(
+        common_lib.find("pub mod worker_artifacts;") == std::string::npos,
+        "common lib excludes worker module"
+    );
+
+    const auto api_result = generate_for_tier(
+        statespec::BindingLanguage::Rust, statespec::BindingGenerationTier::Api, "rust", diagnostics
+    );
+    const auto api_lib = generated_file_content(api_result, "lib.rs");
+    require(
+        api_lib.find("pub mod api_artifacts;") != std::string::npos, "API lib declares API module"
+    );
+    require(
+        api_lib.find("pub mod worker_artifacts;") == std::string::npos,
+        "API lib excludes worker module"
+    );
+
+    const auto worker_result = generate_for_tier(
+        statespec::BindingLanguage::Rust, statespec::BindingGenerationTier::Worker, "rust",
+        diagnostics
+    );
+    const auto worker_lib = generated_file_content(worker_result, "lib.rs");
+    require(
+        worker_lib.find("pub mod api_artifacts;") == std::string::npos,
+        "worker lib excludes API module"
+    );
+    require(
+        worker_lib.find("pub mod worker_artifacts;") != std::string::npos,
+        "worker lib declares worker module"
+    );
+
+    require(!diagnostics.has_errors(), "rust tier-aware lib generation should not fail");
+}
+
 } // namespace
 
 TEST_CASE("binding language parses canonical names")
@@ -618,4 +704,9 @@ TEST_CASE("binding generators model shared descriptor artifact paths")
 TEST_CASE("binding generators filter artifacts by selected tier")
 {
     test_binding_generation_tier_selection();
+}
+
+TEST_CASE("rust package module declarations follow selected tier")
+{
+    test_rust_lib_rs_matches_selected_tier();
 }

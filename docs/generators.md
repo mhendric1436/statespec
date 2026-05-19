@@ -20,6 +20,15 @@ Binding generation writes all artifacts by default. Use `--tier common` to emit 
 shared descriptors and runtime support, `--tier api` to emit shared plus API-server
 artifacts, or `--tier worker` to emit shared plus worker artifacts.
 
+Generated bindings also include minimal language-native packaging metadata:
+
+| Language | Packaging files |
+|---|---|
+| `cpp` | `CMakeLists.txt` with common, API, and worker interface targets |
+| `go` | `go.mod` for the generated module root |
+| `java` | `build.gradle` for the generated Java package tree |
+| `rust` | `Cargo.toml` and tier-aware `lib.rs` module declarations |
+
 ## Supported Languages
 
 | Language | Default output root |

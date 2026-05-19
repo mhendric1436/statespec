@@ -185,6 +185,29 @@ std::string lower_camel_identifier(const std::string& value)
     return identifier.empty() ? "value" : identifier;
 }
 
+std::string generate_gradle_build()
+{
+    std::ostringstream out;
+    out << "plugins {\n";
+    out << "    id 'java-library'\n";
+    out << "}\n\n";
+    out << "group = 'com.statespec.generated'\n";
+    out << "version = '0.1.0'\n\n";
+    out << "java {\n";
+    out << "    toolchain {\n";
+    out << "        languageVersion = JavaLanguageVersion.of(17)\n";
+    out << "    }\n";
+    out << "}\n\n";
+    out << "sourceSets {\n";
+    out << "    main {\n";
+    out << "        java {\n";
+    out << "            srcDirs = ['.']\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string java_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
@@ -1752,6 +1775,14 @@ GenerationResult generate_java_bindings(
                 generate_descriptors_java(system),
                 GeneratedArtifactTier::Common,
                 "common/com/statespec/generated/Descriptors.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "build.gradle").string(),
+                generate_gradle_build(),
+                GeneratedArtifactTier::Common,
+                "common/build.gradle",
             }
         );
         result.files.push_back(

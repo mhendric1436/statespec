@@ -200,6 +200,44 @@ std::string snake_identifier(const std::string& value)
     return result.empty() ? "generated_event" : result;
 }
 
+std::string generate_cargo_toml()
+{
+    std::ostringstream out;
+    out << "[package]\n";
+    out << "name = \"statespec-generated\"\n";
+    out << "version = \"0.1.0\"\n";
+    out << "edition = \"2021\"\n\n";
+    out << "[lib]\n";
+    out << "path = \"lib.rs\"\n";
+    return out.str();
+}
+
+std::string generate_rust_lib(BindingGenerationTier tier)
+{
+    std::ostringstream out;
+    out << "pub mod backend;\n";
+    out << "pub mod descriptors;\n";
+    out << "pub mod external_system;\n";
+    out << "pub mod feature_flag;\n";
+    out << "pub mod json;\n";
+    out << "pub mod lease;\n";
+    out << "pub mod log;\n";
+    out << "pub mod metric;\n";
+    out << "pub mod queue;\n";
+    out << "pub mod workflow;\n";
+
+    if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
+    {
+        out << "pub mod api_artifacts;\n";
+    }
+    if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker)
+    {
+        out << "pub mod worker_artifacts;\n";
+    }
+
+    return out.str();
+}
+
 std::string rust_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
@@ -1692,6 +1730,22 @@ GenerationResult generate_rust_bindings(
                 generate_descriptors_rs(system),
                 GeneratedArtifactTier::Common,
                 "common/descriptors.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "Cargo.toml").string(),
+                generate_cargo_toml(),
+                GeneratedArtifactTier::Common,
+                "common/Cargo.toml",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "lib.rs").string(),
+                generate_rust_lib(options.tier),
+                GeneratedArtifactTier::Common,
+                "common/lib.rs",
             }
         );
         result.files.push_back(
