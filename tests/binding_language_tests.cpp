@@ -1,5 +1,6 @@
 #include "catch2/catch_amalgamated.hpp"
 #include "statespec/binding_language.hpp"
+#include "statespec/generator_bindings.hpp"
 
 #include <exception>
 #include <string>
@@ -148,6 +149,48 @@ void test_invalid_language_throws()
     require(threw, "invalid language should throw");
 }
 
+void require_field_type(
+    const std::string& type_name,
+    statespec::FieldDescriptorType expected,
+    const std::string& expected_name
+)
+{
+    const auto actual = statespec::classify_field_descriptor_type(type_name);
+    require(
+        actual == expected,
+        "field descriptor classification for " + type_name + " should be " + expected_name
+    );
+    require_string_equal(
+        statespec::field_descriptor_type_name(actual), expected_name,
+        "field descriptor type name for " + type_name
+    );
+}
+
+void test_field_descriptor_type_classification()
+{
+    require_field_type("string", statespec::FieldDescriptorType::String, "string");
+    require_field_type("bool", statespec::FieldDescriptorType::Bool, "bool");
+    require_field_type("int", statespec::FieldDescriptorType::Int, "int");
+    require_field_type("int32", statespec::FieldDescriptorType::Int32, "int32");
+    require_field_type("int64", statespec::FieldDescriptorType::Int64, "int64");
+    require_field_type("long", statespec::FieldDescriptorType::Long, "long");
+    require_field_type("double", statespec::FieldDescriptorType::Double, "double");
+    require_field_type("decimal", statespec::FieldDescriptorType::Decimal, "decimal");
+    require_field_type("json", statespec::FieldDescriptorType::Json, "json");
+    require_field_type("timestamp", statespec::FieldDescriptorType::Timestamp, "timestamp");
+    require_field_type("duration", statespec::FieldDescriptorType::Duration, "duration");
+    require_field_type("uuid", statespec::FieldDescriptorType::Uuid, "uuid");
+    require_field_type("OrderStatus", statespec::FieldDescriptorType::Named, "named");
+    require_field_type("list<string>", statespec::FieldDescriptorType::List, "list");
+    require_field_type("string[]", statespec::FieldDescriptorType::List, "list");
+    require_field_type("set<uuid>", statespec::FieldDescriptorType::Set, "set");
+    require_field_type("map<string,json>", statespec::FieldDescriptorType::Map, "map");
+    require_field_type("optional<string>", statespec::FieldDescriptorType::Optional, "optional");
+    require_field_type("OrderStatus?", statespec::FieldDescriptorType::Optional, "optional");
+    require_field_type("ref<Account>", statespec::FieldDescriptorType::Reference, "reference");
+    require_field_type("  uuid  ", statespec::FieldDescriptorType::Uuid, "uuid");
+}
+
 } // namespace
 
 TEST_CASE("binding language parses canonical names")
@@ -178,4 +221,9 @@ TEST_CASE("binding language lists supported languages")
 TEST_CASE("binding language rejects unsupported languages")
 {
     test_invalid_language_throws();
+}
+
+TEST_CASE("field descriptor type classification normalizes grammar types")
+{
+    test_field_descriptor_type_classification();
 }

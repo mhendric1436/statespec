@@ -7,6 +7,7 @@
 #include "statespec/ir.hpp"
 
 #include <filesystem>
+#include <string>
 
 namespace statespec
 {
@@ -16,6 +17,32 @@ struct BindingGeneratorOptions
     BindingLanguage language;
     std::filesystem::path output_dir;
 };
+
+enum class FieldDescriptorType
+{
+    String,
+    Bool,
+    Int,
+    Int32,
+    Int64,
+    Long,
+    Double,
+    Decimal,
+    Json,
+    Timestamp,
+    Duration,
+    Uuid,
+    Named,
+    List,
+    Set,
+    Map,
+    Optional,
+    Reference,
+};
+
+FieldDescriptorType classify_field_descriptor_type(const std::string& type_name);
+
+std::string field_descriptor_type_name(FieldDescriptorType type);
 
 GenerationResult generate_bindings(
     const Spec& spec,
