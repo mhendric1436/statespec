@@ -51,6 +51,7 @@ void add_template_file(
             (output_dir / relative_output_path).string(),
             content,
             tier,
+            (std::filesystem::path{"common"} / relative_output_path).generic_string(),
         }
     );
 }
@@ -1643,6 +1644,7 @@ GenerationResult generate_rust_bindings(
                 (options.output_dir / "descriptors.rs").string(),
                 generate_descriptors_rs(system),
                 GeneratedArtifactTier::Common,
+                "common/descriptors.rs",
             }
         );
     }

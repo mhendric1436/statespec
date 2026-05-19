@@ -51,6 +51,7 @@ void add_template_file(
             (output_dir / relative_output_path).string(),
             content,
             tier,
+            (std::filesystem::path{"common"} / relative_output_path).generic_string(),
         }
     );
 }
@@ -1678,6 +1679,7 @@ GenerationResult generate_java_bindings(
                 (options.output_dir / "com/statespec/generated/Descriptors.java").string(),
                 generate_descriptors_java(system),
                 GeneratedArtifactTier::Common,
+                "common/com/statespec/generated/Descriptors.java",
             }
         );
     }

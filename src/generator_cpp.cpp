@@ -53,6 +53,7 @@ void add_template_file(
             (output_dir / relative_output_path).string(),
             content,
             tier,
+            (std::filesystem::path{"common"} / relative_output_path).generic_string(),
         }
     );
 }
@@ -1760,6 +1761,7 @@ GenerationResult generate_cpp_bindings(
                 (options.output_dir / "system_descriptors.hpp").string(),
                 generate_system_descriptors_header(system),
                 GeneratedArtifactTier::Common,
+                "common/system_descriptors.hpp",
             }
         );
     }

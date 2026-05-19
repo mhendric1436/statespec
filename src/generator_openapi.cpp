@@ -628,6 +628,8 @@ GenerationResult generate_openapi(
         GeneratedFile{
             (options.output_dir / "openapi.json").string(),
             render_openapi(system),
+            GeneratedArtifactTier::Api,
+            "api/openapi.json",
         }
     );
     return result;

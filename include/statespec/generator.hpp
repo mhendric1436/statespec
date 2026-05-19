@@ -19,6 +19,7 @@ struct GeneratedFile
     std::string path;
     std::string content;
     GeneratedArtifactTier tier = GeneratedArtifactTier::Common;
+    std::string artifact_path;
 };
 
 struct GenerationResult

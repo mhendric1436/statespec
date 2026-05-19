@@ -224,12 +224,42 @@ void require_generated_files_are_common(
             file.tier == statespec::GeneratedArtifactTier::Common,
             (language_name + " generated file should be tagged as common: " + file.path).c_str()
         );
+        require(
+            file.artifact_path.rfind("common/", 0) == 0,
+            (language_name + " generated file should have a common artifact path: " + file.path)
+                .c_str()
+        );
     }
+}
+
+void require_generated_file_artifact_path(
+    const statespec::GenerationResult& result,
+    const std::string& emitted_suffix,
+    const std::string& expected_artifact_path
+)
+{
+    for (const auto& file : result.files)
+    {
+        if (file.path.size() >= emitted_suffix.size() &&
+            file.path.compare(
+                file.path.size() - emitted_suffix.size(), emitted_suffix.size(), emitted_suffix
+            ) == 0)
+        {
+            require_string_equal(
+                file.artifact_path, expected_artifact_path,
+                "generated file artifact path for " + emitted_suffix
+            );
+            return;
+        }
+    }
+    require(false, ("expected generated file ending in " + emitted_suffix).c_str());
 }
 
 void test_generated_artifact_tiers_default_to_common()
 {
-    const statespec::GeneratedFile file{"generated.txt", "content"};
+    statespec::GeneratedFile file;
+    file.path = "generated.txt";
+    file.content = "content";
     require(
         file.tier == statespec::GeneratedArtifactTier::Common,
         "generated files should default to common tier"
@@ -242,6 +272,58 @@ void test_binding_generators_assign_artifact_tiers()
     require_generated_files_are_common(statespec::BindingLanguage::Go, "go");
     require_generated_files_are_common(statespec::BindingLanguage::Java, "java");
     require_generated_files_are_common(statespec::BindingLanguage::Rust, "rust");
+}
+
+void test_shared_descriptor_artifact_paths()
+{
+    const auto spec = empty_system_spec();
+    statespec::DiagnosticBag diagnostics;
+
+    const auto cpp_result = statespec::generate_bindings(
+        spec,
+        statespec::BindingGeneratorOptions{
+            statespec::BindingLanguage::Cpp,
+            "/tmp/statespec-artifact-tier-test/cpp",
+        },
+        diagnostics
+    );
+    const auto go_result = statespec::generate_bindings(
+        spec,
+        statespec::BindingGeneratorOptions{
+            statespec::BindingLanguage::Go,
+            "/tmp/statespec-artifact-tier-test/go",
+        },
+        diagnostics
+    );
+    const auto java_result = statespec::generate_bindings(
+        spec,
+        statespec::BindingGeneratorOptions{
+            statespec::BindingLanguage::Java,
+            "/tmp/statespec-artifact-tier-test/java",
+        },
+        diagnostics
+    );
+    const auto rust_result = statespec::generate_bindings(
+        spec,
+        statespec::BindingGeneratorOptions{
+            statespec::BindingLanguage::Rust,
+            "/tmp/statespec-artifact-tier-test/rust",
+        },
+        diagnostics
+    );
+
+    require(!diagnostics.has_errors(), "descriptor artifact path generation should not fail");
+    require_generated_file_artifact_path(
+        cpp_result, "system_descriptors.hpp", "common/system_descriptors.hpp"
+    );
+    require_generated_file_artifact_path(
+        go_result, "backend/descriptors.go", "common/backend/descriptors.go"
+    );
+    require_generated_file_artifact_path(
+        java_result, "com/statespec/generated/Descriptors.java",
+        "common/com/statespec/generated/Descriptors.java"
+    );
+    require_generated_file_artifact_path(rust_result, "descriptors.rs", "common/descriptors.rs");
 }
 
 } // namespace
@@ -289,4 +371,9 @@ TEST_CASE("generated artifact tier defaults to common")
 TEST_CASE("binding generators tag current files as common artifacts")
 {
     test_binding_generators_assign_artifact_tiers();
+}
+
+TEST_CASE("binding generators model shared descriptor artifact paths")
+{
+    test_shared_descriptor_artifact_paths();
 }

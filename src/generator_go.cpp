@@ -51,6 +51,7 @@ void add_template_file(
             (output_dir / relative_output_path).string(),
             content,
             tier,
+            (std::filesystem::path{"common"} / relative_output_path).generic_string(),
         }
     );
 }
@@ -1534,6 +1535,7 @@ GenerationResult generate_go_bindings(
                 (options.output_dir / "backend/descriptors.go").string(),
                 generate_descriptors_go(system),
                 GeneratedArtifactTier::Common,
+                "common/backend/descriptors.go",
             }
         );
     }
