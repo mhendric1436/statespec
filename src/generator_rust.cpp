@@ -95,6 +95,63 @@ std::string strip_optional_suffix(const std::string& type)
     return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
+std::string rust_field_type_expr(FieldDescriptorType type)
+{
+    switch (type)
+    {
+    case FieldDescriptorType::String:
+        return "FieldType::String";
+    case FieldDescriptorType::Bool:
+        return "FieldType::Bool";
+    case FieldDescriptorType::Int:
+        return "FieldType::Int";
+    case FieldDescriptorType::Int32:
+        return "FieldType::Int32";
+    case FieldDescriptorType::Int64:
+        return "FieldType::Int64";
+    case FieldDescriptorType::Long:
+        return "FieldType::Long";
+    case FieldDescriptorType::Double:
+        return "FieldType::Double";
+    case FieldDescriptorType::Decimal:
+        return "FieldType::Decimal";
+    case FieldDescriptorType::Json:
+        return "FieldType::Json";
+    case FieldDescriptorType::Timestamp:
+        return "FieldType::Timestamp";
+    case FieldDescriptorType::Duration:
+        return "FieldType::Duration";
+    case FieldDescriptorType::Uuid:
+        return "FieldType::Uuid";
+    case FieldDescriptorType::Named:
+        return "FieldType::Named";
+    case FieldDescriptorType::List:
+        return "FieldType::List";
+    case FieldDescriptorType::Set:
+        return "FieldType::Set";
+    case FieldDescriptorType::Map:
+        return "FieldType::Map";
+    case FieldDescriptorType::Optional:
+        return "FieldType::Optional";
+    case FieldDescriptorType::Reference:
+        return "FieldType::Reference";
+    }
+    return "FieldType::Named";
+}
+
+bool is_required_descriptor_field(const std::string& type)
+{
+    return classify_field_descriptor_type(type) != FieldDescriptorType::Optional;
+}
+
+std::string rust_field_descriptor_expr(const IrField& field)
+{
+    return "FieldDescriptor { name: " + rust_string(field.name) + ".to_string(), field_type: " +
+           rust_field_type_expr(classify_field_descriptor_type(field.type)) +
+           ", type_name: " + rust_string(field.type) + ".to_string(), required: " +
+           (is_required_descriptor_field(field.type) ? "true" : "false") + " }";
+}
+
 std::string pascal_identifier(const std::string& value)
 {
     std::string result;
@@ -248,7 +305,7 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "use std::collections::BTreeMap;\n";
     out << "use std::time::Duration;\n\n";
     out << "use crate::backend::{Backend, BackendResult, CollectionDescriptor, FieldDescriptor, "
-           "IndexDescriptor, VersionedRecord};\n";
+           "FieldType, IndexDescriptor, VersionedRecord};\n";
     out << "use crate::external_system::{ExternalSystemMetadataKeyValue, "
            "ExternalSystemMetadataLookup, ExternalSystemMetadataResolution, "
            "ExternalSystemMetadataResolver};\n";
@@ -724,10 +781,7 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            fields: vec![\n";
         for (const auto& field : event.fields)
         {
-            out << "                FieldDescriptor { name: " << rust_string(field.name)
-                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(field.type))
-                << ".to_string(), required: " << (is_optional_type(field.type) ? "false" : "true")
-                << " },\n";
+            out << "                " << rust_field_descriptor_expr(field) << ",\n";
         }
         out << "            ],\n";
         out << "        },\n";
@@ -1057,10 +1111,7 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            fields: vec![\n";
         for (const auto& field : shape.fields)
         {
-            out << "                FieldDescriptor { name: " << rust_string(field.name)
-                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(field.type))
-                << ".to_string(), required: " << (is_optional_type(field.type) ? "false" : "true")
-                << " },\n";
+            out << "                " << rust_field_descriptor_expr(field) << ",\n";
         }
         out << "            ],\n";
         out << "        },\n";
@@ -1079,10 +1130,7 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            fields: vec![\n";
         for (const auto& field : log.fields)
         {
-            out << "                FieldDescriptor { name: " << rust_string(field.name)
-                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(field.type))
-                << ".to_string(), required: " << (is_optional_type(field.type) ? "false" : "true")
-                << " },\n";
+            out << "                " << rust_field_descriptor_expr(field) << ",\n";
         }
         out << "            ],\n";
         out << "        },\n";
@@ -1103,10 +1151,7 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            labels: vec![\n";
         for (const auto& label : metric.labels)
         {
-            out << "                FieldDescriptor { name: " << rust_string(label.name)
-                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(label.type))
-                << ".to_string(), required: " << (is_optional_type(label.type) ? "false" : "true")
-                << " },\n";
+            out << "                " << rust_field_descriptor_expr(label) << ",\n";
         }
         out << "            ],\n";
         out << "        },\n";
@@ -1246,10 +1291,7 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            fields: vec![\n";
         for (const auto& field : entity.fields)
         {
-            out << "                FieldDescriptor { name: " << rust_string(field.name)
-                << ".to_string(), field_type: " << rust_string(strip_optional_suffix(field.type))
-                << ".to_string(), required: " << (is_optional_type(field.type) ? "false" : "true")
-                << " },\n";
+            out << "                " << rust_field_descriptor_expr(field) << ",\n";
         }
         out << "            ],\n";
         out << "            key_fields: vec![";

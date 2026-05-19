@@ -4,10 +4,33 @@ pub type CollectionName = String;
 pub type Key = String;
 pub type Version = u64;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FieldType {
+    String,
+    Bool,
+    Int,
+    Int32,
+    Int64,
+    Long,
+    Double,
+    Decimal,
+    Json,
+    Timestamp,
+    Duration,
+    Uuid,
+    Named,
+    List,
+    Set,
+    Map,
+    Optional,
+    Reference,
+}
+
 #[derive(Debug, Clone)]
 pub struct FieldDescriptor {
     pub name: String,
-    pub field_type: String,
+    pub field_type: FieldType,
+    pub type_name: String,
     pub required: bool,
 }
 
