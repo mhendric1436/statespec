@@ -339,6 +339,21 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tClientMappings []ExternalSystemMetadataMappingAssignment\n";
     out << "\tRequestMappings []ExternalSystemMetadataMappingAssignment\n";
     out << "}\n\n";
+    out << "type ExternalSystemMetadataMappingInputs struct {\n";
+    out << "\tInput map[string]JSON\n";
+    out << "\tEntity map[string]JSON\n";
+    out << "\tWorkflow map[string]JSON\n";
+    out << "\tMetadata map[string]JSON\n";
+    out << "}\n\n";
+    out << "type ExternalSystemMetadataMappingOutput struct {\n";
+    out << "\tClientConfig map[string]JSON\n";
+    out << "\tRequestPayload map[string]JSON\n";
+    out << "}\n\n";
+    out << "type ExternalSystemMetadataMappingApplicator interface {\n";
+    out << "\tApplyExternalSystemMetadataMappings(context.Context, "
+           "ExternalSystemMetadataMappingPlan, ExternalSystemMetadataMappingInputs) "
+           "(ExternalSystemMetadataMappingOutput, error)\n";
+    out << "}\n\n";
     out << "type ExternalSystemMetadataDescriptor struct {\n";
     out << "\tEntity string\n";
     out << "\tTenantField *string\n";

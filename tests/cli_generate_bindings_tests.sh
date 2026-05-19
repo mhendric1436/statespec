@@ -431,6 +431,8 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemDes
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "IExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "external_system_metadata_mapping_plan"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "std::optional<std::string> tenant_field"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "std::vector<std::string> key_fields"
@@ -556,6 +558,34 @@ class FakeResolver final : public statespec::backend::IExternalSystemMetadataRes
     }
 };
 
+class FakeMappingApplicator final
+    : public statespec_generated::IExternalSystemMetadataMappingApplicator
+{
+  public:
+    statespec_generated::ExternalSystemMetadataMappingOutput apply(
+        const statespec_generated::ExternalSystemMetadataMappingPlan& plan,
+        const statespec_generated::ExternalSystemMetadataMappingInputs& inputs
+    ) override
+    {
+        statespec_generated::ExternalSystemMetadataMappingOutput output;
+        for (const auto& assignment : plan.all_mappings)
+        {
+            const auto& source = assignment.source_root == "metadata"
+                ? inputs.metadata.at(assignment.source_field)
+                : inputs.input.at(assignment.source_field);
+            if (assignment.target_root == "client")
+            {
+                output.client_config.emplace(assignment.field, source);
+            }
+            else if (assignment.target_root == "request")
+            {
+                output.request_payload.emplace(assignment.field, source);
+            }
+        }
+        return output;
+    }
+};
+
 int main()
 {
     FakeTx tx;
@@ -572,6 +602,26 @@ int main()
         plan.request_mappings[0].source_field != "order_id" ||
         plan.request_mappings[0].target_root != "request" ||
         plan.request_mappings[0].field != "order_id")
+    {
+        return 1;
+    }
+    FakeMappingApplicator applicator;
+    statespec_generated::IExternalSystemMetadataMappingApplicator& mapping_applicator =
+        applicator;
+    const auto mapped = mapping_applicator.apply(
+        plan,
+        statespec_generated::ExternalSystemMetadataMappingInputs{
+            {{"order_id", "order-1"}},
+            {},
+            {},
+            {{"base_url", "https://api.stripe.test"},
+             {"auth_ref", "secret:stripe"},
+             {"timeout_ms", std::int64_t{5000}}},
+        }
+    );
+    if (mapped.client_config.size() != 3 || mapped.request_payload.size() != 1 ||
+        mapped.client_config.find("base_url") == mapped.client_config.end() ||
+        mapped.request_payload.find("order_id") == mapped.request_payload.end())
     {
         return 1;
     }
@@ -631,6 +681,8 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSyste
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingPlan struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingInputs struct"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemMetadataMappingApplicator interface"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func BuildExternalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "TenantField *string"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "KeyFields []string"
@@ -750,6 +802,29 @@ func (r *fixtureResolver) ResolveMetadataTx(ctx context.Context, tx Transaction,
 	}, nil
 }
 
+type fixtureMappingApplicator struct{}
+
+func (fixtureMappingApplicator) ApplyExternalSystemMetadataMappings(ctx context.Context, plan ExternalSystemMetadataMappingPlan, inputs ExternalSystemMetadataMappingInputs) (ExternalSystemMetadataMappingOutput, error) {
+	output := ExternalSystemMetadataMappingOutput{
+		ClientConfig:   map[string]JSON{},
+		RequestPayload: map[string]JSON{},
+	}
+	for _, assignment := range plan.AllMappings {
+		var value JSON
+		if assignment.SourceRoot == "metadata" {
+			value = inputs.Metadata[assignment.SourceField]
+		} else {
+			value = inputs.Input[assignment.SourceField]
+		}
+		if assignment.TargetRoot == "client" {
+			output.ClientConfig[assignment.Field] = value
+		} else if assignment.TargetRoot == "request" {
+			output.RequestPayload[assignment.Field] = value
+		}
+	}
+	return output, nil
+}
+
 func TestGeneratedMetadataResolverFixture(t *testing.T) {
 	ctx := context.Background()
 	resolver := &fixtureResolver{}
@@ -757,6 +832,20 @@ func TestGeneratedMetadataResolverFixture(t *testing.T) {
 	plan := BuildExternalSystemMetadataMappingPlan(ExternalSystemDescriptors()[0])
 	if len(plan.AllMappings) != 4 || len(plan.ClientMappings) != 3 || len(plan.RequestMappings) != 1 || plan.ClientMappings[0].SourceRoot != "metadata" || plan.ClientMappings[0].SourceField != "base_url" || plan.ClientMappings[0].TargetRoot != "client" || plan.ClientMappings[0].Field != "base_url" || plan.RequestMappings[0].SourceRoot != "input" || plan.RequestMappings[0].SourceField != "order_id" || plan.RequestMappings[0].TargetRoot != "request" || plan.RequestMappings[0].Field != "order_id" {
 		t.Fatalf("unexpected metadata mapping plan: %#v", plan)
+	}
+	var applicator ExternalSystemMetadataMappingApplicator = fixtureMappingApplicator{}
+	mapped, err := applicator.ApplyExternalSystemMetadataMappings(ctx, plan, ExternalSystemMetadataMappingInputs{
+		Input: map[string]JSON{
+			"order_id": JSONString("order-1"),
+		},
+		Metadata: map[string]JSON{
+			"base_url":   JSONString("https://api.stripe.test"),
+			"auth_ref":   JSONString("secret:stripe"),
+			"timeout_ms": JSONInt(5000),
+		},
+	})
+	if err != nil || len(mapped.ClientConfig) != 3 || len(mapped.RequestPayload) != 1 {
+		t.Fatalf("unexpected mapped metadata output: %#v err=%v", mapped, err)
 	}
 	keys := []ExternalSystemMetadataKeyValue{
 		{Field: "tenant_id", Value: JSONString("tenant-a")},
@@ -810,6 +899,8 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "interface ExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "externalSystemMetadataMappingPlan"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "Optional<String> tenantField"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "List<String> keyFields"
@@ -943,6 +1034,39 @@ public final class MetadataResolverFixture
         }
     }
 
+    private static final class FixtureMappingApplicator
+        implements Descriptors.ExternalSystemMetadataMappingApplicator
+    {
+        @Override public Descriptors.ExternalSystemMetadataMappingOutput
+        applyExternalSystemMetadataMappings(
+            Descriptors.ExternalSystemMetadataMappingPlan plan,
+            Descriptors.ExternalSystemMetadataMappingInputs inputs
+        )
+        {
+            java.util.HashMap<String, Json> clientConfig = new java.util.HashMap<>();
+            java.util.HashMap<String, Json> requestPayload = new java.util.HashMap<>();
+            for (Descriptors.ExternalSystemMetadataMappingAssignment assignment :
+                plan.allMappings())
+            {
+                Json value = assignment.sourceRoot().equals("metadata")
+                    ? inputs.metadata().get(assignment.sourceField())
+                    : inputs.input().get(assignment.sourceField());
+                if (assignment.targetRoot().equals("client"))
+                {
+                    clientConfig.put(assignment.field(), value);
+                }
+                else if (assignment.targetRoot().equals("request"))
+                {
+                    requestPayload.put(assignment.field(), value);
+                }
+            }
+            return new Descriptors.ExternalSystemMetadataMappingOutput(
+                clientConfig,
+                requestPayload
+            );
+        }
+    }
+
     public static void main(String[] args) throws Exception
     {
         FixtureResolver resolver = new FixtureResolver();
@@ -963,6 +1087,26 @@ public final class MetadataResolverFixture
             !plan.requestMappings().get(0).field().equals("order_id"))
         {
             throw new AssertionError("unexpected metadata mapping plan");
+        }
+        Descriptors.ExternalSystemMetadataMappingApplicator applicator =
+            new FixtureMappingApplicator();
+        Descriptors.ExternalSystemMetadataMappingOutput mapped =
+            applicator.applyExternalSystemMetadataMappings(
+                plan,
+                new Descriptors.ExternalSystemMetadataMappingInputs(
+                    Map.of("order_id", Json.string("order-1")),
+                    Map.of(),
+                    Map.of(),
+                    Map.of(
+                        "base_url", Json.string("https://api.stripe.test"),
+                        "auth_ref", Json.string("secret:stripe"),
+                        "timeout_ms", Json.integer(5000)
+                    )
+                )
+            );
+        if (mapped.clientConfig().size() != 3 || mapped.requestPayload().size() != 1)
+        {
+            throw new AssertionError("unexpected mapped metadata output");
         }
         List<ExternalSystem.MetadataKeyValue> keys = List.of(
             new ExternalSystem.MetadataKeyValue("tenant_id", Json.string("tenant-a")),
@@ -1024,6 +1168,8 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSyste
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingDescriptor"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingPlan"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ExternalSystemMetadataMappingInputs"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub trait ExternalSystemMetadataMappingApplicator"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn external_system_metadata_mapping_plan"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub tenant_field: Option<String>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub key_fields: Vec<String>"
@@ -1128,6 +1274,7 @@ pub mod workflow;
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
+    use std::collections::BTreeMap;
 
     use crate::backend::{
         Backend, BackendCapabilities, BackendResult, CollectionDescriptor, Query, Transaction,
@@ -1255,6 +1402,39 @@ mod tests {
         }
     }
 
+    struct FixtureMappingApplicator;
+
+    impl crate::descriptors::ExternalSystemMetadataMappingApplicator
+        for FixtureMappingApplicator
+    {
+        fn apply_external_system_metadata_mappings(
+            &self,
+            plan: &crate::descriptors::ExternalSystemMetadataMappingPlan,
+            inputs: &crate::descriptors::ExternalSystemMetadataMappingInputs,
+        ) -> BackendResult<crate::descriptors::ExternalSystemMetadataMappingOutput> {
+            let mut output = crate::descriptors::ExternalSystemMetadataMappingOutput::default();
+            for assignment in &plan.all_mappings {
+                let source = if assignment.source_root == "metadata" {
+                    inputs.metadata.get(&assignment.source_field)
+                } else {
+                    inputs.input.get(&assignment.source_field)
+                };
+                if let Some(value) = source {
+                    if assignment.target_root == "client" {
+                        output
+                            .client_config
+                            .insert(assignment.field.clone(), value.clone());
+                    } else if assignment.target_root == "request" {
+                        output
+                            .request_payload
+                            .insert(assignment.field.clone(), value.clone());
+                    }
+                }
+            }
+            Ok(output)
+        }
+    }
+
     #[test]
     fn generated_metadata_resolver_fixture() {
         let resolver = FixtureResolver {
@@ -1274,6 +1454,32 @@ mod tests {
         assert_eq!(plan.request_mappings[0].source_field, "order_id");
         assert_eq!(plan.request_mappings[0].target_root, "request");
         assert_eq!(plan.request_mappings[0].field, "order_id");
+        let applicator = FixtureMappingApplicator;
+        let mapped = crate::descriptors::ExternalSystemMetadataMappingApplicator::apply_external_system_metadata_mappings(
+            &applicator,
+            &plan,
+            &crate::descriptors::ExternalSystemMetadataMappingInputs {
+                input: BTreeMap::from([(
+                    "order_id".to_string(),
+                    Json::String("order-1".to_string()),
+                )]),
+                metadata: BTreeMap::from([
+                    (
+                        "base_url".to_string(),
+                        Json::String("https://api.stripe.test".to_string()),
+                    ),
+                    (
+                        "auth_ref".to_string(),
+                        Json::String("secret:stripe".to_string()),
+                    ),
+                    ("timeout_ms".to_string(), Json::Integer(5000)),
+                ]),
+                ..Default::default()
+            },
+        )
+        .expect("mapping applicator should not fail");
+        assert_eq!(mapped.client_config.len(), 3);
+        assert_eq!(mapped.request_payload.len(), 1);
         let keys = vec![
             ExternalSystemMetadataKeyValue {
                 field: "tenant_id".to_string(),

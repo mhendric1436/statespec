@@ -205,6 +205,12 @@ carries the original source path plus normalized `sourceRoot`, `sourceField`,
 strings. Adapters can use the plan to assemble remote client configuration and request
 payloads from user input, loaded entity state, workflow state, and resolved metadata.
 
+Generated bindings define framework-neutral mapping applicator contracts. The contract
+accepts a mapping plan plus source-value maps for `input`, `entity`, `workflow`, and
+`metadata`, and returns separate client configuration and request payload maps. The
+generated contract does not prescribe a concrete HTTP client, serialization framework, or
+remote API transport.
+
 ## OCC Requirement
 
 Generated runtime helpers should read operator metadata through the same backend

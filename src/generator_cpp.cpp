@@ -384,6 +384,30 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::vector<ExternalSystemMetadataMappingAssignment> request_mappings;\n";
     out << "};\n\n";
 
+    out << "struct ExternalSystemMetadataMappingInputs\n";
+    out << "{\n";
+    out << "    std::map<std::string, statespec::backend::Json> input;\n";
+    out << "    std::map<std::string, statespec::backend::Json> entity;\n";
+    out << "    std::map<std::string, statespec::backend::Json> workflow;\n";
+    out << "    std::map<std::string, statespec::backend::Json> metadata;\n";
+    out << "};\n\n";
+
+    out << "struct ExternalSystemMetadataMappingOutput\n";
+    out << "{\n";
+    out << "    std::map<std::string, statespec::backend::Json> client_config;\n";
+    out << "    std::map<std::string, statespec::backend::Json> request_payload;\n";
+    out << "};\n\n";
+
+    out << "class IExternalSystemMetadataMappingApplicator\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    virtual ~IExternalSystemMetadataMappingApplicator() = default;\n";
+    out << "    virtual ExternalSystemMetadataMappingOutput apply(\n";
+    out << "        const ExternalSystemMetadataMappingPlan& plan,\n";
+    out << "        const ExternalSystemMetadataMappingInputs& inputs\n";
+    out << "    ) = 0;\n";
+    out << "};\n\n";
+
     out << "struct ExternalSystemMetadataDescriptor\n";
     out << "{\n";
     out << "    std::string entity;\n";
