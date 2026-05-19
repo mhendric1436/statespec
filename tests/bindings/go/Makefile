@@ -1,10 +1,17 @@
 TEST_SCRIPTS := generate_tests.sh
 FORMAT_FILES := $(wildcard *.go)
 REPO_DIR := ../../..
+DEFAULT_CLI := $(abspath $(REPO_DIR)/build/bin/statespec)
+CLI ?= $(DEFAULT_CLI)
 
-.PHONY: test-cli format format-check help
+.PHONY: ensure-cli test-cli format format-check help
 
-test-cli:
+ensure-cli:
+	@if [ "$(CLI)" = "$(DEFAULT_CLI)" ] && [ ! -x "$(CLI)" ]; then \
+		$(MAKE) -C "$(REPO_DIR)" cli; \
+	fi
+
+test-cli: ensure-cli
 	@for script in $(TEST_SCRIPTS); do \
 		echo "tests/bindings/go/$$script"; \
 		(cd $(REPO_DIR) && sh "tests/bindings/go/$$script" "$(CLI)") || exit $$?; \

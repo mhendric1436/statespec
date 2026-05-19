@@ -1,8 +1,16 @@
+REPO_DIR := ../..
+DEFAULT_CLI := $(abspath $(REPO_DIR)/build/bin/statespec)
+CLI ?= $(DEFAULT_CLI)
 TEST_DIRS := cpp go java rust e2e
 
-.PHONY: test-cli format format-check help
+.PHONY: ensure-cli test-cli format format-check help
 
-test-cli:
+ensure-cli:
+	@if [ "$(CLI)" = "$(DEFAULT_CLI)" ] && [ ! -x "$(CLI)" ]; then \
+		$(MAKE) -C "$(REPO_DIR)" cli; \
+	fi
+
+test-cli: ensure-cli
 	@for dir in $(TEST_DIRS); do \
 		$(MAKE) -C "$$dir" test-cli CLI="$(CLI)" || exit $$?; \
 	done

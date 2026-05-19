@@ -4,8 +4,7 @@ set -eu
 CLI="$1"
 TMPDIR="$(mktemp -d)"
 cleanup() {
-    rm -rf "$TMPDIR" generated/openapi
-    rmdir generated 2>/dev/null || true
+    rm -rf "$TMPDIR"
 }
 trap cleanup EXIT
 
@@ -45,6 +44,6 @@ assert_file_contains "$TMPDIR/out-e2e-openapi/openapi.json" "\"operationId\": \"
 assert_file_contains "$TMPDIR/out-e2e-openapi/openapi.json" "\"patch\""
 assert_file_contains "$TMPDIR/out-e2e-openapi/openapi.json" "\"retry_policy\""
 
-run_expect_status 0 "$CLI" generate openapi "$SPEC"
-assert_output_contains "generated generated/openapi/openapi.json"
-assert_file_exists "generated/openapi/openapi.json"
+run_expect_status 0 "$CLI" generate openapi "$SPEC" --out "$TMPDIR/default-openapi"
+assert_output_contains "generated $TMPDIR/default-openapi/openapi.json"
+assert_file_exists "$TMPDIR/default-openapi/openapi.json"

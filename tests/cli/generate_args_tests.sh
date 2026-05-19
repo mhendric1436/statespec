@@ -4,8 +4,7 @@ set -eu
 CLI="$1"
 TMPDIR="$(mktemp -d)"
 cleanup() {
-    rm -rf "$TMPDIR" generated/cpp generated/go generated/java generated/rust generated/openapi
-    rmdir generated 2>/dev/null || true
+    rm -rf "$TMPDIR"
 }
 trap cleanup EXIT
 
@@ -16,33 +15,25 @@ TESTS_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 SPEC="$TESTS_DIR/fixtures/bindings-full.sspec"
 NO_SYSTEM_SPEC="$TESTS_DIR/fixtures/no-system.sspec"
 
-run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC"
-assert_output_contains "generated generated/cpp/json.hpp"
-assert_file_exists "generated/cpp/backend.hpp"
-assert_file_exists "generated/cpp/system_descriptors.hpp"
-rm -rf generated/cpp
-rmdir generated 2>/dev/null || true
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
+assert_output_contains "generated $TMPDIR/out-cpp/json.hpp"
+assert_file_exists "$TMPDIR/out-cpp/backend.hpp"
+assert_file_exists "$TMPDIR/out-cpp/system_descriptors.hpp"
 
-run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC"
-assert_output_contains "generated generated/go/backend/json.go"
-assert_file_exists "generated/go/backend/backend.go"
-assert_file_exists "generated/go/backend/descriptors.go"
-rm -rf generated/go
-rmdir generated 2>/dev/null || true
+run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
+assert_output_contains "generated $TMPDIR/out-go/backend/json.go"
+assert_file_exists "$TMPDIR/out-go/backend/backend.go"
+assert_file_exists "$TMPDIR/out-go/backend/descriptors.go"
 
-run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC"
-assert_output_contains "generated generated/java/com/statespec/backend/Json.java"
-assert_file_exists "generated/java/com/statespec/backend/Backend.java"
-assert_file_exists "generated/java/com/statespec/generated/Descriptors.java"
-rm -rf generated/java
-rmdir generated 2>/dev/null || true
+run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
+assert_output_contains "generated $TMPDIR/out-java/com/statespec/backend/Json.java"
+assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Backend.java"
+assert_file_exists "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 
-run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC"
-assert_output_contains "generated generated/rust/json.rs"
-assert_file_exists "generated/rust/backend.rs"
-assert_file_exists "generated/rust/descriptors.rs"
-rm -rf generated/rust
-rmdir generated 2>/dev/null || true
+run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
+assert_output_contains "generated $TMPDIR/out-rust/json.rs"
+assert_file_exists "$TMPDIR/out-rust/backend.rs"
+assert_file_exists "$TMPDIR/out-rust/descriptors.rs"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-common" --tier common
 assert_file_exists "$TMPDIR/tier-common/system_descriptors.hpp"
