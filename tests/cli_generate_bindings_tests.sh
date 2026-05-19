@@ -4,7 +4,7 @@ set -eu
 CLI="$1"
 TMPDIR="$(mktemp -d)"
 cleanup() {
-    rm -rf "$TMPDIR" generated/cpp generated/go generated/java generated/rust
+    rm -rf "$TMPDIR" generated/cpp generated/go generated/java generated/rust generated/openapi
     rmdir generated 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -398,12 +398,33 @@ assert_output_contains "usage:"
 assert_output_contains "statespec help"
 assert_output_contains "statespec fmt [--check] <file.sspec>"
 assert_output_contains "statespec generate bindings --lang <cpp|go|java|rust>"
+assert_output_contains "statespec generate openapi <file.sspec> [--out DIR]"
 
 run_expect_status 0 "$CLI" --help
 assert_output_contains "statespec validate <file.sspec>"
 
 run_expect_status 0 "$CLI" -h
 assert_output_contains "statespec ast <file.sspec>"
+
+# Positive generation: OpenAPI.
+run_expect_status 0 "$CLI" generate openapi "$SPEC" --out "$TMPDIR/out-openapi"
+assert_output_contains "generated $TMPDIR/out-openapi/openapi.json"
+assert_file_exists "$TMPDIR/out-openapi/openapi.json"
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"openapi\": \"3.0.3\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"title\": \"Demo API\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"/v1/tenants/{tenantId}/orders/{order_id}/start\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"operationId\": \"StartOrderProcessing\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"StartOrderProcessingRequest\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"tenant_id\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"parameters\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"operationId\": \"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"operationId\": \"GetExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"operationId\": \"DisableExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"operationId\": \"DeleteExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"ExternalSystemEndpointRequest\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"ExternalSystemEndpointResponse\""
+assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"base_url\""
 
 # Positive generation: C++.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
@@ -2365,6 +2386,13 @@ assert_file_exists "generated/rust/descriptors.rs"
 rm -rf generated/rust
 rmdir generated 2>/dev/null || true
 
+# Default OpenAPI output directory.
+run_expect_status 0 "$CLI" generate openapi "$SPEC"
+assert_output_contains "generated generated/openapi/openapi.json"
+assert_file_exists "generated/openapi/openapi.json"
+rm -rf generated/openapi
+rmdir generated 2>/dev/null || true
+
 # --lang is required.
 run_expect_status 2 "$CLI" generate bindings "$SPEC"
 assert_output_contains "generate bindings requires --lang <cpp|go|java|rust>"
@@ -2389,6 +2417,18 @@ assert_output_contains "--out requires a directory"
 # Extra positional arguments are rejected.
 run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" extra
 assert_output_contains "unexpected argument for generate bindings: extra"
+
+# OpenAPI input file is required.
+run_expect_status 2 "$CLI" generate openapi
+assert_output_contains "generate openapi requires an input .sspec file"
+
+# OpenAPI --out requires a value.
+run_expect_status 2 "$CLI" generate openapi "$SPEC" --out
+assert_output_contains "--out requires a directory"
+
+# OpenAPI extra positional arguments are rejected.
+run_expect_status 2 "$CLI" generate openapi "$SPEC" extra
+assert_output_contains "unexpected argument for generate openapi: extra"
 
 # A system declaration is required for binding generation.
 run_expect_status 1 "$CLI" generate bindings --lang cpp "$NO_SYSTEM_SPEC" --out "$TMPDIR/no-system"

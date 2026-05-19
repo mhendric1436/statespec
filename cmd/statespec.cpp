@@ -3,6 +3,7 @@
 #include "statespec/formatter.hpp"
 #include "statespec/generator.hpp"
 #include "statespec/generator_bindings.hpp"
+#include "statespec/generator_openapi.hpp"
 #include "statespec/lexer.hpp"
 #include "statespec/parser.hpp"
 #include "statespec/source.hpp"
@@ -27,6 +28,12 @@ namespace
 struct GenerateBindingsArgs
 {
     statespec::BindingLanguage language;
+    std::string input_path;
+    std::string output_dir;
+};
+
+struct GenerateOpenApiArgs
+{
     std::string input_path;
     std::string output_dir;
 };
@@ -1080,6 +1087,47 @@ GenerateBindingsArgs parse_generate_bindings_args(
     return GenerateBindingsArgs{*language, *input_path, *output_dir};
 }
 
+GenerateOpenApiArgs parse_generate_openapi_args(
+    int argc,
+    char** argv
+)
+{
+    std::optional<std::string> input_path;
+    std::optional<std::string> output_dir;
+
+    for (int i = 3; i < argc; ++i)
+    {
+        const std::string arg = argv[i];
+        if (arg == "--out")
+        {
+            if (i + 1 >= argc)
+            {
+                throw std::runtime_error("--out requires a directory");
+            }
+            output_dir = argv[++i];
+        }
+        else if (!input_path.has_value())
+        {
+            input_path = arg;
+        }
+        else
+        {
+            throw std::runtime_error("unexpected argument for generate openapi: " + arg);
+        }
+    }
+
+    if (!input_path.has_value())
+    {
+        throw std::runtime_error("generate openapi requires an input .sspec file");
+    }
+    if (!output_dir.has_value())
+    {
+        output_dir = std::filesystem::path{"generated"} / "openapi";
+    }
+
+    return GenerateOpenApiArgs{*input_path, *output_dir};
+}
+
 int generate_bindings_file(const GenerateBindingsArgs& args)
 {
     statespec::DiagnosticBag diagnostics;
@@ -1111,6 +1159,36 @@ int generate_bindings_file(const GenerateBindingsArgs& args)
     return 0;
 }
 
+int generate_openapi_file(const GenerateOpenApiArgs& args)
+{
+    statespec::DiagnosticBag diagnostics;
+    const auto spec = load_composed_and_validate_file(args.input_path, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        print_diagnostics(diagnostics);
+        return 1;
+    }
+
+    const statespec::OpenApiGeneratorOptions options{
+        std::filesystem::path{args.output_dir},
+    };
+
+    const auto result = statespec::generate_openapi(spec, options, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        print_diagnostics(diagnostics);
+        return 1;
+    }
+
+    for (const auto& file : result.files)
+    {
+        write_generated_file(file);
+        std::cout << "generated " << file.path << '\n';
+    }
+
+    return 0;
+}
+
 void print_usage(std::ostream& out)
 {
     out << "usage:\n";
@@ -1120,6 +1198,7 @@ void print_usage(std::ostream& out)
     out << "  statespec tokens <file.sspec>\n";
     out << "  statespec ast <file.sspec>\n";
     out << "  statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]\n";
+    out << "  statespec generate openapi <file.sspec> [--out DIR]\n";
 }
 
 void print_usage()
@@ -1196,6 +1275,11 @@ int main(
             {
                 const auto args = parse_generate_bindings_args(argc, argv);
                 return generate_bindings_file(args);
+            }
+            if (generate_kind == "openapi")
+            {
+                const auto args = parse_generate_openapi_args(argc, argv);
+                return generate_openapi_file(args);
             }
 
             std::cerr << "statespec: unsupported generate kind: " << generate_kind << "\n";

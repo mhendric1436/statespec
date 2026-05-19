@@ -1,16 +1,20 @@
-# Binding Generation
+# Generation
 
 StateSpec generation is selected by CLI options. `.sspec` files do not contain
 `generate` declarations; text remains the canonical system model, while tooling chooses
-which binding package to emit.
+which downstream artifact to emit.
 
-## Command
+## Commands
 
 ```sh
 statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR]
+statespec generate openapi <file.sspec> [--out DIR]
 ```
 
 When `--out` is omitted, the CLI writes to `generated/<language>`.
+OpenAPI generation writes `generated/openapi/openapi.json` by default.
+
+Protocol buffer generation is not implemented yet.
 
 ## Supported Languages
 
@@ -28,7 +32,38 @@ When `--out` is omitted, the CLI writes to `generated/<language>`.
 ./build/bin/statespec generate bindings --lang go system.sspec --out build/generated/go
 ./build/bin/statespec generate bindings --lang java system.sspec --out build/generated/java
 ./build/bin/statespec generate bindings --lang rust system.sspec --out build/generated/rust
+./build/bin/statespec generate openapi system.sspec --out build/generated/openapi
 ```
+
+## OpenAPI Generation
+
+The OpenAPI generator emits an OpenAPI 3.0.3 document from the same validated IR used
+by the binding generators. Declared `api` blocks become HTTP operations with path
+parameters inferred from `{name}` path segments, JSON request bodies from `input`
+shapes, JSON success responses from `output` shapes, and default error responses from
+`error` shapes when present.
+
+Shape declarations become reusable `components.schemas` entries. Primitive StateSpec
+types are mapped to conservative JSON Schema types, while references to declared
+shapes become OpenAPI `$ref` schemas.
+
+External-system operator metadata declarations also contribute operator-facing OpenAPI
+operations for the generated metadata management surface:
+
+- `Upsert<Entity>` as `PUT`
+- `Get<Entity>` as `GET`
+- `Disable<Entity>` as `POST .../disable`
+- `Delete<Entity>` as `DELETE`
+
+For tenant-scoped metadata, the generated path uses the service tenant field:
+
+```text
+/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}
+```
+
+The generated request schema contains non-key, non-foundational metadata fields. Fields
+listed in `required_fields` remain required; additional metadata fields are optional.
+The generated response schema contains the full metadata entity field set.
 
 ## Generated Metadata
 

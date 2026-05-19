@@ -55,4 +55,5 @@ rust
 ```
 
 Use `statespec generate bindings --lang <language>` to lower a validated `.sspec` file
-into language bindings.
+into language bindings. Use `statespec generate openapi` to emit the OpenAPI contract
+for declared APIs and generated operator metadata APIs.
