@@ -1,0 +1,261 @@
+system Demo {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  feature_flag NewScheduler {
+    type bool
+    default false
+    scope tenant
+    owner "platform"
+    description "Route order processing through the new scheduler"
+    expires "2026-12-31"
+  }
+
+  feature_flag MaxPendingOrders {
+    type int
+    default 100
+    scope tenant
+  }
+
+  log WorkflowLaunchDecision {
+    level info
+    event_name "workflow.launch.decision"
+    fields {
+      tenant_id string
+      order_id string
+      decision string
+    }
+  }
+
+  metric WorkflowLaunchAttempts {
+    kind counter
+    name "workflow_launch_attempts_total"
+    unit count
+    labels {
+      tenant_id string
+      workflow_name string
+      decision string
+    }
+  }
+
+  value OrderAmount: decimal where OrderAmount >= 0;
+
+  enum OrderStatus {
+    Pending = "pending"
+    Active = "active"
+    Failed = "failed"
+  }
+
+  event OrderAccepted {
+    fields {
+      order_id string
+      amount OrderAmount
+      status OrderStatus
+    }
+  }
+
+  namespace Billing {
+    external_system Stripe {
+      owner: "payments"
+      endpoint: "https://api.stripe.test"
+      metadata {
+        entity ExternalSystemEndpoint
+        profile_field profile
+        required_fields [base_url, auth_ref, timeout_ms]
+        mappings {
+          metadata.base_url -> client.base_url
+          metadata.auth_ref -> client.auth_ref
+          metadata.timeout_ms -> client.timeout_ms
+          input.order_id -> request.order_id
+        }
+      }
+    }
+  }
+
+  entity ExternalSystemEndpoint {
+    key tenant_id, external_system_id, profile
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      external_system_id string
+      profile string
+      base_url string
+      auth_ref string
+      timeout_ms int
+      retry_policy string
+    }
+    indexes {
+      unique by_tenant_system_profile on tenant_id, external_system_id, profile
+    }
+    state_machine {
+      state Active
+      state Disabled
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      initial Active
+      terminal [Deleted]
+      Active -> Disabled
+      Disabled -> Active
+      Active -> Deleted
+      Disabled -> Deleted
+    }
+  }
+
+  shape StartOrderProcessingRequest {
+    tenant_id string
+    order_id string
+  }
+
+  shape StartOrderProcessingResponse {
+    accepted bool
+  }
+
+  entity Account {
+    key tenant_id, account_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    children {
+      orders: Order by account_id
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      account_id string
+    }
+    state_machine {
+      state Active
+      initial Active
+    }
+  }
+
+  entity Order {
+    key tenant_id, order_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    relations {
+      parent account_id: ref<Account> {
+        kind: composition
+        on_parent_delete: block
+        parent_must_be_in: [Active]
+        unique_within_parent: [order_id]
+      }
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      order_id string
+      account_id string
+      retry_count int?
+    }
+    invariants {
+      valid_status: status != ""
+    }
+    indexes {
+      index by_tenant_status on tenant_id, status
+      unique by_tenant_order on tenant_id, order_id
+    }
+    state_machine {
+      state Pending
+      state Active
+      state Failed {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      initial Pending
+      terminal Failed
+      Pending -> Active
+      Pending -> Failed
+    }
+  }
+
+  queue EmailDispatch {
+    namespace workflow_ns
+    channel email
+    visibility_timeout PT30S
+    max_attempts 3
+    message SendConfirmation {
+      idempotency_key message_id
+      payload {
+        message_id string
+        tenant_id string
+        order_id string
+      }
+    }
+  }
+
+  lease OrderReconciler {
+    resource "orders:reconciler"
+    ttl PT30S
+    renew_every PT10S
+    holder worker_id
+    fencing_token true
+    max_ttl PT5M
+  }
+
+  workflow OrderProcessing {
+    version 2
+    on OrderAccepted
+    singleton false
+    expected_execution_time PT60S
+    start validate_order
+
+    step validate_order {
+      expected_execution_time PT10S
+      max_retries 2
+      emit OrderAccepted;
+    }
+  }
+
+  worker OrderWorker {
+    singleton true
+    lease OrderReconciler
+    polls EmailDispatch.SendConfirmation
+    executes OrderProcessing
+    concurrency 4
+  }
+
+  api StartOrderProcessing {
+    method POST
+    path "/v1/tenants/{tenantId}/orders/{order_id}/start"
+    input StartOrderProcessingRequest
+    output StartOrderProcessingResponse
+    starts workflow OrderProcessing
+  }
+
+  api_server OrderApi {
+    serves StartOrderProcessing
+    concurrency 16
+  }
+
+  policy OrderAccess {
+    tenant scoped_by tenant_id
+    allow StartOrderProcessing when caller.role == operator;
+    quota starts_per_minute: 60;
+    audit StartOrderProcessing;
+  }
+}

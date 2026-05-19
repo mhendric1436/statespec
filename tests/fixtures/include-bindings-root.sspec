@@ -1,0 +1,10 @@
+statespec 0.1;
+include "./included-bindings.sspec";
+
+system IncludeBindingsRoot {
+  feature_flag IncludedEntityLaunch {
+    type bool
+    default true
+    scope entity IncludedEntity
+  }
+}
