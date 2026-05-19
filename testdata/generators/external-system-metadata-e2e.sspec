@@ -1,0 +1,185 @@
+statespec 0.1;
+
+system ExternalMetadataE2E {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  shape PlacePaymentRequest {
+    tenant_id string
+    payment_id string
+    amount decimal
+    currency string
+  }
+
+  shape PlacePaymentResponse {
+    accepted bool
+  }
+
+  shape UpsertExternalSystemEndpointRequest {
+    tenant_id string
+    base_url string
+    auth_ref string
+    timeout_ms int
+    retry_policy string?
+  }
+
+  shape ExternalSystemEndpointResponse {
+    created_at timestamp
+    updated_at timestamp
+    status string
+    tenant_id string
+    external_system_id string
+    profile string
+    base_url string
+    auth_ref string
+    timeout_ms int
+    retry_policy string
+  }
+
+  shape DisableExternalSystemEndpointRequest {
+    tenant_id string
+    reason string?
+  }
+
+  event PaymentRequested {
+    fields {
+      tenant_id string
+      payment_id string
+      amount decimal
+      currency string
+    }
+  }
+
+  external_system PaymentGateway {
+    owner: "payments-platform"
+    kind: "remote-api"
+    metadata {
+      entity ExternalSystemEndpoint
+      profile_field profile
+      required_fields [base_url, auth_ref, timeout_ms, retry_policy]
+      mappings {
+        metadata.base_url -> client.base_url
+        metadata.auth_ref -> client.auth_ref
+        metadata.timeout_ms -> client.timeout_ms
+        metadata.retry_policy -> client.retry_policy
+        input.payment_id -> request.payment_id
+        input.amount -> request.amount
+        input.currency -> request.currency
+      }
+    }
+  }
+
+  entity ExternalSystemEndpoint {
+    key tenant_id, external_system_id, profile
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      external_system_id string
+      profile string
+      base_url string
+      auth_ref string
+      timeout_ms int
+      retry_policy string
+    }
+    state_machine {
+      state Active
+      state Disabled
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      initial Active
+      terminal [Deleted]
+      Active -> Disabled
+      Disabled -> Active
+      Active -> Deleted
+      Disabled -> Deleted
+    }
+    indexes {
+      unique by_tenant_system_profile on tenant_id, external_system_id, profile
+    }
+  }
+
+  workflow PaymentPlacement {
+    version 1
+    singleton false
+    expected_execution_time PT60S
+    start submit_payment
+    on PaymentRequested
+    step submit_payment {
+      expected_execution_time PT10S
+      max_retries 3
+      emit PaymentRequested;
+    }
+  }
+
+  api PlacePayment {
+    method POST
+    path "/v1/tenants/{tenant_id}/payments/{payment_id}/place"
+    input PlacePaymentRequest
+    output PlacePaymentResponse
+    starts workflow PaymentPlacement
+  }
+
+  api UpsertExternalSystemEndpoint {
+    method PUT
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    input UpsertExternalSystemEndpointRequest
+    output ExternalSystemEndpointResponse
+  }
+
+  api GetExternalSystemEndpoint {
+    method GET
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    output ExternalSystemEndpointResponse
+  }
+
+  api DisableExternalSystemEndpoint {
+    method PATCH
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}/disable"
+    input DisableExternalSystemEndpointRequest
+    output ExternalSystemEndpointResponse
+  }
+
+  api DeleteExternalSystemEndpoint {
+    method DELETE
+    path "/v1/tenants/{tenant_id}/operators/external-systems/{external_system_id}/profiles/{profile}"
+    output ExternalSystemEndpointResponse
+  }
+
+  api_server PaymentApi {
+    serves PlacePayment
+    concurrency 16
+  }
+
+  api_server OperatorApi {
+    serves UpsertExternalSystemEndpoint
+    serves GetExternalSystemEndpoint
+    serves DisableExternalSystemEndpoint
+    serves DeleteExternalSystemEndpoint
+    concurrency 4
+  }
+
+  policy PaymentOperators {
+    tenant scoped_by tenant_id
+    allow PlacePayment when caller.role == operator;
+    allow UpsertExternalSystemEndpoint when caller.role == operator;
+    allow GetExternalSystemEndpoint when caller.role == operator;
+    allow DisableExternalSystemEndpoint when caller.role == operator;
+    allow DeleteExternalSystemEndpoint when caller.role == operator;
+    audit PlacePayment;
+    audit UpsertExternalSystemEndpoint;
+    audit DisableExternalSystemEndpoint;
+    audit DeleteExternalSystemEndpoint;
+  }
+}

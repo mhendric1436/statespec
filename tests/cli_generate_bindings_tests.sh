@@ -10,6 +10,7 @@ cleanup() {
 trap cleanup EXIT
 
 SPEC="$TMPDIR/minimal.sspec"
+E2E_SPEC="testdata/generators/external-system-metadata-e2e.sspec"
 cat > "$SPEC" <<'SSPEC'
 system Demo {
   tenant scoped_by tenant_id
@@ -425,6 +426,49 @@ assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"operationId\": \"Dele
 assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"ExternalSystemEndpointRequest\""
 assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"ExternalSystemEndpointResponse\""
 assert_file_contains "$TMPDIR/out-openapi/openapi.json" "\"base_url\""
+
+# End-to-end external-system metadata fixture regression.
+run_expect_status 0 "$CLI" validate "$E2E_SPEC"
+
+run_expect_status 0 "$CLI" generate openapi "$E2E_SPEC" --out "$TMPDIR/out-e2e-openapi"
+assert_output_contains "generated $TMPDIR/out-e2e-openapi/openapi.json"
+assert_file_contains "$TMPDIR/out-e2e-openapi/openapi.json" "\"title\": \"ExternalMetadataE2E API\""
+assert_file_contains "$TMPDIR/out-e2e-openapi/openapi.json" "\"operationId\": \"PlacePayment\""
+assert_file_contains "$TMPDIR/out-e2e-openapi/openapi.json" "\"operationId\": \"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-openapi/openapi.json" "\"patch\""
+assert_file_contains "$TMPDIR/out-e2e-openapi/openapi.json" "\"retry_policy\""
+
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPDIR/out-e2e-cpp"
+assert_file_contains "$TMPDIR/out-e2e-cpp/system_descriptors.hpp" "api_route_descriptors"
+assert_file_contains "$TMPDIR/out-e2e-cpp/system_descriptors.hpp" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/system_descriptors.hpp" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/system_descriptors.hpp" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/system_descriptors.hpp" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/system_descriptors.hpp" "IExternalSystemOperatorMetadataApiHandler"
+
+run_expect_status 0 "$CLI" generate bindings --lang go "$E2E_SPEC" --out "$TMPDIR/out-e2e-go"
+assert_file_contains "$TMPDIR/out-e2e-go/backend/descriptors.go" "func ApiRouteDescriptors"
+assert_file_contains "$TMPDIR/out-e2e-go/backend/descriptors.go" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-go/backend/descriptors.go" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-go/backend/descriptors.go" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-go/backend/descriptors.go" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-go/backend/descriptors.go" "ExternalSystemOperatorMetadataAPIHandler"
+
+run_expect_status 0 "$CLI" generate bindings --lang java "$E2E_SPEC" --out "$TMPDIR/out-e2e-java"
+assert_file_contains "$TMPDIR/out-e2e-java/com/statespec/generated/Descriptors.java" "apiRouteDescriptors"
+assert_file_contains "$TMPDIR/out-e2e-java/com/statespec/generated/Descriptors.java" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-java/com/statespec/generated/Descriptors.java" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-java/com/statespec/generated/Descriptors.java" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-java/com/statespec/generated/Descriptors.java" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-java/com/statespec/generated/Descriptors.java" "ExternalSystemOperatorMetadataApiHandler"
+
+run_expect_status 0 "$CLI" generate bindings --lang rust "$E2E_SPEC" --out "$TMPDIR/out-e2e-rust"
+assert_file_contains "$TMPDIR/out-e2e-rust/descriptors.rs" "pub fn api_route_descriptors"
+assert_file_contains "$TMPDIR/out-e2e-rust/descriptors.rs" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-rust/descriptors.rs" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-rust/descriptors.rs" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-rust/descriptors.rs" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-rust/descriptors.rs" "ExternalSystemOperatorMetadataApiHandler"
 
 # Positive generation: C++.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"

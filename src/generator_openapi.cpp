@@ -156,6 +156,26 @@ bool has_shape(
     return find_shape(system, name) != nullptr;
 }
 
+std::string api_path(const IrApi& api);
+std::string api_method(const IrApi& api);
+
+bool has_api_operation(
+    const IrSystem& system,
+    const std::string& method,
+    const std::string& path
+)
+{
+    const auto normalized_method = lower_ascii(method);
+    for (const auto& api : system.apis)
+    {
+        if (api_method(api) == normalized_method && api_path(api) == path)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool contains(
     const std::vector<std::string>& values,
     const std::string& value
@@ -335,54 +355,67 @@ void append_operator_metadata_apis(
     const auto request_name = metadata.entity + "Request";
     const auto response_name = metadata.entity + "Response";
 
-    system.apis.push_back(
-        IrApi{
-            "Upsert" + metadata.entity,
-            std::string{"PUT"},
-            base_path,
-            request_name,
-            response_name,
-            std::nullopt,
-            std::nullopt,
-            std::nullopt,
-        }
-    );
-    system.apis.push_back(
-        IrApi{
-            "Get" + metadata.entity,
-            std::string{"GET"},
-            base_path,
-            std::nullopt,
-            response_name,
-            std::nullopt,
-            std::nullopt,
-            std::nullopt,
-        }
-    );
-    system.apis.push_back(
-        IrApi{
-            "Disable" + metadata.entity,
-            std::string{"POST"},
-            base_path + "/disable",
-            std::nullopt,
-            response_name,
-            std::nullopt,
-            std::nullopt,
-            std::nullopt,
-        }
-    );
-    system.apis.push_back(
-        IrApi{
-            "Delete" + metadata.entity,
-            std::string{"DELETE"},
-            base_path,
-            std::nullopt,
-            response_name,
-            std::nullopt,
-            std::nullopt,
-            std::nullopt,
-        }
-    );
+    if (!has_api_operation(system, "PUT", base_path))
+    {
+        system.apis.push_back(
+            IrApi{
+                "Upsert" + metadata.entity,
+                std::string{"PUT"},
+                base_path,
+                request_name,
+                response_name,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+            }
+        );
+    }
+    if (!has_api_operation(system, "GET", base_path))
+    {
+        system.apis.push_back(
+            IrApi{
+                "Get" + metadata.entity,
+                std::string{"GET"},
+                base_path,
+                std::nullopt,
+                response_name,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+            }
+        );
+    }
+    if (!has_api_operation(system, "POST", base_path + "/disable") &&
+        !has_api_operation(system, "PATCH", base_path + "/disable"))
+    {
+        system.apis.push_back(
+            IrApi{
+                "Disable" + metadata.entity,
+                std::string{"POST"},
+                base_path + "/disable",
+                std::nullopt,
+                response_name,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+            }
+        );
+    }
+    if (!has_api_operation(system, "DELETE", base_path))
+    {
+        system.apis.push_back(
+            IrApi{
+                "Delete" + metadata.entity,
+                std::string{"DELETE"},
+                base_path,
+                std::nullopt,
+                response_name,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+            }
+        );
+    }
 }
 
 IrSystem with_generated_operator_metadata_openapi(IrSystem system)
