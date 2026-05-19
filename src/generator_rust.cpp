@@ -1619,6 +1619,32 @@ std::string generate_api_artifacts_rs()
     return out.str();
 }
 
+std::string generate_worker_artifacts_rs()
+{
+    std::ostringstream out;
+    out << "use crate::descriptors;\n\n";
+    out << "pub use crate::descriptors::{Worker, WorkerContext, WorkerDescriptor};\n";
+    out << "pub use crate::lease::LeaseDefinition;\n";
+    out << "pub use crate::queue::QueueDefinition;\n";
+    out << "pub use crate::workflow::WorkflowDefinition;\n\n";
+    out << "pub fn worker_descriptors() -> Vec<WorkerDescriptor> {\n";
+    out << "    descriptors::worker_descriptors()\n";
+    out << "}\n\n";
+    out << "pub fn worker_contexts() -> Vec<WorkerContext> {\n";
+    out << "    descriptors::worker_contexts()\n";
+    out << "}\n\n";
+    out << "pub fn queue_definitions() -> Vec<QueueDefinition> {\n";
+    out << "    descriptors::queue_definitions()\n";
+    out << "}\n\n";
+    out << "pub fn lease_definitions() -> Vec<descriptors::LeaseDefinition> {\n";
+    out << "    descriptors::lease_definitions()\n";
+    out << "}\n\n";
+    out << "pub fn workflow_definitions() -> Vec<WorkflowDefinition> {\n";
+    out << "    descriptors::workflow_definitions()\n";
+    out << "}\n";
+    return out.str();
+}
+
 } // namespace
 
 GenerationResult generate_rust_bindings(
@@ -1674,6 +1700,14 @@ GenerationResult generate_rust_bindings(
                 generate_api_artifacts_rs(),
                 GeneratedArtifactTier::Api,
                 "api/api_artifacts.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker_artifacts.rs").string(),
+                generate_worker_artifacts_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_artifacts.rs",
             }
         );
     }

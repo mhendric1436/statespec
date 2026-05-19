@@ -1510,6 +1510,44 @@ std::string generate_api_artifacts_go()
     return out.str();
 }
 
+std::string generate_worker_artifacts_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import \"context\"\n\n";
+    out << "type WorkerTierDescriptor = WorkerDescriptor\n";
+    out << "type WorkerTierContext = WorkerContext\n";
+    out << "type WorkerTierHandler = Worker\n\n";
+    out << "func WorkerTierDescriptors() []WorkerDescriptor {\n";
+    out << "\treturn WorkerDescriptors()\n";
+    out << "}\n\n";
+    out << "func WorkerTierContexts() []WorkerContext {\n";
+    out << "\treturn WorkerContexts()\n";
+    out << "}\n\n";
+    out << "func WorkerTierQueueDefinitions() []QueueDefinition {\n";
+    out << "\treturn QueueDefinitions()\n";
+    out << "}\n\n";
+    out << "func WorkerTierLeaseDefinitions() []LeaseDescriptor {\n";
+    out << "\treturn LeaseDefinitions()\n";
+    out << "}\n\n";
+    out << "func WorkerTierWorkflowDefinitions() []WorkflowDefinition {\n";
+    out << "\treturn WorkflowDefinitions()\n";
+    out << "}\n\n";
+    out << "func WorkerTierCreateQueueDefinitionsTx(ctx context.Context, tx Transaction, "
+           "store QueueStore) error {\n";
+    out << "\treturn CreateQueueDefinitionsTx(ctx, tx, store)\n";
+    out << "}\n\n";
+    out << "func WorkerTierRegisterLeaseDefinitionsTx(ctx context.Context, tx Transaction, "
+           "store LeaseStore) error {\n";
+    out << "\treturn RegisterLeaseDefinitionsTx(ctx, tx, store)\n";
+    out << "}\n\n";
+    out << "func WorkerTierRegisterWorkflowDefinitionsTx(ctx context.Context, tx Transaction, "
+           "store WorkflowStore) error {\n";
+    out << "\treturn RegisterWorkflowDefinitionsTx(ctx, tx, store)\n";
+    out << "}\n";
+    return out.str();
+}
+
 } // namespace
 
 GenerationResult generate_go_bindings(
@@ -1568,6 +1606,14 @@ GenerationResult generate_go_bindings(
                 generate_api_artifacts_go(),
                 GeneratedArtifactTier::Api,
                 "api/backend/api_artifacts.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "backend/worker_artifacts.go").string(),
+                generate_worker_artifacts_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/worker_artifacts.go",
             }
         );
     }

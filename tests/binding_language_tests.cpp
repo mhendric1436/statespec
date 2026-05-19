@@ -362,6 +362,24 @@ void test_shared_descriptor_artifact_paths()
         rust_result, "api_artifacts.rs", "api/api_artifacts.rs",
         statespec::GeneratedArtifactTier::Api
     );
+
+    require_generated_file_artifact_path(
+        cpp_result, "worker_artifacts.hpp", "worker/worker_artifacts.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "backend/worker_artifacts.go", "worker/backend/worker_artifacts.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        java_result, "com/statespec/generated/WorkerArtifacts.java",
+        "worker/com/statespec/generated/WorkerArtifacts.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker_artifacts.rs", "worker/worker_artifacts.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
 }
 
 } // namespace

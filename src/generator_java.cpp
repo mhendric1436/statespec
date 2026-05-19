@@ -1646,6 +1646,55 @@ std::string generate_api_artifacts_java()
     return out.str();
 }
 
+std::string generate_worker_artifacts_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.Lease;\n";
+    out << "import com.statespec.backend.Queue;\n";
+    out << "import com.statespec.backend.Workflow;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class WorkerArtifacts {\n";
+    out << "    private WorkerArtifacts() {}\n\n";
+    out << "    public static List<Descriptors.WorkerDescriptor> workerDescriptors() {\n";
+    out << "        return Descriptors.workerDescriptors();\n";
+    out << "    }\n\n";
+    out << "    public static List<Descriptors.WorkerContext> workerContexts() {\n";
+    out << "        return Descriptors.workerContexts();\n";
+    out << "    }\n\n";
+    out << "    public static List<Queue.QueueDefinition> queueDefinitions() {\n";
+    out << "        return Descriptors.queueDefinitions();\n";
+    out << "    }\n\n";
+    out << "    public static List<Descriptors.LeaseDefinition> leaseDefinitions() {\n";
+    out << "        return Descriptors.leaseDefinitions();\n";
+    out << "    }\n\n";
+    out << "    public static List<Workflow.WorkflowDefinition> workflowDefinitions() {\n";
+    out << "        return Descriptors.workflowDefinitions();\n";
+    out << "    }\n\n";
+    out << "    public static void createQueueDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Queue queueStore\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        Descriptors.createQueueDefinitionsTx(tx, queueStore);\n";
+    out << "    }\n\n";
+    out << "    public static void registerLeaseDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Lease leaseStore\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        Descriptors.registerLeaseDefinitionsTx(tx, leaseStore);\n";
+    out << "    }\n\n";
+    out << "    public static void registerWorkflowDefinitionsTx(\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        Workflow workflowStore\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        Descriptors.registerWorkflowDefinitionsTx(tx, workflowStore);\n";
+    out << "    }\n\n";
+    out << "    public interface Handler extends Descriptors.Worker {}\n";
+    out << "}\n";
+    return out.str();
+}
+
 } // namespace
 
 GenerationResult generate_java_bindings(
@@ -1711,6 +1760,14 @@ GenerationResult generate_java_bindings(
                 generate_api_artifacts_java(),
                 GeneratedArtifactTier::Api,
                 "api/com/statespec/generated/ApiArtifacts.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "com/statespec/generated/WorkerArtifacts.java").string(),
+                generate_worker_artifacts_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkerArtifacts.java",
             }
         );
     }

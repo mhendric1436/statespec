@@ -1744,6 +1744,62 @@ std::string generate_api_artifacts_header()
     return out.str();
 }
 
+std::string generate_worker_artifacts_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"system_descriptors.hpp\"\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n\n";
+    out << "using IWorker = ::statespec_generated::IWorker;\n";
+    out << "using LeaseDefinition = ::statespec_generated::LeaseDefinition;\n";
+    out << "using WorkerContext = ::statespec_generated::WorkerContext;\n";
+    out << "using WorkerDescriptor = ::statespec_generated::WorkerDescriptor;\n\n";
+    out << "inline std::vector<WorkerDescriptor> worker_descriptors()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::worker_descriptors();\n";
+    out << "}\n\n";
+    out << "inline std::vector<WorkerContext> worker_contexts()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::worker_contexts();\n";
+    out << "}\n\n";
+    out << "inline std::vector<statespec::backend::QueueDefinition> queue_definitions()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::queue_definitions();\n";
+    out << "}\n\n";
+    out << "inline std::vector<LeaseDefinition> lease_definitions()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::lease_definitions();\n";
+    out << "}\n\n";
+    out << "inline std::vector<statespec::backend::WorkflowDefinition> workflow_definitions()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::workflow_definitions();\n";
+    out << "}\n\n";
+    out << "inline void create_queue_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::IQueueStore& queue_store\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    ::statespec_generated::create_queue_definitionsTx(tx, queue_store);\n";
+    out << "}\n\n";
+    out << "inline void register_lease_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::ILeaseStore& lease_store\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    ::statespec_generated::register_lease_definitionsTx(tx, lease_store);\n";
+    out << "}\n\n";
+    out << "inline void register_workflow_definitionsTx(\n";
+    out << "    statespec::backend::ITransaction& tx,\n";
+    out << "    statespec::backend::IWorkflowStore& workflow_store\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    ::statespec_generated::register_workflow_definitionsTx(tx, workflow_store);\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
 } // namespace
 
 GenerationResult generate_cpp_bindings(
@@ -1801,6 +1857,14 @@ GenerationResult generate_cpp_bindings(
                 generate_api_artifacts_header(),
                 GeneratedArtifactTier::Api,
                 "api/api_artifacts.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker_artifacts.hpp").string(),
+                generate_worker_artifacts_header(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_artifacts.hpp",
             }
         );
     }
