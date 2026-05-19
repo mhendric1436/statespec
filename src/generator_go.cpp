@@ -95,6 +95,63 @@ std::string strip_optional_suffix(const std::string& type)
     return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
+std::string go_field_type_expr(FieldDescriptorType type)
+{
+    switch (type)
+    {
+    case FieldDescriptorType::String:
+        return "FieldTypeString";
+    case FieldDescriptorType::Bool:
+        return "FieldTypeBool";
+    case FieldDescriptorType::Int:
+        return "FieldTypeInt";
+    case FieldDescriptorType::Int32:
+        return "FieldTypeInt32";
+    case FieldDescriptorType::Int64:
+        return "FieldTypeInt64";
+    case FieldDescriptorType::Long:
+        return "FieldTypeLong";
+    case FieldDescriptorType::Double:
+        return "FieldTypeDouble";
+    case FieldDescriptorType::Decimal:
+        return "FieldTypeDecimal";
+    case FieldDescriptorType::Json:
+        return "FieldTypeJSON";
+    case FieldDescriptorType::Timestamp:
+        return "FieldTypeTimestamp";
+    case FieldDescriptorType::Duration:
+        return "FieldTypeDuration";
+    case FieldDescriptorType::Uuid:
+        return "FieldTypeUUID";
+    case FieldDescriptorType::Named:
+        return "FieldTypeNamed";
+    case FieldDescriptorType::List:
+        return "FieldTypeList";
+    case FieldDescriptorType::Set:
+        return "FieldTypeSet";
+    case FieldDescriptorType::Map:
+        return "FieldTypeMap";
+    case FieldDescriptorType::Optional:
+        return "FieldTypeOptional";
+    case FieldDescriptorType::Reference:
+        return "FieldTypeReference";
+    }
+    return "FieldTypeNamed";
+}
+
+bool is_required_descriptor_field(const std::string& type)
+{
+    return classify_field_descriptor_type(type) != FieldDescriptorType::Optional;
+}
+
+std::string go_field_descriptor_expr(const IrField& field)
+{
+    return "{Name: " + go_string(field.name) +
+           ", Type: " + go_field_type_expr(classify_field_descriptor_type(field.type)) +
+           ", TypeName: " + go_string(field.type) +
+           ", Required: " + (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
+}
+
 std::string pascal_identifier(const std::string& value)
 {
     std::string result;
@@ -647,9 +704,7 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tFields: []FieldDescriptor{\n";
         for (const auto& field : event.fields)
         {
-            out << "\t\t\t\t{Name: " << go_string(field.name)
-                << ", Type: " << go_string(strip_optional_suffix(field.type))
-                << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+            out << "\t\t\t\t" << go_field_descriptor_expr(field) << ",\n";
         }
         out << "\t\t\t},\n";
         out << "\t\t},\n";
@@ -955,9 +1010,7 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tFields: []FieldDescriptor{\n";
         for (const auto& field : shape.fields)
         {
-            out << "\t\t\t\t{Name: " << go_string(field.name)
-                << ", Type: " << go_string(strip_optional_suffix(field.type))
-                << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+            out << "\t\t\t\t" << go_field_descriptor_expr(field) << ",\n";
         }
         out << "\t\t\t},\n";
         out << "\t\t},\n";
@@ -976,9 +1029,7 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tFields: []FieldDescriptor{\n";
         for (const auto& field : log.fields)
         {
-            out << "\t\t\t\t{Name: " << go_string(field.name)
-                << ", Type: " << go_string(strip_optional_suffix(field.type))
-                << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+            out << "\t\t\t\t" << go_field_descriptor_expr(field) << ",\n";
         }
         out << "\t\t\t},\n";
         out << "\t\t},\n";
@@ -998,9 +1049,7 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tLabels: []FieldDescriptor{\n";
         for (const auto& label : metric.labels)
         {
-            out << "\t\t\t\t{Name: " << go_string(label.name)
-                << ", Type: " << go_string(strip_optional_suffix(label.type))
-                << ", Required: " << (is_optional_type(label.type) ? "false" : "true") << "},\n";
+            out << "\t\t\t\t" << go_field_descriptor_expr(label) << ",\n";
         }
         out << "\t\t\t},\n";
         out << "\t\t},\n";
@@ -1129,9 +1178,7 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tFields: []FieldDescriptor{\n";
         for (const auto& field : entity.fields)
         {
-            out << "\t\t\t\t{Name: " << go_string(field.name)
-                << ", Type: " << go_string(strip_optional_suffix(field.type))
-                << ", Required: " << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+            out << "\t\t\t\t" << go_field_descriptor_expr(field) << ",\n";
         }
         out << "\t\t\t},\n";
         out << "\t\t\tKeyFields: []string{";

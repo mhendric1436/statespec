@@ -9,9 +9,33 @@ type CollectionName string
 type Key string
 type Version uint64
 
+type FieldType string
+
+const (
+	FieldTypeString    FieldType = "string"
+	FieldTypeBool      FieldType = "bool"
+	FieldTypeInt       FieldType = "int"
+	FieldTypeInt32     FieldType = "int32"
+	FieldTypeInt64     FieldType = "int64"
+	FieldTypeLong      FieldType = "long"
+	FieldTypeDouble    FieldType = "double"
+	FieldTypeDecimal   FieldType = "decimal"
+	FieldTypeJSON      FieldType = "json"
+	FieldTypeTimestamp FieldType = "timestamp"
+	FieldTypeDuration  FieldType = "duration"
+	FieldTypeUUID      FieldType = "uuid"
+	FieldTypeNamed     FieldType = "named"
+	FieldTypeList      FieldType = "list"
+	FieldTypeSet       FieldType = "set"
+	FieldTypeMap       FieldType = "map"
+	FieldTypeOptional  FieldType = "optional"
+	FieldTypeReference FieldType = "reference"
+)
+
 type FieldDescriptor struct {
 	Name     string
-	Type     string
+	Type     FieldType
+	TypeName string
 	Required bool
 }
 
