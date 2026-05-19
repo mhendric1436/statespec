@@ -18,10 +18,33 @@ using CollectionName = std::string;
 using Key = std::string;
 using Version = std::uint64_t;
 
+enum class FieldType
+{
+    String,
+    Bool,
+    Int,
+    Int32,
+    Int64,
+    Long,
+    Double,
+    Decimal,
+    Json,
+    Timestamp,
+    Duration,
+    Uuid,
+    Named,
+    List,
+    Set,
+    Map,
+    Optional,
+    Reference,
+};
+
 struct FieldDescriptor
 {
     std::string name;
-    std::string type;
+    FieldType type = FieldType::Named;
+    std::string type_name;
     bool required = false;
 };
 

@@ -97,6 +97,63 @@ std::string strip_optional_suffix(const std::string& type)
     return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
+std::string cpp_field_type_expr(FieldDescriptorType type)
+{
+    switch (type)
+    {
+    case FieldDescriptorType::String:
+        return "statespec::backend::FieldType::String";
+    case FieldDescriptorType::Bool:
+        return "statespec::backend::FieldType::Bool";
+    case FieldDescriptorType::Int:
+        return "statespec::backend::FieldType::Int";
+    case FieldDescriptorType::Int32:
+        return "statespec::backend::FieldType::Int32";
+    case FieldDescriptorType::Int64:
+        return "statespec::backend::FieldType::Int64";
+    case FieldDescriptorType::Long:
+        return "statespec::backend::FieldType::Long";
+    case FieldDescriptorType::Double:
+        return "statespec::backend::FieldType::Double";
+    case FieldDescriptorType::Decimal:
+        return "statespec::backend::FieldType::Decimal";
+    case FieldDescriptorType::Json:
+        return "statespec::backend::FieldType::Json";
+    case FieldDescriptorType::Timestamp:
+        return "statespec::backend::FieldType::Timestamp";
+    case FieldDescriptorType::Duration:
+        return "statespec::backend::FieldType::Duration";
+    case FieldDescriptorType::Uuid:
+        return "statespec::backend::FieldType::Uuid";
+    case FieldDescriptorType::Named:
+        return "statespec::backend::FieldType::Named";
+    case FieldDescriptorType::List:
+        return "statespec::backend::FieldType::List";
+    case FieldDescriptorType::Set:
+        return "statespec::backend::FieldType::Set";
+    case FieldDescriptorType::Map:
+        return "statespec::backend::FieldType::Map";
+    case FieldDescriptorType::Optional:
+        return "statespec::backend::FieldType::Optional";
+    case FieldDescriptorType::Reference:
+        return "statespec::backend::FieldType::Reference";
+    }
+    return "statespec::backend::FieldType::Named";
+}
+
+bool is_required_descriptor_field(const std::string& type)
+{
+    return classify_field_descriptor_type(type) != FieldDescriptorType::Optional;
+}
+
+std::string cpp_field_descriptor_expr(const IrField& field)
+{
+    return "statespec::backend::FieldDescriptor{" + cpp_string(field.name) + ", " +
+           cpp_field_type_expr(classify_field_descriptor_type(field.type)) + ", " +
+           cpp_string(field.type) + ", " +
+           (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
+}
+
 std::string pascal_identifier(const std::string& value)
 {
     std::string result;
@@ -795,9 +852,7 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            {\n";
         for (const auto& field : event.fields)
         {
-            out << "                statespec::backend::FieldDescriptor{" << cpp_string(field.name)
-                << ", " << cpp_string(strip_optional_suffix(field.type)) << ", "
-                << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+            out << "                " << cpp_field_descriptor_expr(field) << ",\n";
         }
         out << "            },\n";
         out << "        },\n";
@@ -1153,9 +1208,7 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            {\n";
         for (const auto& field : shape.fields)
         {
-            out << "                statespec::backend::FieldDescriptor{" << cpp_string(field.name)
-                << ", " << cpp_string(strip_optional_suffix(field.type)) << ", "
-                << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+            out << "                " << cpp_field_descriptor_expr(field) << ",\n";
         }
         out << "            },\n";
         out << "        },\n";
@@ -1175,9 +1228,7 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            {\n";
         for (const auto& field : log.fields)
         {
-            out << "                statespec::backend::FieldDescriptor{" << cpp_string(field.name)
-                << ", " << cpp_string(strip_optional_suffix(field.type)) << ", "
-                << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+            out << "                " << cpp_field_descriptor_expr(field) << ",\n";
         }
         out << "            },\n";
         out << "        },\n";
@@ -1198,9 +1249,7 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            {\n";
         for (const auto& label : metric.labels)
         {
-            out << "                statespec::backend::FieldDescriptor{" << cpp_string(label.name)
-                << ", " << cpp_string(strip_optional_suffix(label.type)) << ", "
-                << (is_optional_type(label.type) ? "false" : "true") << "},\n";
+            out << "                " << cpp_field_descriptor_expr(label) << ",\n";
         }
         out << "            },\n";
         out << "        },\n";
@@ -1331,9 +1380,7 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            {\n";
         for (const auto& field : entity.fields)
         {
-            out << "                statespec::backend::FieldDescriptor{" << cpp_string(field.name)
-                << ", " << cpp_string(strip_optional_suffix(field.type)) << ", "
-                << (is_optional_type(field.type) ? "false" : "true") << "},\n";
+            out << "                " << cpp_field_descriptor_expr(field) << ",\n";
         }
         out << "            },\n";
         out << "            {";
