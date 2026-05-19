@@ -29,6 +29,10 @@ Generated bindings also include minimal language-native packaging metadata:
 | `java` | `Makefile` with javac-based compile checks for generated sources |
 | `rust` | `Cargo.toml` and tier-aware `lib.rs` module declarations |
 
+Common-tier runtime support and descriptor source is physically emitted under a
+`common/` directory in each language output root. API and worker tier files keep their
+current compatibility paths until they are split into concept-specific production files.
+
 ## Supported Languages
 
 | Language | Default output root |

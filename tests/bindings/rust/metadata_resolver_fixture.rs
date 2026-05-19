@@ -1,22 +1,32 @@
 #[rustfmt::skip]
+#[path = "common/backend.rs"]
 pub mod backend;
 #[rustfmt::skip]
+#[path = "common/descriptors.rs"]
 pub mod descriptors;
 #[rustfmt::skip]
+#[path = "common/external_system.rs"]
 pub mod external_system;
 #[rustfmt::skip]
+#[path = "common/feature_flag.rs"]
 pub mod feature_flag;
 #[rustfmt::skip]
+#[path = "common/json.rs"]
 pub mod json;
 #[rustfmt::skip]
+#[path = "common/lease.rs"]
 pub mod lease;
 #[rustfmt::skip]
+#[path = "common/log.rs"]
 pub mod log;
 #[rustfmt::skip]
+#[path = "common/metric.rs"]
 pub mod metric;
 #[rustfmt::skip]
+#[path = "common/queue.rs"]
 pub mod queue;
 #[rustfmt::skip]
+#[path = "common/workflow.rs"]
 pub mod workflow;
 
 #[cfg(test)]

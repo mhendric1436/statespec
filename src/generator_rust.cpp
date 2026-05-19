@@ -48,7 +48,7 @@ void add_template_file(
 
     result.files.push_back(
         GeneratedFile{
-            (output_dir / relative_output_path).string(),
+            (output_dir / "common" / relative_output_path).string(),
             content,
             tier,
             (std::filesystem::path{"common"} / relative_output_path).generic_string(),
@@ -215,15 +215,25 @@ std::string generate_cargo_toml()
 std::string generate_rust_lib(BindingGenerationTier tier)
 {
     std::ostringstream out;
+    out << "#[path = \"common/backend.rs\"]\n";
     out << "pub mod backend;\n";
+    out << "#[path = \"common/descriptors.rs\"]\n";
     out << "pub mod descriptors;\n";
+    out << "#[path = \"common/external_system.rs\"]\n";
     out << "pub mod external_system;\n";
+    out << "#[path = \"common/feature_flag.rs\"]\n";
     out << "pub mod feature_flag;\n";
+    out << "#[path = \"common/json.rs\"]\n";
     out << "pub mod json;\n";
+    out << "#[path = \"common/lease.rs\"]\n";
     out << "pub mod lease;\n";
+    out << "#[path = \"common/log.rs\"]\n";
     out << "pub mod log;\n";
+    out << "#[path = \"common/metric.rs\"]\n";
     out << "pub mod metric;\n";
+    out << "#[path = \"common/queue.rs\"]\n";
     out << "pub mod queue;\n";
+    out << "#[path = \"common/workflow.rs\"]\n";
     out << "pub mod workflow;\n";
 
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
@@ -1726,7 +1736,7 @@ GenerationResult generate_rust_bindings(
     {
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "descriptors.rs").string(),
+                (options.output_dir / "common/descriptors.rs").string(),
                 generate_descriptors_rs(system),
                 GeneratedArtifactTier::Common,
                 "common/descriptors.rs",

@@ -50,7 +50,7 @@ void add_template_file(
 
     result.files.push_back(
         GeneratedFile{
-            (output_dir / relative_output_path).string(),
+            (output_dir / "common" / relative_output_path).string(),
             content,
             tier,
             (std::filesystem::path{"common"} / relative_output_path).generic_string(),
@@ -211,7 +211,7 @@ std::string generate_makefile(BindingGenerationTier tier)
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
 
     out << "CXX ?= clang++\n";
-    out << "CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -I.\n";
+    out << "CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -I. -Icommon\n";
     out << "BUILD_DIR ?= build\n\n";
     out << "CHECK_TARGETS := check-common";
     if (include_api)
@@ -238,7 +238,7 @@ std::string generate_makefile(BindingGenerationTier tier)
     out << "$(BUILD_DIR):\n";
     out << "\tmkdir -p $(BUILD_DIR)\n\n";
     out << "check-common: $(BUILD_DIR)\n";
-    out << "\tprintf '#include \"system_descriptors.hpp\"\\nint main() { return 0; }\\n' | "
+    out << "\tprintf '#include \"common/system_descriptors.hpp\"\\nint main() { return 0; }\\n' | "
            "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common\n\n";
     if (include_api)
     {
@@ -1772,7 +1772,7 @@ std::string generate_api_artifacts_header()
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"system_descriptors.hpp\"\n\n";
+    out << "#include \"common/system_descriptors.hpp\"\n\n";
     out << "namespace statespec_generated::api\n";
     out << "{\n\n";
     out << "using ApiDescriptor = ::statespec_generated::ApiDescriptor;\n";
@@ -1803,7 +1803,7 @@ std::string generate_worker_artifacts_header()
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"system_descriptors.hpp\"\n\n";
+    out << "#include \"common/system_descriptors.hpp\"\n\n";
     out << "namespace statespec_generated::worker\n";
     out << "{\n\n";
     out << "using IWorker = ::statespec_generated::IWorker;\n";
@@ -1900,7 +1900,7 @@ GenerationResult generate_cpp_bindings(
     {
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "system_descriptors.hpp").string(),
+                (options.output_dir / "common/system_descriptors.hpp").string(),
                 generate_system_descriptors_header(system),
                 GeneratedArtifactTier::Common,
                 "common/system_descriptors.hpp",

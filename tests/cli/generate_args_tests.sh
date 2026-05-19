@@ -16,37 +16,37 @@ SPEC="$TESTS_DIR/fixtures/bindings-full.sspec"
 NO_SYSTEM_SPEC="$TESTS_DIR/fixtures/no-system.sspec"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
-assert_output_contains "generated $TMPDIR/out-cpp/json.hpp"
-assert_file_exists "$TMPDIR/out-cpp/backend.hpp"
-assert_file_exists "$TMPDIR/out-cpp/system_descriptors.hpp"
+assert_output_contains "generated $TMPDIR/out-cpp/common/json.hpp"
+assert_file_exists "$TMPDIR/out-cpp/common/backend.hpp"
+assert_file_exists "$TMPDIR/out-cpp/common/system_descriptors.hpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
-assert_output_contains "generated $TMPDIR/out-go/backend/json.go"
-assert_file_exists "$TMPDIR/out-go/backend/backend.go"
-assert_file_exists "$TMPDIR/out-go/backend/descriptors.go"
+assert_output_contains "generated $TMPDIR/out-go/common/backend/json.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/backend.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/descriptors.go"
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
-assert_output_contains "generated $TMPDIR/out-java/com/statespec/backend/Json.java"
-assert_file_exists "$TMPDIR/out-java/com/statespec/backend/Backend.java"
-assert_file_exists "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
+assert_output_contains "generated $TMPDIR/out-java/common/com/statespec/backend/Json.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Backend.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java"
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
-assert_output_contains "generated $TMPDIR/out-rust/json.rs"
-assert_file_exists "$TMPDIR/out-rust/backend.rs"
-assert_file_exists "$TMPDIR/out-rust/descriptors.rs"
+assert_output_contains "generated $TMPDIR/out-rust/common/json.rs"
+assert_file_exists "$TMPDIR/out-rust/common/backend.rs"
+assert_file_exists "$TMPDIR/out-rust/common/descriptors.rs"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-common" --tier common
-assert_file_exists "$TMPDIR/tier-common/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/tier-common/common/system_descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-common/api_artifacts.hpp"
 assert_file_not_exists "$TMPDIR/tier-common/worker_artifacts.hpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-api" --tier api
-assert_file_exists "$TMPDIR/tier-api/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/tier-api/common/system_descriptors.hpp"
 assert_file_exists "$TMPDIR/tier-api/api_artifacts.hpp"
 assert_file_not_exists "$TMPDIR/tier-api/worker_artifacts.hpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-worker" --tier worker
-assert_file_exists "$TMPDIR/tier-worker/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/tier-worker/common/system_descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-worker/api_artifacts.hpp"
 assert_file_exists "$TMPDIR/tier-worker/worker_artifacts.hpp"
 

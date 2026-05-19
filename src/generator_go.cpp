@@ -48,7 +48,7 @@ void add_template_file(
 
     result.files.push_back(
         GeneratedFile{
-            (output_dir / relative_output_path).string(),
+            (output_dir / "common" / relative_output_path).string(),
             content,
             tier,
             (std::filesystem::path{"common"} / relative_output_path).generic_string(),
@@ -1498,22 +1498,23 @@ std::string generate_api_artifacts_go()
 {
     std::ostringstream out;
     out << "package backend\n\n";
-    out << "type APITierDescriptor = ApiDescriptor\n";
-    out << "type APITierHandler = APIHandler\n";
-    out << "type APITierRequestContext = APIRequestContext\n";
-    out << "type APITierResponse = APIResponse\n";
-    out << "type APITierRouteDescriptor = ApiRouteDescriptor\n";
-    out << "type APITierServerDescriptor = ApiServerDescriptor\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "type APITierDescriptor = common.ApiDescriptor\n";
+    out << "type APITierHandler = common.APIHandler\n";
+    out << "type APITierRequestContext = common.APIRequestContext\n";
+    out << "type APITierResponse = common.APIResponse\n";
+    out << "type APITierRouteDescriptor = common.ApiRouteDescriptor\n";
+    out << "type APITierServerDescriptor = common.ApiServerDescriptor\n";
     out << "type APITierExternalSystemOperatorMetadataHandler = "
-           "ExternalSystemOperatorMetadataAPIHandler\n\n";
-    out << "func APITierDescriptors() []ApiDescriptor {\n";
-    out << "\treturn ApiDescriptors()\n";
+           "common.ExternalSystemOperatorMetadataAPIHandler\n\n";
+    out << "func APITierDescriptors() []common.ApiDescriptor {\n";
+    out << "\treturn common.ApiDescriptors()\n";
     out << "}\n\n";
-    out << "func APITierServerDescriptors() []ApiServerDescriptor {\n";
-    out << "\treturn ApiServerDescriptors()\n";
+    out << "func APITierServerDescriptors() []common.ApiServerDescriptor {\n";
+    out << "\treturn common.ApiServerDescriptors()\n";
     out << "}\n\n";
-    out << "func APITierRouteDescriptors() []ApiRouteDescriptor {\n";
-    out << "\treturn ApiRouteDescriptors()\n";
+    out << "func APITierRouteDescriptors() []common.ApiRouteDescriptor {\n";
+    out << "\treturn common.ApiRouteDescriptors()\n";
     out << "}\n";
     return out.str();
 }
@@ -1522,36 +1523,40 @@ std::string generate_worker_artifacts_go()
 {
     std::ostringstream out;
     out << "package backend\n\n";
-    out << "import \"context\"\n\n";
-    out << "type WorkerTierDescriptor = WorkerDescriptor\n";
-    out << "type WorkerTierContext = WorkerContext\n";
-    out << "type WorkerTierHandler = Worker\n\n";
-    out << "func WorkerTierDescriptors() []WorkerDescriptor {\n";
-    out << "\treturn WorkerDescriptors()\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << "type WorkerTierDescriptor = common.WorkerDescriptor\n";
+    out << "type WorkerTierContext = common.WorkerContext\n";
+    out << "type WorkerTierHandler = common.Worker\n\n";
+    out << "func WorkerTierDescriptors() []common.WorkerDescriptor {\n";
+    out << "\treturn common.WorkerDescriptors()\n";
     out << "}\n\n";
-    out << "func WorkerTierContexts() []WorkerContext {\n";
-    out << "\treturn WorkerContexts()\n";
+    out << "func WorkerTierContexts() []common.WorkerContext {\n";
+    out << "\treturn common.WorkerContexts()\n";
     out << "}\n\n";
-    out << "func WorkerTierQueueDefinitions() []QueueDefinition {\n";
-    out << "\treturn QueueDefinitions()\n";
+    out << "func WorkerTierQueueDefinitions() []common.QueueDefinition {\n";
+    out << "\treturn common.QueueDefinitions()\n";
     out << "}\n\n";
-    out << "func WorkerTierLeaseDefinitions() []LeaseDescriptor {\n";
-    out << "\treturn LeaseDefinitions()\n";
+    out << "func WorkerTierLeaseDefinitions() []common.LeaseDescriptor {\n";
+    out << "\treturn common.LeaseDefinitions()\n";
     out << "}\n\n";
-    out << "func WorkerTierWorkflowDefinitions() []WorkflowDefinition {\n";
-    out << "\treturn WorkflowDefinitions()\n";
+    out << "func WorkerTierWorkflowDefinitions() []common.WorkflowDefinition {\n";
+    out << "\treturn common.WorkflowDefinitions()\n";
     out << "}\n\n";
-    out << "func WorkerTierCreateQueueDefinitionsTx(ctx context.Context, tx Transaction, "
-           "store QueueStore) error {\n";
-    out << "\treturn CreateQueueDefinitionsTx(ctx, tx, store)\n";
+    out << "func WorkerTierCreateQueueDefinitionsTx(ctx context.Context, tx common.Transaction, "
+           "store common.QueueStore) error {\n";
+    out << "\treturn common.CreateQueueDefinitionsTx(ctx, tx, store)\n";
     out << "}\n\n";
-    out << "func WorkerTierRegisterLeaseDefinitionsTx(ctx context.Context, tx Transaction, "
-           "store LeaseStore) error {\n";
-    out << "\treturn RegisterLeaseDefinitionsTx(ctx, tx, store)\n";
+    out << "func WorkerTierRegisterLeaseDefinitionsTx(ctx context.Context, tx common.Transaction, "
+           "store common.LeaseStore) error {\n";
+    out << "\treturn common.RegisterLeaseDefinitionsTx(ctx, tx, store)\n";
     out << "}\n\n";
-    out << "func WorkerTierRegisterWorkflowDefinitionsTx(ctx context.Context, tx Transaction, "
-           "store WorkflowStore) error {\n";
-    out << "\treturn RegisterWorkflowDefinitionsTx(ctx, tx, store)\n";
+    out << "func WorkerTierRegisterWorkflowDefinitionsTx(ctx context.Context, tx "
+           "common.Transaction, "
+           "store common.WorkflowStore) error {\n";
+    out << "\treturn common.RegisterWorkflowDefinitionsTx(ctx, tx, store)\n";
     out << "}\n";
     return out.str();
 }
@@ -1602,7 +1607,7 @@ GenerationResult generate_go_bindings(
     {
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "backend/descriptors.go").string(),
+                (options.output_dir / "common/backend/descriptors.go").string(),
                 generate_descriptors_go(system),
                 GeneratedArtifactTier::Common,
                 "common/backend/descriptors.go",

@@ -48,7 +48,7 @@ void add_template_file(
 
     result.files.push_back(
         GeneratedFile{
-            (output_dir / relative_output_path).string(),
+            (output_dir / "common" / relative_output_path).string(),
             content,
             tier,
             (std::filesystem::path{"common"} / relative_output_path).generic_string(),
@@ -1764,7 +1764,7 @@ GenerationResult generate_java_bindings(
     {
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "com/statespec/generated/Descriptors.java").string(),
+                (options.output_dir / "common/com/statespec/generated/Descriptors.java").string(),
                 generate_descriptors_java(system),
                 GeneratedArtifactTier::Common,
                 "common/com/statespec/generated/Descriptors.java",
