@@ -371,6 +371,8 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "struct ExternalSystemMetadataMappingAssignment\n";
     out << "{\n";
     out << "    std::string source;\n";
+    out << "    std::string source_root;\n";
+    out << "    std::string source_field;\n";
     out << "    std::string field;\n";
     out << "};\n\n";
 
@@ -753,10 +755,19 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    constexpr std::string_view request_prefix = \"request.\";\n";
     out << "    for (const auto& mapping : descriptor.metadata->mappings)\n";
     out << "    {\n";
+    out << "        const auto source_separator = mapping.source.find('.');\n";
+    out << "        const auto source_root = source_separator == std::string::npos\n";
+    out << "            ? mapping.source\n";
+    out << "            : mapping.source.substr(0, source_separator);\n";
+    out << "        const auto source_field = source_separator == std::string::npos\n";
+    out << "            ? std::string{}\n";
+    out << "            : mapping.source.substr(source_separator + 1);\n";
     out << "        if (mapping.target.rfind(client_prefix, 0) == 0)\n";
     out << "        {\n";
     out << "            plan.client_mappings.push_back(ExternalSystemMetadataMappingAssignment{\n";
     out << "                mapping.source,\n";
+    out << "                source_root,\n";
+    out << "                source_field,\n";
     out << "                mapping.target.substr(client_prefix.size()),\n";
     out << "            });\n";
     out << "        }\n";
@@ -764,6 +775,8 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "        {\n";
     out << "            plan.request_mappings.push_back(ExternalSystemMetadataMappingAssignment{\n";
     out << "                mapping.source,\n";
+    out << "                source_root,\n";
+    out << "                source_field,\n";
     out << "                mapping.target.substr(request_prefix.size()),\n";
     out << "            });\n";
     out << "        }\n";

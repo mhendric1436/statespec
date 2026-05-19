@@ -199,9 +199,11 @@ The compiler validates mapping shape before generators run:
 Generated descriptors preserve validated mapping source and target names. Binding runtime
 adapters should consume those descriptors rather than reinterpreting raw `.sspec` text.
 Generated bindings also expose mapping-plan helpers that split descriptor mappings into
-client-field and request-field assignment lists with the target root removed. Runtime
-adapters can use the plan to assemble remote client configuration and request payloads
-from user input, loaded entity state, workflow state, and resolved metadata.
+client-field and request-field assignment lists. Each assignment carries the original
+source path plus normalized `sourceRoot`, `sourceField`, and target `field` values, so
+runtime adapters do not need to parse mapping strings. Adapters can use the plan to
+assemble remote client configuration and request payloads from user input, loaded entity
+state, workflow state, and resolved metadata.
 
 ## OCC Requirement
 

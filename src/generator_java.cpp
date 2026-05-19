@@ -344,6 +344,8 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "    ) {}\n\n";
     out << "    public record ExternalSystemMetadataMappingAssignment(\n";
     out << "        String source,\n";
+    out << "        String sourceRoot,\n";
+    out << "        String sourceField,\n";
     out << "        String field\n";
     out << "    ) {}\n\n";
     out << "    public record ExternalSystemMetadataMappingPlan(\n";
@@ -685,14 +687,21 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        if (descriptor.metadata().isPresent()) {\n";
     out << "            for (ExternalSystemMetadataMappingDescriptor mapping : "
            "descriptor.metadata().orElseThrow().mappings()) {\n";
+    out << "                int sourceSeparator = mapping.source().indexOf('.');\n";
+    out << "                String sourceRoot = sourceSeparator < 0\n";
+    out << "                    ? mapping.source()\n";
+    out << "                    : mapping.source().substring(0, sourceSeparator);\n";
+    out << "                String sourceField = sourceSeparator < 0\n";
+    out << "                    ? \"\"\n";
+    out << "                    : mapping.source().substring(sourceSeparator + 1);\n";
     out << "                if (mapping.target().startsWith(\"client.\")) {\n";
     out << "                    clientMappings.add(new ExternalSystemMetadataMappingAssignment(\n";
-    out << "                        mapping.source(), "
+    out << "                        mapping.source(), sourceRoot, sourceField,\n"
            "mapping.target().substring(\"client.\".length())\n";
     out << "                    ));\n";
     out << "                } else if (mapping.target().startsWith(\"request.\")) {\n";
     out << "                    requestMappings.add(new ExternalSystemMetadataMappingAssignment(\n";
-    out << "                        mapping.source(), "
+    out << "                        mapping.source(), sourceRoot, sourceField,\n"
            "mapping.target().substring(\"request.\".length())\n";
     out << "                    ));\n";
     out << "                }\n";

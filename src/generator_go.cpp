@@ -329,6 +329,8 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "}\n\n";
     out << "type ExternalSystemMetadataMappingAssignment struct {\n";
     out << "\tSource string\n";
+    out << "\tSourceRoot string\n";
+    out << "\tSourceField string\n";
     out << "\tField string\n";
     out << "}\n\n";
     out << "type ExternalSystemMetadataMappingPlan struct {\n";
@@ -639,14 +641,22 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\t\treturn plan\n";
     out << "\t}\n";
     out << "\tfor _, mapping := range descriptor.Metadata.Mappings {\n";
+    out << "\t\tsourceParts := strings.SplitN(mapping.Source, \".\", 2)\n";
+    out << "\t\tsourceRoot := sourceParts[0]\n";
+    out << "\t\tsourceField := \"\"\n";
+    out << "\t\tif len(sourceParts) == 2 {\n";
+    out << "\t\t\tsourceField = sourceParts[1]\n";
+    out << "\t\t}\n";
     out << "\t\tif strings.HasPrefix(mapping.Target, \"client.\") {\n";
     out << "\t\t\tplan.ClientMappings = append(plan.ClientMappings, "
-           "ExternalSystemMetadataMappingAssignment{Source: mapping.Source, Field: "
-           "strings.TrimPrefix(mapping.Target, \"client.\")})\n";
+           "ExternalSystemMetadataMappingAssignment{Source: mapping.Source, SourceRoot: "
+           "sourceRoot, SourceField: sourceField, Field: strings.TrimPrefix(mapping.Target, "
+           "\"client.\")})\n";
     out << "\t\t} else if strings.HasPrefix(mapping.Target, \"request.\") {\n";
     out << "\t\t\tplan.RequestMappings = append(plan.RequestMappings, "
-           "ExternalSystemMetadataMappingAssignment{Source: mapping.Source, Field: "
-           "strings.TrimPrefix(mapping.Target, \"request.\")})\n";
+           "ExternalSystemMetadataMappingAssignment{Source: mapping.Source, SourceRoot: "
+           "sourceRoot, SourceField: sourceField, Field: strings.TrimPrefix(mapping.Target, "
+           "\"request.\")})\n";
     out << "\t\t}\n";
     out << "\t}\n";
     out << "\treturn plan\n";
