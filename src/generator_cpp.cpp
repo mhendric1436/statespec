@@ -1713,6 +1713,37 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_artifacts_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"system_descriptors.hpp\"\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "using ApiDescriptor = ::statespec_generated::ApiDescriptor;\n";
+    out << "using ApiRequestContext = ::statespec_generated::ApiRequestContext;\n";
+    out << "using ApiResponse = ::statespec_generated::ApiResponse;\n";
+    out << "using ApiRouteDescriptor = ::statespec_generated::ApiRouteDescriptor;\n";
+    out << "using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;\n";
+    out << "using IApiHandler = ::statespec_generated::IApiHandler;\n";
+    out << "using IExternalSystemOperatorMetadataApiHandler = "
+           "::statespec_generated::IExternalSystemOperatorMetadataApiHandler;\n\n";
+    out << "inline std::vector<ApiDescriptor> api_descriptors()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::api_descriptors();\n";
+    out << "}\n\n";
+    out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::api_server_descriptors();\n";
+    out << "}\n\n";
+    out << "inline std::vector<ApiRouteDescriptor> api_route_descriptors()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::api_route_descriptors();\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
 } // namespace
 
 GenerationResult generate_cpp_bindings(
@@ -1762,6 +1793,14 @@ GenerationResult generate_cpp_bindings(
                 generate_system_descriptors_header(system),
                 GeneratedArtifactTier::Common,
                 "common/system_descriptors.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api_artifacts.hpp").string(),
+                generate_api_artifacts_header(),
+                GeneratedArtifactTier::Api,
+                "api/api_artifacts.hpp",
             }
         );
     }

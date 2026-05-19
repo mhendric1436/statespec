@@ -1486,6 +1486,30 @@ std::string generate_descriptors_go(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_artifacts_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "type APITierDescriptor = ApiDescriptor\n";
+    out << "type APITierHandler = APIHandler\n";
+    out << "type APITierRequestContext = APIRequestContext\n";
+    out << "type APITierResponse = APIResponse\n";
+    out << "type APITierRouteDescriptor = ApiRouteDescriptor\n";
+    out << "type APITierServerDescriptor = ApiServerDescriptor\n";
+    out << "type APITierExternalSystemOperatorMetadataHandler = "
+           "ExternalSystemOperatorMetadataAPIHandler\n\n";
+    out << "func APITierDescriptors() []ApiDescriptor {\n";
+    out << "\treturn ApiDescriptors()\n";
+    out << "}\n\n";
+    out << "func APITierServerDescriptors() []ApiServerDescriptor {\n";
+    out << "\treturn ApiServerDescriptors()\n";
+    out << "}\n\n";
+    out << "func APITierRouteDescriptors() []ApiRouteDescriptor {\n";
+    out << "\treturn ApiRouteDescriptors()\n";
+    out << "}\n";
+    return out.str();
+}
+
 } // namespace
 
 GenerationResult generate_go_bindings(
@@ -1536,6 +1560,14 @@ GenerationResult generate_go_bindings(
                 generate_descriptors_go(system),
                 GeneratedArtifactTier::Common,
                 "common/backend/descriptors.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "backend/api_artifacts.go").string(),
+                generate_api_artifacts_go(),
+                GeneratedArtifactTier::Api,
+                "api/backend/api_artifacts.go",
             }
         );
     }

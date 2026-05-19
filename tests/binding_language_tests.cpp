@@ -201,7 +201,7 @@ statespec::Spec empty_system_spec()
     return spec;
 }
 
-void require_generated_files_are_common(
+void require_generated_files_have_tiered_artifact_paths(
     statespec::BindingLanguage language,
     const std::string& language_name
 )
@@ -220,22 +220,35 @@ void require_generated_files_are_common(
     require(!result.files.empty(), (language_name + " generation should emit files").c_str());
     for (const auto& file : result.files)
     {
-        require(
-            file.tier == statespec::GeneratedArtifactTier::Common,
-            (language_name + " generated file should be tagged as common: " + file.path).c_str()
-        );
-        require(
-            file.artifact_path.rfind("common/", 0) == 0,
-            (language_name + " generated file should have a common artifact path: " + file.path)
-                .c_str()
-        );
+        if (file.tier == statespec::GeneratedArtifactTier::Common)
+        {
+            require(
+                file.artifact_path.rfind("common/", 0) == 0,
+                (language_name + " common artifact should have common path: " + file.path).c_str()
+            );
+        }
+        else if (file.tier == statespec::GeneratedArtifactTier::Api)
+        {
+            require(
+                file.artifact_path.rfind("api/", 0) == 0,
+                (language_name + " API artifact should have API path: " + file.path).c_str()
+            );
+        }
+        else if (file.tier == statespec::GeneratedArtifactTier::Worker)
+        {
+            require(
+                file.artifact_path.rfind("worker/", 0) == 0,
+                (language_name + " worker artifact should have worker path: " + file.path).c_str()
+            );
+        }
     }
 }
 
 void require_generated_file_artifact_path(
     const statespec::GenerationResult& result,
     const std::string& emitted_suffix,
-    const std::string& expected_artifact_path
+    const std::string& expected_artifact_path,
+    statespec::GeneratedArtifactTier expected_tier
 )
 {
     for (const auto& file : result.files)
@@ -248,6 +261,9 @@ void require_generated_file_artifact_path(
             require_string_equal(
                 file.artifact_path, expected_artifact_path,
                 "generated file artifact path for " + emitted_suffix
+            );
+            require(
+                file.tier == expected_tier, ("generated file tier for " + emitted_suffix).c_str()
             );
             return;
         }
@@ -268,10 +284,10 @@ void test_generated_artifact_tiers_default_to_common()
 
 void test_binding_generators_assign_artifact_tiers()
 {
-    require_generated_files_are_common(statespec::BindingLanguage::Cpp, "cpp");
-    require_generated_files_are_common(statespec::BindingLanguage::Go, "go");
-    require_generated_files_are_common(statespec::BindingLanguage::Java, "java");
-    require_generated_files_are_common(statespec::BindingLanguage::Rust, "rust");
+    require_generated_files_have_tiered_artifact_paths(statespec::BindingLanguage::Cpp, "cpp");
+    require_generated_files_have_tiered_artifact_paths(statespec::BindingLanguage::Go, "go");
+    require_generated_files_have_tiered_artifact_paths(statespec::BindingLanguage::Java, "java");
+    require_generated_files_have_tiered_artifact_paths(statespec::BindingLanguage::Rust, "rust");
 }
 
 void test_shared_descriptor_artifact_paths()
@@ -314,16 +330,38 @@ void test_shared_descriptor_artifact_paths()
 
     require(!diagnostics.has_errors(), "descriptor artifact path generation should not fail");
     require_generated_file_artifact_path(
-        cpp_result, "system_descriptors.hpp", "common/system_descriptors.hpp"
+        cpp_result, "system_descriptors.hpp", "common/system_descriptors.hpp",
+        statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
-        go_result, "backend/descriptors.go", "common/backend/descriptors.go"
+        go_result, "backend/descriptors.go", "common/backend/descriptors.go",
+        statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         java_result, "com/statespec/generated/Descriptors.java",
-        "common/com/statespec/generated/Descriptors.java"
+        "common/com/statespec/generated/Descriptors.java", statespec::GeneratedArtifactTier::Common
     );
-    require_generated_file_artifact_path(rust_result, "descriptors.rs", "common/descriptors.rs");
+    require_generated_file_artifact_path(
+        rust_result, "descriptors.rs", "common/descriptors.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+
+    require_generated_file_artifact_path(
+        cpp_result, "api_artifacts.hpp", "api/api_artifacts.hpp",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        go_result, "backend/api_artifacts.go", "api/backend/api_artifacts.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        java_result, "com/statespec/generated/ApiArtifacts.java",
+        "api/com/statespec/generated/ApiArtifacts.java", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        rust_result, "api_artifacts.rs", "api/api_artifacts.rs",
+        statespec::GeneratedArtifactTier::Api
+    );
 }
 
 } // namespace

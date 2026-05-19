@@ -1598,6 +1598,27 @@ std::string generate_descriptors_rs(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_artifacts_rs()
+{
+    std::ostringstream out;
+    out << "use crate::descriptors;\n\n";
+    out << "pub use crate::descriptors::{\n";
+    out << "    ApiDescriptor, ApiHandler, ApiRequestContext, ApiResponse, "
+           "ApiRouteDescriptor,\n";
+    out << "    ApiServerDescriptor, ExternalSystemOperatorMetadataApiHandler,\n";
+    out << "};\n\n";
+    out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
+    out << "    descriptors::api_descriptors()\n";
+    out << "}\n\n";
+    out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
+    out << "    descriptors::api_server_descriptors()\n";
+    out << "}\n\n";
+    out << "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {\n";
+    out << "    descriptors::api_route_descriptors()\n";
+    out << "}\n";
+    return out.str();
+}
+
 } // namespace
 
 GenerationResult generate_rust_bindings(
@@ -1645,6 +1666,14 @@ GenerationResult generate_rust_bindings(
                 generate_descriptors_rs(system),
                 GeneratedArtifactTier::Common,
                 "common/descriptors.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api_artifacts.rs").string(),
+                generate_api_artifacts_rs(),
+                GeneratedArtifactTier::Api,
+                "api/api_artifacts.rs",
             }
         );
     }

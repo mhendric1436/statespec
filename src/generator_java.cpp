@@ -1623,6 +1623,29 @@ std::string generate_descriptors_java(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_artifacts_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class ApiArtifacts {\n";
+    out << "    private ApiArtifacts() {}\n\n";
+    out << "    public static List<Descriptors.ApiDescriptor> apiDescriptors() {\n";
+    out << "        return Descriptors.apiDescriptors();\n";
+    out << "    }\n\n";
+    out << "    public static List<Descriptors.ApiServerDescriptor> apiServerDescriptors() {\n";
+    out << "        return Descriptors.apiServerDescriptors();\n";
+    out << "    }\n\n";
+    out << "    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {\n";
+    out << "        return Descriptors.apiRouteDescriptors();\n";
+    out << "    }\n\n";
+    out << "    public interface Handler extends Descriptors.ApiHandler {}\n\n";
+    out << "    public interface ExternalSystemOperatorMetadataHandler\n";
+    out << "        extends Descriptors.ExternalSystemOperatorMetadataApiHandler {}\n";
+    out << "}\n";
+    return out.str();
+}
+
 } // namespace
 
 GenerationResult generate_java_bindings(
@@ -1680,6 +1703,14 @@ GenerationResult generate_java_bindings(
                 generate_descriptors_java(system),
                 GeneratedArtifactTier::Common,
                 "common/com/statespec/generated/Descriptors.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "com/statespec/generated/ApiArtifacts.java").string(),
+                generate_api_artifacts_java(),
+                GeneratedArtifactTier::Api,
+                "api/com/statespec/generated/ApiArtifacts.java",
             }
         );
     }
