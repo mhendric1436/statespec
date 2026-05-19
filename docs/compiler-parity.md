@@ -24,7 +24,6 @@ Status meanings:
 | `statespec` header | complete | complete | partial | n/a | n/a | complete | n/a | P2 | Version is parsed; formal language-version compatibility policy is still minimal. |
 | `include` | complete | complete | complete | complete | complete | partial | complete | P1 | Composition is supported for validation/generation; formatter keeps file-local includes. |
 | `system` | complete | complete | complete | complete | complete | complete | complete | P0 | Root system is the implemented compilation unit. |
-| `namespace` | complete | complete | complete | complete | complete | complete | partial | P2 | Namespace blocks qualify member declarations and emit descriptor metadata; relative name lookup remains future work. |
 | `tenant scoped_by` | complete | complete | complete | complete | complete | complete | partial | P0 | Mandatory for every composed system and lowered into IR; runtime enforcement and generator usage remain limited. |
 | `system_tenant configured` | complete | complete | complete | complete | complete | complete | partial | P0 | Mandatory for every composed system and lowered into IR; generated runtime config contract should be expanded. |
 | `value` | complete | complete | complete | complete | complete | complete | partial | P2 | Reusable named value types flow through IR and binding descriptors; target-language type generation remains future work. |
@@ -144,13 +143,12 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
    descriptor metadata. Next work is target-language type generation and event runtime
    helpers.
 
-7. **P2/P3: Add namespace, external systems, and policies.**
-   Implemented: namespace blocks qualify member declarations, external systems are
-   parsed and validated as named property catalogs, external-system metadata maps to
-   operator-managed durable state, and policies now emit passive binding descriptor
-   metadata. Metadata mapping and operator API contracts are generated; next work is
-   relative namespace lookup, external ownership semantics, and generated policy
-   enforcement hooks.
+7. **P2/P3: Add external systems and policies.**
+   Implemented: external systems are parsed and validated as named property catalogs,
+   external-system metadata maps to operator-managed durable state, and policies now
+   emit passive binding descriptor metadata. Metadata mapping and operator API
+   contracts are generated; next work is external ownership semantics and generated
+   policy enforcement hooks.
 
 8. **P1: Generate API descriptors from typed shapes.**
    Implemented: generated bindings now include passive API descriptor metadata for

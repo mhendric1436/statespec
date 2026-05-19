@@ -202,7 +202,7 @@ func TestGeneratedMetadataResolverFixture(t *testing.T) {
 		{Field: "external_system_id", Value: JSONString("stripe")},
 		{Field: "profile", Value: JSONString("default")},
 	}
-	lookup, ok := ExternalSystemMetadataLookupByName("Billing.Stripe", keys)
+	lookup, ok := ExternalSystemMetadataLookupByName("Stripe", keys)
 	if !ok || lookup == nil {
 		t.Fatalf("expected metadata lookup")
 	}
@@ -231,13 +231,13 @@ func TestGeneratedMetadataResolverFixture(t *testing.T) {
 	if err != nil || apiResponse.StatusCode != 200 {
 		t.Fatalf("unexpected operator metadata API response: %#v err=%v", apiResponse, err)
 	}
-	resolved, ok, err := ResolveExternalSystemMetadataByNameTx(ctx, resolver, tx, "Billing.Stripe", keys)
+	resolved, ok, err := ResolveExternalSystemMetadataByNameTx(ctx, resolver, tx, "Stripe", keys)
 	if err != nil || !ok || resolved == nil || resolved.Complete() || resolver.calls != 1 {
 		t.Fatalf("expected incomplete metadata resolution through resolver, ok=%v resolved=%#v err=%v calls=%d", ok, resolved, err, resolver.calls)
 	}
 
 	keys = keys[:len(keys)-1]
-	skipped, ok, err := ResolveExternalSystemMetadataByNameTx(ctx, resolver, tx, "Billing.Stripe", keys)
+	skipped, ok, err := ResolveExternalSystemMetadataByNameTx(ctx, resolver, tx, "Stripe", keys)
 	if err != nil || !ok || skipped != nil || resolver.calls != 1 {
 		t.Fatalf("expected incomplete key to skip resolver, ok=%v skipped=%#v err=%v calls=%d", ok, skipped, err, resolver.calls)
 	}

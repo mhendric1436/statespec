@@ -12,7 +12,6 @@ namespace statespec
 enum class SymbolKind
 {
     System,
-    Namespace,
     Value,
     Enum,
     Shape,

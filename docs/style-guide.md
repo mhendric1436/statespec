@@ -18,10 +18,9 @@ Recommended top-level order inside a `system` block:
 
 ```text
 1. tenant and system_tenant
-2. namespaces
-3. values, enums, shapes, events, and external systems
-4. feature flags
-5. logs and metrics
+2. values, enums, shapes, events, and external systems
+3. feature flags
+4. logs and metrics
 6. entities
 7. queues
 8. leases

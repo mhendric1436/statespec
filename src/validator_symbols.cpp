@@ -141,12 +141,6 @@ SymbolTable build_symbol_table(
     SymbolTable symbols;
     add_symbol(symbols, diagnostics, SymbolKind::System, system.name, system.range);
 
-    for (const auto& namespace_decl : system.namespaces)
-    {
-        add_symbol(
-            symbols, diagnostics, SymbolKind::Namespace, namespace_decl.name, namespace_decl.range
-        );
-    }
     for (const auto& entity : system.entities)
     {
         add_symbol(symbols, diagnostics, SymbolKind::Entity, entity.name, entity.range);

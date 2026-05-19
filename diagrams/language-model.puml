@@ -19,10 +19,6 @@ package "StateSpec File" {
     configured
   }
 
-  class Namespace {
-    qualified_name
-  }
-
   class Value
   class Enum
   class Shape
@@ -65,7 +61,6 @@ package "StateSpec File" {
 
 System *-- TenantScope
 System *-- SystemTenant
-System *-- Namespace
 System *-- Value
 System *-- Enum
 System *-- Shape

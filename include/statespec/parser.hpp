@@ -21,11 +21,6 @@ class Parser : private ParserContext
     Spec parse_spec(DiagnosticBag& diagnostics);
     IncludeDecl parse_include_decl(DiagnosticBag& diagnostics);
     SystemDecl parse_system_decl(DiagnosticBag& diagnostics);
-    NamespaceDecl parse_namespace_decl(
-        DiagnosticBag& diagnostics,
-        SystemDecl& system,
-        const std::string& prefix = ""
-    );
     ValueDecl parse_value_decl(DiagnosticBag& diagnostics);
     EnumDecl parse_enum_decl(DiagnosticBag& diagnostics);
     EventDecl parse_event_decl(DiagnosticBag& diagnostics);

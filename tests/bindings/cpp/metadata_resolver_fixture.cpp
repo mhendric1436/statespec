@@ -250,7 +250,7 @@ int main()
         {"external_system_id", "stripe"},
         {"profile", "default"},
     };
-    auto lookup = statespec_generated::external_system_metadata_lookup("Billing.Stripe", keys);
+    auto lookup = statespec_generated::external_system_metadata_lookup("Stripe", keys);
     if (!lookup.has_value())
     {
         return 1;
@@ -303,17 +303,15 @@ int main()
     {
         return 1;
     }
-    auto resolved = statespec_generated::resolve_external_system_metadataTx(
-        resolver, tx, "Billing.Stripe", keys
-    );
+    auto resolved =
+        statespec_generated::resolve_external_system_metadataTx(resolver, tx, "Stripe", keys);
     if (!resolved.has_value() || resolved->complete() || resolver.calls != 1)
     {
         return 1;
     }
 
     keys.pop_back();
-    auto skipped = statespec_generated::resolve_external_system_metadataTx(
-        resolver, tx, "Billing.Stripe", keys
-    );
+    auto skipped =
+        statespec_generated::resolve_external_system_metadataTx(resolver, tx, "Stripe", keys);
     return skipped.has_value() || resolver.calls != 1 ? 1 : 0;
 }

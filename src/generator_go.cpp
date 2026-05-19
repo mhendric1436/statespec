@@ -298,10 +298,6 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\tDescription *string\n";
     out << "\tExpires *string\n";
     out << "}\n\n";
-    out << "type NamespaceDescriptor struct {\n";
-    out << "\tName string\n";
-    out << "\tMembers []string\n";
-    out << "}\n\n";
     out << "type ValueDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tType string\n";
@@ -606,27 +602,6 @@ std::string generate_descriptors_go(const IrSystem& system)
         out << "\t\t\tOwner: " << string_ptr_expr(flag.owner) << ",\n";
         out << "\t\t\tDescription: " << string_ptr_expr(flag.description) << ",\n";
         out << "\t\t\tExpires: " << string_ptr_expr(flag.expires) << ",\n";
-        out << "\t\t},\n";
-    }
-    out << "\t}\n";
-    out << "}\n\n";
-
-    out << "func NamespaceDescriptors() []NamespaceDescriptor {\n";
-    out << "\treturn []NamespaceDescriptor{\n";
-    for (const auto& namespace_decl : system.namespaces)
-    {
-        out << "\t\t{\n";
-        out << "\t\t\tName: " << go_string(namespace_decl.name) << ",\n";
-        out << "\t\t\tMembers: []string{";
-        for (std::size_t i = 0; i < namespace_decl.members.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << go_string(namespace_decl.members[i]);
-        }
-        out << "},\n";
         out << "\t\t},\n";
     }
     out << "\t}\n";

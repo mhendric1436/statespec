@@ -88,7 +88,6 @@ include
 system
 tenant_scope
 system_tenant
-namespace
 value
 enum
 shape
@@ -122,7 +121,6 @@ The language is backend-neutral. Specifications describe system semantics rather
 | Concept | Purpose |
 |---|---|
 | Tenant scope | Default tenant field and system tenant configuration |
-| Namespaces | Logical grouping for generated/runtime resources |
 | Values, enums, shapes | Reusable typed model definitions |
 | External systems | Named integration dependencies and properties |
 | Feature flags | Persisted, scoped runtime behavior controls |

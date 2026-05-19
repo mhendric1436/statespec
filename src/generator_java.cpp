@@ -313,10 +313,6 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        Optional<String> description,\n";
     out << "        Optional<String> expires\n";
     out << "    ) {}\n\n";
-    out << "    public record NamespaceDescriptor(\n";
-    out << "        String name,\n";
-    out << "        List<String> members\n";
-    out << "    ) {}\n\n";
     out << "    public record ValueDescriptor(\n";
     out << "        String name,\n";
     out << "        String type,\n";
@@ -642,30 +638,6 @@ std::string generate_descriptors_java(const IrSystem& system)
         out << "                " << optional_string_expr(flag.description) << ",\n";
         out << "                " << optional_string_expr(flag.expires) << "\n";
         out << "            )" << (i + 1 < system.feature_flags.size() ? "," : "") << "\n";
-    }
-    out << "        );\n";
-    out << "    }\n\n";
-
-    out << "    public static List<NamespaceDescriptor> namespaceDescriptors() {\n";
-    out << "        return List.of(\n";
-    for (std::size_t namespace_index = 0; namespace_index < system.namespaces.size();
-         ++namespace_index)
-    {
-        const auto& namespace_decl = system.namespaces[namespace_index];
-        out << "            new NamespaceDescriptor(\n";
-        out << "                " << java_string(namespace_decl.name) << ",\n";
-        out << "                List.of(";
-        for (std::size_t i = 0; i < namespace_decl.members.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << java_string(namespace_decl.members[i]);
-        }
-        out << ")\n";
-        out << "            )" << (namespace_index + 1 < system.namespaces.size() ? "," : "")
-            << "\n";
     }
     out << "        );\n";
     out << "    }\n\n";

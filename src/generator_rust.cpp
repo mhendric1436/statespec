@@ -319,11 +319,6 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    pub expires: Option<String>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct NamespaceDescriptor {\n";
-    out << "    pub name: String,\n";
-    out << "    pub members: Vec<String>,\n";
-    out << "}\n\n";
-    out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ValueDescriptor {\n";
     out << "    pub name: String,\n";
     out << "    pub value_type: String,\n";
@@ -684,27 +679,6 @@ std::string generate_descriptors_rs(const IrSystem& system)
         out << "            owner: " << optional_string_expr(flag.owner) << ",\n";
         out << "            description: " << optional_string_expr(flag.description) << ",\n";
         out << "            expires: " << optional_string_expr(flag.expires) << ",\n";
-        out << "        },\n";
-    }
-    out << "    ]\n";
-    out << "}\n\n";
-
-    out << "pub fn namespace_descriptors() -> Vec<NamespaceDescriptor> {\n";
-    out << "    vec![\n";
-    for (const auto& namespace_decl : system.namespaces)
-    {
-        out << "        NamespaceDescriptor {\n";
-        out << "            name: " << rust_string(namespace_decl.name) << ".to_string(),\n";
-        out << "            members: vec![";
-        for (std::size_t i = 0; i < namespace_decl.members.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << rust_string(namespace_decl.members[i]) << ".to_string()";
-        }
-        out << "],\n";
         out << "        },\n";
     }
     out << "    ]\n";

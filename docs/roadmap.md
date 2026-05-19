@@ -38,8 +38,6 @@ Partial:
 - Formatter support is token-preserving. Canonical-order warnings exist, but the
   formatter does not yet own full AST-based declaration reordering.
 - Policies are emitted as descriptors, but enforcement hooks are not generated.
-- Namespace support qualifies declarations, but relative namespace lookup remains
-  future work.
 
 Runtime-owned by design:
 

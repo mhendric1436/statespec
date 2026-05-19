@@ -325,12 +325,6 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    std::optional<std::string> expires;\n";
     out << "};\n\n";
 
-    out << "struct NamespaceDescriptor\n";
-    out << "{\n";
-    out << "    std::string name;\n";
-    out << "    std::vector<std::string> members;\n";
-    out << "};\n\n";
-
     out << "struct ValueDescriptor\n";
     out << "{\n";
     out << "    std::string name;\n";
@@ -753,28 +747,6 @@ std::string generate_system_descriptors_header(const IrSystem& system)
         out << "            " << optional_string_expr(flag.owner) << ",\n";
         out << "            " << optional_string_expr(flag.description) << ",\n";
         out << "            " << optional_string_expr(flag.expires) << ",\n";
-        out << "        },\n";
-    }
-    out << "    };\n";
-    out << "}\n\n";
-
-    out << "inline std::vector<NamespaceDescriptor> namespace_descriptors()\n";
-    out << "{\n";
-    out << "    return {\n";
-    for (const auto& namespace_decl : system.namespaces)
-    {
-        out << "        NamespaceDescriptor{\n";
-        out << "            " << cpp_string(namespace_decl.name) << ",\n";
-        out << "            {";
-        for (std::size_t i = 0; i < namespace_decl.members.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << cpp_string(namespace_decl.members[i]);
-        }
-        out << "},\n";
         out << "        },\n";
     }
     out << "    };\n";

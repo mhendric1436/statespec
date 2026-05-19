@@ -222,7 +222,7 @@ void ir_lowers_values_enums_and_events()
     );
 }
 
-void ir_lowers_namespaces_external_systems_and_policy_descriptors()
+void ir_lowers_external_systems_and_policy_descriptors()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
         system OrderSystem {
@@ -244,48 +244,40 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
             }
           }
 
-          namespace Billing {
-            external_system Stripe {
-              owner: "payments"
-              endpoint: "https://api.stripe.test"
-              metadata {
-                entity ExternalSystemEndpoint
-                profile_field profile
-                required_fields [base_url, auth_ref, timeout_ms]
-                mappings {
-                  metadata.base_url -> client.base_url
-                  metadata.auth_ref -> client.auth_ref
-                  input.invoice_id -> request.invoice_id
-                }
+          external_system Stripe {
+            owner: "payments"
+            endpoint: "https://api.stripe.test"
+            metadata {
+              entity ExternalSystemEndpoint
+              profile_field profile
+              required_fields [base_url, auth_ref, timeout_ms]
+              mappings {
+                metadata.base_url -> client.base_url
+                metadata.auth_ref -> client.auth_ref
+                input.invoice_id -> request.invoice_id
               }
             }
+          }
 
-            api StartInvoice {
-              method POST
-              path "/v1/tenants/{tenantId}/invoices/start"
-            }
+          api StartInvoice {
+            method POST
+            path "/v1/tenants/{tenantId}/invoices/start"
           }
 
           policy BillingAccess {
             tenant scoped_by tenant_id
-            allow Billing.StartInvoice when caller.role == billing_admin;
+            allow StartInvoice when caller.role == billing_admin;
             quota starts_per_minute: 60;
-            audit Billing.StartInvoice;
+            audit StartInvoice;
           }
         }
     )sspec");
 
     const auto ir = statespec::lower_to_ir(spec);
 
-    statespec::test::require(ir.namespaces.size() == 1, "IR should lower namespaces");
-    statespec::test::require(ir.namespaces[0].name == "Billing", "IR should lower namespace name");
-    statespec::test::require(
-        ir.namespaces[0].members.size() == 2, "IR should lower namespace members"
-    );
     statespec::test::require(ir.external_systems.size() == 1, "IR should lower external systems");
     statespec::test::require(
-        ir.external_systems[0].name == "Billing.Stripe",
-        "IR should lower qualified external system name"
+        ir.external_systems[0].name == "Stripe", "IR should lower external system name"
     );
     statespec::test::require(
         ir.external_systems[0].properties[0].name == "owner",
@@ -326,10 +318,10 @@ void ir_lowers_namespaces_external_systems_and_policy_descriptors()
         ir.external_systems[0].metadata->mappings[0].target == "client.base_url",
         "IR should lower external system metadata mapping target"
     );
-    statespec::test::require(ir.apis[0].name == "Billing.StartInvoice", "IR should qualify APIs");
+    statespec::test::require(ir.apis[0].name == "StartInvoice", "IR should lower APIs");
     statespec::test::require(ir.policies.size() == 1, "IR should lower policies");
     statespec::test::require(
-        ir.policies[0].allows[0].action == "Billing.StartInvoice",
+        ir.policies[0].allows[0].action == "StartInvoice",
         "IR should lower policy action references"
     );
 }
@@ -741,9 +733,9 @@ TEST_CASE("IR lowers values, enums, and events")
     ir_lowers_values_enums_and_events();
 }
 
-TEST_CASE("IR lowers namespaces, external systems, and policies")
+TEST_CASE("IR lowers external systems and policies")
 {
-    ir_lowers_namespaces_external_systems_and_policy_descriptors();
+    ir_lowers_external_systems_and_policy_descriptors();
 }
 
 TEST_CASE("IR lowers entity relationship metadata")

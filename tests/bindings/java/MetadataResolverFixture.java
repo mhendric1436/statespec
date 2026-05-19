@@ -260,7 +260,7 @@ public final class MetadataResolverFixture
             new ExternalSystem.MetadataKeyValue("profile", Json.string("default"))
         );
         ExternalSystem.MetadataLookup lookup =
-            Descriptors.externalSystemMetadataLookup("Billing.Stripe", keys).orElseThrow();
+            Descriptors.externalSystemMetadataLookup("Stripe", keys).orElseThrow();
         Descriptors.ExternalSystemOperatorMetadataRepository repository =
             new FixtureOperatorMetadataRepository();
         Backend.VersionedRecord upserted =
@@ -311,16 +311,14 @@ public final class MetadataResolverFixture
             throw new AssertionError("unexpected operator metadata API response");
         }
         Optional<ExternalSystem.MetadataResolution> resolved =
-            Descriptors.resolveExternalSystemMetadataTx(resolver, tx, "Billing.Stripe", keys);
+            Descriptors.resolveExternalSystemMetadataTx(resolver, tx, "Stripe", keys);
         if (resolved.isEmpty() || resolved.orElseThrow().complete() || resolver.calls != 1)
         {
             throw new AssertionError("expected incomplete metadata resolution through resolver");
         }
 
         Optional<ExternalSystem.MetadataResolution> skipped =
-            Descriptors.resolveExternalSystemMetadataTx(
-                resolver, tx, "Billing.Stripe", keys.subList(0, 2)
-            );
+            Descriptors.resolveExternalSystemMetadataTx(resolver, tx, "Stripe", keys.subList(0, 2));
         if (skipped.isPresent() || resolver.calls != 1)
         {
             throw new AssertionError("expected incomplete key to skip resolver");

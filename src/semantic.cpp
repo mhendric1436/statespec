@@ -73,10 +73,6 @@ SymbolTable build_symbols(const SystemDecl& system)
     {
         insert_symbol(symbols, SymbolKind::Enum, enum_decl.name, enum_decl.range);
     }
-    for (const auto& namespace_decl : system.namespaces)
-    {
-        insert_symbol(symbols, SymbolKind::Namespace, namespace_decl.name, namespace_decl.range);
-    }
     for (const auto& event : system.events)
     {
         insert_symbol(symbols, SymbolKind::Event, event.name, event.range);
@@ -366,17 +362,6 @@ SemanticSystem resolve_semantics(const Spec& spec)
     for (const auto& value : system.values)
     {
         resolved.values.push_back(SemanticValue{value.name, value.type, value.constraint});
-    }
-
-    for (const auto& namespace_decl : system.namespaces)
-    {
-        SemanticNamespace resolved_namespace;
-        resolved_namespace.name = namespace_decl.name;
-        for (const auto& member : namespace_decl.members)
-        {
-            resolved_namespace.members.push_back(resolve_reference(symbols, member));
-        }
-        resolved.namespaces.push_back(std::move(resolved_namespace));
     }
 
     for (const auto& enum_decl : system.enums)

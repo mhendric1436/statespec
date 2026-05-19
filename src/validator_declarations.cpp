@@ -658,52 +658,48 @@ int system_member_order_index(const std::string& kind)
     {
         return 1;
     }
-    if (kind == "namespace")
-    {
-        return 2;
-    }
     if (kind == "value" || kind == "enum" || kind == "shape" || kind == "external_system" ||
         kind == "event")
     {
-        return 3;
+        return 2;
     }
     if (kind == "feature_flag")
     {
-        return 4;
+        return 3;
     }
     if (kind == "log" || kind == "metric")
     {
-        return 5;
+        return 4;
     }
     if (kind == "entity")
     {
-        return 6;
+        return 5;
     }
     if (kind == "queue")
     {
-        return 7;
+        return 6;
     }
     if (kind == "lease")
     {
-        return 8;
+        return 7;
     }
     if (kind == "worker")
     {
-        return 9;
+        return 8;
     }
     if (kind == "workflow")
     {
-        return 10;
+        return 9;
     }
     if (kind == "api_server" || kind == "api")
     {
-        return 11;
+        return 10;
     }
     if (kind == "policy")
     {
-        return 12;
+        return 11;
     }
-    return 13;
+    return 12;
 }
 
 void validate_policy_member_order(
@@ -743,7 +739,7 @@ void validate_system_member_order_impl(
                 member.range, "SSPEC6106",
                 "system '" + system.name +
                     "' members should use canonical order: tenant, system_tenant, "
-                    "namespace, values/enums/shapes/events, feature_flags, logs/metrics, "
+                    "values/enums/shapes/events, feature_flags, logs/metrics, "
                     "entities, queues, leases, workers, workflows, APIs, policies"
             );
             return;
@@ -1097,33 +1093,6 @@ void validate_values(
         if (value.constraint.has_value())
         {
             validate_expression(system, value.range, *value.constraint, diagnostics);
-        }
-    }
-}
-
-void validate_namespaces(
-    const SystemDecl& system,
-    const SymbolTable& symbols,
-    DiagnosticBag& diagnostics
-)
-{
-    for (const auto& namespace_decl : system.namespaces)
-    {
-        if (!is_qualified_pascal_case_name(namespace_decl.name))
-        {
-            diagnostics.error(
-                namespace_decl.range, "SSPEC4801",
-                "namespace '" + namespace_decl.name + "' must use PascalCase segments"
-            );
-        }
-        for (const auto& member : namespace_decl.members)
-        {
-            if (!symbols.find(member).has_value())
-            {
-                unknown_reference_error(
-                    diagnostics, namespace_decl.range, "namespace member", member
-                );
-            }
         }
     }
 }

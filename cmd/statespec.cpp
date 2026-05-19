@@ -121,9 +121,6 @@ void append_system_members(
     target.values.insert(target.values.end(), source.values.begin(), source.values.end());
     target.enums.insert(target.enums.end(), source.enums.begin(), source.enums.end());
     target.events.insert(target.events.end(), source.events.begin(), source.events.end());
-    target.namespaces.insert(
-        target.namespaces.end(), source.namespaces.begin(), source.namespaces.end()
-    );
     target.shapes.insert(target.shapes.end(), source.shapes.begin(), source.shapes.end());
     target.external_systems.insert(
         target.external_systems.end(), source.external_systems.begin(),
@@ -224,7 +221,6 @@ statespec::Spec load_composed_spec(
         composed_system.values.clear();
         composed_system.enums.clear();
         composed_system.events.clear();
-        composed_system.namespaces.clear();
         composed_system.shapes.clear();
         composed_system.external_systems.clear();
         composed_system.logs.clear();
@@ -536,28 +532,6 @@ void write_string_array(
     const std::vector<std::string>& values
 );
 
-void write_namespaces(
-    std::ostream& out,
-    const std::vector<statespec::NamespaceDecl>& namespaces
-)
-{
-    out << '[';
-    for (std::size_t i = 0; i < namespaces.size(); ++i)
-    {
-        if (i > 0)
-        {
-            out << ", ";
-        }
-        const auto& namespace_decl = namespaces[i];
-        out << "{\"name\": ";
-        write_json_string(out, namespace_decl.name);
-        out << ", \"members\": ";
-        write_string_array(out, namespace_decl.members);
-        out << '}';
-    }
-    out << ']';
-}
-
 void write_external_systems(
     std::ostream& out,
     const std::vector<statespec::ExternalSystemDecl>& external_systems
@@ -850,9 +824,6 @@ void write_spec_json(
 
     out << "    \"feature_flags\": ";
     write_feature_flags(out, system.feature_flags);
-    out << ",\n";
-    out << "    \"namespaces\": ";
-    write_namespaces(out, system.namespaces);
     out << ",\n";
     out << "    \"values\": ";
     write_values(out, system.values);

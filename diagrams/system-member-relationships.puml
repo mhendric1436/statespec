@@ -20,10 +20,6 @@ class SystemTenant <<system_tenant_decl>> {
   configured
 }
 
-class Namespace <<namespace_decl>> {
-  qualified_name
-}
-
 class Value <<value_decl>> {
   name
   type
@@ -149,11 +145,9 @@ class Annotations <<annotations_block>> {
 }
 
 System *-- SystemMember : system_member*
-Namespace *-- SystemMember : nested system_member*
 
 SystemMember <|-- TenantScope
 SystemMember <|-- SystemTenant
-SystemMember <|-- Namespace
 SystemMember <|-- Value
 SystemMember <|-- Enum
 SystemMember <|-- Shape
@@ -213,12 +207,7 @@ Policy ..> FeatureFlag : conditions / quotas
 
 note top of SystemMember
 system_member is the grammar union accepted directly
-inside system blocks and recursively inside namespace blocks.
-end note
-
-note right of Namespace
-Namespace members are qualified by the namespace path
-before participating in symbol resolution.
+inside system blocks.
 end note
 
 note bottom of System

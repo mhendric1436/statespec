@@ -6,7 +6,7 @@
 
   Scope:
     - system declarations
-    - includes and namespaces
+    - includes
     - system-wide tenant scoping
     - values and reusable data shapes
     - feature flags
@@ -51,7 +51,6 @@ system_block            ::= "{"
 
 system_member           ::= system_tenant_scope_decl
                           | system_tenant_decl
-                          | namespace_decl
                           | value_decl
                           | enum_decl
                           | shape_decl
@@ -72,9 +71,6 @@ system_member           ::= system_tenant_scope_decl
 
 system_tenant_scope_decl ::= "tenant" "scoped_by" Identifier ";"? ;
 system_tenant_decl       ::= "system_tenant" "configured" ";"? ;
-
-namespace_decl          ::= "namespace" QualifiedName "{" system_member* "}" ;
-
 
 (* ============================================================ *)
 (* Lexical Elements                                             *)
@@ -873,7 +869,7 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
 
   General:
     1. All referenced identifiers must resolve within scope.
-    2. Top-level names must be unique within a system or namespace.
+    2. Top-level names must be unique within a system.
     3. Canonical declaration ordering should be enforced by formatter + validator, including
        root system member order.
     4. Type names must resolve to scalar, enum, value, shape, entity, or collection types.
@@ -985,7 +981,7 @@ qualified_or_string     ::= QualifiedName | StringLiteral ;
    87. Child bucket union must represent the reserved child set.
 
   Feature flags:
-   88. Feature flag names must be unique within a system or namespace.
+   88. Feature flag names must be unique within a system.
    89. Feature flag names must use PascalCase.
    90. Feature flags must declare type and default.
    91. Feature flag defaults must match the declared feature flag type.

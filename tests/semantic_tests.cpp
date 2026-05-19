@@ -25,14 +25,12 @@ void semantic_resolver_resolves_runtime_references()
             Complete = "complete"
           }
 
-          namespace Billing {
-            external_system Stripe {
-              owner: "payments"
-            }
+          external_system Stripe {
+            owner: "payments"
+          }
 
-            shape InvoiceRequest {
-              invoice_id uuid
-            }
+          shape InvoiceRequest {
+            invoice_id uuid
           }
 
           event OrderAccepted {
@@ -164,13 +162,6 @@ void semantic_resolver_resolves_runtime_references()
     statespec::test::require(resolved.values.size() == 1, "semantic resolver should lower values");
     statespec::test::require(resolved.enums.size() == 1, "semantic resolver should lower enums");
     statespec::test::require(resolved.events.size() == 1, "semantic resolver should lower events");
-    statespec::test::require(
-        resolved.namespaces.size() == 1, "semantic resolver should lower namespaces"
-    );
-    statespec::test::require(
-        resolved.namespaces[0].members[0].kind == statespec::SymbolKind::ExternalSystem,
-        "semantic resolver should resolve namespace external system members"
-    );
     statespec::test::require(
         resolved.external_systems.size() == 1, "semantic resolver should lower external systems"
     );

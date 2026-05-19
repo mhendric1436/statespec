@@ -1572,7 +1572,7 @@ void validator_rejects_invalid_values_enums_and_events()
     );
 }
 
-void validator_accepts_namespaces_external_systems_and_policies()
+void validator_accepts_external_systems_and_policies()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
@@ -1627,67 +1627,59 @@ void validator_accepts_namespaces_external_systems_and_policies()
             }
           }
 
-          namespace Billing {
-            external_system Stripe {
-              owner: "payments"
-              endpoint: "https://api.stripe.test"
-              metadata {
-                entity ExternalSystemEndpoint
-                profile_field profile
-                required_fields [base_url, auth_ref, timeout_ms]
-                mappings {
-                  metadata.base_url -> client.base_url
-                  metadata.auth_ref -> client.auth_ref
-                  metadata.timeout_ms -> client.timeout_ms
-                  input.invoice_id -> request.invoice_id
-                }
+          external_system Stripe {
+            owner: "payments"
+            endpoint: "https://api.stripe.test"
+            metadata {
+              entity ExternalSystemEndpoint
+              profile_field profile
+              required_fields [base_url, auth_ref, timeout_ms]
+              mappings {
+                metadata.base_url -> client.base_url
+                metadata.auth_ref -> client.auth_ref
+                metadata.timeout_ms -> client.timeout_ms
+                input.invoice_id -> request.invoice_id
               }
             }
+          }
 
-            api StartInvoice {
-              method POST
-              path "/v1/tenants/{tenantId}/invoices/start"
-              input StartInvoiceRequest
-              output StartInvoiceResponse
-            }
+          api StartInvoice {
+            method POST
+            path "/v1/tenants/{tenantId}/invoices/start"
+            input StartInvoiceRequest
+            output StartInvoiceResponse
           }
 
           policy BillingAccess {
             tenant scoped_by tenant_id
-            allow Billing.StartInvoice when caller.role == billing_admin;
+            allow StartInvoice when caller.role == billing_admin;
             quota starts_per_minute: 60;
-            audit Billing.StartInvoice;
+            audit StartInvoice;
           }
         }
     )sspec");
 
     require(
-        !diagnostics.has_errors(),
-        "validator should accept valid namespaces, external systems, and policies"
+        !diagnostics.has_errors(), "validator should accept valid external systems and policies"
     );
 }
 
-void validator_rejects_invalid_namespaces_and_external_systems()
+void validator_rejects_invalid_external_systems()
 {
     auto diagnostics = validate_text(R"sspec(
         system OrderSystem {
-          namespace billing {
-            external_system stripe {
-              owner: "payments"
-              owner: "duplicate"
-              metadata {
-                entity ExternalSystemEndpoint
-                profile_field profile
-                required_fields [base_url, base_url]
-              }
+          external_system stripe {
+            owner: "payments"
+            owner: "duplicate"
+            metadata {
+              entity ExternalSystemEndpoint
+              profile_field profile
+              required_fields [base_url, base_url]
             }
           }
         }
     )sspec");
 
-    require(
-        has_error_code(diagnostics, "SSPEC4801"), "validator should reject invalid namespace names"
-    );
     require(
         has_error_code(diagnostics, "SSPEC4901"),
         "validator should reject invalid external system names"
@@ -2333,14 +2325,14 @@ TEST_CASE("validator rejects invalid values, enums, and events")
     validator_rejects_invalid_values_enums_and_events();
 }
 
-TEST_CASE("validator accepts namespaces, external systems, and policies")
+TEST_CASE("validator accepts external systems and policies")
 {
-    validator_accepts_namespaces_external_systems_and_policies();
+    validator_accepts_external_systems_and_policies();
 }
 
-TEST_CASE("validator rejects invalid namespaces and external systems")
+TEST_CASE("validator rejects invalid external systems")
 {
-    validator_rejects_invalid_namespaces_and_external_systems();
+    validator_rejects_invalid_external_systems();
 }
 
 TEST_CASE("validator rejects invalid external system metadata model")

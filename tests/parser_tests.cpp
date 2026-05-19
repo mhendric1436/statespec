@@ -392,52 +392,38 @@ void parser_parses_values_enums_and_events()
     );
 }
 
-void parser_parses_namespaces_and_external_systems()
+void parser_parses_external_systems()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
         system OrderSystem {
-          namespace Billing {
-            external_system Stripe {
-              owner: "payments"
-              endpoint: "https://api.stripe.test"
-              metadata {
-                entity ExternalSystemEndpoint
-                profile_field profile
-                required_fields [base_url, auth_ref, timeout_ms]
-                mappings {
-                  metadata.base_url -> client.base_url
-                  metadata.auth_ref -> client.auth_ref
-                  input.invoice_id -> request.invoice_id
-                }
+          external_system Stripe {
+            owner: "payments"
+            endpoint: "https://api.stripe.test"
+            metadata {
+              entity ExternalSystemEndpoint
+              profile_field profile
+              required_fields [base_url, auth_ref, timeout_ms]
+              mappings {
+                metadata.base_url -> client.base_url
+                metadata.auth_ref -> client.auth_ref
+                input.invoice_id -> request.invoice_id
               }
             }
+          }
 
-            shape InvoiceRequest {
-              invoice_id uuid
-            }
+          shape InvoiceRequest {
+            invoice_id uuid
           }
         }
     )sspec");
 
     statespec::test::require(spec.system.has_value(), "parser should parse system");
-    statespec::test::require(spec.system->namespaces.size() == 1, "parser should parse namespace");
-    const auto& namespace_decl = spec.system->namespaces[0];
-    statespec::test::require(
-        namespace_decl.name == "Billing", "parser should parse namespace name"
-    );
-    statespec::test::require(
-        namespace_decl.members.size() == 2, "parser should record namespace members"
-    );
-    statespec::test::require(
-        namespace_decl.members[0] == "Billing.Stripe",
-        "parser should qualify namespaced external systems"
-    );
     statespec::test::require(
         spec.system->external_systems.size() == 1, "parser should parse external systems"
     );
     statespec::test::require(
-        spec.system->external_systems[0].name == "Billing.Stripe",
-        "parser should qualify external system name"
+        spec.system->external_systems[0].name == "Stripe",
+        "parser should parse external system name"
     );
     statespec::test::require(
         spec.system->external_systems[0].properties.size() == 2,
@@ -472,9 +458,25 @@ void parser_parses_namespaces_and_external_systems()
         "parser should parse external system metadata mapping target"
     );
     statespec::test::require(
-        spec.system->shapes[0].name == "Billing.InvoiceRequest",
-        "parser should qualify namespaced shape names"
+        spec.system->shapes[0].name == "InvoiceRequest", "parser should parse shape names"
     );
+}
+
+void parser_rejects_namespace_blocks()
+{
+    statespec::DiagnosticBag diagnostics;
+    (void)statespec::test::parse_text(
+        R"sspec(
+        system OrderSystem {
+          namespace Billing {
+            value InvoiceId: uuid
+          }
+        }
+    )sspec",
+        diagnostics
+    );
+
+    statespec::test::require(diagnostics.has_errors(), "parser should reject namespace blocks");
 }
 
 void parser_parses_shapes()
@@ -910,9 +912,14 @@ TEST_CASE("parser parses values, enums, and events")
     parser_parses_values_enums_and_events();
 }
 
-TEST_CASE("parser parses namespaces and external systems")
+TEST_CASE("parser parses external systems")
 {
-    parser_parses_namespaces_and_external_systems();
+    parser_parses_external_systems();
+}
+
+TEST_CASE("parser rejects namespace blocks")
+{
+    parser_rejects_namespace_blocks();
 }
 
 TEST_CASE("parser parses shapes")

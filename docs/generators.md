@@ -68,15 +68,10 @@ The generated response schema contains the full metadata entity field set.
 ## Generated Metadata
 
 Binding generators consume the lowered StateSpec IR, not raw AST declarations.
-Namespaces, values, enums, events, external systems, shapes, feature flags, logs,
+Values, enums, events, external systems, shapes, feature flags, logs,
 metrics, entities, queues, leases, API servers, workflows, and policies are emitted as descriptor
 metadata where supported so downstream tools can inspect runtime contracts
 consistently.
-
-Generated namespace metadata includes:
-
-- name
-- qualified member names
 
 Generated value metadata includes:
 
@@ -188,12 +183,12 @@ to register feature flag definitions into a backend-provided feature flag store.
 
 The generated domain descriptor APIs are:
 
-| Language | Namespaces | Values | Enums | Events | External systems | Shapes | APIs | API servers | Workers | Policies |
+| Language | Values | Enums | Events | External systems | Shapes | APIs | API servers | Workers | Policies |
 |---|---|---|---|---|---|---|---|---|---|
-| C++ | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
-| Go | `NamespaceDescriptors()` | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `ApiServerDescriptors()`, `ApiRouteDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
-| Java | `namespaceDescriptors()` | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `apiServerDescriptors()`, `apiRouteDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
-| Rust | `namespace_descriptors()` | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| C++ | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| Go | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `ApiServerDescriptors()`, `ApiRouteDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
+| Java | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `apiServerDescriptors()`, `apiRouteDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
+| Rust | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
 
 Generated log metadata includes:
 

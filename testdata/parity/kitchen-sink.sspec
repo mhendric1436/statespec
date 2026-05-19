@@ -48,15 +48,13 @@ system KitchenSink {
     }
   }
 
-  namespace Billing {
-    external_system Stripe {
-      owner: "payments"
-      endpoint: "https://api.stripe.test"
-      metadata {
-        entity ExternalSystemEndpoint
-        profile_field profile
-        required_fields[base_url, auth_ref, timeout_ms, retry_policy]
-      }
+  external_system Stripe {
+    owner: "payments"
+    endpoint: "https://api.stripe.test"
+    metadata {
+      entity ExternalSystemEndpoint
+      profile_field profile
+      required_fields[base_url, auth_ref, timeout_ms, retry_policy]
     }
   }
 

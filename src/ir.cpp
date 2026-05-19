@@ -87,17 +87,6 @@ IrSystem lower_to_ir(const SemanticSystem& system)
             IrSystemTenant{system.system_tenant->source, system.system_tenant->config_key};
     }
 
-    for (const auto& namespace_decl : system.namespaces)
-    {
-        IrNamespace ir_namespace;
-        ir_namespace.name = namespace_decl.name;
-        for (const auto& member : namespace_decl.members)
-        {
-            ir_namespace.members.push_back(member.name);
-        }
-        ir.namespaces.push_back(std::move(ir_namespace));
-    }
-
     for (const auto& value : system.values)
     {
         ir.values.push_back(IrValue{value.name, value.type, value.constraint});

@@ -126,12 +126,6 @@ struct IrEvent
     std::vector<IrField> fields;
 };
 
-struct IrNamespace
-{
-    std::string name;
-    std::vector<std::string> members;
-};
-
 struct IrExternalSystemProperty
 {
     std::string name;
@@ -325,7 +319,6 @@ struct IrSystem
     std::string name;
     std::optional<IrTenantScope> tenant_scope;
     std::optional<IrSystemTenant> system_tenant;
-    std::vector<IrNamespace> namespaces;
     std::vector<IrValue> values;
     std::vector<IrEnum> enums;
     std::vector<IrEvent> events;

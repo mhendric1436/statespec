@@ -416,11 +416,9 @@ mod tests {
                 value: Json::String("default".to_string()),
             },
         ];
-        let lookup = crate::descriptors::external_system_metadata_lookup_by_name(
-            "Billing.Stripe",
-            keys.clone(),
-        )
-        .expect("metadata lookup should build");
+        let lookup =
+            crate::descriptors::external_system_metadata_lookup_by_name("Stripe", keys.clone())
+                .expect("metadata lookup should build");
         let repository = FixtureOperatorMetadataRepository;
         let upserted = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::upsert_metadata_tx(
             &repository,
@@ -493,7 +491,7 @@ mod tests {
         let resolved = crate::descriptors::resolve_external_system_metadata_by_name_tx::<
             FixtureBackend,
             FixtureResolver,
-        >(&resolver, &mut tx, "Billing.Stripe", keys.clone())
+        >(&resolver, &mut tx, "Stripe", keys.clone())
         .expect("resolver call should not fail")
         .expect("metadata should resolve");
         assert!(!resolved.complete());
@@ -502,7 +500,7 @@ mod tests {
         let skipped = crate::descriptors::resolve_external_system_metadata_by_name_tx::<
             FixtureBackend,
             FixtureResolver,
-        >(&resolver, &mut tx, "Billing.Stripe", keys[..2].to_vec())
+        >(&resolver, &mut tx, "Stripe", keys[..2].to_vec())
         .expect("resolver call should not fail");
         assert!(skipped.is_none());
         assert_eq!(resolver.calls.get(), 1);

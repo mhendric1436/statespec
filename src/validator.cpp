@@ -29,7 +29,6 @@ void Validator::validate(
     validate_system_member_order(context.system, context.diagnostics);
     validate_system_tenancy(context.system, context.diagnostics);
     validate_feature_flags(context.system, context.symbols, context.diagnostics);
-    validate_namespaces(context.system, context.symbols, context.diagnostics);
     validate_values(context.system, context.symbols, context.diagnostics);
     validate_enums(context.diagnostics, context.system);
     validate_events(context.system, context.symbols, context.diagnostics);

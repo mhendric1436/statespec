@@ -54,12 +54,6 @@ void validate_feature_flags(
     DiagnosticBag& diagnostics
 );
 
-void validate_namespaces(
-    const SystemDecl& system,
-    const SymbolTable& symbols,
-    DiagnosticBag& diagnostics
-);
-
 void validate_values(
     const SystemDecl& system,
     const SymbolTable& symbols,
