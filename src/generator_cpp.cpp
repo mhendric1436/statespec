@@ -584,6 +584,32 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    virtual ApiResponse handle(const ApiRequestContext& context) = 0;\n";
     out << "};\n\n";
 
+    out << "class IExternalSystemOperatorMetadataApiHandler\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    virtual ~IExternalSystemOperatorMetadataApiHandler() = default;\n";
+    out << "    virtual ApiResponse handle_upsert_metadataTx(\n";
+    out << "        statespec::backend::ITransaction& tx,\n";
+    out << "        IExternalSystemOperatorMetadataRepository& repository,\n";
+    out << "        const ExternalSystemOperatorMetadataUpsertRequest& request\n";
+    out << "    ) = 0;\n";
+    out << "    virtual ApiResponse handle_get_metadataTx(\n";
+    out << "        statespec::backend::ITransaction& tx,\n";
+    out << "        IExternalSystemOperatorMetadataRepository& repository,\n";
+    out << "        const ExternalSystemOperatorMetadataGetRequest& request\n";
+    out << "    ) = 0;\n";
+    out << "    virtual ApiResponse handle_disable_metadataTx(\n";
+    out << "        statespec::backend::ITransaction& tx,\n";
+    out << "        IExternalSystemOperatorMetadataRepository& repository,\n";
+    out << "        const ExternalSystemOperatorMetadataDisableRequest& request\n";
+    out << "    ) = 0;\n";
+    out << "    virtual ApiResponse handle_delete_metadataTx(\n";
+    out << "        statespec::backend::ITransaction& tx,\n";
+    out << "        IExternalSystemOperatorMetadataRepository& repository,\n";
+    out << "        const ExternalSystemOperatorMetadataDeleteRequest& request\n";
+    out << "    ) = 0;\n";
+    out << "};\n\n";
+
     out << "struct WorkerDescriptor\n";
     out << "{\n";
     out << "    std::string name;\n";

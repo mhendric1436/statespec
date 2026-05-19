@@ -117,6 +117,11 @@ request/response context records, and handler interfaces. Route descriptors join
 error metadata. Concrete HTTP server loops and framework adapters remain downstream
 runtime work.
 
+Generated external-system operator metadata scaffolding includes API handler contracts
+that bridge operator metadata API implementations to the transaction-scoped repository
+contracts. These handlers return the same framework-neutral API response shape as other
+generated API handlers.
+
 Generated shape metadata includes:
 
 - name

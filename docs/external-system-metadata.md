@@ -255,6 +255,11 @@ OCC against the same `IBackend`/`ITransaction` model used by other durable State
 resources. The generated contracts intentionally do not implement persistence; runtime
 bindings provide the backend-specific repository implementation.
 
+Generated bindings also expose operator metadata API handler contracts. These handlers are
+framework-neutral bridges from an API runtime into the transaction-scoped repository
+methods. They return the generated API response type and leave HTTP routing, request
+decoding, authentication, and framework integration to downstream runtime adapters.
+
 ## Authoring Guidance
 
 Keep `external_system` declarations small and stable:

@@ -481,6 +481,20 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "type APIHandler interface {\n";
     out << "\tHandle(context.Context, APIRequestContext) (APIResponse, error)\n";
     out << "}\n\n";
+    out << "type ExternalSystemOperatorMetadataAPIHandler interface {\n";
+    out << "\tHandleUpsertMetadataTx(context.Context, Transaction, "
+           "ExternalSystemOperatorMetadataRepository, "
+           "ExternalSystemOperatorMetadataUpsertRequest) (APIResponse, error)\n";
+    out << "\tHandleGetMetadataTx(context.Context, Transaction, "
+           "ExternalSystemOperatorMetadataRepository, "
+           "ExternalSystemOperatorMetadataGetRequest) (APIResponse, error)\n";
+    out << "\tHandleDisableMetadataTx(context.Context, Transaction, "
+           "ExternalSystemOperatorMetadataRepository, "
+           "ExternalSystemOperatorMetadataDisableRequest) (APIResponse, error)\n";
+    out << "\tHandleDeleteMetadataTx(context.Context, Transaction, "
+           "ExternalSystemOperatorMetadataRepository, "
+           "ExternalSystemOperatorMetadataDeleteRequest) (APIResponse, error)\n";
+    out << "}\n\n";
     out << "type WorkerDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tSingleton bool\n";

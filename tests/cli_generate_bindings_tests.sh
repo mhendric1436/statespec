@@ -456,6 +456,7 @@ assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ApiRouteDescripto
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ApiRequestContext"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "ApiResponse"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "class IApiHandler"
+assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "class IExternalSystemOperatorMetadataApiHandler"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "api_route_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"OrderApi\""
 assert_file_contains "$TMPDIR/out-cpp/system_descriptors.hpp" "\"OrderApi.StartOrderProcessing\""
@@ -652,6 +653,63 @@ class FakeOperatorMetadataRepository final
     }
 };
 
+class FakeOperatorMetadataApiHandler final
+    : public statespec_generated::IExternalSystemOperatorMetadataApiHandler
+{
+  public:
+    statespec_generated::ApiResponse handle_upsert_metadataTx(
+        statespec::backend::ITransaction& tx,
+        statespec_generated::IExternalSystemOperatorMetadataRepository& repository,
+        const statespec_generated::ExternalSystemOperatorMetadataUpsertRequest& request
+    ) override
+    {
+        auto record = repository.upsert_metadataTx(tx, request);
+        return statespec_generated::ApiResponse{
+            record.has_value() ? 200 : 404,
+            statespec::backend::Json::object({{"operation", "upsert"}}),
+        };
+    }
+
+    statespec_generated::ApiResponse handle_get_metadataTx(
+        statespec::backend::ITransaction& tx,
+        statespec_generated::IExternalSystemOperatorMetadataRepository& repository,
+        const statespec_generated::ExternalSystemOperatorMetadataGetRequest& request
+    ) override
+    {
+        auto record = repository.get_metadataTx(tx, request);
+        return statespec_generated::ApiResponse{
+            record.has_value() ? 200 : 404,
+            statespec::backend::Json::object({{"operation", "get"}}),
+        };
+    }
+
+    statespec_generated::ApiResponse handle_disable_metadataTx(
+        statespec::backend::ITransaction& tx,
+        statespec_generated::IExternalSystemOperatorMetadataRepository& repository,
+        const statespec_generated::ExternalSystemOperatorMetadataDisableRequest& request
+    ) override
+    {
+        auto record = repository.disable_metadataTx(tx, request);
+        return statespec_generated::ApiResponse{
+            record.has_value() ? 200 : 404,
+            statespec::backend::Json::object({{"operation", "disable"}}),
+        };
+    }
+
+    statespec_generated::ApiResponse handle_delete_metadataTx(
+        statespec::backend::ITransaction& tx,
+        statespec_generated::IExternalSystemOperatorMetadataRepository& repository,
+        const statespec_generated::ExternalSystemOperatorMetadataDeleteRequest& request
+    ) override
+    {
+        auto record = repository.delete_metadataTx(tx, request);
+        return statespec_generated::ApiResponse{
+            record.has_value() ? 200 : 404,
+            statespec::backend::Json::object({{"operation", "delete"}}),
+        };
+    }
+};
+
 int main()
 {
     FakeTx tx;
@@ -758,6 +816,22 @@ int main()
     {
         return 1;
     }
+    FakeOperatorMetadataApiHandler operator_api_handler;
+    statespec_generated::IExternalSystemOperatorMetadataApiHandler& metadata_api_handler =
+        operator_api_handler;
+    const auto api_response = metadata_api_handler.handle_upsert_metadataTx(
+        tx,
+        metadata_repository,
+        statespec_generated::ExternalSystemOperatorMetadataUpsertRequest{
+            *lookup,
+            statespec::backend::Json::object({{"tenant_id", "tenant-a"}}),
+            statespec::backend::Version{4},
+        }
+    );
+    if (api_response.status_code != 200)
+    {
+        return 1;
+    }
     auto resolved = statespec_generated::resolve_external_system_metadataTx(
         resolver, tx, "Billing.Stripe", keys
     );
@@ -837,6 +911,7 @@ assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ApiRouteDescr
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type APIRequestContext struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type APIResponse struct"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type APIHandler interface"
+assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "type ExternalSystemOperatorMetadataAPIHandler interface"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "func ApiRouteDescriptors() []ApiRouteDescriptor"
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Name: \"OrderApi\""
 assert_file_contains "$TMPDIR/out-go/backend/descriptors.go" "Serves: []string{\"StartOrderProcessing\"}"
@@ -1013,6 +1088,56 @@ func (fixtureOperatorMetadataRepository) DeleteMetadataTx(ctx context.Context, t
 	}, nil
 }
 
+type fixtureOperatorMetadataAPIHandler struct{}
+
+func (fixtureOperatorMetadataAPIHandler) HandleUpsertMetadataTx(ctx context.Context, tx Transaction, repository ExternalSystemOperatorMetadataRepository, request ExternalSystemOperatorMetadataUpsertRequest) (APIResponse, error) {
+	record, err := repository.UpsertMetadataTx(ctx, tx, request)
+	if err != nil {
+		return APIResponse{}, err
+	}
+	status := 404
+	if record != nil {
+		status = 200
+	}
+	return APIResponse{StatusCode: status, Body: JSONObject(map[string]JSON{"operation": JSONString("upsert")})}, nil
+}
+
+func (fixtureOperatorMetadataAPIHandler) HandleGetMetadataTx(ctx context.Context, tx Transaction, repository ExternalSystemOperatorMetadataRepository, request ExternalSystemOperatorMetadataGetRequest) (APIResponse, error) {
+	record, err := repository.GetMetadataTx(ctx, tx, request)
+	if err != nil {
+		return APIResponse{}, err
+	}
+	status := 404
+	if record != nil {
+		status = 200
+	}
+	return APIResponse{StatusCode: status, Body: JSONObject(map[string]JSON{"operation": JSONString("get")})}, nil
+}
+
+func (fixtureOperatorMetadataAPIHandler) HandleDisableMetadataTx(ctx context.Context, tx Transaction, repository ExternalSystemOperatorMetadataRepository, request ExternalSystemOperatorMetadataDisableRequest) (APIResponse, error) {
+	record, err := repository.DisableMetadataTx(ctx, tx, request)
+	if err != nil {
+		return APIResponse{}, err
+	}
+	status := 404
+	if record != nil {
+		status = 200
+	}
+	return APIResponse{StatusCode: status, Body: JSONObject(map[string]JSON{"operation": JSONString("disable")})}, nil
+}
+
+func (fixtureOperatorMetadataAPIHandler) HandleDeleteMetadataTx(ctx context.Context, tx Transaction, repository ExternalSystemOperatorMetadataRepository, request ExternalSystemOperatorMetadataDeleteRequest) (APIResponse, error) {
+	record, err := repository.DeleteMetadataTx(ctx, tx, request)
+	if err != nil {
+		return APIResponse{}, err
+	}
+	status := 404
+	if record != nil {
+		status = 200
+	}
+	return APIResponse{StatusCode: status, Body: JSONObject(map[string]JSON{"operation": JSONString("delete")})}, nil
+}
+
 func TestGeneratedMetadataResolverFixture(t *testing.T) {
 	ctx := context.Background()
 	resolver := &fixtureResolver{}
@@ -1071,6 +1196,15 @@ func TestGeneratedMetadataResolverFixture(t *testing.T) {
 	deleted, err3 := repository.DeleteMetadataTx(ctx, tx, ExternalSystemOperatorMetadataDeleteRequest{Lookup: *lookup, ExpectedVersion: &disabled.Version, DeletedStatus: "Deleted"})
 	if err != nil || err2 != nil || err3 != nil || loaded == nil || disabled == nil || disabled.Version != 3 || deleted == nil || deleted.Version != 4 {
 		t.Fatalf("unexpected metadata repository results loaded=%#v disabled=%#v deleted=%#v errs=%v/%v/%v", loaded, disabled, deleted, err, err2, err3)
+	}
+	apiHandler := ExternalSystemOperatorMetadataAPIHandler(fixtureOperatorMetadataAPIHandler{})
+	apiResponse, err := apiHandler.HandleUpsertMetadataTx(ctx, tx, repository, ExternalSystemOperatorMetadataUpsertRequest{
+		Lookup:          *lookup,
+		Document:        JSONObject(map[string]JSON{"tenant_id": JSONString("tenant-a")}),
+		ExpectedVersion: &deleted.Version,
+	})
+	if err != nil || apiResponse.StatusCode != 200 {
+		t.Fatalf("unexpected operator metadata API response: %#v err=%v", apiResponse, err)
 	}
 	resolved, ok, err := ResolveExternalSystemMetadataByNameTx(ctx, resolver, tx, "Billing.Stripe", keys)
 	if err != nil || !ok || resolved == nil || resolved.Complete() || resolver.calls != 1 {
@@ -1142,6 +1276,7 @@ assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ApiRequestContext"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "record ApiResponse"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "interface ApiHandler"
+assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "interface ExternalSystemOperatorMetadataApiHandler"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "apiRouteDescriptors"
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "\"OrderApi\""
 assert_file_contains "$TMPDIR/out-java/com/statespec/generated/Descriptors.java" "List.of(\"StartOrderProcessing\")"
@@ -1351,6 +1486,66 @@ public final class MetadataResolverFixture
         }
     }
 
+    private static final class FixtureOperatorMetadataApiHandler
+        implements Descriptors.ExternalSystemOperatorMetadataApiHandler
+    {
+        @Override public Descriptors.ApiResponse handleUpsertMetadataTx(
+            Backend.Transaction tx,
+            Descriptors.ExternalSystemOperatorMetadataRepository repository,
+            Descriptors.ExternalSystemOperatorMetadataUpsertRequest request
+        ) throws Exception
+        {
+            Optional<Backend.VersionedRecord> record =
+                repository.upsertMetadataTx(tx, request);
+            return new Descriptors.ApiResponse(
+                record.isPresent() ? 200 : 404,
+                Json.object(Map.of("operation", Json.string("upsert")))
+            );
+        }
+
+        @Override public Descriptors.ApiResponse handleGetMetadataTx(
+            Backend.Transaction tx,
+            Descriptors.ExternalSystemOperatorMetadataRepository repository,
+            Descriptors.ExternalSystemOperatorMetadataGetRequest request
+        ) throws Exception
+        {
+            Optional<Backend.VersionedRecord> record =
+                repository.getMetadataTx(tx, request);
+            return new Descriptors.ApiResponse(
+                record.isPresent() ? 200 : 404,
+                Json.object(Map.of("operation", Json.string("get")))
+            );
+        }
+
+        @Override public Descriptors.ApiResponse handleDisableMetadataTx(
+            Backend.Transaction tx,
+            Descriptors.ExternalSystemOperatorMetadataRepository repository,
+            Descriptors.ExternalSystemOperatorMetadataDisableRequest request
+        ) throws Exception
+        {
+            Optional<Backend.VersionedRecord> record =
+                repository.disableMetadataTx(tx, request);
+            return new Descriptors.ApiResponse(
+                record.isPresent() ? 200 : 404,
+                Json.object(Map.of("operation", Json.string("disable")))
+            );
+        }
+
+        @Override public Descriptors.ApiResponse handleDeleteMetadataTx(
+            Backend.Transaction tx,
+            Descriptors.ExternalSystemOperatorMetadataRepository repository,
+            Descriptors.ExternalSystemOperatorMetadataDeleteRequest request
+        ) throws Exception
+        {
+            Optional<Backend.VersionedRecord> record =
+                repository.deleteMetadataTx(tx, request);
+            return new Descriptors.ApiResponse(
+                record.isPresent() ? 200 : 404,
+                Json.object(Map.of("operation", Json.string("delete")))
+            );
+        }
+    }
+
     public static void main(String[] args) throws Exception
     {
         FixtureResolver resolver = new FixtureResolver();
@@ -1455,6 +1650,22 @@ public final class MetadataResolverFixture
         {
             throw new AssertionError("unexpected metadata repository result");
         }
+        Descriptors.ExternalSystemOperatorMetadataApiHandler metadataApiHandler =
+            new FixtureOperatorMetadataApiHandler();
+        Descriptors.ApiResponse metadataApiResponse =
+            metadataApiHandler.handleUpsertMetadataTx(
+                tx,
+                repository,
+                new Descriptors.ExternalSystemOperatorMetadataUpsertRequest(
+                    lookup,
+                    Json.object(Map.of("tenant_id", Json.string("tenant-a"))),
+                    Optional.of(deleted.version())
+                )
+            );
+        if (metadataApiResponse.statusCode() != 200)
+        {
+            throw new AssertionError("unexpected operator metadata API response");
+        }
         Optional<ExternalSystem.MetadataResolution> resolved =
             Descriptors.resolveExternalSystemMetadataTx(resolver, tx, "Billing.Stripe", keys);
         if (resolved.isEmpty() || resolved.orElseThrow().complete() || resolver.calls != 1)
@@ -1538,6 +1749,7 @@ assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ApiRouteDescr
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ApiRequestContext"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub struct ApiResponse"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub trait ApiHandler"
+assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub trait ExternalSystemOperatorMetadataApiHandler"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "name: \"OrderApi\".to_string()"
 assert_file_contains "$TMPDIR/out-rust/descriptors.rs" "serves: vec![\"StartOrderProcessing\".to_string()]"
@@ -1849,6 +2061,84 @@ mod tests {
         }
     }
 
+    struct FixtureOperatorMetadataApiHandler;
+
+    impl crate::descriptors::ExternalSystemOperatorMetadataApiHandler<FixtureBackend>
+        for FixtureOperatorMetadataApiHandler
+    {
+        fn handle_upsert_metadata_tx<
+            R: crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>,
+        >(
+            &self,
+            tx: &mut FixtureTx,
+            repository: &R,
+            request: &crate::descriptors::ExternalSystemOperatorMetadataUpsertRequest,
+        ) -> BackendResult<crate::descriptors::ApiResponse> {
+            let record = repository.upsert_metadata_tx(tx, request)?;
+            Ok(crate::descriptors::ApiResponse {
+                status_code: if record.is_some() { 200 } else { 404 },
+                body: Json::Object(BTreeMap::from([(
+                    "operation".to_string(),
+                    Json::String("upsert".to_string()),
+                )])),
+            })
+        }
+
+        fn handle_get_metadata_tx<
+            R: crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>,
+        >(
+            &self,
+            tx: &mut FixtureTx,
+            repository: &R,
+            request: &crate::descriptors::ExternalSystemOperatorMetadataGetRequest,
+        ) -> BackendResult<crate::descriptors::ApiResponse> {
+            let record = repository.get_metadata_tx(tx, request)?;
+            Ok(crate::descriptors::ApiResponse {
+                status_code: if record.is_some() { 200 } else { 404 },
+                body: Json::Object(BTreeMap::from([(
+                    "operation".to_string(),
+                    Json::String("get".to_string()),
+                )])),
+            })
+        }
+
+        fn handle_disable_metadata_tx<
+            R: crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>,
+        >(
+            &self,
+            tx: &mut FixtureTx,
+            repository: &R,
+            request: &crate::descriptors::ExternalSystemOperatorMetadataDisableRequest,
+        ) -> BackendResult<crate::descriptors::ApiResponse> {
+            let record = repository.disable_metadata_tx(tx, request)?;
+            Ok(crate::descriptors::ApiResponse {
+                status_code: if record.is_some() { 200 } else { 404 },
+                body: Json::Object(BTreeMap::from([(
+                    "operation".to_string(),
+                    Json::String("disable".to_string()),
+                )])),
+            })
+        }
+
+        fn handle_delete_metadata_tx<
+            R: crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>,
+        >(
+            &self,
+            tx: &mut FixtureTx,
+            repository: &R,
+            request: &crate::descriptors::ExternalSystemOperatorMetadataDeleteRequest,
+        ) -> BackendResult<crate::descriptors::ApiResponse> {
+            let record = repository.delete_metadata_tx(tx, request)?;
+            Ok(crate::descriptors::ApiResponse {
+                status_code: if record.is_some() { 200 } else { 404 },
+                body: Json::Object(BTreeMap::from([(
+                    "operation".to_string(),
+                    Json::String("delete".to_string()),
+                )])),
+            })
+        }
+    }
+
     #[test]
     fn generated_metadata_resolver_fixture() {
         let resolver = FixtureResolver {
@@ -1979,7 +2269,7 @@ mod tests {
             &repository,
             &mut tx,
             &crate::descriptors::ExternalSystemOperatorMetadataDeleteRequest {
-                lookup,
+                lookup: lookup.clone(),
                 expected_version: Some(disabled.version),
                 deleted_status: "Deleted".to_string(),
             },
@@ -1990,6 +2280,24 @@ mod tests {
         assert_eq!(loaded.version, 1);
         assert_eq!(disabled.version, 3);
         assert_eq!(deleted.version, 4);
+        let metadata_api_handler = FixtureOperatorMetadataApiHandler;
+        let metadata_api_response = crate::descriptors::ExternalSystemOperatorMetadataApiHandler::<
+            FixtureBackend,
+        >::handle_upsert_metadata_tx(
+            &metadata_api_handler,
+            &mut tx,
+            &repository,
+            &crate::descriptors::ExternalSystemOperatorMetadataUpsertRequest {
+                lookup: lookup.clone(),
+                document: Json::Object(BTreeMap::from([(
+                    "tenant_id".to_string(),
+                    Json::String("tenant-a".to_string()),
+                )])),
+                expected_version: Some(deleted.version),
+            },
+        )
+        .expect("operator metadata API handler should not fail");
+        assert_eq!(metadata_api_response.status_code, 200);
 
         let resolved = crate::descriptors::resolve_external_system_metadata_by_name_tx::<
             FixtureBackend,
