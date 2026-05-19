@@ -104,8 +104,12 @@ system Demo {
       timeout_ms int
       retry_policy string
     }
+    indexes {
+      unique by_tenant_system_profile on tenant_id, external_system_id, profile
+    }
     state_machine {
       state Active
+      state Disabled
       state Deleted {
         terminal: true
         garbage_collection {
@@ -115,7 +119,10 @@ system Demo {
       }
       initial Active
       terminal [Deleted]
+      Active -> Disabled
+      Disabled -> Active
       Active -> Deleted
+      Disabled -> Deleted
     }
   }
 

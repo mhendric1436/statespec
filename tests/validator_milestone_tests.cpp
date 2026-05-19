@@ -1605,8 +1605,12 @@ void validator_accepts_namespaces_external_systems_and_policies()
               auth_ref string
               timeout_ms int
             }
+            indexes {
+              unique by_tenant_system_profile on tenant_id, external_system_id, profile
+            }
             state_machine {
               state Active
+              state Disabled
               state Deleted {
                 terminal: true
                 garbage_collection {
@@ -1616,7 +1620,10 @@ void validator_accepts_namespaces_external_systems_and_policies()
               }
               initial Active
               terminal Deleted
+              Active -> Disabled
+              Disabled -> Active
               Active -> Deleted
+              Disabled -> Deleted
             }
           }
 
@@ -1705,9 +1712,9 @@ void validator_rejects_invalid_external_system_metadata_model()
           entity ExternalSystemEndpoint {
             key external_system_id, profile
             ownership {
-              authority: system
+              authority: external
               system_of_record: self
-              lifecycle: authoritative
+              lifecycle: observed
             }
             fields {
               created_at timestamp
@@ -1769,6 +1776,26 @@ void validator_rejects_invalid_external_system_metadata_model()
     require(
         has_error_code(diagnostics, "SSPEC4905"),
         "validator should reject metadata entity keys missing the tenant field"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4911"),
+        "validator should require authoritative system ownership for metadata entities"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4913"),
+        "validator should require metadata profile fields to be part of the entity key"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4914"),
+        "validator should require a unique metadata entity index on key fields"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4915"),
+        "validator should require canonical metadata entity lifecycle states"
+    );
+    require(
+        has_error_code(diagnostics, "SSPEC4917"),
+        "validator should require metadata entity lifecycle transitions"
     );
 }
 

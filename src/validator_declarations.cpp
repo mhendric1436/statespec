@@ -70,6 +70,71 @@ bool contains_name(
     return names.find(name) != names.end();
 }
 
+const FieldDecl* find_field(
+    const EntityDecl& entity,
+    const std::string& name
+)
+{
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+bool has_state(
+    const StateMachineDecl& state_machine,
+    const std::string& name
+)
+{
+    return std::any_of(
+        state_machine.states.begin(), state_machine.states.end(),
+        [&](const StateDecl& state) { return state.name == name; }
+    );
+}
+
+const StateDecl* find_state(
+    const StateMachineDecl& state_machine,
+    const std::string& name
+)
+{
+    for (const auto& state : state_machine.states)
+    {
+        if (state.name == name)
+        {
+            return &state;
+        }
+    }
+    return nullptr;
+}
+
+bool has_transition(
+    const StateMachineDecl& state_machine,
+    const std::string& from,
+    const std::string& to
+)
+{
+    return std::any_of(
+        state_machine.transitions.begin(), state_machine.transitions.end(),
+        [&](const TransitionDecl& transition)
+        { return transition.from == from && transition.to == to; }
+    );
+}
+
+bool has_unique_index_on_fields(
+    const EntityDecl& entity,
+    const std::vector<std::string>& fields
+)
+{
+    return std::any_of(
+        entity.indexes.begin(), entity.indexes.end(),
+        [&](const IndexDecl& index) { return index.unique && index.fields == fields; }
+    );
+}
+
 void validate_metadata_mapping_path_shape(
     const ExternalSystemDecl& external_system,
     const ExternalSystemMetadataMappingDecl& mapping,
@@ -97,6 +162,115 @@ void validate_metadata_mapping_path_shape(
             "external_system '" + external_system.name + "' metadata mapping " + std::string(side) +
                 " '" + path + "' uses unsupported root '" + segments.front() + "'"
         );
+    }
+}
+
+void validate_external_system_metadata_entity_lifecycle(
+    const ExternalSystemDecl& external_system,
+    const ExternalSystemMetadataDecl& metadata,
+    const EntityDecl& entity,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!entity.ownership.has_value() || entity.ownership->authority.value_or("") != "system" ||
+        entity.ownership->system_of_record.value_or("") != "self" ||
+        entity.ownership->lifecycle.value_or("") != "authoritative")
+    {
+        diagnostics.error(
+            metadata.range, "SSPEC4911",
+            "external_system '" + external_system.name + "' metadata entity '" + entity.name +
+                "' must use authoritative system ownership"
+        );
+    }
+
+    const auto* created_at = find_field(entity, "created_at");
+    const auto* updated_at = find_field(entity, "updated_at");
+    const auto* status = find_field(entity, "status");
+    if (created_at == nullptr || created_at->type != "timestamp" || updated_at == nullptr ||
+        updated_at->type != "timestamp" || status == nullptr || status->type != "string")
+    {
+        diagnostics.error(
+            metadata.range, "SSPEC4912",
+            "external_system '" + external_system.name + "' metadata entity '" + entity.name +
+                "' must declare created_at timestamp, updated_at timestamp, and status string"
+        );
+    }
+
+    if (metadata.profile_field.has_value() &&
+        std::find(entity.key_fields.begin(), entity.key_fields.end(), *metadata.profile_field) ==
+            entity.key_fields.end())
+    {
+        diagnostics.error(
+            metadata.range, "SSPEC4913",
+            "external_system '" + external_system.name + "' metadata profile_field '" +
+                *metadata.profile_field + "' must be part of metadata entity '" + entity.name +
+                "' key"
+        );
+    }
+
+    if (!has_unique_index_on_fields(entity, entity.key_fields))
+    {
+        diagnostics.error(
+            metadata.range, "SSPEC4914",
+            "external_system '" + external_system.name + "' metadata entity '" + entity.name +
+                "' must declare a unique index on its key fields"
+        );
+    }
+
+    if (!entity.state_machine.has_value())
+    {
+        diagnostics.error(
+            metadata.range, "SSPEC4915",
+            "external_system '" + external_system.name + "' metadata entity '" + entity.name +
+                "' must declare states Active, Disabled, and Deleted"
+        );
+        return;
+    }
+
+    const auto& state_machine = *entity.state_machine;
+    for (const auto* required_state : {"Active", "Disabled", "Deleted"})
+    {
+        if (!has_state(state_machine, required_state))
+        {
+            diagnostics.error(
+                metadata.range, "SSPEC4915",
+                "external_system '" + external_system.name + "' metadata entity '" + entity.name +
+                    "' must declare state " + std::string(required_state)
+            );
+        }
+    }
+
+    const auto* deleted = find_state(state_machine, "Deleted");
+    const auto deleted_declared_terminal =
+        std::find(
+            state_machine.terminal_states.begin(), state_machine.terminal_states.end(), "Deleted"
+        ) != state_machine.terminal_states.end();
+    if (deleted == nullptr || !deleted->terminal || !deleted_declared_terminal ||
+        !deleted->garbage_collection.has_value())
+    {
+        diagnostics.error(
+            metadata.range, "SSPEC4916",
+            "external_system '" + external_system.name + "' metadata entity '" + entity.name +
+                "' state Deleted must be terminal and declare garbage_collection"
+        );
+    }
+
+    const std::vector<std::pair<std::string, std::string>> required_transitions{
+        {"Active", "Disabled"},
+        {"Disabled", "Active"},
+        {"Active", "Deleted"},
+        {"Disabled", "Deleted"},
+    };
+    for (const auto& [from, to] : required_transitions)
+    {
+        if (!has_transition(state_machine, from, to))
+        {
+            diagnostics.error(
+                metadata.range, "SSPEC4917",
+                "external_system '" + external_system.name + "' metadata entity '" + entity.name +
+                    "' state_machine must declare transition " + from + " -> " + to
+            );
+        }
     }
 }
 
@@ -1179,6 +1353,10 @@ void validate_external_systems(
                     );
                 }
             }
+
+            validate_external_system_metadata_entity_lifecycle(
+                external_system, metadata, *entity, diagnostics
+            );
         }
     }
 }

@@ -292,5 +292,13 @@ systems, the metadata entity must also declare the system tenant field and inclu
 the entity key, so operator configuration is isolated by the same tenant boundary as
 entities, APIs, queues, logs, and metrics.
 
+Metadata entities are validated as operator-managed durable state. They must use
+authoritative system ownership, include the profile field in the entity key, declare a
+unique index on the key fields, and model the canonical `Active`, `Disabled`, and
+`Deleted` lifecycle. `Deleted` must be a garbage-collected terminal state, and the state
+machine must include `Active -> Disabled`, `Disabled -> Active`, `Active -> Deleted`, and
+`Disabled -> Deleted` transitions so generated operator APIs map to legal lifecycle
+changes.
+
 A complete example is available in
 [`examples/external-system-metadata.sspec`](../examples/external-system-metadata.sspec).

@@ -228,6 +228,9 @@ metadata_mapping_segment ::= Identifier | "entity" | "event" | "input" | "workfl
       listed in required_fields.
     - In tenant-scoped systems, the metadata entity must declare the tenant field and
       include it in the entity key.
+    - Metadata entities must use authoritative system ownership, include the profile field
+      in the key, declare a unique index on key fields, and support Active, Disabled,
+      and Deleted lifecycle states with operator disable/delete transitions.
 *)
 
 
