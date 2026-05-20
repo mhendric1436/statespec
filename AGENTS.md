@@ -33,70 +33,115 @@ StateSpec source files use the `.sspec` extension.
    - Do not duplicate semantic rules independently across CLI, VS Code extension, or generators.
 
 5. **Generated code is downstream**
-   - Generated OpenAPI, protobuf, server stubs, worker skeletons, migrations, diagrams, and tests are outputs of the spec.
+   - Generated OpenAPI, API app scaffolds, worker app scaffolds, language bindings, diagrams, and tests are outputs of the spec.
    - Generators consume canonical IR, not raw AST.
 
 ---
 
-## Recommended Repository Structure
+## Current Repository Structure
 
 ```text
 statespec/
 ├── README.md
-├── ROADMAP.md
-├── CONTRIBUTING.md
 ├── AGENTS.md
 ├── Makefile
-├── Cargo.toml
-├── pnpm-workspace.yaml
 ├── grammar/
 │   └── statespec.ebnf
+├── include/statespec/
+│   ├── ast.hpp
+│   ├── parser.hpp
+│   ├── validator.hpp
+│   ├── ir.hpp
+│   ├── formatter.hpp
+│   ├── generator*.hpp
+│   └── template_renderer.hpp
+├── src/
+│   ├── parser_*.cpp
+│   ├── validator_*.cpp
+│   ├── ir.cpp
+│   ├── formatter.cpp
+│   ├── generator_cpp.cpp
+│   ├── generator_go.cpp
+│   ├── generator_java.cpp
+│   ├── generator_rust.cpp
+│   ├── generator_openapi.cpp
+│   └── template_renderer.cpp
+├── cmd/
+│   └── statespec.cpp
+├── bindings/
+│   ├── cpp/
+│   ├── go/
+│   ├── java/
+│   └── rust/
 ├── examples/
-│   └── cluster-service/
-│       └── cluster-service.sspec
-├── crates/
-│   ├── statespec-ast/
-│   ├── statespec-parser/
-│   ├── statespec-semantic/
-│   ├── statespec-ir/
-│   ├── statespec-formatter/
-│   ├── statespec-cli/
-│   ├── statespec-lsp/
-│   ├── statespec-gen-openapi/
-│   ├── statespec-gen-protobuf/
-│   └── statespec-gen-go/
-├── packages/
-│   └── vscode-statespec/
+│   └── *.sspec
 ├── docs/
-│   ├── language/
-│   └── tooling/
-├── schemas/
+├── diagrams/
+│   └── *.puml
+├── tests/
+│   ├── cli/
+│   ├── bindings/
+│   │   ├── cpp/
+│   │   ├── go/
+│   │   ├── java/
+│   │   ├── rust/
+│   │   └── e2e/
+│   └── *.cpp
 └── testdata/
+    ├── generators/
+    └── parity/
 ```
 
 ---
 
 ## Architecture
 
-The intended pipeline is:
+The current implementation is a C++20 compiler and generator toolchain.
+
+The active pipeline is:
 
 ```text
 .sspec text
+    ↓
+lexer
     ↓
 parser
     ↓
 AST
     ↓
-semantic analyzer
+include composition
+    ↓
+validator / semantic resolver
     ↓
 canonical IR
     ↓
-formatter / CLI / LSP / generators / VS Code extension
+formatter / CLI / OpenAPI generator / language binding generators
 ```
 
 ### Key rule
 
 Generators, diagrams, and editor features should consume the semantic model or canonical IR wherever possible. Avoid building features directly against raw text unless the feature is purely syntactic.
+
+### Source layout rule
+
+Parser and validator implementation is intentionally decomposed by language area:
+
+- `parser_top_level.cpp`, `parser_entities.cpp`, `parser_apis.cpp`, `parser_workflows.cpp`, `parser_runtime.cpp`, `parser_observability.cpp`, `parser_values.cpp`, and related helpers own AST construction.
+- `validator_declarations.cpp`, `validator_entities.cpp`, `validator_runtime.cpp`, `validator_workflows.cpp`, and related helpers own semantic checks.
+
+Do not put new feature-specific parsing or validation back into monolithic catch-all files when a scoped module already exists.
+
+### Include composition rule
+
+StateSpec supports `include "path.sspec";` at file scope. The CLI composes included specs before validation and generation.
+
+- Includes are path-based and resolved relative to the including file.
+- Include cycles are errors.
+- Duplicate loaded paths are ignored after first load.
+- Included `system` members are appended into the root system.
+- Included `tenant scoped_by` must match the root if both are present.
+- Included `system_tenant configured` fills the root declaration only when the root omits it.
+- `import` is intentionally unsupported.
 
 ---
 
@@ -147,14 +192,108 @@ Generated binding code must consume these transaction-aware interfaces. Generato
 
 ---
 
+## Generated Application Architecture
+
+Language bindings for C++, Go, Java, and Rust generate deployable artifact groups:
+
+- `common` contains backend interfaces, typed runtime surfaces, shared descriptors, entity/workflow/queue/lease/log/metric/feature-flag definitions, external-system metadata helpers, and generated build files.
+- `api` contains API tier descriptors, route descriptors, handler contracts, dispatchers, operator metadata APIs, and API server shells.
+- `worker` contains worker descriptors, worker contexts, queue/lease/workflow views, workflow step handler contracts, worker registries, worker app shells, and workflow runners with keep-alive support.
+
+The generator tier option controls emitted artifacts:
+
+```bash
+statespec generate bindings --lang cpp <file.sspec> --tier common
+statespec generate bindings --lang go <file.sspec> --tier api
+statespec generate bindings --lang java <file.sspec> --tier worker
+statespec generate bindings --lang rust <file.sspec> --tier all
+```
+
+### API app rule
+
+Generated API apps own structural wiring, not business behavior:
+
+- API server shell lifecycle and request context shape.
+- Route lookup and dispatch.
+- Per-action handler interfaces.
+- Operator metadata API contracts.
+- Descriptor views over APIs, routes, servers, shapes, and external-system metadata mappings.
+
+User-owned code supplies the HTTP/RPC transport adapter, authentication, authorization, tenancy policy, concrete handlers, validation beyond the spec, concrete backend adapter, and outbound clients.
+
+### Worker app rule
+
+Generated worker apps own structural workflow and worker wiring:
+
+- Worker application lifecycle shell.
+- Worker registry and descriptor lookup.
+- Workflow step handler interfaces.
+- Queue worker interfaces.
+- Workflow runner behavior for claim, keep alive, complete, fail, and retry-visible state.
+
+User-owned code supplies concrete workflow step handlers, concrete queue workers, external API clients, retry policy integration, runtime configuration, and concrete backend adapters.
+
+### Generated artifact naming rule
+
+Generated artifacts must use meaningful filenames for the code they contain. Avoid catch-all files such as `api_artifacts.*` or `worker_artifacts.*`.
+
+Current C++ generated common descriptors emit to:
+
+```text
+common/descriptors.hpp
+```
+
+Equivalent descriptor-heavy files in other languages are:
+
+```text
+common/backend/descriptors.go
+common/com/statespec/generated/Descriptors.java
+common/descriptors.rs
+```
+
+---
+
+## Generator Template Architecture
+
+Generators use source template files instead of large inline string blocks for runtime and app scaffolding.
+
+Template roots live under each binding:
+
+```text
+bindings/cpp/
+bindings/go/
+bindings/java/
+bindings/rust/
+```
+
+Generated-source templates use `.tmpl` suffixes, for example:
+
+```text
+bindings/cpp/generated/descriptors.hpp.tmpl
+bindings/go/generated/descriptors.go.tmpl
+bindings/java/generated/Descriptors.java.tmpl
+bindings/rust/generated/descriptors.rs.tmpl
+```
+
+Use `TemplatePackage` and `TemplateRenderer` for template loading and placeholder replacement. Prefer moving large generated source bodies into templates when the content is mostly static app/runtime structure. Descriptor-heavy content that is generated from IR may still be assembled by generator code and injected into templates.
+
+The CLI supports template override roots:
+
+```bash
+statespec generate bindings --lang cpp spec.sspec --template-root /path/to/templates
+```
+
+---
+
 ## Language Concepts
 
-StateSpec v0.1 includes these system-level concepts:
+StateSpec v0.1 includes these file-level and system-level concepts:
 
+- `statespec` file header
+- `include`
 - `system`
 - `tenant scoped_by`
 - `system_tenant configured`
-- `namespace`
 - `value`
 - `enum`
 - `shape`
@@ -165,22 +304,19 @@ StateSpec v0.1 includes these system-level concepts:
 - `entity`
 - `event`
 - `queue`
+- `message`
 - `lease`
 - `worker`
+- `api_server`
 - `api`
 - `workflow`
 - `policy`
+- `generate`
 - `annotations`
 
-`state` declarations are not top-level objects; they belong inside an entity
-`state_machine`.
+`state`, `transition`, and `garbage_collection` declarations are not top-level objects; they belong inside an entity `state_machine`.
 
-Entities are durable system objects. Feature flags model declared rollout and
-configuration switches. Logs and metrics model declared observability signals. Queues and
-leases model durable runtime coordination. Workers bind execution to queues, leases, and
-workflows. Workflows describe asynchronous execution. APIs expose external contracts.
-Events connect APIs, workflows, and workers. Policies express authorization, tenancy,
-quota, and audit intent.
+Entities are durable system objects. External systems model integration dependencies and operator-owned metadata mappings. Feature flags model declared rollout and configuration switches. Logs and metrics model declared observability signals. Queues and leases model durable runtime coordination. Workers bind execution to queues, leases, and workflows. API servers host one or more APIs. Workflows describe asynchronous execution. APIs expose external contracts. Events connect APIs, workflows, and workers. Policies express authorization, tenancy, quota, and audit intent.
 
 ---
 
@@ -192,7 +328,7 @@ Canonical entity shape:
 
 ```sspec
 entity Name {
-  key id: uuid
+  key tenant_id, id
 
   ownership {
     authority: system
@@ -200,27 +336,46 @@ entity Name {
     lifecycle: authoritative
   }
 
-  version: int
-  state: NameState
+  version int
 
-  relations { }
-  children { }
-  fields { }
-  transitions { }
-  invariants { }
-  indexes { }
-  annotations { }
+  fields {
+    created_at timestamp
+    updated_at timestamp
+    status string
+    id uuid
+  }
+
+  state_machine {
+    state Requested;
+    state Active;
+    state Deleted {
+      terminal: true
+      garbage_collection {
+        after: P30D
+        mode: tombstone
+      }
+    }
+
+    initial Requested
+    terminal [Deleted]
+
+    Requested -> Active;
+    Active -> Deleted;
+  }
 }
 ```
 
 ### Entity invariants
 
-- Every entity must have exactly one `key` in v0.
+- Every entity must declare a `key`; tenant-scoped systems should include the tenant field in durable entity keys.
 - Entity names use PascalCase.
-- Field names use lowerCamelCase.
-- State fields must reference declared `state` types.
-- State transitions must reference valid state members.
-- Workflows may not introduce undeclared state transitions.
+- Field and key names use snake_case.
+- Every entity must declare `ownership`.
+- Every entity must declare a `fields` block containing `created_at timestamp`, `updated_at timestamp`, and `status string`.
+- Every entity must declare a `state_machine`.
+- State machine transitions must reference valid state members.
+- Terminal states must be marked `terminal: true`, listed in `terminal [...]`, and declare `garbage_collection`.
+- Workflows may not introduce undeclared state transitions; workflow state mutation must use declared transitions.
 
 ---
 
@@ -251,6 +406,23 @@ Do not model externally-owned resources as if local state is authoritative. If t
 
 ---
 
+## External-System Metadata Model
+
+External systems may require metadata that should not be exposed as end-user API fields. StateSpec models this through external-system metadata declarations and operator APIs rather than forcing all remote-call parameters into public APIs.
+
+Metadata rules:
+
+- `external_system ... metadata` names the metadata entity, profile field, required fields, and mappings.
+- Metadata entities are durable StateSpec entities and use the same tenant and OCC rules as other entities.
+- In tenant-scoped systems, operator metadata APIs and metadata entities must carry the service tenant field.
+- Metadata mappings describe how values from `metadata`, `input`, `entity`, or `workflow` sources map to generated `client.*` or `request.*` fields.
+- Operator APIs own create/update/disable/delete style metadata management.
+- Generated bindings may provide mapping plans and applicators, but runtime code owns concrete remote clients and secret/config handling.
+
+Do not expose backend-only remote metadata through user-facing API fields just because a remote service needs it.
+
+---
+
 ## Parent/Child Relationships
 
 Parent-child relationships are first-class.
@@ -259,7 +431,7 @@ The child entity declares the relationship in `relations`:
 
 ```sspec
 relations {
-  parent clusterId: ref<Cluster> {
+  parent cluster_id: ref<Cluster> {
     kind: composition
     on_parent_delete: cascade
     unique_within_parent: [ordinal]
@@ -271,7 +443,7 @@ The parent may optionally declare an inverse view:
 
 ```sspec
 children {
-  nodes: Node by clusterId
+  nodes: Node by cluster_id
 }
 ```
 
@@ -334,13 +506,13 @@ Monitor child entity state for each creating child ID:
 Preferred bucket fields:
 
 ```sspec
-pendingChildIds: list<uuid>
-creatingChildIds: list<uuid>
-succeededChildIds: list<uuid>
-failedChildIds: list<uuid>
+pending_child_ids: list<uuid>
+creating_child_ids: list<uuid>
+succeeded_child_ids: list<uuid>
+failed_child_ids: list<uuid>
 ```
 
-Prefer `succeededChildIds` over `activeChildIds`, because not every child success terminal state is named `Active`.
+Prefer `succeeded_child_ids` over `active_child_ids`, because not every child success terminal state is named `Active`.
 
 ### Required invariants
 
@@ -349,13 +521,13 @@ Child ID buckets must be disjoint and conserved:
 ```sspec
 invariants {
   childIdsPartitioned:
-    disjoint(pendingChildIds, creatingChildIds, succeededChildIds, failedChildIds)
+    disjoint(pending_child_ids, creating_child_ids, succeeded_child_ids, failed_child_ids)
 
   childIdsConserved:
-    count(pendingChildIds) +
-    count(creatingChildIds) +
-    count(succeededChildIds) +
-    count(failedChildIds) == desiredChildCount
+    count(pending_child_ids) +
+    count(creating_child_ids) +
+    count(succeeded_child_ids) +
+    count(failed_child_ids) == desired_child_count
 }
 ```
 
@@ -446,6 +618,11 @@ IR should distinguish:
 - parent-child relationships
 - local lifecycle state vs observed external state
 - workflow steps and child orchestration phases
+- API server declarations and served APIs
+- worker declarations and queue/workflow execution bindings
+- external-system metadata entities and mapping plans
+
+Field descriptors in generated bindings should use typed field-kind enums connected to grammar-supported entity types. Avoid treating descriptor field types as arbitrary strings when the grammar defines a closed set of scalar, collection, optional, reference, and named type categories.
 
 ---
 
@@ -458,22 +635,47 @@ Canonical ordering inside `entity`:
 1. `key`
 2. `ownership`
 3. `version`
-4. `state`
-5. `relations`
-6. `children`
-7. `fields`
-8. `transitions`
-9. `invariants`
-10. `indexes`
-11. `annotations`
+4. `fields`
+5. `state_machine`
+6. `relations`
+7. `children`
+8. `invariants`
+9. `indexes`
+10. `annotations`
 
 Canonical ordering inside `workflow`:
 
-1. `on`
-2. `load`
-3. `require`
-4. `child_set`
-5. `step`
+1. `version`
+2. `singleton`
+3. `expected_execution_time`
+4. `start`
+5. `on`
+6. `input`
+7. `state`
+8. `load`
+9. `child_set`
+10. `step`
+
+Canonical ordering inside `log`:
+
+1. `level`
+2. `event_name`
+3. `fields`
+
+Canonical ordering inside `metric`:
+
+1. `kind`
+2. `name`
+3. `unit`
+4. `labels`
+
+Canonical ordering inside `policy`:
+
+1. `tenant`
+2. `allow`
+3. `deny`
+4. `quota`
+5. `audit`
 
 Do not introduce formatting options until there is a strong reason. One canonical style is preferred.
 
@@ -481,23 +683,43 @@ Do not introduce formatting options until there is a strong reason. One canonica
 
 ## CLI Guidelines
 
-The CLI should expose simple commands:
+The current CLI exposes:
 
 ```bash
+statespec help
 statespec validate
 statespec fmt
-statespec generate
-statespec graph
-statespec diff
-statespec doctor
-statespec lsp
+statespec tokens
+statespec ast
+statespec generate bindings
+statespec generate openapi
 ```
 
 CLI behavior should be suitable for CI.
 
 - `validate` exits non-zero on syntax or semantic errors.
 - `fmt --check` exits non-zero if files are not formatted.
-- `generate --check` exits non-zero if generated output is stale.
+- `generate bindings` supports `--lang <cpp|go|java|rust>`, `--out DIR`, `--tier <all|common|api|worker>`, and `--template-root DIR`.
+- `generate openapi` supports `--out DIR`.
+- Generated file manifests in tests must be locale-stable; use `LC_ALL=C sort` when comparing generated paths.
+
+---
+
+## Makefile Guidelines
+
+The top-level `Makefile` is the canonical developer entrypoint.
+
+Important targets:
+
+- `make test` builds the compiler/tests and runs CLI tests.
+- `make test-generated-apps` runs complete generated API/worker app E2E fixtures.
+- `make test-bindings` runs C++, Go, Java, and Rust binding-local tests.
+- `make format` formats core C++ sources plus binding implementations by invoking binding-local Makefiles.
+- `make format-check` checks core and test formatting.
+- `make diagrams-png` renders `diagrams/*.puml` to PNG with PlantUML.
+- `make clean` removes build outputs, diagram PNGs, binding build outputs, `bindings/rust/target`, and `bindings/rust/Cargo.lock`.
+
+Binding directories should keep their own `Makefile` for local language-native formatting, testing, and cleanup. The top-level Makefile should invoke those local targets rather than duplicating language-specific commands.
 
 ---
 
@@ -531,7 +753,7 @@ Visual editing must rewrite `.sspec` text. It must not maintain a separate autho
 Generators should be separated by target:
 
 - OpenAPI
-- protobuf
+- C++
 - Go
 - Java
 - Rust
@@ -545,30 +767,52 @@ Each generator should:
 - have golden tests
 - avoid hidden runtime assumptions
 - emit clear warnings for unsupported language features
+- emit tiered app artifacts into `common`, `api`, and `worker` paths where applicable
+- use template files for mostly static runtime/app scaffolding
 
 Generated output should include a header indicating it is generated from StateSpec.
+
+Generated bindings should include local build files that compile the emitted package with language-native tooling:
+
+- C++ uses generated `Makefile` plus `clang++`/compatible C++20 compiler checks.
+- Go uses generated `go.mod` and `Makefile`.
+- Java uses generated `Makefile` and core Java compiler/runtime only.
+- Rust uses generated `Cargo.toml`, `lib.rs`, and `Makefile`.
 
 ---
 
 ## Testing Guidelines
 
-Use golden tests for:
+Use focused tests for:
 
 - parser output
 - formatter output
 - semantic diagnostics
 - generated artifacts
-- graph output
+- diagram output
+- generated app manifests
+- language binding compile checks
 
-Suggested testdata layout:
+Current test layout:
 
 ```text
+tests/
+├── Makefile
+├── cli/
+│   ├── Makefile
+│   └── *_tests.sh
+├── bindings/
+│   ├── Makefile
+│   ├── cpp/
+│   ├── go/
+│   ├── java/
+│   ├── rust/
+│   └── e2e/
+└── *_tests.cpp
+
 testdata/
-├── parser/
-├── semantic/
-├── formatter/
 ├── generators/
-└── lsp/
+└── parity/
 ```
 
 Every language feature should have:
@@ -577,6 +821,8 @@ Every language feature should have:
 - at least one invalid example
 - formatter coverage
 - semantic validation coverage
+
+Top-level `make test` runs core and CLI tests. `make test-bindings` runs binding-local tests for C++, Go, Java, and Rust. `make test-generated-apps` runs complete generated API/worker app fixture checks.
 
 ---
 
@@ -603,16 +849,23 @@ Docs should be kept close to the language design.
 Recommended docs:
 
 ```text
-docs/language/overview.md
-docs/language/grammar.md
-docs/language/entities.md
-docs/language/workflows.md
-docs/language/ownership.md
-docs/tooling/cli.md
-docs/tooling/vscode-extension.md
+docs/language-model.md
+docs/entities-and-state.md
+docs/feature-flags.md
+docs/observability.md
+docs/queues-leases-workers.md
+docs/workflow-launch-control.md
+docs/external-system-metadata.md
+docs/backend-abstractions.md
+docs/binding-template-strategy.md
+docs/generators.md
+docs/compiler-parity.md
+docs/style-guide.md
 ```
 
 Any grammar or semantic change should update docs in the same PR.
+
+PlantUML architecture diagrams live in `diagrams/*.puml`. `make diagrams-png` renders PNGs, and `make clean` removes generated PNG files. Track diagram source unless the user explicitly asks for rendered images.
 
 ---
 
@@ -622,11 +875,15 @@ Any grammar or semantic change should update docs in the same PR.
 - States: `PascalCase`
 - State members: `PascalCase`
 - APIs: `PascalCase`
+- API servers: `PascalCase`
 - Workflows: `PascalCase`
 - Events: `PascalCase`
-- Fields: `lowerCamelCase`
+- Queues: `PascalCase`, usually ending in `Queue`
+- Leases: `PascalCase`, usually ending in `Lease`
+- Workers: `PascalCase`
+- Fields and keys: `snake_case`
 - Steps: `snake_case`
-- Child sets: `lowerCamelCase` or plural lowerCamelCase
+- Child sets: `snake_case` or plural `snake_case`
 
 Preferred workflow step names for child orchestration:
 
@@ -687,6 +944,7 @@ A PR that changes VS Code behavior should include:
 Avoid:
 
 - adding syntax aliases
+- reintroducing `import` as an alias for `include`
 - adding dynamic typing
 - adding untyped `any` as an escape hatch
 - putting business semantics in annotations
@@ -695,6 +953,8 @@ Avoid:
 - creating standalone diagram state separate from `.sspec`
 - modeling external resources as locally authoritative
 - launching child workflows without durable child entity state
+- adding binding APIs that read persisted state outside the OCC backend transaction model
+- collapsing generated app files into catch-all artifact files
 
 ---
 
@@ -704,10 +964,14 @@ StateSpec is optimized for:
 
 - distributed systems
 - REST API + worker architectures
+- two-tier API server and worker deployments
 - control planes
 - lifecycle-managed resources
 - parent-child orchestration
 - idempotent async workflows
+- backend-neutral OCC runtime bindings
+- external-system metadata management
+- declared observability
 - code generation
 - VS Code-first developer experience
 
