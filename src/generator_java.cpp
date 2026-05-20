@@ -1715,6 +1715,50 @@ std::string generate_api_dispatcher_java()
     return out.str();
 }
 
+std::string generate_api_server_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class ApiServer {\n";
+    out << "    private final Descriptors.ApiServerDescriptor descriptor;\n";
+    out << "    private final Descriptors.ApiHandler handler;\n\n";
+    out << "    public ApiServer(\n";
+    out << "        Descriptors.ApiServerDescriptor descriptor,\n";
+    out << "        Descriptors.ApiHandler handler\n";
+    out << "    ) {\n";
+    out << "        this.descriptor = descriptor;\n";
+    out << "        this.handler = handler;\n";
+    out << "    }\n\n";
+    out << "    public Descriptors.ApiServerDescriptor descriptor() {\n";
+    out << "        return descriptor;\n";
+    out << "    }\n\n";
+    out << "    public static Optional<Descriptors.ApiServerDescriptor> findApiServer(String "
+           "serverName) {\n";
+    out << "        for (Descriptors.ApiServerDescriptor server : "
+           "ApiDescriptors.apiServerDescriptors()) {\n";
+    out << "            if (server.name().equals(serverName)) {\n";
+    out << "                return Optional.of(server);\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
+    out << "    }\n\n";
+    out << "    public Optional<Descriptors.ApiResponse> handle(\n";
+    out << "        String routeName,\n";
+    out << "        Descriptors.ApiRequestContext context\n";
+    out << "    ) throws Exception {\n";
+    out << "        Optional<Descriptors.ApiRouteDescriptor> route = "
+           "ApiDispatcher.findApiRoute(routeName);\n";
+    out << "        if (!route.isPresent() || !route.get().serverName().equals(descriptor.name())) "
+           "{\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        return ApiDispatcher.dispatchApiRoute(handler, routeName, context);\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_external_system_operator_metadata_api_java()
 {
     std::ostringstream out;
@@ -1921,6 +1965,14 @@ GenerationResult generate_java_bindings(
                 generate_api_dispatcher_java(),
                 GeneratedArtifactTier::Api,
                 "api/com/statespec/generated/ApiDispatcher.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/com/statespec/generated/ApiServer.java").string(),
+                generate_api_server_java(),
+                GeneratedArtifactTier::Api,
+                "api/com/statespec/generated/ApiServer.java",
             }
         );
         result.files.push_back(

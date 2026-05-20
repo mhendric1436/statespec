@@ -247,6 +247,7 @@ std::string generate_makefile(BindingGenerationTier tier)
                "#include \"api/api_dispatcher.hpp\"\\n"
                "#include \"api/api_handlers.hpp\"\\n"
                "#include \"api/api_routes.hpp\"\\n"
+               "#include \"api/api_server.hpp\"\\n"
                "#include \"api/external_system_operator_metadata_api.hpp\"\\n"
                "int main() { return 0; }\\n' | "
                "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
@@ -1871,6 +1872,60 @@ std::string generate_api_dispatcher_header()
     return out.str();
 }
 
+std::string generate_api_server_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"api_descriptors.hpp\"\n";
+    out << "#include \"api_dispatcher.hpp\"\n\n";
+    out << "#include <optional>\n";
+    out << "#include <string_view>\n\n";
+    out << "#include <utility>\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "inline std::optional<ApiServerDescriptor> find_api_server(std::string_view "
+           "server_name)\n";
+    out << "{\n";
+    out << "    for (const auto& server : api_server_descriptors())\n";
+    out << "    {\n";
+    out << "        if (server.name == server_name)\n";
+    out << "        {\n";
+    out << "            return server;\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "class ApiServer\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    ApiServer(ApiServerDescriptor descriptor, IApiHandler& handler)\n";
+    out << "        : descriptor_(std::move(descriptor)), handler_(handler)\n";
+    out << "    {\n";
+    out << "    }\n\n";
+    out << "    const ApiServerDescriptor& descriptor() const\n";
+    out << "    {\n";
+    out << "        return descriptor_;\n";
+    out << "    }\n\n";
+    out << "    std::optional<ApiResponse> handle(\n";
+    out << "        std::string_view route_name,\n";
+    out << "        const ApiRequestContext& context\n";
+    out << "    )\n";
+    out << "    {\n";
+    out << "        const auto route = find_api_route(route_name);\n";
+    out << "        if (!route.has_value() || route->server_name != descriptor_.name)\n";
+    out << "        {\n";
+    out << "            return std::nullopt;\n";
+    out << "        }\n";
+    out << "        return dispatch_api_route(handler_, route_name, context);\n";
+    out << "    }\n\n";
+    out << "private:\n";
+    out << "    ApiServerDescriptor descriptor_;\n";
+    out << "    IApiHandler& handler_;\n";
+    out << "};\n\n";
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
 std::string generate_external_system_operator_metadata_api_header()
 {
     std::ostringstream out;
@@ -2076,6 +2131,14 @@ GenerationResult generate_cpp_bindings(
                 generate_api_dispatcher_header(),
                 GeneratedArtifactTier::Api,
                 "api/api_dispatcher.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/api_server.hpp").string(),
+                generate_api_server_header(),
+                GeneratedArtifactTier::Api,
+                "api/api_server.hpp",
             }
         );
         result.files.push_back(

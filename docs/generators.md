@@ -38,10 +38,10 @@ worker descriptors, contexts, handlers, queues, leases, and workflows.
 ## Application Artifact Model
 
 The binding generators use a stable application artifact model for the planned complete
-API-server and worker applications. The API dispatcher is emitted as the first generated
-application artifact. The remaining application files are still modeled as
-generated-owned artifacts but are not emitted yet. The current generators also emit the
-lower-level common, API contract, and worker contract files described above.
+API-server and worker applications. The API server shell and API dispatcher are emitted
+as the first generated application artifacts. The remaining application files are still
+modeled as generated-owned artifacts but are not emitted yet. The current generators also
+emit the lower-level common, API contract, and worker contract files described above.
 
 The API application artifact responsibilities are:
 

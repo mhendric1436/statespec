@@ -246,6 +246,8 @@ std::string generate_rust_lib(BindingGenerationTier tier)
         out << "pub mod api_handlers;\n";
         out << "#[path = \"api/api_routes.rs\"]\n";
         out << "pub mod api_routes;\n";
+        out << "#[path = \"api/api_server.rs\"]\n";
+        out << "pub mod api_server;\n";
         out << "#[path = \"api/external_system_operator_metadata_api.rs\"]\n";
         out << "pub mod external_system_operator_metadata_api;\n";
     }
@@ -1724,6 +1726,43 @@ std::string generate_api_dispatcher_rs()
     return out.str();
 }
 
+std::string generate_api_server_rs()
+{
+    std::ostringstream out;
+    out << "use crate::api_descriptors;\n";
+    out << "use crate::api_dispatcher;\n";
+    out << "use crate::backend::BackendResult;\n";
+    out << "use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse, "
+           "ApiServerDescriptor};\n\n";
+    out << "pub struct ApiServer<H: ApiHandler> {\n";
+    out << "    pub descriptor: ApiServerDescriptor,\n";
+    out << "    pub handler: H,\n";
+    out << "}\n\n";
+    out << "impl<H: ApiHandler> ApiServer<H> {\n";
+    out << "    pub fn new(descriptor: ApiServerDescriptor, handler: H) -> Self {\n";
+    out << "        Self { descriptor, handler }\n";
+    out << "    }\n\n";
+    out << "    pub fn handle(\n";
+    out << "        &self,\n";
+    out << "        route_name: &str,\n";
+    out << "        context: &ApiRequestContext,\n";
+    out << "    ) -> BackendResult<Option<ApiResponse>> {\n";
+    out << "        let route = api_dispatcher::find_api_route(route_name);\n";
+    out << "        if !matches!(route, Some(ref value) if value.server_name == "
+           "self.descriptor.name) {\n";
+    out << "            return Ok(None);\n";
+    out << "        }\n";
+    out << "        api_dispatcher::dispatch_api_route(&self.handler, route_name, context)\n";
+    out << "    }\n";
+    out << "}\n\n";
+    out << "pub fn find_api_server(server_name: &str) -> Option<ApiServerDescriptor> {\n";
+    out << "    api_descriptors::api_server_descriptors()\n";
+    out << "        .into_iter()\n";
+    out << "        .find(|server| server.name == server_name)\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_external_system_operator_metadata_api_rs()
 {
     std::ostringstream out;
@@ -1880,6 +1919,14 @@ GenerationResult generate_rust_bindings(
                 generate_api_dispatcher_rs(),
                 GeneratedArtifactTier::Api,
                 "api/api_dispatcher.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/api_server.rs").string(),
+                generate_api_server_rs(),
+                GeneratedArtifactTier::Api,
+                "api/api_server.rs",
             }
         );
         result.files.push_back(

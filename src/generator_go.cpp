@@ -1568,6 +1568,37 @@ std::string generate_api_dispatcher_go()
     return out.str();
 }
 
+std::string generate_api_server_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << "type APITierServer struct {\n";
+    out << "\tDescriptor common.ApiServerDescriptor\n";
+    out << "\tHandler common.APIHandler\n";
+    out << "}\n\n";
+    out << "func FindAPITierServer(serverName string) (common.ApiServerDescriptor, bool) {\n";
+    out << "\tfor _, server := range APITierServerDescriptors() {\n";
+    out << "\t\tif server.Name == serverName {\n";
+    out << "\t\t\treturn server, true\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn common.ApiServerDescriptor{}, false\n";
+    out << "}\n\n";
+    out << "func (server APITierServer) Handle(ctx context.Context, routeName string, request "
+           "common.APIRequestContext) (common.APIResponse, bool, error) {\n";
+    out << "\troute, ok := FindAPITierRoute(routeName)\n";
+    out << "\tif !ok || route.ServerName != server.Descriptor.Name {\n";
+    out << "\t\treturn common.APIResponse{}, false, nil\n";
+    out << "\t}\n";
+    out << "\treturn DispatchAPITierRoute(ctx, server.Handler, routeName, request)\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_external_system_operator_metadata_api_go()
 {
     std::ostringstream out;
@@ -1748,6 +1779,14 @@ GenerationResult generate_go_bindings(
                 generate_api_dispatcher_go(),
                 GeneratedArtifactTier::Api,
                 "api/backend/api_dispatcher.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/backend/api_server.go").string(),
+                generate_api_server_go(),
+                GeneratedArtifactTier::Api,
+                "api/backend/api_server.go",
             }
         );
         result.files.push_back(
