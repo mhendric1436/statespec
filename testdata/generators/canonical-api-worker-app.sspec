@@ -1,0 +1,196 @@
+statespec 0.1;
+
+system CanonicalApiWorkerApp {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  shape StartProvisionRequest {
+    tenant_id string
+    service_id string
+    requested_plan string
+  }
+
+  shape StartProvisionResponse {
+    accepted bool
+    workflow_execution_id string
+  }
+
+  shape ProvisionCallbackRequest {
+    tenant_id string
+    service_id string
+    external_resource_id string
+  }
+
+  shape ProvisionCallbackResponse {
+    accepted bool
+  }
+
+  event ProvisionRequested {
+    fields {
+      tenant_id string
+      service_id string
+      requested_plan string
+    }
+  }
+
+  event ProvisionCompleted {
+    fields {
+      tenant_id string
+      service_id string
+      external_resource_id string
+    }
+  }
+
+  entity ServiceInstance {
+    key tenant_id, service_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      service_id string
+      requested_plan string
+      external_resource_id string?
+      workflow_execution_id string?
+    }
+    state_machine {
+      state Requested
+      state Provisioning
+      state Active
+      state Failed {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      initial Requested
+      terminal [Failed, Deleted]
+      Requested -> Provisioning
+      Provisioning -> Active
+      Provisioning -> Failed
+      Active -> Deleted
+    }
+    indexes {
+      unique by_tenant_service on tenant_id, service_id
+      index by_tenant_status on tenant_id, status
+    }
+  }
+
+  queue ProvisionCommands {
+    namespace canonical_app
+    channel provision_commands
+    visibility_timeout PT30S
+    max_attempts 5
+    message CreateRemoteService {
+      idempotency_key service_id
+      payload {
+        tenant_id string
+        service_id string
+        requested_plan string
+      }
+    }
+    message RemoteServiceReady {
+      idempotency_key service_id
+      payload {
+        tenant_id string
+        service_id string
+        external_resource_id string
+      }
+    }
+  }
+
+  lease ProvisionWorkerLease {
+    resource "canonical-app:provision-worker"
+    ttl PT30S
+    renew_every PT10S
+    holder worker_id
+    fencing_token true
+    max_ttl PT5M
+  }
+
+  worker ProvisionWorker {
+    singleton true
+    lease ProvisionWorkerLease
+    polls ProvisionCommands.CreateRemoteService
+    executes ProvisionService
+    concurrency 4
+  }
+
+  workflow ProvisionService {
+    version 1
+    singleton false
+    expected_execution_time PT5M
+    start validate_request
+    on ProvisionRequested
+    input StartProvisionRequest
+    load ServiceInstance by service_id as service;
+
+    step validate_request {
+      expected_execution_time PT10S
+      max_retries 2
+      require service.status != "deleted";
+      transition_to create_remote_service;
+    }
+
+    step create_remote_service {
+      expected_execution_time PT30S
+      max_retries 3
+      enqueue ProvisionCommands.CreateRemoteService {
+        tenant_id = service.tenant_id;
+        service_id = service.service_id;
+        requested_plan = service.requested_plan;
+      }
+      transition_to wait_for_remote_service;
+    }
+
+    step wait_for_remote_service {
+      expected_execution_time PT60S
+      max_retries 10
+      emit ProvisionCompleted;
+      complete
+    }
+  }
+
+  api StartProvision {
+    method POST
+    path "/v1/tenants/{tenant_id}/services/{service_id}/provision"
+    input StartProvisionRequest
+    output StartProvisionResponse
+    starts workflow ProvisionService
+  }
+
+  api ReportProvisionReady {
+    method POST
+    path "/internal/v1/tenants/{tenant_id}/services/{service_id}/ready"
+    input ProvisionCallbackRequest
+    output ProvisionCallbackResponse
+    enqueues ProvisionCommands.RemoteServiceReady
+  }
+
+  api_server ProvisionApi {
+    serves StartProvision
+    serves ReportProvisionReady
+    concurrency 16
+  }
+
+  policy ProvisionOperators {
+    tenant scoped_by tenant_id
+    allow StartProvision when caller.role == operator;
+    allow ReportProvisionReady when caller.role == worker;
+    audit StartProvision;
+    audit ReportProvisionReady;
+  }
+}

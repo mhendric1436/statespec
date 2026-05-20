@@ -1,4 +1,4 @@
-TEST_SCRIPTS := external_system_metadata_tests.sh
+TEST_SCRIPTS := external_system_metadata_tests.sh canonical_api_worker_app_tests.sh
 REPO_DIR := ../../..
 DEFAULT_CLI := $(abspath $(REPO_DIR)/build/bin/statespec)
 CLI ?= $(DEFAULT_CLI)
