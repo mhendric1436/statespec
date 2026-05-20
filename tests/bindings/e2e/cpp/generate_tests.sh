@@ -33,6 +33,7 @@ common/json.hpp
 common/lease.hpp
 common/log.hpp
 common/memory/backend.hpp
+common/memory/codec.hpp
 common/memory/feature_flag_store.hpp
 common/memory/lease_store.hpp
 common/memory/log_sink.hpp

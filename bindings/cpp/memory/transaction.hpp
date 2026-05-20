@@ -1,13 +1,8 @@
 #pragma once
 
 #include "../backend.hpp"
-#include "../feature_flag.hpp"
-#include "../lease.hpp"
-#include "../log.hpp"
-#include "../metric.hpp"
-#include "../queue.hpp"
-#include "../workflow.hpp"
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -23,28 +18,9 @@ namespace detail
 struct InMemoryState
 {
     std::mutex mutex;
+    std::map<CollectionName, CollectionDescriptor> collections;
     std::map<CollectionName, std::map<Key, VersionedRecord>> records;
     std::map<std::string, Version> versions;
-    std::map<CollectionName, CollectionDescriptor> collections;
-
-    std::map<std::string, FeatureFlagDefinition> feature_flag_definitions;
-    std::map<std::string, FeatureFlagValue> feature_flag_values;
-
-    std::map<std::string, QueueDefinition> queue_definitions;
-    std::map<std::string, QueueMessageRecord> queue_messages;
-    std::map<std::string, std::string> queue_idempotency_keys;
-
-    std::map<std::string, LeaseDefinition> lease_definitions;
-    std::map<std::string, LeaseRecord> leases;
-
-    std::map<std::string, WorkflowDefinition> workflow_definitions;
-    std::map<std::string, WorkflowExecutionRecord> workflow_executions;
-
-    std::map<std::string, LogDefinition> log_definitions;
-    std::vector<LogEvent> log_events;
-
-    std::map<std::string, MetricDefinition> metric_definitions;
-    std::vector<MetricSample> metric_samples;
 };
 
 inline std::string record_version_key(
@@ -87,25 +63,156 @@ class InMemoryTransaction : public ITransaction
         read_versions_.clear();
         puts_.clear();
         erases_.clear();
-        feature_flag_definition_puts_.clear();
-        feature_flag_value_puts_.clear();
-        queue_definition_puts_.clear();
-        queue_message_puts_.clear();
-        queue_idempotency_puts_.clear();
-        lease_definition_puts_.clear();
-        lease_puts_.clear();
-        lease_erases_.clear();
-        workflow_definition_puts_.clear();
-        workflow_execution_puts_.clear();
-        log_definition_puts_.clear();
-        log_event_appends_.clear();
-        metric_definition_puts_.clear();
-        metric_sample_appends_.clear();
     }
 
-    detail::InMemoryState& state()
+    std::optional<VersionedRecord>
+    get(const CollectionName& collection,
+        const Key& key)
     {
-        return *state_;
+        require_open();
+        const auto version_key = detail::record_version_key(collection, key);
+
+        if (erases_.find(version_key) != erases_.end())
+        {
+            return std::nullopt;
+        }
+        if (const auto staged = puts_.find(version_key); staged != puts_.end())
+        {
+            return staged->second;
+        }
+
+        std::lock_guard<std::mutex> lock(state_->mutex);
+        const auto collection_iter = state_->records.find(collection);
+        if (collection_iter == state_->records.end())
+        {
+            record_read(version_key, 0);
+            return std::nullopt;
+        }
+        const auto record_iter = collection_iter->second.find(key);
+        if (record_iter == collection_iter->second.end())
+        {
+            record_read(version_key, 0);
+            return std::nullopt;
+        }
+        record_read(version_key, record_iter->second.version);
+        return record_iter->second;
+    }
+
+    std::vector<VersionedRecord> query(
+        const CollectionName& collection,
+        const Query& query
+    )
+    {
+        require_open();
+        std::vector<VersionedRecord> records;
+        {
+            std::lock_guard<std::mutex> lock(state_->mutex);
+            if (const auto collection_iter = state_->records.find(collection);
+                collection_iter != state_->records.end())
+            {
+                for (const auto& [_, record] : collection_iter->second)
+                {
+                    if (puts_.find(detail::record_version_key(record.collection, record.key)) ==
+                        puts_.end())
+                    {
+                        records.push_back(record);
+                    }
+                }
+            }
+        }
+
+        for (const auto& [_, record] : puts_)
+        {
+            if (record.collection == collection)
+            {
+                records.push_back(record);
+            }
+        }
+
+        records.erase(
+            std::remove_if(
+                records.begin(), records.end(),
+                [&](const VersionedRecord& record)
+                {
+                    return erases_.find(
+                               detail::record_version_key(record.collection, record.key)
+                           ) != erases_.end();
+                }
+            ),
+            records.end()
+        );
+
+        std::vector<VersionedRecord> matched;
+        for (const auto& record : records)
+        {
+            if (matches(record, query))
+            {
+                record_read(
+                    detail::record_version_key(record.collection, record.key), record.version
+                );
+                matched.push_back(record);
+            }
+        }
+        return matched;
+    }
+
+    void
+    put(const CollectionName& collection,
+        const Key& key,
+        Json document)
+    {
+        require_open();
+        (void)get(collection, key);
+        const auto version_key = detail::record_version_key(collection, key);
+        puts_[version_key] = VersionedRecord{collection, key, 0, std::move(document)};
+        erases_.erase(version_key);
+    }
+
+    void erase(
+        const CollectionName& collection,
+        const Key& key
+    )
+    {
+        require_open();
+        (void)get(collection, key);
+        const auto version_key = detail::record_version_key(collection, key);
+        puts_.erase(version_key);
+        erases_.insert(version_key);
+    }
+
+    void commit()
+    {
+        require_open();
+        std::lock_guard<std::mutex> lock(state_->mutex);
+        for (const auto& [version_key, expected_version] : read_versions_)
+        {
+            if (detail::version_or_zero(state_->versions, version_key) != expected_version)
+            {
+                throw ConflictError(ConflictKind::VersionConflict, "in-memory OCC conflict");
+            }
+        }
+
+        for (const auto& version_key : erases_)
+        {
+            erase_record(*state_, version_key);
+            ++state_->versions[version_key];
+        }
+        for (auto& [version_key, record] : puts_)
+        {
+            record.version = ++state_->versions[version_key];
+            state_->records[record.collection][record.key] = record;
+        }
+
+        abort();
+    }
+
+  private:
+    void require_open() const
+    {
+        if (!open_)
+        {
+            throw BackendError("in-memory backend requires an open InMemoryTransaction");
+        }
     }
 
     void record_read(
@@ -116,172 +223,80 @@ class InMemoryTransaction : public ITransaction
         read_versions_.emplace(version_key, version);
     }
 
-    void stage_put(
-        const CollectionName& collection,
-        const Key& key,
-        Json document
+    static bool matches(
+        const VersionedRecord& record,
+        const Query& query
     )
     {
-        puts_[detail::record_version_key(collection, key)] =
-            VersionedRecord{collection, key, 0, std::move(document)};
-        erases_.erase(detail::record_version_key(collection, key));
+        switch (query.kind)
+        {
+        case Query::Kind::All:
+            return true;
+        case Query::Kind::KeyPrefix:
+            return query.key_prefix.has_value() && record.key.rfind(*query.key_prefix, 0) == 0;
+        case Query::Kind::JsonEquals:
+            return query.json_path.has_value() && query.json_value.has_value() &&
+                   json_path_equals(record.document, *query.json_path, *query.json_value);
+        default:
+            return true;
+        }
     }
 
-    void stage_erase(
-        const CollectionName& collection,
-        const Key& key
+    static bool json_path_equals(
+        const Json& document,
+        const std::string& path,
+        const Json& expected
     )
     {
-        const auto version_key = detail::record_version_key(collection, key);
-        puts_.erase(version_key);
-        erases_.insert(version_key);
+        const Json* current = &document;
+        std::size_t begin = 0;
+        while (begin <= path.size())
+        {
+            const auto end = path.find('.', begin);
+            const auto segment = path.substr(begin, end == std::string::npos ? end : end - begin);
+            current = current->find(segment);
+            if (current == nullptr)
+            {
+                return false;
+            }
+            if (end == std::string::npos)
+            {
+                break;
+            }
+            begin = end + 1;
+        }
+        return *current == expected;
     }
 
-    const std::map<
-        std::string,
-        Version>&
-    read_versions() const
+    static void erase_record(
+        detail::InMemoryState& state,
+        const std::string& version_key
+    )
     {
-        return read_versions_;
+        const auto prefix = std::string{"record:"};
+        if (version_key.rfind(prefix, 0) != 0)
+        {
+            return;
+        }
+        const auto separator = version_key.find(':', prefix.size());
+        if (separator == std::string::npos)
+        {
+            return;
+        }
+        const auto collection = version_key.substr(prefix.size(), separator - prefix.size());
+        const auto key = version_key.substr(separator + 1);
+        if (auto collection_iter = state.records.find(collection);
+            collection_iter != state.records.end())
+        {
+            collection_iter->second.erase(key);
+        }
     }
 
-    std::map<
-        std::string,
-        VersionedRecord>&
-    puts()
-    {
-        return puts_;
-    }
-
-    std::set<std::string>& erases()
-    {
-        return erases_;
-    }
-
-    std::map<
-        std::string,
-        FeatureFlagDefinition>&
-    feature_flag_definition_puts()
-    {
-        return feature_flag_definition_puts_;
-    }
-
-    std::map<
-        std::string,
-        FeatureFlagValue>&
-    feature_flag_value_puts()
-    {
-        return feature_flag_value_puts_;
-    }
-
-    std::map<
-        std::string,
-        QueueDefinition>&
-    queue_definition_puts()
-    {
-        return queue_definition_puts_;
-    }
-
-    std::map<
-        std::string,
-        QueueMessageRecord>&
-    queue_message_puts()
-    {
-        return queue_message_puts_;
-    }
-
-    std::map<
-        std::string,
-        std::string>&
-    queue_idempotency_puts()
-    {
-        return queue_idempotency_puts_;
-    }
-
-    std::map<
-        std::string,
-        LeaseDefinition>&
-    lease_definition_puts()
-    {
-        return lease_definition_puts_;
-    }
-
-    std::map<
-        std::string,
-        LeaseRecord>&
-    lease_puts()
-    {
-        return lease_puts_;
-    }
-
-    std::set<std::string>& lease_erases()
-    {
-        return lease_erases_;
-    }
-
-    std::map<
-        std::string,
-        WorkflowDefinition>&
-    workflow_definition_puts()
-    {
-        return workflow_definition_puts_;
-    }
-
-    std::map<
-        std::string,
-        WorkflowExecutionRecord>&
-    workflow_execution_puts()
-    {
-        return workflow_execution_puts_;
-    }
-
-    std::map<
-        std::string,
-        LogDefinition>&
-    log_definition_puts()
-    {
-        return log_definition_puts_;
-    }
-
-    std::vector<LogEvent>& log_event_appends()
-    {
-        return log_event_appends_;
-    }
-
-    std::map<
-        std::string,
-        MetricDefinition>&
-    metric_definition_puts()
-    {
-        return metric_definition_puts_;
-    }
-
-    std::vector<MetricSample>& metric_sample_appends()
-    {
-        return metric_sample_appends_;
-    }
-
-  private:
     std::shared_ptr<detail::InMemoryState> state_;
     bool open_ = true;
     std::map<std::string, Version> read_versions_;
     std::map<std::string, VersionedRecord> puts_;
     std::set<std::string> erases_;
-
-    std::map<std::string, FeatureFlagDefinition> feature_flag_definition_puts_;
-    std::map<std::string, FeatureFlagValue> feature_flag_value_puts_;
-    std::map<std::string, QueueDefinition> queue_definition_puts_;
-    std::map<std::string, QueueMessageRecord> queue_message_puts_;
-    std::map<std::string, std::string> queue_idempotency_puts_;
-    std::map<std::string, LeaseDefinition> lease_definition_puts_;
-    std::map<std::string, LeaseRecord> lease_puts_;
-    std::set<std::string> lease_erases_;
-    std::map<std::string, WorkflowDefinition> workflow_definition_puts_;
-    std::map<std::string, WorkflowExecutionRecord> workflow_execution_puts_;
-    std::map<std::string, LogDefinition> log_definition_puts_;
-    std::vector<LogEvent> log_event_appends_;
-    std::map<std::string, MetricDefinition> metric_definition_puts_;
-    std::vector<MetricSample> metric_sample_appends_;
 };
 
 inline InMemoryTransaction& as_memory_tx(ITransaction& tx)

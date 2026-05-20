@@ -1,6 +1,7 @@
 #pragma once
 
 #include "backend.hpp"
+#include "codec.hpp"
 
 namespace statespec::backend::memory
 {
@@ -13,6 +14,7 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
         const FeatureFlagDefinition& definition
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         auto result = register_definitionTx(*tx, definition);
         backend.commit(*tx);
@@ -26,7 +28,10 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
     {
         auto& memory_tx = as_memory_tx(tx);
         const auto existing = inspect_definitionTx(memory_tx, definition.name);
-        memory_tx.feature_flag_definition_puts().insert_or_assign(definition.name, definition);
+        memory_tx.put(
+            kDefinitionsCollection, definition.name,
+            detail::feature_flag_definition_to_json(definition)
+        );
         return FeatureFlagRegisterDefinitionResult{!existing.has_value(), definition};
     }
 
@@ -46,19 +51,12 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
         const std::string& name
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        if (const auto staged = memory_tx.feature_flag_definition_puts().find(name);
-            staged != memory_tx.feature_flag_definition_puts().end())
+        auto record = as_memory_tx(tx).get(kDefinitionsCollection, name);
+        if (!record.has_value())
         {
-            return staged->second;
+            return std::nullopt;
         }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().feature_flag_definitions.find(name);
-            iter != memory_tx.state().feature_flag_definitions.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::feature_flag_definition_from_json(record->document);
     }
 
     FeatureFlagValue evaluate(
@@ -78,19 +76,10 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
     ) override
     {
         auto& memory_tx = as_memory_tx(tx);
-        const auto value_key = evaluation_key(request);
-        if (const auto staged = memory_tx.feature_flag_value_puts().find(value_key);
-            staged != memory_tx.feature_flag_value_puts().end())
+        if (const auto record = memory_tx.get(kValuesCollection, evaluation_key(request));
+            record.has_value())
         {
-            return staged->second;
-        }
-        {
-            std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-            if (const auto iter = memory_tx.state().feature_flag_values.find(value_key);
-                iter != memory_tx.state().feature_flag_values.end())
-            {
-                return iter->second;
-            }
+            return detail::feature_flag_value_from_json(record->document);
         }
         const auto definition = inspect_definitionTx(memory_tx, request.name);
         if (!definition.has_value())
@@ -106,11 +95,23 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
         FeatureFlagValue value
     )
     {
-        auto& memory_tx = as_memory_tx(tx);
-        memory_tx.feature_flag_value_puts().insert_or_assign(evaluation_key(request), value);
+        as_memory_tx(tx).put(
+            kValuesCollection, evaluation_key(request), detail::feature_flag_value_to_json(value)
+        );
     }
 
   private:
+    static constexpr const char* kDefinitionsCollection = "statespec_feature_flag_definitions";
+    static constexpr const char* kValuesCollection = "statespec_feature_flag_values";
+
+    static void ensure_collections(IBackend& backend)
+    {
+        backend.ensure_collections(
+            {CollectionDescriptor{.name = kDefinitionsCollection, .key_fields = {"name"}},
+             CollectionDescriptor{.name = kValuesCollection, .key_fields = {"scope_key"}}}
+        );
+    }
+
     static std::string evaluation_key(const FeatureFlagEvaluationRequest& request)
     {
         return request.name + "|tenant:" + request.context.tenant_id.value_or("") +

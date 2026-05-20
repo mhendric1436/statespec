@@ -1868,6 +1868,9 @@ GenerationResult generate_cpp_bindings(
         diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, "memory/codec.hpp", "memory/codec.hpp", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, "memory/feature_flag_store.hpp",
         "memory/feature_flag_store.hpp", diagnostics
     );

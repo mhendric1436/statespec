@@ -1,6 +1,7 @@
 #pragma once
 
 #include "backend.hpp"
+#include "codec.hpp"
 
 #include <algorithm>
 
@@ -15,6 +16,7 @@ class InMemoryQueueStore : public IQueueStore
         const RegisterQueueDefinitionRequest& request
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         auto result = register_definitionTx(*tx, request);
         backend.commit(*tx);
@@ -30,7 +32,9 @@ class InMemoryQueueStore : public IQueueStore
         const auto key = definition_key(request.definition.queue, request.definition.channel);
         const auto existing =
             inspect_definitionTx(memory_tx, request.definition.queue, request.definition.channel);
-        memory_tx.queue_definition_puts().insert_or_assign(key, request.definition);
+        memory_tx.put(
+            kDefinitionsCollection, key, detail::queue_definition_to_json(request.definition)
+        );
         return QueueDefinitionRegistration{request.definition, !existing.has_value()};
     }
 
@@ -52,20 +56,13 @@ class InMemoryQueueStore : public IQueueStore
         const std::string& channel
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto key = definition_key(queue, channel);
-        if (const auto staged = memory_tx.queue_definition_puts().find(key);
-            staged != memory_tx.queue_definition_puts().end())
+        const auto record =
+            as_memory_tx(tx).get(kDefinitionsCollection, definition_key(queue, channel));
+        if (!record.has_value())
         {
-            return staged->second;
+            return std::nullopt;
         }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().queue_definitions.find(key);
-            iter != memory_tx.state().queue_definitions.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::queue_definition_from_json(record->document);
     }
 
     QueueMessageRecord enqueue(
@@ -73,6 +70,7 @@ class InMemoryQueueStore : public IQueueStore
         const EnqueueMessageRequest& request
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         auto result = enqueueTx(*tx, request);
         backend.commit(*tx);
@@ -89,27 +87,14 @@ class InMemoryQueueStore : public IQueueStore
         {
             const auto idempotency_key =
                 definition_key(request.queue, request.channel) + "|" + *request.idempotency_key;
-            if (const auto staged = memory_tx.queue_idempotency_puts().find(idempotency_key);
-                staged != memory_tx.queue_idempotency_puts().end())
+            if (const auto existing = memory_tx.get(kIdempotencyCollection, idempotency_key);
+                existing.has_value())
             {
-                return *inspectTx(memory_tx, staged->second);
+                return *inspectTx(memory_tx, existing->document.at("message_id").as_string());
             }
-            std::optional<std::string> existing_message_id;
-            {
-                std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-                if (const auto iter =
-                        memory_tx.state().queue_idempotency_keys.find(idempotency_key);
-                    iter != memory_tx.state().queue_idempotency_keys.end())
-                {
-                    existing_message_id = iter->second;
-                }
-            }
-            if (existing_message_id.has_value())
-            {
-                return *inspectTx(memory_tx, *existing_message_id);
-            }
-            memory_tx.queue_idempotency_puts().insert_or_assign(
-                idempotency_key, request.message_id
+            memory_tx.put(
+                kIdempotencyCollection, idempotency_key,
+                Json::object({{"message_id", request.message_id}})
             );
         }
 
@@ -119,7 +104,9 @@ class InMemoryQueueStore : public IQueueStore
         record.channel = request.channel;
         record.status = "Pending";
         record.payload = request.payload;
-        memory_tx.queue_message_puts().insert_or_assign(record.message_id, record);
+        memory_tx.put(
+            kMessagesCollection, record.message_id, detail::queue_message_to_json(record)
+        );
         return record;
     }
 
@@ -164,7 +151,9 @@ class InMemoryQueueStore : public IQueueStore
             message.claimed_by = request.claimant;
             message.claim_expires_at = request.now + request.visibility_timeout;
             ++message.attempts;
-            memory_tx.queue_message_puts().insert_or_assign(message.message_id, message);
+            memory_tx.put(
+                kMessagesCollection, message.message_id, detail::queue_message_to_json(message)
+            );
             claimed.push_back(message);
         }
         return claimed;
@@ -189,7 +178,9 @@ class InMemoryQueueStore : public IQueueStore
         auto message = require_message(memory_tx, request.message_id);
         require_claimant(message, request.claimant);
         message.status = "Acked";
-        memory_tx.queue_message_puts().insert_or_assign(message.message_id, message);
+        memory_tx.put(
+            kMessagesCollection, message.message_id, detail::queue_message_to_json(message)
+        );
     }
 
     QueueMessageRecord fail(
@@ -214,7 +205,9 @@ class InMemoryQueueStore : public IQueueStore
         message.claimed_by.reset();
         message.claim_expires_at.reset();
         message.status = message.attempts >= request.max_attempts ? "DeadLettered" : "Pending";
-        memory_tx.queue_message_puts().insert_or_assign(message.message_id, message);
+        memory_tx.put(
+            kMessagesCollection, message.message_id, detail::queue_message_to_json(message)
+        );
         return message;
     }
 
@@ -234,22 +227,30 @@ class InMemoryQueueStore : public IQueueStore
         const std::string& message_id
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        if (const auto staged = memory_tx.queue_message_puts().find(message_id);
-            staged != memory_tx.queue_message_puts().end())
+        const auto record = as_memory_tx(tx).get(kMessagesCollection, message_id);
+        if (!record.has_value())
         {
-            return staged->second;
+            return std::nullopt;
         }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().queue_messages.find(message_id);
-            iter != memory_tx.state().queue_messages.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::queue_message_from_json(record->document);
     }
 
   private:
+    static constexpr const char* kDefinitionsCollection = "statespec_queue_definitions";
+    static constexpr const char* kMessagesCollection = "statespec_queue_messages";
+    static constexpr const char* kIdempotencyCollection = "statespec_queue_idempotency";
+
+    static void ensure_collections(IBackend& backend)
+    {
+        backend.ensure_collections(
+            {CollectionDescriptor{.name = kDefinitionsCollection, .key_fields = {"queue"}},
+             CollectionDescriptor{.name = kMessagesCollection, .key_fields = {"message_id"}},
+             CollectionDescriptor{
+                 .name = kIdempotencyCollection, .key_fields = {"idempotency_key"}
+             }}
+        );
+    }
+
     static std::string definition_key(
         const std::string& queue,
         const std::string& channel
@@ -261,16 +262,9 @@ class InMemoryQueueStore : public IQueueStore
     static std::vector<QueueMessageRecord> all_messages(InMemoryTransaction& memory_tx)
     {
         std::vector<QueueMessageRecord> messages;
+        for (const auto& record : memory_tx.query(kMessagesCollection, Query::all()))
         {
-            std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-            for (const auto& [_, message] : memory_tx.state().queue_messages)
-            {
-                messages.push_back(message);
-            }
-        }
-        for (const auto& [_, message] : memory_tx.queue_message_puts())
-        {
-            messages.push_back(message);
+            messages.push_back(detail::queue_message_from_json(record.document));
         }
         return messages;
     }

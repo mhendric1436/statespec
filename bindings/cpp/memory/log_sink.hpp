@@ -1,6 +1,7 @@
 #pragma once
 
 #include "backend.hpp"
+#include "codec.hpp"
 
 namespace statespec::backend::memory
 {
@@ -13,6 +14,7 @@ class InMemoryLogSink : public ILogSink
         const LogDefinition& definition
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         auto result = register_definitionTx(*tx, definition);
         backend.commit(*tx);
@@ -26,7 +28,9 @@ class InMemoryLogSink : public ILogSink
     {
         auto& memory_tx = as_memory_tx(tx);
         const auto existing = inspect_definitionTx(memory_tx, definition.name);
-        memory_tx.log_definition_puts().insert_or_assign(definition.name, definition);
+        memory_tx.put(
+            kDefinitionsCollection, definition.name, detail::log_definition_to_json(definition)
+        );
         return LogDefinitionRegistration{!existing.has_value(), definition};
     }
 
@@ -46,19 +50,12 @@ class InMemoryLogSink : public ILogSink
         const std::string& name
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        if (const auto staged = memory_tx.log_definition_puts().find(name);
-            staged != memory_tx.log_definition_puts().end())
+        auto record = as_memory_tx(tx).get(kDefinitionsCollection, name);
+        if (!record.has_value())
         {
-            return staged->second;
+            return std::nullopt;
         }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().log_definitions.find(name);
-            iter != memory_tx.state().log_definitions.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::log_definition_from_json(record->document);
     }
 
     void emit_log(
@@ -66,6 +63,7 @@ class InMemoryLogSink : public ILogSink
         const LogEvent& event
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         emit_logTx(*tx, event);
         backend.commit(*tx);
@@ -76,16 +74,43 @@ class InMemoryLogSink : public ILogSink
         const LogEvent& event
     ) override
     {
-        as_memory_tx(tx).log_event_appends().push_back(event);
+        as_memory_tx(tx).put(
+            kEventsCollection, next_event_key(event.name), detail::log_event_to_json(event)
+        );
     }
 
     std::vector<LogEvent> inspect_events(IBackend& backend)
     {
         auto tx = backend.begin();
-        auto& memory_tx = as_memory_tx(*tx);
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        return memory_tx.state().log_events;
+        auto records = backend.query(*tx, kEventsCollection, Query::all());
+        backend.commit(*tx);
+
+        std::vector<LogEvent> events;
+        for (const auto& record : records)
+        {
+            events.push_back(detail::log_event_from_json(record.document));
+        }
+        return events;
     }
+
+  private:
+    static constexpr const char* kDefinitionsCollection = "statespec_log_definitions";
+    static constexpr const char* kEventsCollection = "statespec_log_events";
+
+    static void ensure_collections(IBackend& backend)
+    {
+        backend.ensure_collections(
+            {CollectionDescriptor{.name = kDefinitionsCollection, .key_fields = {"name"}},
+             CollectionDescriptor{.name = kEventsCollection, .key_fields = {"event_id"}}}
+        );
+    }
+
+    std::string next_event_key(const std::string& name)
+    {
+        return name + ":" + std::to_string(++next_event_id_);
+    }
+
+    std::uint64_t next_event_id_ = 0;
 };
 
 } // namespace statespec::backend::memory

@@ -37,6 +37,7 @@ C++:
 ```text
 common/memory/backend.hpp
 common/memory/transaction.hpp
+common/memory/codec.hpp
 common/memory/feature_flag_store.hpp
 common/memory/queue_store.hpp
 common/memory/lease_store.hpp

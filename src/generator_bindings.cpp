@@ -179,6 +179,8 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "memory_backend";
     case BindingAppArtifactKind::MemoryTransaction:
         return "memory_transaction";
+    case BindingAppArtifactKind::MemoryCodec:
+        return "memory_codec";
     case BindingAppArtifactKind::MemoryFeatureFlagStore:
         return "memory_feature_flag_store";
     case BindingAppArtifactKind::MemoryQueueStore:
@@ -232,6 +234,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "In-memory backend composition root for local API and worker linking"},
             {"common/memory/transaction.hpp", common, Kind::MemoryTransaction,
              "In-memory optimistic-concurrency transaction"},
+            {"common/memory/codec.hpp", common, Kind::MemoryCodec,
+             "In-memory runtime record JSON codec"},
             {"common/memory/feature_flag_store.hpp", common, Kind::MemoryFeatureFlagStore,
              "In-memory feature flag store"},
             {"common/memory/queue_store.hpp", common, Kind::MemoryQueueStore,

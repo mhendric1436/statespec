@@ -1,6 +1,7 @@
 #pragma once
 
 #include "backend.hpp"
+#include "codec.hpp"
 
 namespace statespec::backend::memory
 {
@@ -13,6 +14,7 @@ class InMemoryMetricSink : public IMetricSink
         const MetricDefinition& definition
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         auto result = register_definitionTx(*tx, definition);
         backend.commit(*tx);
@@ -26,7 +28,9 @@ class InMemoryMetricSink : public IMetricSink
     {
         auto& memory_tx = as_memory_tx(tx);
         const auto existing = inspect_definitionTx(memory_tx, definition.name);
-        memory_tx.metric_definition_puts().insert_or_assign(definition.name, definition);
+        memory_tx.put(
+            kDefinitionsCollection, definition.name, detail::metric_definition_to_json(definition)
+        );
         return MetricDefinitionRegistration{!existing.has_value(), definition};
     }
 
@@ -46,19 +50,12 @@ class InMemoryMetricSink : public IMetricSink
         const std::string& name
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        if (const auto staged = memory_tx.metric_definition_puts().find(name);
-            staged != memory_tx.metric_definition_puts().end())
+        auto record = as_memory_tx(tx).get(kDefinitionsCollection, name);
+        if (!record.has_value())
         {
-            return staged->second;
+            return std::nullopt;
         }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().metric_definitions.find(name);
-            iter != memory_tx.state().metric_definitions.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::metric_definition_from_json(record->document);
     }
 
     void record_metric(
@@ -66,6 +63,7 @@ class InMemoryMetricSink : public IMetricSink
         const MetricSample& sample
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         record_metricTx(*tx, sample);
         backend.commit(*tx);
@@ -76,16 +74,43 @@ class InMemoryMetricSink : public IMetricSink
         const MetricSample& sample
     ) override
     {
-        as_memory_tx(tx).metric_sample_appends().push_back(sample);
+        as_memory_tx(tx).put(
+            kSamplesCollection, next_sample_key(sample.name), detail::metric_sample_to_json(sample)
+        );
     }
 
     std::vector<MetricSample> inspect_samples(IBackend& backend)
     {
         auto tx = backend.begin();
-        auto& memory_tx = as_memory_tx(*tx);
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        return memory_tx.state().metric_samples;
+        auto records = backend.query(*tx, kSamplesCollection, Query::all());
+        backend.commit(*tx);
+
+        std::vector<MetricSample> samples;
+        for (const auto& record : records)
+        {
+            samples.push_back(detail::metric_sample_from_json(record.document));
+        }
+        return samples;
     }
+
+  private:
+    static constexpr const char* kDefinitionsCollection = "statespec_metric_definitions";
+    static constexpr const char* kSamplesCollection = "statespec_metric_samples";
+
+    static void ensure_collections(IBackend& backend)
+    {
+        backend.ensure_collections(
+            {CollectionDescriptor{.name = kDefinitionsCollection, .key_fields = {"name"}},
+             CollectionDescriptor{.name = kSamplesCollection, .key_fields = {"sample_id"}}}
+        );
+    }
+
+    std::string next_sample_key(const std::string& name)
+    {
+        return name + ":" + std::to_string(++next_sample_id_);
+    }
+
+    std::uint64_t next_sample_id_ = 0;
 };
 
 } // namespace statespec::backend::memory

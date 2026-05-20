@@ -33,6 +33,7 @@ enum class BindingAppArtifactKind
 {
     MemoryBackend,
     MemoryTransaction,
+    MemoryCodec,
     MemoryFeatureFlagStore,
     MemoryQueueStore,
     MemoryLeaseStore,

@@ -287,6 +287,10 @@ void test_binding_app_artifact_kind_names()
         "memory_transaction", "memory transaction artifact kind name"
     );
     require_string_equal(
+        statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::MemoryCodec),
+        "memory_codec", "memory codec artifact kind name"
+    );
+    require_string_equal(
         statespec::binding_app_artifact_kind_name(
             statespec::BindingAppArtifactKind::ApiApplication
         ),
@@ -320,6 +324,7 @@ void test_binding_app_artifact_models_define_application_filenames()
         {
             {"common/memory/backend.hpp", common, Kind::MemoryBackend},
             {"common/memory/transaction.hpp", common, Kind::MemoryTransaction},
+            {"common/memory/codec.hpp", common, Kind::MemoryCodec},
             {"common/memory/feature_flag_store.hpp", common, Kind::MemoryFeatureFlagStore},
             {"common/memory/queue_store.hpp", common, Kind::MemoryQueueStore},
             {"common/memory/lease_store.hpp", common, Kind::MemoryLeaseStore},
@@ -680,6 +685,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/workflow.hpp", common},
             {"common/memory/backend.hpp", common},
             {"common/memory/transaction.hpp", common},
+            {"common/memory/codec.hpp", common},
             {"common/memory/feature_flag_store.hpp", common},
             {"common/memory/queue_store.hpp", common},
             {"common/memory/lease_store.hpp", common},

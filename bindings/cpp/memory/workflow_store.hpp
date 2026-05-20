@@ -1,8 +1,7 @@
 #pragma once
 
 #include "backend.hpp"
-
-#include <algorithm>
+#include "codec.hpp"
 
 namespace statespec::backend::memory
 {
@@ -15,6 +14,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const RegisterWorkflowDefinitionRequest& request
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         auto result = register_definitionTx(*tx, request);
         backend.commit(*tx);
@@ -30,9 +30,10 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const auto existing = inspect_definitionTx(
             memory_tx, request.definition.workflow_name, request.definition.workflow_version
         );
-        memory_tx.workflow_definition_puts().insert_or_assign(
+        memory_tx.put(
+            kDefinitionsCollection,
             definition_key(request.definition.workflow_name, request.definition.workflow_version),
-            request.definition
+            detail::workflow_definition_to_json(request.definition)
         );
         return WorkflowDefinitionRegistration{request.definition, !existing.has_value()};
     }
@@ -55,20 +56,14 @@ class InMemoryWorkflowStore : public IWorkflowStore
         std::int64_t workflow_version
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto key = definition_key(workflow_name, workflow_version);
-        if (const auto staged = memory_tx.workflow_definition_puts().find(key);
-            staged != memory_tx.workflow_definition_puts().end())
+        const auto record = as_memory_tx(tx).get(
+            kDefinitionsCollection, definition_key(workflow_name, workflow_version)
+        );
+        if (!record.has_value())
         {
-            return staged->second;
+            return std::nullopt;
         }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().workflow_definitions.find(key);
-            iter != memory_tx.state().workflow_definitions.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::workflow_definition_from_json(record->document);
     }
 
     WorkflowExecutionRecord start(
@@ -76,6 +71,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const StartWorkflowRequest& request
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         auto result = startTx(*tx, request);
         backend.commit(*tx);
@@ -100,7 +96,10 @@ class InMemoryWorkflowStore : public IWorkflowStore
         record.current_step = request.start_step;
         record.status = "Running";
         record.state = request.state;
-        memory_tx.workflow_execution_puts().insert_or_assign(record.workflow_execution_id, record);
+        memory_tx.put(
+            kExecutionsCollection, record.workflow_execution_id,
+            detail::workflow_execution_to_json(record)
+        );
         return record;
     }
 
@@ -146,8 +145,9 @@ class InMemoryWorkflowStore : public IWorkflowStore
             execution.claimed_by = request.worker;
             execution.claim_expires_at = request.now + request.lease_duration;
             ++execution.attempt;
-            memory_tx.workflow_execution_puts().insert_or_assign(
-                execution.workflow_execution_id, execution
+            memory_tx.put(
+                kExecutionsCollection, execution.workflow_execution_id,
+                detail::workflow_execution_to_json(execution)
             );
             claimed.push_back(execution);
         }
@@ -174,8 +174,9 @@ class InMemoryWorkflowStore : public IWorkflowStore
         auto execution = require_execution(memory_tx, request.workflow_execution_id);
         require_claim(execution, request.worker, request.current_step);
         execution.claim_expires_at = request.now + request.lease_duration;
-        memory_tx.workflow_execution_puts().insert_or_assign(
-            execution.workflow_execution_id, execution
+        memory_tx.put(
+            kExecutionsCollection, execution.workflow_execution_id,
+            detail::workflow_execution_to_json(execution)
         );
         return execution;
     }
@@ -211,8 +212,9 @@ class InMemoryWorkflowStore : public IWorkflowStore
         {
             execution.status = "Completed";
         }
-        memory_tx.workflow_execution_puts().insert_or_assign(
-            execution.workflow_execution_id, execution
+        memory_tx.put(
+            kExecutionsCollection, execution.workflow_execution_id,
+            detail::workflow_execution_to_json(execution)
         );
         return execution;
     }
@@ -239,8 +241,9 @@ class InMemoryWorkflowStore : public IWorkflowStore
         execution.claimed_by.reset();
         execution.claim_expires_at.reset();
         execution.status = execution.attempt >= request.max_attempts ? "Failed" : "Running";
-        memory_tx.workflow_execution_puts().insert_or_assign(
-            execution.workflow_execution_id, execution
+        memory_tx.put(
+            kExecutionsCollection, execution.workflow_execution_id,
+            detail::workflow_execution_to_json(execution)
         );
         return execution;
     }
@@ -266,8 +269,9 @@ class InMemoryWorkflowStore : public IWorkflowStore
         execution.status = "Canceled";
         execution.claimed_by.reset();
         execution.claim_expires_at.reset();
-        memory_tx.workflow_execution_puts().insert_or_assign(
-            execution.workflow_execution_id, execution
+        memory_tx.put(
+            kExecutionsCollection, execution.workflow_execution_id,
+            detail::workflow_execution_to_json(execution)
         );
         return execution;
     }
@@ -288,22 +292,30 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const std::string& workflow_execution_id
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        if (const auto staged = memory_tx.workflow_execution_puts().find(workflow_execution_id);
-            staged != memory_tx.workflow_execution_puts().end())
+        const auto record = as_memory_tx(tx).get(kExecutionsCollection, workflow_execution_id);
+        if (!record.has_value())
         {
-            return staged->second;
+            return std::nullopt;
         }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().workflow_executions.find(workflow_execution_id);
-            iter != memory_tx.state().workflow_executions.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::workflow_execution_from_json(record->document);
     }
 
   private:
+    static constexpr const char* kDefinitionsCollection = "statespec_workflow_definitions";
+    static constexpr const char* kExecutionsCollection = "statespec_workflow_executions";
+
+    static void ensure_collections(IBackend& backend)
+    {
+        backend.ensure_collections(
+            {CollectionDescriptor{
+                 .name = kDefinitionsCollection, .key_fields = {"workflow_definition"}
+             },
+             CollectionDescriptor{
+                 .name = kExecutionsCollection, .key_fields = {"workflow_execution_id"}
+             }}
+        );
+    }
+
     static std::string definition_key(
         const std::string& workflow_name,
         std::int64_t workflow_version
@@ -315,16 +327,9 @@ class InMemoryWorkflowStore : public IWorkflowStore
     static std::vector<WorkflowExecutionRecord> all_executions(InMemoryTransaction& memory_tx)
     {
         std::vector<WorkflowExecutionRecord> executions;
+        for (const auto& record : memory_tx.query(kExecutionsCollection, Query::all()))
         {
-            std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-            for (const auto& [_, execution] : memory_tx.state().workflow_executions)
-            {
-                executions.push_back(execution);
-            }
-        }
-        for (const auto& [_, execution] : memory_tx.workflow_execution_puts())
-        {
-            executions.push_back(execution);
+            executions.push_back(detail::workflow_execution_from_json(record.document));
         }
         return executions;
     }

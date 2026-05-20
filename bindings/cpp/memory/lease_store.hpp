@@ -1,6 +1,7 @@
 #pragma once
 
 #include "backend.hpp"
+#include "codec.hpp"
 
 namespace statespec::backend::memory
 {
@@ -13,6 +14,7 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseDefinition& definition
     ) override
     {
+        ensure_collections(backend);
         auto tx = backend.begin();
         auto result = register_definitionTx(*tx, definition);
         backend.commit(*tx);
@@ -26,8 +28,9 @@ class InMemoryLeaseStore : public ILeaseStore
     {
         auto& memory_tx = as_memory_tx(tx);
         const auto existing = inspect_definitionTx(memory_tx, definition.id);
-        memory_tx.lease_definition_puts().insert_or_assign(
-            definition_key(definition.id), definition
+        memory_tx.put(
+            kDefinitionsCollection, definition_key(definition.id),
+            detail::lease_definition_to_json(definition)
         );
         return LeaseRegisterDefinitionResult{!existing.has_value(), definition};
     }
@@ -48,20 +51,13 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseDefinitionId& definition_id
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto key = definition_key(definition_id);
-        if (const auto staged = memory_tx.lease_definition_puts().find(key);
-            staged != memory_tx.lease_definition_puts().end())
+        const auto record =
+            as_memory_tx(tx).get(kDefinitionsCollection, definition_key(definition_id));
+        if (!record.has_value())
         {
-            return staged->second;
+            return std::nullopt;
         }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().lease_definitions.find(key);
-            iter != memory_tx.state().lease_definitions.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::lease_definition_from_json(record->document);
     }
 
     LeaseAcquireResult acquire(
@@ -96,8 +92,9 @@ class InMemoryLeaseStore : public ILeaseStore
         lease.holder = request.holder;
         lease.expires_at = request.now + definition.ttl;
         lease.fencing_token = existing.has_value() ? existing->fencing_token + 1 : 1;
-        memory_tx.lease_puts().insert_or_assign(
-            lease_key(request.definition_id, request.resource), lease
+        memory_tx.put(
+            kLeasesCollection, lease_key(request.definition_id, request.resource),
+            detail::lease_record_to_json(lease)
         );
         return LeaseAcquireResult{true, lease};
     }
@@ -123,8 +120,9 @@ class InMemoryLeaseStore : public ILeaseStore
         auto lease = require_lease(memory_tx, request.definition_id, request.resource);
         require_holder(lease, request.holder, request.fencing_token);
         lease.expires_at = request.now + definition.ttl;
-        memory_tx.lease_puts().insert_or_assign(
-            lease_key(request.definition_id, request.resource), lease
+        memory_tx.put(
+            kLeasesCollection, lease_key(request.definition_id, request.resource),
+            detail::lease_record_to_json(lease)
         );
         return lease;
     }
@@ -147,7 +145,7 @@ class InMemoryLeaseStore : public ILeaseStore
         auto& memory_tx = as_memory_tx(tx);
         auto lease = require_lease(memory_tx, request.definition_id, request.resource);
         require_holder(lease, request.holder, request.fencing_token);
-        memory_tx.lease_erases().insert(lease_key(request.definition_id, request.resource));
+        memory_tx.erase(kLeasesCollection, lease_key(request.definition_id, request.resource));
     }
 
     std::optional<LeaseRecord> inspect(
@@ -166,27 +164,30 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseInspectRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto key = lease_key(request.definition_id, request.resource);
-        if (memory_tx.lease_erases().find(key) != memory_tx.lease_erases().end())
+        const auto record = as_memory_tx(tx).get(
+            kLeasesCollection, lease_key(request.definition_id, request.resource)
+        );
+        if (!record.has_value())
         {
             return std::nullopt;
         }
-        if (const auto staged = memory_tx.lease_puts().find(key);
-            staged != memory_tx.lease_puts().end())
-        {
-            return staged->second;
-        }
-        std::lock_guard<std::mutex> lock(memory_tx.state().mutex);
-        if (const auto iter = memory_tx.state().leases.find(key);
-            iter != memory_tx.state().leases.end())
-        {
-            return iter->second;
-        }
-        return std::nullopt;
+        return detail::lease_record_from_json(record->document);
     }
 
   private:
+    static constexpr const char* kDefinitionsCollection = "statespec_lease_definitions";
+    static constexpr const char* kLeasesCollection = "statespec_leases";
+
+    static void ensure_collections(IBackend& backend)
+    {
+        backend.ensure_collections(
+            {CollectionDescriptor{
+                 .name = kDefinitionsCollection, .key_fields = {"lease_definition"}
+             },
+             CollectionDescriptor{.name = kLeasesCollection, .key_fields = {"lease"}}}
+        );
+    }
+
     static std::string definition_key(const LeaseDefinitionId& id)
     {
         return id.name + ":" + std::to_string(id.version);
