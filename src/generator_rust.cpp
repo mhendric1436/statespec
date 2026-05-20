@@ -386,7 +386,7 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "use crate::log::{LogDefinition as RuntimeLogDefinition, LogLevel, LogSink};\n";
     out << "use crate::metric::{MetricDefinition as RuntimeMetricDefinition, MetricKind, "
            "MetricSink};\n";
-    out << "use crate::queue::{CreateQueueRequest, QueueDefinition, QueueStore};\n";
+    out << "use crate::queue::{RegisterQueueDefinitionRequest, QueueDefinition, QueueStore};\n";
     out << "use crate::workflow::{RegisterWorkflowDefinitionRequest, WorkflowDefinition, "
            "WorkflowStepDefinition, WorkflowStore};\n\n";
     out << "#[derive(Debug, Clone)]\n";
@@ -1552,12 +1552,13 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    Ok(())\n";
     out << "}\n\n";
 
-    out << "pub fn create_queue_definitions_tx<B: Backend, S: QueueStore<B>>(\n";
+    out << "pub fn register_queue_definitions_tx<B: Backend, S: QueueStore<B>>(\n";
     out << "    tx: &mut B::Tx,\n";
     out << "    store: &S,\n";
     out << ") -> BackendResult<()> {\n";
     out << "    for definition in queue_definitions() {\n";
-    out << "        store.create_tx(tx, &CreateQueueRequest { definition })?;\n";
+    out << "        store.register_definition_tx(tx, &RegisterQueueDefinitionRequest { definition "
+           "})?;\n";
     out << "    }\n";
     out << "    Ok(())\n";
     out << "}\n\n";
@@ -1656,7 +1657,7 @@ std::string generate_descriptors_rs(const IrSystem& system)
     out << "    M: MetricSink<B>,\n";
     out << "{\n";
     out << "    register_feature_flag_definitions_tx(tx, feature_flag_store)?;\n";
-    out << "    create_queue_definitions_tx(tx, queue_store)?;\n";
+    out << "    register_queue_definitions_tx(tx, queue_store)?;\n";
     out << "    register_lease_definitions_tx(tx, lease_store)?;\n";
     out << "    register_workflow_definitions_tx(tx, workflow_store)?;\n";
     out << "    register_observability_catalog_tx(tx, log_sink, metric_sink)\n";

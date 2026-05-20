@@ -208,8 +208,8 @@ Leases provide exclusive ownership, expiry, and fencing-token semantics.
 Defined in [`Queue.java`](com/statespec/backend/Queue.java):
 
 ```java
-create(...)
-createTx(...)
+registerDefinition(...)
+registerDefinitionTx(...)
 inspectDefinition(...)
 inspectDefinitionTx(...)
 enqueue(...)

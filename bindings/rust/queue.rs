@@ -14,12 +14,12 @@ pub struct QueueDefinition {
 }
 
 #[derive(Debug, Clone)]
-pub struct CreateQueueRequest {
+pub struct RegisterQueueDefinitionRequest {
     pub definition: QueueDefinition,
 }
 
 #[derive(Debug, Clone)]
-pub struct QueueCreation {
+pub struct QueueDefinitionRegistration {
     pub definition: QueueDefinition,
     pub created: bool,
 }
@@ -71,9 +71,9 @@ pub struct FailMessageRequest {
 }
 
 pub trait QueueStore<B: Backend> {
-    fn create(&self, backend: &B, request: &CreateQueueRequest) -> BackendResult<QueueCreation>;
+    fn register_definition(&self, backend: &B, request: &RegisterQueueDefinitionRequest) -> BackendResult<QueueDefinitionRegistration>;
 
-    fn create_tx(&self, tx: &mut B::Tx, request: &CreateQueueRequest) -> BackendResult<QueueCreation>;
+    fn register_definition_tx(&self, tx: &mut B::Tx, request: &RegisterQueueDefinitionRequest) -> BackendResult<QueueDefinitionRegistration>;
 
     fn inspect_definition(
         &self,

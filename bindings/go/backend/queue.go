@@ -14,11 +14,11 @@ type QueueDefinition struct {
 	Metadata          JSON
 }
 
-type CreateQueueRequest struct {
+type RegisterQueueDefinitionRequest struct {
 	Definition QueueDefinition
 }
 
-type QueueCreation struct {
+type QueueDefinitionRegistration struct {
 	Definition QueueDefinition
 	Created    bool
 }
@@ -65,9 +65,9 @@ type FailMessageRequest struct {
 }
 
 type QueueStore interface {
-	Create(ctx context.Context, backend Backend, request CreateQueueRequest) (QueueCreation, error)
+	RegisterDefinition(ctx context.Context, backend Backend, request RegisterQueueDefinitionRequest) (QueueDefinitionRegistration, error)
 
-	CreateTx(ctx context.Context, tx Transaction, request CreateQueueRequest) (QueueCreation, error)
+	RegisterDefinitionTx(ctx context.Context, tx Transaction, request RegisterQueueDefinitionRequest) (QueueDefinitionRegistration, error)
 
 	InspectDefinition(ctx context.Context, backend Backend, queue string, channel string) (*QueueDefinition, error)
 

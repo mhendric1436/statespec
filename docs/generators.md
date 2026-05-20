@@ -251,10 +251,10 @@ The generated transaction-scoped runtime bootstrap APIs are:
 
 | Language | Feature flags | Queues | Leases | Full catalog |
 |---|---|---|---|---|
-| C++ | `register_feature_flag_definitionsTx` | `create_queue_definitionsTx` | `register_lease_definitionsTx` | `register_runtime_catalogTx` |
-| Go | `RegisterFeatureFlagDefinitionsTx` | `CreateQueueDefinitionsTx` | `RegisterLeaseDefinitionsTx` | `RegisterRuntimeCatalogTx` |
-| Java | `registerFeatureFlagDefinitionsTx` | `createQueueDefinitionsTx` | `registerLeaseDefinitionsTx` | `registerRuntimeCatalogTx` |
-| Rust | `register_feature_flag_definitions_tx` | `create_queue_definitions_tx` | `register_lease_definitions_tx` | `register_runtime_catalog_tx` |
+| C++ | `register_feature_flag_definitionsTx` | `register_queue_definitionsTx` | `register_lease_definitionsTx` | `register_runtime_catalogTx` |
+| Go | `RegisterFeatureFlagDefinitionsTx` | `RegisterQueueDefinitionsTx` | `RegisterLeaseDefinitionsTx` | `RegisterRuntimeCatalogTx` |
+| Java | `registerFeatureFlagDefinitionsTx` | `registerQueueDefinitionsTx` | `registerLeaseDefinitionsTx` | `registerRuntimeCatalogTx` |
+| Rust | `register_feature_flag_definitions_tx` | `register_queue_definitions_tx` | `register_lease_definitions_tx` | `register_runtime_catalog_tx` |
 
 These helpers accept caller-managed OCC transaction objects and backend catalog stores,
 matching the binding model used for leases, queues, workflows, logs, and metrics.

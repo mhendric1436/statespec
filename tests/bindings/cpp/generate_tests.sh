@@ -155,7 +155,7 @@ assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "struct Met
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "metric_definitions"
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "ensure_system_collections"
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "register_feature_flag_definitionsTx"
-assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "create_queue_definitionsTx"
+assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "register_queue_definitionsTx"
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "register_lease_definitionsTx"
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "register_runtime_catalogTx"
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "register_observability_catalogTx"

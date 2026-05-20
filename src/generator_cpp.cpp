@@ -1657,14 +1657,17 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << "    }\n";
     out << "}\n\n";
 
-    out << "inline void create_queue_definitionsTx(\n";
+    out << "inline void register_queue_definitionsTx(\n";
     out << "    statespec::backend::ITransaction& tx,\n";
     out << "    statespec::backend::IQueueStore& store\n";
     out << ")\n";
     out << "{\n";
     out << "    for (const auto& definition : queue_definitions())\n";
     out << "    {\n";
-    out << "        store.createTx(tx, statespec::backend::CreateQueueRequest{definition});\n";
+    out << "        store.register_definitionTx(\n";
+    out << "            tx,\n";
+    out << "            statespec::backend::RegisterQueueDefinitionRequest{definition}\n";
+    out << "        );\n";
     out << "    }\n";
     out << "}\n\n";
 
@@ -1768,7 +1771,7 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     out << ")\n";
     out << "{\n";
     out << "    register_feature_flag_definitionsTx(tx, feature_flag_store);\n";
-    out << "    create_queue_definitionsTx(tx, queue_store);\n";
+    out << "    register_queue_definitionsTx(tx, queue_store);\n";
     out << "    register_lease_definitionsTx(tx, lease_store);\n";
     out << "    register_workflow_definitionsTx(tx, workflow_store);\n";
     out << "    register_observability_catalogTx(tx, log_sink, metric_sink);\n";
@@ -1898,12 +1901,12 @@ std::string generate_worker_queues_header()
     out << "{\n";
     out << "    return ::statespec_generated::queue_definitions();\n";
     out << "}\n\n";
-    out << "inline void create_queue_definitionsTx(\n";
+    out << "inline void register_queue_definitionsTx(\n";
     out << "    statespec::backend::ITransaction& tx,\n";
     out << "    statespec::backend::IQueueStore& queue_store\n";
     out << ")\n";
     out << "{\n";
-    out << "    ::statespec_generated::create_queue_definitionsTx(tx, queue_store);\n";
+    out << "    ::statespec_generated::register_queue_definitionsTx(tx, queue_store);\n";
     out << "}\n\n";
     out << "} // namespace statespec_generated::worker\n";
     return out.str();

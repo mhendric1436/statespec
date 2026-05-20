@@ -145,7 +145,7 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptor
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "metricDefinitions"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "ensureSystemCollections"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "registerFeatureFlagDefinitionsTx"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "createQueueDefinitionsTx"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "registerQueueDefinitionsTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "registerLeaseDefinitionsTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "registerRuntimeCatalogTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "new IndexDescriptor"

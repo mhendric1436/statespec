@@ -242,8 +242,8 @@ Leases provide exclusive ownership, expiry, and fencing-token semantics.
 Defined in [`queue.hpp`](queue.hpp):
 
 ```cpp
-create(...)
-createTx(...)
+register_definition(...)
+register_definitionTx(...)
 inspect_definition(...)
 inspect_definitionTx(...)
 enqueue(...)

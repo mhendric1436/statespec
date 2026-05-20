@@ -1397,10 +1397,14 @@ std::string generate_descriptors_go(const IrSystem& system)
     out << "\treturn nil\n";
     out << "}\n\n";
 
-    out << "func CreateQueueDefinitionsTx(ctx context.Context, tx Transaction, store QueueStore) "
+    out << "func RegisterQueueDefinitionsTx(ctx context.Context, tx Transaction, store QueueStore) "
            "error {\n";
     out << "\tfor _, definition := range QueueDefinitions() {\n";
-    out << "\t\t_, err := store.CreateTx(ctx, tx, CreateQueueRequest{Definition: definition})\n";
+    out << "\t\t_, err := store.RegisterDefinitionTx(\n";
+    out << "\t\t\tctx,\n";
+    out << "\t\t\ttx,\n";
+    out << "\t\t\tRegisterQueueDefinitionRequest{Definition: definition},\n";
+    out << "\t\t)\n";
     out << "\t\tif err != nil {\n";
     out << "\t\t\treturn err\n";
     out << "\t\t}\n";
@@ -1480,7 +1484,7 @@ std::string generate_descriptors_go(const IrSystem& system)
            "{\n";
     out << "\t\treturn err\n";
     out << "\t}\n";
-    out << "\tif err := CreateQueueDefinitionsTx(ctx, tx, queueStore); err != nil {\n";
+    out << "\tif err := RegisterQueueDefinitionsTx(ctx, tx, queueStore); err != nil {\n";
     out << "\t\treturn err\n";
     out << "\t}\n";
     out << "\tif err := RegisterLeaseDefinitionsTx(ctx, tx, leaseStore); err != nil {\n";
@@ -1588,9 +1592,9 @@ std::string generate_worker_queues_go()
     out << "func WorkerTierQueueDefinitions() []common.QueueDefinition {\n";
     out << "\treturn common.QueueDefinitions()\n";
     out << "}\n\n";
-    out << "func WorkerTierCreateQueueDefinitionsTx(ctx context.Context, tx common.Transaction, "
+    out << "func WorkerTierRegisterQueueDefinitionsTx(ctx context.Context, tx common.Transaction, "
            "store common.QueueStore) error {\n";
-    out << "\treturn common.CreateQueueDefinitionsTx(ctx, tx, store)\n";
+    out << "\treturn common.RegisterQueueDefinitionsTx(ctx, tx, store)\n";
     out << "}\n\n";
     return out.str();
 }

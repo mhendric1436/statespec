@@ -212,10 +212,11 @@ metrics through backend-managed calls, or it may use `Tx` variants to make each 
 part of the same caller-managed transaction that mutates entity, queue, lease, or
 workflow state.
 
-Queues are created explicitly and idempotently with `QueueDefinition` and
-`CreateQueueRequest`. The queue identity is the pair `(queue, channel)`. `QueueCreation`
-returns the registered definition and whether the queue definition was newly created. If
-the same queue definition is already registered, creation may return `created = false`.
+Queues are registered explicitly and idempotently with `QueueDefinition` and
+`RegisterQueueDefinitionRequest`. The queue identity is the pair `(queue, channel)`.
+`QueueDefinitionRegistration` returns the registered definition and whether the queue
+definition was newly created. If the same queue definition is already registered,
+registration may return `created = false`.
 
 Queue definitions include visibility timeout, maximum attempts, optional dead-letter
 queue, and metadata. Enqueue and claim operations should target an existing queue

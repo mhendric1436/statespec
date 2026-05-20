@@ -155,7 +155,7 @@ assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct Metric
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn metric_definitions() -> Vec<MetricDefinition>"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn ensure_system_collections"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn register_feature_flag_definitions_tx"
-assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn create_queue_definitions_tx"
+assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn register_queue_definitions_tx"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn register_lease_definitions_tx"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn register_runtime_catalog_tx"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn register_observability_catalog_tx"

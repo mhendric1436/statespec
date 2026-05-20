@@ -20,11 +20,11 @@ public interface Queue
     {
     }
 
-    record CreateQueueRequest(QueueDefinition definition)
+    record RegisterQueueDefinitionRequest(QueueDefinition definition)
     {
     }
 
-    record QueueCreation(
+    record QueueDefinitionRegistration(
         QueueDefinition definition,
         boolean created
     )
@@ -82,14 +82,14 @@ public interface Queue
     {
     }
 
-    QueueCreation create(
+    QueueDefinitionRegistration registerDefinition(
         Backend backend,
-        CreateQueueRequest request
+        RegisterQueueDefinitionRequest request
     ) throws BackendException;
 
-    QueueCreation createTx(
+    QueueDefinitionRegistration registerDefinitionTx(
         Transaction tx,
-        CreateQueueRequest request
+        RegisterQueueDefinitionRequest request
     ) throws BackendException;
 
     Optional<QueueDefinition> inspectDefinition(

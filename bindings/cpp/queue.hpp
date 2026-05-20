@@ -23,12 +23,12 @@ struct QueueDefinition
     Json metadata;
 };
 
-struct CreateQueueRequest
+struct RegisterQueueDefinitionRequest
 {
     QueueDefinition definition;
 };
 
-struct QueueCreation
+struct QueueDefinitionRegistration
 {
     QueueDefinition definition;
     bool created = false;
@@ -85,14 +85,14 @@ class IQueueStore
   public:
     virtual ~IQueueStore() = default;
 
-    virtual QueueCreation create(
+    virtual QueueDefinitionRegistration register_definition(
         IBackend& backend,
-        const CreateQueueRequest& request
+        const RegisterQueueDefinitionRequest& request
     ) = 0;
 
-    virtual QueueCreation createTx(
+    virtual QueueDefinitionRegistration register_definitionTx(
         ITransaction& tx,
-        const CreateQueueRequest& request
+        const RegisterQueueDefinitionRequest& request
     ) = 0;
 
     virtual std::optional<QueueDefinition> inspect_definition(

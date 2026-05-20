@@ -200,8 +200,8 @@ Leases provide exclusive ownership, expiry, and fencing-token semantics.
 Defined in [`queue.rs`](queue.rs):
 
 ```rust
-create(...)
-create_tx(...)
+register_definition(...)
+register_definition_tx(...)
 inspect_definition(...)
 inspect_definition_tx(...)
 enqueue(...)

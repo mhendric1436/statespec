@@ -222,8 +222,8 @@ Leases provide exclusive ownership, expiry, and fencing-token semantics.
 Defined in [`backend/queue.go`](backend/queue.go):
 
 ```go
-Create(...)
-CreateTx(...)
+RegisterDefinition(...)
+RegisterDefinitionTx(...)
 InspectDefinition(...)
 InspectDefinitionTx(...)
 Enqueue(...)

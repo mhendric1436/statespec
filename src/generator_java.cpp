@@ -1546,12 +1546,15 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        }\n";
     out << "    }\n\n";
 
-    out << "    public static void createQueueDefinitionsTx(\n";
+    out << "    public static void registerQueueDefinitionsTx(\n";
     out << "        Backend.Transaction tx,\n";
     out << "        Queue store\n";
     out << "    ) throws Backend.BackendException {\n";
     out << "        for (var definition : queueDefinitions()) {\n";
-    out << "            store.createTx(tx, new Queue.CreateQueueRequest(definition));\n";
+    out << "            store.registerDefinitionTx(\n";
+    out << "                tx,\n";
+    out << "                new Queue.RegisterQueueDefinitionRequest(definition)\n";
+    out << "            );\n";
     out << "        }\n";
     out << "    }\n\n";
 
@@ -1630,7 +1633,7 @@ std::string generate_descriptors_java(const IrSystem& system)
     out << "        Metric metricSink\n";
     out << "    ) throws Backend.BackendException {\n";
     out << "        registerFeatureFlagDefinitionsTx(tx, featureFlagStore);\n";
-    out << "        createQueueDefinitionsTx(tx, queueStore);\n";
+    out << "        registerQueueDefinitionsTx(tx, queueStore);\n";
     out << "        registerLeaseDefinitionsTx(tx, leaseStore);\n";
     out << "        registerWorkflowDefinitionsTx(tx, workflowStore);\n";
     out << "        registerObservabilityCatalogTx(tx, logSink, metricSink);\n";
@@ -1744,11 +1747,11 @@ std::string generate_worker_queues_java()
     out << "    public static List<Queue.QueueDefinition> queueDefinitions() {\n";
     out << "        return Descriptors.queueDefinitions();\n";
     out << "    }\n\n";
-    out << "    public static void createQueueDefinitionsTx(\n";
+    out << "    public static void registerQueueDefinitionsTx(\n";
     out << "        Backend.Transaction tx,\n";
     out << "        Queue queueStore\n";
     out << "    ) throws Backend.BackendException {\n";
-    out << "        Descriptors.createQueueDefinitionsTx(tx, queueStore);\n";
+    out << "        Descriptors.registerQueueDefinitionsTx(tx, queueStore);\n";
     out << "    }\n\n";
     out << "}\n";
     return out.str();

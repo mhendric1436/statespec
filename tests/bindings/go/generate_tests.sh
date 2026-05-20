@@ -148,7 +148,7 @@ assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type Metric
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func MetricDefinitions() []MetricDefinition"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func EnsureSystemCollections(ctx context.Context, backend Backend) error"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func RegisterFeatureFlagDefinitionsTx"
-assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func CreateQueueDefinitionsTx"
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func RegisterQueueDefinitionsTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func RegisterLeaseDefinitionsTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func RegisterRuntimeCatalogTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func RegisterObservabilityCatalogTx"
