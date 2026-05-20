@@ -1859,6 +1859,38 @@ GenerationResult generate_cpp_bindings(
     add_template_file(
         result, options.output_dir, templates, "workflow.hpp", "workflow.hpp", diagnostics
     );
+    add_template_file(
+        result, options.output_dir, templates, "memory/transaction.hpp", "memory/transaction.hpp",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/backend.hpp", "memory/backend.hpp",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/feature_flag_store.hpp",
+        "memory/feature_flag_store.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/queue_store.hpp", "memory/queue_store.hpp",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/lease_store.hpp", "memory/lease_store.hpp",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/workflow_store.hpp",
+        "memory/workflow_store.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/log_sink.hpp", "memory/log_sink.hpp",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/metric_sink.hpp", "memory/metric_sink.hpp",
+        diagnostics
+    );
 
     if (!diagnostics.has_errors())
     {

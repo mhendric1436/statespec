@@ -2,6 +2,13 @@
 #include "external_system.hpp"
 #include "feature_flag.hpp"
 #include "log.hpp"
+#include "memory/backend.hpp"
+#include "memory/feature_flag_store.hpp"
+#include "memory/lease_store.hpp"
+#include "memory/log_sink.hpp"
+#include "memory/metric_sink.hpp"
+#include "memory/queue_store.hpp"
+#include "memory/workflow_store.hpp"
 #include "metric.hpp"
 
 #include "catch2/catch_amalgamated.hpp"
@@ -253,4 +260,135 @@ TEST_CASE("C++ metric bindings expose typed samples")
     REQUIRE(sample.backend_name == "workflow_launch_attempts_total");
     REQUIRE(sample.value == 1.0);
     REQUIRE(sample.labels["workflow_name"].as_string() == "OrderProcessing");
+}
+
+TEST_CASE("C++ in-memory backend composes runtime stores")
+{
+    using namespace statespec::backend;
+    using namespace statespec::backend::memory;
+
+    InMemoryBackend backend;
+    InMemoryFeatureFlagStore feature_flags;
+    InMemoryQueueStore queues;
+    InMemoryLeaseStore leases;
+    InMemoryWorkflowStore workflows;
+    InMemoryLogSink logs;
+    InMemoryMetricSink metrics;
+
+    backend.ensure_collection(CollectionDescriptor{.name = "orders", .key_fields = {"order_id"}});
+    auto tx = backend.begin();
+    backend.put(
+        *tx, "orders", "order-1", Json::object({{"order_id", "order-1"}, {"status", "Pending"}})
+    );
+
+    FeatureFlagDefinition flag{
+        .name = "NewScheduler",
+        .type = FeatureFlagType::Bool,
+        .default_value = FeatureFlagValue::bool_value(true),
+        .scope = FeatureFlagScopeKind::Tenant,
+    };
+    feature_flags.register_definitionTx(*tx, flag);
+
+    queues.register_definitionTx(
+        *tx, RegisterQueueDefinitionRequest{
+                 .definition = QueueDefinition{
+                     .queue = "OrderQueue",
+                     .channel = "orders",
+                     .visibility_timeout = std::chrono::seconds{30},
+                     .max_attempts = 3,
+                 },
+             }
+    );
+    queues.enqueueTx(
+        *tx, EnqueueMessageRequest{
+                 .message_id = "msg-1",
+                 .queue = "OrderQueue",
+                 .channel = "orders",
+                 .idempotency_key = "order-1",
+                 .payload = Json::object({{"order_id", "order-1"}}),
+             }
+    );
+
+    LeaseDefinitionId lease_id{.name = "OrderLease", .version = 1};
+    leases.register_definitionTx(
+        *tx, LeaseDefinition{
+                 .id = lease_id,
+                 .resource_pattern = "order:{order_id}",
+                 .ttl = std::chrono::seconds{60},
+                 .renew_every = std::chrono::seconds{30},
+             }
+    );
+
+    workflows.register_definitionTx(
+        *tx, RegisterWorkflowDefinitionRequest{
+                 .definition = WorkflowDefinition{
+                     .workflow_name = "OrderProcessing",
+                     .workflow_version = 1,
+                     .start_step = "validate_order",
+                     .expected_execution_time = std::chrono::seconds{60},
+                     .steps = {
+                         WorkflowStepDefinition{
+                             .name = "validate_order",
+                             .expected_execution_time = std::chrono::seconds{10},
+                             .max_retries = 2,
+                         },
+                     },
+                 },
+             }
+    );
+    workflows.startTx(
+        *tx, StartWorkflowRequest{
+                 .workflow_execution_id = "wf-1",
+                 .workflow_name = "OrderProcessing",
+                 .workflow_version = 1,
+                 .start_step = "validate_order",
+                 .state = Json::object({{"order_id", "order-1"}}),
+             }
+    );
+
+    logs.register_definitionTx(
+        *tx, LogDefinition{
+                 .name = "OrderLog",
+                 .level = LogLevel::Info,
+                 .event_name = "order.event",
+             }
+    );
+    logs.emit_logTx(*tx, LogEvent{.name = "OrderLog", .event_name = "order.event"});
+
+    metrics.register_definitionTx(
+        *tx, MetricDefinition{
+                 .name = "OrderAttempts",
+                 .kind = MetricKind::Counter,
+                 .backend_name = "order_attempts_total",
+                 .unit = "count",
+             }
+    );
+    metrics.record_metricTx(
+        *tx, MetricSample{
+                 .name = "OrderAttempts",
+                 .kind = MetricKind::Counter,
+                 .backend_name = "order_attempts_total",
+                 .value = 1.0,
+                 .unit = "count",
+             }
+    );
+    backend.commit(*tx);
+
+    auto read_tx = backend.begin();
+    REQUIRE(backend.get(*read_tx, "orders", "order-1").has_value());
+    REQUIRE(
+        feature_flags.evaluateTx(*read_tx, FeatureFlagEvaluationRequest{.name = "NewScheduler"})
+            .as_bool() == true
+    );
+    REQUIRE(queues.inspect_definitionTx(*read_tx, "OrderQueue", "orders").has_value());
+    REQUIRE(queues.inspectTx(*read_tx, "msg-1").has_value());
+    REQUIRE(leases.inspect_definitionTx(*read_tx, lease_id).has_value());
+    REQUIRE(workflows.inspect_definitionTx(*read_tx, "OrderProcessing", 1).has_value());
+    REQUIRE(workflows.inspectTx(*read_tx, "wf-1").has_value());
+    REQUIRE(logs.inspect_definitionTx(*read_tx, "OrderLog").has_value());
+    REQUIRE(metrics.inspect_definitionTx(*read_tx, "OrderAttempts").has_value());
+    backend.commit(*read_tx);
+
+    REQUIRE(logs.inspect_events(backend).size() == 1);
+    REQUIRE(metrics.inspect_samples(backend).size() == 1);
 }

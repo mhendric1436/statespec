@@ -1,11 +1,12 @@
 # In-Memory Backend Contract
 
-The generated in-memory backend is a planned common-tier runtime adapter for local
-development, generated app linking, and tests. It is not a production storage backend.
+The generated in-memory backend is a common-tier runtime adapter for local development,
+generated app linking, and tests. It is not a production storage backend.
 
 The in-memory backend exists so generated API apps and Worker apps can be compiled and
 exercised without a concrete database, queue service, lease service, workflow service,
-log backend, or metrics backend.
+log backend, or metrics backend. C++ emits the in-memory backend now; Go, Java, and Rust
+paths are part of the shared contract and are planned for follow-up implementation.
 
 ## Scope
 
@@ -77,8 +78,8 @@ common/memory/logs.rs
 common/memory/metrics.rs
 ```
 
-These paths are part of the cross-language artifact model even before the files are
-emitted by generators.
+These paths are part of the cross-language artifact model. C++ currently emits the
+listed files; Go, Java, and Rust are still contract-only.
 
 ## Shared State Model
 

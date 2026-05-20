@@ -56,11 +56,11 @@ that application code implements outside the generated output tree.
 The binding generators use a stable application artifact model for the planned complete
 API-server and worker applications plus a common-tier in-memory backend for local
 linking. The API server shell, API dispatcher, worker registry, worker application
-shell, workflow step handler interfaces, and workflow runner are emitted as the first
-generated application artifacts. The remaining application and memory backend files are
-still modeled as generated-owned artifacts but are not emitted yet. The current
-generators also emit the lower-level common, API contract, and worker contract files
-described above.
+shell, workflow step handler interfaces, workflow runner, and C++ in-memory backend are
+emitted as the first generated application artifacts. The remaining application files
+and non-C++ memory backend files are still modeled as generated-owned artifacts but are
+not emitted yet. The current generators also emit the lower-level common, API contract,
+and worker contract files described above.
 
 The common in-memory backend artifact responsibilities are:
 
@@ -114,7 +114,7 @@ Planned worker application filenames:
 | `java` | `worker/com/statespec/generated/WorkerApplication.java`, `worker/com/statespec/generated/WorkerRuntime.java`, `worker/com/statespec/generated/WorkerRegistry.java`, `worker/com/statespec/generated/WorkflowRunner.java`, `worker/com/statespec/generated/WorkflowStepHandlers.java`, `worker/com/statespec/generated/WorkerMain.java` |
 | `rust` | `worker/worker_application.rs`, `worker/worker_runtime.rs`, `worker/worker_registry.rs`, `worker/workflow_runner.rs`, `worker/workflow_step_handlers.rs`, `worker/main.rs` |
 
-Planned in-memory backend filenames:
+In-memory backend filenames:
 
 | Language | Files |
 |---|---|

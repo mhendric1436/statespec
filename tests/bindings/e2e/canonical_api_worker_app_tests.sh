@@ -34,6 +34,14 @@ common/feature_flag.hpp
 common/json.hpp
 common/lease.hpp
 common/log.hpp
+common/memory/backend.hpp
+common/memory/feature_flag_store.hpp
+common/memory/lease_store.hpp
+common/memory/log_sink.hpp
+common/memory/metric_sink.hpp
+common/memory/queue_store.hpp
+common/memory/transaction.hpp
+common/memory/workflow_store.hpp
 common/metric.hpp
 common/queue.hpp
 common/workflow.hpp

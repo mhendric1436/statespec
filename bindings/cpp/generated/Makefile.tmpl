@@ -26,7 +26,7 @@ $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
 check-common: $(BUILD_DIR)/.dir
-	printf '#include "common/descriptors.hpp"\nint main() { return 0; }\n' | $(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common
+	printf '#include "common/descriptors.hpp"\n#include "common/memory/backend.hpp"\n#include "common/memory/feature_flag_store.hpp"\n#include "common/memory/queue_store.hpp"\n#include "common/memory/lease_store.hpp"\n#include "common/memory/workflow_store.hpp"\n#include "common/memory/log_sink.hpp"\n#include "common/memory/metric_sink.hpp"\nint main() { return 0; }\n' | $(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common
 
 build-common: check-common
 

@@ -8,7 +8,7 @@ BIN_DIR := $(BUILD_DIR)/bin
 ROOT_DIR := ../..
 CATCH_SRC := $(ROOT_DIR)/third_party/catch2/catch_amalgamated.cpp
 JSON_TEST := $(BIN_DIR)/json_test
-FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(wildcard api/*.hpp.tmpl) $(wildcard worker/*.hpp.tmpl)
+FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(wildcard api/*.hpp.tmpl) $(wildcard worker/*.hpp.tmpl) $(wildcard memory/*.hpp)
 
 .PHONY: test build format clean help
 
@@ -20,7 +20,7 @@ build: $(JSON_TEST)
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
 
-$(JSON_TEST): json_test.cpp backend.hpp external_system.hpp feature_flag.hpp json.hpp log.hpp metric.hpp $(CATCH_SRC)
+$(JSON_TEST): json_test.cpp backend.hpp external_system.hpp feature_flag.hpp json.hpp log.hpp metric.hpp $(wildcard memory/*.hpp) $(CATCH_SRC)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party json_test.cpp $(CATCH_SRC) -o $@ $(LDFLAGS)
 
