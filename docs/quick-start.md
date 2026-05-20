@@ -187,6 +187,32 @@ The repository regression target for generated API and Worker app linking is:
 make test-generated-apps
 ```
 
+That target delegates to language-local E2E test directories:
+
+```text
+tests/bindings/e2e/
+  cpp/
+  go/
+  java/
+  rust/
+```
+
+Each language directory owns its generated app regression script and any linking fixtures
+needed by that language. Run one language directly when working on a single binding:
+
+```sh
+make -C tests/bindings/e2e/cpp test-cli CLI="$(pwd)/build/bin/statespec"
+make -C tests/bindings/e2e/go test-cli CLI="$(pwd)/build/bin/statespec"
+make -C tests/bindings/e2e/java test-cli CLI="$(pwd)/build/bin/statespec"
+make -C tests/bindings/e2e/rust test-cli CLI="$(pwd)/build/bin/statespec"
+```
+
+The aggregate E2E Makefile also supports formatting checks across the language fixtures:
+
+```sh
+make -C tests/bindings/e2e format-check
+```
+
 For the backend contract and per-language paths, see
 [in-memory-backend.md](in-memory-backend.md).
 
