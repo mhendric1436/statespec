@@ -269,6 +269,8 @@ std::string generate_rust_lib(BindingGenerationTier tier)
         out << "pub mod worker_registry;\n";
         out << "#[path = \"worker/worker_application.rs\"]\n";
         out << "pub mod worker_application;\n";
+        out << "#[path = \"worker/workflow_step_handlers.rs\"]\n";
+        out << "pub mod workflow_step_handlers;\n";
     }
 
     return out.str();
@@ -1842,6 +1844,37 @@ std::string generate_worker_application_rs()
     return out.str();
 }
 
+std::string generate_workflow_step_handlers_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "use crate::backend::BackendResult;\n";
+    out << "use crate::json::Json;\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct WorkflowStepHandlerContext {\n";
+    out << "    pub workflow_name: String,\n";
+    out << "    pub workflow_version: i64,\n";
+    out << "    pub step_name: String,\n";
+    out << "    pub execution_id: Option<String>,\n";
+    out << "    pub input: Json,\n";
+    out << "}\n\n";
+    out << "pub trait WorkflowStepHandler {\n";
+    out << "    fn handle_workflow_step(&self, context: &WorkflowStepHandlerContext) -> "
+           "BackendResult<()>;\n";
+    out << "}\n\n";
+    out << "pub fn workflow_step_handler_keys() -> Vec<&'static str> {\n";
+    out << "    vec![\n";
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "        " << rust_string(workflow.name + "." + step.name) << ",\n";
+        }
+    }
+    out << "    ]\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_rs()
 {
     std::ostringstream out;
@@ -2018,6 +2051,14 @@ GenerationResult generate_rust_bindings(
                 generate_worker_application_rs(),
                 GeneratedArtifactTier::Worker,
                 "worker/worker_application.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/workflow_step_handlers.rs").string(),
+                generate_workflow_step_handlers_rs(system),
+                GeneratedArtifactTier::Worker,
+                "worker/workflow_step_handlers.rs",
             }
         );
         result.files.push_back(

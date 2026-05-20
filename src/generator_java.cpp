@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace statespec
 {
@@ -1867,6 +1868,45 @@ std::string generate_worker_application_java()
     return out.str();
 }
 
+std::string generate_workflow_step_handlers_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import com.statespec.backend.Json;\n";
+    out << "import java.util.List;\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class WorkflowStepHandlers {\n";
+    out << "    private WorkflowStepHandlers() {}\n\n";
+    out << "    public record Context(\n";
+    out << "        String workflowName,\n";
+    out << "        long workflowVersion,\n";
+    out << "        String stepName,\n";
+    out << "        Optional<String> executionId,\n";
+    out << "        Json input\n";
+    out << "    ) {}\n\n";
+    out << "    public interface Handler {\n";
+    out << "        void handleWorkflowStep(Context context) throws Exception;\n";
+    out << "    }\n\n";
+    out << "    public static List<String> workflowStepHandlerKeys() {\n";
+    out << "        return List.of(\n";
+    std::vector<std::string> keys;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            keys.push_back(workflow.name + "." + step.name);
+        }
+    }
+    for (std::size_t i = 0; i < keys.size(); ++i)
+    {
+        out << "            " << java_string(keys[i]) << (i + 1 < keys.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_java()
 {
     std::ostringstream out;
@@ -2084,6 +2124,15 @@ GenerationResult generate_java_bindings(
                 generate_worker_application_java(),
                 GeneratedArtifactTier::Worker,
                 "worker/com/statespec/generated/WorkerApplication.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkflowStepHandlers.java")
+                    .string(),
+                generate_workflow_step_handlers_java(system),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkflowStepHandlers.java",
             }
         );
         result.files.push_back(

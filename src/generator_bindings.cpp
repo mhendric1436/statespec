@@ -218,7 +218,7 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"worker/workflow_runner.hpp", worker, Kind::WorkflowRunner,
              "Workflow claim and step runner"},
             {"worker/workflow_step_handlers.hpp", worker, Kind::WorkflowStepHandlers,
-             "Workflow step handler extension point"},
+             "Workflow step handler extension point", true},
             {"worker/main.cpp", worker, Kind::WorkerMain, "Worker process entrypoint"},
         };
     case BindingLanguage::Go:
@@ -241,7 +241,7 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"worker/backend/workflow_runner.go", worker, Kind::WorkflowRunner,
              "Workflow claim and step runner"},
             {"worker/backend/workflow_step_handlers.go", worker, Kind::WorkflowStepHandlers,
-             "Workflow step handler extension point"},
+             "Workflow step handler extension point", true},
             {"worker/cmd/worker/main.go", worker, Kind::WorkerMain, "Worker process entrypoint"},
         };
     case BindingLanguage::Java:
@@ -265,7 +265,7 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"worker/com/statespec/generated/WorkflowRunner.java", worker, Kind::WorkflowRunner,
              "Workflow claim and step runner"},
             {"worker/com/statespec/generated/WorkflowStepHandlers.java", worker,
-             Kind::WorkflowStepHandlers, "Workflow step handler extension point"},
+             Kind::WorkflowStepHandlers, "Workflow step handler extension point", true},
             {"worker/com/statespec/generated/WorkerMain.java", worker, Kind::WorkerMain,
              "Worker process entrypoint"},
         };
@@ -289,7 +289,7 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"worker/workflow_runner.rs", worker, Kind::WorkflowRunner,
              "Workflow claim and step runner"},
             {"worker/workflow_step_handlers.rs", worker, Kind::WorkflowStepHandlers,
-             "Workflow step handler extension point"},
+             "Workflow step handler extension point", true},
             {"worker/main.rs", worker, Kind::WorkerMain, "Worker process entrypoint"},
         };
     }

@@ -263,6 +263,7 @@ std::string generate_makefile(BindingGenerationTier tier)
                "#include \"worker/worker_queues.hpp\"\\n"
                "#include \"worker/worker_registry.hpp\"\\n"
                "#include \"worker/worker_workflows.hpp\"\\n"
+               "#include \"worker/workflow_step_handlers.hpp\"\\n"
                "int main() { return 0; }\\n' | "
                "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
     }
@@ -2055,6 +2056,46 @@ std::string generate_worker_application_header()
     return out.str();
 }
 
+std::string generate_workflow_step_handlers_header(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../common/system_descriptors.hpp\"\n\n";
+    out << "#include <optional>\n";
+    out << "#include <string>\n";
+    out << "#include <vector>\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n\n";
+    out << "struct WorkflowStepHandlerContext\n";
+    out << "{\n";
+    out << "    std::string workflow_name;\n";
+    out << "    int workflow_version = 1;\n";
+    out << "    std::string step_name;\n";
+    out << "    std::optional<std::string> execution_id;\n";
+    out << "    statespec::backend::Json input;\n";
+    out << "};\n\n";
+    out << "class IWorkflowStepHandler\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    virtual ~IWorkflowStepHandler() = default;\n";
+    out << "    virtual void handle(const WorkflowStepHandlerContext& context) = 0;\n";
+    out << "};\n\n";
+    out << "inline std::vector<std::string> workflow_step_handler_keys()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "        " << cpp_string(workflow.name + "." + step.name) << ",\n";
+        }
+    }
+    out << "    };\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_header()
 {
     std::ostringstream out;
@@ -2259,6 +2300,14 @@ GenerationResult generate_cpp_bindings(
                 generate_worker_application_header(),
                 GeneratedArtifactTier::Worker,
                 "worker/worker_application.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/workflow_step_handlers.hpp").string(),
+                generate_workflow_step_handlers_header(system),
+                GeneratedArtifactTier::Worker,
+                "worker/workflow_step_handlers.hpp",
             }
         );
         result.files.push_back(

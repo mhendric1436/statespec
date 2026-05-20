@@ -285,7 +285,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"worker/worker_runtime.hpp", worker, Kind::WorkerRuntime},
             {"worker/worker_registry.hpp", worker, Kind::WorkerRegistry, true},
             {"worker/workflow_runner.hpp", worker, Kind::WorkflowRunner},
-            {"worker/workflow_step_handlers.hpp", worker, Kind::WorkflowStepHandlers},
+            {"worker/workflow_step_handlers.hpp", worker, Kind::WorkflowStepHandlers, true},
             {"worker/main.cpp", worker, Kind::WorkerMain},
         }
     );
@@ -302,7 +302,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"worker/backend/worker_runtime.go", worker, Kind::WorkerRuntime},
             {"worker/backend/worker_registry.go", worker, Kind::WorkerRegistry, true},
             {"worker/backend/workflow_runner.go", worker, Kind::WorkflowRunner},
-            {"worker/backend/workflow_step_handlers.go", worker, Kind::WorkflowStepHandlers},
+            {"worker/backend/workflow_step_handlers.go", worker, Kind::WorkflowStepHandlers, true},
             {"worker/cmd/worker/main.go", worker, Kind::WorkerMain},
         }
     );
@@ -322,7 +322,7 @@ void test_binding_app_artifact_models_define_application_filenames()
              true},
             {"worker/com/statespec/generated/WorkflowRunner.java", worker, Kind::WorkflowRunner},
             {"worker/com/statespec/generated/WorkflowStepHandlers.java", worker,
-             Kind::WorkflowStepHandlers},
+             Kind::WorkflowStepHandlers, true},
             {"worker/com/statespec/generated/WorkerMain.java", worker, Kind::WorkerMain},
         }
     );
@@ -339,7 +339,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"worker/worker_runtime.rs", worker, Kind::WorkerRuntime},
             {"worker/worker_registry.rs", worker, Kind::WorkerRegistry, true},
             {"worker/workflow_runner.rs", worker, Kind::WorkflowRunner},
-            {"worker/workflow_step_handlers.rs", worker, Kind::WorkflowStepHandlers},
+            {"worker/workflow_step_handlers.rs", worker, Kind::WorkflowStepHandlers, true},
             {"worker/main.rs", worker, Kind::WorkerMain},
         }
     );
@@ -605,6 +605,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"worker/worker_descriptors.hpp", worker},
             {"worker/worker_registry.hpp", worker},
             {"worker/worker_application.hpp", worker},
+            {"worker/workflow_step_handlers.hpp", worker},
             {"worker/worker_handlers.hpp", worker},
             {"worker/worker_leases.hpp", worker},
             {"worker/worker_queues.hpp", worker},
@@ -636,6 +637,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"worker/backend/worker_descriptors.go", worker},
             {"worker/backend/worker_registry.go", worker},
             {"worker/backend/worker_application.go", worker},
+            {"worker/backend/workflow_step_handlers.go", worker},
             {"worker/backend/worker_handlers.go", worker},
             {"worker/backend/worker_leases.go", worker},
             {"worker/backend/worker_queues.go", worker},
@@ -667,6 +669,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"worker/com/statespec/generated/WorkerDescriptors.java", worker},
             {"worker/com/statespec/generated/WorkerRegistry.java", worker},
             {"worker/com/statespec/generated/WorkerApplication.java", worker},
+            {"worker/com/statespec/generated/WorkflowStepHandlers.java", worker},
             {"worker/com/statespec/generated/WorkerHandlers.java", worker},
             {"worker/com/statespec/generated/WorkerLeases.java", worker},
             {"worker/com/statespec/generated/WorkerQueues.java", worker},
@@ -699,6 +702,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"worker/worker_descriptors.rs", worker},
             {"worker/worker_registry.rs", worker},
             {"worker/worker_application.rs", worker},
+            {"worker/workflow_step_handlers.rs", worker},
             {"worker/worker_handlers.rs", worker},
             {"worker/worker_leases.rs", worker},
             {"worker/worker_queues.rs", worker},
@@ -942,6 +946,10 @@ void test_shared_descriptor_artifact_paths()
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
+        cpp_result, "worker/workflow_step_handlers.hpp", "worker/workflow_step_handlers.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
         cpp_result, "worker/worker_handlers.hpp", "worker/worker_handlers.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
@@ -972,6 +980,10 @@ void test_shared_descriptor_artifact_paths()
     require_generated_file_artifact_path(
         go_result, "worker/backend/worker_application.go", "worker/backend/worker_application.go",
         statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/workflow_step_handlers.go",
+        "worker/backend/workflow_step_handlers.go", statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
         go_result, "worker/backend/worker_handlers.go", "worker/backend/worker_handlers.go",
@@ -1010,6 +1022,11 @@ void test_shared_descriptor_artifact_paths()
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkflowStepHandlers.java",
+        "worker/com/statespec/generated/WorkflowStepHandlers.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
         java_result, "worker/com/statespec/generated/WorkerHandlers.java",
         "worker/com/statespec/generated/WorkerHandlers.java",
         statespec::GeneratedArtifactTier::Worker
@@ -1041,6 +1058,10 @@ void test_shared_descriptor_artifact_paths()
     );
     require_generated_file_artifact_path(
         rust_result, "worker/worker_application.rs", "worker/worker_application.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/workflow_step_handlers.rs", "worker/workflow_step_handlers.rs",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
@@ -1258,6 +1279,10 @@ void test_rust_lib_rs_matches_selected_tier()
         "worker lib declares worker application module"
     );
     require(
+        worker_lib.find("pub mod workflow_step_handlers;") != std::string::npos,
+        "worker lib declares workflow step handler module"
+    );
+    require(
         worker_lib.find("pub mod worker_workflows;") != std::string::npos,
         "worker lib declares worker workflow module"
     );
@@ -1340,6 +1365,10 @@ void test_cpp_makefile_matches_selected_tier()
     require(
         worker_makefile.find("worker/worker_application.hpp") != std::string::npos,
         "worker Makefile includes worker application header"
+    );
+    require(
+        worker_makefile.find("worker/workflow_step_handlers.hpp") != std::string::npos,
+        "worker Makefile includes workflow step handlers header"
     );
     require(
         worker_makefile.find("worker/worker_workflows.hpp") != std::string::npos,

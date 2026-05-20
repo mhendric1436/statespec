@@ -1684,6 +1684,38 @@ std::string generate_worker_application_go()
     return out.str();
 }
 
+std::string generate_workflow_step_handlers_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << "type WorkflowStepHandlerContext struct {\n";
+    out << "\tWorkflowName string\n";
+    out << "\tWorkflowVersion int64\n";
+    out << "\tStepName string\n";
+    out << "\tExecutionID *string\n";
+    out << "\tInput common.JSON\n";
+    out << "}\n\n";
+    out << "type WorkflowStepHandler interface {\n";
+    out << "\tHandleWorkflowStep(context.Context, WorkflowStepHandlerContext) error\n";
+    out << "}\n\n";
+    out << "func WorkflowStepHandlerKeys() []string {\n";
+    out << "\treturn []string{\n";
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "\t\t" << go_string(workflow.name + "." + step.name) << ",\n";
+        }
+    }
+    out << "\t}\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_go()
 {
     std::ostringstream out;
@@ -1878,6 +1910,14 @@ GenerationResult generate_go_bindings(
                 generate_worker_application_go(),
                 GeneratedArtifactTier::Worker,
                 "worker/backend/worker_application.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/workflow_step_handlers.go").string(),
+                generate_workflow_step_handlers_go(system),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/workflow_step_handlers.go",
             }
         );
         result.files.push_back(
