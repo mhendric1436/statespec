@@ -62,3 +62,20 @@ assert_file_contains() {
         exit 1
     fi
 }
+
+assert_file_manifest_equals() {
+    require_test_tmpdir
+    root="$1"
+    expected="$2"
+    actual="$TMPDIR/actual-manifest.txt"
+    if [ ! -d "$root" ]; then
+        echo "expected generated directory: $root" >&2
+        exit 1
+    fi
+    (cd "$root" && find . -type f | sed 's#^\./##' | sort) > "$actual"
+    if ! diff -u "$expected" "$actual" >/dev/null 2>&1; then
+        echo "generated file manifest differed for: $root" >&2
+        diff -u "$expected" "$actual" >&2 || true
+        exit 1
+    fi
+}

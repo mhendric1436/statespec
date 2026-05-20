@@ -30,7 +30,7 @@ CATCH_OBJ := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CATCH_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d) $(CATCH_OBJ:.o=.d)
 
-.PHONY: all build cli check-build-tools test test-cli test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check diagrams-png clean help print-files
+.PHONY: all build cli check-build-tools ci test test-cli test-generated-apps test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check diagrams-png clean help print-files
 
 all: test cli
 
@@ -91,11 +91,16 @@ check-build-tools:
 		exit 1; \
 	fi
 
+ci: check-build-tools format-check test test-bindings
+
 test: $(TEST_BIN) test-cli
 	$(TEST_BIN)
 
 test-cli: $(CLI)
 	$(MAKE) -C tests test-cli CLI="$(abspath $(CLI))"
+
+test-generated-apps: $(CLI)
+	$(MAKE) -C tests/bindings/e2e test-cli CLI="$(abspath $(CLI))"
 
 test-bindings: test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust
 
@@ -161,7 +166,9 @@ help:
 	@echo "  make build               Build libstatespec.a"
 	@echo "  make cli                 Build statespec CLI"
 	@echo "  make check-build-tools   Check C++, Go, Java, and Rust build tools"
+	@echo "  make ci                  Run build tool, format, core, CLI, generated app, and binding checks"
 	@echo "  make test                Build and run core tests and CLI tests"
+	@echo "  make test-generated-apps Run complete generated application E2E checks"
 	@echo "  make test-bindings       Run all language binding tests"
 	@echo "  make test-bindings-cpp   Run C++ binding tests"
 	@echo "  make test-bindings-go    Run Go binding tests"
