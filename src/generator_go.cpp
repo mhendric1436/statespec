@@ -1642,6 +1642,48 @@ std::string generate_worker_handlers_go()
     return out.str();
 }
 
+std::string generate_worker_registry_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "func FindWorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {\n";
+    out << "\tfor _, worker := range WorkerTierDescriptors() {\n";
+    out << "\t\tif worker.Name == workerName {\n";
+    out << "\t\t\treturn worker, true\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn common.WorkerDescriptor{}, false\n";
+    out << "}\n\n";
+    out << "func FindWorkerTierContext(workerName string) (common.WorkerContext, bool) {\n";
+    out << "\tfor _, workerContext := range WorkerTierContexts() {\n";
+    out << "\t\tif workerContext.WorkerName == workerName {\n";
+    out << "\t\t\treturn workerContext, true\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn common.WorkerContext{}, false\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_application_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << "type WorkerTierApplication struct {\n";
+    out << "\tContext common.WorkerContext\n";
+    out << "\tHandler common.Worker\n";
+    out << "}\n\n";
+    out << "func (app WorkerTierApplication) Run(ctx context.Context) error {\n";
+    out << "\treturn app.Handler.Run(ctx, app.Context)\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_go()
 {
     std::ostringstream out;
@@ -1820,6 +1862,22 @@ GenerationResult generate_go_bindings(
                 generate_worker_contexts_go(),
                 GeneratedArtifactTier::Worker,
                 "worker/backend/worker_contexts.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/worker_registry.go").string(),
+                generate_worker_registry_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/worker_registry.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/worker_application.go").string(),
+                generate_worker_application_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/worker_application.go",
             }
         );
         result.files.push_back(

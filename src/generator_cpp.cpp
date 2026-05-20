@@ -255,11 +255,13 @@ std::string generate_makefile(BindingGenerationTier tier)
     if (include_worker)
     {
         out << "check-worker: $(BUILD_DIR)\n";
-        out << "\tprintf '#include \"worker/worker_contexts.hpp\"\\n"
+        out << "\tprintf '#include \"worker/worker_application.hpp\"\\n"
+               "#include \"worker/worker_contexts.hpp\"\\n"
                "#include \"worker/worker_descriptors.hpp\"\\n"
                "#include \"worker/worker_handlers.hpp\"\\n"
                "#include \"worker/worker_leases.hpp\"\\n"
                "#include \"worker/worker_queues.hpp\"\\n"
+               "#include \"worker/worker_registry.hpp\"\\n"
                "#include \"worker/worker_workflows.hpp\"\\n"
                "int main() { return 0; }\\n' | "
                "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
@@ -1983,6 +1985,76 @@ std::string generate_worker_handlers_header()
     return out.str();
 }
 
+std::string generate_worker_registry_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"worker_contexts.hpp\"\n";
+    out << "#include \"worker_descriptors.hpp\"\n\n";
+    out << "#include <optional>\n";
+    out << "#include <string_view>\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n\n";
+    out << "inline std::optional<WorkerDescriptor> find_worker_descriptor(std::string_view "
+           "worker_name)\n";
+    out << "{\n";
+    out << "    for (const auto& worker : worker_descriptors())\n";
+    out << "    {\n";
+    out << "        if (worker.name == worker_name)\n";
+    out << "        {\n";
+    out << "            return worker;\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "inline std::optional<WorkerContext> find_worker_context(std::string_view "
+           "worker_name)\n";
+    out << "{\n";
+    out << "    for (const auto& context : worker_contexts())\n";
+    out << "    {\n";
+    out << "        if (context.worker_name == worker_name)\n";
+    out << "        {\n";
+    out << "            return context;\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
+std::string generate_worker_application_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"worker_handlers.hpp\"\n";
+    out << "#include \"worker_registry.hpp\"\n\n";
+    out << "#include <utility>\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n\n";
+    out << "class WorkerApplication\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    WorkerApplication(WorkerContext context, IWorker& handler)\n";
+    out << "        : context_(std::move(context)), handler_(handler)\n";
+    out << "    {\n";
+    out << "    }\n\n";
+    out << "    const WorkerContext& context() const\n";
+    out << "    {\n";
+    out << "        return context_;\n";
+    out << "    }\n\n";
+    out << "    void run()\n";
+    out << "    {\n";
+    out << "        handler_.run(context_);\n";
+    out << "    }\n\n";
+    out << "private:\n";
+    out << "    WorkerContext context_;\n";
+    out << "    IWorker& handler_;\n";
+    out << "};\n\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_header()
 {
     std::ostringstream out;
@@ -2171,6 +2243,22 @@ GenerationResult generate_cpp_bindings(
                 generate_worker_contexts_header(),
                 GeneratedArtifactTier::Worker,
                 "worker/worker_contexts.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_registry.hpp").string(),
+                generate_worker_registry_header(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_registry.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_application.hpp").string(),
+                generate_worker_application_header(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_application.hpp",
             }
         );
         result.files.push_back(

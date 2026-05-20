@@ -281,9 +281,9 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry},
             {"api/main.cpp", api, Kind::ApiMain},
-            {"worker/worker_application.hpp", worker, Kind::WorkerApplication},
+            {"worker/worker_application.hpp", worker, Kind::WorkerApplication, true},
             {"worker/worker_runtime.hpp", worker, Kind::WorkerRuntime},
-            {"worker/worker_registry.hpp", worker, Kind::WorkerRegistry},
+            {"worker/worker_registry.hpp", worker, Kind::WorkerRegistry, true},
             {"worker/workflow_runner.hpp", worker, Kind::WorkflowRunner},
             {"worker/workflow_step_handlers.hpp", worker, Kind::WorkflowStepHandlers},
             {"worker/main.cpp", worker, Kind::WorkerMain},
@@ -298,9 +298,9 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher, true},
             {"api/backend/api_handler_registry.go", api, Kind::ApiHandlerRegistry},
             {"api/cmd/api/main.go", api, Kind::ApiMain},
-            {"worker/backend/worker_application.go", worker, Kind::WorkerApplication},
+            {"worker/backend/worker_application.go", worker, Kind::WorkerApplication, true},
             {"worker/backend/worker_runtime.go", worker, Kind::WorkerRuntime},
-            {"worker/backend/worker_registry.go", worker, Kind::WorkerRegistry},
+            {"worker/backend/worker_registry.go", worker, Kind::WorkerRegistry, true},
             {"worker/backend/workflow_runner.go", worker, Kind::WorkflowRunner},
             {"worker/backend/workflow_step_handlers.go", worker, Kind::WorkflowStepHandlers},
             {"worker/cmd/worker/main.go", worker, Kind::WorkerMain},
@@ -316,9 +316,10 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api, Kind::ApiHandlerRegistry},
             {"api/com/statespec/generated/ApiMain.java", api, Kind::ApiMain},
             {"worker/com/statespec/generated/WorkerApplication.java", worker,
-             Kind::WorkerApplication},
+             Kind::WorkerApplication, true},
             {"worker/com/statespec/generated/WorkerRuntime.java", worker, Kind::WorkerRuntime},
-            {"worker/com/statespec/generated/WorkerRegistry.java", worker, Kind::WorkerRegistry},
+            {"worker/com/statespec/generated/WorkerRegistry.java", worker, Kind::WorkerRegistry,
+             true},
             {"worker/com/statespec/generated/WorkflowRunner.java", worker, Kind::WorkflowRunner},
             {"worker/com/statespec/generated/WorkflowStepHandlers.java", worker,
              Kind::WorkflowStepHandlers},
@@ -334,9 +335,9 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/api_dispatcher.rs", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.rs", api, Kind::ApiHandlerRegistry},
             {"api/main.rs", api, Kind::ApiMain},
-            {"worker/worker_application.rs", worker, Kind::WorkerApplication},
+            {"worker/worker_application.rs", worker, Kind::WorkerApplication, true},
             {"worker/worker_runtime.rs", worker, Kind::WorkerRuntime},
-            {"worker/worker_registry.rs", worker, Kind::WorkerRegistry},
+            {"worker/worker_registry.rs", worker, Kind::WorkerRegistry, true},
             {"worker/workflow_runner.rs", worker, Kind::WorkflowRunner},
             {"worker/workflow_step_handlers.rs", worker, Kind::WorkflowStepHandlers},
             {"worker/main.rs", worker, Kind::WorkerMain},
@@ -602,6 +603,8 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"api/external_system_operator_metadata_api.hpp", api},
             {"worker/worker_contexts.hpp", worker},
             {"worker/worker_descriptors.hpp", worker},
+            {"worker/worker_registry.hpp", worker},
+            {"worker/worker_application.hpp", worker},
             {"worker/worker_handlers.hpp", worker},
             {"worker/worker_leases.hpp", worker},
             {"worker/worker_queues.hpp", worker},
@@ -631,6 +634,8 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"api/backend/external_system_operator_metadata_api.go", api},
             {"worker/backend/worker_contexts.go", worker},
             {"worker/backend/worker_descriptors.go", worker},
+            {"worker/backend/worker_registry.go", worker},
+            {"worker/backend/worker_application.go", worker},
             {"worker/backend/worker_handlers.go", worker},
             {"worker/backend/worker_leases.go", worker},
             {"worker/backend/worker_queues.go", worker},
@@ -660,6 +665,8 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", api},
             {"worker/com/statespec/generated/WorkerContexts.java", worker},
             {"worker/com/statespec/generated/WorkerDescriptors.java", worker},
+            {"worker/com/statespec/generated/WorkerRegistry.java", worker},
+            {"worker/com/statespec/generated/WorkerApplication.java", worker},
             {"worker/com/statespec/generated/WorkerHandlers.java", worker},
             {"worker/com/statespec/generated/WorkerLeases.java", worker},
             {"worker/com/statespec/generated/WorkerQueues.java", worker},
@@ -690,6 +697,8 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"api/external_system_operator_metadata_api.rs", api},
             {"worker/worker_contexts.rs", worker},
             {"worker/worker_descriptors.rs", worker},
+            {"worker/worker_registry.rs", worker},
+            {"worker/worker_application.rs", worker},
             {"worker/worker_handlers.rs", worker},
             {"worker/worker_leases.rs", worker},
             {"worker/worker_queues.rs", worker},
@@ -925,6 +934,14 @@ void test_shared_descriptor_artifact_paths()
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
+        cpp_result, "worker/worker_registry.hpp", "worker/worker_registry.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        cpp_result, "worker/worker_application.hpp", "worker/worker_application.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
         cpp_result, "worker/worker_handlers.hpp", "worker/worker_handlers.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
@@ -946,6 +963,14 @@ void test_shared_descriptor_artifact_paths()
     );
     require_generated_file_artifact_path(
         go_result, "worker/backend/worker_contexts.go", "worker/backend/worker_contexts.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/worker_registry.go", "worker/backend/worker_registry.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/worker_application.go", "worker/backend/worker_application.go",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
@@ -975,6 +1000,16 @@ void test_shared_descriptor_artifact_paths()
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkerRegistry.java",
+        "worker/com/statespec/generated/WorkerRegistry.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkerApplication.java",
+        "worker/com/statespec/generated/WorkerApplication.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
         java_result, "worker/com/statespec/generated/WorkerHandlers.java",
         "worker/com/statespec/generated/WorkerHandlers.java",
         statespec::GeneratedArtifactTier::Worker
@@ -998,6 +1033,14 @@ void test_shared_descriptor_artifact_paths()
     );
     require_generated_file_artifact_path(
         rust_result, "worker/worker_contexts.rs", "worker/worker_contexts.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/worker_registry.rs", "worker/worker_registry.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/worker_application.rs", "worker/worker_application.rs",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
@@ -1207,6 +1250,14 @@ void test_rust_lib_rs_matches_selected_tier()
         "worker lib declares worker context module"
     );
     require(
+        worker_lib.find("pub mod worker_registry;") != std::string::npos,
+        "worker lib declares worker registry module"
+    );
+    require(
+        worker_lib.find("pub mod worker_application;") != std::string::npos,
+        "worker lib declares worker application module"
+    );
+    require(
         worker_lib.find("pub mod worker_workflows;") != std::string::npos,
         "worker lib declares worker workflow module"
     );
@@ -1281,6 +1332,14 @@ void test_cpp_makefile_matches_selected_tier()
     require(
         worker_makefile.find("worker/worker_descriptors.hpp") != std::string::npos,
         "worker Makefile includes worker descriptors header"
+    );
+    require(
+        worker_makefile.find("worker/worker_registry.hpp") != std::string::npos,
+        "worker Makefile includes worker registry header"
+    );
+    require(
+        worker_makefile.find("worker/worker_application.hpp") != std::string::npos,
+        "worker Makefile includes worker application header"
     );
     require(
         worker_makefile.find("worker/worker_workflows.hpp") != std::string::npos,

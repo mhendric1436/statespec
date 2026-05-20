@@ -265,6 +265,10 @@ std::string generate_rust_lib(BindingGenerationTier tier)
         out << "pub mod worker_queues;\n";
         out << "#[path = \"worker/worker_workflows.rs\"]\n";
         out << "pub mod worker_workflows;\n";
+        out << "#[path = \"worker/worker_registry.rs\"]\n";
+        out << "pub mod worker_registry;\n";
+        out << "#[path = \"worker/worker_application.rs\"]\n";
+        out << "pub mod worker_application;\n";
     }
 
     return out.str();
@@ -1799,6 +1803,45 @@ std::string generate_worker_handlers_rs()
     return out.str();
 }
 
+std::string generate_worker_registry_rs()
+{
+    std::ostringstream out;
+    out << "use crate::worker_contexts;\n";
+    out << "use crate::worker_descriptors;\n\n";
+    out << "pub use crate::descriptors::{WorkerContext, WorkerDescriptor};\n\n";
+    out << "pub fn find_worker_descriptor(worker_name: &str) -> Option<WorkerDescriptor> {\n";
+    out << "    worker_descriptors::worker_descriptors()\n";
+    out << "        .into_iter()\n";
+    out << "        .find(|worker| worker.name == worker_name)\n";
+    out << "}\n\n";
+    out << "pub fn find_worker_context(worker_name: &str) -> Option<WorkerContext> {\n";
+    out << "    worker_contexts::worker_contexts()\n";
+    out << "        .into_iter()\n";
+    out << "        .find(|context| context.worker_name == worker_name)\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_application_rs()
+{
+    std::ostringstream out;
+    out << "use crate::backend::BackendResult;\n";
+    out << "use crate::descriptors::{Worker, WorkerContext};\n\n";
+    out << "pub struct WorkerApplication<H: Worker> {\n";
+    out << "    pub context: WorkerContext,\n";
+    out << "    pub handler: H,\n";
+    out << "}\n\n";
+    out << "impl<H: Worker> WorkerApplication<H> {\n";
+    out << "    pub fn new(context: WorkerContext, handler: H) -> Self {\n";
+    out << "        Self { context, handler }\n";
+    out << "    }\n\n";
+    out << "    pub fn run(&self) -> BackendResult<()> {\n";
+    out << "        self.handler.run(&self.context)\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_rs()
 {
     std::ostringstream out;
@@ -1959,6 +2002,22 @@ GenerationResult generate_rust_bindings(
                 generate_worker_contexts_rs(),
                 GeneratedArtifactTier::Worker,
                 "worker/worker_contexts.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_registry.rs").string(),
+                generate_worker_registry_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_registry.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_application.rs").string(),
+                generate_worker_application_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_application.rs",
             }
         );
         result.files.push_back(

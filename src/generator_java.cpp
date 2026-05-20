@@ -1810,6 +1810,63 @@ std::string generate_worker_handlers_java()
     return out.str();
 }
 
+std::string generate_worker_registry_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class WorkerRegistry {\n";
+    out << "    private WorkerRegistry() {}\n\n";
+    out << "    public static Optional<Descriptors.WorkerDescriptor> findWorkerDescriptor(\n";
+    out << "        String workerName\n";
+    out << "    ) {\n";
+    out << "        for (Descriptors.WorkerDescriptor worker : "
+           "WorkerDescriptors.workerDescriptors()) {\n";
+    out << "            if (worker.name().equals(workerName)) {\n";
+    out << "                return Optional.of(worker);\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
+    out << "    }\n\n";
+    out << "    public static Optional<Descriptors.WorkerContext> findWorkerContext(\n";
+    out << "        String workerName\n";
+    out << "    ) {\n";
+    out << "        for (Descriptors.WorkerContext context : WorkerContexts.workerContexts()) "
+           "{\n";
+    out << "            if (context.workerName().equals(workerName)) {\n";
+    out << "                return Optional.of(context);\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_application_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "public final class WorkerApplication {\n";
+    out << "    private final Descriptors.WorkerContext context;\n";
+    out << "    private final Descriptors.Worker handler;\n\n";
+    out << "    public WorkerApplication(\n";
+    out << "        Descriptors.WorkerContext context,\n";
+    out << "        Descriptors.Worker handler\n";
+    out << "    ) {\n";
+    out << "        this.context = context;\n";
+    out << "        this.handler = handler;\n";
+    out << "    }\n\n";
+    out << "    public Descriptors.WorkerContext context() {\n";
+    out << "        return context;\n";
+    out << "    }\n\n";
+    out << "    public void run() throws Exception {\n";
+    out << "        handler.run(context);\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_java()
 {
     std::ostringstream out;
@@ -2009,6 +2066,24 @@ GenerationResult generate_java_bindings(
                 generate_worker_contexts_java(),
                 GeneratedArtifactTier::Worker,
                 "worker/com/statespec/generated/WorkerContexts.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkerRegistry.java")
+                    .string(),
+                generate_worker_registry_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkerRegistry.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkerApplication.java")
+                    .string(),
+                generate_worker_application_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkerApplication.java",
             }
         );
         result.files.push_back(
