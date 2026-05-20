@@ -168,9 +168,4 @@ assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "TypeName: \
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "TypeName: \"int?\""
 
 cp "$SCRIPT_DIR/metadata_resolver_fixture_test.go" "$TMPDIR/out-go/common/backend/metadata_resolver_fixture_test.go"
-cat > "$TMPDIR/out-go/go.mod" <<'GOMOD'
-module statespec-generated
-
-go 1.22
-GOMOD
 (cd "$TMPDIR/out-go" && go test ./...)

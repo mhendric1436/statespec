@@ -1747,7 +1747,7 @@ std::string generate_worker_leases_rs()
 {
     std::ostringstream out;
     out << "use crate::descriptors;\n\n";
-    out << "pub use crate::lease::LeaseDefinition;\n\n";
+    out << "pub use crate::descriptors::LeaseDefinition;\n\n";
     out << "pub fn lease_definitions() -> Vec<descriptors::LeaseDefinition> {\n";
     out << "    descriptors::lease_definitions()\n";
     out << "}\n\n";

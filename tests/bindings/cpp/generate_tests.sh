@@ -169,6 +169,8 @@ assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "\"by_tenan
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "\"P30D\""
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "\"tombstone\""
 
+(cd "$TMPDIR/out-cpp" && make check)
+
 cp "$SCRIPT_DIR/metadata_resolver_fixture.cpp" "$TMPDIR/out-cpp/metadata_resolver_fixture.cpp"
 ${CXX:-c++} -std=c++20 -I"$TMPDIR/out-cpp" "$TMPDIR/out-cpp/metadata_resolver_fixture.cpp" -o "$TMPDIR/out-cpp/metadata_resolver_fixture"
 "$TMPDIR/out-cpp/metadata_resolver_fixture"

@@ -172,6 +172,6 @@ assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "field_type: Field
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "field_type: FieldType::Optional"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "type_name: \"OrderStatus\".to_string()"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "type_name: \"int?\".to_string()"
-cp "$SCRIPT_DIR/Cargo.fixture.toml" "$TMPDIR/out-rust/Cargo.toml"
-cp "$SCRIPT_DIR/metadata_resolver_fixture.rs" "$TMPDIR/out-rust/lib.rs"
+mkdir -p "$TMPDIR/out-rust/tests"
+cp "$SCRIPT_DIR/metadata_resolver_fixture.rs" "$TMPDIR/out-rust/tests/metadata_resolver_fixture.rs"
 (cd "$TMPDIR/out-rust" && CARGO_TARGET_DIR="$TMPDIR/rust-target" cargo test)

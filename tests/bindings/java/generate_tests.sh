@@ -165,7 +165,5 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptor
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "\"int?\""
 
 cp "$SCRIPT_DIR/MetadataResolverFixture.java" "$TMPDIR/out-java/common/com/statespec/generated/MetadataResolverFixture.java"
-find "$TMPDIR/out-java" -name '*.java' -print > "$TMPDIR/out-java/sources.list"
-mkdir -p "$TMPDIR/out-java/build/classes"
-${JAVAC:-javac} -d "$TMPDIR/out-java/build/classes" @"$TMPDIR/out-java/sources.list"
+(cd "$TMPDIR/out-java" && make check)
 ${JAVA:-java} -cp "$TMPDIR/out-java/build/classes" com.statespec.generated.MetadataResolverFixture

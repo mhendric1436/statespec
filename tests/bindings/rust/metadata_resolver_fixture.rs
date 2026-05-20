@@ -1,48 +1,16 @@
-#[rustfmt::skip]
-#[path = "common/backend.rs"]
-pub mod backend;
-#[rustfmt::skip]
-#[path = "common/descriptors.rs"]
-pub mod descriptors;
-#[rustfmt::skip]
-#[path = "common/external_system.rs"]
-pub mod external_system;
-#[rustfmt::skip]
-#[path = "common/feature_flag.rs"]
-pub mod feature_flag;
-#[rustfmt::skip]
-#[path = "common/json.rs"]
-pub mod json;
-#[rustfmt::skip]
-#[path = "common/lease.rs"]
-pub mod lease;
-#[rustfmt::skip]
-#[path = "common/log.rs"]
-pub mod log;
-#[rustfmt::skip]
-#[path = "common/metric.rs"]
-pub mod metric;
-#[rustfmt::skip]
-#[path = "common/queue.rs"]
-pub mod queue;
-#[rustfmt::skip]
-#[path = "common/workflow.rs"]
-pub mod workflow;
-
-#[cfg(test)]
 mod tests {
     use std::cell::Cell;
     use std::collections::BTreeMap;
 
-    use crate::backend::{
+    use statespec_generated::backend::{
         Backend, BackendCapabilities, BackendResult, CollectionDescriptor, Query, Transaction,
         VersionedRecord,
     };
-    use crate::external_system::{
+    use statespec_generated::external_system::{
         ExternalSystemMetadataKeyValue, ExternalSystemMetadataLookup,
         ExternalSystemMetadataResolution, ExternalSystemMetadataResolver,
     };
-    use crate::json::Json;
+    use statespec_generated::json::Json;
 
     #[derive(Default)]
     struct FixtureTx;
@@ -155,25 +123,32 @@ mod tests {
                     version: 1,
                     document: document.clone(),
                 },
-                missing_required_fields: crate::external_system::missing_required_metadata_fields(
-                    &document,
-                    &lookup.required_fields,
-                ),
+                missing_required_fields:
+                    statespec_generated::external_system::missing_required_metadata_fields(
+                        &document,
+                        &lookup.required_fields,
+                    ),
             }))
         }
     }
 
     struct FixtureMappingApplicator;
 
-    impl crate::descriptors::ExternalSystemMetadataMappingApplicator for FixtureMappingApplicator {
+    impl statespec_generated::descriptors::ExternalSystemMetadataMappingApplicator
+        for FixtureMappingApplicator
+    {
         fn apply_external_system_metadata_mappings(
             &self,
-            plan: &crate::descriptors::ExternalSystemMetadataMappingPlan,
-            inputs: &crate::descriptors::ExternalSystemMetadataMappingInputs,
-        ) -> BackendResult<crate::descriptors::ExternalSystemMetadataMappingOutput> {
-            let mut output = crate::descriptors::ExternalSystemMetadataMappingOutput::default();
+            plan: &statespec_generated::descriptors::ExternalSystemMetadataMappingPlan,
+            inputs: &statespec_generated::descriptors::ExternalSystemMetadataMappingInputs,
+        ) -> BackendResult<statespec_generated::descriptors::ExternalSystemMetadataMappingOutput>
+        {
+            let mut output =
+                statespec_generated::descriptors::ExternalSystemMetadataMappingOutput::default();
             output.missing_sources =
-                crate::descriptors::missing_external_system_metadata_mapping_sources(plan, inputs);
+                statespec_generated::descriptors::missing_external_system_metadata_mapping_sources(
+                    plan, inputs,
+                );
             for assignment in &plan.all_mappings {
                 let source = inputs.assignment_value(assignment);
                 if let Some(value) = source {
@@ -194,13 +169,13 @@ mod tests {
 
     struct FixtureOperatorMetadataRepository;
 
-    impl crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>
+    impl statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>
         for FixtureOperatorMetadataRepository
     {
         fn upsert_metadata_tx(
             &self,
             _tx: &mut FixtureTx,
-            request: &crate::descriptors::ExternalSystemOperatorMetadataUpsertRequest,
+            request: &statespec_generated::descriptors::ExternalSystemOperatorMetadataUpsertRequest,
         ) -> BackendResult<Option<VersionedRecord>> {
             Ok(Some(VersionedRecord {
                 collection: request.lookup.metadata_entity.clone(),
@@ -213,7 +188,7 @@ mod tests {
         fn get_metadata_tx(
             &self,
             _tx: &mut FixtureTx,
-            request: &crate::descriptors::ExternalSystemOperatorMetadataGetRequest,
+            request: &statespec_generated::descriptors::ExternalSystemOperatorMetadataGetRequest,
         ) -> BackendResult<Option<VersionedRecord>> {
             Ok(Some(VersionedRecord {
                 collection: request.lookup.metadata_entity.clone(),
@@ -229,7 +204,7 @@ mod tests {
         fn disable_metadata_tx(
             &self,
             _tx: &mut FixtureTx,
-            request: &crate::descriptors::ExternalSystemOperatorMetadataDisableRequest,
+            request: &statespec_generated::descriptors::ExternalSystemOperatorMetadataDisableRequest,
         ) -> BackendResult<Option<VersionedRecord>> {
             Ok(Some(VersionedRecord {
                 collection: request.lookup.metadata_entity.clone(),
@@ -245,7 +220,7 @@ mod tests {
         fn delete_metadata_tx(
             &self,
             _tx: &mut FixtureTx,
-            request: &crate::descriptors::ExternalSystemOperatorMetadataDeleteRequest,
+            request: &statespec_generated::descriptors::ExternalSystemOperatorMetadataDeleteRequest,
         ) -> BackendResult<Option<VersionedRecord>> {
             Ok(Some(VersionedRecord {
                 collection: request.lookup.metadata_entity.clone(),
@@ -261,19 +236,21 @@ mod tests {
 
     struct FixtureOperatorMetadataApiHandler;
 
-    impl crate::descriptors::ExternalSystemOperatorMetadataApiHandler<FixtureBackend>
+    impl statespec_generated::descriptors::ExternalSystemOperatorMetadataApiHandler<FixtureBackend>
         for FixtureOperatorMetadataApiHandler
     {
         fn handle_upsert_metadata_tx<
-            R: crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>,
+            R: statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository<
+                FixtureBackend,
+            >,
         >(
             &self,
             tx: &mut FixtureTx,
             repository: &R,
-            request: &crate::descriptors::ExternalSystemOperatorMetadataUpsertRequest,
-        ) -> BackendResult<crate::descriptors::ApiResponse> {
+            request: &statespec_generated::descriptors::ExternalSystemOperatorMetadataUpsertRequest,
+        ) -> BackendResult<statespec_generated::descriptors::ApiResponse> {
             let record = repository.upsert_metadata_tx(tx, request)?;
-            Ok(crate::descriptors::ApiResponse {
+            Ok(statespec_generated::descriptors::ApiResponse {
                 status_code: if record.is_some() { 200 } else { 404 },
                 body: Json::Object(BTreeMap::from([(
                     "operation".to_string(),
@@ -283,15 +260,17 @@ mod tests {
         }
 
         fn handle_get_metadata_tx<
-            R: crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>,
+            R: statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository<
+                FixtureBackend,
+            >,
         >(
             &self,
             tx: &mut FixtureTx,
             repository: &R,
-            request: &crate::descriptors::ExternalSystemOperatorMetadataGetRequest,
-        ) -> BackendResult<crate::descriptors::ApiResponse> {
+            request: &statespec_generated::descriptors::ExternalSystemOperatorMetadataGetRequest,
+        ) -> BackendResult<statespec_generated::descriptors::ApiResponse> {
             let record = repository.get_metadata_tx(tx, request)?;
-            Ok(crate::descriptors::ApiResponse {
+            Ok(statespec_generated::descriptors::ApiResponse {
                 status_code: if record.is_some() { 200 } else { 404 },
                 body: Json::Object(BTreeMap::from([(
                     "operation".to_string(),
@@ -301,15 +280,17 @@ mod tests {
         }
 
         fn handle_disable_metadata_tx<
-            R: crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>,
+            R: statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository<
+                FixtureBackend,
+            >,
         >(
             &self,
             tx: &mut FixtureTx,
             repository: &R,
-            request: &crate::descriptors::ExternalSystemOperatorMetadataDisableRequest,
-        ) -> BackendResult<crate::descriptors::ApiResponse> {
+            request: &statespec_generated::descriptors::ExternalSystemOperatorMetadataDisableRequest,
+        ) -> BackendResult<statespec_generated::descriptors::ApiResponse> {
             let record = repository.disable_metadata_tx(tx, request)?;
-            Ok(crate::descriptors::ApiResponse {
+            Ok(statespec_generated::descriptors::ApiResponse {
                 status_code: if record.is_some() { 200 } else { 404 },
                 body: Json::Object(BTreeMap::from([(
                     "operation".to_string(),
@@ -319,15 +300,17 @@ mod tests {
         }
 
         fn handle_delete_metadata_tx<
-            R: crate::descriptors::ExternalSystemOperatorMetadataRepository<FixtureBackend>,
+            R: statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository<
+                FixtureBackend,
+            >,
         >(
             &self,
             tx: &mut FixtureTx,
             repository: &R,
-            request: &crate::descriptors::ExternalSystemOperatorMetadataDeleteRequest,
-        ) -> BackendResult<crate::descriptors::ApiResponse> {
+            request: &statespec_generated::descriptors::ExternalSystemOperatorMetadataDeleteRequest,
+        ) -> BackendResult<statespec_generated::descriptors::ApiResponse> {
             let record = repository.delete_metadata_tx(tx, request)?;
-            Ok(crate::descriptors::ApiResponse {
+            Ok(statespec_generated::descriptors::ApiResponse {
                 status_code: if record.is_some() { 200 } else { 404 },
                 body: Json::Object(BTreeMap::from([(
                     "operation".to_string(),
@@ -343,8 +326,10 @@ mod tests {
             calls: Cell::new(0),
         };
         let mut tx = FixtureTx;
-        let descriptors = crate::descriptors::external_system_descriptors();
-        let plan = crate::descriptors::external_system_metadata_mapping_plan(&descriptors[0]);
+        let descriptors = statespec_generated::descriptors::external_system_descriptors();
+        let plan = statespec_generated::descriptors::external_system_metadata_mapping_plan(
+            &descriptors[0],
+        );
         assert_eq!(plan.all_mappings.len(), 4);
         assert_eq!(plan.client_mappings.len(), 3);
         assert_eq!(plan.request_mappings.len(), 1);
@@ -357,10 +342,10 @@ mod tests {
         assert_eq!(plan.request_mappings[0].target_root, "request");
         assert_eq!(plan.request_mappings[0].field, "order_id");
         let applicator = FixtureMappingApplicator;
-        let mapped = crate::descriptors::ExternalSystemMetadataMappingApplicator::apply_external_system_metadata_mappings(
+        let mapped = statespec_generated::descriptors::ExternalSystemMetadataMappingApplicator::apply_external_system_metadata_mappings(
             &applicator,
             &plan,
-            &crate::descriptors::ExternalSystemMetadataMappingInputs {
+            &statespec_generated::descriptors::ExternalSystemMetadataMappingInputs {
                 input: BTreeMap::from([(
                     "order_id".to_string(),
                     Json::String("order-1".to_string()),
@@ -383,10 +368,10 @@ mod tests {
         assert_eq!(mapped.client_config.len(), 3);
         assert_eq!(mapped.request_payload.len(), 1);
         assert_eq!(mapped.missing_sources.len(), 0);
-        let missing_mapped = crate::descriptors::ExternalSystemMetadataMappingApplicator::apply_external_system_metadata_mappings(
+        let missing_mapped = statespec_generated::descriptors::ExternalSystemMetadataMappingApplicator::apply_external_system_metadata_mappings(
             &applicator,
             &plan,
-            &crate::descriptors::ExternalSystemMetadataMappingInputs {
+            &statespec_generated::descriptors::ExternalSystemMetadataMappingInputs {
                 input: BTreeMap::from([(
                     "order_id".to_string(),
                     Json::String("order-1".to_string()),
@@ -426,48 +411,60 @@ mod tests {
                 value: Json::String("default".to_string()),
             },
         ];
-        let lookup =
-            crate::descriptors::external_system_metadata_lookup_by_name("Stripe", keys.clone())
-                .expect("metadata lookup should build");
-        let repository = FixtureOperatorMetadataRepository;
-        let upserted = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::upsert_metadata_tx(
-            &repository,
-            &mut tx,
-            &crate::descriptors::ExternalSystemOperatorMetadataUpsertRequest {
-                lookup: lookup.clone(),
-                document: Json::Object(BTreeMap::from([(
-                    "tenant_id".to_string(),
-                    Json::String("tenant-a".to_string()),
-                )])),
-                expected_version: Some(1),
-            },
+        let lookup = statespec_generated::descriptors::external_system_metadata_lookup_by_name(
+            "Stripe",
+            keys.clone(),
         )
-        .expect("metadata upsert should not fail")
-        .expect("metadata upsert should return record");
-        let loaded = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::get_metadata_tx(
+        .expect("metadata lookup should build");
+        let repository = FixtureOperatorMetadataRepository;
+        let upserted =
+            statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository::<
+                FixtureBackend,
+            >::upsert_metadata_tx(
+                &repository,
+                &mut tx,
+                &statespec_generated::descriptors::ExternalSystemOperatorMetadataUpsertRequest {
+                    lookup: lookup.clone(),
+                    document: Json::Object(BTreeMap::from([(
+                        "tenant_id".to_string(),
+                        Json::String("tenant-a".to_string()),
+                    )])),
+                    expected_version: Some(1),
+                },
+            )
+            .expect("metadata upsert should not fail")
+            .expect("metadata upsert should return record");
+        let loaded = statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository::<
+            FixtureBackend,
+        >::get_metadata_tx(
             &repository,
             &mut tx,
-            &crate::descriptors::ExternalSystemOperatorMetadataGetRequest {
+            &statespec_generated::descriptors::ExternalSystemOperatorMetadataGetRequest {
                 lookup: lookup.clone(),
             },
         )
         .expect("metadata get should not fail")
         .expect("metadata get should return record");
-        let disabled = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::disable_metadata_tx(
+        let disabled =
+            statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository::<
+                FixtureBackend,
+            >::disable_metadata_tx(
+                &repository,
+                &mut tx,
+                &statespec_generated::descriptors::ExternalSystemOperatorMetadataDisableRequest {
+                    lookup: lookup.clone(),
+                    expected_version: Some(upserted.version),
+                    disabled_status: "Disabled".to_string(),
+                },
+            )
+            .expect("metadata disable should not fail")
+            .expect("metadata disable should return record");
+        let deleted = statespec_generated::descriptors::ExternalSystemOperatorMetadataRepository::<
+            FixtureBackend,
+        >::delete_metadata_tx(
             &repository,
             &mut tx,
-            &crate::descriptors::ExternalSystemOperatorMetadataDisableRequest {
-                lookup: lookup.clone(),
-                expected_version: Some(upserted.version),
-                disabled_status: "Disabled".to_string(),
-            },
-        )
-        .expect("metadata disable should not fail")
-        .expect("metadata disable should return record");
-        let deleted = crate::descriptors::ExternalSystemOperatorMetadataRepository::<FixtureBackend>::delete_metadata_tx(
-            &repository,
-            &mut tx,
-            &crate::descriptors::ExternalSystemOperatorMetadataDeleteRequest {
+            &statespec_generated::descriptors::ExternalSystemOperatorMetadataDeleteRequest {
                 lookup: lookup.clone(),
                 expected_version: Some(disabled.version),
                 deleted_status: "Deleted".to_string(),
@@ -480,38 +477,41 @@ mod tests {
         assert_eq!(disabled.version, 3);
         assert_eq!(deleted.version, 4);
         let metadata_api_handler = FixtureOperatorMetadataApiHandler;
-        let metadata_api_response = crate::descriptors::ExternalSystemOperatorMetadataApiHandler::<
-            FixtureBackend,
-        >::handle_upsert_metadata_tx(
-            &metadata_api_handler,
-            &mut tx,
-            &repository,
-            &crate::descriptors::ExternalSystemOperatorMetadataUpsertRequest {
-                lookup: lookup.clone(),
-                document: Json::Object(BTreeMap::from([(
-                    "tenant_id".to_string(),
-                    Json::String("tenant-a".to_string()),
-                )])),
-                expected_version: Some(deleted.version),
-            },
-        )
-        .expect("operator metadata API handler should not fail");
+        let metadata_api_response =
+            statespec_generated::descriptors::ExternalSystemOperatorMetadataApiHandler::<
+                FixtureBackend,
+            >::handle_upsert_metadata_tx(
+                &metadata_api_handler,
+                &mut tx,
+                &repository,
+                &statespec_generated::descriptors::ExternalSystemOperatorMetadataUpsertRequest {
+                    lookup: lookup.clone(),
+                    document: Json::Object(BTreeMap::from([(
+                        "tenant_id".to_string(),
+                        Json::String("tenant-a".to_string()),
+                    )])),
+                    expected_version: Some(deleted.version),
+                },
+            )
+            .expect("operator metadata API handler should not fail");
         assert_eq!(metadata_api_response.status_code, 200);
 
-        let resolved = crate::descriptors::resolve_external_system_metadata_by_name_tx::<
-            FixtureBackend,
-            FixtureResolver,
-        >(&resolver, &mut tx, "Stripe", keys.clone())
-        .expect("resolver call should not fail")
-        .expect("metadata should resolve");
+        let resolved =
+            statespec_generated::descriptors::resolve_external_system_metadata_by_name_tx::<
+                FixtureBackend,
+                FixtureResolver,
+            >(&resolver, &mut tx, "Stripe", keys.clone())
+            .expect("resolver call should not fail")
+            .expect("metadata should resolve");
         assert!(!resolved.complete());
         assert_eq!(resolver.calls.get(), 1);
 
-        let skipped = crate::descriptors::resolve_external_system_metadata_by_name_tx::<
-            FixtureBackend,
-            FixtureResolver,
-        >(&resolver, &mut tx, "Stripe", keys[..2].to_vec())
-        .expect("resolver call should not fail");
+        let skipped =
+            statespec_generated::descriptors::resolve_external_system_metadata_by_name_tx::<
+                FixtureBackend,
+                FixtureResolver,
+            >(&resolver, &mut tx, "Stripe", keys[..2].to_vec())
+            .expect("resolver call should not fail");
         assert!(skipped.is_none());
         assert_eq!(resolver.calls.get(), 1);
     }
