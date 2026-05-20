@@ -49,12 +49,13 @@ void add_template_file(
 std::string render_template_file(
     const TemplatePackage& templates,
     const std::filesystem::path& relative_template_path,
-    DiagnosticBag& diagnostics
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
 )
 {
     try
     {
-        return templates.render(relative_template_path, {});
+        return templates.render(relative_template_path, values);
     }
     catch (const std::exception& error)
     {
@@ -70,10 +71,12 @@ void add_generated_template_file(
     const std::filesystem::path& relative_template_path,
     const std::filesystem::path& relative_output_path,
     DiagnosticBag& diagnostics,
-    GeneratedArtifactTier tier
+    GeneratedArtifactTier tier,
+    const TemplateRenderer::Values& values = {}
 )
 {
-    const auto content = render_template_file(templates, relative_template_path, diagnostics);
+    const auto content =
+        render_template_file(templates, relative_template_path, diagnostics, values);
     if (diagnostics.has_errors())
     {
         return;
@@ -1840,147 +1843,9 @@ std::string generate_system_descriptors_header(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_worker_descriptors_header()
+std::string generate_workflow_step_handler_keys(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"../common/system_descriptors.hpp\"\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "using WorkerDescriptor = ::statespec_generated::WorkerDescriptor;\n\n";
-    out << "inline std::vector<WorkerDescriptor> worker_descriptors()\n";
-    out << "{\n";
-    out << "    return ::statespec_generated::worker_descriptors();\n";
-    out << "}\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_worker_contexts_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"../common/system_descriptors.hpp\"\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "using WorkerContext = ::statespec_generated::WorkerContext;\n\n";
-    out << "inline std::vector<WorkerContext> worker_contexts()\n";
-    out << "{\n";
-    out << "    return ::statespec_generated::worker_contexts();\n";
-    out << "}\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_worker_handlers_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"../common/system_descriptors.hpp\"\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "using IWorker = ::statespec_generated::IWorker;\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_worker_registry_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"worker_contexts.hpp\"\n";
-    out << "#include \"worker_descriptors.hpp\"\n\n";
-    out << "#include <optional>\n";
-    out << "#include <string_view>\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "inline std::optional<WorkerDescriptor> find_worker_descriptor(std::string_view "
-           "worker_name)\n";
-    out << "{\n";
-    out << "    for (const auto& worker : worker_descriptors())\n";
-    out << "    {\n";
-    out << "        if (worker.name == worker_name)\n";
-    out << "        {\n";
-    out << "            return worker;\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "    return std::nullopt;\n";
-    out << "}\n\n";
-    out << "inline std::optional<WorkerContext> find_worker_context(std::string_view "
-           "worker_name)\n";
-    out << "{\n";
-    out << "    for (const auto& context : worker_contexts())\n";
-    out << "    {\n";
-    out << "        if (context.worker_name == worker_name)\n";
-    out << "        {\n";
-    out << "            return context;\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "    return std::nullopt;\n";
-    out << "}\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_worker_application_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"worker_handlers.hpp\"\n";
-    out << "#include \"worker_registry.hpp\"\n\n";
-    out << "#include <utility>\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "class WorkerApplication\n";
-    out << "{\n";
-    out << "public:\n";
-    out << "    WorkerApplication(WorkerContext context, IWorker& handler)\n";
-    out << "        : context_(std::move(context)), handler_(handler)\n";
-    out << "    {\n";
-    out << "    }\n\n";
-    out << "    const WorkerContext& context() const\n";
-    out << "    {\n";
-    out << "        return context_;\n";
-    out << "    }\n\n";
-    out << "    void run()\n";
-    out << "    {\n";
-    out << "        handler_.run(context_);\n";
-    out << "    }\n\n";
-    out << "private:\n";
-    out << "    WorkerContext context_;\n";
-    out << "    IWorker& handler_;\n";
-    out << "};\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_workflow_step_handlers_header(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"../common/system_descriptors.hpp\"\n\n";
-    out << "#include <optional>\n";
-    out << "#include <string>\n";
-    out << "#include <vector>\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "struct WorkflowStepHandlerContext\n";
-    out << "{\n";
-    out << "    std::string workflow_name;\n";
-    out << "    int workflow_version = 1;\n";
-    out << "    std::string step_name;\n";
-    out << "    std::optional<std::string> execution_id;\n";
-    out << "    statespec::backend::Json input;\n";
-    out << "};\n\n";
-    out << "class IWorkflowStepHandler\n";
-    out << "{\n";
-    out << "public:\n";
-    out << "    virtual ~IWorkflowStepHandler() = default;\n";
-    out << "    virtual void handle(const WorkflowStepHandlerContext& context) = 0;\n";
-    out << "};\n\n";
-    out << "inline std::vector<std::string> workflow_step_handler_keys()\n";
-    out << "{\n";
-    out << "    return {\n";
     for (const auto& workflow : system.workflows)
     {
         for (const auto& step : workflow.steps)
@@ -1988,186 +1853,6 @@ std::string generate_workflow_step_handlers_header(const IrSystem& system)
             out << "        " << cpp_string(workflow.name + "." + step.name) << ",\n";
         }
     }
-    out << "    };\n";
-    out << "}\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_workflow_runner_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"workflow_step_handlers.hpp\"\n\n";
-    out << "#include <chrono>\n";
-    out << "#include <cstdint>\n";
-    out << "#include <exception>\n";
-    out << "#include <optional>\n";
-    out << "#include <string>\n\n";
-    out << "#include <utility>\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "class WorkflowRunner\n";
-    out << "{\n";
-    out << "public:\n";
-    out << "    WorkflowRunner(\n";
-    out << "        statespec::backend::IBackend& backend,\n";
-    out << "        statespec::backend::IWorkflowStore& workflow_store,\n";
-    out << "        IWorkflowStepHandler& handler,\n";
-    out << "        std::string worker_name,\n";
-    out << "        std::chrono::seconds lease_duration,\n";
-    out << "        std::uint32_t max_attempts\n";
-    out << "    )\n";
-    out << "        : backend_(backend), workflow_store_(workflow_store), handler_(handler),\n";
-    out << "          worker_name_(std::move(worker_name)), lease_duration_(lease_duration),\n";
-    out << "          max_attempts_(max_attempts)\n";
-    out << "    {\n";
-    out << "    }\n\n";
-    out << "    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(\n";
-    out << "        const std::string& workflow_execution_id,\n";
-    out << "        const std::string& workflow_name,\n";
-    out << "        std::int64_t workflow_version\n";
-    out << "    )\n";
-    out << "    {\n";
-    out << "        const auto now = std::chrono::system_clock::now();\n";
-    out << "        auto claimed = workflow_store_.claim_steps(\n";
-    out << "            backend_,\n";
-    out << "            statespec::backend::ClaimWorkflowStepRequest{\n";
-    out << "                workflow_execution_id,\n";
-    out << "                workflow_name,\n";
-    out << "                workflow_version,\n";
-    out << "                worker_name_,\n";
-    out << "                now,\n";
-    out << "                lease_duration_,\n";
-    out << "                1,\n";
-    out << "            }\n";
-    out << "        );\n";
-    out << "        if (claimed.empty())\n";
-    out << "        {\n";
-    out << "            return std::nullopt;\n";
-    out << "        }\n";
-    out << "        const auto record = claimed.front();\n";
-    out << "        workflow_store_.keep_alive_step(\n";
-    out << "            backend_,\n";
-    out << "            statespec::backend::KeepAliveWorkflowStepRequest{\n";
-    out << "                record.workflow_execution_id,\n";
-    out << "                worker_name_,\n";
-    out << "                record.current_step,\n";
-    out << "                std::chrono::system_clock::now(),\n";
-    out << "                lease_duration_,\n";
-    out << "            }\n";
-    out << "        );\n";
-    out << "        try\n";
-    out << "        {\n";
-    out << "            handler_.handle(WorkflowStepHandlerContext{\n";
-    out << "                record.workflow_name,\n";
-    out << "                static_cast<int>(record.workflow_version),\n";
-    out << "                record.current_step,\n";
-    out << "                record.workflow_execution_id,\n";
-    out << "                record.state,\n";
-    out << "            });\n";
-    out << "            return workflow_store_.complete_step(\n";
-    out << "                backend_,\n";
-    out << "                statespec::backend::CompleteWorkflowStepRequest{\n";
-    out << "                    record.workflow_execution_id,\n";
-    out << "                    worker_name_,\n";
-    out << "                    record.current_step,\n";
-    out << "                    std::nullopt,\n";
-    out << "                    record.state,\n";
-    out << "                }\n";
-    out << "            );\n";
-    out << "        }\n";
-    out << "        catch (const std::exception& ex)\n";
-    out << "        {\n";
-    out << "            return workflow_store_.fail_step(\n";
-    out << "                backend_,\n";
-    out << "                statespec::backend::FailWorkflowStepRequest{\n";
-    out << "                    record.workflow_execution_id,\n";
-    out << "                    worker_name_,\n";
-    out << "                    record.current_step,\n";
-    out << "                    ex.what(),\n";
-    out << "                    std::chrono::system_clock::now(),\n";
-    out << "                    max_attempts_,\n";
-    out << "                }\n";
-    out << "            );\n";
-    out << "        }\n";
-    out << "    }\n\n";
-    out << "private:\n";
-    out << "    statespec::backend::IBackend& backend_;\n";
-    out << "    statespec::backend::IWorkflowStore& workflow_store_;\n";
-    out << "    IWorkflowStepHandler& handler_;\n";
-    out << "    std::string worker_name_;\n";
-    out << "    std::chrono::seconds lease_duration_;\n";
-    out << "    std::uint32_t max_attempts_;\n";
-    out << "};\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_worker_queues_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"../common/system_descriptors.hpp\"\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "inline std::vector<statespec::backend::QueueDefinition> queue_definitions()\n";
-    out << "{\n";
-    out << "    return ::statespec_generated::queue_definitions();\n";
-    out << "}\n\n";
-    out << "inline void register_queue_definitionsTx(\n";
-    out << "    statespec::backend::ITransaction& tx,\n";
-    out << "    statespec::backend::IQueueStore& queue_store\n";
-    out << ")\n";
-    out << "{\n";
-    out << "    ::statespec_generated::register_queue_definitionsTx(tx, queue_store);\n";
-    out << "}\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_worker_leases_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"../common/system_descriptors.hpp\"\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "using LeaseDefinition = ::statespec_generated::LeaseDefinition;\n\n";
-    out << "inline std::vector<LeaseDefinition> lease_definitions()\n";
-    out << "{\n";
-    out << "    return ::statespec_generated::lease_definitions();\n";
-    out << "}\n\n";
-    out << "inline void register_lease_definitionsTx(\n";
-    out << "    statespec::backend::ITransaction& tx,\n";
-    out << "    statespec::backend::ILeaseStore& lease_store\n";
-    out << ")\n";
-    out << "{\n";
-    out << "    ::statespec_generated::register_lease_definitionsTx(tx, lease_store);\n";
-    out << "}\n\n";
-    out << "} // namespace statespec_generated::worker\n";
-    return out.str();
-}
-
-std::string generate_worker_workflows_header()
-{
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"../common/system_descriptors.hpp\"\n\n";
-    out << "namespace statespec_generated::worker\n";
-    out << "{\n\n";
-    out << "inline std::vector<statespec::backend::WorkflowDefinition> workflow_definitions()\n";
-    out << "{\n";
-    out << "    return ::statespec_generated::workflow_definitions();\n";
-    out << "}\n\n";
-    out << "inline void register_workflow_definitionsTx(\n";
-    out << "    statespec::backend::ITransaction& tx,\n";
-    out << "    statespec::backend::IWorkflowStore& workflow_store\n";
-    out << ")\n";
-    out << "{\n";
-    out << "    ::statespec_generated::register_workflow_definitionsTx(tx, workflow_store);\n";
-    out << "}\n\n";
-    out << "} // namespace statespec_generated::worker\n";
     return out.str();
 }
 
@@ -2249,85 +1934,48 @@ GenerationResult generate_cpp_bindings(
         {
             return result;
         }
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_descriptors.hpp").string(),
-                generate_worker_descriptors_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_descriptors.hpp",
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_descriptors.hpp",
+            "worker/worker_descriptors.hpp", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_contexts.hpp",
+            "worker/worker_contexts.hpp", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_registry.hpp",
+            "worker/worker_registry.hpp", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_application.hpp",
+            "worker/worker_application.hpp", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/workflow_step_handlers.hpp",
+            "worker/workflow_step_handlers.hpp", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_contexts.hpp").string(),
-                generate_worker_contexts_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_contexts.hpp",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/workflow_runner.hpp",
+            "worker/workflow_runner.hpp", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_registry.hpp").string(),
-                generate_worker_registry_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_registry.hpp",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_handlers.hpp",
+            "worker/worker_handlers.hpp", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_application.hpp").string(),
-                generate_worker_application_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_application.hpp",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_queues.hpp",
+            "worker/worker_queues.hpp", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/workflow_step_handlers.hpp").string(),
-                generate_workflow_step_handlers_header(system),
-                GeneratedArtifactTier::Worker,
-                "worker/workflow_step_handlers.hpp",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_leases.hpp",
+            "worker/worker_leases.hpp", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/workflow_runner.hpp").string(),
-                generate_workflow_runner_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/workflow_runner.hpp",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_handlers.hpp").string(),
-                generate_worker_handlers_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_handlers.hpp",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_queues.hpp").string(),
-                generate_worker_queues_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_queues.hpp",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_leases.hpp").string(),
-                generate_worker_leases_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_leases.hpp",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_workflows.hpp").string(),
-                generate_worker_workflows_header(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_workflows.hpp",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_workflows.hpp",
+            "worker/worker_workflows.hpp", diagnostics, GeneratedArtifactTier::Worker
         );
     }
 

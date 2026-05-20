@@ -1,0 +1,113 @@
+#pragma once
+
+#include "workflow_step_handlers.hpp"
+
+#include <chrono>
+#include <cstdint>
+#include <exception>
+#include <optional>
+#include <string>
+
+#include <utility>
+
+namespace statespec_generated::worker
+{
+
+class WorkflowRunner
+{
+  public:
+    WorkflowRunner(
+        statespec::backend::IBackend& backend,
+        statespec::backend::IWorkflowStore& workflow_store,
+        IWorkflowStepHandler& handler,
+        std::string worker_name,
+        std::chrono::seconds lease_duration,
+        std::uint32_t max_attempts
+    )
+        : backend_(backend),
+          workflow_store_(workflow_store),
+          handler_(handler),
+          worker_name_(std::move(worker_name)),
+          lease_duration_(lease_duration),
+          max_attempts_(max_attempts)
+    {
+    }
+
+    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(
+        const std::string& workflow_execution_id,
+        const std::string& workflow_name,
+        std::int64_t workflow_version
+    )
+    {
+        const auto now = std::chrono::system_clock::now();
+        auto claimed = workflow_store_.claim_steps(
+            backend_, statespec::backend::ClaimWorkflowStepRequest{
+                          workflow_execution_id,
+                          workflow_name,
+                          workflow_version,
+                          worker_name_,
+                          now,
+                          lease_duration_,
+                          1,
+                      }
+        );
+        if (claimed.empty())
+        {
+            return std::nullopt;
+        }
+        const auto record = claimed.front();
+        workflow_store_.keep_alive_step(
+            backend_, statespec::backend::KeepAliveWorkflowStepRequest{
+                          record.workflow_execution_id,
+                          worker_name_,
+                          record.current_step,
+                          std::chrono::system_clock::now(),
+                          lease_duration_,
+                      }
+        );
+        try
+        {
+            handler_.handle(
+                WorkflowStepHandlerContext{
+                    record.workflow_name,
+                    static_cast<int>(record.workflow_version),
+                    record.current_step,
+                    record.workflow_execution_id,
+                    record.state,
+                }
+            );
+            return workflow_store_.complete_step(
+                backend_, statespec::backend::CompleteWorkflowStepRequest{
+                              record.workflow_execution_id,
+                              worker_name_,
+                              record.current_step,
+                              std::nullopt,
+                              record.state,
+                          }
+            );
+        }
+        catch (const std::exception& ex)
+        {
+            return workflow_store_.fail_step(
+                backend_, statespec::backend::FailWorkflowStepRequest{
+                              record.workflow_execution_id,
+                              worker_name_,
+                              record.current_step,
+                              ex.what(),
+                              std::chrono::system_clock::now(),
+                              max_attempts_,
+                          }
+            );
+        }
+    }
+
+  private:
+    statespec::backend::IBackend& backend_;
+    statespec::backend::IWorkflowStore& workflow_store_;
+    IWorkflowStepHandler& handler_;
+    std::string worker_name_;
+    std::chrono::seconds lease_duration_;
+    std::uint32_t max_attempts_;
+};
+
+} // namespace statespec_generated::worker

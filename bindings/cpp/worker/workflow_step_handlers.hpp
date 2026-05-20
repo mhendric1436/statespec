@@ -1,0 +1,36 @@
+#pragma once
+
+#include "../common/system_descriptors.hpp"
+
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace statespec_generated::worker
+{
+
+struct WorkflowStepHandlerContext
+{
+    std::string workflow_name;
+    int workflow_version = 1;
+    std::string step_name;
+    std::optional<std::string> execution_id;
+    statespec::backend::Json input;
+};
+
+class IWorkflowStepHandler
+{
+  public:
+    virtual ~IWorkflowStepHandler() = default;
+    virtual void handle(const WorkflowStepHandlerContext& context) = 0;
+};
+
+inline std::vector<std::string> workflow_step_handler_keys()
+{
+    // clang-format off
+    return {
+{{workflow_step_handler_keys}}    };
+    // clang-format on
+}
+
+} // namespace statespec_generated::worker

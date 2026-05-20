@@ -1,0 +1,23 @@
+#pragma once
+
+#include "../common/system_descriptors.hpp"
+
+namespace statespec_generated::worker
+{
+
+using LeaseDefinition = ::statespec_generated::LeaseDefinition;
+
+inline std::vector<LeaseDefinition> lease_definitions()
+{
+    return ::statespec_generated::lease_definitions();
+}
+
+inline void register_lease_definitionsTx(
+    statespec::backend::ITransaction& tx,
+    statespec::backend::ILeaseStore& lease_store
+)
+{
+    ::statespec_generated::register_lease_definitionsTx(tx, lease_store);
+}
+
+} // namespace statespec_generated::worker

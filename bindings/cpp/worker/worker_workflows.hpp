@@ -1,0 +1,21 @@
+#pragma once
+
+#include "../common/system_descriptors.hpp"
+
+namespace statespec_generated::worker
+{
+
+inline std::vector<statespec::backend::WorkflowDefinition> workflow_definitions()
+{
+    return ::statespec_generated::workflow_definitions();
+}
+
+inline void register_workflow_definitionsTx(
+    statespec::backend::ITransaction& tx,
+    statespec::backend::IWorkflowStore& workflow_store
+)
+{
+    ::statespec_generated::register_workflow_definitionsTx(tx, workflow_store);
+}
+
+} // namespace statespec_generated::worker
