@@ -4,9 +4,30 @@
 
 > A canonical design language and C++20 compiler/generator toolchain for backend-neutral distributed system specifications.
 
-StateSpec describes distributed systems as durable state, explicit lifecycle transitions, asynchronous workflows, queues, leases, workers, APIs, policies, observability contracts, feature flags, and generator targets.
+StateSpec is a text-first language for making distributed system design explicit,
+reviewable, verifiable, and generatable. It treats the specification of a system as
+source code: durable entities, lifecycle state machines, APIs, workers, workflows,
+queues, leases, policies, feature flags, logs, metrics, and external-system metadata
+are written in one canonical `.sspec` file and compiled into downstream artifacts.
 
-A `.sspec` file is intended to be the source of truth for system behavior. Tooling can validate it, inspect tokens and AST output, and generate language binding metadata for runtime libraries.
+The central idea is that backend systems should not rely on scattered diagrams,
+tribal knowledge, partially synchronized API documents, and hand-maintained runtime
+contracts. StateSpec captures the operational shape of a system in durable text so
+teams can validate lifecycle rules, reason about ownership boundaries, inspect
+orchestration semantics, and generate consistent bindings for multiple runtime
+languages from the same model.
+
+A `.sspec` file is intended to be the source of truth for system behavior. Visual
+tools, diagrams, OpenAPI output, language bindings, worker scaffolding, and runtime
+metadata should derive from the text rather than becoming competing models. The
+compiler pipeline keeps that source of truth concrete: parse the text, validate the
+semantics, lower it to a canonical model, and generate deterministic artifacts for
+the runtimes that execute the system.
+
+The long-term vision is a development workflow where a service design can be edited
+as plain text, reviewed like code, checked in CI, explored visually in an IDE, and
+used to produce production-grade API server and worker artifacts for C++, Go, Java,
+and Rust without each target reinventing the system semantics.
 
 ---
 
