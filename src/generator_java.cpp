@@ -1732,6 +1732,44 @@ GenerationResult generate_java_bindings(
 
     if (!diagnostics.has_errors())
     {
+        add_template_file(
+            result, options.output_dir, templates, output_root / "memory" / "InMemoryBackend.java",
+            output_root / "memory" / "InMemoryBackend.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "memory" / "InMemoryTransaction.java",
+            output_root / "memory" / "InMemoryTransaction.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "memory" / "InMemoryFeatureFlagStore.java",
+            output_root / "memory" / "InMemoryFeatureFlagStore.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "memory" / "InMemoryQueueStore.java",
+            output_root / "memory" / "InMemoryQueueStore.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "memory" / "InMemoryLeaseStore.java",
+            output_root / "memory" / "InMemoryLeaseStore.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "memory" / "InMemoryWorkflowStore.java",
+            output_root / "memory" / "InMemoryWorkflowStore.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, output_root / "memory" / "InMemoryLogSink.java",
+            output_root / "memory" / "InMemoryLogSink.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "memory" / "InMemoryMetricSink.java",
+            output_root / "memory" / "InMemoryMetricSink.java", diagnostics
+        );
         add_generated_template_file(
             result, options.output_dir, templates, "generated/Descriptors.java.tmpl",
             "common/com/statespec/generated/Descriptors.java", diagnostics,

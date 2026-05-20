@@ -113,6 +113,14 @@ common/com/statespec/backend/Log.java
 common/com/statespec/backend/Metric.java
 common/com/statespec/backend/Queue.java
 common/com/statespec/backend/Workflow.java
+common/com/statespec/backend/memory/InMemoryBackend.java
+common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java
+common/com/statespec/backend/memory/InMemoryLeaseStore.java
+common/com/statespec/backend/memory/InMemoryLogSink.java
+common/com/statespec/backend/memory/InMemoryMetricSink.java
+common/com/statespec/backend/memory/InMemoryQueueStore.java
+common/com/statespec/backend/memory/InMemoryTransaction.java
+common/com/statespec/backend/memory/InMemoryWorkflowStore.java
 common/com/statespec/generated/Descriptors.java
 worker/com/statespec/generated/WorkerApplication.java
 worker/com/statespec/generated/WorkerContexts.java

@@ -26,6 +26,14 @@ assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Log.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Metric.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Queue.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Workflow.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryBackend.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryTransaction.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryQueueStore.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryLeaseStore.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryWorkflowStore.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryLogSink.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryMetricSink.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java"
 assert_file_exists "$TMPDIR/out-java/Makefile"
 assert_file_exists "$TMPDIR/out-java/api/com/statespec/generated/ApiDescriptors.java"
@@ -78,6 +86,14 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Backend.java
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Backend.java" "String typeName"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Workflow.java" "record KeepAliveWorkflowStepRequest"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Workflow.java" "keepAliveStepTx"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryBackend.java" "public final class InMemoryBackend"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryTransaction.java" "public final class InMemoryTransaction"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java" "implements FeatureFlag"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryQueueStore.java" "implements Queue"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryLeaseStore.java" "implements Lease"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryWorkflowStore.java" "implements Workflow"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryLogSink.java" "inspectEvents"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryMetricSink.java" "inspectSamples"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "class Descriptors"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record ShapeDescriptor"
@@ -187,5 +203,188 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptor
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "\"int?\""
 
 cp "$SCRIPT_DIR/MetadataResolverFixture.java" "$TMPDIR/out-java/common/com/statespec/generated/MetadataResolverFixture.java"
+cat > "$TMPDIR/out-java/common/com/statespec/backend/memory/MemoryBackendFixture.java" <<'EOF'
+package com.statespec.backend.memory;
+
+import com.statespec.backend.Backend;
+import com.statespec.backend.FeatureFlag;
+import com.statespec.backend.Json;
+import com.statespec.backend.Lease;
+import com.statespec.backend.Log;
+import com.statespec.backend.Metric;
+import com.statespec.backend.Queue;
+import com.statespec.backend.Workflow;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+public final class MemoryBackendFixture
+{
+    public static void main(String[] args) throws Exception
+    {
+        var backend = new InMemoryBackend();
+        var flags = new InMemoryFeatureFlagStore();
+        var queues = new InMemoryQueueStore();
+        var leases = new InMemoryLeaseStore();
+        var workflows = new InMemoryWorkflowStore();
+        var logs = new InMemoryLogSink();
+        var metrics = new InMemoryMetricSink();
+
+        var tx = backend.begin();
+        flags.registerDefinitionTx(
+            tx,
+            new FeatureFlag.Definition(
+                "new_scheduler", FeatureFlag.Type.BOOL, new FeatureFlag.Value.BoolValue(true),
+                FeatureFlag.ScopeKind.SYSTEM, Optional.empty(), Optional.empty(), Optional.empty()
+            )
+        );
+        queues.registerDefinitionTx(
+            tx,
+            new Queue.RegisterQueueDefinitionRequest(
+                new Queue.QueueDefinition(
+                    "workflow", "launch", Duration.ofMinutes(1), 3, Optional.empty(), "{}"
+                )
+            )
+        );
+        var leaseDefinitionId = new Lease.LeaseDefinitionId("workflow_step", 1L);
+        leases.registerDefinitionTx(
+            tx,
+            new Lease.LeaseDefinition(
+                leaseDefinitionId, "workflow/*", Duration.ofMinutes(1),
+                Duration.ofSeconds(30), Optional.empty(), true
+            )
+        );
+        workflows.registerDefinitionTx(
+            tx,
+            new Workflow.RegisterWorkflowDefinitionRequest(
+                new Workflow.WorkflowDefinition(
+                    "ProvisionService", 1L, "validate_request", Duration.ofMinutes(1), false,
+                    List.of(
+                        new Workflow.WorkflowStepDefinition(
+                            "validate_request", Duration.ofSeconds(1), 3
+                        )
+                    ),
+                    "{}"
+                )
+            )
+        );
+        logs.registerDefinitionTx(
+            tx,
+            new Log.Definition(
+                "launch_decision", Log.Level.INFO, "workflow.launch.decision", List.of()
+            )
+        );
+        metrics.registerDefinitionTx(
+            tx,
+            new Metric.Definition(
+                "launch_attempts", Metric.Kind.COUNTER, "workflow_launch_attempts_total", "1",
+                List.of()
+            )
+        );
+        backend.commit(tx);
+
+        var flag = flags.evaluate(
+            backend,
+            new FeatureFlag.EvaluationRequest(
+                "new_scheduler",
+                new FeatureFlag.EvaluationContext(
+                    Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()
+                )
+            )
+        );
+        if (flag.asBool().isEmpty() || !flag.asBool().get())
+        {
+            throw new IllegalStateException("feature flag evaluation failed");
+        }
+
+        var now = Instant.ofEpochSecond(100);
+        var message = queues.enqueue(
+            backend,
+            new Queue.EnqueueMessageRequest(
+                "msg-1", "workflow", "launch", Optional.empty(), "{}"
+            )
+        );
+        if (!message.status().equals("Pending"))
+        {
+            throw new IllegalStateException("queue enqueue failed");
+        }
+        var claimed = queues.claim(
+            backend,
+            new Queue.ClaimMessageRequest(
+                "workflow", "launch", "worker-1", now, Duration.ofMinutes(1), 1
+            )
+        );
+        if (claimed.size() != 1)
+        {
+            throw new IllegalStateException("queue claim failed");
+        }
+
+        var lease = leases.acquire(
+            backend,
+            new Lease.LeaseAcquireRequest(
+                leaseDefinitionId, "workflow/msg-1", "worker-1", now
+            )
+        );
+        if (!lease.acquired() || lease.lease().isEmpty())
+        {
+            throw new IllegalStateException("lease acquire failed");
+        }
+
+        workflows.start(
+            backend,
+            new Workflow.StartWorkflowRequest(
+                "wf-1", "ProvisionService", 1L, "validate_request", "{}"
+            )
+        );
+        var steps = workflows.claimSteps(
+            backend,
+            new Workflow.ClaimWorkflowStepRequest(
+                "wf-1", "ProvisionService", 1L, "worker-1", now, Duration.ofMinutes(1), 1
+            )
+        );
+        if (steps.size() != 1)
+        {
+            throw new IllegalStateException("workflow claim failed");
+        }
+        workflows.keepAliveStep(
+            backend,
+            new Workflow.KeepAliveWorkflowStepRequest(
+                "wf-1", "worker-1", "validate_request", now, Duration.ofMinutes(1)
+            )
+        );
+
+        logs.emit(
+            backend,
+            new Log.Event(
+                "launch_decision", Log.Level.INFO, "workflow.launch.decision", Map.of()
+            )
+        );
+        metrics.record(
+            backend,
+            new Metric.Sample(
+                "launch_attempts", Metric.Kind.COUNTER, "workflow_launch_attempts_total", 1.0,
+                "1", Map.of()
+            )
+        );
+        if (logs.inspectEvents(backend).size() != 1 || metrics.inspectSamples(backend).size() != 1)
+        {
+            throw new IllegalStateException("observability inspect failed");
+        }
+
+        var appTx = backend.begin();
+        backend.put(appTx, "orders", "order-1", Json.object(Map.of("status", Json.string("new"))));
+        backend.commit(appTx);
+        var readTx = backend.begin();
+        if (backend.query(readTx, "orders", new Backend.Query.KeyPrefix("order-")).size() != 1)
+        {
+            throw new IllegalStateException("backend query failed");
+        }
+        backend.commit(readTx);
+    }
+}
+EOF
 (cd "$TMPDIR/out-java" && make check)
 ${JAVA:-java} -cp "$TMPDIR/out-java/build/classes" com.statespec.generated.MetadataResolverFixture
+${JAVA:-java} -cp "$TMPDIR/out-java/build/classes" com.statespec.backend.memory.MemoryBackendFixture
