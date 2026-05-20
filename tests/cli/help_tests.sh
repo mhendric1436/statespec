@@ -17,6 +17,7 @@ assert_output_contains "statespec help"
 assert_output_contains "statespec fmt [--check] <file.sspec>"
 assert_output_contains "statespec generate bindings --lang <cpp|go|java|rust>"
 assert_output_contains "[--tier <all|common|api|worker>]"
+assert_output_contains "[--template-root DIR]"
 assert_output_contains "statespec generate openapi <file.sspec> [--out DIR]"
 
 run_expect_status 0 "$CLI" --help

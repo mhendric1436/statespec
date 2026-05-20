@@ -111,6 +111,29 @@ void renderer_rejects_missing_template_files()
     );
 }
 
+void template_package_resolves_relative_paths()
+{
+    const statespec::TemplatePackage package{std::filesystem::path{"templates/bindings/cpp"}};
+
+    statespec::test::require(
+        package.root().generic_string() == "templates/bindings/cpp",
+        "template package should expose its root"
+    );
+    statespec::test::require(
+        package.resolve("api/api_server.hpp").generic_string() ==
+            "templates/bindings/cpp/api/api_server.hpp",
+        "template package should resolve relative paths under the package root"
+    );
+}
+
+void template_package_rejects_absolute_paths()
+{
+    const statespec::TemplatePackage package{std::filesystem::path{"templates"}};
+    const auto absolute_path = std::filesystem::temp_directory_path() / "template.txt";
+
+    REQUIRE_THROWS_AS(package.resolve(absolute_path), std::invalid_argument);
+}
+
 } // namespace
 
 TEST_CASE("template renderer replaces placeholders")
@@ -151,4 +174,14 @@ TEST_CASE("template renderer loads template files")
 TEST_CASE("template renderer rejects missing template files")
 {
     renderer_rejects_missing_template_files();
+}
+
+TEST_CASE("template package resolves relative paths")
+{
+    template_package_resolves_relative_paths();
+}
+
+TEST_CASE("template package rejects absolute paths")
+{
+    template_package_rejects_absolute_paths();
 }

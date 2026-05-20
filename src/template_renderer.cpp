@@ -113,4 +113,38 @@ std::string TemplateRenderer::render_file(
     return render(load_template(path), values);
 }
 
+TemplatePackage::TemplatePackage(std::filesystem::path root)
+    : root_(std::move(root))
+{
+}
+
+const std::filesystem::path& TemplatePackage::root() const noexcept
+{
+    return root_;
+}
+
+std::filesystem::path TemplatePackage::resolve(const std::filesystem::path& relative_path) const
+{
+    if (relative_path.is_absolute())
+    {
+        throw std::invalid_argument(
+            "template package paths must be relative: " + relative_path.generic_string()
+        );
+    }
+    return root_ / relative_path;
+}
+
+std::string TemplatePackage::load(const std::filesystem::path& relative_path) const
+{
+    return TemplateRenderer::load_template(resolve(relative_path));
+}
+
+std::string TemplatePackage::render(
+    const std::filesystem::path& relative_path,
+    const TemplateRenderer::Values& values
+) const
+{
+    return renderer_.render_file(resolve(relative_path), values);
+}
+
 } // namespace statespec

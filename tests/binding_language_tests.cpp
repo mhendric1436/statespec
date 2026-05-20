@@ -160,6 +160,37 @@ void test_binding_generation_tier_parse()
     );
 }
 
+void test_binding_template_root_resolution()
+{
+    require_string_equal(
+        statespec::default_binding_template_root(statespec::BindingLanguage::Cpp).generic_string(),
+        "bindings/cpp", "default C++ template root"
+    );
+    require_string_equal(
+        statespec::default_binding_template_root(statespec::BindingLanguage::Go).generic_string(),
+        "bindings/go", "default Go template root"
+    );
+    require_string_equal(
+        statespec::default_binding_template_root(statespec::BindingLanguage::Java).generic_string(),
+        "bindings/java", "default Java template root"
+    );
+    require_string_equal(
+        statespec::default_binding_template_root(statespec::BindingLanguage::Rust).generic_string(),
+        "bindings/rust", "default Rust template root"
+    );
+
+    const statespec::BindingGeneratorOptions options{
+        statespec::BindingLanguage::Go,
+        std::filesystem::path{"/tmp/statespec-template-root-test"},
+        statespec::BindingGenerationTier::All,
+        std::filesystem::path{"templates/bindings"},
+    };
+    require_string_equal(
+        statespec::resolve_binding_template_root(options).generic_string(), "templates/bindings/go",
+        "explicit binding template root should be language-scoped"
+    );
+}
+
 struct ExpectedBindingAppArtifact
 {
     std::string path;
@@ -465,6 +496,7 @@ void require_generated_files_have_tiered_artifact_paths(
             language,
             std::filesystem::path{"/tmp/statespec-artifact-tier-test"} / language_name,
             statespec::BindingGenerationTier::All,
+            {},
         },
         diagnostics
     );
@@ -558,6 +590,7 @@ void require_exact_generated_artifact_manifest(
             language,
             std::filesystem::path{"/tmp/statespec-artifact-manifest-test"} / language_name,
             statespec::BindingGenerationTier::All,
+            {},
         },
         diagnostics
     );
@@ -775,6 +808,7 @@ void test_shared_descriptor_artifact_paths()
             statespec::BindingLanguage::Cpp,
             "/tmp/statespec-artifact-tier-test/cpp",
             statespec::BindingGenerationTier::All,
+            {},
         },
         diagnostics
     );
@@ -784,6 +818,7 @@ void test_shared_descriptor_artifact_paths()
             statespec::BindingLanguage::Go,
             "/tmp/statespec-artifact-tier-test/go",
             statespec::BindingGenerationTier::All,
+            {},
         },
         diagnostics
     );
@@ -793,6 +828,7 @@ void test_shared_descriptor_artifact_paths()
             statespec::BindingLanguage::Java,
             "/tmp/statespec-artifact-tier-test/java",
             statespec::BindingGenerationTier::All,
+            {},
         },
         diagnostics
     );
@@ -802,6 +838,7 @@ void test_shared_descriptor_artifact_paths()
             statespec::BindingLanguage::Rust,
             "/tmp/statespec-artifact-tier-test/rust",
             statespec::BindingGenerationTier::All,
+            {},
         },
         diagnostics
     );
@@ -1126,6 +1163,7 @@ statespec::GenerationResult generate_for_tier(
             std::filesystem::path{"/tmp/statespec-tier-selection-test"} / language_name /
                 statespec::binding_generation_tier_name(tier),
             tier,
+            {},
         },
         diagnostics
     );
@@ -1470,6 +1508,11 @@ TEST_CASE("binding language lists supported languages")
 TEST_CASE("binding generation tier parses canonical names")
 {
     test_binding_generation_tier_parse();
+}
+
+TEST_CASE("binding template roots resolve predictably")
+{
+    test_binding_template_root_resolution();
 }
 
 TEST_CASE("binding app artifact kind names are stable")

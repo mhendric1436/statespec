@@ -1,6 +1,7 @@
 #include "statespec/generator_bindings.hpp"
 
 #include <cctype>
+#include <cstdlib>
 #include <stdexcept>
 
 namespace statespec
@@ -63,6 +64,16 @@ bool validate_binding_generation_request(
     {
         diagnostics.error(
             SourceRange{}, "SSPEC5102", "binding generation requires an output directory"
+        );
+        valid = false;
+    }
+
+    if (!options.template_root.empty() && !std::filesystem::exists(options.template_root))
+    {
+        diagnostics.error(
+            SourceRange{}, "SSPEC5103",
+            "binding generation template root does not exist: " +
+                options.template_root.generic_string()
         );
         valid = false;
     }
@@ -294,6 +305,27 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
         };
     }
     return {};
+}
+
+std::filesystem::path default_binding_template_root(BindingLanguage language)
+{
+    return std::filesystem::path{"bindings"} / to_string(language);
+}
+
+std::filesystem::path resolve_binding_template_root(const BindingGeneratorOptions& options)
+{
+    if (!options.template_root.empty())
+    {
+        return options.template_root / to_string(options.language);
+    }
+
+    if (const char* env_template_root = std::getenv("STATESPEC_TEMPLATE_ROOT");
+        env_template_root != nullptr && std::string{env_template_root}.empty() == false)
+    {
+        return std::filesystem::path{env_template_root} / to_string(options.language);
+    }
+
+    return default_binding_template_root(options.language);
 }
 
 FieldDescriptorType classify_field_descriptor_type(const std::string& type_name)

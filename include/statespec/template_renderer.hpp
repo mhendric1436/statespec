@@ -26,4 +26,25 @@ class TemplateRenderer
     ) const;
 };
 
+class TemplatePackage
+{
+  public:
+    explicit TemplatePackage(std::filesystem::path root);
+
+    const std::filesystem::path& root() const noexcept;
+
+    std::filesystem::path resolve(const std::filesystem::path& relative_path) const;
+
+    std::string load(const std::filesystem::path& relative_path) const;
+
+    std::string render(
+        const std::filesystem::path& relative_path,
+        const TemplateRenderer::Values& values
+    ) const;
+
+  private:
+    std::filesystem::path root_;
+    TemplateRenderer renderer_;
+};
+
 } // namespace statespec

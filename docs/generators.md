@@ -7,7 +7,7 @@ which downstream artifact to emit.
 ## Commands
 
 ```sh
-statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR] [--tier <all|common|api|worker>]
+statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR] [--tier <all|common|api|worker>] [--template-root DIR]
 statespec generate openapi <file.sspec> [--out DIR]
 ```
 
@@ -19,6 +19,17 @@ Protocol buffer generation is not implemented yet.
 Binding generation writes all artifacts by default. Use `--tier common` to emit only
 shared descriptors and runtime support, `--tier api` to emit shared plus API-server
 artifacts, or `--tier worker` to emit shared plus worker artifacts.
+
+Binding generation resolves source-backed template packages in this order:
+
+1. `--template-root DIR`, scoped to `DIR/<language>`
+2. `STATESPEC_TEMPLATE_ROOT`, scoped to `$STATESPEC_TEMPLATE_ROOT/<language>`
+3. the development default `bindings/<language>`
+
+The template root is intentionally language-scoped so future checked-in packages can move
+to `templates/bindings/<language>` without changing generator internals. Generated
+dynamic descriptor blocks are still rendered by the compiler until each artifact is
+converted to a source template.
 
 Generated bindings also include minimal language-native packaging metadata:
 

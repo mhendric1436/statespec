@@ -1,9 +1,10 @@
 #include "statespec/generator_rust.hpp"
+#include "statespec/template_renderer.hpp"
 
 #include <cctype>
 #include <filesystem>
-#include <fstream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 namespace statespec
@@ -12,37 +13,24 @@ namespace statespec
 namespace
 {
 
-std::string read_template_file(
-    const std::filesystem::path& path,
-    DiagnosticBag& diagnostics
-)
-{
-    std::ifstream input(path);
-    if (!input)
-    {
-        diagnostics.error(
-            SourceRange{}, "SSPEC5201", "failed to read binding template: " + path.string()
-        );
-        return {};
-    }
-
-    std::ostringstream buffer;
-    buffer << input.rdbuf();
-    return buffer.str();
-}
-
 void add_template_file(
     GenerationResult& result,
     const std::filesystem::path& output_dir,
-    const std::filesystem::path& template_path,
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_template_path,
     const std::filesystem::path& relative_output_path,
     DiagnosticBag& diagnostics,
     GeneratedArtifactTier tier = GeneratedArtifactTier::Common
 )
 {
-    const auto content = read_template_file(template_path, diagnostics);
-    if (diagnostics.has_errors())
+    std::string content;
+    try
     {
+        content = templates.load(relative_template_path);
+    }
+    catch (const std::exception& error)
+    {
+        diagnostics.error(SourceRange{}, "SSPEC5201", error.what());
         return;
     }
 
@@ -2087,34 +2075,25 @@ GenerationResult generate_rust_bindings(
 )
 {
     GenerationResult result;
-    const std::filesystem::path template_root{"bindings/rust"};
+    const TemplatePackage templates{resolve_binding_template_root(options)};
 
+    add_template_file(result, options.output_dir, templates, "json.rs", "json.rs", diagnostics);
     add_template_file(
-        result, options.output_dir, template_root / "json.rs", "json.rs", diagnostics
+        result, options.output_dir, templates, "backend.rs", "backend.rs", diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "backend.rs", "backend.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, template_root / "external_system.rs", "external_system.rs",
+        result, options.output_dir, templates, "external_system.rs", "external_system.rs",
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "feature_flag.rs", "feature_flag.rs",
-        diagnostics
+        result, options.output_dir, templates, "feature_flag.rs", "feature_flag.rs", diagnostics
     );
+    add_template_file(result, options.output_dir, templates, "lease.rs", "lease.rs", diagnostics);
+    add_template_file(result, options.output_dir, templates, "log.rs", "log.rs", diagnostics);
+    add_template_file(result, options.output_dir, templates, "metric.rs", "metric.rs", diagnostics);
+    add_template_file(result, options.output_dir, templates, "queue.rs", "queue.rs", diagnostics);
     add_template_file(
-        result, options.output_dir, template_root / "lease.rs", "lease.rs", diagnostics
-    );
-    add_template_file(result, options.output_dir, template_root / "log.rs", "log.rs", diagnostics);
-    add_template_file(
-        result, options.output_dir, template_root / "metric.rs", "metric.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, template_root / "queue.rs", "queue.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, template_root / "workflow.rs", "workflow.rs", diagnostics
+        result, options.output_dir, templates, "workflow.rs", "workflow.rs", diagnostics
     );
 
     if (!diagnostics.has_errors())

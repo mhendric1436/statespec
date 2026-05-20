@@ -50,6 +50,9 @@ assert_file_exists "$TMPDIR/tier-worker/common/system_descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-worker/api/api_descriptors.hpp"
 assert_file_exists "$TMPDIR/tier-worker/worker/worker_descriptors.hpp"
 
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/template-root-cpp" --template-root bindings
+assert_file_exists "$TMPDIR/template-root-cpp/common/json.hpp"
+
 run_expect_status 2 "$CLI" generate bindings "$SPEC"
 assert_output_contains "generate bindings requires --lang <cpp|go|java|rust>"
 
@@ -72,6 +75,13 @@ assert_output_contains "--tier requires one of: all|common|api|worker"
 run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" --tier database
 assert_output_contains "unsupported binding generation tier 'database'"
 assert_output_contains "all|common|api|worker"
+
+run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" --template-root
+assert_output_contains "--template-root requires a directory"
+
+run_expect_status 1 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/missing-template-root" --template-root "$TMPDIR/missing-templates"
+assert_output_contains "SSPEC5103"
+assert_output_contains "binding generation template root does not exist"
 
 run_expect_status 2 "$CLI" generate bindings --lang cpp "$SPEC" extra
 assert_output_contains "unexpected argument for generate bindings: extra"

@@ -1,9 +1,10 @@
 #include "statespec/generator_go.hpp"
+#include "statespec/template_renderer.hpp"
 
 #include <cctype>
 #include <filesystem>
-#include <fstream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 namespace statespec
@@ -12,37 +13,24 @@ namespace statespec
 namespace
 {
 
-std::string read_template_file(
-    const std::filesystem::path& path,
-    DiagnosticBag& diagnostics
-)
-{
-    std::ifstream input(path);
-    if (!input)
-    {
-        diagnostics.error(
-            SourceRange{}, "SSPEC5201", "failed to read binding template: " + path.string()
-        );
-        return {};
-    }
-
-    std::ostringstream buffer;
-    buffer << input.rdbuf();
-    return buffer.str();
-}
-
 void add_template_file(
     GenerationResult& result,
     const std::filesystem::path& output_dir,
-    const std::filesystem::path& template_path,
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_template_path,
     const std::filesystem::path& relative_output_path,
     DiagnosticBag& diagnostics,
     GeneratedArtifactTier tier = GeneratedArtifactTier::Common
 )
 {
-    const auto content = read_template_file(template_path, diagnostics);
-    if (diagnostics.has_errors())
+    std::string content;
+    try
     {
+        content = templates.load(relative_template_path);
+    }
+    catch (const std::exception& error)
+    {
+        diagnostics.error(SourceRange{}, "SSPEC5201", error.what());
         return;
     }
 
@@ -1936,36 +1924,37 @@ GenerationResult generate_go_bindings(
 )
 {
     GenerationResult result;
-    const std::filesystem::path template_root{"bindings/go/backend"};
+    const TemplatePackage templates{resolve_binding_template_root(options)};
 
     add_template_file(
-        result, options.output_dir, template_root / "json.go", "backend/json.go", diagnostics
+        result, options.output_dir, templates, "backend/json.go", "backend/json.go", diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "backend.go", "backend/backend.go", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, template_root / "external_system.go",
-        "backend/external_system.go", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, template_root / "feature_flag.go", "backend/feature_flag.go",
+        result, options.output_dir, templates, "backend/backend.go", "backend/backend.go",
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "lease.go", "backend/lease.go", diagnostics
+        result, options.output_dir, templates, "backend/external_system.go",
+        "backend/external_system.go", diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "log.go", "backend/log.go", diagnostics
+        result, options.output_dir, templates, "backend/feature_flag.go", "backend/feature_flag.go",
+        diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "metric.go", "backend/metric.go", diagnostics
+        result, options.output_dir, templates, "backend/lease.go", "backend/lease.go", diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "queue.go", "backend/queue.go", diagnostics
+        result, options.output_dir, templates, "backend/log.go", "backend/log.go", diagnostics
     );
     add_template_file(
-        result, options.output_dir, template_root / "workflow.go", "backend/workflow.go",
+        result, options.output_dir, templates, "backend/metric.go", "backend/metric.go", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "backend/queue.go", "backend/queue.go", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "backend/workflow.go", "backend/workflow.go",
         diagnostics
     );
 

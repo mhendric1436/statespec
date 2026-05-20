@@ -26,6 +26,7 @@ struct BindingGeneratorOptions
     BindingLanguage language;
     std::filesystem::path output_dir;
     BindingGenerationTier tier = BindingGenerationTier::All;
+    std::filesystem::path template_root;
 };
 
 enum class BindingAppArtifactKind
@@ -61,6 +62,10 @@ std::string supported_binding_generation_tiers_text();
 std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind);
 
 std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage language);
+
+std::filesystem::path default_binding_template_root(BindingLanguage language);
+
+std::filesystem::path resolve_binding_template_root(const BindingGeneratorOptions& options);
 
 enum class FieldDescriptorType
 {
