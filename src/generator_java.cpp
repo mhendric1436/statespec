@@ -1693,31 +1693,56 @@ std::string generate_external_system_operator_metadata_api_java()
     return out.str();
 }
 
-std::string generate_worker_artifacts_java()
+std::string generate_worker_descriptors_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class WorkerDescriptors {\n";
+    out << "    private WorkerDescriptors() {}\n\n";
+    out << "    public static List<Descriptors.WorkerDescriptor> workerDescriptors() {\n";
+    out << "        return Descriptors.workerDescriptors();\n";
+    out << "    }\n\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_contexts_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class WorkerContexts {\n";
+    out << "    private WorkerContexts() {}\n\n";
+    out << "    public static List<Descriptors.WorkerContext> workerContexts() {\n";
+    out << "        return Descriptors.workerContexts();\n";
+    out << "    }\n\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_handlers_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "public final class WorkerHandlers {\n";
+    out << "    private WorkerHandlers() {}\n\n";
+    out << "    public interface Handler extends Descriptors.Worker {}\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_queues_java()
 {
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
     out << "import com.statespec.backend.Backend;\n";
-    out << "import com.statespec.backend.Lease;\n";
     out << "import com.statespec.backend.Queue;\n";
-    out << "import com.statespec.backend.Workflow;\n";
     out << "import java.util.List;\n\n";
-    out << "public final class WorkerArtifacts {\n";
-    out << "    private WorkerArtifacts() {}\n\n";
-    out << "    public static List<Descriptors.WorkerDescriptor> workerDescriptors() {\n";
-    out << "        return Descriptors.workerDescriptors();\n";
-    out << "    }\n\n";
-    out << "    public static List<Descriptors.WorkerContext> workerContexts() {\n";
-    out << "        return Descriptors.workerContexts();\n";
-    out << "    }\n\n";
+    out << "public final class WorkerQueues {\n";
+    out << "    private WorkerQueues() {}\n\n";
     out << "    public static List<Queue.QueueDefinition> queueDefinitions() {\n";
     out << "        return Descriptors.queueDefinitions();\n";
-    out << "    }\n\n";
-    out << "    public static List<Descriptors.LeaseDefinition> leaseDefinitions() {\n";
-    out << "        return Descriptors.leaseDefinitions();\n";
-    out << "    }\n\n";
-    out << "    public static List<Workflow.WorkflowDefinition> workflowDefinitions() {\n";
-    out << "        return Descriptors.workflowDefinitions();\n";
     out << "    }\n\n";
     out << "    public static void createQueueDefinitionsTx(\n";
     out << "        Backend.Transaction tx,\n";
@@ -1725,11 +1750,43 @@ std::string generate_worker_artifacts_java()
     out << "    ) throws Backend.BackendException {\n";
     out << "        Descriptors.createQueueDefinitionsTx(tx, queueStore);\n";
     out << "    }\n\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_leases_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.Lease;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class WorkerLeases {\n";
+    out << "    private WorkerLeases() {}\n\n";
+    out << "    public static List<Descriptors.LeaseDefinition> leaseDefinitions() {\n";
+    out << "        return Descriptors.leaseDefinitions();\n";
+    out << "    }\n\n";
     out << "    public static void registerLeaseDefinitionsTx(\n";
     out << "        Backend.Transaction tx,\n";
     out << "        Lease leaseStore\n";
     out << "    ) throws Backend.BackendException {\n";
     out << "        Descriptors.registerLeaseDefinitionsTx(tx, leaseStore);\n";
+    out << "    }\n\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_workflows_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.Workflow;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class WorkerWorkflows {\n";
+    out << "    private WorkerWorkflows() {}\n\n";
+    out << "    public static List<Workflow.WorkflowDefinition> workflowDefinitions() {\n";
+    out << "        return Descriptors.workflowDefinitions();\n";
     out << "    }\n\n";
     out << "    public static void registerWorkflowDefinitionsTx(\n";
     out << "        Backend.Transaction tx,\n";
@@ -1737,7 +1794,6 @@ std::string generate_worker_artifacts_java()
     out << "    ) throws Backend.BackendException {\n";
     out << "        Descriptors.registerWorkflowDefinitionsTx(tx, workflowStore);\n";
     out << "    }\n\n";
-    out << "    public interface Handler extends Descriptors.Worker {}\n";
     out << "}\n";
     return out.str();
 }
@@ -1845,10 +1901,54 @@ GenerationResult generate_java_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "com/statespec/generated/WorkerArtifacts.java").string(),
-                generate_worker_artifacts_java(),
+                (options.output_dir / "worker/com/statespec/generated/WorkerDescriptors.java")
+                    .string(),
+                generate_worker_descriptors_java(),
                 GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerArtifacts.java",
+                "worker/com/statespec/generated/WorkerDescriptors.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkerContexts.java")
+                    .string(),
+                generate_worker_contexts_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkerContexts.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkerHandlers.java")
+                    .string(),
+                generate_worker_handlers_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkerHandlers.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkerQueues.java").string(),
+                generate_worker_queues_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkerQueues.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkerLeases.java").string(),
+                generate_worker_leases_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkerLeases.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkerWorkflows.java")
+                    .string(),
+                generate_worker_workflows_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkerWorkflows.java",
             }
         );
     }

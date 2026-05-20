@@ -498,20 +498,103 @@ void test_shared_descriptor_artifact_paths()
     );
 
     require_generated_file_artifact_path(
-        cpp_result, "worker_artifacts.hpp", "worker/worker_artifacts.hpp",
+        cpp_result, "worker/worker_descriptors.hpp", "worker/worker_descriptors.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
-        go_result, "backend/worker_artifacts.go", "worker/backend/worker_artifacts.go",
+        cpp_result, "worker/worker_contexts.hpp", "worker/worker_contexts.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
-        java_result, "com/statespec/generated/WorkerArtifacts.java",
-        "worker/com/statespec/generated/WorkerArtifacts.java",
+        cpp_result, "worker/worker_handlers.hpp", "worker/worker_handlers.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
-        rust_result, "worker_artifacts.rs", "worker/worker_artifacts.rs",
+        cpp_result, "worker/worker_queues.hpp", "worker/worker_queues.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        cpp_result, "worker/worker_leases.hpp", "worker/worker_leases.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        cpp_result, "worker/worker_workflows.hpp", "worker/worker_workflows.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/worker_descriptors.go", "worker/backend/worker_descriptors.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/worker_contexts.go", "worker/backend/worker_contexts.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/worker_handlers.go", "worker/backend/worker_handlers.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/worker_queues.go", "worker/backend/worker_queues.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/worker_leases.go", "worker/backend/worker_leases.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        go_result, "worker/backend/worker_workflows.go", "worker/backend/worker_workflows.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkerDescriptors.java",
+        "worker/com/statespec/generated/WorkerDescriptors.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkerContexts.java",
+        "worker/com/statespec/generated/WorkerContexts.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkerHandlers.java",
+        "worker/com/statespec/generated/WorkerHandlers.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkerQueues.java",
+        "worker/com/statespec/generated/WorkerQueues.java", statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkerLeases.java",
+        "worker/com/statespec/generated/WorkerLeases.java", statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        java_result, "worker/com/statespec/generated/WorkerWorkflows.java",
+        "worker/com/statespec/generated/WorkerWorkflows.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/worker_descriptors.rs", "worker/worker_descriptors.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/worker_contexts.rs", "worker/worker_contexts.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/worker_handlers.rs", "worker/worker_handlers.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/worker_queues.rs", "worker/worker_queues.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/worker_leases.rs", "worker/worker_leases.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        rust_result, "worker/worker_workflows.rs", "worker/worker_workflows.rs",
         statespec::GeneratedArtifactTier::Worker
     );
 }
@@ -654,7 +737,7 @@ void test_rust_lib_rs_matches_selected_tier()
         "common lib excludes API descriptor module"
     );
     require(
-        common_lib.find("pub mod worker_artifacts;") == std::string::npos,
+        common_lib.find("pub mod worker_descriptors;") == std::string::npos,
         "common lib excludes worker module"
     );
 
@@ -689,8 +772,16 @@ void test_rust_lib_rs_matches_selected_tier()
         "worker lib excludes API module"
     );
     require(
-        worker_lib.find("pub mod worker_artifacts;") != std::string::npos,
-        "worker lib declares worker module"
+        worker_lib.find("pub mod worker_descriptors;") != std::string::npos,
+        "worker lib declares worker descriptor module"
+    );
+    require(
+        worker_lib.find("pub mod worker_contexts;") != std::string::npos,
+        "worker lib declares worker context module"
+    );
+    require(
+        worker_lib.find("pub mod worker_workflows;") != std::string::npos,
+        "worker lib declares worker workflow module"
     );
 
     require(!diagnostics.has_errors(), "rust tier-aware lib generation should not fail");
@@ -718,7 +809,7 @@ void test_cpp_makefile_matches_selected_tier()
         "common Makefile excludes API header"
     );
     require(
-        common_makefile.find("worker_artifacts.hpp") == std::string::npos,
+        common_makefile.find("worker/worker_descriptors.hpp") == std::string::npos,
         "common Makefile excludes worker header"
     );
 
@@ -739,7 +830,7 @@ void test_cpp_makefile_matches_selected_tier()
         "API Makefile includes API routes header"
     );
     require(
-        api_makefile.find("worker_artifacts.hpp") == std::string::npos,
+        api_makefile.find("worker/worker_descriptors.hpp") == std::string::npos,
         "API Makefile excludes worker header"
     );
 
@@ -753,8 +844,12 @@ void test_cpp_makefile_matches_selected_tier()
         "worker Makefile excludes API header"
     );
     require(
-        worker_makefile.find("worker_artifacts.hpp") != std::string::npos,
-        "worker Makefile includes worker header"
+        worker_makefile.find("worker/worker_descriptors.hpp") != std::string::npos,
+        "worker Makefile includes worker descriptors header"
+    );
+    require(
+        worker_makefile.find("worker/worker_workflows.hpp") != std::string::npos,
+        "worker Makefile includes worker workflows header"
     );
 
     require(!diagnostics.has_errors(), "cpp tier-aware Makefile generation should not fail");

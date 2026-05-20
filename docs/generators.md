@@ -32,8 +32,8 @@ Generated bindings also include minimal language-native packaging metadata:
 Common-tier runtime support and descriptor source is physically emitted under a
 `common/` directory in each language output root. API-tier code is emitted under `api/`
 as focused files for descriptors, handlers, routes, and external-system operator
-metadata APIs. Worker-tier files keep their current compatibility paths until they are
-split into concept-specific production files.
+metadata APIs. Worker-tier code is emitted under `worker/` as focused files for
+worker descriptors, contexts, handlers, queues, leases, and workflows.
 
 ## Supported Languages
 

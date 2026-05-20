@@ -1544,7 +1544,40 @@ std::string generate_external_system_operator_metadata_api_go()
     return out.str();
 }
 
-std::string generate_worker_artifacts_go()
+std::string generate_worker_descriptors_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "type WorkerTierDescriptor = common.WorkerDescriptor\n";
+    out << "func WorkerTierDescriptors() []common.WorkerDescriptor {\n";
+    out << "\treturn common.WorkerDescriptors()\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_contexts_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "type WorkerTierContext = common.WorkerContext\n\n";
+    out << "func WorkerTierContexts() []common.WorkerContext {\n";
+    out << "\treturn common.WorkerContexts()\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_worker_handlers_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "type WorkerTierHandler = common.Worker\n";
+    return out.str();
+}
+
+std::string generate_worker_queues_go()
 {
     std::ostringstream out;
     out << "package backend\n\n";
@@ -1552,31 +1585,44 @@ std::string generate_worker_artifacts_go()
     out << "\t\"context\"\n\n";
     out << "\tcommon \"statespec-generated/common/backend\"\n";
     out << ")\n\n";
-    out << "type WorkerTierDescriptor = common.WorkerDescriptor\n";
-    out << "type WorkerTierContext = common.WorkerContext\n";
-    out << "type WorkerTierHandler = common.Worker\n\n";
-    out << "func WorkerTierDescriptors() []common.WorkerDescriptor {\n";
-    out << "\treturn common.WorkerDescriptors()\n";
-    out << "}\n\n";
-    out << "func WorkerTierContexts() []common.WorkerContext {\n";
-    out << "\treturn common.WorkerContexts()\n";
-    out << "}\n\n";
     out << "func WorkerTierQueueDefinitions() []common.QueueDefinition {\n";
     out << "\treturn common.QueueDefinitions()\n";
-    out << "}\n\n";
-    out << "func WorkerTierLeaseDefinitions() []common.LeaseDescriptor {\n";
-    out << "\treturn common.LeaseDefinitions()\n";
-    out << "}\n\n";
-    out << "func WorkerTierWorkflowDefinitions() []common.WorkflowDefinition {\n";
-    out << "\treturn common.WorkflowDefinitions()\n";
     out << "}\n\n";
     out << "func WorkerTierCreateQueueDefinitionsTx(ctx context.Context, tx common.Transaction, "
            "store common.QueueStore) error {\n";
     out << "\treturn common.CreateQueueDefinitionsTx(ctx, tx, store)\n";
     out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_worker_leases_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << "func WorkerTierLeaseDefinitions() []common.LeaseDescriptor {\n";
+    out << "\treturn common.LeaseDefinitions()\n";
+    out << "}\n\n";
     out << "func WorkerTierRegisterLeaseDefinitionsTx(ctx context.Context, tx common.Transaction, "
            "store common.LeaseStore) error {\n";
     out << "\treturn common.RegisterLeaseDefinitionsTx(ctx, tx, store)\n";
+    out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_worker_workflows_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << "func WorkerTierWorkflowDefinitions() []common.WorkflowDefinition {\n";
+    out << "\treturn common.WorkflowDefinitions()\n";
     out << "}\n\n";
     out << "func WorkerTierRegisterWorkflowDefinitionsTx(ctx context.Context, tx "
            "common.Transaction, "
@@ -1681,10 +1727,50 @@ GenerationResult generate_go_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "backend/worker_artifacts.go").string(),
-                generate_worker_artifacts_go(),
+                (options.output_dir / "worker/backend/worker_descriptors.go").string(),
+                generate_worker_descriptors_go(),
                 GeneratedArtifactTier::Worker,
-                "worker/backend/worker_artifacts.go",
+                "worker/backend/worker_descriptors.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/worker_contexts.go").string(),
+                generate_worker_contexts_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/worker_contexts.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/worker_handlers.go").string(),
+                generate_worker_handlers_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/worker_handlers.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/worker_queues.go").string(),
+                generate_worker_queues_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/worker_queues.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/worker_leases.go").string(),
+                generate_worker_leases_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/worker_leases.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/worker_workflows.go").string(),
+                generate_worker_workflows_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/worker_workflows.go",
             }
         );
     }

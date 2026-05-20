@@ -249,7 +249,18 @@ std::string generate_rust_lib(BindingGenerationTier tier)
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker)
     {
-        out << "pub mod worker_artifacts;\n";
+        out << "#[path = \"worker/worker_contexts.rs\"]\n";
+        out << "pub mod worker_contexts;\n";
+        out << "#[path = \"worker/worker_descriptors.rs\"]\n";
+        out << "pub mod worker_descriptors;\n";
+        out << "#[path = \"worker/worker_handlers.rs\"]\n";
+        out << "pub mod worker_handlers;\n";
+        out << "#[path = \"worker/worker_leases.rs\"]\n";
+        out << "pub mod worker_leases;\n";
+        out << "#[path = \"worker/worker_queues.rs\"]\n";
+        out << "pub mod worker_queues;\n";
+        out << "#[path = \"worker/worker_workflows.rs\"]\n";
+        out << "pub mod worker_workflows;\n";
     }
 
     return out.str();
@@ -1692,26 +1703,62 @@ std::string generate_external_system_operator_metadata_api_rs()
     return out.str();
 }
 
-std::string generate_worker_artifacts_rs()
+std::string generate_worker_descriptors_rs()
 {
     std::ostringstream out;
     out << "use crate::descriptors;\n\n";
-    out << "pub use crate::descriptors::{Worker, WorkerContext, WorkerDescriptor};\n";
-    out << "pub use crate::lease::LeaseDefinition;\n";
-    out << "pub use crate::queue::QueueDefinition;\n";
-    out << "pub use crate::workflow::WorkflowDefinition;\n\n";
+    out << "pub use crate::descriptors::WorkerDescriptor;\n\n";
     out << "pub fn worker_descriptors() -> Vec<WorkerDescriptor> {\n";
     out << "    descriptors::worker_descriptors()\n";
     out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_worker_contexts_rs()
+{
+    std::ostringstream out;
+    out << "use crate::descriptors;\n\n";
+    out << "pub use crate::descriptors::WorkerContext;\n\n";
     out << "pub fn worker_contexts() -> Vec<WorkerContext> {\n";
     out << "    descriptors::worker_contexts()\n";
     out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_worker_handlers_rs()
+{
+    std::ostringstream out;
+    out << "pub use crate::descriptors::Worker;\n";
+    return out.str();
+}
+
+std::string generate_worker_queues_rs()
+{
+    std::ostringstream out;
+    out << "use crate::descriptors;\n\n";
+    out << "pub use crate::queue::QueueDefinition;\n\n";
     out << "pub fn queue_definitions() -> Vec<QueueDefinition> {\n";
     out << "    descriptors::queue_definitions()\n";
     out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_worker_leases_rs()
+{
+    std::ostringstream out;
+    out << "use crate::descriptors;\n\n";
+    out << "pub use crate::lease::LeaseDefinition;\n\n";
     out << "pub fn lease_definitions() -> Vec<descriptors::LeaseDefinition> {\n";
     out << "    descriptors::lease_definitions()\n";
     out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_worker_workflows_rs()
+{
+    std::ostringstream out;
+    out << "use crate::descriptors;\n\n";
+    out << "pub use crate::workflow::WorkflowDefinition;\n\n";
     out << "pub fn workflow_definitions() -> Vec<WorkflowDefinition> {\n";
     out << "    descriptors::workflow_definitions()\n";
     out << "}\n";
@@ -1817,10 +1864,50 @@ GenerationResult generate_rust_bindings(
         );
         result.files.push_back(
             GeneratedFile{
-                (options.output_dir / "worker_artifacts.rs").string(),
-                generate_worker_artifacts_rs(),
+                (options.output_dir / "worker/worker_descriptors.rs").string(),
+                generate_worker_descriptors_rs(),
                 GeneratedArtifactTier::Worker,
-                "worker/worker_artifacts.rs",
+                "worker/worker_descriptors.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_contexts.rs").string(),
+                generate_worker_contexts_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_contexts.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_handlers.rs").string(),
+                generate_worker_handlers_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_handlers.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_queues.rs").string(),
+                generate_worker_queues_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_queues.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_leases.rs").string(),
+                generate_worker_leases_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_leases.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/worker_workflows.rs").string(),
+                generate_worker_workflows_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/worker_workflows.rs",
             }
         );
     }
