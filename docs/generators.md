@@ -35,6 +35,11 @@ as focused files for descriptors, handlers, routes, and external-system operator
 metadata APIs. Worker-tier code is emitted under `worker/` as focused files for
 worker descriptors, contexts, handlers, queues, leases, and workflows.
 
+Generated application shells are intentionally separated from user-owned implementation
+code. See [generated-extension-points.md](generated-extension-points.md) for the API
+handler, worker handler, workflow step handler, and operator metadata handler contracts
+that application code implements outside the generated output tree.
+
 ## Application Artifact Model
 
 The binding generators use a stable application artifact model for the planned complete

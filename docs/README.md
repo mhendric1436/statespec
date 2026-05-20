@@ -26,6 +26,7 @@ truth for system behavior.
 | [observability.md](observability.md) | Log and metric declarations, generated descriptors, and runtime binding contracts. |
 | [policies.md](policies.md) | Policy authoring for tenant scoping, authorization rules, quotas, and audit points. |
 | [generators.md](generators.md) | CLI-selected binding generation and expected output layout. |
+| [generated-extension-points.md](generated-extension-points.md) | User-owned API, worker, workflow step, and operator metadata implementation boundaries. |
 | [backend-abstractions.md](backend-abstractions.md) | OCC-centered backend abstraction source artifacts and runtime contracts. |
 | [style-guide.md](style-guide.md) | Naming, ordering, and maintainability conventions for `.sspec` files. |
 
@@ -35,8 +36,9 @@ truth for system behavior.
 2. Read [language-model.md](language-model.md) to understand how declarations fit together.
 3. Check [compiler-parity.md](compiler-parity.md) before relying on newer grammar constructs.
 4. Use the focused guides while authoring specific sections.
-5. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
-6. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
+5. Read [generated-extension-points.md](generated-extension-points.md) before wiring generated code into runtime applications.
+6. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
+7. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
 
 ## Source Of Truth
 
