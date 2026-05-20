@@ -1907,6 +1907,106 @@ std::string generate_workflow_step_handlers_java(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_runner_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.Json;\n";
+    out << "import com.statespec.backend.Workflow;\n";
+    out << "import java.time.Duration;\n";
+    out << "import java.time.Instant;\n";
+    out << "import java.util.List;\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class WorkflowRunner {\n";
+    out << "    private final Backend backend;\n";
+    out << "    private final Workflow workflowStore;\n";
+    out << "    private final WorkflowStepHandlers.Handler handler;\n";
+    out << "    private final String workerName;\n";
+    out << "    private final Duration leaseDuration;\n";
+    out << "    private final int maxAttempts;\n\n";
+    out << "    public WorkflowRunner(\n";
+    out << "        Backend backend,\n";
+    out << "        Workflow workflowStore,\n";
+    out << "        WorkflowStepHandlers.Handler handler,\n";
+    out << "        String workerName,\n";
+    out << "        Duration leaseDuration,\n";
+    out << "        int maxAttempts\n";
+    out << "    ) {\n";
+    out << "        this.backend = backend;\n";
+    out << "        this.workflowStore = workflowStore;\n";
+    out << "        this.handler = handler;\n";
+    out << "        this.workerName = workerName;\n";
+    out << "        this.leaseDuration = leaseDuration;\n";
+    out << "        this.maxAttempts = maxAttempts;\n";
+    out << "    }\n\n";
+    out << "    public Optional<Workflow.WorkflowExecutionRecord> runOnce(\n";
+    out << "        String workflowExecutionId,\n";
+    out << "        String workflowName,\n";
+    out << "        long workflowVersion\n";
+    out << "    ) throws Exception {\n";
+    out << "        List<Workflow.WorkflowExecutionRecord> claimed = workflowStore.claimSteps(\n";
+    out << "            backend,\n";
+    out << "            new Workflow.ClaimWorkflowStepRequest(\n";
+    out << "                workflowExecutionId,\n";
+    out << "                workflowName,\n";
+    out << "                workflowVersion,\n";
+    out << "                workerName,\n";
+    out << "                Instant.now(),\n";
+    out << "                leaseDuration,\n";
+    out << "                1\n";
+    out << "            )\n";
+    out << "        );\n";
+    out << "        if (claimed.isEmpty()) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        Workflow.WorkflowExecutionRecord record = claimed.get(0);\n";
+    out << "        workflowStore.keepAliveStep(\n";
+    out << "            backend,\n";
+    out << "            new Workflow.KeepAliveWorkflowStepRequest(\n";
+    out << "                record.workflowExecutionId(),\n";
+    out << "                workerName,\n";
+    out << "                record.currentStep(),\n";
+    out << "                Instant.now(),\n";
+    out << "                leaseDuration\n";
+    out << "            )\n";
+    out << "        );\n";
+    out << "        try {\n";
+    out << "            handler.handleWorkflowStep(new WorkflowStepHandlers.Context(\n";
+    out << "                record.workflowName(),\n";
+    out << "                record.workflowVersion(),\n";
+    out << "                record.currentStep(),\n";
+    out << "                Optional.of(record.workflowExecutionId()),\n";
+    out << "                Json.parse(record.stateJson())\n";
+    out << "            ));\n";
+    out << "            return Optional.of(workflowStore.completeStep(\n";
+    out << "                backend,\n";
+    out << "                new Workflow.CompleteWorkflowStepRequest(\n";
+    out << "                    record.workflowExecutionId(),\n";
+    out << "                    workerName,\n";
+    out << "                    record.currentStep(),\n";
+    out << "                    Optional.empty(),\n";
+    out << "                    record.stateJson()\n";
+    out << "                )\n";
+    out << "            ));\n";
+    out << "        } catch (Exception ex) {\n";
+    out << "            return Optional.of(workflowStore.failStep(\n";
+    out << "                backend,\n";
+    out << "                new Workflow.FailWorkflowStepRequest(\n";
+    out << "                    record.workflowExecutionId(),\n";
+    out << "                    workerName,\n";
+    out << "                    record.currentStep(),\n";
+    out << "                    ex.getMessage(),\n";
+    out << "                    Instant.now(),\n";
+    out << "                    maxAttempts\n";
+    out << "                )\n";
+    out << "            ));\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_java()
 {
     std::ostringstream out;
@@ -2133,6 +2233,15 @@ GenerationResult generate_java_bindings(
                 generate_workflow_step_handlers_java(system),
                 GeneratedArtifactTier::Worker,
                 "worker/com/statespec/generated/WorkflowStepHandlers.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/com/statespec/generated/WorkflowRunner.java")
+                    .string(),
+                generate_workflow_runner_java(),
+                GeneratedArtifactTier::Worker,
+                "worker/com/statespec/generated/WorkflowRunner.java",
             }
         );
         result.files.push_back(

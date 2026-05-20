@@ -271,6 +271,8 @@ std::string generate_rust_lib(BindingGenerationTier tier)
         out << "pub mod worker_application;\n";
         out << "#[path = \"worker/workflow_step_handlers.rs\"]\n";
         out << "pub mod workflow_step_handlers;\n";
+        out << "#[path = \"worker/workflow_runner.rs\"]\n";
+        out << "pub mod workflow_runner;\n";
     }
 
     return out.str();
@@ -1875,6 +1877,99 @@ std::string generate_workflow_step_handlers_rs(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_runner_rs()
+{
+    std::ostringstream out;
+    out << "use std::time::{Duration, SystemTime};\n\n";
+    out << "use crate::backend::{Backend, BackendResult};\n";
+    out << "use crate::workflow::{\n";
+    out << "    ClaimWorkflowStepRequest, CompleteWorkflowStepRequest, FailWorkflowStepRequest,\n";
+    out << "    KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,\n";
+    out << "};\n";
+    out << "use crate::workflow_step_handlers::{WorkflowStepHandler, "
+           "WorkflowStepHandlerContext};\n\n";
+    out << "pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>, H: "
+           "WorkflowStepHandler> {\n";
+    out << "    pub backend: &'a B,\n";
+    out << "    pub workflow_store: &'a S,\n";
+    out << "    pub handler: &'a H,\n";
+    out << "    pub worker_name: String,\n";
+    out << "    pub lease_duration: Duration,\n";
+    out << "    pub max_attempts: u32,\n";
+    out << "}\n\n";
+    out << "impl<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> "
+           "WorkflowRunner<'a, B, S, H> {\n";
+    out << "    pub fn run_once(\n";
+    out << "        &self,\n";
+    out << "        workflow_execution_id: &str,\n";
+    out << "        workflow_name: &str,\n";
+    out << "        workflow_version: i64,\n";
+    out << "    ) -> BackendResult<Option<WorkflowExecutionRecord>> {\n";
+    out << "        let claimed = self.workflow_store.claim_steps(\n";
+    out << "            self.backend,\n";
+    out << "            &ClaimWorkflowStepRequest {\n";
+    out << "                workflow_execution_id: workflow_execution_id.to_string(),\n";
+    out << "                workflow_name: workflow_name.to_string(),\n";
+    out << "                workflow_version,\n";
+    out << "                worker: self.worker_name.clone(),\n";
+    out << "                now: SystemTime::now(),\n";
+    out << "                lease_duration: self.lease_duration,\n";
+    out << "                max_steps: 1,\n";
+    out << "            },\n";
+    out << "        )?;\n";
+    out << "        let Some(record) = claimed.into_iter().next() else {\n";
+    out << "            return Ok(None);\n";
+    out << "        };\n";
+    out << "        self.workflow_store.keep_alive_step(\n";
+    out << "            self.backend,\n";
+    out << "            &KeepAliveWorkflowStepRequest {\n";
+    out << "                workflow_execution_id: record.workflow_execution_id.clone(),\n";
+    out << "                worker: self.worker_name.clone(),\n";
+    out << "                current_step: record.current_step.clone(),\n";
+    out << "                now: SystemTime::now(),\n";
+    out << "                lease_duration: self.lease_duration,\n";
+    out << "            },\n";
+    out << "        )?;\n";
+    out << "        let handler_result = "
+           "self.handler.handle_workflow_step(&WorkflowStepHandlerContext "
+           "{\n";
+    out << "            workflow_name: record.workflow_name.clone(),\n";
+    out << "            workflow_version: record.workflow_version,\n";
+    out << "            step_name: record.current_step.clone(),\n";
+    out << "            execution_id: Some(record.workflow_execution_id.clone()),\n";
+    out << "            input: record.state.clone(),\n";
+    out << "        });\n";
+    out << "        match handler_result {\n";
+    out << "            Ok(()) => self.workflow_store.complete_step(\n";
+    out << "                self.backend,\n";
+    out << "                &CompleteWorkflowStepRequest {\n";
+    out << "                    workflow_execution_id: record.workflow_execution_id,\n";
+    out << "                    worker: self.worker_name.clone(),\n";
+    out << "                    completed_step: record.current_step,\n";
+    out << "                    next_step: None,\n";
+    out << "                    state: record.state,\n";
+    out << "                },\n";
+    out << "            ).map(Some),\n";
+    out << "            Err(err) => {\n";
+    out << "                let reason = format!(\"{:?}\", err);\n";
+    out << "                self.workflow_store.fail_step(\n";
+    out << "                    self.backend,\n";
+    out << "                    &FailWorkflowStepRequest {\n";
+    out << "                        workflow_execution_id: record.workflow_execution_id,\n";
+    out << "                        worker: self.worker_name.clone(),\n";
+    out << "                        failed_step: record.current_step,\n";
+    out << "                        reason,\n";
+    out << "                        now: SystemTime::now(),\n";
+    out << "                        max_attempts: self.max_attempts,\n";
+    out << "                    },\n";
+    out << "                ).map(Some)\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_rs()
 {
     std::ostringstream out;
@@ -2059,6 +2154,14 @@ GenerationResult generate_rust_bindings(
                 generate_workflow_step_handlers_rs(system),
                 GeneratedArtifactTier::Worker,
                 "worker/workflow_step_handlers.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/workflow_runner.rs").string(),
+                generate_workflow_runner_rs(),
+                GeneratedArtifactTier::Worker,
+                "worker/workflow_runner.rs",
             }
         );
         result.files.push_back(

@@ -1716,6 +1716,88 @@ std::string generate_workflow_step_handlers_go(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_runner_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n";
+    out << "\t\"time\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << "type WorkflowRunner struct {\n";
+    out << "\tBackend common.Backend\n";
+    out << "\tWorkflowStore common.WorkflowStore\n";
+    out << "\tHandler WorkflowStepHandler\n";
+    out << "\tWorkerName string\n";
+    out << "\tLeaseDuration time.Duration\n";
+    out << "\tMaxAttempts uint32\n";
+    out << "}\n\n";
+    out << "func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID string, "
+           "workflowName string, workflowVersion int64) (*common.WorkflowExecutionRecord, error) "
+           "{\n";
+    out << "\tclaimed, err := runner.WorkflowStore.ClaimSteps(ctx, runner.Backend, "
+           "common.ClaimWorkflowStepRequest{\n";
+    out << "\t\tWorkflowExecutionID: workflowExecutionID,\n";
+    out << "\t\tWorkflowName: workflowName,\n";
+    out << "\t\tWorkflowVersion: workflowVersion,\n";
+    out << "\t\tWorker: runner.WorkerName,\n";
+    out << "\t\tNow: time.Now(),\n";
+    out << "\t\tLeaseDuration: runner.LeaseDuration,\n";
+    out << "\t\tMaxSteps: 1,\n";
+    out << "\t})\n";
+    out << "\tif err != nil || len(claimed) == 0 {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\trecord := claimed[0]\n";
+    out << "\tif _, err := runner.WorkflowStore.KeepAliveStep(ctx, runner.Backend, "
+           "common.KeepAliveWorkflowStepRequest{\n";
+    out << "\t\tWorkflowExecutionID: record.WorkflowExecutionID,\n";
+    out << "\t\tWorker: runner.WorkerName,\n";
+    out << "\t\tCurrentStep: record.CurrentStep,\n";
+    out << "\t\tNow: time.Now(),\n";
+    out << "\t\tLeaseDuration: runner.LeaseDuration,\n";
+    out << "\t}); err != nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\thandlerErr := runner.Handler.HandleWorkflowStep(ctx, WorkflowStepHandlerContext{\n";
+    out << "\t\tWorkflowName: record.WorkflowName,\n";
+    out << "\t\tWorkflowVersion: record.WorkflowVersion,\n";
+    out << "\t\tStepName: record.CurrentStep,\n";
+    out << "\t\tExecutionID: &record.WorkflowExecutionID,\n";
+    out << "\t\tInput: record.State,\n";
+    out << "\t})\n";
+    out << "\tif handlerErr != nil {\n";
+    out << "\t\tfailed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, "
+           "common.FailWorkflowStepRequest{\n";
+    out << "\t\t\tWorkflowExecutionID: record.WorkflowExecutionID,\n";
+    out << "\t\t\tWorker: runner.WorkerName,\n";
+    out << "\t\t\tFailedStep: record.CurrentStep,\n";
+    out << "\t\t\tReason: handlerErr.Error(),\n";
+    out << "\t\t\tNow: time.Now(),\n";
+    out << "\t\t\tMaxAttempts: runner.MaxAttempts,\n";
+    out << "\t\t})\n";
+    out << "\t\tif failErr != nil {\n";
+    out << "\t\t\treturn nil, failErr\n";
+    out << "\t\t}\n";
+    out << "\t\treturn &failed, handlerErr\n";
+    out << "\t}\n";
+    out << "\tcompleted, err := runner.WorkflowStore.CompleteStep(ctx, runner.Backend, "
+           "common.CompleteWorkflowStepRequest{\n";
+    out << "\t\tWorkflowExecutionID: record.WorkflowExecutionID,\n";
+    out << "\t\tWorker: runner.WorkerName,\n";
+    out << "\t\tCompletedStep: record.CurrentStep,\n";
+    out << "\t\tNextStep: nil,\n";
+    out << "\t\tState: record.State,\n";
+    out << "\t})\n";
+    out << "\tif err != nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\treturn &completed, nil\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_go()
 {
     std::ostringstream out;
@@ -1918,6 +2000,14 @@ GenerationResult generate_go_bindings(
                 generate_workflow_step_handlers_go(system),
                 GeneratedArtifactTier::Worker,
                 "worker/backend/workflow_step_handlers.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/backend/workflow_runner.go").string(),
+                generate_workflow_runner_go(),
+                GeneratedArtifactTier::Worker,
+                "worker/backend/workflow_runner.go",
             }
         );
         result.files.push_back(

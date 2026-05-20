@@ -263,6 +263,7 @@ std::string generate_makefile(BindingGenerationTier tier)
                "#include \"worker/worker_queues.hpp\"\\n"
                "#include \"worker/worker_registry.hpp\"\\n"
                "#include \"worker/worker_workflows.hpp\"\\n"
+               "#include \"worker/workflow_runner.hpp\"\\n"
                "#include \"worker/workflow_step_handlers.hpp\"\\n"
                "int main() { return 0; }\\n' | "
                "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
@@ -2096,6 +2097,116 @@ std::string generate_workflow_step_handlers_header(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_runner_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"workflow_step_handlers.hpp\"\n\n";
+    out << "#include <chrono>\n";
+    out << "#include <cstdint>\n";
+    out << "#include <exception>\n";
+    out << "#include <optional>\n";
+    out << "#include <string>\n\n";
+    out << "#include <utility>\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n\n";
+    out << "class WorkflowRunner\n";
+    out << "{\n";
+    out << "public:\n";
+    out << "    WorkflowRunner(\n";
+    out << "        statespec::backend::IBackend& backend,\n";
+    out << "        statespec::backend::IWorkflowStore& workflow_store,\n";
+    out << "        IWorkflowStepHandler& handler,\n";
+    out << "        std::string worker_name,\n";
+    out << "        std::chrono::seconds lease_duration,\n";
+    out << "        std::uint32_t max_attempts\n";
+    out << "    )\n";
+    out << "        : backend_(backend), workflow_store_(workflow_store), handler_(handler),\n";
+    out << "          worker_name_(std::move(worker_name)), lease_duration_(lease_duration),\n";
+    out << "          max_attempts_(max_attempts)\n";
+    out << "    {\n";
+    out << "    }\n\n";
+    out << "    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(\n";
+    out << "        const std::string& workflow_execution_id,\n";
+    out << "        const std::string& workflow_name,\n";
+    out << "        std::int64_t workflow_version\n";
+    out << "    )\n";
+    out << "    {\n";
+    out << "        const auto now = std::chrono::system_clock::now();\n";
+    out << "        auto claimed = workflow_store_.claim_steps(\n";
+    out << "            backend_,\n";
+    out << "            statespec::backend::ClaimWorkflowStepRequest{\n";
+    out << "                workflow_execution_id,\n";
+    out << "                workflow_name,\n";
+    out << "                workflow_version,\n";
+    out << "                worker_name_,\n";
+    out << "                now,\n";
+    out << "                lease_duration_,\n";
+    out << "                1,\n";
+    out << "            }\n";
+    out << "        );\n";
+    out << "        if (claimed.empty())\n";
+    out << "        {\n";
+    out << "            return std::nullopt;\n";
+    out << "        }\n";
+    out << "        const auto record = claimed.front();\n";
+    out << "        workflow_store_.keep_alive_step(\n";
+    out << "            backend_,\n";
+    out << "            statespec::backend::KeepAliveWorkflowStepRequest{\n";
+    out << "                record.workflow_execution_id,\n";
+    out << "                worker_name_,\n";
+    out << "                record.current_step,\n";
+    out << "                std::chrono::system_clock::now(),\n";
+    out << "                lease_duration_,\n";
+    out << "            }\n";
+    out << "        );\n";
+    out << "        try\n";
+    out << "        {\n";
+    out << "            handler_.handle(WorkflowStepHandlerContext{\n";
+    out << "                record.workflow_name,\n";
+    out << "                static_cast<int>(record.workflow_version),\n";
+    out << "                record.current_step,\n";
+    out << "                record.workflow_execution_id,\n";
+    out << "                record.state,\n";
+    out << "            });\n";
+    out << "            return workflow_store_.complete_step(\n";
+    out << "                backend_,\n";
+    out << "                statespec::backend::CompleteWorkflowStepRequest{\n";
+    out << "                    record.workflow_execution_id,\n";
+    out << "                    worker_name_,\n";
+    out << "                    record.current_step,\n";
+    out << "                    std::nullopt,\n";
+    out << "                    record.state,\n";
+    out << "                }\n";
+    out << "            );\n";
+    out << "        }\n";
+    out << "        catch (const std::exception& ex)\n";
+    out << "        {\n";
+    out << "            return workflow_store_.fail_step(\n";
+    out << "                backend_,\n";
+    out << "                statespec::backend::FailWorkflowStepRequest{\n";
+    out << "                    record.workflow_execution_id,\n";
+    out << "                    worker_name_,\n";
+    out << "                    record.current_step,\n";
+    out << "                    ex.what(),\n";
+    out << "                    std::chrono::system_clock::now(),\n";
+    out << "                    max_attempts_,\n";
+    out << "                }\n";
+    out << "            );\n";
+    out << "        }\n";
+    out << "    }\n\n";
+    out << "private:\n";
+    out << "    statespec::backend::IBackend& backend_;\n";
+    out << "    statespec::backend::IWorkflowStore& workflow_store_;\n";
+    out << "    IWorkflowStepHandler& handler_;\n";
+    out << "    std::string worker_name_;\n";
+    out << "    std::chrono::seconds lease_duration_;\n";
+    out << "    std::uint32_t max_attempts_;\n";
+    out << "};\n\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
 std::string generate_worker_queues_header()
 {
     std::ostringstream out;
@@ -2308,6 +2419,14 @@ GenerationResult generate_cpp_bindings(
                 generate_workflow_step_handlers_header(system),
                 GeneratedArtifactTier::Worker,
                 "worker/workflow_step_handlers.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "worker/workflow_runner.hpp").string(),
+                generate_workflow_runner_header(),
+                GeneratedArtifactTier::Worker,
+                "worker/workflow_runner.hpp",
             }
         );
         result.files.push_back(
