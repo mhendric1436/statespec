@@ -1,0 +1,104 @@
+package com.statespec.generated;
+
+import com.statespec.backend.Backend;
+import com.statespec.backend.Json;
+import com.statespec.backend.Workflow;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+public final class WorkflowRunner {
+    private final Backend backend;
+    private final Workflow workflowStore;
+    private final WorkflowStepHandlers.Handler handler;
+    private final String workerName;
+    private final Duration leaseDuration;
+    private final int maxAttempts;
+
+    public WorkflowRunner(
+        Backend backend,
+        Workflow workflowStore,
+        WorkflowStepHandlers.Handler handler,
+        String workerName,
+        Duration leaseDuration,
+        int maxAttempts
+    ) {
+        this.backend = backend;
+        this.workflowStore = workflowStore;
+        this.handler = handler;
+        this.workerName = workerName;
+        this.leaseDuration = leaseDuration;
+        this.maxAttempts = maxAttempts;
+    }
+
+    public Optional<Workflow.WorkflowExecutionRecord> runOnce(
+        String workflowExecutionId,
+        String workflowName,
+        long workflowVersion
+    ) throws Exception {
+        List<Workflow.WorkflowExecutionRecord> claimed = workflowStore.claimSteps(
+            backend,
+            new Workflow.ClaimWorkflowStepRequest(
+                workflowExecutionId,
+                workflowName,
+                workflowVersion,
+                workerName,
+                Instant.now(),
+                leaseDuration,
+                1
+            )
+        );
+        if (claimed.isEmpty()) {
+            return Optional.empty();
+        }
+        Workflow.WorkflowExecutionRecord record = claimed.get(0);
+        workflowStore.keepAliveStep(
+            backend,
+            new Workflow.KeepAliveWorkflowStepRequest(
+                record.workflowExecutionId(),
+                workerName,
+                record.currentStep(),
+                Instant.now(),
+                leaseDuration
+            )
+        );
+        try {
+            handler.handleWorkflowStep(
+                new WorkflowStepHandlers.Context(
+                    record.workflowName(),
+                    record.workflowVersion(),
+                    record.currentStep(),
+                    Optional.of(record.workflowExecutionId()),
+                    Json.parse(record.stateJson())
+                )
+            );
+            return Optional.of(
+                workflowStore.completeStep(
+                    backend,
+                    new Workflow.CompleteWorkflowStepRequest(
+                        record.workflowExecutionId(),
+                        workerName,
+                        record.currentStep(),
+                        Optional.empty(),
+                        record.stateJson()
+                    )
+                )
+            );
+        } catch (Exception ex) {
+            return Optional.of(
+                workflowStore.failStep(
+                    backend,
+                    new Workflow.FailWorkflowStepRequest(
+                        record.workflowExecutionId(),
+                        workerName,
+                        record.currentStep(),
+                        ex.getMessage(),
+                        Instant.now(),
+                        maxAttempts
+                    )
+                )
+            );
+        }
+    }
+}

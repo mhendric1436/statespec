@@ -45,6 +45,52 @@ void add_template_file(
     );
 }
 
+std::string render_template_file(
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_template_path,
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    try
+    {
+        return templates.render(relative_template_path, values);
+    }
+    catch (const std::exception& error)
+    {
+        diagnostics.error(SourceRange{}, "SSPEC5201", error.what());
+        return {};
+    }
+}
+
+void add_generated_template_file(
+    GenerationResult& result,
+    const std::filesystem::path& output_dir,
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_template_path,
+    const std::filesystem::path& relative_output_path,
+    DiagnosticBag& diagnostics,
+    GeneratedArtifactTier tier,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    const auto content =
+        render_template_file(templates, relative_template_path, diagnostics, values);
+    if (diagnostics.has_errors())
+    {
+        return;
+    }
+
+    result.files.push_back(
+        GeneratedFile{
+            (output_dir / relative_output_path).string(),
+            content,
+            tier,
+            relative_output_path.generic_string(),
+        }
+    );
+}
+
 std::string java_string(const std::string& value)
 {
     std::ostringstream out;
@@ -1650,252 +1696,9 @@ std::string generate_descriptors_java(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_descriptors_java()
+std::string generate_workflow_step_handler_keys_java(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class ApiDescriptors {\n";
-    out << "    private ApiDescriptors() {}\n\n";
-    out << "    public static List<Descriptors.ApiDescriptor> apiDescriptors() {\n";
-    out << "        return Descriptors.apiDescriptors();\n";
-    out << "    }\n\n";
-    out << "    public static List<Descriptors.ApiServerDescriptor> apiServerDescriptors() {\n";
-    out << "        return Descriptors.apiServerDescriptors();\n";
-    out << "    }\n\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_api_routes_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class ApiRoutes {\n";
-    out << "    private ApiRoutes() {}\n\n";
-    out << "    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {\n";
-    out << "        return Descriptors.apiRouteDescriptors();\n";
-    out << "    }\n\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_api_handlers_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "public final class ApiHandlers {\n";
-    out << "    private ApiHandlers() {}\n\n";
-    out << "    public interface Handler extends Descriptors.ApiHandler {}\n\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_api_dispatcher_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import java.util.Optional;\n\n";
-    out << "public final class ApiDispatcher {\n";
-    out << "    private ApiDispatcher() {}\n\n";
-    out << "    public static Optional<Descriptors.ApiRouteDescriptor> findApiRoute(String "
-           "routeName) {\n";
-    out << "        for (Descriptors.ApiRouteDescriptor route : ApiRoutes.apiRouteDescriptors()) "
-           "{\n";
-    out << "            if (route.name().equals(routeName)) {\n";
-    out << "                return Optional.of(route);\n";
-    out << "            }\n";
-    out << "        }\n";
-    out << "        return Optional.empty();\n";
-    out << "    }\n\n";
-    out << "    public static Optional<Descriptors.ApiResponse> dispatchApiRoute(\n";
-    out << "        Descriptors.ApiHandler handler,\n";
-    out << "        String routeName,\n";
-    out << "        Descriptors.ApiRequestContext context\n";
-    out << "    ) throws Exception {\n";
-    out << "        if (!findApiRoute(routeName).isPresent()) {\n";
-    out << "            return Optional.empty();\n";
-    out << "        }\n";
-    out << "        return Optional.of(handler.handle(context));\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_api_server_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import java.util.Optional;\n\n";
-    out << "public final class ApiServer {\n";
-    out << "    private final Descriptors.ApiServerDescriptor descriptor;\n";
-    out << "    private final Descriptors.ApiHandler handler;\n\n";
-    out << "    public ApiServer(\n";
-    out << "        Descriptors.ApiServerDescriptor descriptor,\n";
-    out << "        Descriptors.ApiHandler handler\n";
-    out << "    ) {\n";
-    out << "        this.descriptor = descriptor;\n";
-    out << "        this.handler = handler;\n";
-    out << "    }\n\n";
-    out << "    public Descriptors.ApiServerDescriptor descriptor() {\n";
-    out << "        return descriptor;\n";
-    out << "    }\n\n";
-    out << "    public static Optional<Descriptors.ApiServerDescriptor> findApiServer(String "
-           "serverName) {\n";
-    out << "        for (Descriptors.ApiServerDescriptor server : "
-           "ApiDescriptors.apiServerDescriptors()) {\n";
-    out << "            if (server.name().equals(serverName)) {\n";
-    out << "                return Optional.of(server);\n";
-    out << "            }\n";
-    out << "        }\n";
-    out << "        return Optional.empty();\n";
-    out << "    }\n\n";
-    out << "    public Optional<Descriptors.ApiResponse> handle(\n";
-    out << "        String routeName,\n";
-    out << "        Descriptors.ApiRequestContext context\n";
-    out << "    ) throws Exception {\n";
-    out << "        Optional<Descriptors.ApiRouteDescriptor> route = "
-           "ApiDispatcher.findApiRoute(routeName);\n";
-    out << "        if (!route.isPresent() || !route.get().serverName().equals(descriptor.name())) "
-           "{\n";
-    out << "            return Optional.empty();\n";
-    out << "        }\n";
-    out << "        return ApiDispatcher.dispatchApiRoute(handler, routeName, context);\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_external_system_operator_metadata_api_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "public final class ExternalSystemOperatorMetadataApi {\n";
-    out << "    private ExternalSystemOperatorMetadataApi() {}\n\n";
-    out << "    public interface ExternalSystemOperatorMetadataHandler\n";
-    out << "        extends Descriptors.ExternalSystemOperatorMetadataApiHandler {}\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_descriptors_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class WorkerDescriptors {\n";
-    out << "    private WorkerDescriptors() {}\n\n";
-    out << "    public static List<Descriptors.WorkerDescriptor> workerDescriptors() {\n";
-    out << "        return Descriptors.workerDescriptors();\n";
-    out << "    }\n\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_contexts_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class WorkerContexts {\n";
-    out << "    private WorkerContexts() {}\n\n";
-    out << "    public static List<Descriptors.WorkerContext> workerContexts() {\n";
-    out << "        return Descriptors.workerContexts();\n";
-    out << "    }\n\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_handlers_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "public final class WorkerHandlers {\n";
-    out << "    private WorkerHandlers() {}\n\n";
-    out << "    public interface Handler extends Descriptors.Worker {}\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_registry_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import java.util.Optional;\n\n";
-    out << "public final class WorkerRegistry {\n";
-    out << "    private WorkerRegistry() {}\n\n";
-    out << "    public static Optional<Descriptors.WorkerDescriptor> findWorkerDescriptor(\n";
-    out << "        String workerName\n";
-    out << "    ) {\n";
-    out << "        for (Descriptors.WorkerDescriptor worker : "
-           "WorkerDescriptors.workerDescriptors()) {\n";
-    out << "            if (worker.name().equals(workerName)) {\n";
-    out << "                return Optional.of(worker);\n";
-    out << "            }\n";
-    out << "        }\n";
-    out << "        return Optional.empty();\n";
-    out << "    }\n\n";
-    out << "    public static Optional<Descriptors.WorkerContext> findWorkerContext(\n";
-    out << "        String workerName\n";
-    out << "    ) {\n";
-    out << "        for (Descriptors.WorkerContext context : WorkerContexts.workerContexts()) "
-           "{\n";
-    out << "            if (context.workerName().equals(workerName)) {\n";
-    out << "                return Optional.of(context);\n";
-    out << "            }\n";
-    out << "        }\n";
-    out << "        return Optional.empty();\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_application_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "public final class WorkerApplication {\n";
-    out << "    private final Descriptors.WorkerContext context;\n";
-    out << "    private final Descriptors.Worker handler;\n\n";
-    out << "    public WorkerApplication(\n";
-    out << "        Descriptors.WorkerContext context,\n";
-    out << "        Descriptors.Worker handler\n";
-    out << "    ) {\n";
-    out << "        this.context = context;\n";
-    out << "        this.handler = handler;\n";
-    out << "    }\n\n";
-    out << "    public Descriptors.WorkerContext context() {\n";
-    out << "        return context;\n";
-    out << "    }\n\n";
-    out << "    public void run() throws Exception {\n";
-    out << "        handler.run(context);\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_workflow_step_handlers_java(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import com.statespec.backend.Json;\n";
-    out << "import java.util.List;\n";
-    out << "import java.util.Optional;\n\n";
-    out << "public final class WorkflowStepHandlers {\n";
-    out << "    private WorkflowStepHandlers() {}\n\n";
-    out << "    public record Context(\n";
-    out << "        String workflowName,\n";
-    out << "        long workflowVersion,\n";
-    out << "        String stepName,\n";
-    out << "        Optional<String> executionId,\n";
-    out << "        Json input\n";
-    out << "    ) {}\n\n";
-    out << "    public interface Handler {\n";
-    out << "        void handleWorkflowStep(Context context) throws Exception;\n";
-    out << "    }\n\n";
-    out << "    public static List<String> workflowStepHandlerKeys() {\n";
-    out << "        return List.of(\n";
     std::vector<std::string> keys;
     for (const auto& workflow : system.workflows)
     {
@@ -1908,175 +1711,6 @@ std::string generate_workflow_step_handlers_java(const IrSystem& system)
     {
         out << "            " << java_string(keys[i]) << (i + 1 < keys.size() ? "," : "") << "\n";
     }
-    out << "        );\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_workflow_runner_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import com.statespec.backend.Backend;\n";
-    out << "import com.statespec.backend.Json;\n";
-    out << "import com.statespec.backend.Workflow;\n";
-    out << "import java.time.Duration;\n";
-    out << "import java.time.Instant;\n";
-    out << "import java.util.List;\n";
-    out << "import java.util.Optional;\n\n";
-    out << "public final class WorkflowRunner {\n";
-    out << "    private final Backend backend;\n";
-    out << "    private final Workflow workflowStore;\n";
-    out << "    private final WorkflowStepHandlers.Handler handler;\n";
-    out << "    private final String workerName;\n";
-    out << "    private final Duration leaseDuration;\n";
-    out << "    private final int maxAttempts;\n\n";
-    out << "    public WorkflowRunner(\n";
-    out << "        Backend backend,\n";
-    out << "        Workflow workflowStore,\n";
-    out << "        WorkflowStepHandlers.Handler handler,\n";
-    out << "        String workerName,\n";
-    out << "        Duration leaseDuration,\n";
-    out << "        int maxAttempts\n";
-    out << "    ) {\n";
-    out << "        this.backend = backend;\n";
-    out << "        this.workflowStore = workflowStore;\n";
-    out << "        this.handler = handler;\n";
-    out << "        this.workerName = workerName;\n";
-    out << "        this.leaseDuration = leaseDuration;\n";
-    out << "        this.maxAttempts = maxAttempts;\n";
-    out << "    }\n\n";
-    out << "    public Optional<Workflow.WorkflowExecutionRecord> runOnce(\n";
-    out << "        String workflowExecutionId,\n";
-    out << "        String workflowName,\n";
-    out << "        long workflowVersion\n";
-    out << "    ) throws Exception {\n";
-    out << "        List<Workflow.WorkflowExecutionRecord> claimed = workflowStore.claimSteps(\n";
-    out << "            backend,\n";
-    out << "            new Workflow.ClaimWorkflowStepRequest(\n";
-    out << "                workflowExecutionId,\n";
-    out << "                workflowName,\n";
-    out << "                workflowVersion,\n";
-    out << "                workerName,\n";
-    out << "                Instant.now(),\n";
-    out << "                leaseDuration,\n";
-    out << "                1\n";
-    out << "            )\n";
-    out << "        );\n";
-    out << "        if (claimed.isEmpty()) {\n";
-    out << "            return Optional.empty();\n";
-    out << "        }\n";
-    out << "        Workflow.WorkflowExecutionRecord record = claimed.get(0);\n";
-    out << "        workflowStore.keepAliveStep(\n";
-    out << "            backend,\n";
-    out << "            new Workflow.KeepAliveWorkflowStepRequest(\n";
-    out << "                record.workflowExecutionId(),\n";
-    out << "                workerName,\n";
-    out << "                record.currentStep(),\n";
-    out << "                Instant.now(),\n";
-    out << "                leaseDuration\n";
-    out << "            )\n";
-    out << "        );\n";
-    out << "        try {\n";
-    out << "            handler.handleWorkflowStep(new WorkflowStepHandlers.Context(\n";
-    out << "                record.workflowName(),\n";
-    out << "                record.workflowVersion(),\n";
-    out << "                record.currentStep(),\n";
-    out << "                Optional.of(record.workflowExecutionId()),\n";
-    out << "                Json.parse(record.stateJson())\n";
-    out << "            ));\n";
-    out << "            return Optional.of(workflowStore.completeStep(\n";
-    out << "                backend,\n";
-    out << "                new Workflow.CompleteWorkflowStepRequest(\n";
-    out << "                    record.workflowExecutionId(),\n";
-    out << "                    workerName,\n";
-    out << "                    record.currentStep(),\n";
-    out << "                    Optional.empty(),\n";
-    out << "                    record.stateJson()\n";
-    out << "                )\n";
-    out << "            ));\n";
-    out << "        } catch (Exception ex) {\n";
-    out << "            return Optional.of(workflowStore.failStep(\n";
-    out << "                backend,\n";
-    out << "                new Workflow.FailWorkflowStepRequest(\n";
-    out << "                    record.workflowExecutionId(),\n";
-    out << "                    workerName,\n";
-    out << "                    record.currentStep(),\n";
-    out << "                    ex.getMessage(),\n";
-    out << "                    Instant.now(),\n";
-    out << "                    maxAttempts\n";
-    out << "                )\n";
-    out << "            ));\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_queues_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import com.statespec.backend.Backend;\n";
-    out << "import com.statespec.backend.Queue;\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class WorkerQueues {\n";
-    out << "    private WorkerQueues() {}\n\n";
-    out << "    public static List<Queue.QueueDefinition> queueDefinitions() {\n";
-    out << "        return Descriptors.queueDefinitions();\n";
-    out << "    }\n\n";
-    out << "    public static void registerQueueDefinitionsTx(\n";
-    out << "        Backend.Transaction tx,\n";
-    out << "        Queue queueStore\n";
-    out << "    ) throws Backend.BackendException {\n";
-    out << "        Descriptors.registerQueueDefinitionsTx(tx, queueStore);\n";
-    out << "    }\n\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_leases_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import com.statespec.backend.Backend;\n";
-    out << "import com.statespec.backend.Lease;\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class WorkerLeases {\n";
-    out << "    private WorkerLeases() {}\n\n";
-    out << "    public static List<Descriptors.LeaseDefinition> leaseDefinitions() {\n";
-    out << "        return Descriptors.leaseDefinitions();\n";
-    out << "    }\n\n";
-    out << "    public static void registerLeaseDefinitionsTx(\n";
-    out << "        Backend.Transaction tx,\n";
-    out << "        Lease leaseStore\n";
-    out << "    ) throws Backend.BackendException {\n";
-    out << "        Descriptors.registerLeaseDefinitionsTx(tx, leaseStore);\n";
-    out << "    }\n\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_workflows_java()
-{
-    std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
-    out << "import com.statespec.backend.Backend;\n";
-    out << "import com.statespec.backend.Workflow;\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class WorkerWorkflows {\n";
-    out << "    private WorkerWorkflows() {}\n\n";
-    out << "    public static List<Workflow.WorkflowDefinition> workflowDefinitions() {\n";
-    out << "        return Descriptors.workflowDefinitions();\n";
-    out << "    }\n\n";
-    out << "    public static void registerWorkflowDefinitionsTx(\n";
-    out << "        Backend.Transaction tx,\n";
-    out << "        Workflow workflowStore\n";
-    out << "    ) throws Backend.BackendException {\n";
-    out << "        Descriptors.registerWorkflowDefinitionsTx(tx, workflowStore);\n";
-    out << "    }\n\n";
-    out << "}\n";
     return out.str();
 }
 
@@ -2147,143 +1781,101 @@ GenerationResult generate_java_bindings(
                 "common/Makefile",
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/com/statespec/generated/ApiDescriptors.java").string(),
-                generate_api_descriptors_java(),
-                GeneratedArtifactTier::Api,
-                "api/com/statespec/generated/ApiDescriptors.java",
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiDescriptors.java.tmpl",
+            "api/com/statespec/generated/ApiDescriptors.java", diagnostics,
+            GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiHandlers.java.tmpl",
+            "api/com/statespec/generated/ApiHandlers.java", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiDispatcher.java.tmpl",
+            "api/com/statespec/generated/ApiDispatcher.java", diagnostics,
+            GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiServer.java.tmpl",
+            "api/com/statespec/generated/ApiServer.java", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiRoutes.java.tmpl",
+            "api/com/statespec/generated/ApiRoutes.java", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java.tmpl",
+            "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", diagnostics,
+            GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerDescriptors.java.tmpl",
+            "worker/com/statespec/generated/WorkerDescriptors.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerContexts.java.tmpl",
+            "worker/com/statespec/generated/WorkerContexts.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerRegistry.java.tmpl",
+            "worker/com/statespec/generated/WorkerRegistry.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerApplication.java.tmpl",
+            "worker/com/statespec/generated/WorkerApplication.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkflowStepHandlers.java.tmpl",
+            "worker/com/statespec/generated/WorkflowStepHandlers.java", diagnostics,
+            GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_java(system)}
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/com/statespec/generated/ApiHandlers.java").string(),
-                generate_api_handlers_java(),
-                GeneratedArtifactTier::Api,
-                "api/com/statespec/generated/ApiHandlers.java",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkflowRunner.java.tmpl",
+            "worker/com/statespec/generated/WorkflowRunner.java", diagnostics,
+            GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/com/statespec/generated/ApiDispatcher.java").string(),
-                generate_api_dispatcher_java(),
-                GeneratedArtifactTier::Api,
-                "api/com/statespec/generated/ApiDispatcher.java",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerHandlers.java.tmpl",
+            "worker/com/statespec/generated/WorkerHandlers.java", diagnostics,
+            GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/com/statespec/generated/ApiServer.java").string(),
-                generate_api_server_java(),
-                GeneratedArtifactTier::Api,
-                "api/com/statespec/generated/ApiServer.java",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerQueues.java.tmpl",
+            "worker/com/statespec/generated/WorkerQueues.java", diagnostics,
+            GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/com/statespec/generated/ApiRoutes.java").string(),
-                generate_api_routes_java(),
-                GeneratedArtifactTier::Api,
-                "api/com/statespec/generated/ApiRoutes.java",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerLeases.java.tmpl",
+            "worker/com/statespec/generated/WorkerLeases.java", diagnostics,
+            GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir /
-                 "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java")
-                    .string(),
-                generate_external_system_operator_metadata_api_java(),
-                GeneratedArtifactTier::Api,
-                "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkerDescriptors.java")
-                    .string(),
-                generate_worker_descriptors_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerDescriptors.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkerContexts.java")
-                    .string(),
-                generate_worker_contexts_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerContexts.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkerRegistry.java")
-                    .string(),
-                generate_worker_registry_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerRegistry.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkerApplication.java")
-                    .string(),
-                generate_worker_application_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerApplication.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkflowStepHandlers.java")
-                    .string(),
-                generate_workflow_step_handlers_java(system),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkflowStepHandlers.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkflowRunner.java")
-                    .string(),
-                generate_workflow_runner_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkflowRunner.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkerHandlers.java")
-                    .string(),
-                generate_worker_handlers_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerHandlers.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkerQueues.java").string(),
-                generate_worker_queues_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerQueues.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkerLeases.java").string(),
-                generate_worker_leases_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerLeases.java",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/com/statespec/generated/WorkerWorkflows.java")
-                    .string(),
-                generate_worker_workflows_java(),
-                GeneratedArtifactTier::Worker,
-                "worker/com/statespec/generated/WorkerWorkflows.java",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerWorkflows.java.tmpl",
+            "worker/com/statespec/generated/WorkerWorkflows.java", diagnostics,
+            GeneratedArtifactTier::Worker
         );
     }
 

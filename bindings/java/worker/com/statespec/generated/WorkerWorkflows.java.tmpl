@@ -1,0 +1,18 @@
+package com.statespec.generated;
+
+import com.statespec.backend.Backend;
+import com.statespec.backend.Workflow;
+import java.util.List;
+
+public final class WorkerWorkflows {
+    private WorkerWorkflows() {}
+
+    public static List<Workflow.WorkflowDefinition> workflowDefinitions() {
+        return Descriptors.workflowDefinitions();
+    }
+
+    public static void registerWorkflowDefinitionsTx(Backend.Transaction tx, Workflow workflowStore)
+        throws Backend.BackendException {
+        Descriptors.registerWorkflowDefinitionsTx(tx, workflowStore);
+    }
+}

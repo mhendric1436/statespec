@@ -1,0 +1,37 @@
+package com.statespec.generated;
+
+import java.util.Optional;
+
+public final class ApiServer {
+    private final Descriptors.ApiServerDescriptor descriptor;
+    private final Descriptors.ApiHandler handler;
+
+    public ApiServer(Descriptors.ApiServerDescriptor descriptor, Descriptors.ApiHandler handler) {
+        this.descriptor = descriptor;
+        this.handler = handler;
+    }
+
+    public Descriptors.ApiServerDescriptor descriptor() {
+        return descriptor;
+    }
+
+    public static Optional<Descriptors.ApiServerDescriptor> findApiServer(String serverName) {
+        for (Descriptors.ApiServerDescriptor server : ApiDescriptors.apiServerDescriptors()) {
+            if (server.name().equals(serverName)) {
+                return Optional.of(server);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Descriptors.ApiResponse> handle(
+        String routeName,
+        Descriptors.ApiRequestContext context
+    ) throws Exception {
+        Optional<Descriptors.ApiRouteDescriptor> route = ApiDispatcher.findApiRoute(routeName);
+        if (!route.isPresent() || !route.get().serverName().equals(descriptor.name())) {
+            return Optional.empty();
+        }
+        return ApiDispatcher.dispatchApiRoute(handler, routeName, context);
+    }
+}

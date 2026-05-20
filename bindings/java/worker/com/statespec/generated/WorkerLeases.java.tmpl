@@ -1,0 +1,18 @@
+package com.statespec.generated;
+
+import com.statespec.backend.Backend;
+import com.statespec.backend.Lease;
+import java.util.List;
+
+public final class WorkerLeases {
+    private WorkerLeases() {}
+
+    public static List<Descriptors.LeaseDefinition> leaseDefinitions() {
+        return Descriptors.leaseDefinitions();
+    }
+
+    public static void registerLeaseDefinitionsTx(Backend.Transaction tx, Lease leaseStore)
+        throws Backend.BackendException {
+        Descriptors.registerLeaseDefinitionsTx(tx, leaseStore);
+    }
+}

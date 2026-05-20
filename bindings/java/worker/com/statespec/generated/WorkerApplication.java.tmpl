@@ -1,0 +1,19 @@
+package com.statespec.generated;
+
+public final class WorkerApplication {
+    private final Descriptors.WorkerContext context;
+    private final Descriptors.Worker handler;
+
+    public WorkerApplication(Descriptors.WorkerContext context, Descriptors.Worker handler) {
+        this.context = context;
+        this.handler = handler;
+    }
+
+    public Descriptors.WorkerContext context() {
+        return context;
+    }
+
+    public void run() throws Exception {
+        handler.run(context);
+    }
+}

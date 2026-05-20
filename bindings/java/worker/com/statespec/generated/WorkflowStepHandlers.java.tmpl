@@ -1,0 +1,26 @@
+package com.statespec.generated;
+
+import com.statespec.backend.Json;
+import java.util.List;
+import java.util.Optional;
+
+public final class WorkflowStepHandlers {
+    private WorkflowStepHandlers() {}
+
+    public record Context(
+        String workflowName,
+        long workflowVersion,
+        String stepName,
+        Optional<String> executionId,
+        Json input
+    ) {}
+
+    public interface Handler {
+        void handleWorkflowStep(Context context) throws Exception;
+    }
+
+    public static List<String> workflowStepHandlerKeys() {
+        return List.of(
+{{workflow_step_handler_keys}}        );
+    }
+}

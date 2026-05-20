@@ -1,0 +1,18 @@
+package com.statespec.generated;
+
+import com.statespec.backend.Backend;
+import com.statespec.backend.Queue;
+import java.util.List;
+
+public final class WorkerQueues {
+    private WorkerQueues() {}
+
+    public static List<Queue.QueueDefinition> queueDefinitions() {
+        return Descriptors.queueDefinitions();
+    }
+
+    public static void registerQueueDefinitionsTx(Backend.Transaction tx, Queue queueStore)
+        throws Backend.BackendException {
+        Descriptors.registerQueueDefinitionsTx(tx, queueStore);
+    }
+}
