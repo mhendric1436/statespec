@@ -1538,6 +1538,36 @@ std::string generate_api_routes_go()
     return out.str();
 }
 
+std::string generate_api_dispatcher_go()
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << "func FindAPITierRoute(routeName string) (common.ApiRouteDescriptor, bool) {\n";
+    out << "\tfor _, route := range APITierRouteDescriptors() {\n";
+    out << "\t\tif route.Name == routeName {\n";
+    out << "\t\t\treturn route, true\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn common.ApiRouteDescriptor{}, false\n";
+    out << "}\n\n";
+    out << "func DispatchAPITierRoute(ctx context.Context, handler common.APIHandler, routeName "
+           "string, request common.APIRequestContext) (common.APIResponse, bool, error) {\n";
+    out << "\tif _, ok := FindAPITierRoute(routeName); !ok {\n";
+    out << "\t\treturn common.APIResponse{}, false, nil\n";
+    out << "\t}\n";
+    out << "\tresponse, err := handler.Handle(ctx, request)\n";
+    out << "\tif err != nil {\n";
+    out << "\t\treturn common.APIResponse{}, true, err\n";
+    out << "\t}\n";
+    out << "\treturn response, true, nil\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_external_system_operator_metadata_api_go()
 {
     std::ostringstream out;
@@ -1710,6 +1740,14 @@ GenerationResult generate_go_bindings(
                 generate_api_handlers_go(),
                 GeneratedArtifactTier::Api,
                 "api/backend/api_handlers.go",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/backend/api_dispatcher.go").string(),
+                generate_api_dispatcher_go(),
+                GeneratedArtifactTier::Api,
+                "api/backend/api_dispatcher.go",
             }
         );
         result.files.push_back(

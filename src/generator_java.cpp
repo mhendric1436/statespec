@@ -1684,6 +1684,37 @@ std::string generate_api_handlers_java()
     return out.str();
 }
 
+std::string generate_api_dispatcher_java()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class ApiDispatcher {\n";
+    out << "    private ApiDispatcher() {}\n\n";
+    out << "    public static Optional<Descriptors.ApiRouteDescriptor> findApiRoute(String "
+           "routeName) {\n";
+    out << "        for (Descriptors.ApiRouteDescriptor route : ApiRoutes.apiRouteDescriptors()) "
+           "{\n";
+    out << "            if (route.name().equals(routeName)) {\n";
+    out << "                return Optional.of(route);\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
+    out << "    }\n\n";
+    out << "    public static Optional<Descriptors.ApiResponse> dispatchApiRoute(\n";
+    out << "        Descriptors.ApiHandler handler,\n";
+    out << "        String routeName,\n";
+    out << "        Descriptors.ApiRequestContext context\n";
+    out << "    ) throws Exception {\n";
+    out << "        if (!findApiRoute(routeName).isPresent()) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        return Optional.of(handler.handle(context));\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_external_system_operator_metadata_api_java()
 {
     std::ostringstream out;
@@ -1882,6 +1913,14 @@ GenerationResult generate_java_bindings(
                 generate_api_handlers_java(),
                 GeneratedArtifactTier::Api,
                 "api/com/statespec/generated/ApiHandlers.java",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/com/statespec/generated/ApiDispatcher.java").string(),
+                generate_api_dispatcher_java(),
+                GeneratedArtifactTier::Api,
+                "api/com/statespec/generated/ApiDispatcher.java",
             }
         );
         result.files.push_back(

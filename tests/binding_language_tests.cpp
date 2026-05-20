@@ -165,6 +165,7 @@ struct ExpectedBindingAppArtifact
     std::string path;
     statespec::GeneratedArtifactTier tier;
     statespec::BindingAppArtifactKind kind;
+    bool generated = false;
 };
 
 std::vector<std::string>
@@ -209,8 +210,8 @@ void require_app_artifact_model(
                 "app artifact kind for " + expected.path + " should match"
             );
             require(
-                !artifact.generated,
-                "app artifact " + expected.path + " should be modeled but not generated yet"
+                artifact.generated == expected.generated,
+                "app artifact " + expected.path + " generated flag should match"
             );
             require(
                 !artifact.description.empty(),
@@ -277,7 +278,7 @@ void test_binding_app_artifact_models_define_application_filenames()
         {
             {"api/api_application.hpp", api, Kind::ApiApplication},
             {"api/api_server.hpp", api, Kind::ApiServer},
-            {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher},
+            {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry},
             {"api/main.cpp", api, Kind::ApiMain},
             {"worker/worker_application.hpp", worker, Kind::WorkerApplication},
@@ -294,7 +295,7 @@ void test_binding_app_artifact_models_define_application_filenames()
         {
             {"api/backend/api_application.go", api, Kind::ApiApplication},
             {"api/backend/api_server.go", api, Kind::ApiServer},
-            {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher},
+            {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher, true},
             {"api/backend/api_handler_registry.go", api, Kind::ApiHandlerRegistry},
             {"api/cmd/api/main.go", api, Kind::ApiMain},
             {"worker/backend/worker_application.go", worker, Kind::WorkerApplication},
@@ -311,7 +312,7 @@ void test_binding_app_artifact_models_define_application_filenames()
         {
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer},
-            {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher},
+            {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher, true},
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api, Kind::ApiHandlerRegistry},
             {"api/com/statespec/generated/ApiMain.java", api, Kind::ApiMain},
             {"worker/com/statespec/generated/WorkerApplication.java", worker,
@@ -330,7 +331,7 @@ void test_binding_app_artifact_models_define_application_filenames()
         {
             {"api/api_application.rs", api, Kind::ApiApplication},
             {"api/api_server.rs", api, Kind::ApiServer},
-            {"api/api_dispatcher.rs", api, Kind::ApiDispatcher},
+            {"api/api_dispatcher.rs", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.rs", api, Kind::ApiHandlerRegistry},
             {"api/main.rs", api, Kind::ApiMain},
             {"worker/worker_application.rs", worker, Kind::WorkerApplication},
@@ -595,6 +596,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/Makefile", common},
             {"api/api_descriptors.hpp", api},
             {"api/api_handlers.hpp", api},
+            {"api/api_dispatcher.hpp", api},
             {"api/api_routes.hpp", api},
             {"api/external_system_operator_metadata_api.hpp", api},
             {"worker/worker_contexts.hpp", worker},
@@ -622,6 +624,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/go.mod", common},
             {"api/backend/api_descriptors.go", api},
             {"api/backend/api_handlers.go", api},
+            {"api/backend/api_dispatcher.go", api},
             {"api/backend/api_routes.go", api},
             {"api/backend/external_system_operator_metadata_api.go", api},
             {"worker/backend/worker_contexts.go", worker},
@@ -649,6 +652,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/Makefile", common},
             {"api/com/statespec/generated/ApiDescriptors.java", api},
             {"api/com/statespec/generated/ApiHandlers.java", api},
+            {"api/com/statespec/generated/ApiDispatcher.java", api},
             {"api/com/statespec/generated/ApiRoutes.java", api},
             {"api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", api},
             {"worker/com/statespec/generated/WorkerContexts.java", worker},
@@ -677,6 +681,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/lib.rs", common},
             {"api/api_descriptors.rs", api},
             {"api/api_handlers.rs", api},
+            {"api/api_dispatcher.rs", api},
             {"api/api_routes.rs", api},
             {"api/external_system_operator_metadata_api.rs", api},
             {"worker/worker_contexts.rs", worker},
@@ -819,6 +824,10 @@ void test_shared_descriptor_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
+        cpp_result, "api/api_dispatcher.hpp", "api/api_dispatcher.hpp",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
         cpp_result, "api/api_routes.hpp", "api/api_routes.hpp",
         statespec::GeneratedArtifactTier::Api
     );
@@ -832,6 +841,10 @@ void test_shared_descriptor_artifact_paths()
     );
     require_generated_file_artifact_path(
         go_result, "api/backend/api_handlers.go", "api/backend/api_handlers.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        go_result, "api/backend/api_dispatcher.go", "api/backend/api_dispatcher.go",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
@@ -852,6 +865,10 @@ void test_shared_descriptor_artifact_paths()
         "api/com/statespec/generated/ApiHandlers.java", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
+        java_result, "api/com/statespec/generated/ApiDispatcher.java",
+        "api/com/statespec/generated/ApiDispatcher.java", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
         java_result, "api/com/statespec/generated/ApiRoutes.java",
         "api/com/statespec/generated/ApiRoutes.java", statespec::GeneratedArtifactTier::Api
     );
@@ -866,6 +883,10 @@ void test_shared_descriptor_artifact_paths()
     );
     require_generated_file_artifact_path(
         rust_result, "api/api_handlers.rs", "api/api_handlers.rs",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        rust_result, "api/api_dispatcher.rs", "api/api_dispatcher.rs",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
@@ -1133,6 +1154,10 @@ void test_rust_lib_rs_matches_selected_tier()
         "API lib declares API handler module"
     );
     require(
+        api_lib.find("pub mod api_dispatcher;") != std::string::npos,
+        "API lib declares API dispatcher module"
+    );
+    require(
         api_lib.find("pub mod api_routes;") != std::string::npos,
         "API lib declares API route module"
     );
@@ -1203,6 +1228,10 @@ void test_cpp_makefile_matches_selected_tier()
     require(
         api_makefile.find("api/api_handlers.hpp") != std::string::npos,
         "API Makefile includes API handlers header"
+    );
+    require(
+        api_makefile.find("api/api_dispatcher.hpp") != std::string::npos,
+        "API Makefile includes API dispatcher header"
     );
     require(
         api_makefile.find("api/api_routes.hpp") != std::string::npos,

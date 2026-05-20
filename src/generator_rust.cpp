@@ -240,6 +240,8 @@ std::string generate_rust_lib(BindingGenerationTier tier)
     {
         out << "#[path = \"api/api_descriptors.rs\"]\n";
         out << "pub mod api_descriptors;\n";
+        out << "#[path = \"api/api_dispatcher.rs\"]\n";
+        out << "pub mod api_dispatcher;\n";
         out << "#[path = \"api/api_handlers.rs\"]\n";
         out << "pub mod api_handlers;\n";
         out << "#[path = \"api/api_routes.rs\"]\n";
@@ -1697,6 +1699,31 @@ std::string generate_api_handlers_rs()
     return out.str();
 }
 
+std::string generate_api_dispatcher_rs()
+{
+    std::ostringstream out;
+    out << "use crate::api_routes;\n";
+    out << "use crate::backend::BackendResult;\n";
+    out << "use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse, "
+           "ApiRouteDescriptor};\n\n";
+    out << "pub fn find_api_route(route_name: &str) -> Option<ApiRouteDescriptor> {\n";
+    out << "    api_routes::api_route_descriptors()\n";
+    out << "        .into_iter()\n";
+    out << "        .find(|route| route.name == route_name)\n";
+    out << "}\n\n";
+    out << "pub fn dispatch_api_route<H: ApiHandler>(\n";
+    out << "    handler: &H,\n";
+    out << "    route_name: &str,\n";
+    out << "    context: &ApiRequestContext,\n";
+    out << ") -> BackendResult<Option<ApiResponse>> {\n";
+    out << "    if find_api_route(route_name).is_none() {\n";
+    out << "        return Ok(None);\n";
+    out << "    }\n";
+    out << "    handler.handle(context).map(Some)\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_external_system_operator_metadata_api_rs()
 {
     std::ostringstream out;
@@ -1845,6 +1872,14 @@ GenerationResult generate_rust_bindings(
                 generate_api_handlers_rs(),
                 GeneratedArtifactTier::Api,
                 "api/api_handlers.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/api_dispatcher.rs").string(),
+                generate_api_dispatcher_rs(),
+                GeneratedArtifactTier::Api,
+                "api/api_dispatcher.rs",
             }
         );
         result.files.push_back(

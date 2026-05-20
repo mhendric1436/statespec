@@ -244,6 +244,7 @@ std::string generate_makefile(BindingGenerationTier tier)
     {
         out << "check-api: $(BUILD_DIR)\n";
         out << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
+               "#include \"api/api_dispatcher.hpp\"\\n"
                "#include \"api/api_handlers.hpp\"\\n"
                "#include \"api/api_routes.hpp\"\\n"
                "#include \"api/external_system_operator_metadata_api.hpp\"\\n"
@@ -1833,6 +1834,43 @@ std::string generate_api_handlers_header()
     return out.str();
 }
 
+std::string generate_api_dispatcher_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"api_handlers.hpp\"\n";
+    out << "#include \"api_routes.hpp\"\n\n";
+    out << "#include <optional>\n";
+    out << "#include <string_view>\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "inline std::optional<ApiRouteDescriptor> find_api_route(std::string_view route_name)\n";
+    out << "{\n";
+    out << "    for (const auto& route : api_route_descriptors())\n";
+    out << "    {\n";
+    out << "        if (route.name == route_name)\n";
+    out << "        {\n";
+    out << "            return route;\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "inline std::optional<ApiResponse> dispatch_api_route(\n";
+    out << "    IApiHandler& handler,\n";
+    out << "    std::string_view route_name,\n";
+    out << "    const ApiRequestContext& context\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    if (!find_api_route(route_name).has_value())\n";
+    out << "    {\n";
+    out << "        return std::nullopt;\n";
+    out << "    }\n";
+    out << "    return handler.handle(context);\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
 std::string generate_external_system_operator_metadata_api_header()
 {
     std::ostringstream out;
@@ -2030,6 +2068,14 @@ GenerationResult generate_cpp_bindings(
                 generate_api_handlers_header(),
                 GeneratedArtifactTier::Api,
                 "api/api_handlers.hpp",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "api/api_dispatcher.hpp").string(),
+                generate_api_dispatcher_header(),
+                GeneratedArtifactTier::Api,
+                "api/api_dispatcher.hpp",
             }
         );
         result.files.push_back(
