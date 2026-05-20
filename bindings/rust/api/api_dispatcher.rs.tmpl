@@ -1,0 +1,20 @@
+use crate::api_routes;
+use crate::backend::BackendResult;
+use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse, ApiRouteDescriptor};
+
+pub fn find_api_route(route_name: &str) -> Option<ApiRouteDescriptor> {
+    api_routes::api_route_descriptors()
+        .into_iter()
+        .find(|route| route.name == route_name)
+}
+
+pub fn dispatch_api_route<H: ApiHandler>(
+    handler: &H,
+    route_name: &str,
+    context: &ApiRequestContext,
+) -> BackendResult<Option<ApiResponse>> {
+    if find_api_route(route_name).is_none() {
+        return Ok(None);
+    }
+    handler.handle(context).map(Some)
+}

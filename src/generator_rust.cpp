@@ -44,6 +44,52 @@ void add_template_file(
     );
 }
 
+std::string render_template_file(
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_template_path,
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    try
+    {
+        return templates.render(relative_template_path, values);
+    }
+    catch (const std::exception& error)
+    {
+        diagnostics.error(SourceRange{}, "SSPEC5201", error.what());
+        return {};
+    }
+}
+
+void add_generated_template_file(
+    GenerationResult& result,
+    const std::filesystem::path& output_dir,
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_template_path,
+    const std::filesystem::path& relative_output_path,
+    DiagnosticBag& diagnostics,
+    GeneratedArtifactTier tier,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    const auto content =
+        render_template_file(templates, relative_template_path, diagnostics, values);
+    if (diagnostics.has_errors())
+    {
+        return;
+    }
+
+    result.files.push_back(
+        GeneratedFile{
+            (output_dir / relative_output_path).string(),
+            content,
+            tier,
+            relative_output_path.generic_string(),
+        }
+    );
+}
+
 std::string rust_string(const std::string& value)
 {
     std::ostringstream out;
@@ -1740,194 +1786,9 @@ std::string generate_descriptors_rs(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_descriptors_rs()
+std::string generate_workflow_step_handler_keys_rs(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "use crate::descriptors;\n\n";
-    out << "pub use crate::descriptors::{ApiDescriptor, ApiServerDescriptor};\n\n";
-    out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
-    out << "    descriptors::api_descriptors()\n";
-    out << "}\n\n";
-    out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
-    out << "    descriptors::api_server_descriptors()\n";
-    out << "}\n\n";
-    return out.str();
-}
-
-std::string generate_api_routes_rs()
-{
-    std::ostringstream out;
-    out << "use crate::descriptors;\n\n";
-    out << "pub use crate::descriptors::ApiRouteDescriptor;\n\n";
-    out << "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {\n";
-    out << "    descriptors::api_route_descriptors()\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_api_handlers_rs()
-{
-    std::ostringstream out;
-    out << "pub use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse};\n";
-    return out.str();
-}
-
-std::string generate_api_dispatcher_rs()
-{
-    std::ostringstream out;
-    out << "use crate::api_routes;\n";
-    out << "use crate::backend::BackendResult;\n";
-    out << "use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse, "
-           "ApiRouteDescriptor};\n\n";
-    out << "pub fn find_api_route(route_name: &str) -> Option<ApiRouteDescriptor> {\n";
-    out << "    api_routes::api_route_descriptors()\n";
-    out << "        .into_iter()\n";
-    out << "        .find(|route| route.name == route_name)\n";
-    out << "}\n\n";
-    out << "pub fn dispatch_api_route<H: ApiHandler>(\n";
-    out << "    handler: &H,\n";
-    out << "    route_name: &str,\n";
-    out << "    context: &ApiRequestContext,\n";
-    out << ") -> BackendResult<Option<ApiResponse>> {\n";
-    out << "    if find_api_route(route_name).is_none() {\n";
-    out << "        return Ok(None);\n";
-    out << "    }\n";
-    out << "    handler.handle(context).map(Some)\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_api_server_rs()
-{
-    std::ostringstream out;
-    out << "use crate::api_descriptors;\n";
-    out << "use crate::api_dispatcher;\n";
-    out << "use crate::backend::BackendResult;\n";
-    out << "use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse, "
-           "ApiServerDescriptor};\n\n";
-    out << "pub struct ApiServer<H: ApiHandler> {\n";
-    out << "    pub descriptor: ApiServerDescriptor,\n";
-    out << "    pub handler: H,\n";
-    out << "}\n\n";
-    out << "impl<H: ApiHandler> ApiServer<H> {\n";
-    out << "    pub fn new(descriptor: ApiServerDescriptor, handler: H) -> Self {\n";
-    out << "        Self { descriptor, handler }\n";
-    out << "    }\n\n";
-    out << "    pub fn handle(\n";
-    out << "        &self,\n";
-    out << "        route_name: &str,\n";
-    out << "        context: &ApiRequestContext,\n";
-    out << "    ) -> BackendResult<Option<ApiResponse>> {\n";
-    out << "        let route = api_dispatcher::find_api_route(route_name);\n";
-    out << "        if !matches!(route, Some(ref value) if value.server_name == "
-           "self.descriptor.name) {\n";
-    out << "            return Ok(None);\n";
-    out << "        }\n";
-    out << "        api_dispatcher::dispatch_api_route(&self.handler, route_name, context)\n";
-    out << "    }\n";
-    out << "}\n\n";
-    out << "pub fn find_api_server(server_name: &str) -> Option<ApiServerDescriptor> {\n";
-    out << "    api_descriptors::api_server_descriptors()\n";
-    out << "        .into_iter()\n";
-    out << "        .find(|server| server.name == server_name)\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_external_system_operator_metadata_api_rs()
-{
-    std::ostringstream out;
-    out << "pub use crate::descriptors::ExternalSystemOperatorMetadataApiHandler;\n";
-    return out.str();
-}
-
-std::string generate_worker_descriptors_rs()
-{
-    std::ostringstream out;
-    out << "use crate::descriptors;\n\n";
-    out << "pub use crate::descriptors::WorkerDescriptor;\n\n";
-    out << "pub fn worker_descriptors() -> Vec<WorkerDescriptor> {\n";
-    out << "    descriptors::worker_descriptors()\n";
-    out << "}\n\n";
-    return out.str();
-}
-
-std::string generate_worker_contexts_rs()
-{
-    std::ostringstream out;
-    out << "use crate::descriptors;\n\n";
-    out << "pub use crate::descriptors::WorkerContext;\n\n";
-    out << "pub fn worker_contexts() -> Vec<WorkerContext> {\n";
-    out << "    descriptors::worker_contexts()\n";
-    out << "}\n\n";
-    return out.str();
-}
-
-std::string generate_worker_handlers_rs()
-{
-    std::ostringstream out;
-    out << "pub use crate::descriptors::Worker;\n";
-    return out.str();
-}
-
-std::string generate_worker_registry_rs()
-{
-    std::ostringstream out;
-    out << "use crate::worker_contexts;\n";
-    out << "use crate::worker_descriptors;\n\n";
-    out << "pub use crate::descriptors::{WorkerContext, WorkerDescriptor};\n\n";
-    out << "pub fn find_worker_descriptor(worker_name: &str) -> Option<WorkerDescriptor> {\n";
-    out << "    worker_descriptors::worker_descriptors()\n";
-    out << "        .into_iter()\n";
-    out << "        .find(|worker| worker.name == worker_name)\n";
-    out << "}\n\n";
-    out << "pub fn find_worker_context(worker_name: &str) -> Option<WorkerContext> {\n";
-    out << "    worker_contexts::worker_contexts()\n";
-    out << "        .into_iter()\n";
-    out << "        .find(|context| context.worker_name == worker_name)\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_application_rs()
-{
-    std::ostringstream out;
-    out << "use crate::backend::BackendResult;\n";
-    out << "use crate::descriptors::{Worker, WorkerContext};\n\n";
-    out << "pub struct WorkerApplication<H: Worker> {\n";
-    out << "    pub context: WorkerContext,\n";
-    out << "    pub handler: H,\n";
-    out << "}\n\n";
-    out << "impl<H: Worker> WorkerApplication<H> {\n";
-    out << "    pub fn new(context: WorkerContext, handler: H) -> Self {\n";
-    out << "        Self { context, handler }\n";
-    out << "    }\n\n";
-    out << "    pub fn run(&self) -> BackendResult<()> {\n";
-    out << "        self.handler.run(&self.context)\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_workflow_step_handlers_rs(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << "use crate::backend::BackendResult;\n";
-    out << "use crate::json::Json;\n\n";
-    out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct WorkflowStepHandlerContext {\n";
-    out << "    pub workflow_name: String,\n";
-    out << "    pub workflow_version: i64,\n";
-    out << "    pub step_name: String,\n";
-    out << "    pub execution_id: Option<String>,\n";
-    out << "    pub input: Json,\n";
-    out << "}\n\n";
-    out << "pub trait WorkflowStepHandler {\n";
-    out << "    fn handle_workflow_step(&self, context: &WorkflowStepHandlerContext) -> "
-           "BackendResult<()>;\n";
-    out << "}\n\n";
-    out << "pub fn workflow_step_handler_keys() -> Vec<&'static str> {\n";
-    out << "    vec![\n";
     for (const auto& workflow : system.workflows)
     {
         for (const auto& step : workflow.steps)
@@ -1935,134 +1796,6 @@ std::string generate_workflow_step_handlers_rs(const IrSystem& system)
             out << "        " << rust_string(workflow.name + "." + step.name) << ",\n";
         }
     }
-    out << "    ]\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_workflow_runner_rs()
-{
-    std::ostringstream out;
-    out << "use std::time::{Duration, SystemTime};\n\n";
-    out << "use crate::backend::{Backend, BackendResult};\n";
-    out << "use crate::workflow::{\n";
-    out << "    ClaimWorkflowStepRequest, CompleteWorkflowStepRequest, FailWorkflowStepRequest,\n";
-    out << "    KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,\n";
-    out << "};\n";
-    out << "use crate::workflow_step_handlers::{WorkflowStepHandler, "
-           "WorkflowStepHandlerContext};\n\n";
-    out << "pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>, H: "
-           "WorkflowStepHandler> {\n";
-    out << "    pub backend: &'a B,\n";
-    out << "    pub workflow_store: &'a S,\n";
-    out << "    pub handler: &'a H,\n";
-    out << "    pub worker_name: String,\n";
-    out << "    pub lease_duration: Duration,\n";
-    out << "    pub max_attempts: u32,\n";
-    out << "}\n\n";
-    out << "impl<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> "
-           "WorkflowRunner<'a, B, S, H> {\n";
-    out << "    pub fn run_once(\n";
-    out << "        &self,\n";
-    out << "        workflow_execution_id: &str,\n";
-    out << "        workflow_name: &str,\n";
-    out << "        workflow_version: i64,\n";
-    out << "    ) -> BackendResult<Option<WorkflowExecutionRecord>> {\n";
-    out << "        let claimed = self.workflow_store.claim_steps(\n";
-    out << "            self.backend,\n";
-    out << "            &ClaimWorkflowStepRequest {\n";
-    out << "                workflow_execution_id: workflow_execution_id.to_string(),\n";
-    out << "                workflow_name: workflow_name.to_string(),\n";
-    out << "                workflow_version,\n";
-    out << "                worker: self.worker_name.clone(),\n";
-    out << "                now: SystemTime::now(),\n";
-    out << "                lease_duration: self.lease_duration,\n";
-    out << "                max_steps: 1,\n";
-    out << "            },\n";
-    out << "        )?;\n";
-    out << "        let Some(record) = claimed.into_iter().next() else {\n";
-    out << "            return Ok(None);\n";
-    out << "        };\n";
-    out << "        self.workflow_store.keep_alive_step(\n";
-    out << "            self.backend,\n";
-    out << "            &KeepAliveWorkflowStepRequest {\n";
-    out << "                workflow_execution_id: record.workflow_execution_id.clone(),\n";
-    out << "                worker: self.worker_name.clone(),\n";
-    out << "                current_step: record.current_step.clone(),\n";
-    out << "                now: SystemTime::now(),\n";
-    out << "                lease_duration: self.lease_duration,\n";
-    out << "            },\n";
-    out << "        )?;\n";
-    out << "        let handler_result = "
-           "self.handler.handle_workflow_step(&WorkflowStepHandlerContext "
-           "{\n";
-    out << "            workflow_name: record.workflow_name.clone(),\n";
-    out << "            workflow_version: record.workflow_version,\n";
-    out << "            step_name: record.current_step.clone(),\n";
-    out << "            execution_id: Some(record.workflow_execution_id.clone()),\n";
-    out << "            input: record.state.clone(),\n";
-    out << "        });\n";
-    out << "        match handler_result {\n";
-    out << "            Ok(()) => self.workflow_store.complete_step(\n";
-    out << "                self.backend,\n";
-    out << "                &CompleteWorkflowStepRequest {\n";
-    out << "                    workflow_execution_id: record.workflow_execution_id,\n";
-    out << "                    worker: self.worker_name.clone(),\n";
-    out << "                    completed_step: record.current_step,\n";
-    out << "                    next_step: None,\n";
-    out << "                    state: record.state,\n";
-    out << "                },\n";
-    out << "            ).map(Some),\n";
-    out << "            Err(err) => {\n";
-    out << "                let reason = format!(\"{:?}\", err);\n";
-    out << "                self.workflow_store.fail_step(\n";
-    out << "                    self.backend,\n";
-    out << "                    &FailWorkflowStepRequest {\n";
-    out << "                        workflow_execution_id: record.workflow_execution_id,\n";
-    out << "                        worker: self.worker_name.clone(),\n";
-    out << "                        failed_step: record.current_step,\n";
-    out << "                        reason,\n";
-    out << "                        now: SystemTime::now(),\n";
-    out << "                        max_attempts: self.max_attempts,\n";
-    out << "                    },\n";
-    out << "                ).map(Some)\n";
-    out << "            }\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_queues_rs()
-{
-    std::ostringstream out;
-    out << "use crate::descriptors;\n\n";
-    out << "pub use crate::queue::QueueDefinition;\n\n";
-    out << "pub fn queue_definitions() -> Vec<QueueDefinition> {\n";
-    out << "    descriptors::queue_definitions()\n";
-    out << "}\n\n";
-    return out.str();
-}
-
-std::string generate_worker_leases_rs()
-{
-    std::ostringstream out;
-    out << "use crate::descriptors;\n\n";
-    out << "pub use crate::descriptors::LeaseDefinition;\n\n";
-    out << "pub fn lease_definitions() -> Vec<descriptors::LeaseDefinition> {\n";
-    out << "    descriptors::lease_definitions()\n";
-    out << "}\n\n";
-    return out.str();
-}
-
-std::string generate_worker_workflows_rs()
-{
-    std::ostringstream out;
-    out << "use crate::descriptors;\n\n";
-    out << "pub use crate::workflow::WorkflowDefinition;\n\n";
-    out << "pub fn workflow_definitions() -> Vec<WorkflowDefinition> {\n";
-    out << "    descriptors::workflow_definitions()\n";
-    out << "}\n";
     return out.str();
 }
 
@@ -2130,133 +1863,73 @@ GenerationResult generate_rust_bindings(
                 "common/Makefile",
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/api_descriptors.rs").string(),
-                generate_api_descriptors_rs(),
-                GeneratedArtifactTier::Api,
-                "api/api_descriptors.rs",
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_descriptors.rs.tmpl",
+            "api/api_descriptors.rs", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_handlers.rs.tmpl",
+            "api/api_handlers.rs", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_dispatcher.rs.tmpl",
+            "api/api_dispatcher.rs", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_server.rs.tmpl", "api/api_server.rs",
+            diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_routes.rs.tmpl", "api/api_routes.rs",
+            diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/external_system_operator_metadata_api.rs.tmpl",
+            "api/external_system_operator_metadata_api.rs", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_descriptors.rs.tmpl",
+            "worker/worker_descriptors.rs", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_contexts.rs.tmpl",
+            "worker/worker_contexts.rs", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_registry.rs.tmpl",
+            "worker/worker_registry.rs", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_application.rs.tmpl",
+            "worker/worker_application.rs", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/workflow_step_handlers.rs.tmpl",
+            "worker/workflow_step_handlers.rs", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/api_handlers.rs").string(),
-                generate_api_handlers_rs(),
-                GeneratedArtifactTier::Api,
-                "api/api_handlers.rs",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/workflow_runner.rs.tmpl",
+            "worker/workflow_runner.rs", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/api_dispatcher.rs").string(),
-                generate_api_dispatcher_rs(),
-                GeneratedArtifactTier::Api,
-                "api/api_dispatcher.rs",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_handlers.rs.tmpl",
+            "worker/worker_handlers.rs", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/api_server.rs").string(),
-                generate_api_server_rs(),
-                GeneratedArtifactTier::Api,
-                "api/api_server.rs",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_queues.rs.tmpl",
+            "worker/worker_queues.rs", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/api_routes.rs").string(),
-                generate_api_routes_rs(),
-                GeneratedArtifactTier::Api,
-                "api/api_routes.rs",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_leases.rs.tmpl",
+            "worker/worker_leases.rs", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/external_system_operator_metadata_api.rs").string(),
-                generate_external_system_operator_metadata_api_rs(),
-                GeneratedArtifactTier::Api,
-                "api/external_system_operator_metadata_api.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_descriptors.rs").string(),
-                generate_worker_descriptors_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_descriptors.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_contexts.rs").string(),
-                generate_worker_contexts_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_contexts.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_registry.rs").string(),
-                generate_worker_registry_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_registry.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_application.rs").string(),
-                generate_worker_application_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_application.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/workflow_step_handlers.rs").string(),
-                generate_workflow_step_handlers_rs(system),
-                GeneratedArtifactTier::Worker,
-                "worker/workflow_step_handlers.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/workflow_runner.rs").string(),
-                generate_workflow_runner_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/workflow_runner.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_handlers.rs").string(),
-                generate_worker_handlers_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_handlers.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_queues.rs").string(),
-                generate_worker_queues_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_queues.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_leases.rs").string(),
-                generate_worker_leases_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_leases.rs",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/worker_workflows.rs").string(),
-                generate_worker_workflows_rs(),
-                GeneratedArtifactTier::Worker,
-                "worker/worker_workflows.rs",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_workflows.rs.tmpl",
+            "worker/worker_workflows.rs", diagnostics, GeneratedArtifactTier::Worker
         );
     }
 

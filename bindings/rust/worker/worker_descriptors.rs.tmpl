@@ -1,0 +1,7 @@
+use crate::descriptors;
+
+pub use crate::descriptors::WorkerDescriptor;
+
+pub fn worker_descriptors() -> Vec<WorkerDescriptor> {
+    descriptors::worker_descriptors()
+}

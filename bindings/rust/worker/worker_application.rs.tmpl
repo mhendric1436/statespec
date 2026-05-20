@@ -1,0 +1,17 @@
+use crate::backend::BackendResult;
+use crate::descriptors::{Worker, WorkerContext};
+
+pub struct WorkerApplication<H: Worker> {
+    pub context: WorkerContext,
+    pub handler: H,
+}
+
+impl<H: Worker> WorkerApplication<H> {
+    pub fn new(context: WorkerContext, handler: H) -> Self {
+        Self { context, handler }
+    }
+
+    pub fn run(&self) -> BackendResult<()> {
+        self.handler.run(&self.context)
+    }
+}

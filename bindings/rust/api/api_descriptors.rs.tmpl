@@ -1,0 +1,11 @@
+use crate::descriptors;
+
+pub use crate::descriptors::{ApiDescriptor, ApiServerDescriptor};
+
+pub fn api_descriptors() -> Vec<ApiDescriptor> {
+    descriptors::api_descriptors()
+}
+
+pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {
+    descriptors::api_server_descriptors()
+}

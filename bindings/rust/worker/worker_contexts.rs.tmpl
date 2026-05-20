@@ -1,0 +1,7 @@
+use crate::descriptors;
+
+pub use crate::descriptors::WorkerContext;
+
+pub fn worker_contexts() -> Vec<WorkerContext> {
+    descriptors::worker_contexts()
+}

@@ -1,0 +1,92 @@
+use std::time::{Duration, SystemTime};
+
+use crate::backend::{Backend, BackendResult};
+use crate::workflow::{
+    ClaimWorkflowStepRequest, CompleteWorkflowStepRequest, FailWorkflowStepRequest,
+    KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,
+};
+use crate::workflow_step_handlers::{WorkflowStepHandler, WorkflowStepHandlerContext};
+
+pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> {
+    pub backend: &'a B,
+    pub workflow_store: &'a S,
+    pub handler: &'a H,
+    pub worker_name: String,
+    pub lease_duration: Duration,
+    pub max_attempts: u32,
+}
+
+impl<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> WorkflowRunner<'a, B, S, H> {
+    pub fn run_once(
+        &self,
+        workflow_execution_id: &str,
+        workflow_name: &str,
+        workflow_version: i64,
+    ) -> BackendResult<Option<WorkflowExecutionRecord>> {
+        let claimed = self.workflow_store.claim_steps(
+            self.backend,
+            &ClaimWorkflowStepRequest {
+                workflow_execution_id: workflow_execution_id.to_string(),
+                workflow_name: workflow_name.to_string(),
+                workflow_version,
+                worker: self.worker_name.clone(),
+                now: SystemTime::now(),
+                lease_duration: self.lease_duration,
+                max_steps: 1,
+            },
+        )?;
+        let Some(record) = claimed.into_iter().next() else {
+            return Ok(None);
+        };
+        self.workflow_store.keep_alive_step(
+            self.backend,
+            &KeepAliveWorkflowStepRequest {
+                workflow_execution_id: record.workflow_execution_id.clone(),
+                worker: self.worker_name.clone(),
+                current_step: record.current_step.clone(),
+                now: SystemTime::now(),
+                lease_duration: self.lease_duration,
+            },
+        )?;
+        let handler_result = self
+            .handler
+            .handle_workflow_step(&WorkflowStepHandlerContext {
+                workflow_name: record.workflow_name.clone(),
+                workflow_version: record.workflow_version,
+                step_name: record.current_step.clone(),
+                execution_id: Some(record.workflow_execution_id.clone()),
+                input: record.state.clone(),
+            });
+        match handler_result {
+            Ok(()) => self
+                .workflow_store
+                .complete_step(
+                    self.backend,
+                    &CompleteWorkflowStepRequest {
+                        workflow_execution_id: record.workflow_execution_id,
+                        worker: self.worker_name.clone(),
+                        completed_step: record.current_step,
+                        next_step: None,
+                        state: record.state,
+                    },
+                )
+                .map(Some),
+            Err(err) => {
+                let reason = format!("{:?}", err);
+                self.workflow_store
+                    .fail_step(
+                        self.backend,
+                        &FailWorkflowStepRequest {
+                            workflow_execution_id: record.workflow_execution_id,
+                            worker: self.worker_name.clone(),
+                            failed_step: record.current_step,
+                            reason,
+                            now: SystemTime::now(),
+                            max_attempts: self.max_attempts,
+                        },
+                    )
+                    .map(Some)
+            }
+        }
+    }
+}

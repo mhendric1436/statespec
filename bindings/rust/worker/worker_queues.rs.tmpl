@@ -1,0 +1,7 @@
+use crate::descriptors;
+
+pub use crate::queue::QueueDefinition;
+
+pub fn queue_definitions() -> Vec<QueueDefinition> {
+    descriptors::queue_definitions()
+}

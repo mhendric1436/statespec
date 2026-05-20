@@ -1,0 +1,16 @@
+use crate::worker_contexts;
+use crate::worker_descriptors;
+
+pub use crate::descriptors::{WorkerContext, WorkerDescriptor};
+
+pub fn find_worker_descriptor(worker_name: &str) -> Option<WorkerDescriptor> {
+    worker_descriptors::worker_descriptors()
+        .into_iter()
+        .find(|worker| worker.name == worker_name)
+}
+
+pub fn find_worker_context(worker_name: &str) -> Option<WorkerContext> {
+    worker_contexts::worker_contexts()
+        .into_iter()
+        .find(|context| context.worker_name == worker_name)
+}

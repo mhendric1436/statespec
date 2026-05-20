@@ -1,0 +1,7 @@
+use crate::descriptors;
+
+pub use crate::workflow::WorkflowDefinition;
+
+pub fn workflow_definitions() -> Vec<WorkflowDefinition> {
+    descriptors::workflow_definitions()
+}

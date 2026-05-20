@@ -1,0 +1,33 @@
+use crate::api_descriptors;
+use crate::api_dispatcher;
+use crate::backend::BackendResult;
+use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse, ApiServerDescriptor};
+
+pub struct ApiServer<H: ApiHandler> {
+    pub descriptor: ApiServerDescriptor,
+    pub handler: H,
+}
+
+impl<H: ApiHandler> ApiServer<H> {
+    pub fn new(descriptor: ApiServerDescriptor, handler: H) -> Self {
+        Self { descriptor, handler }
+    }
+
+    pub fn handle(
+        &self,
+        route_name: &str,
+        context: &ApiRequestContext,
+    ) -> BackendResult<Option<ApiResponse>> {
+        let route = api_dispatcher::find_api_route(route_name);
+        if !matches!(route, Some(ref value) if value.server_name == self.descriptor.name) {
+            return Ok(None);
+        }
+        api_dispatcher::dispatch_api_route(&self.handler, route_name, context)
+    }
+}
+
+pub fn find_api_server(server_name: &str) -> Option<ApiServerDescriptor> {
+    api_descriptors::api_server_descriptors()
+        .into_iter()
+        .find(|server| server.name == server_name)
+}
