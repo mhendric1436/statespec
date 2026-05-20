@@ -72,7 +72,7 @@ assert_file_manifest_equals() {
         echo "expected generated directory: $root" >&2
         exit 1
     fi
-    (cd "$root" && find . -type f | sed 's#^\./##' | sort) > "$actual"
+    (cd "$root" && find . -type f | sed 's#^\./##' | LC_ALL=C sort) > "$actual"
     if ! diff -u "$expected" "$actual" >/dev/null 2>&1; then
         echo "generated file manifest differed for: $root" >&2
         diff -u "$expected" "$actual" >&2 || true
