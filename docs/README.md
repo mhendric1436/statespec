@@ -11,6 +11,7 @@ truth for system behavior.
 
 | File | Purpose |
 |---|---|
+| [quick-start.md](quick-start.md) | Command-oriented walkthrough for validating examples, generating bindings/OpenAPI, and understanding generated API and Worker apps. |
 | [getting-started.md](getting-started.md) | Minimal workflow for creating, validating, and generating from a `.sspec` file. |
 | [language-model.md](language-model.md) | The core StateSpec mental model and declaration types. |
 | [compiler-parity.md](compiler-parity.md) | Grammar-to-compiler implementation matrix and priority order. |
@@ -32,13 +33,14 @@ truth for system behavior.
 
 ## Recommended Reading Order
 
-1. Start with [getting-started.md](getting-started.md).
-2. Read [language-model.md](language-model.md) to understand how declarations fit together.
-3. Check [compiler-parity.md](compiler-parity.md) before relying on newer grammar constructs.
-4. Use the focused guides while authoring specific sections.
-5. Read [generated-extension-points.md](generated-extension-points.md) before wiring generated code into runtime applications.
-6. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
-7. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
+1. Start with [quick-start.md](quick-start.md) to run the CLI against checked-in examples.
+2. Read [getting-started.md](getting-started.md) for the smallest authoring loop.
+3. Read [language-model.md](language-model.md) to understand how declarations fit together.
+4. Check [compiler-parity.md](compiler-parity.md) before relying on newer grammar constructs.
+5. Use the focused guides while authoring specific sections.
+6. Read [generated-extension-points.md](generated-extension-points.md) before wiring generated code into runtime applications.
+7. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
+8. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
 
 ## Source Of Truth
 

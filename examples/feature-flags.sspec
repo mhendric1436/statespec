@@ -46,6 +46,8 @@ system FeatureFlagExample {
 
   workflow OrderProcessing {
     version 1
+    singleton false
+    expected_execution_time PT1M
     start route_order
 
     load Order by order_id as order;
