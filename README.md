@@ -31,71 +31,112 @@ and Rust without each target reinventing the system semantics.
 
 ---
 
-## Current Implementation
+## Philosophy
 
-This repository is a C++20 implementation of the StateSpec compiler and generator toolchain.
+> Systems fail when design is implicit.
 
-```text
-include/statespec/   public compiler and generator headers
-src/                 lexer, parser, validator, and generator implementation
-cmd/                 statespec CLI
-tests/               C++ and shell-based regression tests
-grammar/             StateSpec grammar reference
-examples/            example .sspec files
-bindings/            generated/runtime binding surfaces for supported languages
-diagrams/            PlantUML architecture diagrams
-docs/                design notes and binding documentation
-```
+StateSpec makes design explicit, structured, reviewable, and executable.
 
-The build produces:
+The language is optimized for systems where behavior must be precise, durable, and
+reviewable:
 
 ```text
-build/libstatespec.a       compiler and generator library
-build/bin/statespec        CLI
-build/bin/statespec_tests  regression test binary
+cloud control planes
+infrastructure services
+event-driven systems
+API and worker architectures
+distributed workflow systems
+systems with complex lifecycle management
+systems requiring explicit state transition rules
+internal platforms and service orchestration layers
 ```
 
 ---
 
-## Build and Test
+## Background
 
-```sh
-make all
-make test
-make cli
-make help
-```
+StateSpec was heavily influenced by concepts from Shannon Information Theory.
 
-Useful maintenance targets:
+Core ideas include:
 
-```sh
-make format
-make format-check
-make test-bindings
-make diagrams-png
-make clean
-```
+- entropy reduction
+- canonical representation
+- deterministic structure
+- signal versus noise
+- predictable semantic continuation
+- durable orchestration state
 
-`make diagrams-png` renders `diagrams/*.puml` into PNG files with PlantUML. The target uses these variables:
+The language intentionally minimizes ambiguity by enforcing:
 
-```text
-PLANTUML ?= plantuml
-PLANTUML_FLAGS ?= -DPLANTUML_LIMIT_SIZE=16384 -Xmx512m
-```
+- explicit lifecycle semantics
+- canonical formatting
+- strongly typed relationships
+- deterministic orchestration patterns
+- durable workflow coordination
+
+The guiding principle is:
+
+> Every feature should reduce ambiguity rather than increase flexibility.
+
+A detailed discussion is available in [`docs/shannon.md`](docs/shannon.md). The
+document explains Shannon entropy, cross entropy, LLM relationships to information
+theory, why low-entropy system specifications matter, and how these concepts shaped
+the StateSpec language architecture.
 
 ---
 
-## CLI
+## Design Principles
 
-```sh
-statespec help
-statespec validate <file.sspec>
-statespec tokens <file.sspec>
-statespec ast <file.sspec>
-statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR] [--tier <all|common|api|worker>]
-```
+### Canonical structure
 
-The CLI currently supports validation, token inspection, AST inspection, and binding generation for C++, Go, Java, and Rust.
+There should be one preferred way to express each concept.
+
+### Explicit state
+
+Important lifecycle states, transitions, ownership rules, retry behavior, feature flag
+decisions, and invariants should be represented directly in the specification.
+
+### Deterministic behavior
+
+Generated artifacts should be deterministic. Hidden side effects and ambiguous
+transitions should be avoided.
+
+### Backend independence
+
+The language should describe the system without depending on a concrete runtime,
+storage engine, database, or transport.
+
+### Durable coordination
+
+Workflow communication, queue dispatch, and exclusive ownership should be expressed in
+terms of durable state, durable messages, or explicit leases rather than transient
+in-memory coordination.
+
+### Declared observability
+
+Logs and metrics should be declared as stable contracts with typed fields and labels
+rather than hidden in runtime implementation code. In tenant-scoped systems, log
+fields and metric labels must include the system tenant field. Metric labels must stay
+low-cardinality.
+
+### Text is the source of truth
+
+Visual tools, diagrams, generated code, runtime configuration, and tests should be
+derived from the canonical text specification.
+
+---
+
+## Comparison
+
+| Tool | Scope | Limitation |
+|---|---|---|
+| OpenAPI | APIs | Does not model lifecycle state, queues, leases, workers, policies, feature flags, logs, metrics, or workflows |
+| Protobuf | RPC schemas | Does not model lifecycle or orchestration semantics |
+| Terraform | Infrastructure | Does not model runtime behavior |
+| BPMN | Business workflows | Not usually a system implementation specification |
+| UML | Diagrams | Not usually executable or canonical |
+| Prose docs | Everything | Ambiguous, inconsistent, difficult to validate |
+| StateSpec | System behavior | Structured, canonical, generator-friendly |
 
 ---
 
@@ -133,7 +174,11 @@ metric
 generate
 ```
 
-The language is backend-neutral. Specifications describe system semantics rather than binding themselves to a specific storage engine, queue implementation, workflow runtime, or transport.
+The language is backend-neutral. Specifications describe system semantics rather than
+binding themselves to a specific storage engine, queue implementation, workflow
+runtime, or transport.
+
+StateSpec source files use the `.sspec` extension.
 
 ---
 
@@ -161,7 +206,8 @@ The language is backend-neutral. Specifications describe system semantics rather
 
 ## Example
 
-See [`examples/order-system.sspec`](examples/order-system.sspec) for a complete example. A shortened shape is shown below.
+See [`examples/order-system.sspec`](examples/order-system.sspec) for a complete
+example. A shortened shape is shown below.
 
 ```statespec
 statespec 0.1;
@@ -304,9 +350,29 @@ system OrderSystem {
 
 ---
 
-## Feature Flags
+## What StateSpec Can Generate
 
-Feature flags are first-class system declarations. They are modeled as persisted-state runtime controls so generated services and workflows can evaluate them inside the same optimistic-concurrency transaction as other behavior-affecting reads.
+From a single `.sspec` file, StateSpec tooling can derive:
+
+| Artifact type | Examples |
+|---|---|
+| Schemas | entity metadata, collection descriptors, indexes, validation metadata |
+| APIs | OpenAPI, RPC contracts, request/response models, error models |
+| Runtime metadata | workflow, queue, lease, worker, API server, log, metric, and feature flag definitions |
+| Code scaffolding | server stubs, client stubs, integration helpers, worker skeletons |
+| Tests | state transition tests, invariant tests, runtime behavior tests |
+| Documentation | architecture docs, diagrams, state machine graphs |
+| Tooling | syntax highlighting, validation, autocomplete, symbol navigation |
+
+---
+
+## Runtime Model
+
+### Feature Flags
+
+Feature flags are first-class system declarations. They are modeled as persisted-state
+runtime controls so generated services and workflows can evaluate them inside the same
+optimistic-concurrency transaction as other behavior-affecting reads.
 
 A feature flag can describe:
 
@@ -320,13 +386,13 @@ description
 expires
 ```
 
-Feature flag runtime support is represented in the binding/OCC model through a `FeatureFlagStore` with transaction-aware evaluation APIs.
+Feature flag runtime support is represented in the binding/OCC model through a
+`FeatureFlagStore` with transaction-aware evaluation APIs.
 
----
+### Backend Abstraction and OCC Model
 
-## Backend Abstraction and OCC Model
-
-StateSpec defines an OCC-centered backend abstraction so generated runtimes can share one consistency doctrine across concrete implementations.
+StateSpec defines an OCC-centered backend abstraction so generated runtimes can share
+one consistency doctrine across concrete implementations.
 
 The core backend model includes:
 
@@ -342,11 +408,11 @@ Transaction
 Backend
 ```
 
-`FieldDescriptor` uses a language-native `FieldType` enum plus the original
-StateSpec type spelling. The enum gives backend adapters and generated runtime catalogs
-a stable classifier such as `string`, `timestamp`, `named`, `optional`, or `reference`,
-while the preserved type name keeps declarations like `OrderStatus` and `int?`
-available to downstream tooling.
+`FieldDescriptor` uses a language-native `FieldType` enum plus the original StateSpec
+type spelling. The enum gives backend adapters and generated runtime catalogs a stable
+classifier such as `string`, `timestamp`, `named`, `optional`, or `reference`, while
+the preserved type name keeps declarations like `OrderStatus` and `int?` available to
+downstream tooling.
 
 The common rule is:
 
@@ -358,7 +424,9 @@ commit only if observed versions are still current
 retry safely on conflict
 ```
 
-Runtime component APIs support backend-managed calls and caller-managed transaction calls. Caller-managed variants use a `Tx` suffix, adapted to each language's naming conventions.
+Runtime component APIs support backend-managed calls and caller-managed transaction
+calls. Caller-managed variants use a `Tx` suffix, adapted to each language's naming
+conventions.
 
 ---
 
@@ -373,9 +441,12 @@ Reference backend and runtime component bindings are provided for:
 | Java | [`bindings/java/README.md`](bindings/java/README.md) |
 | Rust | [`bindings/rust/README.md`](bindings/rust/README.md) |
 
-Shared binding documentation is in [`docs/backend-abstractions.md`](docs/backend-abstractions.md).
+Shared binding documentation is in
+[`docs/backend-abstractions.md`](docs/backend-abstractions.md).
 
-Generated binding packages include separate runtime surfaces for backend operations, queues, leases, workflows, logs, metrics, and feature flags where supported by the binding.
+Generated binding packages include separate runtime surfaces for backend operations,
+queues, leases, workflows, logs, metrics, and feature flags where supported by the
+binding.
 
 ---
 
@@ -397,129 +468,74 @@ make diagrams-png
 
 ---
 
-## Shannon Information Theory and the StateSpec Vision
+## Current Implementation
 
-StateSpec was heavily influenced by concepts from Shannon Information Theory.
-
-Core ideas include:
-
-- entropy reduction
-- canonical representation
-- deterministic structure
-- signal versus noise
-- predictable semantic continuation
-- durable orchestration state
-
-The language intentionally minimizes ambiguity by enforcing:
-
-- explicit lifecycle semantics
-- canonical formatting
-- strongly typed relationships
-- deterministic orchestration patterns
-- durable workflow coordination
-
-The guiding principle is:
-
-> Every feature should reduce ambiguity rather than increase flexibility.
-
-A detailed discussion is available in:
-
-[`docs/shannon.md`](docs/shannon.md)
-
-The document explains:
-
-- Shannon entropy
-- cross entropy
-- LLM relationships to information theory
-- why low-entropy system specifications matter
-- how these concepts shaped the StateSpec language architecture
-
----
-
-## Design Principles
-
-### Canonical structure
-
-There should be one preferred way to express each concept.
-
-### Explicit state
-
-Important lifecycle states, transitions, ownership rules, retry behavior, feature flag decisions, and invariants should be represented directly in the specification.
-
-### Deterministic behavior
-
-Generated artifacts should be deterministic. Hidden side effects and ambiguous transitions should be avoided.
-
-### Backend independence
-
-The language should describe the system without depending on a concrete runtime, storage engine, database, or transport.
-
-### Durable coordination
-
-Workflow communication, queue dispatch, and exclusive ownership should be expressed in terms of durable state, durable messages, or explicit leases rather than transient in-memory coordination.
-
-### Declared observability
-
-Logs and metrics should be declared as stable contracts with typed fields and labels rather than hidden in runtime implementation code. In tenant-scoped systems, log fields and metric labels must include the system tenant field. Metric labels must stay low-cardinality.
-
-### Text is the source of truth
-
-Visual tools, diagrams, generated code, runtime configuration, and tests should be derived from the canonical text specification.
-
----
-
-## What StateSpec Can Generate
-
-From a single `.sspec` file, StateSpec tooling can derive:
-
-| Artifact type | Examples |
-|---|---|
-| Schemas | entity metadata, collection descriptors, indexes, validation metadata |
-| APIs | OpenAPI, RPC contracts, request/response models, error models |
-| Runtime metadata | workflow, queue, lease, worker, API server, log, metric, and feature flag definitions |
-| Code scaffolding | server stubs, client stubs, integration helpers, worker skeletons |
-| Tests | state transition tests, invariant tests, runtime behavior tests |
-| Documentation | architecture docs, diagrams, state machine graphs |
-| Tooling | syntax highlighting, validation, autocomplete, symbol navigation |
-
----
-
-## File Extension
+This repository is a C++20 implementation of the StateSpec compiler and generator
+toolchain.
 
 ```text
-.sspec
+include/statespec/   public compiler and generator headers
+src/                 lexer, parser, validator, and generator implementation
+cmd/                 statespec CLI
+tests/               C++ and shell-based regression tests
+grammar/             StateSpec grammar reference
+examples/            example .sspec files
+bindings/            generated/runtime binding surfaces for supported languages
+diagrams/            PlantUML architecture diagrams
+docs/                design notes and binding documentation
+```
+
+The build produces:
+
+```text
+build/libstatespec.a       compiler and generator library
+build/bin/statespec        CLI
+build/bin/statespec_tests  regression test binary
 ```
 
 ---
 
-## Use Cases
+## Build and Test
 
-StateSpec is intended for systems where behavior must be precise, durable, and reviewable:
+```sh
+make all
+make test
+make cli
+make help
+```
+
+Useful maintenance targets:
+
+```sh
+make format
+make format-check
+make test-bindings
+make diagrams-png
+make clean
+```
+
+`make diagrams-png` renders `diagrams/*.puml` into PNG files with PlantUML. The target
+uses these variables:
 
 ```text
-cloud control planes
-infrastructure services
-event-driven systems
-API and worker architectures
-distributed workflow systems
-systems with complex lifecycle management
-systems requiring explicit state transition rules
-internal platforms and service orchestration layers
+PLANTUML ?= plantuml
+PLANTUML_FLAGS ?= -DPLANTUML_LIMIT_SIZE=16384 -Xmx512m
 ```
 
 ---
 
-## Comparison
+## CLI
 
-| Tool | Scope | Limitation |
-|---|---|---|
-| OpenAPI | APIs | Does not model lifecycle state, queues, leases, workers, policies, feature flags, logs, metrics, or workflows |
-| Protobuf | RPC schemas | Does not model lifecycle or orchestration semantics |
-| Terraform | Infrastructure | Does not model runtime behavior |
-| BPMN | Business workflows | Not usually a system implementation specification |
-| UML | Diagrams | Not usually executable or canonical |
-| Prose docs | Everything | Ambiguous, inconsistent, difficult to validate |
-| StateSpec | System behavior | Structured, canonical, generator-friendly |
+```sh
+statespec help
+statespec validate <file.sspec>
+statespec tokens <file.sspec>
+statespec ast <file.sspec>
+statespec generate bindings --lang <cpp|go|java|rust> <file.sspec> [--out DIR] [--tier <all|common|api|worker>]
+```
+
+The CLI currently supports validation, token inspection, AST inspection, and binding
+generation for C++, Go, Java, and Rust.
 
 ---
 
@@ -532,14 +548,6 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 ## License
 
 See [`LICENSE.md`](LICENSE.md).
-
----
-
-## Philosophy
-
-> Systems fail when design is implicit.
-
-StateSpec makes design explicit, structured, reviewable, and executable.
 
 ---
 
