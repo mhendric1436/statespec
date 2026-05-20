@@ -1,0 +1,138 @@
+@startuml
+title StateSpec Generated Worker App Architecture
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+package "Durable work sources" {
+  queue "Workflow step claims" as WorkflowClaims
+  queue "Queue messages" as QueueMessages
+  rectangle "Scheduled / singleton work" as ScheduledWork
+}
+
+package "Generated worker tier" {
+  rectangle "WorkerApplication\nprocess lifecycle shell" as WorkerApplication
+  rectangle "WorkerRegistry\nworker lookup" as WorkerRegistry
+  rectangle "WorkerDescriptors\nworker catalog view" as WorkerDescriptors
+  rectangle "WorkerContexts\nbackend + runtime context" as WorkerContexts
+  rectangle "WorkflowRunner\nclaim / keep alive / complete" as WorkflowRunner
+  interface "IWorkflowStepHandler" as StepHandler
+  interface "IWorker" as WorkerHandler
+  rectangle "WorkerQueues\nqueue definitions" as WorkerQueues
+  rectangle "WorkerLeases\nlease definitions" as WorkerLeases
+  rectangle "WorkerWorkflows\nworkflow definitions" as WorkerWorkflows
+}
+
+package "Generated common tier" {
+  rectangle "descriptors\nentities / workflows / queues / leases" as CommonDescriptors
+  component "Entity binding" as EntityBinding
+  component "Workflow binding" as WorkflowBinding
+  component "Queue binding" as QueueBinding
+  component "Lease binding" as LeaseBinding
+  component "Feature flag binding" as FeatureFlagBinding
+  component "External system metadata binding" as MetadataBinding
+  component "Log binding" as LogBinding
+  component "Metric binding" as MetricBinding
+}
+
+package "User-owned worker implementation" {
+  component "Concrete workflow step handlers" as ConcreteSteps
+  component "Concrete queue workers" as ConcreteWorkers
+  component "External API clients" as ExternalClients
+  component "Retry / timeout policy" as RetryPolicy
+}
+
+package "Backend OCC runtime" {
+  interface "IBackend / Backend" as Backend
+  interface "ITransaction / Tx" as Tx
+  database "Versioned persisted state" as Store
+}
+
+package "Runtime effects" {
+  queue "Follow-up workflow steps" as FollowUpSteps
+  queue "Domain queues" as DomainQueues
+  cloud "External systems" as ExternalSystems
+  cloud "Logs backend" as LogsBackend
+  cloud "Metrics backend" as MetricsBackend
+}
+
+WorkflowClaims --> WorkerApplication : claimed step available
+QueueMessages --> WorkerApplication : claimed message available
+ScheduledWork --> WorkerApplication : scheduled tick
+
+WorkerApplication --> WorkerRegistry : find worker
+WorkerRegistry --> WorkerDescriptors : catalog lookup
+WorkerDescriptors --> CommonDescriptors
+WorkerApplication --> WorkerContexts : build execution context
+
+WorkerApplication --> WorkflowRunner : run workflow step
+WorkflowRunner --> WorkerWorkflows : workflow metadata
+WorkflowRunner --> StepHandler : execute step
+WorkflowRunner --> WorkflowBinding : claimTx / completeTx / failTx
+WorkflowRunner --> WorkflowBinding : keep_alive_stepTx
+
+WorkerApplication --> WorkerHandler : execute queue worker
+WorkerHandler --> WorkerQueues : queue metadata
+WorkerHandler --> WorkerLeases : singleton / shard lease metadata
+
+ConcreteSteps ..|> StepHandler
+ConcreteWorkers ..|> WorkerHandler
+ConcreteSteps --> RetryPolicy
+ConcreteWorkers --> RetryPolicy
+ConcreteSteps --> ExternalClients
+ConcreteWorkers --> ExternalClients
+
+WorkerContexts --> Backend
+ConcreteSteps --> Backend : begin()
+ConcreteWorkers --> Backend : begin()
+Backend --> Tx : open OCC transaction
+
+ConcreteSteps --> EntityBinding : load / mutate entities Tx
+ConcreteSteps --> FeatureFlagBinding : evaluateTx
+ConcreteSteps --> MetadataBinding : resolve metadata Tx
+ConcreteSteps --> WorkflowBinding : schedule next steps Tx
+ConcreteSteps --> QueueBinding : enqueueTx
+ConcreteSteps --> LogBinding : emitTx
+ConcreteSteps --> MetricBinding : recordTx
+
+ConcreteWorkers --> EntityBinding : load / mutate entities Tx
+ConcreteWorkers --> QueueBinding : ack / fail / enqueue Tx
+ConcreteWorkers --> LeaseBinding : acquire / renew Tx
+ConcreteWorkers --> LogBinding : emitTx
+ConcreteWorkers --> MetricBinding : recordTx
+
+EntityBinding --> Tx
+WorkflowBinding --> Tx
+QueueBinding --> Tx
+LeaseBinding --> Tx
+FeatureFlagBinding --> Tx
+MetadataBinding --> Tx
+LogBinding --> Tx
+MetricBinding --> Tx
+
+ConcreteSteps --> Backend : commit(tx)
+ConcreteWorkers --> Backend : commit(tx)
+Tx --> Store : optimistic read/write set
+
+WorkflowBinding --> FollowUpSteps : durable step continuation
+QueueBinding --> DomainQueues : durable message output
+ExternalClients --> ExternalSystems : remote calls
+LogBinding --> LogsBackend : structured events
+MetricBinding --> MetricsBackend : samples
+
+note right of WorkflowRunner
+The runner owns generated workflow
+control flow: claim, periodic keep alive,
+completion, failure, and retry-visible
+state transitions.
+end note
+
+note bottom of Tx
+Worker decisions, feature flags, external
+metadata lookup, entity mutations, queue
+updates, logs, and metrics are modeled as
+transaction-aware backend operations.
+end note
+
+@enduml

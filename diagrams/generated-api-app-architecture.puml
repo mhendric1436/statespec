@@ -1,0 +1,110 @@
+@startuml
+title StateSpec Generated API App Architecture
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+actor "API client" as Client
+
+package "Generated API tier" {
+  rectangle "ApiServer\nrequest lifecycle shell" as ApiServer
+  rectangle "ApiDispatcher\nroute lookup + dispatch" as ApiDispatcher
+  rectangle "ApiRoutes\nroute descriptors" as ApiRoutes
+  interface "IApiHandler\nper-action contract" as ApiHandler
+  interface "IExternalSystemOperatorMetadataApiHandler" as OperatorMetadataHandler
+  rectangle "ApiDescriptors\nAPI + server views" as ApiDescriptors
+}
+
+package "Generated common tier" {
+  rectangle "descriptors\nentities / APIs / routes / workers" as CommonDescriptors
+  component "Entity binding" as EntityBinding
+  component "Workflow binding" as WorkflowBinding
+  component "Queue binding" as QueueBinding
+  component "Feature flag binding" as FeatureFlagBinding
+  component "External system metadata binding" as MetadataBinding
+  component "Log binding" as LogBinding
+  component "Metric binding" as MetricBinding
+}
+
+package "User-owned API implementation" {
+  component "HTTP / RPC transport adapter" as Transport
+  component "AuthN / AuthZ / tenancy policy" as Auth
+  component "Concrete API handlers" as ConcreteHandlers
+  component "Input validation and domain mapping" as DomainMapping
+}
+
+package "Backend OCC runtime" {
+  interface "IBackend / Backend" as Backend
+  interface "ITransaction / Tx" as Tx
+  database "Versioned persisted state" as Store
+}
+
+package "Downstream runtime effects" {
+  queue "Workflow start queue" as WorkflowStart
+  queue "Domain queues" as DomainQueues
+  cloud "Logs backend" as LogsBackend
+  cloud "Metrics backend" as MetricsBackend
+}
+
+Client --> Transport : HTTP / RPC request
+Transport --> ApiServer : normalized request
+ApiServer --> Auth : authenticate tenant and caller
+Auth --> ApiDispatcher : authorized request context
+
+ApiDispatcher --> ApiRoutes : match method + path
+ApiRoutes --> CommonDescriptors : route metadata
+ApiDispatcher --> ApiHandler : dispatch action
+ApiDispatcher --> OperatorMetadataHandler : dispatch operator metadata APIs
+
+ConcreteHandlers ..|> ApiHandler
+ConcreteHandlers ..|> OperatorMetadataHandler
+ConcreteHandlers --> DomainMapping : map request fields
+
+ApiDescriptors --> CommonDescriptors
+ApiServer --> ApiDescriptors : server config
+
+ConcreteHandlers --> Backend : begin()
+Backend --> Tx : open OCC transaction
+ConcreteHandlers --> EntityBinding : load / mutate entities Tx
+ConcreteHandlers --> FeatureFlagBinding : evaluateTx
+ConcreteHandlers --> MetadataBinding : resolve / upsert metadata Tx
+ConcreteHandlers --> WorkflowBinding : startTx
+ConcreteHandlers --> QueueBinding : enqueueTx
+ConcreteHandlers --> LogBinding : emitTx
+ConcreteHandlers --> MetricBinding : recordTx
+ConcreteHandlers --> Backend : commit(tx)
+
+EntityBinding --> Tx
+FeatureFlagBinding --> Tx
+MetadataBinding --> Tx
+WorkflowBinding --> Tx
+QueueBinding --> Tx
+LogBinding --> Tx
+MetricBinding --> Tx
+
+Tx --> Store : optimistic read/write set
+WorkflowBinding --> WorkflowStart : durable launch intent
+QueueBinding --> DomainQueues : durable messages
+LogBinding --> LogsBackend : structured events
+MetricBinding --> MetricsBackend : samples
+
+ApiServer --> Transport : response
+Transport --> Client : status + body
+
+note right of ConcreteHandlers
+Generated code defines contracts and
+routing. Application code owns business
+logic, validation beyond the spec, auth,
+transport integration, and concrete
+backend adapters.
+end note
+
+note bottom of Tx
+Every persisted read that affects API
+behavior should use the same OCC
+transaction as the writes and launch
+side effects it authorizes.
+end note
+
+@enduml

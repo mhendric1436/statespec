@@ -456,6 +456,8 @@ PlantUML source diagrams are maintained in [`diagrams/`](diagrams/):
 
 ```text
 diagrams/compiler-pipeline.puml
+diagrams/generated-api-app-architecture.puml
+diagrams/generated-worker-app-architecture.puml
 diagrams/language-model.puml
 diagrams/runtime-occ-bindings.puml
 ```
