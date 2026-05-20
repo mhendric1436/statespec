@@ -21,7 +21,10 @@ impl ApiHandler for LinkingHandler {
             "api_requests",
             "request-1",
             Json::Object(BTreeMap::from([
-                ("server".to_string(), Json::String(context.server_name.clone())),
+                (
+                    "server".to_string(),
+                    Json::String(context.server_name.clone()),
+                ),
                 ("api".to_string(), Json::String(context.api_name.clone())),
             ])),
         )?;
@@ -29,10 +32,7 @@ impl ApiHandler for LinkingHandler {
 
         Ok(ApiResponse {
             status_code: 202,
-            body: Json::Object(BTreeMap::from([(
-                "linked".to_string(),
-                Json::Bool(true),
-            )])),
+            body: Json::Object(BTreeMap::from([("linked".to_string(), Json::Bool(true))])),
         })
     }
 }

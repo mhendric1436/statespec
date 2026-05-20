@@ -48,9 +48,9 @@ func TestGeneratedAPIServerLinksWithMemoryBackend(t *testing.T) {
 	}
 	response, handled, err := server.Handle(context.Background(), "ProvisionApi.StartProvision", common.APIRequestContext{
 		ServerName: "ProvisionApi",
-		APIName:   "StartProvision",
-		Method:    stringPtr("POST"),
-		Path:      stringPtr("/v1/provision"),
+		APIName:    "StartProvision",
+		Method:     stringPtr("POST"),
+		Path:       stringPtr("/v1/provision"),
 		Body: common.JSONObject(map[string]common.JSON{
 			"tenant_id": common.JSONString("tenant-1"),
 		}),

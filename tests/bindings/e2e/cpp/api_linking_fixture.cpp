@@ -6,9 +6,8 @@
 class LinkingApiHandler final : public statespec_generated::api::IApiHandler
 {
   public:
-    statespec_generated::api::ApiResponse handle(
-        const statespec_generated::api::ApiRequestContext& context
-    ) override
+    statespec_generated::api::ApiResponse
+    handle(const statespec_generated::api::ApiRequestContext& context) override
     {
         backend_.ensure_collection(
             statespec::backend::CollectionDescriptor{
@@ -21,9 +20,7 @@ class LinkingApiHandler final : public statespec_generated::api::IApiHandler
         );
         auto tx = backend_.begin();
         backend_.put(
-            *tx,
-            "api_requests",
-            "request-1",
+            *tx, "api_requests", "request-1",
             statespec::backend::Json::object(
                 {{"server", context.server_name}, {"api", context.api_name}}
             )

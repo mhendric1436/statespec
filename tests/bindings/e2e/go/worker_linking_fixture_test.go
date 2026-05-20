@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	worker "statespec-generated/worker/backend"
 	common "statespec-generated/common/backend"
 	"statespec-generated/common/backend/memory"
+	worker "statespec-generated/worker/backend"
 )
 
 type linkingWorkflowStepHandler struct {
