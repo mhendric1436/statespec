@@ -1,0 +1,21 @@
+#[path = "common/backend.rs"]
+pub mod backend;
+#[path = "common/descriptors.rs"]
+pub mod descriptors;
+#[path = "common/external_system.rs"]
+pub mod external_system;
+#[path = "common/feature_flag.rs"]
+pub mod feature_flag;
+#[path = "common/json.rs"]
+pub mod json;
+#[path = "common/lease.rs"]
+pub mod lease;
+#[path = "common/log.rs"]
+pub mod log;
+#[path = "common/metric.rs"]
+pub mod metric;
+#[path = "common/queue.rs"]
+pub mod queue;
+#[path = "common/workflow.rs"]
+pub mod workflow;
+{{api_modules}}{{worker_modules}}

@@ -1,0 +1,32 @@
+CARGO ?= cargo
+DIST_DIR ?= dist
+
+CHECK_TARGETS := check-common
+BUILD_TARGETS := build-common
+PACKAGE_TARGETS := package-common{{target_additions}}
+
+.PHONY: all check build package check-common build-common package-common{{phony_targets}} clean
+
+all: check
+
+check: $(CHECK_TARGETS)
+
+build: $(BUILD_TARGETS)
+
+package: $(PACKAGE_TARGETS)
+
+$(DIST_DIR):
+	mkdir -p $(DIST_DIR)
+
+check-common:
+	$(CARGO) test
+
+build-common:
+	$(CARGO) build
+
+package-common: build-common $(DIST_DIR)
+	tar -czf $(DIST_DIR)/statespec-generated-common-rust.tgz common Cargo.toml lib.rs Makefile
+
+{{api_rules}}{{worker_rules}}clean:
+	$(CARGO) clean
+	rm -rf $(DIST_DIR)

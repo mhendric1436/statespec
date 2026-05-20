@@ -1,0 +1,37 @@
+CXX ?= clang++
+CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -I. -Icommon
+BUILD_DIR ?= build
+
+DIST_DIR ?= dist
+
+CHECK_TARGETS := check-common
+BUILD_TARGETS := build-common
+PACKAGE_TARGETS := package-common{{target_additions}}
+
+.PHONY: all check build package check-common build-common package-common{{phony_targets}} clean
+
+all: check
+
+check: $(CHECK_TARGETS)
+
+build: $(BUILD_TARGETS)
+
+package: $(PACKAGE_TARGETS)
+
+$(BUILD_DIR)/.dir:
+	mkdir -p $(BUILD_DIR)
+	touch $(BUILD_DIR)/.dir
+
+$(DIST_DIR):
+	mkdir -p $(DIST_DIR)
+
+check-common: $(BUILD_DIR)/.dir
+	printf '#include "common/system_descriptors.hpp"\nint main() { return 0; }\n' | $(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common
+
+build-common: check-common
+
+package-common: build-common $(DIST_DIR)
+	tar -czf $(DIST_DIR)/statespec-generated-common-cpp.tgz common Makefile
+
+{{api_rules}}{{worker_rules}}clean:
+	rm -rf $(BUILD_DIR) $(DIST_DIR)

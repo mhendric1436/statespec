@@ -1,0 +1,40 @@
+JAVAC ?= javac
+JAR ?= jar
+BUILD_DIR ?= build/classes
+DIST_DIR ?= dist
+SOURCES := $(shell find . -name '*.java')
+
+.PHONY: all check build package build-common build-api build-worker package-common package-api package-worker clean
+
+all: check
+
+check: build
+
+build: build-common build-api build-worker
+
+package: package-common package-api package-worker
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(DIST_DIR):
+	mkdir -p $(DIST_DIR)
+
+build-common: $(BUILD_DIR)
+	$(JAVAC) -d $(BUILD_DIR) $(SOURCES)
+
+build-api: build-common
+
+build-worker: build-common
+
+package-common: build-common $(DIST_DIR)
+	$(JAR) --create --file $(DIST_DIR)/statespec-generated-common-java.jar -C $(BUILD_DIR) .
+
+package-api: build-api $(DIST_DIR)
+	tar -czf $(DIST_DIR)/statespec-generated-api-java.tgz common api Makefile
+
+package-worker: build-worker $(DIST_DIR)
+	tar -czf $(DIST_DIR)/statespec-generated-worker-java.tgz common worker Makefile
+
+clean:
+	rm -rf build $(DIST_DIR)

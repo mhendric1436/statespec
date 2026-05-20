@@ -71,7 +71,8 @@ void add_generated_template_file(
     const std::filesystem::path& relative_output_path,
     DiagnosticBag& diagnostics,
     GeneratedArtifactTier tier,
-    const TemplateRenderer::Values& values = {}
+    const TemplateRenderer::Values& values = {},
+    const std::filesystem::path& relative_artifact_path = {}
 )
 {
     const auto content =
@@ -86,7 +87,8 @@ void add_generated_template_file(
             (output_dir / relative_output_path).string(),
             content,
             tier,
-            relative_output_path.generic_string(),
+            (relative_artifact_path.empty() ? relative_output_path : relative_artifact_path)
+                .generic_string(),
         }
     );
 }
@@ -218,41 +220,6 @@ std::string lower_camel_identifier(const std::string& value)
             static_cast<char>(std::tolower(static_cast<unsigned char>(identifier.front())));
     }
     return identifier.empty() ? "value" : identifier;
-}
-
-std::string generate_java_makefile()
-{
-    std::ostringstream out;
-    out << "JAVAC ?= javac\n";
-    out << "JAR ?= jar\n";
-    out << "BUILD_DIR ?= build/classes\n";
-    out << "DIST_DIR ?= dist\n";
-    out << "SOURCES := $(shell find . -name '*.java')\n\n";
-    out << ".PHONY: all check build package build-common build-api build-worker package-common "
-           "package-api package-worker clean\n\n";
-    out << "all: check\n\n";
-    out << "check: build\n\n";
-    out << "build: build-common build-api build-worker\n\n";
-    out << "package: package-common package-api package-worker\n\n";
-    out << "$(BUILD_DIR):\n";
-    out << "\tmkdir -p $(BUILD_DIR)\n";
-    out << "\n";
-    out << "$(DIST_DIR):\n";
-    out << "\tmkdir -p $(DIST_DIR)\n\n";
-    out << "build-common: $(BUILD_DIR)\n";
-    out << "\t$(JAVAC) -d $(BUILD_DIR) $(SOURCES)\n\n";
-    out << "build-api: build-common\n\n";
-    out << "build-worker: build-common\n\n";
-    out << "package-common: build-common $(DIST_DIR)\n";
-    out << "\t$(JAR) --create --file $(DIST_DIR)/statespec-generated-common-java.jar -C "
-           "$(BUILD_DIR) .\n\n";
-    out << "package-api: build-api $(DIST_DIR)\n";
-    out << "\ttar -czf $(DIST_DIR)/statespec-generated-api-java.tgz common api Makefile\n\n";
-    out << "package-worker: build-worker $(DIST_DIR)\n";
-    out << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-java.tgz common worker Makefile\n\n";
-    out << "clean:\n";
-    out << "\trm -rf build $(DIST_DIR)\n";
-    return out.str();
 }
 
 std::string java_shape_type(const std::string& type)
@@ -1773,13 +1740,9 @@ GenerationResult generate_java_bindings(
                 "common/com/statespec/generated/Descriptors.java",
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "Makefile").string(),
-                generate_java_makefile(),
-                GeneratedArtifactTier::Common,
-                "common/Makefile",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile",
+            diagnostics, GeneratedArtifactTier::Common, {}, "common/Makefile"
         );
         add_generated_template_file(
             result, options.output_dir, templates,

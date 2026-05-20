@@ -72,7 +72,8 @@ void add_generated_template_file(
     const std::filesystem::path& relative_output_path,
     DiagnosticBag& diagnostics,
     GeneratedArtifactTier tier,
-    const TemplateRenderer::Values& values = {}
+    const TemplateRenderer::Values& values = {},
+    const std::filesystem::path& relative_artifact_path = {}
 )
 {
     const auto content =
@@ -87,7 +88,8 @@ void add_generated_template_file(
             (output_dir / relative_output_path).string(),
             content,
             tier,
-            relative_output_path.generic_string(),
+            (relative_artifact_path.empty() ? relative_output_path : relative_artifact_path)
+                .generic_string(),
         }
     );
 }
@@ -236,97 +238,67 @@ std::string snake_identifier(const std::string& value)
     return result.empty() ? "generated_event" : result;
 }
 
-std::string generate_makefile(BindingGenerationTier tier)
+TemplateRenderer::Values cpp_makefile_values(BindingGenerationTier tier)
 {
-    std::ostringstream out;
     const auto include_api =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
     const auto include_worker =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
 
-    out << "CXX ?= clang++\n";
-    out << "CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -I. -Icommon\n";
-    out << "BUILD_DIR ?= build\n\n";
-    out << "DIST_DIR ?= dist\n\n";
-    out << "CHECK_TARGETS := check-common\n";
-    out << "BUILD_TARGETS := build-common\n";
-    out << "PACKAGE_TARGETS := package-common";
+    std::ostringstream target_additions;
+    std::ostringstream phony_targets;
+    std::ostringstream api_rules;
+    std::ostringstream worker_rules;
     if (include_api)
     {
-        out << "\nCHECK_TARGETS += check-api";
-        out << "\nBUILD_TARGETS += build-api";
-        out << "\nPACKAGE_TARGETS += package-api";
+        target_additions << "\nCHECK_TARGETS += check-api";
+        target_additions << "\nBUILD_TARGETS += build-api";
+        target_additions << "\nPACKAGE_TARGETS += package-api";
+        phony_targets << " check-api build-api package-api";
+        api_rules << "check-api: $(BUILD_DIR)/.dir\n";
+        api_rules << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
+                     "#include \"api/api_dispatcher.hpp\"\\n"
+                     "#include \"api/api_handlers.hpp\"\\n"
+                     "#include \"api/api_routes.hpp\"\\n"
+                     "#include \"api/api_server.hpp\"\\n"
+                     "#include \"api/external_system_operator_metadata_api.hpp\"\\n"
+                     "int main() { return 0; }\\n' | "
+                     "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
+        api_rules << "build-api: check-api\n\n";
+        api_rules << "package-api: build-api $(DIST_DIR)\n";
+        api_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-api-cpp.tgz common api "
+                     "Makefile\n\n";
     }
     if (include_worker)
     {
-        out << "\nCHECK_TARGETS += check-worker";
-        out << "\nBUILD_TARGETS += build-worker";
-        out << "\nPACKAGE_TARGETS += package-worker";
+        target_additions << "\nCHECK_TARGETS += check-worker";
+        target_additions << "\nBUILD_TARGETS += build-worker";
+        target_additions << "\nPACKAGE_TARGETS += package-worker";
+        phony_targets << " check-worker build-worker package-worker";
+        worker_rules << "check-worker: $(BUILD_DIR)/.dir\n";
+        worker_rules << "\tprintf '#include \"worker/worker_application.hpp\"\\n"
+                        "#include \"worker/worker_contexts.hpp\"\\n"
+                        "#include \"worker/worker_descriptors.hpp\"\\n"
+                        "#include \"worker/worker_handlers.hpp\"\\n"
+                        "#include \"worker/worker_leases.hpp\"\\n"
+                        "#include \"worker/worker_queues.hpp\"\\n"
+                        "#include \"worker/worker_registry.hpp\"\\n"
+                        "#include \"worker/worker_workflows.hpp\"\\n"
+                        "#include \"worker/workflow_runner.hpp\"\\n"
+                        "#include \"worker/workflow_step_handlers.hpp\"\\n"
+                        "int main() { return 0; }\\n' | "
+                        "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
+        worker_rules << "build-worker: check-worker\n\n";
+        worker_rules << "package-worker: build-worker $(DIST_DIR)\n";
+        worker_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-cpp.tgz common worker "
+                        "Makefile\n\n";
     }
-    out << "\n\n";
-    out << ".PHONY: all check build package check-common build-common package-common";
-    if (include_api)
-    {
-        out << " check-api build-api package-api";
-    }
-    if (include_worker)
-    {
-        out << " check-worker build-worker package-worker";
-    }
-    out << " clean\n\n";
-    out << "all: check\n\n";
-    out << "check: $(CHECK_TARGETS)\n\n";
-    out << "build: $(BUILD_TARGETS)\n\n";
-    out << "package: $(PACKAGE_TARGETS)\n\n";
-    out << "$(BUILD_DIR)/.dir:\n";
-    out << "\tmkdir -p $(BUILD_DIR)\n";
-    out << "\ttouch $(BUILD_DIR)/.dir\n\n";
-    out << "$(DIST_DIR):\n";
-    out << "\tmkdir -p $(DIST_DIR)\n\n";
-    out << "check-common: $(BUILD_DIR)/.dir\n";
-    out << "\tprintf '#include \"common/system_descriptors.hpp\"\\nint main() { return 0; }\\n' | "
-           "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common\n\n";
-    out << "build-common: check-common\n\n";
-    out << "package-common: build-common $(DIST_DIR)\n";
-    out << "\ttar -czf $(DIST_DIR)/statespec-generated-common-cpp.tgz common Makefile\n\n";
-    if (include_api)
-    {
-        out << "check-api: $(BUILD_DIR)/.dir\n";
-        out << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
-               "#include \"api/api_dispatcher.hpp\"\\n"
-               "#include \"api/api_handlers.hpp\"\\n"
-               "#include \"api/api_routes.hpp\"\\n"
-               "#include \"api/api_server.hpp\"\\n"
-               "#include \"api/external_system_operator_metadata_api.hpp\"\\n"
-               "int main() { return 0; }\\n' | "
-               "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
-        out << "build-api: check-api\n\n";
-        out << "package-api: build-api $(DIST_DIR)\n";
-        out << "\ttar -czf $(DIST_DIR)/statespec-generated-api-cpp.tgz common api Makefile\n\n";
-    }
-    if (include_worker)
-    {
-        out << "check-worker: $(BUILD_DIR)/.dir\n";
-        out << "\tprintf '#include \"worker/worker_application.hpp\"\\n"
-               "#include \"worker/worker_contexts.hpp\"\\n"
-               "#include \"worker/worker_descriptors.hpp\"\\n"
-               "#include \"worker/worker_handlers.hpp\"\\n"
-               "#include \"worker/worker_leases.hpp\"\\n"
-               "#include \"worker/worker_queues.hpp\"\\n"
-               "#include \"worker/worker_registry.hpp\"\\n"
-               "#include \"worker/worker_workflows.hpp\"\\n"
-               "#include \"worker/workflow_runner.hpp\"\\n"
-               "#include \"worker/workflow_step_handlers.hpp\"\\n"
-               "int main() { return 0; }\\n' | "
-               "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
-        out << "build-worker: check-worker\n\n";
-        out << "package-worker: build-worker $(DIST_DIR)\n";
-        out << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-cpp.tgz common worker "
-               "Makefile\n\n";
-    }
-    out << "clean:\n";
-    out << "\trm -rf $(BUILD_DIR) $(DIST_DIR)\n";
-    return out.str();
+    return TemplateRenderer::Values{
+        {"target_additions", target_additions.str()},
+        {"phony_targets", phony_targets.str()},
+        {"api_rules", api_rules.str()},
+        {"worker_rules", worker_rules.str()},
+    };
 }
 
 std::string cpp_shape_type(const std::string& type)
@@ -1898,13 +1870,10 @@ GenerationResult generate_cpp_bindings(
                 "common/system_descriptors.hpp",
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "Makefile").string(),
-                generate_makefile(options.tier),
-                GeneratedArtifactTier::Common,
-                "common/Makefile",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile",
+            diagnostics, GeneratedArtifactTier::Common, cpp_makefile_values(options.tier),
+            "common/Makefile"
         );
         add_generated_template_file(
             result, options.output_dir, templates, "api/api_descriptors.hpp",

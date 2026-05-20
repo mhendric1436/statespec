@@ -1,0 +1,32 @@
+GO ?= go
+DIST_DIR ?= dist
+
+CHECK_TARGETS := check-common
+BUILD_TARGETS := build-common
+PACKAGE_TARGETS := package-common{{target_additions}}
+
+.PHONY: all check build package check-common build-common package-common{{phony_targets}} clean
+
+all: check
+
+check: $(CHECK_TARGETS)
+
+build: $(BUILD_TARGETS)
+
+package: $(PACKAGE_TARGETS)
+
+$(DIST_DIR):
+	mkdir -p $(DIST_DIR)
+
+check-common:
+	$(GO) test ./common/...
+
+build-common:
+	$(GO) test ./common/...
+
+package-common: build-common $(DIST_DIR)
+	tar -czf $(DIST_DIR)/statespec-generated-common-go.tgz common go.mod Makefile
+
+{{api_rules}}{{worker_rules}}clean:
+	$(GO) clean -testcache
+	rm -rf $(DIST_DIR)

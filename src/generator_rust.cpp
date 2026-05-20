@@ -70,7 +70,8 @@ void add_generated_template_file(
     const std::filesystem::path& relative_output_path,
     DiagnosticBag& diagnostics,
     GeneratedArtifactTier tier,
-    const TemplateRenderer::Values& values = {}
+    const TemplateRenderer::Values& values = {},
+    const std::filesystem::path& relative_artifact_path = {}
 )
 {
     const auto content =
@@ -85,7 +86,8 @@ void add_generated_template_file(
             (output_dir / relative_output_path).string(),
             content,
             tier,
-            relative_output_path.generic_string(),
+            (relative_artifact_path.empty() ? relative_output_path : relative_artifact_path)
+                .generic_string(),
         }
     );
 }
@@ -234,157 +236,99 @@ std::string snake_identifier(const std::string& value)
     return result.empty() ? "generated_event" : result;
 }
 
-std::string generate_cargo_toml()
+TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier)
 {
-    std::ostringstream out;
-    out << "[package]\n";
-    out << "name = \"statespec-generated\"\n";
-    out << "version = \"0.1.0\"\n";
-    out << "edition = \"2021\"\n\n";
-    out << "[lib]\n";
-    out << "path = \"lib.rs\"\n";
-    return out.str();
-}
-
-std::string generate_rust_makefile(BindingGenerationTier tier)
-{
-    std::ostringstream out;
     const auto include_api =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
     const auto include_worker =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
 
-    out << "CARGO ?= cargo\n";
-    out << "DIST_DIR ?= dist\n\n";
-    out << "CHECK_TARGETS := check-common\n";
-    out << "BUILD_TARGETS := build-common\n";
-    out << "PACKAGE_TARGETS := package-common";
+    std::ostringstream target_additions;
+    std::ostringstream phony_targets;
+    std::ostringstream api_rules;
+    std::ostringstream worker_rules;
     if (include_api)
     {
-        out << "\nCHECK_TARGETS += check-api";
-        out << "\nBUILD_TARGETS += build-api";
-        out << "\nPACKAGE_TARGETS += package-api";
+        target_additions << "\nCHECK_TARGETS += check-api";
+        target_additions << "\nBUILD_TARGETS += build-api";
+        target_additions << "\nPACKAGE_TARGETS += package-api";
+        phony_targets << " check-api build-api package-api";
+        api_rules << "check-api:\n";
+        api_rules << "\t$(CARGO) test\n\n";
+        api_rules << "build-api:\n";
+        api_rules << "\t$(CARGO) build\n\n";
+        api_rules << "package-api: build-api $(DIST_DIR)\n";
+        api_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-api-rust.tgz common api "
+                     "Cargo.toml lib.rs Makefile\n\n";
     }
     if (include_worker)
     {
-        out << "\nCHECK_TARGETS += check-worker";
-        out << "\nBUILD_TARGETS += build-worker";
-        out << "\nPACKAGE_TARGETS += package-worker";
+        target_additions << "\nCHECK_TARGETS += check-worker";
+        target_additions << "\nBUILD_TARGETS += build-worker";
+        target_additions << "\nPACKAGE_TARGETS += package-worker";
+        phony_targets << " check-worker build-worker package-worker";
+        worker_rules << "check-worker:\n";
+        worker_rules << "\t$(CARGO) test\n\n";
+        worker_rules << "build-worker:\n";
+        worker_rules << "\t$(CARGO) build\n\n";
+        worker_rules << "package-worker: build-worker $(DIST_DIR)\n";
+        worker_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-rust.tgz common worker "
+                        "Cargo.toml lib.rs Makefile\n\n";
     }
-    out << "\n\n";
-    out << ".PHONY: all check build package check-common build-common package-common";
-    if (include_api)
-    {
-        out << " check-api build-api package-api";
-    }
-    if (include_worker)
-    {
-        out << " check-worker build-worker package-worker";
-    }
-    out << " clean\n\n";
-    out << "all: check\n\n";
-    out << "check: $(CHECK_TARGETS)\n\n";
-    out << "build: $(BUILD_TARGETS)\n\n";
-    out << "package: $(PACKAGE_TARGETS)\n\n";
-    out << "$(DIST_DIR):\n";
-    out << "\tmkdir -p $(DIST_DIR)\n\n";
-    out << "check-common:\n";
-    out << "\t$(CARGO) test\n\n";
-    out << "build-common:\n";
-    out << "\t$(CARGO) build\n\n";
-    out << "package-common: build-common $(DIST_DIR)\n";
-    out << "\ttar -czf $(DIST_DIR)/statespec-generated-common-rust.tgz common Cargo.toml lib.rs "
-           "Makefile\n\n";
-    if (include_api)
-    {
-        out << "check-api:\n";
-        out << "\t$(CARGO) test\n\n";
-        out << "build-api:\n";
-        out << "\t$(CARGO) build\n\n";
-        out << "package-api: build-api $(DIST_DIR)\n";
-        out << "\ttar -czf $(DIST_DIR)/statespec-generated-api-rust.tgz common api Cargo.toml "
-               "lib.rs Makefile\n\n";
-    }
-    if (include_worker)
-    {
-        out << "check-worker:\n";
-        out << "\t$(CARGO) test\n\n";
-        out << "build-worker:\n";
-        out << "\t$(CARGO) build\n\n";
-        out << "package-worker: build-worker $(DIST_DIR)\n";
-        out << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-rust.tgz common worker "
-               "Cargo.toml lib.rs Makefile\n\n";
-    }
-    out << "clean:\n";
-    out << "\t$(CARGO) clean\n";
-    out << "\trm -rf $(DIST_DIR)\n";
-    return out.str();
+    return TemplateRenderer::Values{
+        {"target_additions", target_additions.str()},
+        {"phony_targets", phony_targets.str()},
+        {"api_rules", api_rules.str()},
+        {"worker_rules", worker_rules.str()},
+    };
 }
 
-std::string generate_rust_lib(BindingGenerationTier tier)
+TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
 {
-    std::ostringstream out;
-    out << "#[path = \"common/backend.rs\"]\n";
-    out << "pub mod backend;\n";
-    out << "#[path = \"common/descriptors.rs\"]\n";
-    out << "pub mod descriptors;\n";
-    out << "#[path = \"common/external_system.rs\"]\n";
-    out << "pub mod external_system;\n";
-    out << "#[path = \"common/feature_flag.rs\"]\n";
-    out << "pub mod feature_flag;\n";
-    out << "#[path = \"common/json.rs\"]\n";
-    out << "pub mod json;\n";
-    out << "#[path = \"common/lease.rs\"]\n";
-    out << "pub mod lease;\n";
-    out << "#[path = \"common/log.rs\"]\n";
-    out << "pub mod log;\n";
-    out << "#[path = \"common/metric.rs\"]\n";
-    out << "pub mod metric;\n";
-    out << "#[path = \"common/queue.rs\"]\n";
-    out << "pub mod queue;\n";
-    out << "#[path = \"common/workflow.rs\"]\n";
-    out << "pub mod workflow;\n";
-
+    std::ostringstream api_modules;
+    std::ostringstream worker_modules;
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
     {
-        out << "#[path = \"api/api_descriptors.rs\"]\n";
-        out << "pub mod api_descriptors;\n";
-        out << "#[path = \"api/api_dispatcher.rs\"]\n";
-        out << "pub mod api_dispatcher;\n";
-        out << "#[path = \"api/api_handlers.rs\"]\n";
-        out << "pub mod api_handlers;\n";
-        out << "#[path = \"api/api_routes.rs\"]\n";
-        out << "pub mod api_routes;\n";
-        out << "#[path = \"api/api_server.rs\"]\n";
-        out << "pub mod api_server;\n";
-        out << "#[path = \"api/external_system_operator_metadata_api.rs\"]\n";
-        out << "pub mod external_system_operator_metadata_api;\n";
+        api_modules << "#[path = \"api/api_descriptors.rs\"]\n";
+        api_modules << "pub mod api_descriptors;\n";
+        api_modules << "#[path = \"api/api_dispatcher.rs\"]\n";
+        api_modules << "pub mod api_dispatcher;\n";
+        api_modules << "#[path = \"api/api_handlers.rs\"]\n";
+        api_modules << "pub mod api_handlers;\n";
+        api_modules << "#[path = \"api/api_routes.rs\"]\n";
+        api_modules << "pub mod api_routes;\n";
+        api_modules << "#[path = \"api/api_server.rs\"]\n";
+        api_modules << "pub mod api_server;\n";
+        api_modules << "#[path = \"api/external_system_operator_metadata_api.rs\"]\n";
+        api_modules << "pub mod external_system_operator_metadata_api;\n";
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker)
     {
-        out << "#[path = \"worker/worker_contexts.rs\"]\n";
-        out << "pub mod worker_contexts;\n";
-        out << "#[path = \"worker/worker_descriptors.rs\"]\n";
-        out << "pub mod worker_descriptors;\n";
-        out << "#[path = \"worker/worker_handlers.rs\"]\n";
-        out << "pub mod worker_handlers;\n";
-        out << "#[path = \"worker/worker_leases.rs\"]\n";
-        out << "pub mod worker_leases;\n";
-        out << "#[path = \"worker/worker_queues.rs\"]\n";
-        out << "pub mod worker_queues;\n";
-        out << "#[path = \"worker/worker_workflows.rs\"]\n";
-        out << "pub mod worker_workflows;\n";
-        out << "#[path = \"worker/worker_registry.rs\"]\n";
-        out << "pub mod worker_registry;\n";
-        out << "#[path = \"worker/worker_application.rs\"]\n";
-        out << "pub mod worker_application;\n";
-        out << "#[path = \"worker/workflow_step_handlers.rs\"]\n";
-        out << "pub mod workflow_step_handlers;\n";
-        out << "#[path = \"worker/workflow_runner.rs\"]\n";
-        out << "pub mod workflow_runner;\n";
+        worker_modules << "#[path = \"worker/worker_contexts.rs\"]\n";
+        worker_modules << "pub mod worker_contexts;\n";
+        worker_modules << "#[path = \"worker/worker_descriptors.rs\"]\n";
+        worker_modules << "pub mod worker_descriptors;\n";
+        worker_modules << "#[path = \"worker/worker_handlers.rs\"]\n";
+        worker_modules << "pub mod worker_handlers;\n";
+        worker_modules << "#[path = \"worker/worker_leases.rs\"]\n";
+        worker_modules << "pub mod worker_leases;\n";
+        worker_modules << "#[path = \"worker/worker_queues.rs\"]\n";
+        worker_modules << "pub mod worker_queues;\n";
+        worker_modules << "#[path = \"worker/worker_workflows.rs\"]\n";
+        worker_modules << "pub mod worker_workflows;\n";
+        worker_modules << "#[path = \"worker/worker_registry.rs\"]\n";
+        worker_modules << "pub mod worker_registry;\n";
+        worker_modules << "#[path = \"worker/worker_application.rs\"]\n";
+        worker_modules << "pub mod worker_application;\n";
+        worker_modules << "#[path = \"worker/workflow_step_handlers.rs\"]\n";
+        worker_modules << "pub mod workflow_step_handlers;\n";
+        worker_modules << "#[path = \"worker/workflow_runner.rs\"]\n";
+        worker_modules << "pub mod workflow_runner;\n";
     }
-
-    return out.str();
+    return TemplateRenderer::Values{
+        {"api_modules", api_modules.str()},
+        {"worker_modules", worker_modules.str()},
+    };
 }
 
 std::string rust_shape_type(const std::string& type)
@@ -1839,29 +1783,18 @@ GenerationResult generate_rust_bindings(
                 "common/descriptors.rs",
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "Cargo.toml").string(),
-                generate_cargo_toml(),
-                GeneratedArtifactTier::Common,
-                "common/Cargo.toml",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/Cargo.toml.tmpl", "Cargo.toml",
+            diagnostics, GeneratedArtifactTier::Common, {}, "common/Cargo.toml"
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "lib.rs").string(),
-                generate_rust_lib(options.tier),
-                GeneratedArtifactTier::Common,
-                "common/lib.rs",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/lib.rs.tmpl", "lib.rs", diagnostics,
+            GeneratedArtifactTier::Common, rust_lib_values(options.tier), "common/lib.rs"
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "Makefile").string(),
-                generate_rust_makefile(options.tier),
-                GeneratedArtifactTier::Common,
-                "common/Makefile",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile",
+            diagnostics, GeneratedArtifactTier::Common, rust_makefile_values(options.tier),
+            "common/Makefile"
         );
         add_generated_template_file(
             result, options.output_dir, templates, "api/api_descriptors.rs.tmpl",
