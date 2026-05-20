@@ -54,12 +54,26 @@ that application code implements outside the generated output tree.
 ## Application Artifact Model
 
 The binding generators use a stable application artifact model for the planned complete
-API-server and worker applications. The API server shell, API dispatcher, worker
-registry, worker application shell, workflow step handler interfaces, and workflow
-runner are emitted as the first generated application artifacts. The remaining
-application files are still modeled as generated-owned artifacts but are not emitted yet.
-The current generators also emit the lower-level common, API contract, and worker
-contract files described above.
+API-server and worker applications plus a common-tier in-memory backend for local
+linking. The API server shell, API dispatcher, worker registry, worker application
+shell, workflow step handler interfaces, and workflow runner are emitted as the first
+generated application artifacts. The remaining application and memory backend files are
+still modeled as generated-owned artifacts but are not emitted yet. The current
+generators also emit the lower-level common, API contract, and worker contract files
+described above.
+
+The common in-memory backend artifact responsibilities are:
+
+| Kind | Responsibility |
+|---|---|
+| `memory_backend` | In-memory backend composition root for local API and worker linking |
+| `memory_transaction` | Optimistic-concurrency transaction implementation |
+| `memory_feature_flag_store` | Feature flag definition, override, and evaluation store |
+| `memory_queue_store` | Queue definition, enqueue, claim, ack, and fail store |
+| `memory_lease_store` | Lease definition, acquire, renew, release, and fencing store |
+| `memory_workflow_store` | Workflow definition, execution, step claim, keep-alive, complete, and fail store |
+| `memory_log_sink` | Transaction-scoped structured log sink with inspect support |
+| `memory_metric_sink` | Transaction-scoped metric sink with inspect support |
 
 The API application artifact responsibilities are:
 
@@ -99,6 +113,15 @@ Planned worker application filenames:
 | `go` | `worker/backend/worker_application.go`, `worker/backend/worker_runtime.go`, `worker/backend/worker_registry.go`, `worker/backend/workflow_runner.go`, `worker/backend/workflow_step_handlers.go`, `worker/cmd/worker/main.go` |
 | `java` | `worker/com/statespec/generated/WorkerApplication.java`, `worker/com/statespec/generated/WorkerRuntime.java`, `worker/com/statespec/generated/WorkerRegistry.java`, `worker/com/statespec/generated/WorkflowRunner.java`, `worker/com/statespec/generated/WorkflowStepHandlers.java`, `worker/com/statespec/generated/WorkerMain.java` |
 | `rust` | `worker/worker_application.rs`, `worker/worker_runtime.rs`, `worker/worker_registry.rs`, `worker/workflow_runner.rs`, `worker/workflow_step_handlers.rs`, `worker/main.rs` |
+
+Planned in-memory backend filenames:
+
+| Language | Files |
+|---|---|
+| `cpp` | `common/memory/backend.hpp`, `common/memory/transaction.hpp`, `common/memory/feature_flag_store.hpp`, `common/memory/queue_store.hpp`, `common/memory/lease_store.hpp`, `common/memory/workflow_store.hpp`, `common/memory/log_sink.hpp`, `common/memory/metric_sink.hpp` |
+| `go` | `common/backend/memory/backend.go`, `common/backend/memory/transaction.go`, `common/backend/memory/feature_flags.go`, `common/backend/memory/queues.go`, `common/backend/memory/leases.go`, `common/backend/memory/workflows.go`, `common/backend/memory/logs.go`, `common/backend/memory/metrics.go` |
+| `java` | `common/com/statespec/backend/memory/InMemoryBackend.java`, `common/com/statespec/backend/memory/InMemoryTransaction.java`, `common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java`, `common/com/statespec/backend/memory/InMemoryQueueStore.java`, `common/com/statespec/backend/memory/InMemoryLeaseStore.java`, `common/com/statespec/backend/memory/InMemoryWorkflowStore.java`, `common/com/statespec/backend/memory/InMemoryLogSink.java`, `common/com/statespec/backend/memory/InMemoryMetricSink.java` |
+| `rust` | `common/memory/backend.rs`, `common/memory/transaction.rs`, `common/memory/feature_flags.rs`, `common/memory/queues.rs`, `common/memory/leases.rs`, `common/memory/workflows.rs`, `common/memory/logs.rs`, `common/memory/metrics.rs` |
 
 ## Supported Languages
 

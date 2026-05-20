@@ -175,6 +175,22 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
 {
     switch (kind)
     {
+    case BindingAppArtifactKind::MemoryBackend:
+        return "memory_backend";
+    case BindingAppArtifactKind::MemoryTransaction:
+        return "memory_transaction";
+    case BindingAppArtifactKind::MemoryFeatureFlagStore:
+        return "memory_feature_flag_store";
+    case BindingAppArtifactKind::MemoryQueueStore:
+        return "memory_queue_store";
+    case BindingAppArtifactKind::MemoryLeaseStore:
+        return "memory_lease_store";
+    case BindingAppArtifactKind::MemoryWorkflowStore:
+        return "memory_workflow_store";
+    case BindingAppArtifactKind::MemoryLogSink:
+        return "memory_log_sink";
+    case BindingAppArtifactKind::MemoryMetricSink:
+        return "memory_metric_sink";
     case BindingAppArtifactKind::ApiApplication:
         return "api_application";
     case BindingAppArtifactKind::ApiServer:
@@ -204,6 +220,7 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
 std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage language)
 {
     using Kind = BindingAppArtifactKind;
+    const auto common = GeneratedArtifactTier::Common;
     const auto api = GeneratedArtifactTier::Api;
     const auto worker = GeneratedArtifactTier::Worker;
 
@@ -211,6 +228,21 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
     {
     case BindingLanguage::Cpp:
         return {
+            {"common/memory/backend.hpp", common, Kind::MemoryBackend,
+             "In-memory backend composition root for local API and worker linking"},
+            {"common/memory/transaction.hpp", common, Kind::MemoryTransaction,
+             "In-memory optimistic-concurrency transaction"},
+            {"common/memory/feature_flag_store.hpp", common, Kind::MemoryFeatureFlagStore,
+             "In-memory feature flag store"},
+            {"common/memory/queue_store.hpp", common, Kind::MemoryQueueStore,
+             "In-memory queue store"},
+            {"common/memory/lease_store.hpp", common, Kind::MemoryLeaseStore,
+             "In-memory lease store"},
+            {"common/memory/workflow_store.hpp", common, Kind::MemoryWorkflowStore,
+             "In-memory workflow store"},
+            {"common/memory/log_sink.hpp", common, Kind::MemoryLogSink, "In-memory log sink"},
+            {"common/memory/metric_sink.hpp", common, Kind::MemoryMetricSink,
+             "In-memory metric sink"},
             {"api/api_application.hpp", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/api_server.hpp", api, Kind::ApiServer, "API server lifecycle and request loop",
@@ -234,6 +266,21 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
         };
     case BindingLanguage::Go:
         return {
+            {"common/backend/memory/backend.go", common, Kind::MemoryBackend,
+             "In-memory backend composition root for local API and worker linking"},
+            {"common/backend/memory/transaction.go", common, Kind::MemoryTransaction,
+             "In-memory optimistic-concurrency transaction"},
+            {"common/backend/memory/feature_flags.go", common, Kind::MemoryFeatureFlagStore,
+             "In-memory feature flag store"},
+            {"common/backend/memory/queues.go", common, Kind::MemoryQueueStore,
+             "In-memory queue store"},
+            {"common/backend/memory/leases.go", common, Kind::MemoryLeaseStore,
+             "In-memory lease store"},
+            {"common/backend/memory/workflows.go", common, Kind::MemoryWorkflowStore,
+             "In-memory workflow store"},
+            {"common/backend/memory/logs.go", common, Kind::MemoryLogSink, "In-memory log sink"},
+            {"common/backend/memory/metrics.go", common, Kind::MemoryMetricSink,
+             "In-memory metric sink"},
             {"api/backend/api_application.go", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/backend/api_server.go", api, Kind::ApiServer,
@@ -257,6 +304,23 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
         };
     case BindingLanguage::Java:
         return {
+            {"common/com/statespec/backend/memory/InMemoryBackend.java", common,
+             Kind::MemoryBackend,
+             "In-memory backend composition root for local API and worker linking"},
+            {"common/com/statespec/backend/memory/InMemoryTransaction.java", common,
+             Kind::MemoryTransaction, "In-memory optimistic-concurrency transaction"},
+            {"common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java", common,
+             Kind::MemoryFeatureFlagStore, "In-memory feature flag store"},
+            {"common/com/statespec/backend/memory/InMemoryQueueStore.java", common,
+             Kind::MemoryQueueStore, "In-memory queue store"},
+            {"common/com/statespec/backend/memory/InMemoryLeaseStore.java", common,
+             Kind::MemoryLeaseStore, "In-memory lease store"},
+            {"common/com/statespec/backend/memory/InMemoryWorkflowStore.java", common,
+             Kind::MemoryWorkflowStore, "In-memory workflow store"},
+            {"common/com/statespec/backend/memory/InMemoryLogSink.java", common,
+             Kind::MemoryLogSink, "In-memory log sink"},
+            {"common/com/statespec/backend/memory/InMemoryMetricSink.java", common,
+             Kind::MemoryMetricSink, "In-memory metric sink"},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer,
@@ -282,6 +346,18 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
         };
     case BindingLanguage::Rust:
         return {
+            {"common/memory/backend.rs", common, Kind::MemoryBackend,
+             "In-memory backend composition root for local API and worker linking"},
+            {"common/memory/transaction.rs", common, Kind::MemoryTransaction,
+             "In-memory optimistic-concurrency transaction"},
+            {"common/memory/feature_flags.rs", common, Kind::MemoryFeatureFlagStore,
+             "In-memory feature flag store"},
+            {"common/memory/queues.rs", common, Kind::MemoryQueueStore, "In-memory queue store"},
+            {"common/memory/leases.rs", common, Kind::MemoryLeaseStore, "In-memory lease store"},
+            {"common/memory/workflows.rs", common, Kind::MemoryWorkflowStore,
+             "In-memory workflow store"},
+            {"common/memory/logs.rs", common, Kind::MemoryLogSink, "In-memory log sink"},
+            {"common/memory/metrics.rs", common, Kind::MemoryMetricSink, "In-memory metric sink"},
             {"api/api_application.rs", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/api_server.rs", api, Kind::ApiServer, "API server lifecycle and request loop",

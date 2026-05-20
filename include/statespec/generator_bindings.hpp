@@ -31,6 +31,14 @@ struct BindingGeneratorOptions
 
 enum class BindingAppArtifactKind
 {
+    MemoryBackend,
+    MemoryTransaction,
+    MemoryFeatureFlagStore,
+    MemoryQueueStore,
+    MemoryLeaseStore,
+    MemoryWorkflowStore,
+    MemoryLogSink,
+    MemoryMetricSink,
     ApiApplication,
     ApiServer,
     ApiDispatcher,

@@ -277,6 +277,16 @@ void require_exact_app_artifact_model(
 void test_binding_app_artifact_kind_names()
 {
     require_string_equal(
+        statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::MemoryBackend),
+        "memory_backend", "memory backend artifact kind name"
+    );
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(
+            statespec::BindingAppArtifactKind::MemoryTransaction
+        ),
+        "memory_transaction", "memory transaction artifact kind name"
+    );
+    require_string_equal(
         statespec::binding_app_artifact_kind_name(
             statespec::BindingAppArtifactKind::ApiApplication
         ),
@@ -300,6 +310,7 @@ void test_binding_app_artifact_kind_names()
 
 void test_binding_app_artifact_models_define_application_filenames()
 {
+    const auto common = statespec::GeneratedArtifactTier::Common;
     const auto api = statespec::GeneratedArtifactTier::Api;
     const auto worker = statespec::GeneratedArtifactTier::Worker;
     using Kind = statespec::BindingAppArtifactKind;
@@ -307,6 +318,14 @@ void test_binding_app_artifact_models_define_application_filenames()
     require_exact_app_artifact_model(
         statespec::BindingLanguage::Cpp, "cpp",
         {
+            {"common/memory/backend.hpp", common, Kind::MemoryBackend},
+            {"common/memory/transaction.hpp", common, Kind::MemoryTransaction},
+            {"common/memory/feature_flag_store.hpp", common, Kind::MemoryFeatureFlagStore},
+            {"common/memory/queue_store.hpp", common, Kind::MemoryQueueStore},
+            {"common/memory/lease_store.hpp", common, Kind::MemoryLeaseStore},
+            {"common/memory/workflow_store.hpp", common, Kind::MemoryWorkflowStore},
+            {"common/memory/log_sink.hpp", common, Kind::MemoryLogSink},
+            {"common/memory/metric_sink.hpp", common, Kind::MemoryMetricSink},
             {"api/api_application.hpp", api, Kind::ApiApplication},
             {"api/api_server.hpp", api, Kind::ApiServer, true},
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, true},
@@ -324,6 +343,14 @@ void test_binding_app_artifact_models_define_application_filenames()
     require_exact_app_artifact_model(
         statespec::BindingLanguage::Go, "go",
         {
+            {"common/backend/memory/backend.go", common, Kind::MemoryBackend},
+            {"common/backend/memory/transaction.go", common, Kind::MemoryTransaction},
+            {"common/backend/memory/feature_flags.go", common, Kind::MemoryFeatureFlagStore},
+            {"common/backend/memory/queues.go", common, Kind::MemoryQueueStore},
+            {"common/backend/memory/leases.go", common, Kind::MemoryLeaseStore},
+            {"common/backend/memory/workflows.go", common, Kind::MemoryWorkflowStore},
+            {"common/backend/memory/logs.go", common, Kind::MemoryLogSink},
+            {"common/backend/memory/metrics.go", common, Kind::MemoryMetricSink},
             {"api/backend/api_application.go", api, Kind::ApiApplication},
             {"api/backend/api_server.go", api, Kind::ApiServer, true},
             {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher, true},
@@ -341,6 +368,22 @@ void test_binding_app_artifact_models_define_application_filenames()
     require_exact_app_artifact_model(
         statespec::BindingLanguage::Java, "java",
         {
+            {"common/com/statespec/backend/memory/InMemoryBackend.java", common,
+             Kind::MemoryBackend},
+            {"common/com/statespec/backend/memory/InMemoryTransaction.java", common,
+             Kind::MemoryTransaction},
+            {"common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java", common,
+             Kind::MemoryFeatureFlagStore},
+            {"common/com/statespec/backend/memory/InMemoryQueueStore.java", common,
+             Kind::MemoryQueueStore},
+            {"common/com/statespec/backend/memory/InMemoryLeaseStore.java", common,
+             Kind::MemoryLeaseStore},
+            {"common/com/statespec/backend/memory/InMemoryWorkflowStore.java", common,
+             Kind::MemoryWorkflowStore},
+            {"common/com/statespec/backend/memory/InMemoryLogSink.java", common,
+             Kind::MemoryLogSink},
+            {"common/com/statespec/backend/memory/InMemoryMetricSink.java", common,
+             Kind::MemoryMetricSink},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer, true},
             {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher, true},
@@ -362,6 +405,14 @@ void test_binding_app_artifact_models_define_application_filenames()
     require_exact_app_artifact_model(
         statespec::BindingLanguage::Rust, "rust",
         {
+            {"common/memory/backend.rs", common, Kind::MemoryBackend},
+            {"common/memory/transaction.rs", common, Kind::MemoryTransaction},
+            {"common/memory/feature_flags.rs", common, Kind::MemoryFeatureFlagStore},
+            {"common/memory/queues.rs", common, Kind::MemoryQueueStore},
+            {"common/memory/leases.rs", common, Kind::MemoryLeaseStore},
+            {"common/memory/workflows.rs", common, Kind::MemoryWorkflowStore},
+            {"common/memory/logs.rs", common, Kind::MemoryLogSink},
+            {"common/memory/metrics.rs", common, Kind::MemoryMetricSink},
             {"api/api_application.rs", api, Kind::ApiApplication},
             {"api/api_server.rs", api, Kind::ApiServer, true},
             {"api/api_dispatcher.rs", api, Kind::ApiDispatcher, true},
