@@ -1,0 +1,15 @@
+package backend
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+func WorkerTierLeaseDefinitions() []common.LeaseDescriptor {
+	return common.LeaseDefinitions()
+}
+
+func WorkerTierRegisterLeaseDefinitionsTx(ctx context.Context, tx common.Transaction, store common.LeaseStore) error {
+	return common.RegisterLeaseDefinitionsTx(ctx, tx, store)
+}

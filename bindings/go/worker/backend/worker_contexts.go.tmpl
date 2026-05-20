@@ -1,0 +1,9 @@
+package backend
+
+import common "statespec-generated/common/backend"
+
+type WorkerTierContext = common.WorkerContext
+
+func WorkerTierContexts() []common.WorkerContext {
+	return common.WorkerContexts()
+}

@@ -1,0 +1,9 @@
+package backend
+
+import common "statespec-generated/common/backend"
+
+type WorkerTierDescriptor = common.WorkerDescriptor
+
+func WorkerTierDescriptors() []common.WorkerDescriptor {
+	return common.WorkerDescriptors()
+}

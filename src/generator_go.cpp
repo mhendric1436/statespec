@@ -44,6 +44,52 @@ void add_template_file(
     );
 }
 
+std::string render_template_file(
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_template_path,
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    try
+    {
+        return templates.render(relative_template_path, values);
+    }
+    catch (const std::exception& error)
+    {
+        diagnostics.error(SourceRange{}, "SSPEC5201", error.what());
+        return {};
+    }
+}
+
+void add_generated_template_file(
+    GenerationResult& result,
+    const std::filesystem::path& output_dir,
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_template_path,
+    const std::filesystem::path& relative_output_path,
+    DiagnosticBag& diagnostics,
+    GeneratedArtifactTier tier,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    const auto content =
+        render_template_file(templates, relative_template_path, diagnostics, values);
+    if (diagnostics.has_errors())
+    {
+        return;
+    }
+
+    result.files.push_back(
+        GeneratedFile{
+            (output_dir / relative_output_path).string(),
+            content,
+            tier,
+            relative_output_path.generic_string(),
+        }
+    );
+}
+
 std::string go_string(const std::string& value)
 {
     std::ostringstream out;
@@ -1560,212 +1606,9 @@ std::string generate_descriptors_go(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_descriptors_go()
+std::string generate_workflow_step_handler_keys_go(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type APITierDescriptor = common.ApiDescriptor\n";
-    out << "type APITierServerDescriptor = common.ApiServerDescriptor\n";
-    out << "\n";
-    out << "func APITierDescriptors() []common.ApiDescriptor {\n";
-    out << "\treturn common.ApiDescriptors()\n";
-    out << "}\n\n";
-    out << "func APITierServerDescriptors() []common.ApiServerDescriptor {\n";
-    out << "\treturn common.ApiServerDescriptors()\n";
-    out << "}\n\n";
-    return out.str();
-}
-
-std::string generate_api_handlers_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type APITierHandler = common.APIHandler\n";
-    out << "type APITierRequestContext = common.APIRequestContext\n";
-    out << "type APITierResponse = common.APIResponse\n";
-    return out.str();
-}
-
-std::string generate_api_routes_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type APITierRouteDescriptor = common.ApiRouteDescriptor\n\n";
-    out << "func APITierRouteDescriptors() []common.ApiRouteDescriptor {\n";
-    out << "\treturn common.ApiRouteDescriptors()\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_api_dispatcher_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << ")\n\n";
-    out << "func FindAPITierRoute(routeName string) (common.ApiRouteDescriptor, bool) {\n";
-    out << "\tfor _, route := range APITierRouteDescriptors() {\n";
-    out << "\t\tif route.Name == routeName {\n";
-    out << "\t\t\treturn route, true\n";
-    out << "\t\t}\n";
-    out << "\t}\n";
-    out << "\treturn common.ApiRouteDescriptor{}, false\n";
-    out << "}\n\n";
-    out << "func DispatchAPITierRoute(ctx context.Context, handler common.APIHandler, routeName "
-           "string, request common.APIRequestContext) (common.APIResponse, bool, error) {\n";
-    out << "\tif _, ok := FindAPITierRoute(routeName); !ok {\n";
-    out << "\t\treturn common.APIResponse{}, false, nil\n";
-    out << "\t}\n";
-    out << "\tresponse, err := handler.Handle(ctx, request)\n";
-    out << "\tif err != nil {\n";
-    out << "\t\treturn common.APIResponse{}, true, err\n";
-    out << "\t}\n";
-    out << "\treturn response, true, nil\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_api_server_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << ")\n\n";
-    out << "type APITierServer struct {\n";
-    out << "\tDescriptor common.ApiServerDescriptor\n";
-    out << "\tHandler common.APIHandler\n";
-    out << "}\n\n";
-    out << "func FindAPITierServer(serverName string) (common.ApiServerDescriptor, bool) {\n";
-    out << "\tfor _, server := range APITierServerDescriptors() {\n";
-    out << "\t\tif server.Name == serverName {\n";
-    out << "\t\t\treturn server, true\n";
-    out << "\t\t}\n";
-    out << "\t}\n";
-    out << "\treturn common.ApiServerDescriptor{}, false\n";
-    out << "}\n\n";
-    out << "func (server APITierServer) Handle(ctx context.Context, routeName string, request "
-           "common.APIRequestContext) (common.APIResponse, bool, error) {\n";
-    out << "\troute, ok := FindAPITierRoute(routeName)\n";
-    out << "\tif !ok || route.ServerName != server.Descriptor.Name {\n";
-    out << "\t\treturn common.APIResponse{}, false, nil\n";
-    out << "\t}\n";
-    out << "\treturn DispatchAPITierRoute(ctx, server.Handler, routeName, request)\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_external_system_operator_metadata_api_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type APITierExternalSystemOperatorMetadataHandler = "
-           "common.ExternalSystemOperatorMetadataAPIHandler\n";
-    return out.str();
-}
-
-std::string generate_worker_descriptors_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type WorkerTierDescriptor = common.WorkerDescriptor\n";
-    out << "func WorkerTierDescriptors() []common.WorkerDescriptor {\n";
-    out << "\treturn common.WorkerDescriptors()\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_contexts_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type WorkerTierContext = common.WorkerContext\n\n";
-    out << "func WorkerTierContexts() []common.WorkerContext {\n";
-    out << "\treturn common.WorkerContexts()\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_handlers_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type WorkerTierHandler = common.Worker\n";
-    return out.str();
-}
-
-std::string generate_worker_registry_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "func FindWorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {\n";
-    out << "\tfor _, worker := range WorkerTierDescriptors() {\n";
-    out << "\t\tif worker.Name == workerName {\n";
-    out << "\t\t\treturn worker, true\n";
-    out << "\t\t}\n";
-    out << "\t}\n";
-    out << "\treturn common.WorkerDescriptor{}, false\n";
-    out << "}\n\n";
-    out << "func FindWorkerTierContext(workerName string) (common.WorkerContext, bool) {\n";
-    out << "\tfor _, workerContext := range WorkerTierContexts() {\n";
-    out << "\t\tif workerContext.WorkerName == workerName {\n";
-    out << "\t\t\treturn workerContext, true\n";
-    out << "\t\t}\n";
-    out << "\t}\n";
-    out << "\treturn common.WorkerContext{}, false\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_application_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << ")\n\n";
-    out << "type WorkerTierApplication struct {\n";
-    out << "\tContext common.WorkerContext\n";
-    out << "\tHandler common.Worker\n";
-    out << "}\n\n";
-    out << "func (app WorkerTierApplication) Run(ctx context.Context) error {\n";
-    out << "\treturn app.Handler.Run(ctx, app.Context)\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_workflow_step_handlers_go(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << ")\n\n";
-    out << "type WorkflowStepHandlerContext struct {\n";
-    out << "\tWorkflowName string\n";
-    out << "\tWorkflowVersion int64\n";
-    out << "\tStepName string\n";
-    out << "\tExecutionID *string\n";
-    out << "\tInput common.JSON\n";
-    out << "}\n\n";
-    out << "type WorkflowStepHandler interface {\n";
-    out << "\tHandleWorkflowStep(context.Context, WorkflowStepHandlerContext) error\n";
-    out << "}\n\n";
-    out << "func WorkflowStepHandlerKeys() []string {\n";
-    out << "\treturn []string{\n";
     for (const auto& workflow : system.workflows)
     {
         for (const auto& step : workflow.steps)
@@ -1773,145 +1616,6 @@ std::string generate_workflow_step_handlers_go(const IrSystem& system)
             out << "\t\t" << go_string(workflow.name + "." + step.name) << ",\n";
         }
     }
-    out << "\t}\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_workflow_runner_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n";
-    out << "\t\"time\"\n\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << ")\n\n";
-    out << "type WorkflowRunner struct {\n";
-    out << "\tBackend common.Backend\n";
-    out << "\tWorkflowStore common.WorkflowStore\n";
-    out << "\tHandler WorkflowStepHandler\n";
-    out << "\tWorkerName string\n";
-    out << "\tLeaseDuration time.Duration\n";
-    out << "\tMaxAttempts uint32\n";
-    out << "}\n\n";
-    out << "func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID string, "
-           "workflowName string, workflowVersion int64) (*common.WorkflowExecutionRecord, error) "
-           "{\n";
-    out << "\tclaimed, err := runner.WorkflowStore.ClaimSteps(ctx, runner.Backend, "
-           "common.ClaimWorkflowStepRequest{\n";
-    out << "\t\tWorkflowExecutionID: workflowExecutionID,\n";
-    out << "\t\tWorkflowName: workflowName,\n";
-    out << "\t\tWorkflowVersion: workflowVersion,\n";
-    out << "\t\tWorker: runner.WorkerName,\n";
-    out << "\t\tNow: time.Now(),\n";
-    out << "\t\tLeaseDuration: runner.LeaseDuration,\n";
-    out << "\t\tMaxSteps: 1,\n";
-    out << "\t})\n";
-    out << "\tif err != nil || len(claimed) == 0 {\n";
-    out << "\t\treturn nil, err\n";
-    out << "\t}\n";
-    out << "\trecord := claimed[0]\n";
-    out << "\tif _, err := runner.WorkflowStore.KeepAliveStep(ctx, runner.Backend, "
-           "common.KeepAliveWorkflowStepRequest{\n";
-    out << "\t\tWorkflowExecutionID: record.WorkflowExecutionID,\n";
-    out << "\t\tWorker: runner.WorkerName,\n";
-    out << "\t\tCurrentStep: record.CurrentStep,\n";
-    out << "\t\tNow: time.Now(),\n";
-    out << "\t\tLeaseDuration: runner.LeaseDuration,\n";
-    out << "\t}); err != nil {\n";
-    out << "\t\treturn nil, err\n";
-    out << "\t}\n";
-    out << "\thandlerErr := runner.Handler.HandleWorkflowStep(ctx, WorkflowStepHandlerContext{\n";
-    out << "\t\tWorkflowName: record.WorkflowName,\n";
-    out << "\t\tWorkflowVersion: record.WorkflowVersion,\n";
-    out << "\t\tStepName: record.CurrentStep,\n";
-    out << "\t\tExecutionID: &record.WorkflowExecutionID,\n";
-    out << "\t\tInput: record.State,\n";
-    out << "\t})\n";
-    out << "\tif handlerErr != nil {\n";
-    out << "\t\tfailed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, "
-           "common.FailWorkflowStepRequest{\n";
-    out << "\t\t\tWorkflowExecutionID: record.WorkflowExecutionID,\n";
-    out << "\t\t\tWorker: runner.WorkerName,\n";
-    out << "\t\t\tFailedStep: record.CurrentStep,\n";
-    out << "\t\t\tReason: handlerErr.Error(),\n";
-    out << "\t\t\tNow: time.Now(),\n";
-    out << "\t\t\tMaxAttempts: runner.MaxAttempts,\n";
-    out << "\t\t})\n";
-    out << "\t\tif failErr != nil {\n";
-    out << "\t\t\treturn nil, failErr\n";
-    out << "\t\t}\n";
-    out << "\t\treturn &failed, handlerErr\n";
-    out << "\t}\n";
-    out << "\tcompleted, err := runner.WorkflowStore.CompleteStep(ctx, runner.Backend, "
-           "common.CompleteWorkflowStepRequest{\n";
-    out << "\t\tWorkflowExecutionID: record.WorkflowExecutionID,\n";
-    out << "\t\tWorker: runner.WorkerName,\n";
-    out << "\t\tCompletedStep: record.CurrentStep,\n";
-    out << "\t\tNextStep: nil,\n";
-    out << "\t\tState: record.State,\n";
-    out << "\t})\n";
-    out << "\tif err != nil {\n";
-    out << "\t\treturn nil, err\n";
-    out << "\t}\n";
-    out << "\treturn &completed, nil\n";
-    out << "}\n";
-    return out.str();
-}
-
-std::string generate_worker_queues_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << ")\n\n";
-    out << "func WorkerTierQueueDefinitions() []common.QueueDefinition {\n";
-    out << "\treturn common.QueueDefinitions()\n";
-    out << "}\n\n";
-    out << "func WorkerTierRegisterQueueDefinitionsTx(ctx context.Context, tx common.Transaction, "
-           "store common.QueueStore) error {\n";
-    out << "\treturn common.RegisterQueueDefinitionsTx(ctx, tx, store)\n";
-    out << "}\n\n";
-    return out.str();
-}
-
-std::string generate_worker_leases_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << ")\n\n";
-    out << "func WorkerTierLeaseDefinitions() []common.LeaseDescriptor {\n";
-    out << "\treturn common.LeaseDefinitions()\n";
-    out << "}\n\n";
-    out << "func WorkerTierRegisterLeaseDefinitionsTx(ctx context.Context, tx common.Transaction, "
-           "store common.LeaseStore) error {\n";
-    out << "\treturn common.RegisterLeaseDefinitionsTx(ctx, tx, store)\n";
-    out << "}\n\n";
-    return out.str();
-}
-
-std::string generate_worker_workflows_go()
-{
-    std::ostringstream out;
-    out << "package backend\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << ")\n\n";
-    out << "func WorkerTierWorkflowDefinitions() []common.WorkflowDefinition {\n";
-    out << "\treturn common.WorkflowDefinitions()\n";
-    out << "}\n\n";
-    out << "func WorkerTierRegisterWorkflowDefinitionsTx(ctx context.Context, tx "
-           "common.Transaction, "
-           "store common.WorkflowStore) error {\n";
-    out << "\treturn common.RegisterWorkflowDefinitionsTx(ctx, tx, store)\n";
-    out << "}\n";
     return out.str();
 }
 
@@ -1984,134 +1688,74 @@ GenerationResult generate_go_bindings(
                 "common/Makefile",
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/backend/api_descriptors.go").string(),
-                generate_api_descriptors_go(),
-                GeneratedArtifactTier::Api,
-                "api/backend/api_descriptors.go",
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_descriptors.go.tmpl",
+            "api/backend/api_descriptors.go", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_handlers.go.tmpl",
+            "api/backend/api_handlers.go", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_dispatcher.go.tmpl",
+            "api/backend/api_dispatcher.go", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_server.go.tmpl",
+            "api/backend/api_server.go", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_routes.go.tmpl",
+            "api/backend/api_routes.go", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/backend/external_system_operator_metadata_api.go.tmpl",
+            "api/backend/external_system_operator_metadata_api.go", diagnostics,
+            GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_descriptors.go.tmpl",
+            "worker/backend/worker_descriptors.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_contexts.go.tmpl",
+            "worker/backend/worker_contexts.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_registry.go.tmpl",
+            "worker/backend/worker_registry.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_application.go.tmpl",
+            "worker/backend/worker_application.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/workflow_step_handlers.go.tmpl",
+            "worker/backend/workflow_step_handlers.go", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_go(system)}
             }
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/backend/api_handlers.go").string(),
-                generate_api_handlers_go(),
-                GeneratedArtifactTier::Api,
-                "api/backend/api_handlers.go",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/workflow_runner.go.tmpl",
+            "worker/backend/workflow_runner.go", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/backend/api_dispatcher.go").string(),
-                generate_api_dispatcher_go(),
-                GeneratedArtifactTier::Api,
-                "api/backend/api_dispatcher.go",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_handlers.go.tmpl",
+            "worker/backend/worker_handlers.go", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/backend/api_server.go").string(),
-                generate_api_server_go(),
-                GeneratedArtifactTier::Api,
-                "api/backend/api_server.go",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_queues.go.tmpl",
+            "worker/backend/worker_queues.go", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/backend/api_routes.go").string(),
-                generate_api_routes_go(),
-                GeneratedArtifactTier::Api,
-                "api/backend/api_routes.go",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_leases.go.tmpl",
+            "worker/backend/worker_leases.go", diagnostics, GeneratedArtifactTier::Worker
         );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "api/backend/external_system_operator_metadata_api.go")
-                    .string(),
-                generate_external_system_operator_metadata_api_go(),
-                GeneratedArtifactTier::Api,
-                "api/backend/external_system_operator_metadata_api.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/worker_descriptors.go").string(),
-                generate_worker_descriptors_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/worker_descriptors.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/worker_contexts.go").string(),
-                generate_worker_contexts_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/worker_contexts.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/worker_registry.go").string(),
-                generate_worker_registry_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/worker_registry.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/worker_application.go").string(),
-                generate_worker_application_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/worker_application.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/workflow_step_handlers.go").string(),
-                generate_workflow_step_handlers_go(system),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/workflow_step_handlers.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/workflow_runner.go").string(),
-                generate_workflow_runner_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/workflow_runner.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/worker_handlers.go").string(),
-                generate_worker_handlers_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/worker_handlers.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/worker_queues.go").string(),
-                generate_worker_queues_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/worker_queues.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/worker_leases.go").string(),
-                generate_worker_leases_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/worker_leases.go",
-            }
-        );
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "worker/backend/worker_workflows.go").string(),
-                generate_worker_workflows_go(),
-                GeneratedArtifactTier::Worker,
-                "worker/backend/worker_workflows.go",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_workflows.go.tmpl",
+            "worker/backend/worker_workflows.go", diagnostics, GeneratedArtifactTier::Worker
         );
     }
 

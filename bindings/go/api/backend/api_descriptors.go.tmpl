@@ -1,0 +1,14 @@
+package backend
+
+import common "statespec-generated/common/backend"
+
+type APITierDescriptor = common.ApiDescriptor
+type APITierServerDescriptor = common.ApiServerDescriptor
+
+func APITierDescriptors() []common.ApiDescriptor {
+	return common.ApiDescriptors()
+}
+
+func APITierServerDescriptors() []common.ApiServerDescriptor {
+	return common.ApiServerDescriptors()
+}

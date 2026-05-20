@@ -1,0 +1,74 @@
+package backend
+
+import (
+	"context"
+	"time"
+
+	common "statespec-generated/common/backend"
+)
+
+type WorkflowRunner struct {
+	Backend       common.Backend
+	WorkflowStore common.WorkflowStore
+	Handler       WorkflowStepHandler
+	WorkerName    string
+	LeaseDuration time.Duration
+	MaxAttempts   uint32
+}
+
+func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID string, workflowName string, workflowVersion int64) (*common.WorkflowExecutionRecord, error) {
+	claimed, err := runner.WorkflowStore.ClaimSteps(ctx, runner.Backend, common.ClaimWorkflowStepRequest{
+		WorkflowExecutionID: workflowExecutionID,
+		WorkflowName:        workflowName,
+		WorkflowVersion:     workflowVersion,
+		Worker:              runner.WorkerName,
+		Now:                 time.Now(),
+		LeaseDuration:       runner.LeaseDuration,
+		MaxSteps:            1,
+	})
+	if err != nil || len(claimed) == 0 {
+		return nil, err
+	}
+	record := claimed[0]
+	if _, err := runner.WorkflowStore.KeepAliveStep(ctx, runner.Backend, common.KeepAliveWorkflowStepRequest{
+		WorkflowExecutionID: record.WorkflowExecutionID,
+		Worker:              runner.WorkerName,
+		CurrentStep:         record.CurrentStep,
+		Now:                 time.Now(),
+		LeaseDuration:       runner.LeaseDuration,
+	}); err != nil {
+		return nil, err
+	}
+	handlerErr := runner.Handler.HandleWorkflowStep(ctx, WorkflowStepHandlerContext{
+		WorkflowName:    record.WorkflowName,
+		WorkflowVersion: record.WorkflowVersion,
+		StepName:        record.CurrentStep,
+		ExecutionID:     &record.WorkflowExecutionID,
+		Input:           record.State,
+	})
+	if handlerErr != nil {
+		failed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, common.FailWorkflowStepRequest{
+			WorkflowExecutionID: record.WorkflowExecutionID,
+			Worker:              runner.WorkerName,
+			FailedStep:          record.CurrentStep,
+			Reason:              handlerErr.Error(),
+			Now:                 time.Now(),
+			MaxAttempts:         runner.MaxAttempts,
+		})
+		if failErr != nil {
+			return nil, failErr
+		}
+		return &failed, handlerErr
+	}
+	completed, err := runner.WorkflowStore.CompleteStep(ctx, runner.Backend, common.CompleteWorkflowStepRequest{
+		WorkflowExecutionID: record.WorkflowExecutionID,
+		Worker:              runner.WorkerName,
+		CompletedStep:       record.CurrentStep,
+		NextStep:            nil,
+		State:               record.State,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &completed, nil
+}

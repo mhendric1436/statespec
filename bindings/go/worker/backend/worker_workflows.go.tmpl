@@ -1,0 +1,15 @@
+package backend
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+func WorkerTierWorkflowDefinitions() []common.WorkflowDefinition {
+	return common.WorkflowDefinitions()
+}
+
+func WorkerTierRegisterWorkflowDefinitionsTx(ctx context.Context, tx common.Transaction, store common.WorkflowStore) error {
+	return common.RegisterWorkflowDefinitionsTx(ctx, tx, store)
+}

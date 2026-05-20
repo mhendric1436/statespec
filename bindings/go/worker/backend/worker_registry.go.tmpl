@@ -1,0 +1,21 @@
+package backend
+
+import common "statespec-generated/common/backend"
+
+func FindWorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {
+	for _, worker := range WorkerTierDescriptors() {
+		if worker.Name == workerName {
+			return worker, true
+		}
+	}
+	return common.WorkerDescriptor{}, false
+}
+
+func FindWorkerTierContext(workerName string) (common.WorkerContext, bool) {
+	for _, workerContext := range WorkerTierContexts() {
+		if workerContext.WorkerName == workerName {
+			return workerContext, true
+		}
+	}
+	return common.WorkerContext{}, false
+}

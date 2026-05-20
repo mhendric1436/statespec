@@ -1,0 +1,24 @@
+package backend
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type WorkflowStepHandlerContext struct {
+	WorkflowName    string
+	WorkflowVersion int64
+	StepName        string
+	ExecutionID     *string
+	Input           common.JSON
+}
+
+type WorkflowStepHandler interface {
+	HandleWorkflowStep(context.Context, WorkflowStepHandlerContext) error
+}
+
+func WorkflowStepHandlerKeys() []string {
+	return []string{
+{{workflow_step_handler_keys}}	}
+}

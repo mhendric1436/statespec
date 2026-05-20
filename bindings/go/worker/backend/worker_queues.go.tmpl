@@ -1,0 +1,15 @@
+package backend
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+func WorkerTierQueueDefinitions() []common.QueueDefinition {
+	return common.QueueDefinitions()
+}
+
+func WorkerTierRegisterQueueDefinitionsTx(ctx context.Context, tx common.Transaction, store common.QueueStore) error {
+	return common.RegisterQueueDefinitionsTx(ctx, tx, store)
+}

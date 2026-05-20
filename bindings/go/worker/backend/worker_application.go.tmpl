@@ -1,0 +1,16 @@
+package backend
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type WorkerTierApplication struct {
+	Context common.WorkerContext
+	Handler common.Worker
+}
+
+func (app WorkerTierApplication) Run(ctx context.Context) error {
+	return app.Handler.Run(ctx, app.Context)
+}

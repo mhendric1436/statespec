@@ -1,0 +1,27 @@
+package backend
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+func FindAPITierRoute(routeName string) (common.ApiRouteDescriptor, bool) {
+	for _, route := range APITierRouteDescriptors() {
+		if route.Name == routeName {
+			return route, true
+		}
+	}
+	return common.ApiRouteDescriptor{}, false
+}
+
+func DispatchAPITierRoute(ctx context.Context, handler common.APIHandler, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
+	if _, ok := FindAPITierRoute(routeName); !ok {
+		return common.APIResponse{}, false, nil
+	}
+	response, err := handler.Handle(ctx, request)
+	if err != nil {
+		return common.APIResponse{}, true, err
+	}
+	return response, true, nil
+}
