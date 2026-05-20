@@ -189,6 +189,8 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.wait_for_remote_service\""
 run_expect_status 0 make -C "$TMPDIR/out-app-cpp" check
+run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/api_linking_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/api-linking-fixture"
+run_expect_status 0 "$TMPDIR/out-app-cpp/build/api-linking-fixture"
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"
 assert_file_manifest_equals "$TMPDIR/out-app-go" "$GO_MANIFEST"
@@ -202,6 +204,7 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "Kee
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.wait_for_remote_service\""
+cp "$SCRIPT_DIR/api_linking_fixture_test.go" "$TMPDIR/out-app-go/api/backend/api_linking_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-app-go" check
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$APP_SPEC" --out "$TMPDIR/out-app-java"
@@ -216,7 +219,9 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Workfl
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.wait_for_remote_service\""
+cp "$SCRIPT_DIR/ApiLinkingFixture.java" "$TMPDIR/out-app-java/api/com/statespec/generated/ApiLinkingFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-app-java" check
+run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.ApiLinkingFixture
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$APP_SPEC" --out "$TMPDIR/out-app-rust"
 assert_file_manifest_equals "$TMPDIR/out-app-rust" "$RUST_MANIFEST"
@@ -230,4 +235,6 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "keep_aliv
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.wait_for_remote_service\""
+mkdir -p "$TMPDIR/out-app-rust/tests"
+cp "$SCRIPT_DIR/api_linking_fixture.rs" "$TMPDIR/out-app-rust/tests/api_linking_fixture.rs"
 run_expect_status 0 make -C "$TMPDIR/out-app-rust" check
