@@ -1775,13 +1775,10 @@ GenerationResult generate_rust_bindings(
 
     if (!diagnostics.has_errors())
     {
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "common/descriptors.rs").string(),
-                generate_descriptors_rs(system),
-                GeneratedArtifactTier::Common,
-                "common/descriptors.rs",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/descriptors.rs.tmpl",
+            "common/descriptors.rs", diagnostics, GeneratedArtifactTier::Common,
+            TemplateRenderer::Values{{"descriptors", generate_descriptors_rs(system)}}
         );
         add_generated_template_file(
             result, options.output_dir, templates, "generated/Cargo.toml.tmpl", "Cargo.toml",

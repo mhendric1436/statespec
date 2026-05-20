@@ -1862,12 +1862,11 @@ GenerationResult generate_cpp_bindings(
 
     if (!diagnostics.has_errors())
     {
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "common/system_descriptors.hpp").string(),
-                generate_system_descriptors_header(system),
-                GeneratedArtifactTier::Common,
-                "common/system_descriptors.hpp",
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/system_descriptors.hpp.tmpl",
+            "common/system_descriptors.hpp", diagnostics, GeneratedArtifactTier::Common,
+            TemplateRenderer::Values{
+                {"system_descriptors", generate_system_descriptors_header(system)}
             }
         );
         add_generated_template_file(

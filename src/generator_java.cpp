@@ -1732,13 +1732,11 @@ GenerationResult generate_java_bindings(
 
     if (!diagnostics.has_errors())
     {
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "common/com/statespec/generated/Descriptors.java").string(),
-                generate_descriptors_java(system),
-                GeneratedArtifactTier::Common,
-                "common/com/statespec/generated/Descriptors.java",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/Descriptors.java.tmpl",
+            "common/com/statespec/generated/Descriptors.java", diagnostics,
+            GeneratedArtifactTier::Common,
+            TemplateRenderer::Values{{"descriptors", generate_descriptors_java(system)}}
         );
         add_generated_template_file(
             result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile",

@@ -1631,13 +1631,10 @@ GenerationResult generate_go_bindings(
 
     if (!diagnostics.has_errors())
     {
-        result.files.push_back(
-            GeneratedFile{
-                (options.output_dir / "common/backend/descriptors.go").string(),
-                generate_descriptors_go(system),
-                GeneratedArtifactTier::Common,
-                "common/backend/descriptors.go",
-            }
+        add_generated_template_file(
+            result, options.output_dir, templates, "generated/descriptors.go.tmpl",
+            "common/backend/descriptors.go", diagnostics, GeneratedArtifactTier::Common,
+            TemplateRenderer::Values{{"descriptors", generate_descriptors_go(system)}}
         );
         add_generated_template_file(
             result, options.output_dir, templates, "generated/go.mod.tmpl", "go.mod", diagnostics,
