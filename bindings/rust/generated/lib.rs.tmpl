@@ -18,4 +18,20 @@ pub mod metric;
 pub mod queue;
 #[path = "common/workflow.rs"]
 pub mod workflow;
+#[path = "common/memory/backend.rs"]
+pub mod memory_backend;
+#[path = "common/memory/feature_flags.rs"]
+pub mod memory_feature_flags;
+#[path = "common/memory/leases.rs"]
+pub mod memory_leases;
+#[path = "common/memory/logs.rs"]
+pub mod memory_logs;
+#[path = "common/memory/metrics.rs"]
+pub mod memory_metrics;
+#[path = "common/memory/queues.rs"]
+pub mod memory_queues;
+#[path = "common/memory/transaction.rs"]
+pub mod memory_transaction;
+#[path = "common/memory/workflows.rs"]
+pub mod memory_workflows;
 {{api_modules}}{{worker_modules}}

@@ -95,9 +95,17 @@ pub trait LeaseStore<B: Backend> {
         definition_id: &LeaseDefinitionId,
     ) -> BackendResult<Option<LeaseDefinition>>;
 
-    fn acquire(&self, backend: &B, request: &LeaseAcquireRequest) -> BackendResult<LeaseAcquireResult>;
+    fn acquire(
+        &self,
+        backend: &B,
+        request: &LeaseAcquireRequest,
+    ) -> BackendResult<LeaseAcquireResult>;
 
-    fn acquire_tx(&self, tx: &mut B::Tx, request: &LeaseAcquireRequest) -> BackendResult<LeaseAcquireResult>;
+    fn acquire_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &LeaseAcquireRequest,
+    ) -> BackendResult<LeaseAcquireResult>;
 
     fn renew(&self, backend: &B, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord>;
 
@@ -107,7 +115,11 @@ pub trait LeaseStore<B: Backend> {
 
     fn release_tx(&self, tx: &mut B::Tx, request: &LeaseReleaseRequest) -> BackendResult<()>;
 
-    fn inspect(&self, backend: &B, request: &LeaseInspectRequest) -> BackendResult<Option<LeaseRecord>>;
+    fn inspect(
+        &self,
+        backend: &B,
+        request: &LeaseInspectRequest,
+    ) -> BackendResult<Option<LeaseRecord>>;
 
     fn inspect_tx(
         &self,

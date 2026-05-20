@@ -1772,6 +1772,33 @@ GenerationResult generate_rust_bindings(
     add_template_file(
         result, options.output_dir, templates, "workflow.rs", "workflow.rs", diagnostics
     );
+    add_template_file(
+        result, options.output_dir, templates, "memory/backend.rs", "memory/backend.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/transaction.rs", "memory/transaction.rs",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/feature_flags.rs", "memory/feature_flags.rs",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/queues.rs", "memory/queues.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/leases.rs", "memory/leases.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/workflows.rs", "memory/workflows.rs",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/logs.rs", "memory/logs.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "memory/metrics.rs", "memory/metrics.rs", diagnostics
+    );
 
     if (!diagnostics.has_errors())
     {

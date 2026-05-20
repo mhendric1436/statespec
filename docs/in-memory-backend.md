@@ -5,8 +5,7 @@ generated app linking, and tests. It is not a production storage backend.
 
 The in-memory backend exists so generated API apps and Worker apps can be compiled and
 exercised without a concrete database, queue service, lease service, workflow service,
-log backend, or metrics backend. C++, Go, and Java emit the in-memory backend now; Rust
-paths are part of the shared contract and are planned for follow-up implementation.
+log backend, or metrics backend. C++, Go, Java, and Rust emit the in-memory backend now.
 
 ## Scope
 
@@ -78,8 +77,8 @@ common/memory/logs.rs
 common/memory/metrics.rs
 ```
 
-These paths are part of the cross-language artifact model. C++, Go, and Java currently emit the
-listed files; Rust is still contract-only.
+These paths are part of the cross-language artifact model. C++, Go, Java, and Rust currently
+emit the listed files.
 
 ## Shared State Model
 

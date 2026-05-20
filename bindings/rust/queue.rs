@@ -71,9 +71,17 @@ pub struct FailMessageRequest {
 }
 
 pub trait QueueStore<B: Backend> {
-    fn register_definition(&self, backend: &B, request: &RegisterQueueDefinitionRequest) -> BackendResult<QueueDefinitionRegistration>;
+    fn register_definition(
+        &self,
+        backend: &B,
+        request: &RegisterQueueDefinitionRequest,
+    ) -> BackendResult<QueueDefinitionRegistration>;
 
-    fn register_definition_tx(&self, tx: &mut B::Tx, request: &RegisterQueueDefinitionRequest) -> BackendResult<QueueDefinitionRegistration>;
+    fn register_definition_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &RegisterQueueDefinitionRequest,
+    ) -> BackendResult<QueueDefinitionRegistration>;
 
     fn inspect_definition(
         &self,
@@ -89,13 +97,29 @@ pub trait QueueStore<B: Backend> {
         channel: &str,
     ) -> BackendResult<Option<QueueDefinition>>;
 
-    fn enqueue(&self, backend: &B, request: &EnqueueMessageRequest) -> BackendResult<QueueMessageRecord>;
+    fn enqueue(
+        &self,
+        backend: &B,
+        request: &EnqueueMessageRequest,
+    ) -> BackendResult<QueueMessageRecord>;
 
-    fn enqueue_tx(&self, tx: &mut B::Tx, request: &EnqueueMessageRequest) -> BackendResult<QueueMessageRecord>;
+    fn enqueue_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EnqueueMessageRequest,
+    ) -> BackendResult<QueueMessageRecord>;
 
-    fn claim(&self, backend: &B, request: &ClaimMessageRequest) -> BackendResult<Vec<QueueMessageRecord>>;
+    fn claim(
+        &self,
+        backend: &B,
+        request: &ClaimMessageRequest,
+    ) -> BackendResult<Vec<QueueMessageRecord>>;
 
-    fn claim_tx(&self, tx: &mut B::Tx, request: &ClaimMessageRequest) -> BackendResult<Vec<QueueMessageRecord>>;
+    fn claim_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &ClaimMessageRequest,
+    ) -> BackendResult<Vec<QueueMessageRecord>>;
 
     fn acknowledge(&self, backend: &B, request: &AckMessageRequest) -> BackendResult<()>;
 
@@ -103,9 +127,17 @@ pub trait QueueStore<B: Backend> {
 
     fn fail(&self, backend: &B, request: &FailMessageRequest) -> BackendResult<QueueMessageRecord>;
 
-    fn fail_tx(&self, tx: &mut B::Tx, request: &FailMessageRequest) -> BackendResult<QueueMessageRecord>;
+    fn fail_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &FailMessageRequest,
+    ) -> BackendResult<QueueMessageRecord>;
 
     fn inspect(&self, backend: &B, message_id: &str) -> BackendResult<Option<QueueMessageRecord>>;
 
-    fn inspect_tx(&self, tx: &mut B::Tx, message_id: &str) -> BackendResult<Option<QueueMessageRecord>>;
+    fn inspect_tx(
+        &self,
+        tx: &mut B::Tx,
+        message_id: &str,
+    ) -> BackendResult<Option<QueueMessageRecord>>;
 }
