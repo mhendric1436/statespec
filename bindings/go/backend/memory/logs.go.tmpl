@@ -6,13 +6,23 @@ import (
 	common "statespec-generated/common/backend"
 )
 
-type LogSink struct{}
+const (
+	logDefinitionsCollection common.CollectionName = "statespec_log_definitions"
+	logEventsCollection      common.CollectionName = "statespec_log_events"
+)
+
+type LogSink struct {
+	nextEventID uint64
+}
 
 func NewLogSink() *LogSink {
 	return &LogSink{}
 }
 
 func (s *LogSink) RegisterDefinition(ctx context.Context, backend common.Backend, definition common.LogSignalDefinition) (common.LogSignalRegistration, error) {
+	if err := ensureLogCollections(ctx, backend); err != nil {
+		return common.LogSignalRegistration{}, err
+	}
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return common.LogSignalRegistration{}, err
@@ -34,7 +44,9 @@ func (s *LogSink) RegisterDefinitionTx(ctx context.Context, tx common.Transactio
 	if err != nil {
 		return common.LogSignalRegistration{}, err
 	}
-	memoryTx.logDefinitionPuts[definition.Name] = definition
+	if err := memoryTx.put(logDefinitionsCollection, common.Key(definition.Name), logDefinitionToJSON(definition)); err != nil {
+		return common.LogSignalRegistration{}, err
+	}
 	return common.LogSignalRegistration{RegisteredNew: existing == nil, Definition: definition}, nil
 }
 
@@ -57,18 +69,18 @@ func (s *LogSink) InspectDefinitionTx(ctx context.Context, tx common.Transaction
 	if err != nil {
 		return nil, err
 	}
-	if definition, ok := memoryTx.logDefinitionPuts[name]; ok {
-		return &definition, nil
+	record, err := memoryTx.get(logDefinitionsCollection, common.Key(name))
+	if err != nil || record == nil {
+		return nil, err
 	}
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-	if definition, ok := memoryTx.state.logDefinitions[name]; ok {
-		return &definition, nil
-	}
-	return nil, nil
+	definition := logDefinitionFromJSON(record.Document)
+	return &definition, nil
 }
 
 func (s *LogSink) EmitLog(ctx context.Context, backend common.Backend, event common.LogEvent) error {
+	if err := ensureLogCollections(ctx, backend); err != nil {
+		return err
+	}
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return err
@@ -86,8 +98,7 @@ func (s *LogSink) EmitLogTx(ctx context.Context, tx common.Transaction, event co
 	if err != nil {
 		return err
 	}
-	memoryTx.logEventAppends = append(memoryTx.logEventAppends, event)
-	return nil
+	return memoryTx.put(logEventsCollection, common.Key(eventKey(event.Name, &s.nextEventID)), logEventToJSON(event))
 }
 
 func (s *LogSink) InspectEvents(ctx context.Context, backend common.Backend) ([]common.LogEvent, error) {
@@ -109,9 +120,20 @@ func (s *LogSink) InspectEventsTx(ctx context.Context, tx common.Transaction) ([
 	if err != nil {
 		return nil, err
 	}
-	memoryTx.state.mu.Lock()
-	events := append([]common.LogEvent{}, memoryTx.state.logEvents...)
-	memoryTx.state.mu.Unlock()
-	events = append(events, memoryTx.logEventAppends...)
+	records, err := memoryTx.query(logEventsCollection, common.AllQuery())
+	if err != nil {
+		return nil, err
+	}
+	events := make([]common.LogEvent, 0, len(records))
+	for _, record := range records {
+		events = append(events, logEventFromJSON(record.Document))
+	}
 	return events, nil
+}
+
+func ensureLogCollections(ctx context.Context, backend common.Backend) error {
+	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
+		{Name: string(logDefinitionsCollection), KeyFields: []string{"name"}},
+		{Name: string(logEventsCollection), KeyFields: []string{"event_id"}},
+	})
 }

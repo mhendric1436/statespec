@@ -1640,6 +1640,10 @@ GenerationResult generate_go_bindings(
             "common/backend/memory/transaction.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/codec.go.tmpl",
+            "common/backend/memory/codec.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
             result, options.output_dir, templates, "backend/memory/feature_flags.go.tmpl",
             "common/backend/memory/feature_flags.go", diagnostics, GeneratedArtifactTier::Common
         );

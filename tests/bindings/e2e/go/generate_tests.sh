@@ -33,6 +33,7 @@ common/backend/json.go
 common/backend/lease.go
 common/backend/log.go
 common/backend/memory/backend.go
+common/backend/memory/codec.go
 common/backend/memory/feature_flags.go
 common/backend/memory/leases.go
 common/backend/memory/logs.go

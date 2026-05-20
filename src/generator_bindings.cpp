@@ -274,6 +274,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "In-memory backend composition root for local API and worker linking"},
             {"common/backend/memory/transaction.go", common, Kind::MemoryTransaction,
              "In-memory optimistic-concurrency transaction"},
+            {"common/backend/memory/codec.go", common, Kind::MemoryCodec,
+             "In-memory runtime record JSON codec"},
             {"common/backend/memory/feature_flags.go", common, Kind::MemoryFeatureFlagStore,
              "In-memory feature flag store"},
             {"common/backend/memory/queues.go", common, Kind::MemoryQueueStore,

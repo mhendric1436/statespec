@@ -6,6 +6,12 @@ import (
 	common "statespec-generated/common/backend"
 )
 
+const (
+	queueDefinitionsCollection common.CollectionName = "statespec_queue_definitions"
+	queueMessagesCollection    common.CollectionName = "statespec_queue_messages"
+	queueIdempotencyCollection common.CollectionName = "statespec_queue_idempotency"
+)
+
 type QueueStore struct{}
 
 func NewQueueStore() *QueueStore {
@@ -13,6 +19,9 @@ func NewQueueStore() *QueueStore {
 }
 
 func (s *QueueStore) RegisterDefinition(ctx context.Context, backend common.Backend, request common.RegisterQueueDefinitionRequest) (common.QueueDefinitionRegistration, error) {
+	if err := ensureQueueCollections(ctx, backend); err != nil {
+		return common.QueueDefinitionRegistration{}, err
+	}
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return common.QueueDefinitionRegistration{}, err
@@ -35,7 +44,9 @@ func (s *QueueStore) RegisterDefinitionTx(ctx context.Context, tx common.Transac
 		return common.QueueDefinitionRegistration{}, err
 	}
 	key := queueDefinitionKey(request.Definition.Queue, request.Definition.Channel)
-	memoryTx.queueDefinitionPuts[key] = request.Definition
+	if err := memoryTx.put(queueDefinitionsCollection, common.Key(key), queueDefinitionToJSON(request.Definition)); err != nil {
+		return common.QueueDefinitionRegistration{}, err
+	}
 	return common.QueueDefinitionRegistration{Definition: request.Definition, Created: existing == nil}, nil
 }
 
@@ -58,19 +69,18 @@ func (s *QueueStore) InspectDefinitionTx(ctx context.Context, tx common.Transact
 	if err != nil {
 		return nil, err
 	}
-	key := queueDefinitionKey(queue, channel)
-	if definition, ok := memoryTx.queueDefinitionPuts[key]; ok {
-		return &definition, nil
+	record, err := memoryTx.get(queueDefinitionsCollection, common.Key(queueDefinitionKey(queue, channel)))
+	if err != nil || record == nil {
+		return nil, err
 	}
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-	if definition, ok := memoryTx.state.queueDefinitions[key]; ok {
-		return &definition, nil
-	}
-	return nil, nil
+	definition := queueDefinitionFromJSON(record.Document)
+	return &definition, nil
 }
 
 func (s *QueueStore) Enqueue(ctx context.Context, backend common.Backend, request common.EnqueueMessageRequest) (common.QueueMessageRecord, error) {
+	if err := ensureQueueCollections(ctx, backend); err != nil {
+		return common.QueueMessageRecord{}, err
+	}
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return common.QueueMessageRecord{}, err
@@ -91,16 +101,16 @@ func (s *QueueStore) EnqueueTx(ctx context.Context, tx common.Transaction, reque
 	}
 	if request.IdempotencyKey != nil {
 		idempotencyKey := queueDefinitionKey(request.Queue, request.Channel) + "|" + *request.IdempotencyKey
-		if messageID, ok := memoryTx.queueIdempotencyPuts[idempotencyKey]; ok {
-			return s.requireMessage(memoryTx, messageID)
+		record, err := memoryTx.get(queueIdempotencyCollection, common.Key(idempotencyKey))
+		if err != nil {
+			return common.QueueMessageRecord{}, err
 		}
-		memoryTx.state.mu.Lock()
-		messageID, ok := memoryTx.state.queueIdempotencyKeys[idempotencyKey]
-		memoryTx.state.mu.Unlock()
-		if ok {
-			return s.requireMessage(memoryTx, messageID)
+		if record != nil {
+			return s.requireMessage(memoryTx, stringFromJSON(record.Document))
 		}
-		memoryTx.queueIdempotencyPuts[idempotencyKey] = request.MessageID
+		if err := memoryTx.put(queueIdempotencyCollection, common.Key(idempotencyKey), common.JSONString(request.MessageID)); err != nil {
+			return common.QueueMessageRecord{}, err
+		}
 	}
 	record := common.QueueMessageRecord{
 		MessageID: request.MessageID,
@@ -109,7 +119,9 @@ func (s *QueueStore) EnqueueTx(ctx context.Context, tx common.Transaction, reque
 		Status:    "Pending",
 		Payload:   request.Payload,
 	}
-	memoryTx.queueMessagePuts[record.MessageID] = record
+	if err := memoryTx.put(queueMessagesCollection, common.Key(record.MessageID), queueMessageToJSON(record)); err != nil {
+		return common.QueueMessageRecord{}, err
+	}
 	return record, nil
 }
 
@@ -149,7 +161,9 @@ func (s *QueueStore) ClaimTx(ctx context.Context, tx common.Transaction, request
 		expires := request.Now.Add(request.VisibilityTimeout)
 		message.ClaimExpiresAt = &expires
 		message.Attempts++
-		memoryTx.queueMessagePuts[message.MessageID] = message
+		if err := memoryTx.put(queueMessagesCollection, common.Key(message.MessageID), queueMessageToJSON(message)); err != nil {
+			return nil, err
+		}
 		claimed = append(claimed, message)
 	}
 	return claimed, nil
@@ -181,8 +195,7 @@ func (s *QueueStore) AcknowledgeTx(ctx context.Context, tx common.Transaction, r
 		return err
 	}
 	message.Status = "Acked"
-	memoryTx.queueMessagePuts[message.MessageID] = message
-	return nil
+	return memoryTx.put(queueMessagesCollection, common.Key(message.MessageID), queueMessageToJSON(message))
 }
 
 func (s *QueueStore) Fail(ctx context.Context, backend common.Backend, request common.FailMessageRequest) (common.QueueMessageRecord, error) {
@@ -218,7 +231,9 @@ func (s *QueueStore) FailTx(ctx context.Context, tx common.Transaction, request 
 	} else {
 		message.Status = "Pending"
 	}
-	memoryTx.queueMessagePuts[message.MessageID] = message
+	if err := memoryTx.put(queueMessagesCollection, common.Key(message.MessageID), queueMessageToJSON(message)); err != nil {
+		return common.QueueMessageRecord{}, err
+	}
 	return message, nil
 }
 
@@ -241,44 +256,43 @@ func (s *QueueStore) InspectTx(ctx context.Context, tx common.Transaction, messa
 	if err != nil {
 		return nil, err
 	}
-	if message, ok := memoryTx.queueMessagePuts[messageID]; ok {
-		return &message, nil
+	record, err := memoryTx.get(queueMessagesCollection, common.Key(messageID))
+	if err != nil || record == nil {
+		return nil, err
 	}
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-	if message, ok := memoryTx.state.queueMessages[messageID]; ok {
-		return &message, nil
-	}
-	return nil, nil
+	message := queueMessageFromJSON(record.Document)
+	return &message, nil
 }
 
 func (s *QueueStore) requireMessage(tx *Transaction, messageID string) (common.QueueMessageRecord, error) {
-	if message, ok := tx.queueMessagePuts[messageID]; ok {
-		return message, nil
+	record, err := tx.get(queueMessagesCollection, common.Key(messageID))
+	if err != nil {
+		return common.QueueMessageRecord{}, err
 	}
-	tx.state.mu.Lock()
-	defer tx.state.mu.Unlock()
-	if message, ok := tx.state.queueMessages[messageID]; ok {
-		return message, nil
+	if record == nil {
+		return common.QueueMessageRecord{}, common.ErrNotFound
 	}
-	return common.QueueMessageRecord{}, common.ErrNotFound
+	return queueMessageFromJSON(record.Document), nil
 }
 
 func (s *QueueStore) allMessages(tx *Transaction) []common.QueueMessageRecord {
-	byID := map[string]common.QueueMessageRecord{}
-	tx.state.mu.Lock()
-	for id, message := range tx.state.queueMessages {
-		byID[id] = message
+	records, err := tx.query(queueMessagesCollection, common.AllQuery())
+	if err != nil {
+		return nil
 	}
-	tx.state.mu.Unlock()
-	for id, message := range tx.queueMessagePuts {
-		byID[id] = message
-	}
-	messages := make([]common.QueueMessageRecord, 0, len(byID))
-	for _, message := range byID {
-		messages = append(messages, message)
+	messages := make([]common.QueueMessageRecord, 0, len(records))
+	for _, record := range records {
+		messages = append(messages, queueMessageFromJSON(record.Document))
 	}
 	return messages
+}
+
+func ensureQueueCollections(ctx context.Context, backend common.Backend) error {
+	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
+		{Name: string(queueDefinitionsCollection), KeyFields: []string{"queue"}},
+		{Name: string(queueMessagesCollection), KeyFields: []string{"message_id"}},
+		{Name: string(queueIdempotencyCollection), KeyFields: []string{"idempotency_key"}},
+	})
 }
 
 func queueDefinitionKey(queue string, channel string) string {

@@ -6,6 +6,11 @@ import (
 	common "statespec-generated/common/backend"
 )
 
+const (
+	featureFlagDefinitionsCollection common.CollectionName = "statespec_feature_flag_definitions"
+	featureFlagValuesCollection      common.CollectionName = "statespec_feature_flag_values"
+)
+
 type FeatureFlagStore struct{}
 
 func NewFeatureFlagStore() *FeatureFlagStore {
@@ -13,6 +18,9 @@ func NewFeatureFlagStore() *FeatureFlagStore {
 }
 
 func (s *FeatureFlagStore) RegisterDefinition(ctx context.Context, backend common.Backend, definition common.FeatureFlagDefinition) (common.FeatureFlagRegisterDefinitionResult, error) {
+	if err := ensureFeatureFlagCollections(ctx, backend); err != nil {
+		return common.FeatureFlagRegisterDefinitionResult{}, err
+	}
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return common.FeatureFlagRegisterDefinitionResult{}, err
@@ -26,7 +34,6 @@ func (s *FeatureFlagStore) RegisterDefinition(ctx context.Context, backend commo
 }
 
 func (s *FeatureFlagStore) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.FeatureFlagDefinition) (common.FeatureFlagRegisterDefinitionResult, error) {
-	_ = ctx
 	memoryTx, err := asMemoryTx(tx)
 	if err != nil {
 		return common.FeatureFlagRegisterDefinitionResult{}, err
@@ -35,7 +42,9 @@ func (s *FeatureFlagStore) RegisterDefinitionTx(ctx context.Context, tx common.T
 	if err != nil {
 		return common.FeatureFlagRegisterDefinitionResult{}, err
 	}
-	memoryTx.featureFlagDefinitionPuts[definition.Name] = definition
+	if err := memoryTx.put(featureFlagDefinitionsCollection, common.Key(definition.Name), featureFlagDefinitionToJSON(definition)); err != nil {
+		return common.FeatureFlagRegisterDefinitionResult{}, err
+	}
 	return common.FeatureFlagRegisterDefinitionResult{RegisteredNew: existing == nil, Definition: definition}, nil
 }
 
@@ -58,15 +67,12 @@ func (s *FeatureFlagStore) InspectDefinitionTx(ctx context.Context, tx common.Tr
 	if err != nil {
 		return nil, err
 	}
-	if definition, ok := memoryTx.featureFlagDefinitionPuts[name]; ok {
-		return &definition, nil
+	record, err := memoryTx.get(featureFlagDefinitionsCollection, common.Key(name))
+	if err != nil || record == nil {
+		return nil, err
 	}
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-	if definition, ok := memoryTx.state.featureFlagDefinitions[name]; ok {
-		return &definition, nil
-	}
-	return nil, nil
+	definition := featureFlagDefinitionFromJSON(record.Document)
+	return &definition, nil
 }
 
 func (s *FeatureFlagStore) Evaluate(ctx context.Context, backend common.Backend, request common.FeatureFlagEvaluationRequest) (common.FeatureFlagValue, error) {
@@ -87,15 +93,11 @@ func (s *FeatureFlagStore) EvaluateTx(ctx context.Context, tx common.Transaction
 	if err != nil {
 		return common.FeatureFlagValue{}, err
 	}
-	if value, ok := memoryTx.featureFlagValuePuts[request.Name]; ok {
-		return value, nil
+	if record, err := memoryTx.get(featureFlagValuesCollection, common.Key(featureFlagEvaluationKey(request))); err != nil {
+		return common.FeatureFlagValue{}, err
+	} else if record != nil {
+		return featureFlagValueFromJSON(record.Document), nil
 	}
-	memoryTx.state.mu.Lock()
-	if value, ok := memoryTx.state.featureFlagValues[request.Name]; ok {
-		memoryTx.state.mu.Unlock()
-		return value, nil
-	}
-	memoryTx.state.mu.Unlock()
 	definition, err := s.InspectDefinitionTx(ctx, tx, request.Name)
 	if err != nil {
 		return common.FeatureFlagValue{}, err
@@ -104,4 +106,28 @@ func (s *FeatureFlagStore) EvaluateTx(ctx context.Context, tx common.Transaction
 		return common.FeatureFlagValue{}, common.ErrNotFound
 	}
 	return definition.DefaultValue, nil
+}
+
+func ensureFeatureFlagCollections(ctx context.Context, backend common.Backend) error {
+	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
+		{Name: string(featureFlagDefinitionsCollection), KeyFields: []string{"name"}},
+		{Name: string(featureFlagValuesCollection), KeyFields: []string{"scope_key"}},
+	})
+}
+
+func featureFlagEvaluationKey(request common.FeatureFlagEvaluationRequest) string {
+	key := request.Name
+	if request.Context.TenantID != nil {
+		key += "|tenant:" + *request.Context.TenantID
+	}
+	if request.Context.UserID != nil {
+		key += "|user:" + *request.Context.UserID
+	}
+	if request.Context.EntityType != nil {
+		key += "|entity_type:" + *request.Context.EntityType
+	}
+	if request.Context.EntityID != nil {
+		key += "|entity_id:" + *request.Context.EntityID
+	}
+	return key
 }

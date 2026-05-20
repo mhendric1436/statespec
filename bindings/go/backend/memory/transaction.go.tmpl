@@ -12,46 +12,16 @@ import (
 type state struct {
 	mu sync.Mutex
 
+	collections map[common.CollectionName]common.CollectionDescriptor
 	records     map[common.CollectionName]map[common.Key]common.VersionedRecord
 	versions    map[string]common.Version
-	collections map[common.CollectionName]common.CollectionDescriptor
-
-	featureFlagDefinitions map[string]common.FeatureFlagDefinition
-	featureFlagValues      map[string]common.FeatureFlagValue
-
-	queueDefinitions     map[string]common.QueueDefinition
-	queueMessages        map[string]common.QueueMessageRecord
-	queueIdempotencyKeys map[string]string
-
-	leaseDefinitions map[string]common.LeaseDefinition
-	leases           map[string]common.LeaseRecord
-
-	workflowDefinitions map[string]common.WorkflowDefinition
-	workflowExecutions  map[string]common.WorkflowExecutionRecord
-
-	logDefinitions map[string]common.LogSignalDefinition
-	logEvents      []common.LogEvent
-
-	metricDefinitions map[string]common.MetricInstrumentDefinition
-	metricSamples     []common.MetricSample
 }
 
 func newState() *state {
 	return &state{
-		records:                map[common.CollectionName]map[common.Key]common.VersionedRecord{},
-		versions:               map[string]common.Version{},
-		collections:            map[common.CollectionName]common.CollectionDescriptor{},
-		featureFlagDefinitions: map[string]common.FeatureFlagDefinition{},
-		featureFlagValues:      map[string]common.FeatureFlagValue{},
-		queueDefinitions:       map[string]common.QueueDefinition{},
-		queueMessages:          map[string]common.QueueMessageRecord{},
-		queueIdempotencyKeys:   map[string]string{},
-		leaseDefinitions:       map[string]common.LeaseDefinition{},
-		leases:                 map[string]common.LeaseRecord{},
-		workflowDefinitions:    map[string]common.WorkflowDefinition{},
-		workflowExecutions:     map[string]common.WorkflowExecutionRecord{},
-		logDefinitions:         map[string]common.LogSignalDefinition{},
-		metricDefinitions:      map[string]common.MetricInstrumentDefinition{},
+		collections: map[common.CollectionName]common.CollectionDescriptor{},
+		records:     map[common.CollectionName]map[common.Key]common.VersionedRecord{},
+		versions:    map[string]common.Version{},
 	}
 }
 
@@ -62,43 +32,15 @@ type Transaction struct {
 	readVersions map[string]common.Version
 	puts         map[string]common.VersionedRecord
 	erases       map[string]struct{}
-
-	featureFlagDefinitionPuts map[string]common.FeatureFlagDefinition
-	featureFlagValuePuts      map[string]common.FeatureFlagValue
-
-	queueDefinitionPuts    map[string]common.QueueDefinition
-	queueMessagePuts       map[string]common.QueueMessageRecord
-	queueIdempotencyPuts   map[string]string
-	leaseDefinitionPuts    map[string]common.LeaseDefinition
-	leasePuts              map[string]common.LeaseRecord
-	leaseErases            map[string]struct{}
-	workflowDefinitionPuts map[string]common.WorkflowDefinition
-	workflowExecutionPuts  map[string]common.WorkflowExecutionRecord
-	logDefinitionPuts      map[string]common.LogSignalDefinition
-	logEventAppends        []common.LogEvent
-	metricDefinitionPuts   map[string]common.MetricInstrumentDefinition
-	metricSampleAppends    []common.MetricSample
 }
 
 func newTransaction(s *state) *Transaction {
 	return &Transaction{
-		state:                     s,
-		open:                      true,
-		readVersions:              map[string]common.Version{},
-		puts:                      map[string]common.VersionedRecord{},
-		erases:                    map[string]struct{}{},
-		featureFlagDefinitionPuts: map[string]common.FeatureFlagDefinition{},
-		featureFlagValuePuts:      map[string]common.FeatureFlagValue{},
-		queueDefinitionPuts:       map[string]common.QueueDefinition{},
-		queueMessagePuts:          map[string]common.QueueMessageRecord{},
-		queueIdempotencyPuts:      map[string]string{},
-		leaseDefinitionPuts:       map[string]common.LeaseDefinition{},
-		leasePuts:                 map[string]common.LeaseRecord{},
-		leaseErases:               map[string]struct{}{},
-		workflowDefinitionPuts:    map[string]common.WorkflowDefinition{},
-		workflowExecutionPuts:     map[string]common.WorkflowExecutionRecord{},
-		logDefinitionPuts:         map[string]common.LogSignalDefinition{},
-		metricDefinitionPuts:      map[string]common.MetricInstrumentDefinition{},
+		state:        s,
+		open:         true,
+		readVersions: map[string]common.Version{},
+		puts:         map[string]common.VersionedRecord{},
+		erases:       map[string]struct{}{},
 	}
 }
 
@@ -115,21 +57,131 @@ func (tx *Transaction) Abort(ctx context.Context) error {
 	tx.readVersions = map[string]common.Version{}
 	tx.puts = map[string]common.VersionedRecord{}
 	tx.erases = map[string]struct{}{}
-	tx.featureFlagDefinitionPuts = map[string]common.FeatureFlagDefinition{}
-	tx.featureFlagValuePuts = map[string]common.FeatureFlagValue{}
-	tx.queueDefinitionPuts = map[string]common.QueueDefinition{}
-	tx.queueMessagePuts = map[string]common.QueueMessageRecord{}
-	tx.queueIdempotencyPuts = map[string]string{}
-	tx.leaseDefinitionPuts = map[string]common.LeaseDefinition{}
-	tx.leasePuts = map[string]common.LeaseRecord{}
-	tx.leaseErases = map[string]struct{}{}
-	tx.workflowDefinitionPuts = map[string]common.WorkflowDefinition{}
-	tx.workflowExecutionPuts = map[string]common.WorkflowExecutionRecord{}
-	tx.logDefinitionPuts = map[string]common.LogSignalDefinition{}
-	tx.logEventAppends = nil
-	tx.metricDefinitionPuts = map[string]common.MetricInstrumentDefinition{}
-	tx.metricSampleAppends = nil
 	return nil
+}
+
+func (tx *Transaction) get(collection common.CollectionName, key common.Key) (*common.VersionedRecord, error) {
+	if !tx.IsOpen() {
+		return nil, common.ErrUnsupported
+	}
+	versionKey := recordVersionKey(collection, key)
+	if _, erased := tx.erases[versionKey]; erased {
+		return nil, nil
+	}
+	if record, ok := tx.puts[versionKey]; ok {
+		return &record, nil
+	}
+
+	tx.state.mu.Lock()
+	defer tx.state.mu.Unlock()
+	collectionRecords, ok := tx.state.records[collection]
+	if !ok {
+		tx.readVersions[versionKey] = 0
+		return nil, nil
+	}
+	record, ok := collectionRecords[key]
+	if !ok {
+		tx.readVersions[versionKey] = 0
+		return nil, nil
+	}
+	tx.readVersions[versionKey] = record.Version
+	return &record, nil
+}
+
+func (tx *Transaction) query(collection common.CollectionName, query common.Query) ([]common.VersionedRecord, error) {
+	if !tx.IsOpen() {
+		return nil, common.ErrUnsupported
+	}
+	byKey := map[string]common.VersionedRecord{}
+
+	tx.state.mu.Lock()
+	if collectionRecords, ok := tx.state.records[collection]; ok {
+		for key, record := range collectionRecords {
+			if _, staged := tx.puts[recordVersionKey(record.Collection, record.Key)]; !staged {
+				byKey[string(key)] = record
+			}
+		}
+	}
+	tx.state.mu.Unlock()
+
+	for _, record := range tx.puts {
+		if record.Collection == collection {
+			byKey[string(record.Key)] = record
+		}
+	}
+	for versionKey := range tx.erases {
+		erasedCollection, erasedKey, ok := parseRecordVersionKey(versionKey)
+		if ok && erasedCollection == collection {
+			delete(byKey, string(erasedKey))
+		}
+	}
+
+	var records []common.VersionedRecord
+	for _, record := range byKey {
+		if recordMatchesQuery(record, query) {
+			tx.readVersions[recordVersionKey(record.Collection, record.Key)] = record.Version
+			records = append(records, record)
+		}
+	}
+	return records, nil
+}
+
+func (tx *Transaction) put(collection common.CollectionName, key common.Key, document common.JSON) error {
+	if !tx.IsOpen() {
+		return common.ErrUnsupported
+	}
+	if _, err := tx.get(collection, key); err != nil {
+		return err
+	}
+	versionKey := recordVersionKey(collection, key)
+	tx.puts[versionKey] = common.VersionedRecord{Collection: collection, Key: key, Document: document}
+	delete(tx.erases, versionKey)
+	return nil
+}
+
+func (tx *Transaction) erase(collection common.CollectionName, key common.Key) error {
+	if !tx.IsOpen() {
+		return common.ErrUnsupported
+	}
+	if _, err := tx.get(collection, key); err != nil {
+		return err
+	}
+	versionKey := recordVersionKey(collection, key)
+	delete(tx.puts, versionKey)
+	tx.erases[versionKey] = struct{}{}
+	return nil
+}
+
+func (tx *Transaction) commit() error {
+	if !tx.IsOpen() {
+		return common.ErrUnsupported
+	}
+	tx.state.mu.Lock()
+	defer tx.state.mu.Unlock()
+
+	for versionKey, expectedVersion := range tx.readVersions {
+		if versionOrZero(tx.state.versions, versionKey) != expectedVersion {
+			return conflict(common.VersionConflict, "in-memory OCC conflict")
+		}
+	}
+	for versionKey := range tx.erases {
+		collection, key, ok := parseRecordVersionKey(versionKey)
+		if ok {
+			if records, exists := tx.state.records[collection]; exists {
+				delete(records, key)
+			}
+		}
+		tx.state.versions[versionKey]++
+	}
+	for versionKey, record := range tx.puts {
+		tx.state.versions[versionKey]++
+		record.Version = tx.state.versions[versionKey]
+		if _, ok := tx.state.records[record.Collection]; !ok {
+			tx.state.records[record.Collection] = map[common.Key]common.VersionedRecord{}
+		}
+		tx.state.records[record.Collection][record.Key] = record
+	}
+	return tx.Abort(context.Background())
 }
 
 func asMemoryTx(tx common.Transaction) (*Transaction, error) {
@@ -138,6 +190,35 @@ func asMemoryTx(tx common.Transaction) (*Transaction, error) {
 		return nil, common.ErrUnsupported
 	}
 	return memoryTx, nil
+}
+
+func recordMatchesQuery(record common.VersionedRecord, query common.Query) bool {
+	switch query.Kind {
+	case common.QueryAll:
+		return true
+	case common.QueryKeyPrefix:
+		return query.KeyPrefix != nil && strings.HasPrefix(string(record.Key), *query.KeyPrefix)
+	case common.QueryJSONEquals:
+		if query.JSONPath == nil || query.JSONValue == nil {
+			return false
+		}
+		value, ok := findJSONPath(record.Document, *query.JSONPath)
+		return ok && value.CanonicalString() == query.JSONValue.CanonicalString()
+	default:
+		return true
+	}
+}
+
+func findJSONPath(document common.JSON, path string) (common.JSON, bool) {
+	current := document
+	for _, segment := range strings.Split(path, ".") {
+		next, ok := current.Find(segment)
+		if !ok {
+			return common.JSON{}, false
+		}
+		current = next
+	}
+	return current, true
 }
 
 func recordVersionKey(collection common.CollectionName, key common.Key) string {

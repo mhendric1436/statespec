@@ -350,6 +350,7 @@ void test_binding_app_artifact_models_define_application_filenames()
         {
             {"common/backend/memory/backend.go", common, Kind::MemoryBackend},
             {"common/backend/memory/transaction.go", common, Kind::MemoryTransaction},
+            {"common/backend/memory/codec.go", common, Kind::MemoryCodec},
             {"common/backend/memory/feature_flags.go", common, Kind::MemoryFeatureFlagStore},
             {"common/backend/memory/queues.go", common, Kind::MemoryQueueStore},
             {"common/backend/memory/leases.go", common, Kind::MemoryLeaseStore},
@@ -724,6 +725,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/backend/log.go", common},
             {"common/backend/memory/backend.go", common},
             {"common/backend/memory/transaction.go", common},
+            {"common/backend/memory/codec.go", common},
             {"common/backend/memory/feature_flags.go", common},
             {"common/backend/memory/queues.go", common},
             {"common/backend/memory/leases.go", common},

@@ -6,13 +6,23 @@ import (
 	common "statespec-generated/common/backend"
 )
 
-type MetricSink struct{}
+const (
+	metricDefinitionsCollection common.CollectionName = "statespec_metric_definitions"
+	metricSamplesCollection     common.CollectionName = "statespec_metric_samples"
+)
+
+type MetricSink struct {
+	nextSampleID uint64
+}
 
 func NewMetricSink() *MetricSink {
 	return &MetricSink{}
 }
 
 func (s *MetricSink) RegisterDefinition(ctx context.Context, backend common.Backend, definition common.MetricInstrumentDefinition) (common.MetricInstrumentRegistration, error) {
+	if err := ensureMetricCollections(ctx, backend); err != nil {
+		return common.MetricInstrumentRegistration{}, err
+	}
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return common.MetricInstrumentRegistration{}, err
@@ -34,7 +44,9 @@ func (s *MetricSink) RegisterDefinitionTx(ctx context.Context, tx common.Transac
 	if err != nil {
 		return common.MetricInstrumentRegistration{}, err
 	}
-	memoryTx.metricDefinitionPuts[definition.Name] = definition
+	if err := memoryTx.put(metricDefinitionsCollection, common.Key(definition.Name), metricDefinitionToJSON(definition)); err != nil {
+		return common.MetricInstrumentRegistration{}, err
+	}
 	return common.MetricInstrumentRegistration{RegisteredNew: existing == nil, Definition: definition}, nil
 }
 
@@ -57,18 +69,18 @@ func (s *MetricSink) InspectDefinitionTx(ctx context.Context, tx common.Transact
 	if err != nil {
 		return nil, err
 	}
-	if definition, ok := memoryTx.metricDefinitionPuts[name]; ok {
-		return &definition, nil
+	record, err := memoryTx.get(metricDefinitionsCollection, common.Key(name))
+	if err != nil || record == nil {
+		return nil, err
 	}
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-	if definition, ok := memoryTx.state.metricDefinitions[name]; ok {
-		return &definition, nil
-	}
-	return nil, nil
+	definition := metricDefinitionFromJSON(record.Document)
+	return &definition, nil
 }
 
 func (s *MetricSink) RecordMetric(ctx context.Context, backend common.Backend, sample common.MetricSample) error {
+	if err := ensureMetricCollections(ctx, backend); err != nil {
+		return err
+	}
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return err
@@ -86,8 +98,7 @@ func (s *MetricSink) RecordMetricTx(ctx context.Context, tx common.Transaction, 
 	if err != nil {
 		return err
 	}
-	memoryTx.metricSampleAppends = append(memoryTx.metricSampleAppends, sample)
-	return nil
+	return memoryTx.put(metricSamplesCollection, common.Key(eventKey(sample.Name, &s.nextSampleID)), metricSampleToJSON(sample))
 }
 
 func (s *MetricSink) InspectSamples(ctx context.Context, backend common.Backend) ([]common.MetricSample, error) {
@@ -109,9 +120,20 @@ func (s *MetricSink) InspectSamplesTx(ctx context.Context, tx common.Transaction
 	if err != nil {
 		return nil, err
 	}
-	memoryTx.state.mu.Lock()
-	samples := append([]common.MetricSample{}, memoryTx.state.metricSamples...)
-	memoryTx.state.mu.Unlock()
-	samples = append(samples, memoryTx.metricSampleAppends...)
+	records, err := memoryTx.query(metricSamplesCollection, common.AllQuery())
+	if err != nil {
+		return nil, err
+	}
+	samples := make([]common.MetricSample, 0, len(records))
+	for _, record := range records {
+		samples = append(samples, metricSampleFromJSON(record.Document))
+	}
 	return samples, nil
+}
+
+func ensureMetricCollections(ctx context.Context, backend common.Backend) error {
+	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
+		{Name: string(metricDefinitionsCollection), KeyFields: []string{"name"}},
+		{Name: string(metricSamplesCollection), KeyFields: []string{"sample_id"}},
+	})
 }

@@ -6,6 +6,11 @@ import (
 	common "statespec-generated/common/backend"
 )
 
+const (
+	leaseDefinitionsCollection common.CollectionName = "statespec_lease_definitions"
+	leasesCollection           common.CollectionName = "statespec_leases"
+)
+
 type LeaseStore struct{}
 
 func NewLeaseStore() *LeaseStore {
@@ -13,6 +18,9 @@ func NewLeaseStore() *LeaseStore {
 }
 
 func (s *LeaseStore) RegisterDefinition(ctx context.Context, backend common.Backend, definition common.LeaseDefinition) (common.LeaseRegisterDefinitionResult, error) {
+	if err := ensureLeaseCollections(ctx, backend); err != nil {
+		return common.LeaseRegisterDefinitionResult{}, err
+	}
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return common.LeaseRegisterDefinitionResult{}, err
@@ -34,7 +42,9 @@ func (s *LeaseStore) RegisterDefinitionTx(ctx context.Context, tx common.Transac
 	if err != nil {
 		return common.LeaseRegisterDefinitionResult{}, err
 	}
-	memoryTx.leaseDefinitionPuts[leaseDefinitionKey(definition.ID)] = definition
+	if err := memoryTx.put(leaseDefinitionsCollection, common.Key(leaseDefinitionKey(definition.ID)), leaseDefinitionToJSON(definition)); err != nil {
+		return common.LeaseRegisterDefinitionResult{}, err
+	}
 	return common.LeaseRegisterDefinitionResult{RegisteredNew: existing == nil, Definition: definition}, nil
 }
 
@@ -57,16 +67,12 @@ func (s *LeaseStore) InspectDefinitionTx(ctx context.Context, tx common.Transact
 	if err != nil {
 		return nil, err
 	}
-	key := leaseDefinitionKey(definitionID)
-	if definition, ok := memoryTx.leaseDefinitionPuts[key]; ok {
-		return &definition, nil
+	record, err := memoryTx.get(leaseDefinitionsCollection, common.Key(leaseDefinitionKey(definitionID)))
+	if err != nil || record == nil {
+		return nil, err
 	}
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-	if definition, ok := memoryTx.state.leaseDefinitions[key]; ok {
-		return &definition, nil
-	}
-	return nil, nil
+	definition := leaseDefinitionFromJSON(record.Document)
+	return &definition, nil
 }
 
 func (s *LeaseStore) Acquire(ctx context.Context, backend common.Backend, request common.LeaseAcquireRequest) (common.LeaseAcquireResult, error) {
@@ -116,8 +122,9 @@ func (s *LeaseStore) AcquireTx(ctx context.Context, tx common.Transaction, reque
 		ExpiresAt:    request.Now.Add(definition.TTL),
 		FencingToken: token,
 	}
-	memoryTx.leasePuts[leaseKey(request.DefinitionID, request.Resource)] = record
-	delete(memoryTx.leaseErases, leaseKey(request.DefinitionID, request.Resource))
+	if err := memoryTx.put(leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)), leaseRecordToJSON(record)); err != nil {
+		return common.LeaseAcquireResult{}, err
+	}
 	return common.LeaseAcquireResult{Acquired: true, Lease: &record}, nil
 }
 
@@ -154,7 +161,9 @@ func (s *LeaseStore) RenewTx(ctx context.Context, tx common.Transaction, request
 		return common.LeaseRecord{}, err
 	}
 	record.ExpiresAt = request.Now.Add(definition.TTL)
-	memoryTx.leasePuts[leaseKey(request.DefinitionID, request.Resource)] = record
+	if err := memoryTx.put(leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)), leaseRecordToJSON(record)); err != nil {
+		return common.LeaseRecord{}, err
+	}
 	return record, nil
 }
 
@@ -182,10 +191,7 @@ func (s *LeaseStore) ReleaseTx(ctx context.Context, tx common.Transaction, reque
 	if err := requireLeaseHolder(record, request.Holder, request.FencingToken); err != nil {
 		return err
 	}
-	key := leaseKey(request.DefinitionID, request.Resource)
-	delete(memoryTx.leasePuts, key)
-	memoryTx.leaseErases[key] = struct{}{}
-	return nil
+	return memoryTx.erase(leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)))
 }
 
 func (s *LeaseStore) Inspect(ctx context.Context, backend common.Backend, request common.LeaseInspectRequest) (*common.LeaseRecord, error) {
@@ -207,19 +213,12 @@ func (s *LeaseStore) InspectTx(ctx context.Context, tx common.Transaction, reque
 	if err != nil {
 		return nil, err
 	}
-	key := leaseKey(request.DefinitionID, request.Resource)
-	if _, erased := memoryTx.leaseErases[key]; erased {
-		return nil, nil
+	record, err := memoryTx.get(leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)))
+	if err != nil || record == nil {
+		return nil, err
 	}
-	if record, ok := memoryTx.leasePuts[key]; ok {
-		return &record, nil
-	}
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-	if record, ok := memoryTx.state.leases[key]; ok {
-		return &record, nil
-	}
-	return nil, nil
+	lease := leaseRecordFromJSON(record.Document)
+	return &lease, nil
 }
 
 func (s *LeaseStore) requireLease(ctx context.Context, tx common.Transaction, definitionID common.LeaseDefinitionID, resource string) (common.LeaseRecord, error) {
@@ -231,6 +230,13 @@ func (s *LeaseStore) requireLease(ctx context.Context, tx common.Transaction, de
 		return common.LeaseRecord{}, common.ErrNotFound
 	}
 	return *record, nil
+}
+
+func ensureLeaseCollections(ctx context.Context, backend common.Backend) error {
+	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
+		{Name: string(leaseDefinitionsCollection), KeyFields: []string{"lease_definition"}},
+		{Name: string(leasesCollection), KeyFields: []string{"lease"}},
+	})
 }
 
 func leaseDefinitionKey(id common.LeaseDefinitionID) string {

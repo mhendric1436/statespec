@@ -51,6 +51,7 @@ Go:
 ```text
 common/backend/memory/backend.go
 common/backend/memory/transaction.go
+common/backend/memory/codec.go
 common/backend/memory/feature_flags.go
 common/backend/memory/queues.go
 common/backend/memory/leases.go

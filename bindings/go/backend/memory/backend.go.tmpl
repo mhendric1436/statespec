@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"strings"
 
 	common "statespec-generated/common/backend"
 )
@@ -52,28 +51,7 @@ func (b *Backend) Get(ctx context.Context, tx common.Transaction, collection com
 	if err != nil {
 		return nil, err
 	}
-	versionKey := recordVersionKey(collection, key)
-	if _, erased := memoryTx.erases[versionKey]; erased {
-		return nil, nil
-	}
-	if record, ok := memoryTx.puts[versionKey]; ok {
-		return &record, nil
-	}
-
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-	collectionRecords, ok := memoryTx.state.records[collection]
-	if !ok {
-		memoryTx.readVersions[versionKey] = 0
-		return nil, nil
-	}
-	record, ok := collectionRecords[key]
-	if !ok {
-		memoryTx.readVersions[versionKey] = 0
-		return nil, nil
-	}
-	memoryTx.readVersions[versionKey] = record.Version
-	return &record, nil
+	return memoryTx.get(collection, key)
 }
 
 func (b *Backend) Query(ctx context.Context, tx common.Transaction, collection common.CollectionName, query common.Query) ([]common.VersionedRecord, error) {
@@ -82,65 +60,25 @@ func (b *Backend) Query(ctx context.Context, tx common.Transaction, collection c
 	if err != nil {
 		return nil, err
 	}
-	byKey := map[string]common.VersionedRecord{}
-
-	memoryTx.state.mu.Lock()
-	if collectionRecords, ok := memoryTx.state.records[collection]; ok {
-		for key, record := range collectionRecords {
-			byKey[string(key)] = record
-		}
-	}
-	memoryTx.state.mu.Unlock()
-
-	for versionKey, record := range memoryTx.puts {
-		if record.Collection == collection {
-			byKey[string(record.Key)] = record
-		}
-		_ = versionKey
-	}
-	for versionKey := range memoryTx.erases {
-		erasedCollection, erasedKey, ok := parseRecordVersionKey(versionKey)
-		if ok && erasedCollection == collection {
-			delete(byKey, string(erasedKey))
-		}
-	}
-
-	var records []common.VersionedRecord
-	for _, record := range byKey {
-		if recordMatchesQuery(record, query) {
-			memoryTx.readVersions[recordVersionKey(record.Collection, record.Key)] = record.Version
-			records = append(records, record)
-		}
-	}
-	return records, nil
+	return memoryTx.query(collection, query)
 }
 
 func (b *Backend) Put(ctx context.Context, tx common.Transaction, collection common.CollectionName, key common.Key, document common.JSON) error {
+	_ = ctx
 	memoryTx, err := asMemoryTx(tx)
 	if err != nil {
 		return err
 	}
-	if _, err := b.Get(ctx, tx, collection, key); err != nil {
-		return err
-	}
-	versionKey := recordVersionKey(collection, key)
-	memoryTx.puts[versionKey] = common.VersionedRecord{Collection: collection, Key: key, Document: document}
-	delete(memoryTx.erases, versionKey)
-	return nil
+	return memoryTx.put(collection, key, document)
 }
 
 func (b *Backend) Erase(ctx context.Context, tx common.Transaction, collection common.CollectionName, key common.Key) error {
+	_ = ctx
 	memoryTx, err := asMemoryTx(tx)
 	if err != nil {
 		return err
 	}
-	if _, err := b.Get(ctx, tx, collection, key); err != nil {
-		return err
-	}
-	versionKey := recordVersionKey(collection, key)
-	delete(memoryTx.puts, versionKey)
-	memoryTx.erases[versionKey] = struct{}{}
-	return nil
+	return memoryTx.erase(collection, key)
 }
 
 func (b *Backend) Commit(ctx context.Context, tx common.Transaction) error {
@@ -149,99 +87,5 @@ func (b *Backend) Commit(ctx context.Context, tx common.Transaction) error {
 	if err != nil {
 		return err
 	}
-	memoryTx.state.mu.Lock()
-	defer memoryTx.state.mu.Unlock()
-
-	for versionKey, expectedVersion := range memoryTx.readVersions {
-		if versionOrZero(memoryTx.state.versions, versionKey) != expectedVersion {
-			return conflict(common.VersionConflict, "in-memory OCC conflict")
-		}
-	}
-	for versionKey := range memoryTx.erases {
-		collection, key, ok := parseRecordVersionKey(versionKey)
-		if ok {
-			if records, exists := memoryTx.state.records[collection]; exists {
-				delete(records, key)
-			}
-		}
-		memoryTx.state.versions[versionKey]++
-	}
-	for versionKey, record := range memoryTx.puts {
-		memoryTx.state.versions[versionKey]++
-		record.Version = memoryTx.state.versions[versionKey]
-		if _, ok := memoryTx.state.records[record.Collection]; !ok {
-			memoryTx.state.records[record.Collection] = map[common.Key]common.VersionedRecord{}
-		}
-		memoryTx.state.records[record.Collection][record.Key] = record
-	}
-
-	for key, value := range memoryTx.featureFlagDefinitionPuts {
-		memoryTx.state.featureFlagDefinitions[key] = value
-	}
-	for key, value := range memoryTx.featureFlagValuePuts {
-		memoryTx.state.featureFlagValues[key] = value
-	}
-	for key, value := range memoryTx.queueDefinitionPuts {
-		memoryTx.state.queueDefinitions[key] = value
-	}
-	for key, value := range memoryTx.queueMessagePuts {
-		memoryTx.state.queueMessages[key] = value
-	}
-	for key, value := range memoryTx.queueIdempotencyPuts {
-		memoryTx.state.queueIdempotencyKeys[key] = value
-	}
-	for key, value := range memoryTx.leaseDefinitionPuts {
-		memoryTx.state.leaseDefinitions[key] = value
-	}
-	for key := range memoryTx.leaseErases {
-		delete(memoryTx.state.leases, key)
-	}
-	for key, value := range memoryTx.leasePuts {
-		memoryTx.state.leases[key] = value
-	}
-	for key, value := range memoryTx.workflowDefinitionPuts {
-		memoryTx.state.workflowDefinitions[key] = value
-	}
-	for key, value := range memoryTx.workflowExecutionPuts {
-		memoryTx.state.workflowExecutions[key] = value
-	}
-	for key, value := range memoryTx.logDefinitionPuts {
-		memoryTx.state.logDefinitions[key] = value
-	}
-	memoryTx.state.logEvents = append(memoryTx.state.logEvents, memoryTx.logEventAppends...)
-	for key, value := range memoryTx.metricDefinitionPuts {
-		memoryTx.state.metricDefinitions[key] = value
-	}
-	memoryTx.state.metricSamples = append(memoryTx.state.metricSamples, memoryTx.metricSampleAppends...)
-
-	return memoryTx.Abort(ctx)
-}
-
-func recordMatchesQuery(record common.VersionedRecord, query common.Query) bool {
-	switch query.Kind {
-	case common.QueryAll:
-		return true
-	case common.QueryKeyPrefix:
-		return query.KeyPrefix != nil && strings.HasPrefix(string(record.Key), *query.KeyPrefix)
-	case common.QueryJSONEquals:
-		if query.JSONPath == nil || query.JSONValue == nil {
-			return false
-		}
-		value, ok := findJSONPath(record.Document, *query.JSONPath)
-		return ok && value.CanonicalString() == query.JSONValue.CanonicalString()
-	default:
-		return true
-	}
-}
-
-func findJSONPath(document common.JSON, path string) (common.JSON, bool) {
-	current := document
-	for _, segment := range strings.Split(path, ".") {
-		next, ok := current.Find(segment)
-		if !ok {
-			return common.JSON{}, false
-		}
-		current = next
-	}
-	return current, true
+	return memoryTx.commit()
 }
