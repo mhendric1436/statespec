@@ -66,6 +66,15 @@ pub struct ClaimWorkflowStepRequest {
 }
 
 #[derive(Debug, Clone)]
+pub struct KeepAliveWorkflowStepRequest {
+    pub workflow_execution_id: String,
+    pub worker: String,
+    pub current_step: String,
+    pub now: SystemTime,
+    pub lease_duration: Duration,
+}
+
+#[derive(Debug, Clone)]
 pub struct CompleteWorkflowStepRequest {
     pub workflow_execution_id: String,
     pub worker: String,
@@ -124,6 +133,10 @@ pub trait WorkflowStore<B: Backend> {
     fn claim_steps(&self, backend: &B, request: &ClaimWorkflowStepRequest) -> BackendResult<Vec<WorkflowExecutionRecord>>;
 
     fn claim_steps_tx(&self, tx: &mut B::Tx, request: &ClaimWorkflowStepRequest) -> BackendResult<Vec<WorkflowExecutionRecord>>;
+
+    fn keep_alive_step(&self, backend: &B, request: &KeepAliveWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord>;
+
+    fn keep_alive_step_tx(&self, tx: &mut B::Tx, request: &KeepAliveWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord>;
 
     fn complete_step(&self, backend: &B, request: &CompleteWorkflowStepRequest) -> BackendResult<WorkflowExecutionRecord>;
 

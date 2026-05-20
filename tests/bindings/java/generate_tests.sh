@@ -56,6 +56,8 @@ assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkerWork
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Backend.java" "enum FieldType"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Backend.java" "FieldType type"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Backend.java" "String typeName"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Workflow.java" "record KeepAliveWorkflowStepRequest"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Workflow.java" "keepAliveStepTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "class Descriptors"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record ShapeDescriptor"

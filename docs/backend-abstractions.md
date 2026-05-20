@@ -242,6 +242,12 @@ name to coexist.
 Workflow step claim requests also carry `workflow_execution_id` because claiming work is
 scoped to a particular execution of a workflow definition.
 
+Workflow clients that hold a claimed step can call the keep-alive API to extend the
+claim lease before completing or failing the step. The keep-alive request identifies the
+workflow execution, worker, current step, current time, and lease duration. Backends
+should only extend the lease when the execution is still claimed by that worker for the
+same current step.
+
 ## Required Semantics
 
 All backend implementations should preserve these semantics:

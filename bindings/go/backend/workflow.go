@@ -60,6 +60,14 @@ type ClaimWorkflowStepRequest struct {
 	MaxSteps            uint32
 }
 
+type KeepAliveWorkflowStepRequest struct {
+	WorkflowExecutionID string
+	Worker              string
+	CurrentStep         string
+	Now                 time.Time
+	LeaseDuration       time.Duration
+}
+
 type CompleteWorkflowStepRequest struct {
 	WorkflowExecutionID string
 	Worker              string
@@ -98,6 +106,10 @@ type WorkflowStore interface {
 	ClaimSteps(ctx context.Context, backend Backend, request ClaimWorkflowStepRequest) ([]WorkflowExecutionRecord, error)
 
 	ClaimStepsTx(ctx context.Context, tx Transaction, request ClaimWorkflowStepRequest) ([]WorkflowExecutionRecord, error)
+
+	KeepAliveStep(ctx context.Context, backend Backend, request KeepAliveWorkflowStepRequest) (WorkflowExecutionRecord, error)
+
+	KeepAliveStepTx(ctx context.Context, tx Transaction, request KeepAliveWorkflowStepRequest) (WorkflowExecutionRecord, error)
 
 	CompleteStep(ctx context.Context, backend Backend, request CompleteWorkflowStepRequest) (WorkflowExecutionRecord, error)
 

@@ -75,6 +75,15 @@ struct ClaimWorkflowStepRequest
     std::uint32_t max_steps = 1;
 };
 
+struct KeepAliveWorkflowStepRequest
+{
+    std::string workflow_execution_id;
+    std::string worker;
+    std::string current_step;
+    Timestamp now;
+    std::chrono::seconds lease_duration;
+};
+
 struct CompleteWorkflowStepRequest
 {
     std::string workflow_execution_id;
@@ -145,6 +154,16 @@ class IWorkflowStore
     virtual std::vector<WorkflowExecutionRecord> claim_stepsTx(
         ITransaction& tx,
         const ClaimWorkflowStepRequest& request
+    ) = 0;
+
+    virtual WorkflowExecutionRecord keep_alive_step(
+        IBackend& backend,
+        const KeepAliveWorkflowStepRequest& request
+    ) = 0;
+
+    virtual WorkflowExecutionRecord keep_alive_stepTx(
+        ITransaction& tx,
+        const KeepAliveWorkflowStepRequest& request
     ) = 0;
 
     virtual WorkflowExecutionRecord complete_step(

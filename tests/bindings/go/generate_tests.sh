@@ -54,6 +54,8 @@ assert_file_contains "$TMPDIR/out-go/common/backend/backend.go" "type FieldType 
 assert_file_contains "$TMPDIR/out-go/common/backend/backend.go" "FieldTypeString"
 assert_file_contains "$TMPDIR/out-go/common/backend/backend.go" "Type     FieldType"
 assert_file_contains "$TMPDIR/out-go/common/backend/backend.go" "TypeName string"
+assert_file_contains "$TMPDIR/out-go/common/backend/workflow.go" "type KeepAliveWorkflowStepRequest struct"
+assert_file_contains "$TMPDIR/out-go/common/backend/workflow.go" "KeepAliveStepTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type FeatureFlagDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func FeatureFlagDefinitions() []FeatureFlagDescriptor"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type ShapeDescriptor struct"

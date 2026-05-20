@@ -59,6 +59,8 @@ assert_file_contains "$TMPDIR/out-cpp/worker/worker_workflows.hpp" "workflow_def
 assert_file_contains "$TMPDIR/out-cpp/common/backend.hpp" "enum class FieldType"
 assert_file_contains "$TMPDIR/out-cpp/common/backend.hpp" "FieldType type"
 assert_file_contains "$TMPDIR/out-cpp/common/backend.hpp" "std::string type_name"
+assert_file_contains "$TMPDIR/out-cpp/common/workflow.hpp" "KeepAliveWorkflowStepRequest"
+assert_file_contains "$TMPDIR/out-cpp/common/workflow.hpp" "keep_alive_stepTx"
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "feature_flag_definitions"
 assert_file_contains "$TMPDIR/out-cpp/common/system_descriptors.hpp" "ShapeDescriptor"

@@ -76,6 +76,16 @@ public interface Workflow
     {
     }
 
+    record KeepAliveWorkflowStepRequest(
+        String workflowExecutionId,
+        String worker,
+        String currentStep,
+        Instant now,
+        Duration leaseDuration
+    )
+    {
+    }
+
     record CompleteWorkflowStepRequest(
         String workflowExecutionId,
         String worker,
@@ -144,6 +154,16 @@ public interface Workflow
     List<WorkflowExecutionRecord> claimStepsTx(
         Transaction tx,
         ClaimWorkflowStepRequest request
+    ) throws BackendException;
+
+    WorkflowExecutionRecord keepAliveStep(
+        Backend backend,
+        KeepAliveWorkflowStepRequest request
+    ) throws BackendException;
+
+    WorkflowExecutionRecord keepAliveStepTx(
+        Transaction tx,
+        KeepAliveWorkflowStepRequest request
     ) throws BackendException;
 
     WorkflowExecutionRecord completeStep(

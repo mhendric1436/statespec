@@ -62,6 +62,8 @@ assert_file_contains "$TMPDIR/out-rust/worker/worker_workflows.rs" "pub fn workf
 assert_file_contains "$TMPDIR/out-rust/common/backend.rs" "pub enum FieldType"
 assert_file_contains "$TMPDIR/out-rust/common/backend.rs" "pub field_type: FieldType"
 assert_file_contains "$TMPDIR/out-rust/common/backend.rs" "pub type_name: String"
+assert_file_contains "$TMPDIR/out-rust/common/workflow.rs" "pub struct KeepAliveWorkflowStepRequest"
+assert_file_contains "$TMPDIR/out-rust/common/workflow.rs" "fn keep_alive_step_tx"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn feature_flag_definitions() -> Vec<FeatureFlagDefinition>"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct ShapeDescriptor"
