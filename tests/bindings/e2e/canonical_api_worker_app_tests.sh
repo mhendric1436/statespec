@@ -72,6 +72,14 @@ common/backend/feature_flag.go
 common/backend/json.go
 common/backend/lease.go
 common/backend/log.go
+common/backend/memory/backend.go
+common/backend/memory/feature_flags.go
+common/backend/memory/leases.go
+common/backend/memory/logs.go
+common/backend/memory/metrics.go
+common/backend/memory/queues.go
+common/backend/memory/transaction.go
+common/backend/memory/workflows.go
 common/backend/metric.go
 common/backend/queue.go
 common/backend/workflow.go

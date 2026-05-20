@@ -1,0 +1,180 @@
+package memory
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+
+	common "statespec-generated/common/backend"
+)
+
+type state struct {
+	mu sync.Mutex
+
+	records     map[common.CollectionName]map[common.Key]common.VersionedRecord
+	versions    map[string]common.Version
+	collections map[common.CollectionName]common.CollectionDescriptor
+
+	featureFlagDefinitions map[string]common.FeatureFlagDefinition
+	featureFlagValues      map[string]common.FeatureFlagValue
+
+	queueDefinitions     map[string]common.QueueDefinition
+	queueMessages        map[string]common.QueueMessageRecord
+	queueIdempotencyKeys map[string]string
+
+	leaseDefinitions map[string]common.LeaseDefinition
+	leases           map[string]common.LeaseRecord
+
+	workflowDefinitions map[string]common.WorkflowDefinition
+	workflowExecutions  map[string]common.WorkflowExecutionRecord
+
+	logDefinitions map[string]common.LogSignalDefinition
+	logEvents      []common.LogEvent
+
+	metricDefinitions map[string]common.MetricInstrumentDefinition
+	metricSamples     []common.MetricSample
+}
+
+func newState() *state {
+	return &state{
+		records:                map[common.CollectionName]map[common.Key]common.VersionedRecord{},
+		versions:               map[string]common.Version{},
+		collections:            map[common.CollectionName]common.CollectionDescriptor{},
+		featureFlagDefinitions: map[string]common.FeatureFlagDefinition{},
+		featureFlagValues:      map[string]common.FeatureFlagValue{},
+		queueDefinitions:       map[string]common.QueueDefinition{},
+		queueMessages:          map[string]common.QueueMessageRecord{},
+		queueIdempotencyKeys:   map[string]string{},
+		leaseDefinitions:       map[string]common.LeaseDefinition{},
+		leases:                 map[string]common.LeaseRecord{},
+		workflowDefinitions:    map[string]common.WorkflowDefinition{},
+		workflowExecutions:     map[string]common.WorkflowExecutionRecord{},
+		logDefinitions:         map[string]common.LogSignalDefinition{},
+		metricDefinitions:      map[string]common.MetricInstrumentDefinition{},
+	}
+}
+
+type Transaction struct {
+	state *state
+	open  bool
+
+	readVersions map[string]common.Version
+	puts         map[string]common.VersionedRecord
+	erases       map[string]struct{}
+
+	featureFlagDefinitionPuts map[string]common.FeatureFlagDefinition
+	featureFlagValuePuts      map[string]common.FeatureFlagValue
+
+	queueDefinitionPuts    map[string]common.QueueDefinition
+	queueMessagePuts       map[string]common.QueueMessageRecord
+	queueIdempotencyPuts   map[string]string
+	leaseDefinitionPuts    map[string]common.LeaseDefinition
+	leasePuts              map[string]common.LeaseRecord
+	leaseErases            map[string]struct{}
+	workflowDefinitionPuts map[string]common.WorkflowDefinition
+	workflowExecutionPuts  map[string]common.WorkflowExecutionRecord
+	logDefinitionPuts      map[string]common.LogSignalDefinition
+	logEventAppends        []common.LogEvent
+	metricDefinitionPuts   map[string]common.MetricInstrumentDefinition
+	metricSampleAppends    []common.MetricSample
+}
+
+func newTransaction(s *state) *Transaction {
+	return &Transaction{
+		state:                     s,
+		open:                      true,
+		readVersions:              map[string]common.Version{},
+		puts:                      map[string]common.VersionedRecord{},
+		erases:                    map[string]struct{}{},
+		featureFlagDefinitionPuts: map[string]common.FeatureFlagDefinition{},
+		featureFlagValuePuts:      map[string]common.FeatureFlagValue{},
+		queueDefinitionPuts:       map[string]common.QueueDefinition{},
+		queueMessagePuts:          map[string]common.QueueMessageRecord{},
+		queueIdempotencyPuts:      map[string]string{},
+		leaseDefinitionPuts:       map[string]common.LeaseDefinition{},
+		leasePuts:                 map[string]common.LeaseRecord{},
+		leaseErases:               map[string]struct{}{},
+		workflowDefinitionPuts:    map[string]common.WorkflowDefinition{},
+		workflowExecutionPuts:     map[string]common.WorkflowExecutionRecord{},
+		logDefinitionPuts:         map[string]common.LogSignalDefinition{},
+		metricDefinitionPuts:      map[string]common.MetricInstrumentDefinition{},
+	}
+}
+
+func (tx *Transaction) IsOpen() bool {
+	return tx != nil && tx.open
+}
+
+func (tx *Transaction) Abort(ctx context.Context) error {
+	_ = ctx
+	if tx == nil {
+		return common.ErrNotFound
+	}
+	tx.open = false
+	tx.readVersions = map[string]common.Version{}
+	tx.puts = map[string]common.VersionedRecord{}
+	tx.erases = map[string]struct{}{}
+	tx.featureFlagDefinitionPuts = map[string]common.FeatureFlagDefinition{}
+	tx.featureFlagValuePuts = map[string]common.FeatureFlagValue{}
+	tx.queueDefinitionPuts = map[string]common.QueueDefinition{}
+	tx.queueMessagePuts = map[string]common.QueueMessageRecord{}
+	tx.queueIdempotencyPuts = map[string]string{}
+	tx.leaseDefinitionPuts = map[string]common.LeaseDefinition{}
+	tx.leasePuts = map[string]common.LeaseRecord{}
+	tx.leaseErases = map[string]struct{}{}
+	tx.workflowDefinitionPuts = map[string]common.WorkflowDefinition{}
+	tx.workflowExecutionPuts = map[string]common.WorkflowExecutionRecord{}
+	tx.logDefinitionPuts = map[string]common.LogSignalDefinition{}
+	tx.logEventAppends = nil
+	tx.metricDefinitionPuts = map[string]common.MetricInstrumentDefinition{}
+	tx.metricSampleAppends = nil
+	return nil
+}
+
+func asMemoryTx(tx common.Transaction) (*Transaction, error) {
+	memoryTx, ok := tx.(*Transaction)
+	if !ok || memoryTx == nil || !memoryTx.open {
+		return nil, common.ErrUnsupported
+	}
+	return memoryTx, nil
+}
+
+func recordVersionKey(collection common.CollectionName, key common.Key) string {
+	return "record:" + string(collection) + ":" + string(key)
+}
+
+func versionOrZero(versions map[string]common.Version, key string) common.Version {
+	if value, ok := versions[key]; ok {
+		return value
+	}
+	return 0
+}
+
+func parseRecordVersionKey(versionKey string) (common.CollectionName, common.Key, bool) {
+	const prefix = "record:"
+	if !strings.HasPrefix(versionKey, prefix) {
+		return "", "", false
+	}
+	rest := strings.TrimPrefix(versionKey, prefix)
+	separator := strings.Index(rest, ":")
+	if separator < 0 {
+		return "", "", false
+	}
+	return common.CollectionName(rest[:separator]), common.Key(rest[separator+1:]), true
+}
+
+func definitionKey(parts ...any) string {
+	out := ""
+	for index, part := range parts {
+		if index > 0 {
+			out += ":"
+		}
+		out += fmt.Sprint(part)
+	}
+	return out
+}
+
+func conflict(kind common.ConflictKind, message string) error {
+	return common.ConflictError{Kind: kind, Message: message}
+}

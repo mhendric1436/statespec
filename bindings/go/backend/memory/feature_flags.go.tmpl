@@ -1,0 +1,107 @@
+package memory
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type FeatureFlagStore struct{}
+
+func NewFeatureFlagStore() *FeatureFlagStore {
+	return &FeatureFlagStore{}
+}
+
+func (s *FeatureFlagStore) RegisterDefinition(ctx context.Context, backend common.Backend, definition common.FeatureFlagDefinition) (common.FeatureFlagRegisterDefinitionResult, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.FeatureFlagRegisterDefinitionResult{}, err
+	}
+	result, err := s.RegisterDefinitionTx(ctx, tx, definition)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.FeatureFlagRegisterDefinitionResult{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *FeatureFlagStore) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.FeatureFlagDefinition) (common.FeatureFlagRegisterDefinitionResult, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.FeatureFlagRegisterDefinitionResult{}, err
+	}
+	existing, err := s.InspectDefinitionTx(ctx, tx, definition.Name)
+	if err != nil {
+		return common.FeatureFlagRegisterDefinitionResult{}, err
+	}
+	memoryTx.featureFlagDefinitionPuts[definition.Name] = definition
+	return common.FeatureFlagRegisterDefinitionResult{RegisteredNew: existing == nil, Definition: definition}, nil
+}
+
+func (s *FeatureFlagStore) InspectDefinition(ctx context.Context, backend common.Backend, name string) (*common.FeatureFlagDefinition, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectDefinitionTx(ctx, tx, name)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *FeatureFlagStore) InspectDefinitionTx(ctx context.Context, tx common.Transaction, name string) (*common.FeatureFlagDefinition, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	if definition, ok := memoryTx.featureFlagDefinitionPuts[name]; ok {
+		return &definition, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if definition, ok := memoryTx.state.featureFlagDefinitions[name]; ok {
+		return &definition, nil
+	}
+	return nil, nil
+}
+
+func (s *FeatureFlagStore) Evaluate(ctx context.Context, backend common.Backend, request common.FeatureFlagEvaluationRequest) (common.FeatureFlagValue, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.FeatureFlagValue{}, err
+	}
+	result, err := s.EvaluateTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.FeatureFlagValue{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *FeatureFlagStore) EvaluateTx(ctx context.Context, tx common.Transaction, request common.FeatureFlagEvaluationRequest) (common.FeatureFlagValue, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.FeatureFlagValue{}, err
+	}
+	if value, ok := memoryTx.featureFlagValuePuts[request.Name]; ok {
+		return value, nil
+	}
+	memoryTx.state.mu.Lock()
+	if value, ok := memoryTx.state.featureFlagValues[request.Name]; ok {
+		memoryTx.state.mu.Unlock()
+		return value, nil
+	}
+	memoryTx.state.mu.Unlock()
+	definition, err := s.InspectDefinitionTx(ctx, tx, request.Name)
+	if err != nil {
+		return common.FeatureFlagValue{}, err
+	}
+	if definition == nil {
+		return common.FeatureFlagValue{}, common.ErrNotFound
+	}
+	return definition.DefaultValue, nil
+}

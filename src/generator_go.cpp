@@ -1632,6 +1632,38 @@ GenerationResult generate_go_bindings(
     if (!diagnostics.has_errors())
     {
         add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/backend.go.tmpl",
+            "common/backend/memory/backend.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/transaction.go.tmpl",
+            "common/backend/memory/transaction.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/feature_flags.go.tmpl",
+            "common/backend/memory/feature_flags.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/queues.go.tmpl",
+            "common/backend/memory/queues.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/leases.go.tmpl",
+            "common/backend/memory/leases.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/workflows.go.tmpl",
+            "common/backend/memory/workflows.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/logs.go.tmpl",
+            "common/backend/memory/logs.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/memory/metrics.go.tmpl",
+            "common/backend/memory/metrics.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
             result, options.output_dir, templates, "generated/descriptors.go.tmpl",
             "common/backend/descriptors.go", diagnostics, GeneratedArtifactTier::Common,
             TemplateRenderer::Values{{"descriptors", generate_descriptors_go(system)}}

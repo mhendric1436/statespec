@@ -1,0 +1,117 @@
+package memory
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type LogSink struct{}
+
+func NewLogSink() *LogSink {
+	return &LogSink{}
+}
+
+func (s *LogSink) RegisterDefinition(ctx context.Context, backend common.Backend, definition common.LogSignalDefinition) (common.LogSignalRegistration, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.LogSignalRegistration{}, err
+	}
+	result, err := s.RegisterDefinitionTx(ctx, tx, definition)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.LogSignalRegistration{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *LogSink) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.LogSignalDefinition) (common.LogSignalRegistration, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.LogSignalRegistration{}, err
+	}
+	existing, err := s.InspectDefinitionTx(ctx, tx, definition.Name)
+	if err != nil {
+		return common.LogSignalRegistration{}, err
+	}
+	memoryTx.logDefinitionPuts[definition.Name] = definition
+	return common.LogSignalRegistration{RegisteredNew: existing == nil, Definition: definition}, nil
+}
+
+func (s *LogSink) InspectDefinition(ctx context.Context, backend common.Backend, name string) (*common.LogSignalDefinition, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectDefinitionTx(ctx, tx, name)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *LogSink) InspectDefinitionTx(ctx context.Context, tx common.Transaction, name string) (*common.LogSignalDefinition, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	if definition, ok := memoryTx.logDefinitionPuts[name]; ok {
+		return &definition, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if definition, ok := memoryTx.state.logDefinitions[name]; ok {
+		return &definition, nil
+	}
+	return nil, nil
+}
+
+func (s *LogSink) EmitLog(ctx context.Context, backend common.Backend, event common.LogEvent) error {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	if err := s.EmitLogTx(ctx, tx, event); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+	return backend.Commit(ctx, tx)
+}
+
+func (s *LogSink) EmitLogTx(ctx context.Context, tx common.Transaction, event common.LogEvent) error {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return err
+	}
+	memoryTx.logEventAppends = append(memoryTx.logEventAppends, event)
+	return nil
+}
+
+func (s *LogSink) InspectEvents(ctx context.Context, backend common.Backend) ([]common.LogEvent, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	events, err := s.InspectEventsTx(ctx, tx)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return events, backend.Commit(ctx, tx)
+}
+
+func (s *LogSink) InspectEventsTx(ctx context.Context, tx common.Transaction) ([]common.LogEvent, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	memoryTx.state.mu.Lock()
+	events := append([]common.LogEvent{}, memoryTx.state.logEvents...)
+	memoryTx.state.mu.Unlock()
+	events = append(events, memoryTx.logEventAppends...)
+	return events, nil
+}

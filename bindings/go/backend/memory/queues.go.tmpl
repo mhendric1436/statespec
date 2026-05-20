@@ -1,0 +1,293 @@
+package memory
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type QueueStore struct{}
+
+func NewQueueStore() *QueueStore {
+	return &QueueStore{}
+}
+
+func (s *QueueStore) RegisterDefinition(ctx context.Context, backend common.Backend, request common.RegisterQueueDefinitionRequest) (common.QueueDefinitionRegistration, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.QueueDefinitionRegistration{}, err
+	}
+	result, err := s.RegisterDefinitionTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.QueueDefinitionRegistration{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *QueueStore) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, request common.RegisterQueueDefinitionRequest) (common.QueueDefinitionRegistration, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.QueueDefinitionRegistration{}, err
+	}
+	existing, err := s.InspectDefinitionTx(ctx, tx, request.Definition.Queue, request.Definition.Channel)
+	if err != nil {
+		return common.QueueDefinitionRegistration{}, err
+	}
+	key := queueDefinitionKey(request.Definition.Queue, request.Definition.Channel)
+	memoryTx.queueDefinitionPuts[key] = request.Definition
+	return common.QueueDefinitionRegistration{Definition: request.Definition, Created: existing == nil}, nil
+}
+
+func (s *QueueStore) InspectDefinition(ctx context.Context, backend common.Backend, queue string, channel string) (*common.QueueDefinition, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectDefinitionTx(ctx, tx, queue, channel)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *QueueStore) InspectDefinitionTx(ctx context.Context, tx common.Transaction, queue string, channel string) (*common.QueueDefinition, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	key := queueDefinitionKey(queue, channel)
+	if definition, ok := memoryTx.queueDefinitionPuts[key]; ok {
+		return &definition, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if definition, ok := memoryTx.state.queueDefinitions[key]; ok {
+		return &definition, nil
+	}
+	return nil, nil
+}
+
+func (s *QueueStore) Enqueue(ctx context.Context, backend common.Backend, request common.EnqueueMessageRequest) (common.QueueMessageRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.QueueMessageRecord{}, err
+	}
+	result, err := s.EnqueueTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.QueueMessageRecord{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *QueueStore) EnqueueTx(ctx context.Context, tx common.Transaction, request common.EnqueueMessageRequest) (common.QueueMessageRecord, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.QueueMessageRecord{}, err
+	}
+	if request.IdempotencyKey != nil {
+		idempotencyKey := queueDefinitionKey(request.Queue, request.Channel) + "|" + *request.IdempotencyKey
+		if messageID, ok := memoryTx.queueIdempotencyPuts[idempotencyKey]; ok {
+			return s.requireMessage(memoryTx, messageID)
+		}
+		memoryTx.state.mu.Lock()
+		messageID, ok := memoryTx.state.queueIdempotencyKeys[idempotencyKey]
+		memoryTx.state.mu.Unlock()
+		if ok {
+			return s.requireMessage(memoryTx, messageID)
+		}
+		memoryTx.queueIdempotencyPuts[idempotencyKey] = request.MessageID
+	}
+	record := common.QueueMessageRecord{
+		MessageID: request.MessageID,
+		Queue:     request.Queue,
+		Channel:   request.Channel,
+		Status:    "Pending",
+		Payload:   request.Payload,
+	}
+	memoryTx.queueMessagePuts[record.MessageID] = record
+	return record, nil
+}
+
+func (s *QueueStore) Claim(ctx context.Context, backend common.Backend, request common.ClaimMessageRequest) ([]common.QueueMessageRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.ClaimTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *QueueStore) ClaimTx(ctx context.Context, tx common.Transaction, request common.ClaimMessageRequest) ([]common.QueueMessageRecord, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	var claimed []common.QueueMessageRecord
+	for _, message := range s.allMessages(memoryTx) {
+		if uint32(len(claimed)) >= request.MaxMessages {
+			break
+		}
+		if message.Queue != request.Queue || message.Channel != request.Channel || message.Status == "Acked" || message.Status == "DeadLettered" {
+			continue
+		}
+		visible := message.Status == "Pending" || (message.ClaimExpiresAt != nil && !message.ClaimExpiresAt.After(request.Now))
+		if !visible {
+			continue
+		}
+		message.Status = "Claimed"
+		message.ClaimedBy = &request.Claimant
+		expires := request.Now.Add(request.VisibilityTimeout)
+		message.ClaimExpiresAt = &expires
+		message.Attempts++
+		memoryTx.queueMessagePuts[message.MessageID] = message
+		claimed = append(claimed, message)
+	}
+	return claimed, nil
+}
+
+func (s *QueueStore) Acknowledge(ctx context.Context, backend common.Backend, request common.AckMessageRequest) error {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	if err := s.AcknowledgeTx(ctx, tx, request); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+	return backend.Commit(ctx, tx)
+}
+
+func (s *QueueStore) AcknowledgeTx(ctx context.Context, tx common.Transaction, request common.AckMessageRequest) error {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return err
+	}
+	message, err := s.requireMessage(memoryTx, request.MessageID)
+	if err != nil {
+		return err
+	}
+	if err := requireQueueClaimant(message, request.Claimant); err != nil {
+		return err
+	}
+	message.Status = "Acked"
+	memoryTx.queueMessagePuts[message.MessageID] = message
+	return nil
+}
+
+func (s *QueueStore) Fail(ctx context.Context, backend common.Backend, request common.FailMessageRequest) (common.QueueMessageRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.QueueMessageRecord{}, err
+	}
+	result, err := s.FailTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.QueueMessageRecord{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *QueueStore) FailTx(ctx context.Context, tx common.Transaction, request common.FailMessageRequest) (common.QueueMessageRecord, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.QueueMessageRecord{}, err
+	}
+	message, err := s.requireMessage(memoryTx, request.MessageID)
+	if err != nil {
+		return common.QueueMessageRecord{}, err
+	}
+	if err := requireQueueClaimant(message, request.Claimant); err != nil {
+		return common.QueueMessageRecord{}, err
+	}
+	message.ClaimedBy = nil
+	message.ClaimExpiresAt = nil
+	if message.Attempts >= uint64(request.MaxAttempts) {
+		message.Status = "DeadLettered"
+	} else {
+		message.Status = "Pending"
+	}
+	memoryTx.queueMessagePuts[message.MessageID] = message
+	return message, nil
+}
+
+func (s *QueueStore) Inspect(ctx context.Context, backend common.Backend, messageID string) (*common.QueueMessageRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectTx(ctx, tx, messageID)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *QueueStore) InspectTx(ctx context.Context, tx common.Transaction, messageID string) (*common.QueueMessageRecord, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	if message, ok := memoryTx.queueMessagePuts[messageID]; ok {
+		return &message, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if message, ok := memoryTx.state.queueMessages[messageID]; ok {
+		return &message, nil
+	}
+	return nil, nil
+}
+
+func (s *QueueStore) requireMessage(tx *Transaction, messageID string) (common.QueueMessageRecord, error) {
+	if message, ok := tx.queueMessagePuts[messageID]; ok {
+		return message, nil
+	}
+	tx.state.mu.Lock()
+	defer tx.state.mu.Unlock()
+	if message, ok := tx.state.queueMessages[messageID]; ok {
+		return message, nil
+	}
+	return common.QueueMessageRecord{}, common.ErrNotFound
+}
+
+func (s *QueueStore) allMessages(tx *Transaction) []common.QueueMessageRecord {
+	byID := map[string]common.QueueMessageRecord{}
+	tx.state.mu.Lock()
+	for id, message := range tx.state.queueMessages {
+		byID[id] = message
+	}
+	tx.state.mu.Unlock()
+	for id, message := range tx.queueMessagePuts {
+		byID[id] = message
+	}
+	messages := make([]common.QueueMessageRecord, 0, len(byID))
+	for _, message := range byID {
+		messages = append(messages, message)
+	}
+	return messages
+}
+
+func queueDefinitionKey(queue string, channel string) string {
+	return definitionKey(queue, channel)
+}
+
+func requireQueueClaimant(message common.QueueMessageRecord, claimant string) error {
+	if message.ClaimedBy == nil || *message.ClaimedBy != claimant {
+		return conflict(common.QueueClaimConflict, "queue message is not claimed by caller")
+	}
+	return nil
+}

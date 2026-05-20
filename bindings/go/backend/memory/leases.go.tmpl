@@ -1,0 +1,249 @@
+package memory
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type LeaseStore struct{}
+
+func NewLeaseStore() *LeaseStore {
+	return &LeaseStore{}
+}
+
+func (s *LeaseStore) RegisterDefinition(ctx context.Context, backend common.Backend, definition common.LeaseDefinition) (common.LeaseRegisterDefinitionResult, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.LeaseRegisterDefinitionResult{}, err
+	}
+	result, err := s.RegisterDefinitionTx(ctx, tx, definition)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.LeaseRegisterDefinitionResult{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *LeaseStore) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.LeaseDefinition) (common.LeaseRegisterDefinitionResult, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.LeaseRegisterDefinitionResult{}, err
+	}
+	existing, err := s.InspectDefinitionTx(ctx, tx, definition.ID)
+	if err != nil {
+		return common.LeaseRegisterDefinitionResult{}, err
+	}
+	memoryTx.leaseDefinitionPuts[leaseDefinitionKey(definition.ID)] = definition
+	return common.LeaseRegisterDefinitionResult{RegisteredNew: existing == nil, Definition: definition}, nil
+}
+
+func (s *LeaseStore) InspectDefinition(ctx context.Context, backend common.Backend, definitionID common.LeaseDefinitionID) (*common.LeaseDefinition, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectDefinitionTx(ctx, tx, definitionID)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *LeaseStore) InspectDefinitionTx(ctx context.Context, tx common.Transaction, definitionID common.LeaseDefinitionID) (*common.LeaseDefinition, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	key := leaseDefinitionKey(definitionID)
+	if definition, ok := memoryTx.leaseDefinitionPuts[key]; ok {
+		return &definition, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if definition, ok := memoryTx.state.leaseDefinitions[key]; ok {
+		return &definition, nil
+	}
+	return nil, nil
+}
+
+func (s *LeaseStore) Acquire(ctx context.Context, backend common.Backend, request common.LeaseAcquireRequest) (common.LeaseAcquireResult, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.LeaseAcquireResult{}, err
+	}
+	result, err := s.AcquireTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.LeaseAcquireResult{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *LeaseStore) AcquireTx(ctx context.Context, tx common.Transaction, request common.LeaseAcquireRequest) (common.LeaseAcquireResult, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.LeaseAcquireResult{}, err
+	}
+	definition, err := s.InspectDefinitionTx(ctx, tx, request.DefinitionID)
+	if err != nil {
+		return common.LeaseAcquireResult{}, err
+	}
+	if definition == nil {
+		return common.LeaseAcquireResult{}, common.ErrNotFound
+	}
+	existing, err := s.InspectTx(ctx, tx, common.LeaseInspectRequest{DefinitionID: request.DefinitionID, Resource: request.Resource})
+	if err != nil {
+		return common.LeaseAcquireResult{}, err
+	}
+	if existing != nil && existing.Holder != nil && *existing.Holder != request.Holder && existing.ExpiresAt.After(request.Now) {
+		return common.LeaseAcquireResult{Acquired: false, Lease: existing}, nil
+	}
+	token := uint64(0)
+	if existing != nil {
+		token = existing.FencingToken
+	}
+	if definition.FencingToken {
+		token++
+	}
+	holder := request.Holder
+	record := common.LeaseRecord{
+		DefinitionID: request.DefinitionID,
+		Resource:     request.Resource,
+		Holder:       &holder,
+		ExpiresAt:    request.Now.Add(definition.TTL),
+		FencingToken: token,
+	}
+	memoryTx.leasePuts[leaseKey(request.DefinitionID, request.Resource)] = record
+	delete(memoryTx.leaseErases, leaseKey(request.DefinitionID, request.Resource))
+	return common.LeaseAcquireResult{Acquired: true, Lease: &record}, nil
+}
+
+func (s *LeaseStore) Renew(ctx context.Context, backend common.Backend, request common.LeaseRenewRequest) (common.LeaseRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.LeaseRecord{}, err
+	}
+	result, err := s.RenewTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.LeaseRecord{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *LeaseStore) RenewTx(ctx context.Context, tx common.Transaction, request common.LeaseRenewRequest) (common.LeaseRecord, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.LeaseRecord{}, err
+	}
+	definition, err := s.InspectDefinitionTx(ctx, tx, request.DefinitionID)
+	if err != nil {
+		return common.LeaseRecord{}, err
+	}
+	if definition == nil {
+		return common.LeaseRecord{}, common.ErrNotFound
+	}
+	record, err := s.requireLease(ctx, tx, request.DefinitionID, request.Resource)
+	if err != nil {
+		return common.LeaseRecord{}, err
+	}
+	if err := requireLeaseHolder(record, request.Holder, request.FencingToken); err != nil {
+		return common.LeaseRecord{}, err
+	}
+	record.ExpiresAt = request.Now.Add(definition.TTL)
+	memoryTx.leasePuts[leaseKey(request.DefinitionID, request.Resource)] = record
+	return record, nil
+}
+
+func (s *LeaseStore) Release(ctx context.Context, backend common.Backend, request common.LeaseReleaseRequest) error {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	if err := s.ReleaseTx(ctx, tx, request); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+	return backend.Commit(ctx, tx)
+}
+
+func (s *LeaseStore) ReleaseTx(ctx context.Context, tx common.Transaction, request common.LeaseReleaseRequest) error {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return err
+	}
+	record, err := s.requireLease(ctx, tx, request.DefinitionID, request.Resource)
+	if err != nil {
+		return err
+	}
+	if err := requireLeaseHolder(record, request.Holder, request.FencingToken); err != nil {
+		return err
+	}
+	key := leaseKey(request.DefinitionID, request.Resource)
+	delete(memoryTx.leasePuts, key)
+	memoryTx.leaseErases[key] = struct{}{}
+	return nil
+}
+
+func (s *LeaseStore) Inspect(ctx context.Context, backend common.Backend, request common.LeaseInspectRequest) (*common.LeaseRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *LeaseStore) InspectTx(ctx context.Context, tx common.Transaction, request common.LeaseInspectRequest) (*common.LeaseRecord, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	key := leaseKey(request.DefinitionID, request.Resource)
+	if _, erased := memoryTx.leaseErases[key]; erased {
+		return nil, nil
+	}
+	if record, ok := memoryTx.leasePuts[key]; ok {
+		return &record, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if record, ok := memoryTx.state.leases[key]; ok {
+		return &record, nil
+	}
+	return nil, nil
+}
+
+func (s *LeaseStore) requireLease(ctx context.Context, tx common.Transaction, definitionID common.LeaseDefinitionID, resource string) (common.LeaseRecord, error) {
+	record, err := s.InspectTx(ctx, tx, common.LeaseInspectRequest{DefinitionID: definitionID, Resource: resource})
+	if err != nil {
+		return common.LeaseRecord{}, err
+	}
+	if record == nil {
+		return common.LeaseRecord{}, common.ErrNotFound
+	}
+	return *record, nil
+}
+
+func leaseDefinitionKey(id common.LeaseDefinitionID) string {
+	return definitionKey(id.Name, id.Version)
+}
+
+func leaseKey(id common.LeaseDefinitionID, resource string) string {
+	return definitionKey(id.Name, id.Version, resource)
+}
+
+func requireLeaseHolder(record common.LeaseRecord, holder string, fencingToken uint64) error {
+	if record.Holder == nil || *record.Holder != holder || record.FencingToken != fencingToken {
+		return conflict(common.LeaseConflict, "lease is not held by caller")
+	}
+	return nil
+}

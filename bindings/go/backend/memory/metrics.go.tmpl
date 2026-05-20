@@ -1,0 +1,117 @@
+package memory
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type MetricSink struct{}
+
+func NewMetricSink() *MetricSink {
+	return &MetricSink{}
+}
+
+func (s *MetricSink) RegisterDefinition(ctx context.Context, backend common.Backend, definition common.MetricInstrumentDefinition) (common.MetricInstrumentRegistration, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.MetricInstrumentRegistration{}, err
+	}
+	result, err := s.RegisterDefinitionTx(ctx, tx, definition)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.MetricInstrumentRegistration{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *MetricSink) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.MetricInstrumentDefinition) (common.MetricInstrumentRegistration, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.MetricInstrumentRegistration{}, err
+	}
+	existing, err := s.InspectDefinitionTx(ctx, tx, definition.Name)
+	if err != nil {
+		return common.MetricInstrumentRegistration{}, err
+	}
+	memoryTx.metricDefinitionPuts[definition.Name] = definition
+	return common.MetricInstrumentRegistration{RegisteredNew: existing == nil, Definition: definition}, nil
+}
+
+func (s *MetricSink) InspectDefinition(ctx context.Context, backend common.Backend, name string) (*common.MetricInstrumentDefinition, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectDefinitionTx(ctx, tx, name)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *MetricSink) InspectDefinitionTx(ctx context.Context, tx common.Transaction, name string) (*common.MetricInstrumentDefinition, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	if definition, ok := memoryTx.metricDefinitionPuts[name]; ok {
+		return &definition, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if definition, ok := memoryTx.state.metricDefinitions[name]; ok {
+		return &definition, nil
+	}
+	return nil, nil
+}
+
+func (s *MetricSink) RecordMetric(ctx context.Context, backend common.Backend, sample common.MetricSample) error {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	if err := s.RecordMetricTx(ctx, tx, sample); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+	return backend.Commit(ctx, tx)
+}
+
+func (s *MetricSink) RecordMetricTx(ctx context.Context, tx common.Transaction, sample common.MetricSample) error {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return err
+	}
+	memoryTx.metricSampleAppends = append(memoryTx.metricSampleAppends, sample)
+	return nil
+}
+
+func (s *MetricSink) InspectSamples(ctx context.Context, backend common.Backend) ([]common.MetricSample, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	samples, err := s.InspectSamplesTx(ctx, tx)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return samples, backend.Commit(ctx, tx)
+}
+
+func (s *MetricSink) InspectSamplesTx(ctx context.Context, tx common.Transaction) ([]common.MetricSample, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	memoryTx.state.mu.Lock()
+	samples := append([]common.MetricSample{}, memoryTx.state.metricSamples...)
+	memoryTx.state.mu.Unlock()
+	samples = append(samples, memoryTx.metricSampleAppends...)
+	return samples, nil
+}

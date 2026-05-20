@@ -1,0 +1,351 @@
+package memory
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type WorkflowStore struct{}
+
+func NewWorkflowStore() *WorkflowStore {
+	return &WorkflowStore{}
+}
+
+func (s *WorkflowStore) RegisterDefinition(ctx context.Context, backend common.Backend, request common.RegisterWorkflowDefinitionRequest) (common.WorkflowDefinitionRegistration, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.WorkflowDefinitionRegistration{}, err
+	}
+	result, err := s.RegisterDefinitionTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.WorkflowDefinitionRegistration{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, request common.RegisterWorkflowDefinitionRequest) (common.WorkflowDefinitionRegistration, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.WorkflowDefinitionRegistration{}, err
+	}
+	existing, err := s.InspectDefinitionTx(ctx, tx, request.Definition.WorkflowName, request.Definition.WorkflowVersion)
+	if err != nil {
+		return common.WorkflowDefinitionRegistration{}, err
+	}
+	memoryTx.workflowDefinitionPuts[workflowDefinitionKey(request.Definition.WorkflowName, request.Definition.WorkflowVersion)] = request.Definition
+	return common.WorkflowDefinitionRegistration{Definition: request.Definition, Created: existing == nil}, nil
+}
+
+func (s *WorkflowStore) InspectDefinition(ctx context.Context, backend common.Backend, workflowName string, workflowVersion int64) (*common.WorkflowDefinition, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectDefinitionTx(ctx, tx, workflowName, workflowVersion)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) InspectDefinitionTx(ctx context.Context, tx common.Transaction, workflowName string, workflowVersion int64) (*common.WorkflowDefinition, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	key := workflowDefinitionKey(workflowName, workflowVersion)
+	if definition, ok := memoryTx.workflowDefinitionPuts[key]; ok {
+		return &definition, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if definition, ok := memoryTx.state.workflowDefinitions[key]; ok {
+		return &definition, nil
+	}
+	return nil, nil
+}
+
+func (s *WorkflowStore) Start(ctx context.Context, backend common.Backend, request common.StartWorkflowRequest) (common.WorkflowExecutionRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	result, err := s.StartTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.WorkflowExecutionRecord{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) StartTx(ctx context.Context, tx common.Transaction, request common.StartWorkflowRequest) (common.WorkflowExecutionRecord, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	existing, err := s.InspectTx(ctx, tx, request.WorkflowExecutionID)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if existing != nil {
+		return *existing, nil
+	}
+	record := common.WorkflowExecutionRecord{
+		WorkflowExecutionID: request.WorkflowExecutionID,
+		WorkflowName:        request.WorkflowName,
+		WorkflowVersion:     request.WorkflowVersion,
+		CurrentStep:         request.StartStep,
+		Status:              "Running",
+		State:               request.State,
+	}
+	memoryTx.workflowExecutionPuts[record.WorkflowExecutionID] = record
+	return record, nil
+}
+
+func (s *WorkflowStore) ClaimSteps(ctx context.Context, backend common.Backend, request common.ClaimWorkflowStepRequest) ([]common.WorkflowExecutionRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.ClaimStepsTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) ClaimStepsTx(ctx context.Context, tx common.Transaction, request common.ClaimWorkflowStepRequest) ([]common.WorkflowExecutionRecord, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	var claimed []common.WorkflowExecutionRecord
+	for _, execution := range s.allExecutions(memoryTx) {
+		if uint32(len(claimed)) >= request.MaxSteps {
+			break
+		}
+		if execution.WorkflowExecutionID != request.WorkflowExecutionID || execution.WorkflowName != request.WorkflowName || execution.WorkflowVersion != request.WorkflowVersion || execution.Status != "Running" {
+			continue
+		}
+		visible := execution.ClaimedBy == nil || (execution.ClaimExpiresAt != nil && !execution.ClaimExpiresAt.After(request.Now))
+		if !visible {
+			continue
+		}
+		execution.ClaimedBy = &request.Worker
+		expires := request.Now.Add(request.LeaseDuration)
+		execution.ClaimExpiresAt = &expires
+		execution.Attempt++
+		memoryTx.workflowExecutionPuts[execution.WorkflowExecutionID] = execution
+		claimed = append(claimed, execution)
+	}
+	return claimed, nil
+}
+
+func (s *WorkflowStore) KeepAliveStep(ctx context.Context, backend common.Backend, request common.KeepAliveWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	result, err := s.KeepAliveStepTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.WorkflowExecutionRecord{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) KeepAliveStepTx(ctx context.Context, tx common.Transaction, request common.KeepAliveWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	execution, err := s.requireExecution(ctx, tx, request.WorkflowExecutionID)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if err := requireWorkflowClaim(execution, request.Worker, request.CurrentStep); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	expires := request.Now.Add(request.LeaseDuration)
+	execution.ClaimExpiresAt = &expires
+	memoryTx.workflowExecutionPuts[execution.WorkflowExecutionID] = execution
+	return execution, nil
+}
+
+func (s *WorkflowStore) CompleteStep(ctx context.Context, backend common.Backend, request common.CompleteWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	result, err := s.CompleteStepTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.WorkflowExecutionRecord{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) CompleteStepTx(ctx context.Context, tx common.Transaction, request common.CompleteWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	execution, err := s.requireExecution(ctx, tx, request.WorkflowExecutionID)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if err := requireWorkflowClaim(execution, request.Worker, request.CompletedStep); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	execution.State = request.State
+	execution.ClaimedBy = nil
+	execution.ClaimExpiresAt = nil
+	if request.NextStep == nil {
+		execution.Status = "Completed"
+	} else {
+		execution.CurrentStep = *request.NextStep
+		execution.Status = "Running"
+	}
+	memoryTx.workflowExecutionPuts[execution.WorkflowExecutionID] = execution
+	return execution, nil
+}
+
+func (s *WorkflowStore) FailStep(ctx context.Context, backend common.Backend, request common.FailWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	result, err := s.FailStepTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.WorkflowExecutionRecord{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) FailStepTx(ctx context.Context, tx common.Transaction, request common.FailWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	execution, err := s.requireExecution(ctx, tx, request.WorkflowExecutionID)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if err := requireWorkflowClaim(execution, request.Worker, request.FailedStep); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	execution.ClaimedBy = nil
+	execution.ClaimExpiresAt = nil
+	if execution.Attempt >= uint64(request.MaxAttempts) {
+		execution.Status = "Failed"
+	} else {
+		execution.Status = "Running"
+	}
+	memoryTx.workflowExecutionPuts[execution.WorkflowExecutionID] = execution
+	return execution, nil
+}
+
+func (s *WorkflowStore) Cancel(ctx context.Context, backend common.Backend, request common.CancelWorkflowRequest) (common.WorkflowExecutionRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	result, err := s.CancelTx(ctx, tx, request)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return common.WorkflowExecutionRecord{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) CancelTx(ctx context.Context, tx common.Transaction, request common.CancelWorkflowRequest) (common.WorkflowExecutionRecord, error) {
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	execution, err := s.requireExecution(ctx, tx, request.WorkflowExecutionID)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	execution.Status = "Canceled"
+	execution.ClaimedBy = nil
+	execution.ClaimExpiresAt = nil
+	memoryTx.workflowExecutionPuts[execution.WorkflowExecutionID] = execution
+	return execution, nil
+}
+
+func (s *WorkflowStore) Inspect(ctx context.Context, backend common.Backend, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.InspectTx(ctx, tx, workflowExecutionID)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (s *WorkflowStore) InspectTx(ctx context.Context, tx common.Transaction, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {
+	_ = ctx
+	memoryTx, err := asMemoryTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	if execution, ok := memoryTx.workflowExecutionPuts[workflowExecutionID]; ok {
+		return &execution, nil
+	}
+	memoryTx.state.mu.Lock()
+	defer memoryTx.state.mu.Unlock()
+	if execution, ok := memoryTx.state.workflowExecutions[workflowExecutionID]; ok {
+		return &execution, nil
+	}
+	return nil, nil
+}
+
+func (s *WorkflowStore) requireExecution(ctx context.Context, tx common.Transaction, workflowExecutionID string) (common.WorkflowExecutionRecord, error) {
+	record, err := s.InspectTx(ctx, tx, workflowExecutionID)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if record == nil {
+		return common.WorkflowExecutionRecord{}, common.ErrNotFound
+	}
+	return *record, nil
+}
+
+func (s *WorkflowStore) allExecutions(tx *Transaction) []common.WorkflowExecutionRecord {
+	byID := map[string]common.WorkflowExecutionRecord{}
+	tx.state.mu.Lock()
+	for id, execution := range tx.state.workflowExecutions {
+		byID[id] = execution
+	}
+	tx.state.mu.Unlock()
+	for id, execution := range tx.workflowExecutionPuts {
+		byID[id] = execution
+	}
+	executions := make([]common.WorkflowExecutionRecord, 0, len(byID))
+	for _, execution := range byID {
+		executions = append(executions, execution)
+	}
+	return executions
+}
+
+func workflowDefinitionKey(name string, version int64) string {
+	return definitionKey(name, version)
+}
+
+func requireWorkflowClaim(execution common.WorkflowExecutionRecord, worker string, step string) error {
+	if execution.ClaimedBy == nil || *execution.ClaimedBy != worker || execution.CurrentStep != step {
+		return conflict(common.WorkflowClaimConflict, "workflow step is not claimed by caller")
+	}
+	return nil
+}
