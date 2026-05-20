@@ -7,6 +7,9 @@ The in-memory backend exists so generated API apps and Worker apps can be compil
 exercised without a concrete database, queue service, lease service, workflow service,
 log backend, or metrics backend. C++, Go, Java, and Rust emit the in-memory backend now.
 
+Use it as a generated dependency for local app linking and tests. Do not expose it as a
+transport-facing API or treat it as a production persistence model.
+
 ## Scope
 
 The in-memory backend contract covers these binding interfaces in each language:
@@ -80,6 +83,49 @@ common/memory/metrics.rs
 These paths are part of the cross-language artifact model. C++, Go, Java, and Rust currently
 emit the listed files.
 
+## Generated App Linking
+
+The generated API and Worker tiers both depend on the generated common-tier backend
+contracts. The in-memory backend is generated in the same common tier so one backend
+instance can satisfy both app shells in a local process or test fixture.
+
+Recommended local composition:
+
+```text
+Application composition root
+  InMemoryBackend
+  API app shell
+    API handlers
+    operator metadata API handlers
+  Worker app shell
+    worker handlers
+    workflow step handlers
+    workflow runner
+```
+
+Use the same `InMemoryBackend` instance when the API app writes state that the Worker app
+must later observe. Use separate instances when tests need isolated state.
+
+The generated in-memory backend is appropriate for:
+
+- compiling generated API app surfaces
+- compiling generated Worker app surfaces
+- local end-to-end tests where API and Worker code run in one process
+- deterministic tests of handlers, workflow steps, descriptors, and catalog registration
+
+It is not appropriate for:
+
+- cross-process coordination
+- durable storage
+- production queue visibility, lease, or workflow scheduling behavior
+- proving a production backend adapter implements the same operational guarantees
+
+Repository-level generated app linking coverage is exercised by:
+
+```sh
+make test-generated-apps
+```
+
 ## Shared State Model
 
 Each in-memory backend instance should own one shared state object:
@@ -106,6 +152,9 @@ InMemoryBackend
 
 API and Worker app shells should receive the same backend instance when they need to
 observe the same local runtime state.
+
+The backend state is intentionally process-local. Tests that need a clean environment
+should construct a new backend instance instead of clearing generated internals directly.
 
 ## OCC Semantics
 
@@ -181,3 +230,12 @@ The generated in-memory backend should be sufficient for:
 - deterministic unit tests
 
 It should not be used as evidence that a production backend adapter is correct.
+
+## Related Docs
+
+- [quick-start.md](quick-start.md) shows the CLI commands for generating and checking
+  app fixtures that link against the in-memory backend.
+- [generated-extension-points.md](generated-extension-points.md) describes the
+  user-owned handlers and composition roots that receive backend dependencies.
+- [backend-abstractions.md](backend-abstractions.md) describes the generated OCC backend
+  and transaction interfaces that production and in-memory adapters implement.

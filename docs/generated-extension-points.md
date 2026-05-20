@@ -11,6 +11,10 @@ workflow step names, and backend catalog definitions. Runtime implementations ow
 framework adapters, authentication, authorization integration, concrete backend
 adapters, remote API clients, and business logic inside API and worker handlers.
 
+For local generated app linking and handler tests, the generated common tier includes an
+in-memory backend that implements the same OCC backend interfaces. See
+[in-memory-backend.md](in-memory-backend.md).
+
 ## Ownership Boundary
 
 Generated code owns:
@@ -42,6 +46,10 @@ User-owned code owns:
 - application composition roots that connect generated descriptors to real handlers and
   backend stores
 
+The composition root may use the generated in-memory backend for local tests and
+examples. Production applications should provide a durable backend adapter behind the
+same generated interfaces.
+
 ## API Handler Extension Point
 
 API handlers receive a framework-neutral request context and return a generated API
@@ -61,6 +69,10 @@ API handlers may start workflows, enqueue messages, resolve operator metadata, o
 entities, but any persisted state access must use the generated backend/OCC transaction
 model. Handler code should not bypass `IBackend` and `ITransaction` or the equivalent
 language bindings for direct store access.
+
+When testing API handlers locally, inject the generated in-memory backend through the
+same application-owned dependency path that production code uses for its durable
+backend.
 
 ## Operator Metadata API Handlers
 
@@ -122,6 +134,10 @@ Workflow step handlers should be idempotent. A handler may be retried after proc
 restart, lease expiry, or backend failover. External calls should use idempotency keys
 from entity or workflow state, and entity mutations should happen through OCC-backed
 transactions.
+
+Generated workflow runners can be linked with the in-memory workflow, queue, lease, log,
+and metric stores for deterministic local tests. This verifies the generated wiring and
+handler contracts, not production backend durability.
 
 ## Recommended Application Layout
 

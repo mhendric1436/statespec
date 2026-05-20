@@ -155,6 +155,41 @@ make -C build/generated/order-system/rust check
 These checks compile the generated package surfaces. They do not implement business
 logic or connect to a real backend.
 
+## Link Generated Apps With The In-Memory Backend
+
+Generated bindings include an in-memory backend in the `common` tier for C++, Go, Java,
+and Rust. It implements the generated OCC backend, transaction, feature flag, queue,
+lease, workflow, log, and metric interfaces so API and Worker app shells can link in
+local tests without a production backend adapter.
+
+Generate the complete API + Worker fixture and compile the generated surfaces:
+
+```sh
+./build/bin/statespec generate bindings --lang cpp testdata/generators/canonical-api-worker-app.sspec --out build/generated/canonical-api-worker-app/cpp
+./build/bin/statespec generate bindings --lang go testdata/generators/canonical-api-worker-app.sspec --out build/generated/canonical-api-worker-app/go
+./build/bin/statespec generate bindings --lang java testdata/generators/canonical-api-worker-app.sspec --out build/generated/canonical-api-worker-app/java
+./build/bin/statespec generate bindings --lang rust testdata/generators/canonical-api-worker-app.sspec --out build/generated/canonical-api-worker-app/rust
+
+make -C build/generated/canonical-api-worker-app/cpp check
+make -C build/generated/canonical-api-worker-app/go check
+make -C build/generated/canonical-api-worker-app/java check
+make -C build/generated/canonical-api-worker-app/rust check
+```
+
+Use one in-memory backend instance in the application composition root when an API app
+and Worker app need to observe the same local state. The in-memory backend is intended
+for generated app linking, examples, and deterministic tests; production deployments
+should replace it with a durable backend adapter.
+
+The repository regression target for generated API and Worker app linking is:
+
+```sh
+make test-generated-apps
+```
+
+For the backend contract and per-language paths, see
+[in-memory-backend.md](in-memory-backend.md).
+
 ## API App Design
 
 The generated API app is framework-neutral scaffolding for serving declared `api`
@@ -180,7 +215,8 @@ User code owns:
 
 The API app should translate a transport request into a generated request context,
 dispatch through the generated route table, run a user-owned handler, and translate the
-generated response back to the transport.
+generated response back to the transport. Local tests may use the generated in-memory
+backend as the concrete backend adapter.
 
 ## Worker App Design
 
@@ -209,6 +245,8 @@ User code owns:
 Workflow step handlers should be idempotent. Any persisted state read that affects a
 worker decision must happen through the generated backend transaction model, in the same
 transaction as the write or workflow/queue operation that consumes the read.
+Local Worker app tests may use the generated in-memory workflow, queue, lease, log, and
+metric stores.
 
 ## Generated Layout By Language
 
@@ -217,12 +255,14 @@ Typical generated output roots:
 ```text
 build/generated/<example>/cpp/
   common/
+    memory/
   api/
   worker/
   Makefile
 
 build/generated/<example>/go/
   common/backend/
+    memory/
   api/backend/
   worker/backend/
   go.mod
@@ -230,6 +270,7 @@ build/generated/<example>/go/
 
 build/generated/<example>/java/
   common/com/statespec/backend/
+    memory/
   common/com/statespec/generated/
   api/com/statespec/generated/
   worker/com/statespec/generated/
@@ -237,6 +278,7 @@ build/generated/<example>/java/
 
 build/generated/<example>/rust/
   common/
+    memory/
   api/
   worker/
   Cargo.toml

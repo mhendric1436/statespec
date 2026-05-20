@@ -11,7 +11,7 @@ truth for system behavior.
 
 | File | Purpose |
 |---|---|
-| [quick-start.md](quick-start.md) | Command-oriented walkthrough for validating examples, generating bindings/OpenAPI, and understanding generated API and Worker apps. |
+| [quick-start.md](quick-start.md) | Command-oriented walkthrough for validating examples, generating bindings/OpenAPI, linking generated apps with the in-memory backend, and understanding generated API and Worker apps. |
 | [getting-started.md](getting-started.md) | Minimal workflow for creating, validating, and generating from a `.sspec` file. |
 | [language-model.md](language-model.md) | The core StateSpec mental model and declaration types. |
 | [compiler-parity.md](compiler-parity.md) | Grammar-to-compiler implementation matrix and priority order. |
@@ -29,7 +29,7 @@ truth for system behavior.
 | [generators.md](generators.md) | CLI-selected binding generation and expected output layout. |
 | [generated-extension-points.md](generated-extension-points.md) | User-owned API, worker, workflow step, and operator metadata implementation boundaries. |
 | [backend-abstractions.md](backend-abstractions.md) | OCC-centered backend abstraction source artifacts and runtime contracts. |
-| [in-memory-backend.md](in-memory-backend.md) | Cross-language in-memory backend contract for local generated API and Worker app linking. |
+| [in-memory-backend.md](in-memory-backend.md) | Cross-language in-memory backend contract, generated paths, and local API plus Worker app linking guidance. |
 | [style-guide.md](style-guide.md) | Naming, ordering, and maintainability conventions for `.sspec` files. |
 
 ## Recommended Reading Order
