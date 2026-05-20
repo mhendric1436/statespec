@@ -397,6 +397,45 @@ make diagrams-png
 
 ---
 
+## Shannon Information Theory and the StateSpec Vision
+
+StateSpec was heavily influenced by concepts from Shannon Information Theory.
+
+Core ideas include:
+
+- entropy reduction
+- canonical representation
+- deterministic structure
+- signal versus noise
+- predictable semantic continuation
+- durable orchestration state
+
+The language intentionally minimizes ambiguity by enforcing:
+
+- explicit lifecycle semantics
+- canonical formatting
+- strongly typed relationships
+- deterministic orchestration patterns
+- durable workflow coordination
+
+The guiding principle is:
+
+> Every feature should reduce ambiguity rather than increase flexibility.
+
+A detailed discussion is available in:
+
+[`docs/shannon.md`](docs/shannon.md)
+
+The document explains:
+
+- Shannon entropy
+- cross entropy
+- LLM relationships to information theory
+- why low-entropy system specifications matter
+- how these concepts shaped the StateSpec language architecture
+
+---
+
 ## Design Principles
 
 ### Canonical structure
