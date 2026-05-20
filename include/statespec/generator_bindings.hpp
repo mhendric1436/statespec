@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace statespec
 {
@@ -27,11 +28,39 @@ struct BindingGeneratorOptions
     BindingGenerationTier tier = BindingGenerationTier::All;
 };
 
+enum class BindingAppArtifactKind
+{
+    ApiApplication,
+    ApiServer,
+    ApiDispatcher,
+    ApiHandlerRegistry,
+    ApiMain,
+    WorkerApplication,
+    WorkerRuntime,
+    WorkerRegistry,
+    WorkflowRunner,
+    WorkflowStepHandlers,
+    WorkerMain,
+};
+
+struct BindingAppArtifactModel
+{
+    std::string artifact_path;
+    GeneratedArtifactTier tier = GeneratedArtifactTier::Common;
+    BindingAppArtifactKind kind = BindingAppArtifactKind::ApiApplication;
+    std::string description;
+    bool generated = false;
+};
+
 BindingGenerationTier parse_binding_generation_tier(const std::string& value);
 
 std::string binding_generation_tier_name(BindingGenerationTier tier);
 
 std::string supported_binding_generation_tiers_text();
+
+std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind);
+
+std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage language);
 
 enum class FieldDescriptorType
 {

@@ -160,6 +160,138 @@ std::string supported_binding_generation_tiers_text()
     return "all|common|api|worker";
 }
 
+std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
+{
+    switch (kind)
+    {
+    case BindingAppArtifactKind::ApiApplication:
+        return "api_application";
+    case BindingAppArtifactKind::ApiServer:
+        return "api_server";
+    case BindingAppArtifactKind::ApiDispatcher:
+        return "api_dispatcher";
+    case BindingAppArtifactKind::ApiHandlerRegistry:
+        return "api_handler_registry";
+    case BindingAppArtifactKind::ApiMain:
+        return "api_main";
+    case BindingAppArtifactKind::WorkerApplication:
+        return "worker_application";
+    case BindingAppArtifactKind::WorkerRuntime:
+        return "worker_runtime";
+    case BindingAppArtifactKind::WorkerRegistry:
+        return "worker_registry";
+    case BindingAppArtifactKind::WorkflowRunner:
+        return "workflow_runner";
+    case BindingAppArtifactKind::WorkflowStepHandlers:
+        return "workflow_step_handlers";
+    case BindingAppArtifactKind::WorkerMain:
+        return "worker_main";
+    }
+    return "api_application";
+}
+
+std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage language)
+{
+    using Kind = BindingAppArtifactKind;
+    const auto api = GeneratedArtifactTier::Api;
+    const auto worker = GeneratedArtifactTier::Worker;
+
+    switch (language)
+    {
+    case BindingLanguage::Cpp:
+        return {
+            {"api/api_application.hpp", api, Kind::ApiApplication,
+             "API application composition root"},
+            {"api/api_server.hpp", api, Kind::ApiServer, "API server lifecycle and request loop"},
+            {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, "API route-to-handler dispatcher"},
+            {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry,
+             "API handler registry extension point"},
+            {"api/main.cpp", api, Kind::ApiMain, "API process entrypoint"},
+            {"worker/worker_application.hpp", worker, Kind::WorkerApplication,
+             "Worker application composition root"},
+            {"worker/worker_runtime.hpp", worker, Kind::WorkerRuntime,
+             "Worker polling and execution runtime"},
+            {"worker/worker_registry.hpp", worker, Kind::WorkerRegistry,
+             "Worker declaration registry"},
+            {"worker/workflow_runner.hpp", worker, Kind::WorkflowRunner,
+             "Workflow claim and step runner"},
+            {"worker/workflow_step_handlers.hpp", worker, Kind::WorkflowStepHandlers,
+             "Workflow step handler extension point"},
+            {"worker/main.cpp", worker, Kind::WorkerMain, "Worker process entrypoint"},
+        };
+    case BindingLanguage::Go:
+        return {
+            {"api/backend/api_application.go", api, Kind::ApiApplication,
+             "API application composition root"},
+            {"api/backend/api_server.go", api, Kind::ApiServer,
+             "API server lifecycle and request loop"},
+            {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher,
+             "API route-to-handler dispatcher"},
+            {"api/backend/api_handler_registry.go", api, Kind::ApiHandlerRegistry,
+             "API handler registry extension point"},
+            {"api/cmd/api/main.go", api, Kind::ApiMain, "API process entrypoint"},
+            {"worker/backend/worker_application.go", worker, Kind::WorkerApplication,
+             "Worker application composition root"},
+            {"worker/backend/worker_runtime.go", worker, Kind::WorkerRuntime,
+             "Worker polling and execution runtime"},
+            {"worker/backend/worker_registry.go", worker, Kind::WorkerRegistry,
+             "Worker declaration registry"},
+            {"worker/backend/workflow_runner.go", worker, Kind::WorkflowRunner,
+             "Workflow claim and step runner"},
+            {"worker/backend/workflow_step_handlers.go", worker, Kind::WorkflowStepHandlers,
+             "Workflow step handler extension point"},
+            {"worker/cmd/worker/main.go", worker, Kind::WorkerMain, "Worker process entrypoint"},
+        };
+    case BindingLanguage::Java:
+        return {
+            {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication,
+             "API application composition root"},
+            {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer,
+             "API server lifecycle and request loop"},
+            {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher,
+             "API route-to-handler dispatcher"},
+            {"api/com/statespec/generated/ApiHandlerRegistry.java", api, Kind::ApiHandlerRegistry,
+             "API handler registry extension point"},
+            {"api/com/statespec/generated/ApiMain.java", api, Kind::ApiMain,
+             "API process entrypoint"},
+            {"worker/com/statespec/generated/WorkerApplication.java", worker,
+             Kind::WorkerApplication, "Worker application composition root"},
+            {"worker/com/statespec/generated/WorkerRuntime.java", worker, Kind::WorkerRuntime,
+             "Worker polling and execution runtime"},
+            {"worker/com/statespec/generated/WorkerRegistry.java", worker, Kind::WorkerRegistry,
+             "Worker declaration registry"},
+            {"worker/com/statespec/generated/WorkflowRunner.java", worker, Kind::WorkflowRunner,
+             "Workflow claim and step runner"},
+            {"worker/com/statespec/generated/WorkflowStepHandlers.java", worker,
+             Kind::WorkflowStepHandlers, "Workflow step handler extension point"},
+            {"worker/com/statespec/generated/WorkerMain.java", worker, Kind::WorkerMain,
+             "Worker process entrypoint"},
+        };
+    case BindingLanguage::Rust:
+        return {
+            {"api/api_application.rs", api, Kind::ApiApplication,
+             "API application composition root"},
+            {"api/api_server.rs", api, Kind::ApiServer, "API server lifecycle and request loop"},
+            {"api/api_dispatcher.rs", api, Kind::ApiDispatcher, "API route-to-handler dispatcher"},
+            {"api/api_handler_registry.rs", api, Kind::ApiHandlerRegistry,
+             "API handler registry extension point"},
+            {"api/main.rs", api, Kind::ApiMain, "API process entrypoint"},
+            {"worker/worker_application.rs", worker, Kind::WorkerApplication,
+             "Worker application composition root"},
+            {"worker/worker_runtime.rs", worker, Kind::WorkerRuntime,
+             "Worker polling and execution runtime"},
+            {"worker/worker_registry.rs", worker, Kind::WorkerRegistry,
+             "Worker declaration registry"},
+            {"worker/workflow_runner.rs", worker, Kind::WorkflowRunner,
+             "Workflow claim and step runner"},
+            {"worker/workflow_step_handlers.rs", worker, Kind::WorkflowStepHandlers,
+             "Workflow step handler extension point"},
+            {"worker/main.rs", worker, Kind::WorkerMain, "Worker process entrypoint"},
+        };
+    }
+    return {};
+}
+
 FieldDescriptorType classify_field_descriptor_type(const std::string& type_name)
 {
     const auto normalized = trim_copy(type_name);

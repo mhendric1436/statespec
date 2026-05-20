@@ -35,6 +35,52 @@ as focused files for descriptors, handlers, routes, and external-system operator
 metadata APIs. Worker-tier code is emitted under `worker/` as focused files for
 worker descriptors, contexts, handlers, queues, leases, and workflows.
 
+## Application Artifact Model
+
+The binding generators use a stable application artifact model for the planned complete
+API-server and worker applications. These files are modeled as generated-owned
+artifacts, but the application files are not emitted yet. The current generators still
+emit the lower-level common, API contract, and worker contract files described above.
+
+The API application artifact responsibilities are:
+
+| Kind | Responsibility |
+|---|---|
+| `api_application` | API application composition root |
+| `api_server` | API server lifecycle and request loop |
+| `api_dispatcher` | Route-to-handler dispatch |
+| `api_handler_registry` | User implementation registry for API handlers |
+| `api_main` | API process entrypoint |
+
+The worker application artifact responsibilities are:
+
+| Kind | Responsibility |
+|---|---|
+| `worker_application` | Worker application composition root |
+| `worker_runtime` | Queue polling, lease management, and execution runtime |
+| `worker_registry` | Registry derived from `worker` declarations |
+| `workflow_runner` | Workflow claim, keep-alive, complete, fail, and retry loop |
+| `workflow_step_handlers` | User implementation registry for workflow steps |
+| `worker_main` | Worker process entrypoint |
+
+Planned API application filenames:
+
+| Language | Files |
+|---|---|
+| `cpp` | `api/api_application.hpp`, `api/api_server.hpp`, `api/api_dispatcher.hpp`, `api/api_handler_registry.hpp`, `api/main.cpp` |
+| `go` | `api/backend/api_application.go`, `api/backend/api_server.go`, `api/backend/api_dispatcher.go`, `api/backend/api_handler_registry.go`, `api/cmd/api/main.go` |
+| `java` | `api/com/statespec/generated/ApiApplication.java`, `api/com/statespec/generated/ApiServer.java`, `api/com/statespec/generated/ApiDispatcher.java`, `api/com/statespec/generated/ApiHandlerRegistry.java`, `api/com/statespec/generated/ApiMain.java` |
+| `rust` | `api/api_application.rs`, `api/api_server.rs`, `api/api_dispatcher.rs`, `api/api_handler_registry.rs`, `api/main.rs` |
+
+Planned worker application filenames:
+
+| Language | Files |
+|---|---|
+| `cpp` | `worker/worker_application.hpp`, `worker/worker_runtime.hpp`, `worker/worker_registry.hpp`, `worker/workflow_runner.hpp`, `worker/workflow_step_handlers.hpp`, `worker/main.cpp` |
+| `go` | `worker/backend/worker_application.go`, `worker/backend/worker_runtime.go`, `worker/backend/worker_registry.go`, `worker/backend/workflow_runner.go`, `worker/backend/workflow_step_handlers.go`, `worker/cmd/worker/main.go` |
+| `java` | `worker/com/statespec/generated/WorkerApplication.java`, `worker/com/statespec/generated/WorkerRuntime.java`, `worker/com/statespec/generated/WorkerRegistry.java`, `worker/com/statespec/generated/WorkflowRunner.java`, `worker/com/statespec/generated/WorkflowStepHandlers.java`, `worker/com/statespec/generated/WorkerMain.java` |
+| `rust` | `worker/worker_application.rs`, `worker/worker_runtime.rs`, `worker/worker_registry.rs`, `worker/workflow_runner.rs`, `worker/workflow_step_handlers.rs`, `worker/main.rs` |
+
 ## Supported Languages
 
 | Language | Default output root |

@@ -160,6 +160,189 @@ void test_binding_generation_tier_parse()
     );
 }
 
+struct ExpectedBindingAppArtifact
+{
+    std::string path;
+    statespec::GeneratedArtifactTier tier;
+    statespec::BindingAppArtifactKind kind;
+};
+
+std::vector<std::string>
+sorted_app_artifact_paths(const std::vector<statespec::BindingAppArtifactModel>& artifacts)
+{
+    std::vector<std::string> paths;
+    for (const auto& artifact : artifacts)
+    {
+        paths.push_back(artifact.artifact_path);
+    }
+    std::sort(paths.begin(), paths.end());
+    return paths;
+}
+
+std::vector<std::string>
+sorted_expected_app_artifact_paths(const std::vector<ExpectedBindingAppArtifact>& expected)
+{
+    std::vector<std::string> paths;
+    for (const auto& artifact : expected)
+    {
+        paths.push_back(artifact.path);
+    }
+    std::sort(paths.begin(), paths.end());
+    return paths;
+}
+
+void require_app_artifact_model(
+    const std::vector<statespec::BindingAppArtifactModel>& artifacts,
+    const ExpectedBindingAppArtifact& expected
+)
+{
+    for (const auto& artifact : artifacts)
+    {
+        if (artifact.artifact_path == expected.path)
+        {
+            require(
+                artifact.tier == expected.tier,
+                "app artifact tier for " + expected.path + " should match"
+            );
+            require(
+                artifact.kind == expected.kind,
+                "app artifact kind for " + expected.path + " should match"
+            );
+            require(
+                !artifact.generated,
+                "app artifact " + expected.path + " should be modeled but not generated yet"
+            );
+            require(
+                !artifact.description.empty(),
+                "app artifact " + expected.path + " should describe its responsibility"
+            );
+            return;
+        }
+    }
+    require(false, "expected app artifact model entry " + expected.path);
+}
+
+void require_exact_app_artifact_model(
+    statespec::BindingLanguage language,
+    const std::string& language_name,
+    const std::vector<ExpectedBindingAppArtifact>& expected
+)
+{
+    const auto artifacts = statespec::binding_app_artifact_model(language);
+    for (const auto& artifact : expected)
+    {
+        require_app_artifact_model(artifacts, artifact);
+    }
+
+    const auto actual_paths = sorted_app_artifact_paths(artifacts);
+    const auto expected_paths = sorted_expected_app_artifact_paths(expected);
+    require(
+        actual_paths == expected_paths,
+        language_name + " app artifact model should match expected filenames"
+    );
+}
+
+void test_binding_app_artifact_kind_names()
+{
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(
+            statespec::BindingAppArtifactKind::ApiApplication
+        ),
+        "api_application", "API application artifact kind name"
+    );
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::ApiServer),
+        "api_server", "API server artifact kind name"
+    );
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(
+            statespec::BindingAppArtifactKind::WorkerApplication
+        ),
+        "worker_application", "worker application artifact kind name"
+    );
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::WorkerMain),
+        "worker_main", "worker main artifact kind name"
+    );
+}
+
+void test_binding_app_artifact_models_define_application_filenames()
+{
+    const auto api = statespec::GeneratedArtifactTier::Api;
+    const auto worker = statespec::GeneratedArtifactTier::Worker;
+    using Kind = statespec::BindingAppArtifactKind;
+
+    require_exact_app_artifact_model(
+        statespec::BindingLanguage::Cpp, "cpp",
+        {
+            {"api/api_application.hpp", api, Kind::ApiApplication},
+            {"api/api_server.hpp", api, Kind::ApiServer},
+            {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher},
+            {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry},
+            {"api/main.cpp", api, Kind::ApiMain},
+            {"worker/worker_application.hpp", worker, Kind::WorkerApplication},
+            {"worker/worker_runtime.hpp", worker, Kind::WorkerRuntime},
+            {"worker/worker_registry.hpp", worker, Kind::WorkerRegistry},
+            {"worker/workflow_runner.hpp", worker, Kind::WorkflowRunner},
+            {"worker/workflow_step_handlers.hpp", worker, Kind::WorkflowStepHandlers},
+            {"worker/main.cpp", worker, Kind::WorkerMain},
+        }
+    );
+
+    require_exact_app_artifact_model(
+        statespec::BindingLanguage::Go, "go",
+        {
+            {"api/backend/api_application.go", api, Kind::ApiApplication},
+            {"api/backend/api_server.go", api, Kind::ApiServer},
+            {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher},
+            {"api/backend/api_handler_registry.go", api, Kind::ApiHandlerRegistry},
+            {"api/cmd/api/main.go", api, Kind::ApiMain},
+            {"worker/backend/worker_application.go", worker, Kind::WorkerApplication},
+            {"worker/backend/worker_runtime.go", worker, Kind::WorkerRuntime},
+            {"worker/backend/worker_registry.go", worker, Kind::WorkerRegistry},
+            {"worker/backend/workflow_runner.go", worker, Kind::WorkflowRunner},
+            {"worker/backend/workflow_step_handlers.go", worker, Kind::WorkflowStepHandlers},
+            {"worker/cmd/worker/main.go", worker, Kind::WorkerMain},
+        }
+    );
+
+    require_exact_app_artifact_model(
+        statespec::BindingLanguage::Java, "java",
+        {
+            {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication},
+            {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer},
+            {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher},
+            {"api/com/statespec/generated/ApiHandlerRegistry.java", api, Kind::ApiHandlerRegistry},
+            {"api/com/statespec/generated/ApiMain.java", api, Kind::ApiMain},
+            {"worker/com/statespec/generated/WorkerApplication.java", worker,
+             Kind::WorkerApplication},
+            {"worker/com/statespec/generated/WorkerRuntime.java", worker, Kind::WorkerRuntime},
+            {"worker/com/statespec/generated/WorkerRegistry.java", worker, Kind::WorkerRegistry},
+            {"worker/com/statespec/generated/WorkflowRunner.java", worker, Kind::WorkflowRunner},
+            {"worker/com/statespec/generated/WorkflowStepHandlers.java", worker,
+             Kind::WorkflowStepHandlers},
+            {"worker/com/statespec/generated/WorkerMain.java", worker, Kind::WorkerMain},
+        }
+    );
+
+    require_exact_app_artifact_model(
+        statespec::BindingLanguage::Rust, "rust",
+        {
+            {"api/api_application.rs", api, Kind::ApiApplication},
+            {"api/api_server.rs", api, Kind::ApiServer},
+            {"api/api_dispatcher.rs", api, Kind::ApiDispatcher},
+            {"api/api_handler_registry.rs", api, Kind::ApiHandlerRegistry},
+            {"api/main.rs", api, Kind::ApiMain},
+            {"worker/worker_application.rs", worker, Kind::WorkerApplication},
+            {"worker/worker_runtime.rs", worker, Kind::WorkerRuntime},
+            {"worker/worker_registry.rs", worker, Kind::WorkerRegistry},
+            {"worker/workflow_runner.rs", worker, Kind::WorkflowRunner},
+            {"worker/workflow_step_handlers.rs", worker, Kind::WorkflowStepHandlers},
+            {"worker/main.rs", worker, Kind::WorkerMain},
+        }
+    );
+}
+
 void test_invalid_binding_generation_tier_throws()
 {
     bool threw = false;
@@ -1081,6 +1264,16 @@ TEST_CASE("binding language lists supported languages")
 TEST_CASE("binding generation tier parses canonical names")
 {
     test_binding_generation_tier_parse();
+}
+
+TEST_CASE("binding app artifact kind names are stable")
+{
+    test_binding_app_artifact_kind_names();
+}
+
+TEST_CASE("binding app artifact models define application filenames")
+{
+    test_binding_app_artifact_models_define_application_filenames();
 }
 
 TEST_CASE("binding generation tier rejects unsupported values")
