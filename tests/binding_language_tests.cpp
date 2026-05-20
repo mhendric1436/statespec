@@ -2,6 +2,7 @@
 #include "statespec/binding_language.hpp"
 #include "statespec/generator_bindings.hpp"
 
+#include <algorithm>
 #include <exception>
 #include <filesystem>
 #include <stdexcept>
@@ -308,6 +309,201 @@ void require_generated_files_have_tiered_artifact_paths(
             );
         }
     }
+}
+
+struct ExpectedGeneratedArtifact
+{
+    std::string path;
+    statespec::GeneratedArtifactTier tier;
+};
+
+std::vector<std::string> sorted_artifact_paths(const statespec::GenerationResult& result)
+{
+    std::vector<std::string> paths;
+    for (const auto& file : result.files)
+    {
+        paths.push_back(file.artifact_path);
+    }
+    std::sort(paths.begin(), paths.end());
+    return paths;
+}
+
+std::vector<std::string>
+sorted_expected_artifact_paths(const std::vector<ExpectedGeneratedArtifact>& expected)
+{
+    std::vector<std::string> paths;
+    for (const auto& artifact : expected)
+    {
+        paths.push_back(artifact.path);
+    }
+    std::sort(paths.begin(), paths.end());
+    return paths;
+}
+
+void require_generated_artifact(
+    const statespec::GenerationResult& result,
+    const ExpectedGeneratedArtifact& expected
+)
+{
+    for (const auto& file : result.files)
+    {
+        if (file.artifact_path == expected.path)
+        {
+            require(
+                file.tier == expected.tier,
+                "generated artifact tier for " + expected.path + " should match"
+            );
+            return;
+        }
+    }
+    require(false, "expected generated artifact " + expected.path);
+}
+
+void require_exact_generated_artifact_manifest(
+    statespec::BindingLanguage language,
+    const std::string& language_name,
+    const std::vector<ExpectedGeneratedArtifact>& expected
+)
+{
+    statespec::DiagnosticBag diagnostics;
+    const auto result = statespec::generate_bindings(
+        empty_system_spec(),
+        statespec::BindingGeneratorOptions{
+            language,
+            std::filesystem::path{"/tmp/statespec-artifact-manifest-test"} / language_name,
+            statespec::BindingGenerationTier::All,
+        },
+        diagnostics
+    );
+
+    require(!diagnostics.has_errors(), language_name + " manifest generation should not fail");
+    for (const auto& artifact : expected)
+    {
+        require_generated_artifact(result, artifact);
+    }
+
+    const auto actual_paths = sorted_artifact_paths(result);
+    const auto expected_paths = sorted_expected_artifact_paths(expected);
+    require(
+        actual_paths == expected_paths,
+        language_name + " generated artifact manifest should match expected production filenames"
+    );
+}
+
+void test_binding_generators_emit_meaningful_artifact_filenames()
+{
+    const auto common = statespec::GeneratedArtifactTier::Common;
+    const auto api = statespec::GeneratedArtifactTier::Api;
+    const auto worker = statespec::GeneratedArtifactTier::Worker;
+
+    require_exact_generated_artifact_manifest(
+        statespec::BindingLanguage::Cpp, "cpp",
+        {
+            {"common/backend.hpp", common},
+            {"common/external_system.hpp", common},
+            {"common/feature_flag.hpp", common},
+            {"common/json.hpp", common},
+            {"common/lease.hpp", common},
+            {"common/log.hpp", common},
+            {"common/metric.hpp", common},
+            {"common/queue.hpp", common},
+            {"common/workflow.hpp", common},
+            {"common/system_descriptors.hpp", common},
+            {"common/Makefile", common},
+            {"api/api_descriptors.hpp", api},
+            {"api/api_handlers.hpp", api},
+            {"api/api_routes.hpp", api},
+            {"api/external_system_operator_metadata_api.hpp", api},
+            {"worker/worker_contexts.hpp", worker},
+            {"worker/worker_descriptors.hpp", worker},
+            {"worker/worker_handlers.hpp", worker},
+            {"worker/worker_leases.hpp", worker},
+            {"worker/worker_queues.hpp", worker},
+            {"worker/worker_workflows.hpp", worker},
+        }
+    );
+
+    require_exact_generated_artifact_manifest(
+        statespec::BindingLanguage::Go, "go",
+        {
+            {"common/backend/backend.go", common},
+            {"common/backend/external_system.go", common},
+            {"common/backend/feature_flag.go", common},
+            {"common/backend/json.go", common},
+            {"common/backend/lease.go", common},
+            {"common/backend/log.go", common},
+            {"common/backend/metric.go", common},
+            {"common/backend/queue.go", common},
+            {"common/backend/workflow.go", common},
+            {"common/backend/descriptors.go", common},
+            {"common/go.mod", common},
+            {"api/backend/api_descriptors.go", api},
+            {"api/backend/api_handlers.go", api},
+            {"api/backend/api_routes.go", api},
+            {"api/backend/external_system_operator_metadata_api.go", api},
+            {"worker/backend/worker_contexts.go", worker},
+            {"worker/backend/worker_descriptors.go", worker},
+            {"worker/backend/worker_handlers.go", worker},
+            {"worker/backend/worker_leases.go", worker},
+            {"worker/backend/worker_queues.go", worker},
+            {"worker/backend/worker_workflows.go", worker},
+        }
+    );
+
+    require_exact_generated_artifact_manifest(
+        statespec::BindingLanguage::Java, "java",
+        {
+            {"common/com/statespec/backend/Backend.java", common},
+            {"common/com/statespec/backend/ExternalSystem.java", common},
+            {"common/com/statespec/backend/FeatureFlag.java", common},
+            {"common/com/statespec/backend/Json.java", common},
+            {"common/com/statespec/backend/Lease.java", common},
+            {"common/com/statespec/backend/Log.java", common},
+            {"common/com/statespec/backend/Metric.java", common},
+            {"common/com/statespec/backend/Queue.java", common},
+            {"common/com/statespec/backend/Workflow.java", common},
+            {"common/com/statespec/generated/Descriptors.java", common},
+            {"common/Makefile", common},
+            {"api/com/statespec/generated/ApiDescriptors.java", api},
+            {"api/com/statespec/generated/ApiHandlers.java", api},
+            {"api/com/statespec/generated/ApiRoutes.java", api},
+            {"api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", api},
+            {"worker/com/statespec/generated/WorkerContexts.java", worker},
+            {"worker/com/statespec/generated/WorkerDescriptors.java", worker},
+            {"worker/com/statespec/generated/WorkerHandlers.java", worker},
+            {"worker/com/statespec/generated/WorkerLeases.java", worker},
+            {"worker/com/statespec/generated/WorkerQueues.java", worker},
+            {"worker/com/statespec/generated/WorkerWorkflows.java", worker},
+        }
+    );
+
+    require_exact_generated_artifact_manifest(
+        statespec::BindingLanguage::Rust, "rust",
+        {
+            {"common/backend.rs", common},
+            {"common/external_system.rs", common},
+            {"common/feature_flag.rs", common},
+            {"common/json.rs", common},
+            {"common/lease.rs", common},
+            {"common/log.rs", common},
+            {"common/metric.rs", common},
+            {"common/queue.rs", common},
+            {"common/workflow.rs", common},
+            {"common/descriptors.rs", common},
+            {"common/Cargo.toml", common},
+            {"common/lib.rs", common},
+            {"api/api_descriptors.rs", api},
+            {"api/api_handlers.rs", api},
+            {"api/api_routes.rs", api},
+            {"api/external_system_operator_metadata_api.rs", api},
+            {"worker/worker_contexts.rs", worker},
+            {"worker/worker_descriptors.rs", worker},
+            {"worker/worker_handlers.rs", worker},
+            {"worker/worker_leases.rs", worker},
+            {"worker/worker_queues.rs", worker},
+            {"worker/worker_workflows.rs", worker},
+        }
+    );
 }
 
 void require_generated_file_artifact_path(
@@ -910,6 +1106,11 @@ TEST_CASE("generated artifact tier defaults to common")
 TEST_CASE("binding generators tag current files as common artifacts")
 {
     test_binding_generators_assign_artifact_tiers();
+}
+
+TEST_CASE("binding generators emit meaningful production filenames")
+{
+    test_binding_generators_emit_meaningful_artifact_filenames();
 }
 
 TEST_CASE("binding generators model shared descriptor artifact paths")
