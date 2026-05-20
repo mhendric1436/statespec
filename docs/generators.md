@@ -243,7 +243,7 @@ Generated shape metadata includes:
 
 Generated bindings also include conservative target-language DTOs for shapes:
 
-- C++ emits a `struct` per shape in `system_descriptors.hpp`.
+- C++ emits a `struct` per shape in `descriptors.hpp`.
 - Go emits an exported `struct` per shape in `backend/descriptors.go`.
 - Java emits a `record` per shape in `Descriptors.java`.
 - Rust emits a `struct` per shape in `descriptors.rs`.

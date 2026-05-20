@@ -627,7 +627,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/metric.hpp", common},
             {"common/queue.hpp", common},
             {"common/workflow.hpp", common},
-            {"common/system_descriptors.hpp", common},
+            {"common/descriptors.hpp", common},
             {"common/Makefile", common},
             {"api/api_descriptors.hpp", api},
             {"api/api_handlers.hpp", api},
@@ -845,7 +845,7 @@ void test_shared_descriptor_artifact_paths()
 
     require(!diagnostics.has_errors(), "descriptor artifact path generation should not fail");
     require_generated_file_artifact_path(
-        cpp_result, "system_descriptors.hpp", "common/system_descriptors.hpp",
+        cpp_result, "descriptors.hpp", "common/descriptors.hpp",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

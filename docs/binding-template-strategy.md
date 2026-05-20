@@ -81,7 +81,7 @@ Generated output layout:
 <out>/metric.hpp
 <out>/queue.hpp
 <out>/workflow.hpp
-<out>/system_descriptors.hpp
+<out>/descriptors.hpp
 ```
 
 ### Go

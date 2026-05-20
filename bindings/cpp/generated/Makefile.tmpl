@@ -26,7 +26,7 @@ $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
 check-common: $(BUILD_DIR)/.dir
-	printf '#include "common/system_descriptors.hpp"\nint main() { return 0; }\n' | $(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common
+	printf '#include "common/descriptors.hpp"\nint main() { return 0; }\n' | $(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common
 
 build-common: check-common
 

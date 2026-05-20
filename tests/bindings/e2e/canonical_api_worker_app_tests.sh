@@ -28,6 +28,7 @@ api/api_routes.hpp
 api/api_server.hpp
 api/external_system_operator_metadata_api.hpp
 common/backend.hpp
+common/descriptors.hpp
 common/external_system.hpp
 common/feature_flag.hpp
 common/json.hpp
@@ -35,7 +36,6 @@ common/lease.hpp
 common/log.hpp
 common/metric.hpp
 common/queue.hpp
-common/system_descriptors.hpp
 common/workflow.hpp
 worker/worker_application.hpp
 worker/worker_contexts.hpp
@@ -146,9 +146,9 @@ EOF
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$APP_SPEC" --out "$TMPDIR/out-app-cpp"
 assert_file_manifest_equals "$TMPDIR/out-app-cpp" "$CPP_MANIFEST"
-assert_file_contains "$TMPDIR/out-app-cpp/common/system_descriptors.hpp" "\"ProvisionApi.StartProvision\""
-assert_file_contains "$TMPDIR/out-app-cpp/common/system_descriptors.hpp" "\"ProvisionCommands.CreateRemoteService\""
-assert_file_contains "$TMPDIR/out-app-cpp/common/system_descriptors.hpp" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionApi.StartProvision\""
+assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionCommands.CreateRemoteService\""
+assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_server.hpp" "class ApiServer"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_dispatcher.hpp" "dispatch_api_route"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_registry.hpp" "find_worker_descriptor"

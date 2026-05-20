@@ -18,7 +18,7 @@ NO_SYSTEM_SPEC="$TESTS_DIR/fixtures/no-system.sspec"
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
 assert_output_contains "generated $TMPDIR/out-cpp/common/json.hpp"
 assert_file_exists "$TMPDIR/out-cpp/common/backend.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/out-cpp/common/descriptors.hpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
 assert_output_contains "generated $TMPDIR/out-go/common/backend/json.go"
@@ -36,17 +36,17 @@ assert_file_exists "$TMPDIR/out-rust/common/backend.rs"
 assert_file_exists "$TMPDIR/out-rust/common/descriptors.rs"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-common" --tier common
-assert_file_exists "$TMPDIR/tier-common/common/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/tier-common/common/descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-common/api/api_descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-common/worker/worker_descriptors.hpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-api" --tier api
-assert_file_exists "$TMPDIR/tier-api/common/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/tier-api/common/descriptors.hpp"
 assert_file_exists "$TMPDIR/tier-api/api/api_descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-api/worker/worker_descriptors.hpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/tier-worker" --tier worker
-assert_file_exists "$TMPDIR/tier-worker/common/system_descriptors.hpp"
+assert_file_exists "$TMPDIR/tier-worker/common/descriptors.hpp"
 assert_file_not_exists "$TMPDIR/tier-worker/api/api_descriptors.hpp"
 assert_file_exists "$TMPDIR/tier-worker/worker/worker_descriptors.hpp"
 

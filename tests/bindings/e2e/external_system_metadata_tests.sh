@@ -17,12 +17,12 @@ E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
 
 # End-to-end external-system metadata generated binding regression.
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPDIR/out-e2e-cpp"
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/system_descriptors.hpp" "api_route_descriptors"
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/system_descriptors.hpp" "\"OperatorApi\""
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/system_descriptors.hpp" "\"UpsertExternalSystemEndpoint\""
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/system_descriptors.hpp" "\"metadata.retry_policy\""
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/system_descriptors.hpp" "\"input.payment_id\""
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/system_descriptors.hpp" "IExternalSystemOperatorMetadataApiHandler"
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "api_route_descriptors"
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "IExternalSystemOperatorMetadataApiHandler"
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$E2E_SPEC" --out "$TMPDIR/out-e2e-go"
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "func ApiRouteDescriptors"

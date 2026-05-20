@@ -1864,7 +1864,7 @@ GenerationResult generate_cpp_bindings(
     {
         add_generated_template_file(
             result, options.output_dir, templates, "generated/descriptors.hpp.tmpl",
-            "common/system_descriptors.hpp", diagnostics, GeneratedArtifactTier::Common,
+            "common/descriptors.hpp", diagnostics, GeneratedArtifactTier::Common,
             TemplateRenderer::Values{
                 {"system_descriptors", generate_system_descriptors_header(system)}
             }
