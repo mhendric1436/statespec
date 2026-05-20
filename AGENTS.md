@@ -158,6 +158,30 @@ This applies to all language bindings, including C++, Go, Java, and Rust, and to
 - feature flags
 - generated runtime helpers that inspect, evaluate, claim, enqueue, start, complete, fail, cancel, register, or otherwise depend on persisted records
 
+### Backend boundary rule
+
+Backends and transactions are generic OCC document storage primitives. They must not know
+about queues, leases, workflows, feature flags, logs, metrics, or any other higher-level
+runtime component as native backend concepts.
+
+The backend layer owns only:
+
+- collection registration and descriptors
+- versioned records
+- queries over registered collections
+- transaction read sets, staged writes, staged deletes, commit, and abort
+- backend capabilities and conflict reporting
+
+Runtime components are users of the backend layer. Queue stores, lease stores, workflow
+stores, feature flag stores, log sinks, and metric sinks must register the collections
+they need and persist their records through `Backend`/`IBackend` and
+`Transaction`/`ITransaction`.
+
+Do not add domain-specific transaction staging fields such as queue message maps,
+workflow execution maps, lease maps, feature flag maps, log append buffers, or metric
+append buffers to backend or transaction implementations. Those records belong in
+component-owned collections.
+
 ### OCC rule
 
 Persistent reads must be transaction-scoped.

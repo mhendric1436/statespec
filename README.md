@@ -428,6 +428,12 @@ Runtime component APIs support backend-managed calls and caller-managed transact
 calls. Caller-managed variants use a `Tx` suffix, adapted to each language's naming
 conventions.
 
+Backends and transactions are intentionally component-neutral. They own collection
+registration, versioned records, queries, transaction read/write sets, commit, and
+abort. Queues, leases, workflows, feature flags, logs, and metrics are typed users of
+that generic backend model: each runtime component registers the collections it needs
+and stores its records through the same OCC `Backend` and `Transaction` interfaces.
+
 ---
 
 ## Language Bindings

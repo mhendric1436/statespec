@@ -56,11 +56,14 @@ that application code implements outside the generated output tree.
 The binding generators use a stable application artifact model for the planned complete
 API-server and worker applications plus a common-tier in-memory backend for local
 linking. The API server shell, API dispatcher, worker registry, worker application
-shell, workflow step handler interfaces, workflow runner, and C++ in-memory backend are
-emitted as the first generated application artifacts. The remaining application files
-and non-C++ memory backend files are still modeled as generated-owned artifacts but are
-not emitted yet. The current generators also emit the lower-level common, API contract,
-and worker contract files described above.
+shell, workflow step handler interfaces, workflow runner, and in-memory backend files
+are generated for C++, Go, Java, and Rust alongside the lower-level common, API
+contract, and worker contract files described above.
+
+The generated in-memory backend follows the backend boundary rule: backend and
+transaction artifacts provide generic OCC collection storage only. Feature flag, queue,
+lease, workflow, log, and metric artifacts are typed store/sink clients that register
+their own collections and persist records through the generic backend interface.
 
 The common in-memory backend artifact responsibilities are:
 

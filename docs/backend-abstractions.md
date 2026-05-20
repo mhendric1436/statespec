@@ -32,8 +32,10 @@ Transaction
 Backend
 ```
 
-The backend file intentionally stays component-neutral. Lease, queue, and workflow record
-shapes live with their respective runtime interface files.
+The backend file intentionally stays component-neutral. Lease, queue, workflow, feature
+flag, log, and metric record shapes live with their respective runtime interface files.
+Backend and transaction implementations must not carry domain-specific state for those
+runtime components.
 
 `FieldDescriptor` has the same conceptual shape in every binding:
 
@@ -82,6 +84,49 @@ ensure_collections / EnsureCollections / ensureCollections
 `ensure_collections` accepts a list of `CollectionDescriptor` records so generated
 runtimes can provision all required collections with one API call rather than one call per
 collection.
+
+## Backend Boundary
+
+Backends and transactions provide generic OCC document storage. They are not queue,
+lease, workflow, feature flag, log, or metric engines.
+
+The backend layer owns only:
+
+```text
+collection registration
+versioned records
+queries
+transaction read sets
+transaction write/delete staging
+atomic commit / abort
+capabilities
+conflict reporting
+```
+
+Higher-level runtime components are typed clients of this generic layer. Each component
+must register its required collections and store its records through the generic
+`Backend` and `Transaction` interfaces.
+
+Examples:
+
+```text
+QueueStore
+  registers queue definition, message, and idempotency collections
+  stores queue records through backend get / query / put / erase
+
+WorkflowStore
+  registers workflow definition and execution collections
+  stores workflow records through backend get / query / put / erase
+
+LogSink / MetricSink
+  register definition and event/sample collections
+  write observability records through backend put inside the caller's transaction
+```
+
+Backend or transaction implementations should not expose domain-specific staging fields
+such as queue message maps, workflow execution maps, lease maps, feature flag maps, log
+append buffers, or metric append buffers. Those are component records and should be
+represented as versioned records in component-owned collections.
 
 ## Index-Aware Queries
 
@@ -212,6 +257,11 @@ metrics through backend-managed calls, or it may use `Tx` variants to make each 
 part of the same caller-managed transaction that mutates entity, queue, lease, or
 workflow state.
 
+Each runtime component is responsible for registering the backend collections it uses.
+The backend provides `ensure_collection` / `ensure_collections`; the component defines
+the collection descriptors, record keys, indexes, and JSON record shape required by its
+contract.
+
 Queues are registered explicitly and idempotently with `QueueDefinition` and
 `RegisterQueueDefinitionRequest`. The queue identity is the pair `(queue, channel)`.
 `QueueDefinitionRegistration` returns the registered definition and whether the queue
@@ -244,9 +294,9 @@ scoped to a particular execution of a workflow definition.
 
 Workflow clients that hold a claimed step can call the keep-alive API to extend the
 claim lease before completing or failing the step. The keep-alive request identifies the
-workflow execution, worker, current step, current time, and lease duration. Backends
-should only extend the lease when the execution is still claimed by that worker for the
-same current step.
+workflow execution, worker, current step, current time, and lease duration. Workflow
+stores should only extend the lease when the execution is still claimed by that worker
+for the same current step.
 
 ## Required Semantics
 
@@ -288,6 +338,8 @@ The higher-level runtimes should compose on this model:
 - Workflow runtimes implement immutable registered definitions and claimable execution records.
 - Observability runtimes implement log emission and metric sample recording with typed JSON
   fields and labels.
+- Feature flag runtimes implement definition registration and override evaluation through
+  backend records.
 
 This keeps StateSpec backend-neutral while still making concrete implementation targets
 straightforward to build.

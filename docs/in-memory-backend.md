@@ -12,7 +12,7 @@ transport-facing API or treat it as a production persistence model.
 
 ## Scope
 
-The in-memory backend contract covers these binding interfaces in each language:
+The in-memory backend package covers these binding interfaces in each language:
 
 - `IBackend` / `Backend`
 - `ITransaction` / transaction type
@@ -23,8 +23,12 @@ The in-memory backend contract covers these binding interfaces in each language:
 - `ILogSink`
 - `IMetricSink`
 
-The backend should be generated under the `common` tier so both API and Worker tiers can
-reuse the same implementation.
+The backend and transaction pieces must remain generic. Feature flag, queue, lease,
+workflow, log, and metric implementations are separate store/sink clients that use the
+backend by registering collections and reading or writing versioned records.
+
+The memory package should be generated under the `common` tier so both API and Worker
+tiers can reuse the same implementation.
 
 ## Directory Layout
 
@@ -128,25 +132,13 @@ make test-generated-apps
 
 ## Shared State Model
 
-Each in-memory backend instance should own one shared state object:
+Each in-memory backend instance should own one shared generic state object:
 
 ```text
 InMemoryBackend
   SharedState
-    documents
-    feature_flag_definitions
-    feature_flag_values
-    queue_definitions
-    queue_messages
-    lease_definitions
-    leases
-    workflow_definitions
-    workflow_executions
-    workflow_steps
-    log_definitions
-    log_events
-    metric_definitions
-    metric_samples
+    collections
+    records
     versions
 ```
 
@@ -155,6 +147,10 @@ observe the same local runtime state.
 
 The backend state is intentionally process-local. Tests that need a clean environment
 should construct a new backend instance instead of clearing generated internals directly.
+
+Runtime stores and sinks may use the shared backend to persist their records, but the
+backend state object itself must not have native queue, lease, workflow, feature flag,
+log, or metric maps. Those records are stored in component-owned collections.
 
 ## OCC Semantics
 
@@ -171,6 +167,10 @@ backend interfaces:
 Backend-managed methods may open and commit their own transaction. Caller-managed `Tx`
 methods must compose with an existing transaction and must not commit or abort it.
 
+Transactions stage generic record puts and deletes only. They should not expose
+domain-specific staging maps or append buffers for queues, leases, workflows, feature
+flags, logs, or metrics.
+
 ## Store Contracts
 
 Feature flag store:
@@ -179,6 +179,7 @@ Feature flag store:
 - Persist and evaluate overrides.
 - Return descriptor defaults when no override exists.
 - Support transaction-scoped evaluation.
+- Store definitions and overrides in feature-flag-owned backend collections.
 
 Queue store:
 
@@ -187,6 +188,7 @@ Queue store:
 - Claim visible messages.
 - Ack and fail messages.
 - Track attempts, visibility timeout, and dead-letter metadata where supported.
+- Store definitions, messages, and idempotency keys in queue-owned backend collections.
 
 Lease store:
 
@@ -194,6 +196,7 @@ Lease store:
 - Acquire, renew, and release leases.
 - Enforce holder identity and fencing token behavior.
 - Use an injectable or overridable clock for TTL tests.
+- Store definitions and lease ownership records in lease-owned backend collections.
 
 Workflow store:
 
@@ -203,18 +206,21 @@ Workflow store:
 - Keep claimed steps alive.
 - Complete or fail steps.
 - Preserve retry-visible execution and step state.
+- Store definitions, executions, and claim state in workflow-owned backend collections.
 
 Log sink:
 
 - Register log definitions.
 - Emit structured log events transactionally.
 - Provide inspect APIs for tests.
+- Store definitions and events in log-owned backend collections.
 
 Metric sink:
 
 - Register metric definitions.
 - Record metric samples transactionally.
 - Provide inspect APIs for tests.
+- Store definitions and samples in metric-owned backend collections.
 
 ## Runtime Boundary
 
