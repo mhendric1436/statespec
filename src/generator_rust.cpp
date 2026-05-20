@@ -212,6 +212,81 @@ std::string generate_cargo_toml()
     return out.str();
 }
 
+std::string generate_rust_makefile(BindingGenerationTier tier)
+{
+    std::ostringstream out;
+    const auto include_api =
+        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
+    const auto include_worker =
+        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+
+    out << "CARGO ?= cargo\n";
+    out << "DIST_DIR ?= dist\n\n";
+    out << "CHECK_TARGETS := check-common\n";
+    out << "BUILD_TARGETS := build-common\n";
+    out << "PACKAGE_TARGETS := package-common";
+    if (include_api)
+    {
+        out << "\nCHECK_TARGETS += check-api";
+        out << "\nBUILD_TARGETS += build-api";
+        out << "\nPACKAGE_TARGETS += package-api";
+    }
+    if (include_worker)
+    {
+        out << "\nCHECK_TARGETS += check-worker";
+        out << "\nBUILD_TARGETS += build-worker";
+        out << "\nPACKAGE_TARGETS += package-worker";
+    }
+    out << "\n\n";
+    out << ".PHONY: all check build package check-common build-common package-common";
+    if (include_api)
+    {
+        out << " check-api build-api package-api";
+    }
+    if (include_worker)
+    {
+        out << " check-worker build-worker package-worker";
+    }
+    out << " clean\n\n";
+    out << "all: check\n\n";
+    out << "check: $(CHECK_TARGETS)\n\n";
+    out << "build: $(BUILD_TARGETS)\n\n";
+    out << "package: $(PACKAGE_TARGETS)\n\n";
+    out << "$(DIST_DIR):\n";
+    out << "\tmkdir -p $(DIST_DIR)\n\n";
+    out << "check-common:\n";
+    out << "\t$(CARGO) test\n\n";
+    out << "build-common:\n";
+    out << "\t$(CARGO) build\n\n";
+    out << "package-common: build-common $(DIST_DIR)\n";
+    out << "\ttar -czf $(DIST_DIR)/statespec-generated-common-rust.tgz common Cargo.toml lib.rs "
+           "Makefile\n\n";
+    if (include_api)
+    {
+        out << "check-api:\n";
+        out << "\t$(CARGO) test\n\n";
+        out << "build-api:\n";
+        out << "\t$(CARGO) build\n\n";
+        out << "package-api: build-api $(DIST_DIR)\n";
+        out << "\ttar -czf $(DIST_DIR)/statespec-generated-api-rust.tgz common api Cargo.toml "
+               "lib.rs Makefile\n\n";
+    }
+    if (include_worker)
+    {
+        out << "check-worker:\n";
+        out << "\t$(CARGO) test\n\n";
+        out << "build-worker:\n";
+        out << "\t$(CARGO) build\n\n";
+        out << "package-worker: build-worker $(DIST_DIR)\n";
+        out << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-rust.tgz common worker "
+               "Cargo.toml lib.rs Makefile\n\n";
+    }
+    out << "clean:\n";
+    out << "\t$(CARGO) clean\n";
+    out << "\trm -rf $(DIST_DIR)\n";
+    return out.str();
+}
+
 std::string generate_rust_lib(BindingGenerationTier tier)
 {
     std::ostringstream out;
@@ -2066,6 +2141,14 @@ GenerationResult generate_rust_bindings(
                 generate_rust_lib(options.tier),
                 GeneratedArtifactTier::Common,
                 "common/lib.rs",
+            }
+        );
+        result.files.push_back(
+            GeneratedFile{
+                (options.output_dir / "Makefile").string(),
+                generate_rust_makefile(options.tier),
+                GeneratedArtifactTier::Common,
+                "common/Makefile",
             }
         );
         result.files.push_back(

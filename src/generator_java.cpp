@@ -190,15 +190,34 @@ std::string generate_java_makefile()
 {
     std::ostringstream out;
     out << "JAVAC ?= javac\n";
+    out << "JAR ?= jar\n";
     out << "BUILD_DIR ?= build/classes\n";
+    out << "DIST_DIR ?= dist\n";
     out << "SOURCES := $(shell find . -name '*.java')\n\n";
-    out << ".PHONY: all check clean\n\n";
+    out << ".PHONY: all check build package build-common build-api build-worker package-common "
+           "package-api package-worker clean\n\n";
     out << "all: check\n\n";
-    out << "check:\n";
+    out << "check: build\n\n";
+    out << "build: build-common build-api build-worker\n\n";
+    out << "package: package-common package-api package-worker\n\n";
+    out << "$(BUILD_DIR):\n";
     out << "\tmkdir -p $(BUILD_DIR)\n";
+    out << "\n";
+    out << "$(DIST_DIR):\n";
+    out << "\tmkdir -p $(DIST_DIR)\n\n";
+    out << "build-common: $(BUILD_DIR)\n";
     out << "\t$(JAVAC) -d $(BUILD_DIR) $(SOURCES)\n\n";
+    out << "build-api: build-common\n\n";
+    out << "build-worker: build-common\n\n";
+    out << "package-common: build-common $(DIST_DIR)\n";
+    out << "\t$(JAR) --create --file $(DIST_DIR)/statespec-generated-common-java.jar -C "
+           "$(BUILD_DIR) .\n\n";
+    out << "package-api: build-api $(DIST_DIR)\n";
+    out << "\ttar -czf $(DIST_DIR)/statespec-generated-api-java.tgz common api Makefile\n\n";
+    out << "package-worker: build-worker $(DIST_DIR)\n";
+    out << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-java.tgz common worker Makefile\n\n";
     out << "clean:\n";
-    out << "\trm -rf build\n";
+    out << "\trm -rf build $(DIST_DIR)\n";
     return out.str();
 }
 

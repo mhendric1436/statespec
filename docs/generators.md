@@ -24,10 +24,10 @@ Generated bindings also include minimal language-native packaging metadata:
 
 | Language | Packaging files |
 |---|---|
-| `cpp` | `Makefile` with clang++-based common, API, and worker header checks |
-| `go` | `go.mod` for the generated module root |
-| `java` | `Makefile` with javac-based compile checks for generated sources |
-| `rust` | `Cargo.toml` and tier-aware `lib.rs` module declarations |
+| `cpp` | `Makefile` with clang++-based common, API, worker build, check, and package targets |
+| `go` | `go.mod` plus `Makefile` with common, API, worker build, check, and package targets |
+| `java` | `Makefile` with javac-based build, check, and package targets for generated sources |
+| `rust` | `Cargo.toml`, tier-aware `lib.rs`, and `Makefile` with build, check, and package targets |
 
 Common-tier runtime support and descriptor source is physically emitted under a
 `common/` directory in each language output root. API-tier code is emitted under `api/`

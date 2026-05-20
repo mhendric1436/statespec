@@ -629,6 +629,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/backend/workflow.go", common},
             {"common/backend/descriptors.go", common},
             {"common/go.mod", common},
+            {"common/Makefile", common},
             {"api/backend/api_descriptors.go", api},
             {"api/backend/api_handlers.go", api},
             {"api/backend/api_dispatcher.go", api},
@@ -696,6 +697,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/descriptors.rs", common},
             {"common/Cargo.toml", common},
             {"common/lib.rs", common},
+            {"common/Makefile", common},
             {"api/api_descriptors.rs", api},
             {"api/api_handlers.rs", api},
             {"api/api_dispatcher.rs", api},
@@ -820,6 +822,9 @@ void test_shared_descriptor_artifact_paths()
         go_result, "go.mod", "common/go.mod", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
+        go_result, "Makefile", "common/Makefile", statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
         java_result, "com/statespec/generated/Descriptors.java",
         "common/com/statespec/generated/Descriptors.java", statespec::GeneratedArtifactTier::Common
     );
@@ -835,6 +840,9 @@ void test_shared_descriptor_artifact_paths()
     );
     require_generated_file_artifact_path(
         rust_result, "lib.rs", "common/lib.rs", statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        rust_result, "Makefile", "common/Makefile", statespec::GeneratedArtifactTier::Common
     );
 
     require_generated_file_artifact_path(
@@ -1334,6 +1342,14 @@ void test_cpp_makefile_matches_selected_tier()
         "common Makefile declares common check"
     );
     require(
+        common_makefile.find("build-common") != std::string::npos,
+        "common Makefile declares common build target"
+    );
+    require(
+        common_makefile.find("package-common") != std::string::npos,
+        "common Makefile declares common package target"
+    );
+    require(
         common_makefile.find("api/api_descriptors.hpp") == std::string::npos,
         "common Makefile excludes API header"
     );
@@ -1365,6 +1381,14 @@ void test_cpp_makefile_matches_selected_tier()
     require(
         api_makefile.find("api/api_server.hpp") != std::string::npos,
         "API Makefile includes API server header"
+    );
+    require(
+        api_makefile.find("build-api") != std::string::npos,
+        "API Makefile includes API build target"
+    );
+    require(
+        api_makefile.find("package-api") != std::string::npos,
+        "API Makefile includes API package target"
     );
     require(
         api_makefile.find("worker/worker_descriptors.hpp") == std::string::npos,
@@ -1403,6 +1427,14 @@ void test_cpp_makefile_matches_selected_tier()
     require(
         worker_makefile.find("worker/worker_workflows.hpp") != std::string::npos,
         "worker Makefile includes worker workflows header"
+    );
+    require(
+        worker_makefile.find("build-worker") != std::string::npos,
+        "worker Makefile includes worker build target"
+    );
+    require(
+        worker_makefile.find("package-worker") != std::string::npos,
+        "worker Makefile includes worker package target"
     );
 
     require(!diagnostics.has_errors(), "cpp tier-aware Makefile generation should not fail");

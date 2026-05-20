@@ -213,36 +213,51 @@ std::string generate_makefile(BindingGenerationTier tier)
     out << "CXX ?= clang++\n";
     out << "CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -I. -Icommon\n";
     out << "BUILD_DIR ?= build\n\n";
-    out << "CHECK_TARGETS := check-common";
+    out << "DIST_DIR ?= dist\n\n";
+    out << "CHECK_TARGETS := check-common\n";
+    out << "BUILD_TARGETS := build-common\n";
+    out << "PACKAGE_TARGETS := package-common";
     if (include_api)
     {
-        out << " check-api";
+        out << "\nCHECK_TARGETS += check-api";
+        out << "\nBUILD_TARGETS += build-api";
+        out << "\nPACKAGE_TARGETS += package-api";
     }
     if (include_worker)
     {
-        out << " check-worker";
+        out << "\nCHECK_TARGETS += check-worker";
+        out << "\nBUILD_TARGETS += build-worker";
+        out << "\nPACKAGE_TARGETS += package-worker";
     }
     out << "\n\n";
-    out << ".PHONY: all check check-common";
+    out << ".PHONY: all check build package check-common build-common package-common";
     if (include_api)
     {
-        out << " check-api";
+        out << " check-api build-api package-api";
     }
     if (include_worker)
     {
-        out << " check-worker";
+        out << " check-worker build-worker package-worker";
     }
     out << " clean\n\n";
     out << "all: check\n\n";
     out << "check: $(CHECK_TARGETS)\n\n";
-    out << "$(BUILD_DIR):\n";
-    out << "\tmkdir -p $(BUILD_DIR)\n\n";
-    out << "check-common: $(BUILD_DIR)\n";
+    out << "build: $(BUILD_TARGETS)\n\n";
+    out << "package: $(PACKAGE_TARGETS)\n\n";
+    out << "$(BUILD_DIR)/.dir:\n";
+    out << "\tmkdir -p $(BUILD_DIR)\n";
+    out << "\ttouch $(BUILD_DIR)/.dir\n\n";
+    out << "$(DIST_DIR):\n";
+    out << "\tmkdir -p $(DIST_DIR)\n\n";
+    out << "check-common: $(BUILD_DIR)/.dir\n";
     out << "\tprintf '#include \"common/system_descriptors.hpp\"\\nint main() { return 0; }\\n' | "
            "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-common\n\n";
+    out << "build-common: check-common\n\n";
+    out << "package-common: build-common $(DIST_DIR)\n";
+    out << "\ttar -czf $(DIST_DIR)/statespec-generated-common-cpp.tgz common Makefile\n\n";
     if (include_api)
     {
-        out << "check-api: $(BUILD_DIR)\n";
+        out << "check-api: $(BUILD_DIR)/.dir\n";
         out << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
                "#include \"api/api_dispatcher.hpp\"\\n"
                "#include \"api/api_handlers.hpp\"\\n"
@@ -251,10 +266,13 @@ std::string generate_makefile(BindingGenerationTier tier)
                "#include \"api/external_system_operator_metadata_api.hpp\"\\n"
                "int main() { return 0; }\\n' | "
                "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
+        out << "build-api: check-api\n\n";
+        out << "package-api: build-api $(DIST_DIR)\n";
+        out << "\ttar -czf $(DIST_DIR)/statespec-generated-api-cpp.tgz common api Makefile\n\n";
     }
     if (include_worker)
     {
-        out << "check-worker: $(BUILD_DIR)\n";
+        out << "check-worker: $(BUILD_DIR)/.dir\n";
         out << "\tprintf '#include \"worker/worker_application.hpp\"\\n"
                "#include \"worker/worker_contexts.hpp\"\\n"
                "#include \"worker/worker_descriptors.hpp\"\\n"
@@ -267,9 +285,13 @@ std::string generate_makefile(BindingGenerationTier tier)
                "#include \"worker/workflow_step_handlers.hpp\"\\n"
                "int main() { return 0; }\\n' | "
                "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
+        out << "build-worker: check-worker\n\n";
+        out << "package-worker: build-worker $(DIST_DIR)\n";
+        out << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-cpp.tgz common worker "
+               "Makefile\n\n";
     }
     out << "clean:\n";
-    out << "\trm -rf $(BUILD_DIR)\n";
+    out << "\trm -rf $(BUILD_DIR) $(DIST_DIR)\n";
     return out.str();
 }
 
