@@ -36,15 +36,11 @@ func (s *LogSink) RegisterDefinition(ctx context.Context, backend common.Backend
 }
 
 func (s *LogSink) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.LogSignalDefinition) (common.LogSignalRegistration, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.LogSignalRegistration{}, err
-	}
 	existing, err := s.InspectDefinitionTx(ctx, tx, definition.Name)
 	if err != nil {
 		return common.LogSignalRegistration{}, err
 	}
-	if err := memoryTx.put(logDefinitionsCollection, common.Key(definition.Name), logDefinitionToJSON(definition)); err != nil {
+	if err := tx.Put(ctx, logDefinitionsCollection, common.Key(definition.Name), logDefinitionToJSON(definition)); err != nil {
 		return common.LogSignalRegistration{}, err
 	}
 	return common.LogSignalRegistration{RegisteredNew: existing == nil, Definition: definition}, nil
@@ -64,12 +60,7 @@ func (s *LogSink) InspectDefinition(ctx context.Context, backend common.Backend,
 }
 
 func (s *LogSink) InspectDefinitionTx(ctx context.Context, tx common.Transaction, name string) (*common.LogSignalDefinition, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	record, err := memoryTx.get(logDefinitionsCollection, common.Key(name))
+	record, err := tx.Get(ctx, logDefinitionsCollection, common.Key(name))
 	if err != nil || record == nil {
 		return nil, err
 	}
@@ -93,12 +84,7 @@ func (s *LogSink) EmitLog(ctx context.Context, backend common.Backend, event com
 }
 
 func (s *LogSink) EmitLogTx(ctx context.Context, tx common.Transaction, event common.LogEvent) error {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return err
-	}
-	return memoryTx.put(logEventsCollection, common.Key(eventKey(event.Name, &s.nextEventID)), logEventToJSON(event))
+	return tx.Put(ctx, logEventsCollection, common.Key(eventKey(event.Name, &s.nextEventID)), logEventToJSON(event))
 }
 
 func (s *LogSink) InspectEvents(ctx context.Context, backend common.Backend) ([]common.LogEvent, error) {
@@ -115,12 +101,7 @@ func (s *LogSink) InspectEvents(ctx context.Context, backend common.Backend) ([]
 }
 
 func (s *LogSink) InspectEventsTx(ctx context.Context, tx common.Transaction) ([]common.LogEvent, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	records, err := memoryTx.query(logEventsCollection, common.AllQuery())
+	records, err := tx.Query(ctx, logEventsCollection, common.AllQuery())
 	if err != nil {
 		return nil, err
 	}

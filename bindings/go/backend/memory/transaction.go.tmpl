@@ -60,7 +60,8 @@ func (tx *Transaction) Abort(ctx context.Context) error {
 	return nil
 }
 
-func (tx *Transaction) get(collection common.CollectionName, key common.Key) (*common.VersionedRecord, error) {
+func (tx *Transaction) Get(ctx context.Context, collection common.CollectionName, key common.Key) (*common.VersionedRecord, error) {
+	_ = ctx
 	if !tx.IsOpen() {
 		return nil, common.ErrUnsupported
 	}
@@ -88,7 +89,8 @@ func (tx *Transaction) get(collection common.CollectionName, key common.Key) (*c
 	return &record, nil
 }
 
-func (tx *Transaction) query(collection common.CollectionName, query common.Query) ([]common.VersionedRecord, error) {
+func (tx *Transaction) Query(ctx context.Context, collection common.CollectionName, query common.Query) ([]common.VersionedRecord, error) {
+	_ = ctx
 	if !tx.IsOpen() {
 		return nil, common.ErrUnsupported
 	}
@@ -126,11 +128,12 @@ func (tx *Transaction) query(collection common.CollectionName, query common.Quer
 	return records, nil
 }
 
-func (tx *Transaction) put(collection common.CollectionName, key common.Key, document common.JSON) error {
+func (tx *Transaction) Put(ctx context.Context, collection common.CollectionName, key common.Key, document common.JSON) error {
+	_ = ctx
 	if !tx.IsOpen() {
 		return common.ErrUnsupported
 	}
-	if _, err := tx.get(collection, key); err != nil {
+	if _, err := tx.Get(ctx, collection, key); err != nil {
 		return err
 	}
 	versionKey := recordVersionKey(collection, key)
@@ -139,11 +142,12 @@ func (tx *Transaction) put(collection common.CollectionName, key common.Key, doc
 	return nil
 }
 
-func (tx *Transaction) erase(collection common.CollectionName, key common.Key) error {
+func (tx *Transaction) Erase(ctx context.Context, collection common.CollectionName, key common.Key) error {
+	_ = ctx
 	if !tx.IsOpen() {
 		return common.ErrUnsupported
 	}
-	if _, err := tx.get(collection, key); err != nil {
+	if _, err := tx.Get(ctx, collection, key); err != nil {
 		return err
 	}
 	versionKey := recordVersionKey(collection, key)

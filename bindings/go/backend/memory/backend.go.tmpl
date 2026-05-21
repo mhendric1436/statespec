@@ -46,39 +46,19 @@ func (b *Backend) Begin(ctx context.Context) (common.Transaction, error) {
 }
 
 func (b *Backend) Get(ctx context.Context, tx common.Transaction, collection common.CollectionName, key common.Key) (*common.VersionedRecord, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	return memoryTx.get(collection, key)
+	return tx.Get(ctx, collection, key)
 }
 
 func (b *Backend) Query(ctx context.Context, tx common.Transaction, collection common.CollectionName, query common.Query) ([]common.VersionedRecord, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	return memoryTx.query(collection, query)
+	return tx.Query(ctx, collection, query)
 }
 
 func (b *Backend) Put(ctx context.Context, tx common.Transaction, collection common.CollectionName, key common.Key, document common.JSON) error {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return err
-	}
-	return memoryTx.put(collection, key, document)
+	return tx.Put(ctx, collection, key, document)
 }
 
 func (b *Backend) Erase(ctx context.Context, tx common.Transaction, collection common.CollectionName, key common.Key) error {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return err
-	}
-	return memoryTx.erase(collection, key)
+	return tx.Erase(ctx, collection, key)
 }
 
 func (b *Backend) Commit(ctx context.Context, tx common.Transaction) error {

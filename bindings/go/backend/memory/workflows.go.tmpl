@@ -34,15 +34,11 @@ func (s *WorkflowStore) RegisterDefinition(ctx context.Context, backend common.B
 }
 
 func (s *WorkflowStore) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, request common.RegisterWorkflowDefinitionRequest) (common.WorkflowDefinitionRegistration, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.WorkflowDefinitionRegistration{}, err
-	}
 	existing, err := s.InspectDefinitionTx(ctx, tx, request.Definition.WorkflowName, request.Definition.WorkflowVersion)
 	if err != nil {
 		return common.WorkflowDefinitionRegistration{}, err
 	}
-	if err := memoryTx.put(workflowDefinitionsCollection, common.Key(workflowDefinitionKey(request.Definition.WorkflowName, request.Definition.WorkflowVersion)), workflowDefinitionToJSON(request.Definition)); err != nil {
+	if err := tx.Put(ctx, workflowDefinitionsCollection, common.Key(workflowDefinitionKey(request.Definition.WorkflowName, request.Definition.WorkflowVersion)), workflowDefinitionToJSON(request.Definition)); err != nil {
 		return common.WorkflowDefinitionRegistration{}, err
 	}
 	return common.WorkflowDefinitionRegistration{Definition: request.Definition, Created: existing == nil}, nil
@@ -62,12 +58,7 @@ func (s *WorkflowStore) InspectDefinition(ctx context.Context, backend common.Ba
 }
 
 func (s *WorkflowStore) InspectDefinitionTx(ctx context.Context, tx common.Transaction, workflowName string, workflowVersion int64) (*common.WorkflowDefinition, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	record, err := memoryTx.get(workflowDefinitionsCollection, common.Key(workflowDefinitionKey(workflowName, workflowVersion)))
+	record, err := tx.Get(ctx, workflowDefinitionsCollection, common.Key(workflowDefinitionKey(workflowName, workflowVersion)))
 	if err != nil || record == nil {
 		return nil, err
 	}
@@ -92,10 +83,6 @@ func (s *WorkflowStore) Start(ctx context.Context, backend common.Backend, reque
 }
 
 func (s *WorkflowStore) StartTx(ctx context.Context, tx common.Transaction, request common.StartWorkflowRequest) (common.WorkflowExecutionRecord, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.WorkflowExecutionRecord{}, err
-	}
 	existing, err := s.InspectTx(ctx, tx, request.WorkflowExecutionID)
 	if err != nil {
 		return common.WorkflowExecutionRecord{}, err
@@ -111,7 +98,7 @@ func (s *WorkflowStore) StartTx(ctx context.Context, tx common.Transaction, requ
 		Status:              "Running",
 		State:               request.State,
 	}
-	if err := memoryTx.put(workflowExecutionsCollection, common.Key(record.WorkflowExecutionID), workflowExecutionToJSON(record)); err != nil {
+	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(record.WorkflowExecutionID), workflowExecutionToJSON(record)); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
 	return record, nil
@@ -131,13 +118,12 @@ func (s *WorkflowStore) ClaimSteps(ctx context.Context, backend common.Backend, 
 }
 
 func (s *WorkflowStore) ClaimStepsTx(ctx context.Context, tx common.Transaction, request common.ClaimWorkflowStepRequest) ([]common.WorkflowExecutionRecord, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
+	executions, err := s.allExecutions(ctx, tx)
 	if err != nil {
 		return nil, err
 	}
 	var claimed []common.WorkflowExecutionRecord
-	for _, execution := range s.allExecutions(memoryTx) {
+	for _, execution := range executions {
 		if uint32(len(claimed)) >= request.MaxSteps {
 			break
 		}
@@ -152,7 +138,7 @@ func (s *WorkflowStore) ClaimStepsTx(ctx context.Context, tx common.Transaction,
 		expires := request.Now.Add(request.LeaseDuration)
 		execution.ClaimExpiresAt = &expires
 		execution.Attempt++
-		if err := memoryTx.put(workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+		if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
 			return nil, err
 		}
 		claimed = append(claimed, execution)
@@ -174,10 +160,6 @@ func (s *WorkflowStore) KeepAliveStep(ctx context.Context, backend common.Backen
 }
 
 func (s *WorkflowStore) KeepAliveStepTx(ctx context.Context, tx common.Transaction, request common.KeepAliveWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.WorkflowExecutionRecord{}, err
-	}
 	execution, err := s.requireExecution(ctx, tx, request.WorkflowExecutionID)
 	if err != nil {
 		return common.WorkflowExecutionRecord{}, err
@@ -187,7 +169,7 @@ func (s *WorkflowStore) KeepAliveStepTx(ctx context.Context, tx common.Transacti
 	}
 	expires := request.Now.Add(request.LeaseDuration)
 	execution.ClaimExpiresAt = &expires
-	if err := memoryTx.put(workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
 	return execution, nil
@@ -207,10 +189,6 @@ func (s *WorkflowStore) CompleteStep(ctx context.Context, backend common.Backend
 }
 
 func (s *WorkflowStore) CompleteStepTx(ctx context.Context, tx common.Transaction, request common.CompleteWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.WorkflowExecutionRecord{}, err
-	}
 	execution, err := s.requireExecution(ctx, tx, request.WorkflowExecutionID)
 	if err != nil {
 		return common.WorkflowExecutionRecord{}, err
@@ -227,7 +205,7 @@ func (s *WorkflowStore) CompleteStepTx(ctx context.Context, tx common.Transactio
 		execution.CurrentStep = *request.NextStep
 		execution.Status = "Running"
 	}
-	if err := memoryTx.put(workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
 	return execution, nil
@@ -247,10 +225,6 @@ func (s *WorkflowStore) FailStep(ctx context.Context, backend common.Backend, re
 }
 
 func (s *WorkflowStore) FailStepTx(ctx context.Context, tx common.Transaction, request common.FailWorkflowStepRequest) (common.WorkflowExecutionRecord, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.WorkflowExecutionRecord{}, err
-	}
 	execution, err := s.requireExecution(ctx, tx, request.WorkflowExecutionID)
 	if err != nil {
 		return common.WorkflowExecutionRecord{}, err
@@ -265,7 +239,7 @@ func (s *WorkflowStore) FailStepTx(ctx context.Context, tx common.Transaction, r
 	} else {
 		execution.Status = "Running"
 	}
-	if err := memoryTx.put(workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
 	return execution, nil
@@ -285,10 +259,6 @@ func (s *WorkflowStore) Cancel(ctx context.Context, backend common.Backend, requ
 }
 
 func (s *WorkflowStore) CancelTx(ctx context.Context, tx common.Transaction, request common.CancelWorkflowRequest) (common.WorkflowExecutionRecord, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.WorkflowExecutionRecord{}, err
-	}
 	execution, err := s.requireExecution(ctx, tx, request.WorkflowExecutionID)
 	if err != nil {
 		return common.WorkflowExecutionRecord{}, err
@@ -296,7 +266,7 @@ func (s *WorkflowStore) CancelTx(ctx context.Context, tx common.Transaction, req
 	execution.Status = "Canceled"
 	execution.ClaimedBy = nil
 	execution.ClaimExpiresAt = nil
-	if err := memoryTx.put(workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
 	return execution, nil
@@ -316,12 +286,7 @@ func (s *WorkflowStore) Inspect(ctx context.Context, backend common.Backend, wor
 }
 
 func (s *WorkflowStore) InspectTx(ctx context.Context, tx common.Transaction, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	record, err := memoryTx.get(workflowExecutionsCollection, common.Key(workflowExecutionID))
+	record, err := tx.Get(ctx, workflowExecutionsCollection, common.Key(workflowExecutionID))
 	if err != nil || record == nil {
 		return nil, err
 	}
@@ -340,16 +305,16 @@ func (s *WorkflowStore) requireExecution(ctx context.Context, tx common.Transact
 	return *record, nil
 }
 
-func (s *WorkflowStore) allExecutions(tx *Transaction) []common.WorkflowExecutionRecord {
-	records, err := tx.query(workflowExecutionsCollection, common.AllQuery())
+func (s *WorkflowStore) allExecutions(ctx context.Context, tx common.Transaction) ([]common.WorkflowExecutionRecord, error) {
+	records, err := tx.Query(ctx, workflowExecutionsCollection, common.AllQuery())
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	executions := make([]common.WorkflowExecutionRecord, 0, len(records))
 	for _, record := range records {
 		executions = append(executions, workflowExecutionFromJSON(record.Document))
 	}
-	return executions
+	return executions, nil
 }
 
 func ensureWorkflowCollections(ctx context.Context, backend common.Backend) error {

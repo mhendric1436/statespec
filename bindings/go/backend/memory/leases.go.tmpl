@@ -34,15 +34,11 @@ func (s *LeaseStore) RegisterDefinition(ctx context.Context, backend common.Back
 }
 
 func (s *LeaseStore) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.LeaseDefinition) (common.LeaseRegisterDefinitionResult, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.LeaseRegisterDefinitionResult{}, err
-	}
 	existing, err := s.InspectDefinitionTx(ctx, tx, definition.ID)
 	if err != nil {
 		return common.LeaseRegisterDefinitionResult{}, err
 	}
-	if err := memoryTx.put(leaseDefinitionsCollection, common.Key(leaseDefinitionKey(definition.ID)), leaseDefinitionToJSON(definition)); err != nil {
+	if err := tx.Put(ctx, leaseDefinitionsCollection, common.Key(leaseDefinitionKey(definition.ID)), leaseDefinitionToJSON(definition)); err != nil {
 		return common.LeaseRegisterDefinitionResult{}, err
 	}
 	return common.LeaseRegisterDefinitionResult{RegisteredNew: existing == nil, Definition: definition}, nil
@@ -62,12 +58,7 @@ func (s *LeaseStore) InspectDefinition(ctx context.Context, backend common.Backe
 }
 
 func (s *LeaseStore) InspectDefinitionTx(ctx context.Context, tx common.Transaction, definitionID common.LeaseDefinitionID) (*common.LeaseDefinition, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	record, err := memoryTx.get(leaseDefinitionsCollection, common.Key(leaseDefinitionKey(definitionID)))
+	record, err := tx.Get(ctx, leaseDefinitionsCollection, common.Key(leaseDefinitionKey(definitionID)))
 	if err != nil || record == nil {
 		return nil, err
 	}
@@ -89,10 +80,6 @@ func (s *LeaseStore) Acquire(ctx context.Context, backend common.Backend, reques
 }
 
 func (s *LeaseStore) AcquireTx(ctx context.Context, tx common.Transaction, request common.LeaseAcquireRequest) (common.LeaseAcquireResult, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.LeaseAcquireResult{}, err
-	}
 	definition, err := s.InspectDefinitionTx(ctx, tx, request.DefinitionID)
 	if err != nil {
 		return common.LeaseAcquireResult{}, err
@@ -122,7 +109,7 @@ func (s *LeaseStore) AcquireTx(ctx context.Context, tx common.Transaction, reque
 		ExpiresAt:    request.Now.Add(definition.TTL),
 		FencingToken: token,
 	}
-	if err := memoryTx.put(leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)), leaseRecordToJSON(record)); err != nil {
+	if err := tx.Put(ctx, leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)), leaseRecordToJSON(record)); err != nil {
 		return common.LeaseAcquireResult{}, err
 	}
 	return common.LeaseAcquireResult{Acquired: true, Lease: &record}, nil
@@ -142,10 +129,6 @@ func (s *LeaseStore) Renew(ctx context.Context, backend common.Backend, request 
 }
 
 func (s *LeaseStore) RenewTx(ctx context.Context, tx common.Transaction, request common.LeaseRenewRequest) (common.LeaseRecord, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.LeaseRecord{}, err
-	}
 	definition, err := s.InspectDefinitionTx(ctx, tx, request.DefinitionID)
 	if err != nil {
 		return common.LeaseRecord{}, err
@@ -161,7 +144,7 @@ func (s *LeaseStore) RenewTx(ctx context.Context, tx common.Transaction, request
 		return common.LeaseRecord{}, err
 	}
 	record.ExpiresAt = request.Now.Add(definition.TTL)
-	if err := memoryTx.put(leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)), leaseRecordToJSON(record)); err != nil {
+	if err := tx.Put(ctx, leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)), leaseRecordToJSON(record)); err != nil {
 		return common.LeaseRecord{}, err
 	}
 	return record, nil
@@ -180,10 +163,6 @@ func (s *LeaseStore) Release(ctx context.Context, backend common.Backend, reques
 }
 
 func (s *LeaseStore) ReleaseTx(ctx context.Context, tx common.Transaction, request common.LeaseReleaseRequest) error {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return err
-	}
 	record, err := s.requireLease(ctx, tx, request.DefinitionID, request.Resource)
 	if err != nil {
 		return err
@@ -191,7 +170,7 @@ func (s *LeaseStore) ReleaseTx(ctx context.Context, tx common.Transaction, reque
 	if err := requireLeaseHolder(record, request.Holder, request.FencingToken); err != nil {
 		return err
 	}
-	return memoryTx.erase(leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)))
+	return tx.Erase(ctx, leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)))
 }
 
 func (s *LeaseStore) Inspect(ctx context.Context, backend common.Backend, request common.LeaseInspectRequest) (*common.LeaseRecord, error) {
@@ -208,12 +187,7 @@ func (s *LeaseStore) Inspect(ctx context.Context, backend common.Backend, reques
 }
 
 func (s *LeaseStore) InspectTx(ctx context.Context, tx common.Transaction, request common.LeaseInspectRequest) (*common.LeaseRecord, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	record, err := memoryTx.get(leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)))
+	record, err := tx.Get(ctx, leasesCollection, common.Key(leaseKey(request.DefinitionID, request.Resource)))
 	if err != nil || record == nil {
 		return nil, err
 	}

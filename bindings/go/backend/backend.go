@@ -197,6 +197,10 @@ func IndexRangeQuery(indexName string, lowerBound *IndexBound, upperBound *Index
 type Transaction interface {
 	IsOpen() bool
 	Abort(ctx context.Context) error
+	Get(ctx context.Context, collection CollectionName, key Key) (*VersionedRecord, error)
+	Query(ctx context.Context, collection CollectionName, query Query) ([]VersionedRecord, error)
+	Put(ctx context.Context, collection CollectionName, key Key, document JSON) error
+	Erase(ctx context.Context, collection CollectionName, key Key) error
 }
 
 type Backend interface {

@@ -34,15 +34,11 @@ func (s *FeatureFlagStore) RegisterDefinition(ctx context.Context, backend commo
 }
 
 func (s *FeatureFlagStore) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.FeatureFlagDefinition) (common.FeatureFlagRegisterDefinitionResult, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.FeatureFlagRegisterDefinitionResult{}, err
-	}
 	existing, err := s.InspectDefinitionTx(ctx, tx, definition.Name)
 	if err != nil {
 		return common.FeatureFlagRegisterDefinitionResult{}, err
 	}
-	if err := memoryTx.put(featureFlagDefinitionsCollection, common.Key(definition.Name), featureFlagDefinitionToJSON(definition)); err != nil {
+	if err := tx.Put(ctx, featureFlagDefinitionsCollection, common.Key(definition.Name), featureFlagDefinitionToJSON(definition)); err != nil {
 		return common.FeatureFlagRegisterDefinitionResult{}, err
 	}
 	return common.FeatureFlagRegisterDefinitionResult{RegisteredNew: existing == nil, Definition: definition}, nil
@@ -62,12 +58,7 @@ func (s *FeatureFlagStore) InspectDefinition(ctx context.Context, backend common
 }
 
 func (s *FeatureFlagStore) InspectDefinitionTx(ctx context.Context, tx common.Transaction, name string) (*common.FeatureFlagDefinition, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	record, err := memoryTx.get(featureFlagDefinitionsCollection, common.Key(name))
+	record, err := tx.Get(ctx, featureFlagDefinitionsCollection, common.Key(name))
 	if err != nil || record == nil {
 		return nil, err
 	}
@@ -89,11 +80,7 @@ func (s *FeatureFlagStore) Evaluate(ctx context.Context, backend common.Backend,
 }
 
 func (s *FeatureFlagStore) EvaluateTx(ctx context.Context, tx common.Transaction, request common.FeatureFlagEvaluationRequest) (common.FeatureFlagValue, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.FeatureFlagValue{}, err
-	}
-	if record, err := memoryTx.get(featureFlagValuesCollection, common.Key(featureFlagEvaluationKey(request))); err != nil {
+	if record, err := tx.Get(ctx, featureFlagValuesCollection, common.Key(featureFlagEvaluationKey(request))); err != nil {
 		return common.FeatureFlagValue{}, err
 	} else if record != nil {
 		return featureFlagValueFromJSON(record.Document), nil

@@ -9,6 +9,18 @@ type fixtureTx struct{}
 
 func (fixtureTx) IsOpen() bool                { return true }
 func (fixtureTx) Abort(context.Context) error { return nil }
+func (fixtureTx) Get(context.Context, CollectionName, Key) (*VersionedRecord, error) {
+	return nil, ErrUnsupported
+}
+func (fixtureTx) Query(context.Context, CollectionName, Query) ([]VersionedRecord, error) {
+	return nil, ErrUnsupported
+}
+func (fixtureTx) Put(context.Context, CollectionName, Key, JSON) error {
+	return ErrUnsupported
+}
+func (fixtureTx) Erase(context.Context, CollectionName, Key) error {
+	return ErrUnsupported
+}
 
 type fixtureResolver struct {
 	calls int

@@ -136,6 +136,10 @@ Transactions implement `Transaction`.
 ```go
 IsOpen()
 Abort(ctx)
+Get(ctx, collection, key)
+Query(ctx, collection, query)
+Put(ctx, collection, key, document)
+Erase(ctx, collection, key)
 ```
 
 The backend owns commit behavior through:
@@ -143,6 +147,11 @@ The backend owns commit behavior through:
 ```go
 backend.Commit(ctx, tx)
 ```
+
+Runtime stores use only `Backend` and `Transaction`; they should not downcast
+to `memory.Backend` or `memory.Transaction`. Queues, leases, workflows, feature
+flags, logs, and metrics are typed clients that register their collections and
+persist records through the generic OCC collection/document API.
 
 ## Runtime Components
 

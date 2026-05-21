@@ -36,15 +36,11 @@ func (s *MetricSink) RegisterDefinition(ctx context.Context, backend common.Back
 }
 
 func (s *MetricSink) RegisterDefinitionTx(ctx context.Context, tx common.Transaction, definition common.MetricInstrumentDefinition) (common.MetricInstrumentRegistration, error) {
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return common.MetricInstrumentRegistration{}, err
-	}
 	existing, err := s.InspectDefinitionTx(ctx, tx, definition.Name)
 	if err != nil {
 		return common.MetricInstrumentRegistration{}, err
 	}
-	if err := memoryTx.put(metricDefinitionsCollection, common.Key(definition.Name), metricDefinitionToJSON(definition)); err != nil {
+	if err := tx.Put(ctx, metricDefinitionsCollection, common.Key(definition.Name), metricDefinitionToJSON(definition)); err != nil {
 		return common.MetricInstrumentRegistration{}, err
 	}
 	return common.MetricInstrumentRegistration{RegisteredNew: existing == nil, Definition: definition}, nil
@@ -64,12 +60,7 @@ func (s *MetricSink) InspectDefinition(ctx context.Context, backend common.Backe
 }
 
 func (s *MetricSink) InspectDefinitionTx(ctx context.Context, tx common.Transaction, name string) (*common.MetricInstrumentDefinition, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	record, err := memoryTx.get(metricDefinitionsCollection, common.Key(name))
+	record, err := tx.Get(ctx, metricDefinitionsCollection, common.Key(name))
 	if err != nil || record == nil {
 		return nil, err
 	}
@@ -93,12 +84,7 @@ func (s *MetricSink) RecordMetric(ctx context.Context, backend common.Backend, s
 }
 
 func (s *MetricSink) RecordMetricTx(ctx context.Context, tx common.Transaction, sample common.MetricSample) error {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return err
-	}
-	return memoryTx.put(metricSamplesCollection, common.Key(eventKey(sample.Name, &s.nextSampleID)), metricSampleToJSON(sample))
+	return tx.Put(ctx, metricSamplesCollection, common.Key(eventKey(sample.Name, &s.nextSampleID)), metricSampleToJSON(sample))
 }
 
 func (s *MetricSink) InspectSamples(ctx context.Context, backend common.Backend) ([]common.MetricSample, error) {
@@ -115,12 +101,7 @@ func (s *MetricSink) InspectSamples(ctx context.Context, backend common.Backend)
 }
 
 func (s *MetricSink) InspectSamplesTx(ctx context.Context, tx common.Transaction) ([]common.MetricSample, error) {
-	_ = ctx
-	memoryTx, err := asMemoryTx(tx)
-	if err != nil {
-		return nil, err
-	}
-	records, err := memoryTx.query(metricSamplesCollection, common.AllQuery())
+	records, err := tx.Query(ctx, metricSamplesCollection, common.AllQuery())
 	if err != nil {
 		return nil, err
 	}
