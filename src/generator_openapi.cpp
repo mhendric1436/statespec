@@ -2,8 +2,10 @@
 
 #include "statespec/ir.hpp"
 
+#include "string_utils.hpp"
+#include "type_syntax.hpp"
+
 #include <algorithm>
-#include <cctype>
 #include <map>
 #include <optional>
 #include <sstream>
@@ -64,58 +66,6 @@ std::string json_escape(const std::string& value)
 std::string quoted(const std::string& value)
 {
     return "\"" + json_escape(value) + "\"";
-}
-
-std::string lower_ascii(std::string value)
-{
-    std::transform(
-        value.begin(), value.end(), value.begin(),
-        [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
-    );
-    return value;
-}
-
-bool starts_with(
-    const std::string& value,
-    const std::string& prefix
-)
-{
-    return value.rfind(prefix, 0) == 0;
-}
-
-bool ends_with(
-    const std::string& value,
-    const std::string& suffix
-)
-{
-    return value.size() >= suffix.size() &&
-           value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
-}
-
-std::string trim_wrapped_type(
-    const std::string& value,
-    const std::string& prefix
-)
-{
-    return value.substr(prefix.size(), value.size() - prefix.size() - 1);
-}
-
-std::string strip_optional_type(const std::string& type)
-{
-    if (starts_with(type, "optional<") && ends_with(type, ">"))
-    {
-        return trim_wrapped_type(type, "optional<");
-    }
-    if (ends_with(type, "?"))
-    {
-        return type.substr(0, type.size() - 1);
-    }
-    return type;
-}
-
-bool is_optional_type(const std::string& type)
-{
-    return (starts_with(type, "optional<") && ends_with(type, ">")) || ends_with(type, "?");
 }
 
 const IrShape* find_shape(

@@ -1,6 +1,7 @@
 #include "statespec/template_renderer.hpp"
 
-#include <cctype>
+#include "string_utils.hpp"
+
 #include <fstream>
 #include <set>
 #include <sstream>
@@ -12,23 +13,6 @@ namespace statespec
 
 namespace
 {
-
-std::string trim_copy(std::string_view value)
-{
-    std::size_t begin = 0;
-    while (begin < value.size() && std::isspace(static_cast<unsigned char>(value[begin])) != 0)
-    {
-        ++begin;
-    }
-
-    std::size_t end = value.size();
-    while (end > begin && std::isspace(static_cast<unsigned char>(value[end - 1])) != 0)
-    {
-        --end;
-    }
-
-    return std::string(value.substr(begin, end - begin));
-}
 
 std::string path_string(const std::filesystem::path& path)
 {
@@ -76,7 +60,7 @@ std::string TemplateRenderer::render(
             throw std::invalid_argument("template placeholder opened without closing delimiter");
         }
 
-        const auto key = trim_copy(template_text.substr(open + 2, close - open - 2));
+        const auto key = trim_ascii_copy(template_text.substr(open + 2, close - open - 2));
         if (key.empty())
         {
             throw std::invalid_argument("template placeholder name must not be empty");

@@ -1,5 +1,8 @@
 #include "generator_cpp_descriptors.hpp"
 
+#include "identifier_case.hpp"
+#include "type_syntax.hpp"
+
 #include <cctype>
 #include <cstdint>
 #include <optional>
@@ -43,16 +46,6 @@ std::string cpp_string(const std::string& value)
     }
     out << '"';
     return out.str();
-}
-
-bool is_optional_type(const std::string& type)
-{
-    return !type.empty() && type.back() == '?';
-}
-
-std::string strip_optional_suffix(const std::string& type)
-{
-    return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
 std::string cpp_field_type_expr(FieldDescriptorType type)
@@ -112,55 +105,10 @@ std::string cpp_field_descriptor_expr(const IrField& field)
            (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
 }
 
-std::string pascal_identifier(const std::string& value)
-{
-    std::string result;
-    bool upper_next = true;
-    for (const auto ch : value)
-    {
-        if (std::isalnum(static_cast<unsigned char>(ch)) == 0)
-        {
-            upper_next = true;
-            continue;
-        }
-        result.push_back(
-            upper_next ? static_cast<char>(std::toupper(static_cast<unsigned char>(ch))) : ch
-        );
-        upper_next = false;
-    }
-    return result.empty() ? "GeneratedShape" : result;
-}
-
-std::string snake_identifier(const std::string& value)
-{
-    std::string result;
-    bool previous_was_separator = true;
-    for (const auto ch : value)
-    {
-        if (std::isalnum(static_cast<unsigned char>(ch)) == 0)
-        {
-            if (!result.empty() && !previous_was_separator)
-            {
-                result.push_back('_');
-            }
-            previous_was_separator = true;
-            continue;
-        }
-        if (std::isupper(static_cast<unsigned char>(ch)) != 0 && !previous_was_separator &&
-            !result.empty())
-        {
-            result.push_back('_');
-        }
-        result.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
-        previous_was_separator = false;
-    }
-    return result.empty() ? "generated_event" : result;
-}
-
 std::string cpp_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
-    const auto base = strip_optional_suffix(type);
+    const auto base = strip_optional_type(type);
     std::string mapped = "std::string";
     if (base == "bool")
     {

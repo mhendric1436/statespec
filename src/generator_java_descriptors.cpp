@@ -1,5 +1,8 @@
 #include "generator_java_descriptors.hpp"
 
+#include "identifier_case.hpp"
+#include "type_syntax.hpp"
+
 #include <cctype>
 #include <optional>
 #include <sstream>
@@ -42,16 +45,6 @@ std::string java_string(const std::string& value)
     }
     out << '"';
     return out.str();
-}
-
-bool is_optional_type(const std::string& type)
-{
-    return !type.empty() && type.back() == '?';
-}
-
-std::string strip_optional_suffix(const std::string& type)
-{
-    return is_optional_type(type) ? type.substr(0, type.size() - 1) : type;
 }
 
 std::string java_field_type_expr(FieldDescriptorType type)
@@ -111,40 +104,10 @@ std::string java_field_descriptor_expr(const IrField& field)
            (is_required_descriptor_field(field.type) ? "true" : "false") + ")";
 }
 
-std::string pascal_identifier(const std::string& value)
-{
-    std::string result;
-    bool upper_next = true;
-    for (const auto ch : value)
-    {
-        if (std::isalnum(static_cast<unsigned char>(ch)) == 0)
-        {
-            upper_next = true;
-            continue;
-        }
-        result.push_back(
-            upper_next ? static_cast<char>(std::toupper(static_cast<unsigned char>(ch))) : ch
-        );
-        upper_next = false;
-    }
-    return result.empty() ? "GeneratedShape" : result;
-}
-
-std::string lower_camel_identifier(const std::string& value)
-{
-    auto identifier = pascal_identifier(value);
-    if (!identifier.empty())
-    {
-        identifier.front() =
-            static_cast<char>(std::tolower(static_cast<unsigned char>(identifier.front())));
-    }
-    return identifier.empty() ? "value" : identifier;
-}
-
 std::string java_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
-    const auto base = strip_optional_suffix(type);
+    const auto base = strip_optional_type(type);
     std::string mapped = "String";
     if (base == "bool")
     {

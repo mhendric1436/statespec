@@ -2,6 +2,7 @@
 
 #include "statespec/lexer.hpp"
 
+#include "string_utils.hpp"
 #include "validator_helpers.hpp"
 
 #include <algorithm>
@@ -836,26 +837,6 @@ std::vector<std::string> feature_flag_function_arguments(
     return arguments;
 }
 
-std::string lowercase_copy(const std::string& value)
-{
-    std::string result;
-    result.reserve(value.size());
-    for (const auto ch : value)
-    {
-        result.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
-    }
-    return result;
-}
-
-bool ends_with(
-    const std::string& value,
-    const std::string& suffix
-)
-{
-    return value.size() >= suffix.size() &&
-           value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
-}
-
 bool is_high_cardinality_metric_label_name(
     const SystemDecl& system,
     const std::string& label_name
@@ -870,7 +851,7 @@ bool is_high_cardinality_metric_label_name(
         return false;
     }
 
-    const auto name = lowercase_copy(label_name);
+    const auto name = lower_ascii(label_name);
     return name == "id" || name == "uuid" || name == "guid" || ends_with(name, "_id") ||
            ends_with(name, "_ids") || ends_with(name, "_uuid") || ends_with(name, "_guid") ||
            ends_with(name, "_at") || ends_with(name, "_time") || ends_with(name, "_timestamp") ||

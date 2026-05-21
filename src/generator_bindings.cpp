@@ -1,6 +1,8 @@
 #include "statespec/generator_bindings.hpp"
 
-#include <cctype>
+#include "string_utils.hpp"
+#include "type_syntax.hpp"
+
 #include <cstdlib>
 #include <stdexcept>
 
@@ -9,40 +11,6 @@ namespace statespec
 
 namespace
 {
-
-std::string trim_copy(const std::string& value)
-{
-    std::size_t begin = 0;
-    while (begin < value.size() && std::isspace(static_cast<unsigned char>(value[begin])) != 0)
-    {
-        ++begin;
-    }
-
-    std::size_t end = value.size();
-    while (end > begin && std::isspace(static_cast<unsigned char>(value[end - 1])) != 0)
-    {
-        --end;
-    }
-
-    return value.substr(begin, end - begin);
-}
-
-bool starts_with(
-    const std::string& value,
-    const std::string& prefix
-)
-{
-    return value.rfind(prefix, 0) == 0;
-}
-
-bool ends_with(
-    const std::string& value,
-    const std::string& suffix
-)
-{
-    return value.size() >= suffix.size() &&
-           value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
-}
 
 bool validate_binding_generation_request(
     const Spec& spec,
@@ -127,7 +95,7 @@ GenerationResult filter_generation_result_by_tier(
 
 BindingGenerationTier parse_binding_generation_tier(const std::string& value)
 {
-    const auto normalized = trim_copy(value);
+    const auto normalized = trim_ascii_copy(value);
     if (normalized == "all")
     {
         return BindingGenerationTier::All;
@@ -419,7 +387,7 @@ std::filesystem::path resolve_binding_template_root(const BindingGeneratorOption
 
 FieldDescriptorType classify_field_descriptor_type(const std::string& type_name)
 {
-    const auto normalized = trim_copy(type_name);
+    const auto normalized = trim_ascii_copy(type_name);
     if (normalized == "string")
     {
         return FieldDescriptorType::String;
