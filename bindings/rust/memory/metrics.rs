@@ -1,6 +1,10 @@
-use crate::backend::{Backend, BackendResult};
-use crate::memory_backend::{lock_error, InMemoryBackend};
+use crate::backend::{Backend, BackendResult, Query};
+use crate::memory_backend::InMemoryBackend;
+use crate::memory_codec;
 use crate::metric::{MetricDefinition, MetricDefinitionRegistration, MetricSample, MetricSink};
+
+const DEFINITIONS: &str = "metrics.definitions";
+const SAMPLES: &str = "metrics.samples";
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryMetricSink;
@@ -21,9 +25,11 @@ impl InMemoryMetricSink {
         &self,
         tx: &mut <InMemoryBackend as Backend>::Tx,
     ) -> BackendResult<Vec<MetricSample>> {
-        let mut samples = tx.state.lock().map_err(lock_error)?.metric_samples.clone();
-        samples.extend(tx.metric_sample_appends.clone());
-        Ok(samples)
+        Ok(tx
+            .query(SAMPLES, &Query::All)?
+            .iter()
+            .map(|record| memory_codec::metric_sample_from_json(&record.document))
+            .collect())
     }
 }
 
@@ -45,8 +51,11 @@ impl MetricSink<InMemoryBackend> for InMemoryMetricSink {
         definition: &MetricDefinition,
     ) -> BackendResult<MetricDefinitionRegistration> {
         let existing = self.inspect_definition_tx(tx, &definition.name)?;
-        tx.metric_definition_puts
-            .insert(definition.name.clone(), definition.clone());
+        tx.put(
+            DEFINITIONS,
+            &definition.name,
+            memory_codec::metric_definition_to_json(definition),
+        )?;
         Ok(MetricDefinitionRegistration {
             registered_new: existing.is_none(),
             definition: definition.clone(),
@@ -69,16 +78,9 @@ impl MetricSink<InMemoryBackend> for InMemoryMetricSink {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         name: &str,
     ) -> BackendResult<Option<MetricDefinition>> {
-        if let Some(definition) = tx.metric_definition_puts.get(name) {
-            return Ok(Some(definition.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .metric_definitions
-            .get(name)
-            .cloned())
+            .get(DEFINITIONS, name)?
+            .map(|record| memory_codec::metric_definition_from_json(&record.document)))
     }
 
     fn record_metric(&self, backend: &InMemoryBackend, sample: &MetricSample) -> BackendResult<()> {
@@ -92,7 +94,8 @@ impl MetricSink<InMemoryBackend> for InMemoryMetricSink {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         sample: &MetricSample,
     ) -> BackendResult<()> {
-        tx.metric_sample_appends.push(sample.clone());
+        let key = format!("sample:{:020}", tx.query(SAMPLES, &Query::All)?.len() + 1);
+        tx.put(SAMPLES, &key, memory_codec::metric_sample_to_json(sample))?;
         Ok(())
     }
 }

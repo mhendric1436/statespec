@@ -10,6 +10,7 @@ pub mod workflow;
 
 pub mod memory {
     pub mod backend;
+    pub mod codec;
     pub mod feature_flags;
     pub mod leases;
     pub mod logs;
@@ -21,6 +22,9 @@ pub mod memory {
 
 pub mod memory_backend {
     pub use crate::memory::backend::*;
+}
+pub(crate) mod memory_codec {
+    pub(crate) use crate::memory::codec::*;
 }
 pub mod memory_feature_flags {
     pub use crate::memory::feature_flags::*;

@@ -414,6 +414,7 @@ void test_binding_app_artifact_models_define_application_filenames()
         {
             {"common/memory/backend.rs", common, Kind::MemoryBackend},
             {"common/memory/transaction.rs", common, Kind::MemoryTransaction},
+            {"common/memory/codec.rs", common, Kind::MemoryCodec},
             {"common/memory/feature_flags.rs", common, Kind::MemoryFeatureFlagStore},
             {"common/memory/queues.rs", common, Kind::MemoryQueueStore},
             {"common/memory/leases.rs", common, Kind::MemoryLeaseStore},
@@ -814,6 +815,7 @@ void test_binding_generators_emit_meaningful_artifact_filenames()
             {"common/workflow.rs", common},
             {"common/memory/backend.rs", common},
             {"common/memory/transaction.rs", common},
+            {"common/memory/codec.rs", common},
             {"common/memory/feature_flags.rs", common},
             {"common/memory/queues.rs", common},
             {"common/memory/leases.rs", common},

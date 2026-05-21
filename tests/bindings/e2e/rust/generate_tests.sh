@@ -34,6 +34,7 @@ common/json.rs
 common/lease.rs
 common/log.rs
 common/memory/backend.rs
+common/memory/codec.rs
 common/memory/feature_flags.rs
 common/memory/leases.rs
 common/memory/logs.rs

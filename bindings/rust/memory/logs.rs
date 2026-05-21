@@ -1,6 +1,10 @@
-use crate::backend::{Backend, BackendResult};
+use crate::backend::{Backend, BackendResult, Query};
 use crate::log::{LogDefinition, LogDefinitionRegistration, LogEvent, LogSink};
-use crate::memory_backend::{lock_error, InMemoryBackend};
+use crate::memory_backend::InMemoryBackend;
+use crate::memory_codec;
+
+const DEFINITIONS: &str = "logs.definitions";
+const EVENTS: &str = "logs.events";
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryLogSink;
@@ -21,9 +25,11 @@ impl InMemoryLogSink {
         &self,
         tx: &mut <InMemoryBackend as Backend>::Tx,
     ) -> BackendResult<Vec<LogEvent>> {
-        let mut events = tx.state.lock().map_err(lock_error)?.log_events.clone();
-        events.extend(tx.log_event_appends.clone());
-        Ok(events)
+        Ok(tx
+            .query(EVENTS, &Query::All)?
+            .iter()
+            .map(|record| memory_codec::log_event_from_json(&record.document))
+            .collect())
     }
 }
 
@@ -45,8 +51,11 @@ impl LogSink<InMemoryBackend> for InMemoryLogSink {
         definition: &LogDefinition,
     ) -> BackendResult<LogDefinitionRegistration> {
         let existing = self.inspect_definition_tx(tx, &definition.name)?;
-        tx.log_definition_puts
-            .insert(definition.name.clone(), definition.clone());
+        tx.put(
+            DEFINITIONS,
+            &definition.name,
+            memory_codec::log_definition_to_json(definition),
+        )?;
         Ok(LogDefinitionRegistration {
             registered_new: existing.is_none(),
             definition: definition.clone(),
@@ -69,16 +78,9 @@ impl LogSink<InMemoryBackend> for InMemoryLogSink {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         name: &str,
     ) -> BackendResult<Option<LogDefinition>> {
-        if let Some(definition) = tx.log_definition_puts.get(name) {
-            return Ok(Some(definition.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .log_definitions
-            .get(name)
-            .cloned())
+            .get(DEFINITIONS, name)?
+            .map(|record| memory_codec::log_definition_from_json(&record.document)))
     }
 
     fn emit_log(&self, backend: &InMemoryBackend, event: &LogEvent) -> BackendResult<()> {
@@ -92,7 +94,8 @@ impl LogSink<InMemoryBackend> for InMemoryLogSink {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         event: &LogEvent,
     ) -> BackendResult<()> {
-        tx.log_event_appends.push(event.clone());
+        let key = format!("event:{:020}", tx.query(EVENTS, &Query::All)?.len() + 1);
+        tx.put(EVENTS, &key, memory_codec::log_event_to_json(event))?;
         Ok(())
     }
 }

@@ -79,6 +79,7 @@ Rust:
 ```text
 common/memory/backend.rs
 common/memory/transaction.rs
+common/memory/codec.rs
 common/memory/feature_flags.rs
 common/memory/queues.rs
 common/memory/leases.rs

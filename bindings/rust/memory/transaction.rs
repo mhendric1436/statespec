@@ -1,32 +1,17 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
-use crate::backend::{BackendResult, CollectionDescriptor, Transaction, Version, VersionedRecord};
-use crate::feature_flag::{FeatureFlagDefinition, FeatureFlagValue};
-use crate::lease::{LeaseDefinition, LeaseRecord};
-use crate::log::{LogDefinition, LogEvent};
-use crate::metric::{MetricDefinition, MetricSample};
-use crate::queue::{QueueDefinition, QueueMessageRecord};
-use crate::workflow::{WorkflowDefinition, WorkflowExecutionRecord};
+use crate::backend::{
+    BackendError, BackendResult, CollectionDescriptor, ConflictKind, Query, Transaction, Version,
+    VersionedRecord,
+};
+use crate::json::Json;
 
 #[derive(Debug, Default)]
 pub struct InMemoryState {
     pub records: BTreeMap<String, BTreeMap<String, VersionedRecord>>,
     pub versions: BTreeMap<String, Version>,
     pub collections: BTreeMap<String, CollectionDescriptor>,
-    pub feature_flag_definitions: BTreeMap<String, FeatureFlagDefinition>,
-    pub feature_flag_values: BTreeMap<String, FeatureFlagValue>,
-    pub queue_definitions: BTreeMap<String, QueueDefinition>,
-    pub queue_messages: BTreeMap<String, QueueMessageRecord>,
-    pub queue_idempotency_keys: BTreeMap<String, String>,
-    pub lease_definitions: BTreeMap<String, LeaseDefinition>,
-    pub leases: BTreeMap<String, LeaseRecord>,
-    pub workflow_definitions: BTreeMap<String, WorkflowDefinition>,
-    pub workflow_executions: BTreeMap<String, WorkflowExecutionRecord>,
-    pub log_definitions: BTreeMap<String, LogDefinition>,
-    pub log_events: Vec<LogEvent>,
-    pub metric_definitions: BTreeMap<String, MetricDefinition>,
-    pub metric_samples: Vec<MetricSample>,
 }
 
 #[derive(Debug)]
@@ -36,20 +21,6 @@ pub struct InMemoryTransaction {
     pub(crate) read_versions: BTreeMap<String, Version>,
     pub(crate) puts: BTreeMap<String, VersionedRecord>,
     pub(crate) erases: BTreeSet<String>,
-    pub(crate) feature_flag_definition_puts: BTreeMap<String, FeatureFlagDefinition>,
-    pub(crate) feature_flag_value_puts: BTreeMap<String, FeatureFlagValue>,
-    pub(crate) queue_definition_puts: BTreeMap<String, QueueDefinition>,
-    pub(crate) queue_message_puts: BTreeMap<String, QueueMessageRecord>,
-    pub(crate) queue_idempotency_puts: BTreeMap<String, String>,
-    pub(crate) lease_definition_puts: BTreeMap<String, LeaseDefinition>,
-    pub(crate) lease_puts: BTreeMap<String, LeaseRecord>,
-    pub(crate) lease_erases: BTreeSet<String>,
-    pub(crate) workflow_definition_puts: BTreeMap<String, WorkflowDefinition>,
-    pub(crate) workflow_execution_puts: BTreeMap<String, WorkflowExecutionRecord>,
-    pub(crate) log_definition_puts: BTreeMap<String, LogDefinition>,
-    pub(crate) log_event_appends: Vec<LogEvent>,
-    pub(crate) metric_definition_puts: BTreeMap<String, MetricDefinition>,
-    pub(crate) metric_sample_appends: Vec<MetricSample>,
 }
 
 impl InMemoryTransaction {
@@ -60,21 +31,120 @@ impl InMemoryTransaction {
             read_versions: BTreeMap::new(),
             puts: BTreeMap::new(),
             erases: BTreeSet::new(),
-            feature_flag_definition_puts: BTreeMap::new(),
-            feature_flag_value_puts: BTreeMap::new(),
-            queue_definition_puts: BTreeMap::new(),
-            queue_message_puts: BTreeMap::new(),
-            queue_idempotency_puts: BTreeMap::new(),
-            lease_definition_puts: BTreeMap::new(),
-            lease_puts: BTreeMap::new(),
-            lease_erases: BTreeSet::new(),
-            workflow_definition_puts: BTreeMap::new(),
-            workflow_execution_puts: BTreeMap::new(),
-            log_definition_puts: BTreeMap::new(),
-            log_event_appends: Vec::new(),
-            metric_definition_puts: BTreeMap::new(),
-            metric_sample_appends: Vec::new(),
         }
+    }
+
+    pub(crate) fn get(
+        &mut self,
+        collection: &str,
+        key: &str,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        let version_key = record_version_key(collection, key);
+        if self.erases.contains(&version_key) {
+            return Ok(None);
+        }
+        if let Some(record) = self.puts.get(&version_key) {
+            return Ok(Some(record.clone()));
+        }
+
+        let state = self.state.lock().map_err(lock_error)?;
+        let record = state
+            .records
+            .get(collection)
+            .and_then(|records| records.get(key))
+            .cloned();
+        self.read_versions.insert(
+            version_key,
+            record.as_ref().map(|record| record.version).unwrap_or(0),
+        );
+        Ok(record)
+    }
+
+    pub(crate) fn query(
+        &mut self,
+        collection: &str,
+        query: &Query,
+    ) -> BackendResult<Vec<VersionedRecord>> {
+        let mut by_key = {
+            let state = self.state.lock().map_err(lock_error)?;
+            state.records.get(collection).cloned().unwrap_or_default()
+        };
+        for record in self.puts.values() {
+            if record.collection == collection {
+                by_key.insert(record.key.clone(), record.clone());
+            }
+        }
+        let prefix = format!("record:{collection}:");
+        for version_key in &self.erases {
+            if let Some(key) = version_key.strip_prefix(&prefix) {
+                by_key.remove(key);
+            }
+        }
+
+        let mut matched = Vec::new();
+        for record in by_key.values() {
+            if matches_query(record, query) {
+                self.read_versions.insert(
+                    record_version_key(&record.collection, &record.key),
+                    record.version,
+                );
+                matched.push(record.clone());
+            }
+        }
+        Ok(matched)
+    }
+
+    pub(crate) fn put(&mut self, collection: &str, key: &str, document: Json) -> BackendResult<()> {
+        let _ = self.get(collection, key)?;
+        let version_key = record_version_key(collection, key);
+        self.puts.insert(
+            version_key.clone(),
+            VersionedRecord {
+                collection: collection.to_string(),
+                key: key.to_string(),
+                version: 0,
+                document,
+            },
+        );
+        self.erases.remove(&version_key);
+        Ok(())
+    }
+
+    pub(crate) fn erase(&mut self, collection: &str, key: &str) -> BackendResult<()> {
+        let _ = self.get(collection, key)?;
+        let version_key = record_version_key(collection, key);
+        self.puts.remove(&version_key);
+        self.erases.insert(version_key);
+        Ok(())
+    }
+
+    pub(crate) fn commit(&mut self) -> BackendResult<()> {
+        let mut state = self.state.lock().map_err(lock_error)?;
+        for (version_key, expected_version) in &self.read_versions {
+            if version_or_zero(&state.versions, version_key) != *expected_version {
+                return Err(BackendError::Conflict {
+                    kind: ConflictKind::VersionConflict,
+                    message: "in-memory OCC conflict".to_string(),
+                });
+            }
+        }
+        for version_key in &self.erases {
+            erase_record(&mut state, version_key);
+            *state.versions.entry(version_key.clone()).or_insert(0) += 1;
+        }
+        for (version_key, record) in &self.puts {
+            let version = state.versions.entry(version_key.clone()).or_insert(0);
+            *version += 1;
+            let mut committed = record.clone();
+            committed.version = *version;
+            state
+                .records
+                .entry(committed.collection.clone())
+                .or_default()
+                .insert(committed.key.clone(), committed);
+        }
+        drop(state);
+        self.abort()
     }
 }
 
@@ -88,20 +158,6 @@ impl Transaction for InMemoryTransaction {
         self.read_versions.clear();
         self.puts.clear();
         self.erases.clear();
-        self.feature_flag_definition_puts.clear();
-        self.feature_flag_value_puts.clear();
-        self.queue_definition_puts.clear();
-        self.queue_message_puts.clear();
-        self.queue_idempotency_puts.clear();
-        self.lease_definition_puts.clear();
-        self.lease_puts.clear();
-        self.lease_erases.clear();
-        self.workflow_definition_puts.clear();
-        self.workflow_execution_puts.clear();
-        self.log_definition_puts.clear();
-        self.log_event_appends.clear();
-        self.metric_definition_puts.clear();
-        self.metric_sample_appends.clear();
         Ok(())
     }
 }
@@ -116,4 +172,42 @@ pub(crate) fn definition_key(parts: &[String]) -> String {
 
 pub(crate) fn version_or_zero(versions: &BTreeMap<String, Version>, key: &str) -> Version {
     versions.get(key).copied().unwrap_or(0)
+}
+
+fn matches_query(record: &VersionedRecord, query: &Query) -> bool {
+    match query {
+        Query::All => true,
+        Query::KeyPrefix { prefix } => record.key.starts_with(prefix),
+        Query::JsonEquals { path, value } => find_json_path(&record.document, path)
+            .map(|found| found == value)
+            .unwrap_or(false),
+        _ => true,
+    }
+}
+
+fn find_json_path<'a>(document: &'a Json, path: &str) -> Option<&'a Json> {
+    let mut current = document;
+    for segment in path.split('.') {
+        current = current.find(segment)?;
+    }
+    Some(current)
+}
+
+fn erase_record(state: &mut InMemoryState, version_key: &str) {
+    let rest = match version_key.strip_prefix("record:") {
+        Some(rest) => rest,
+        None => return,
+    };
+    let Some((collection, key)) = rest.split_once(':') else {
+        return;
+    };
+    if let Some(records) = state.records.get_mut(collection) {
+        records.remove(key);
+    }
+}
+
+pub(crate) fn lock_error<T>(_: std::sync::PoisonError<T>) -> BackendError {
+    BackendError::Internal {
+        message: "in-memory backend lock poisoned".to_string(),
+    }
 }

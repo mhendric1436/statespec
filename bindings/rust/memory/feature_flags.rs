@@ -3,7 +3,11 @@ use crate::feature_flag::{
     FeatureFlagDefinition, FeatureFlagEvaluationRequest, FeatureFlagRegisterDefinitionResult,
     FeatureFlagStore, FeatureFlagValue,
 };
-use crate::memory_backend::{lock_error, InMemoryBackend};
+use crate::memory_backend::InMemoryBackend;
+use crate::memory_codec;
+
+const DEFINITIONS: &str = "feature_flags.definitions";
+const VALUES: &str = "feature_flags.values";
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryFeatureFlagStore;
@@ -32,8 +36,11 @@ impl FeatureFlagStore<InMemoryBackend> for InMemoryFeatureFlagStore {
         definition: &FeatureFlagDefinition,
     ) -> BackendResult<FeatureFlagRegisterDefinitionResult> {
         let existing = self.inspect_definition_tx(tx, &definition.name)?;
-        tx.feature_flag_definition_puts
-            .insert(definition.name.clone(), definition.clone());
+        tx.put(
+            DEFINITIONS,
+            &definition.name,
+            memory_codec::feature_flag_definition_to_json(definition),
+        )?;
         Ok(FeatureFlagRegisterDefinitionResult {
             registered_new: existing.is_none(),
             definition: definition.clone(),
@@ -56,16 +63,9 @@ impl FeatureFlagStore<InMemoryBackend> for InMemoryFeatureFlagStore {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         name: &str,
     ) -> BackendResult<Option<FeatureFlagDefinition>> {
-        if let Some(definition) = tx.feature_flag_definition_puts.get(name) {
-            return Ok(Some(definition.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .feature_flag_definitions
-            .get(name)
-            .cloned())
+            .get(DEFINITIONS, name)?
+            .map(|record| memory_codec::feature_flag_definition_from_json(&record.document)))
     }
 
     fn evaluate(
@@ -84,18 +84,8 @@ impl FeatureFlagStore<InMemoryBackend> for InMemoryFeatureFlagStore {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         request: &FeatureFlagEvaluationRequest,
     ) -> BackendResult<FeatureFlagValue> {
-        if let Some(value) = tx.feature_flag_value_puts.get(&request.name) {
-            return Ok(value.clone());
-        }
-        if let Some(value) = tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .feature_flag_values
-            .get(&request.name)
-            .cloned()
-        {
-            return Ok(value);
+        if let Some(record) = tx.get(VALUES, &request.name)? {
+            return Ok(memory_codec::feature_flag_value_from_json(&record.document));
         }
         self.inspect_definition_tx(tx, &request.name)?
             .map(|definition| definition.default_value)

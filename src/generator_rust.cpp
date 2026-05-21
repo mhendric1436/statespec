@@ -1780,6 +1780,9 @@ GenerationResult generate_rust_bindings(
         diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, "memory/codec.rs", "memory/codec.rs", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, "memory/feature_flags.rs", "memory/feature_flags.rs",
         diagnostics
     );

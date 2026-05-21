@@ -1,11 +1,17 @@
-use crate::backend::{Backend, BackendError, BackendResult, ConflictKind};
-use crate::memory_backend::{lock_error, InMemoryBackend};
+use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query};
+use crate::json::Json;
+use crate::memory_backend::InMemoryBackend;
+use crate::memory_codec;
 use crate::memory_transaction::definition_key;
 use crate::queue::{
     AckMessageRequest, ClaimMessageRequest, EnqueueMessageRequest, FailMessageRequest,
     QueueDefinition, QueueDefinitionRegistration, QueueMessageRecord, QueueStore,
     RegisterQueueDefinitionRequest,
 };
+
+const DEFINITIONS: &str = "queues.definitions";
+const MESSAGES: &str = "queues.messages";
+const IDEMPOTENCY: &str = "queues.idempotency";
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryQueueStore;
@@ -20,15 +26,8 @@ impl InMemoryQueueStore {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         message_id: &str,
     ) -> BackendResult<QueueMessageRecord> {
-        if let Some(message) = tx.queue_message_puts.get(message_id) {
-            return Ok(message.clone());
-        }
-        tx.state
-            .lock()
-            .map_err(lock_error)?
-            .queue_messages
-            .get(message_id)
-            .cloned()
+        tx.get(MESSAGES, message_id)?
+            .map(|record| memory_codec::queue_message_from_json(&record.document))
             .ok_or_else(|| BackendError::NotFound {
                 message: format!("unknown queue message {message_id}"),
             })
@@ -38,9 +37,11 @@ impl InMemoryQueueStore {
         &self,
         tx: &mut <InMemoryBackend as Backend>::Tx,
     ) -> BackendResult<Vec<QueueMessageRecord>> {
-        let mut by_id = tx.state.lock().map_err(lock_error)?.queue_messages.clone();
-        by_id.append(&mut tx.queue_message_puts.clone());
-        Ok(by_id.into_values().collect())
+        Ok(tx
+            .query(MESSAGES, &Query::All)?
+            .iter()
+            .map(|record| memory_codec::queue_message_from_json(&record.document))
+            .collect())
     }
 }
 
@@ -63,10 +64,11 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
     ) -> BackendResult<QueueDefinitionRegistration> {
         let existing =
             self.inspect_definition_tx(tx, &request.definition.queue, &request.definition.channel)?;
-        tx.queue_definition_puts.insert(
-            queue_definition_key(&request.definition.queue, &request.definition.channel),
-            request.definition.clone(),
-        );
+        tx.put(
+            DEFINITIONS,
+            &queue_definition_key(&request.definition.queue, &request.definition.channel),
+            memory_codec::queue_definition_to_json(&request.definition),
+        )?;
         Ok(QueueDefinitionRegistration {
             definition: request.definition.clone(),
             created: existing.is_none(),
@@ -92,16 +94,9 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
         channel: &str,
     ) -> BackendResult<Option<QueueDefinition>> {
         let key = queue_definition_key(queue, channel);
-        if let Some(definition) = tx.queue_definition_puts.get(&key) {
-            return Ok(Some(definition.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .queue_definitions
-            .get(&key)
-            .cloned())
+            .get(DEFINITIONS, &key)?
+            .map(|record| memory_codec::queue_definition_from_json(&record.document)))
     }
 
     fn enqueue(
@@ -126,21 +121,11 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
                 queue_definition_key(&request.queue, &request.channel),
                 idempotency
             );
-            if let Some(message_id) = tx.queue_idempotency_puts.get(&key).cloned() {
+            if let Some(record) = tx.get(IDEMPOTENCY, &key)? {
+                let message_id = memory_codec::string_from_json(&record.document);
                 return self.require_message(tx, &message_id);
             }
-            let existing_message_id = tx
-                .state
-                .lock()
-                .map_err(lock_error)?
-                .queue_idempotency_keys
-                .get(&key)
-                .cloned();
-            if let Some(message_id) = existing_message_id {
-                return self.require_message(tx, &message_id);
-            }
-            tx.queue_idempotency_puts
-                .insert(key, request.message_id.clone());
+            tx.put(IDEMPOTENCY, &key, Json::String(request.message_id.clone()))?;
         }
         let record = QueueMessageRecord {
             message_id: request.message_id.clone(),
@@ -152,8 +137,11 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
             claim_expires_at: None,
             payload: request.payload.clone(),
         };
-        tx.queue_message_puts
-            .insert(record.message_id.clone(), record.clone());
+        tx.put(
+            MESSAGES,
+            &record.message_id,
+            memory_codec::queue_message_to_json(&record),
+        )?;
         Ok(record)
     }
 
@@ -197,8 +185,11 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
             message.claimed_by = Some(request.claimant.clone());
             message.claim_expires_at = Some(request.now + request.visibility_timeout);
             message.attempts += 1;
-            tx.queue_message_puts
-                .insert(message.message_id.clone(), message.clone());
+            tx.put(
+                MESSAGES,
+                &message.message_id,
+                memory_codec::queue_message_to_json(&message),
+            )?;
             claimed.push(message);
         }
         Ok(claimed)
@@ -222,8 +213,11 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
         let mut message = self.require_message(tx, &request.message_id)?;
         require_claimant(&message, &request.claimant)?;
         message.status = "Acked".to_string();
-        tx.queue_message_puts
-            .insert(message.message_id.clone(), message);
+        tx.put(
+            MESSAGES,
+            &message.message_id,
+            memory_codec::queue_message_to_json(&message),
+        )?;
         Ok(())
     }
 
@@ -252,8 +246,11 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
         } else {
             "Pending".to_string()
         };
-        tx.queue_message_puts
-            .insert(message.message_id.clone(), message.clone());
+        tx.put(
+            MESSAGES,
+            &message.message_id,
+            memory_codec::queue_message_to_json(&message),
+        )?;
         Ok(message)
     }
 
@@ -273,16 +270,9 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         message_id: &str,
     ) -> BackendResult<Option<QueueMessageRecord>> {
-        if let Some(message) = tx.queue_message_puts.get(message_id) {
-            return Ok(Some(message.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .queue_messages
-            .get(message_id)
-            .cloned())
+            .get(MESSAGES, message_id)?
+            .map(|record| memory_codec::queue_message_from_json(&record.document)))
     }
 }
 

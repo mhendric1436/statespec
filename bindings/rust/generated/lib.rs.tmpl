@@ -20,6 +20,8 @@ pub mod queue;
 pub mod workflow;
 #[path = "common/memory/backend.rs"]
 pub mod memory_backend;
+#[path = "common/memory/codec.rs"]
+pub(crate) mod memory_codec;
 #[path = "common/memory/feature_flags.rs"]
 pub mod memory_feature_flags;
 #[path = "common/memory/leases.rs"]

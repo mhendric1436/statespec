@@ -1,5 +1,6 @@
-use crate::backend::{Backend, BackendError, BackendResult, ConflictKind};
-use crate::memory_backend::{lock_error, InMemoryBackend};
+use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query};
+use crate::memory_backend::InMemoryBackend;
+use crate::memory_codec;
 use crate::memory_transaction::definition_key;
 use crate::workflow::{
     CancelWorkflowRequest, ClaimWorkflowStepRequest, CompleteWorkflowStepRequest,
@@ -7,6 +8,9 @@ use crate::workflow::{
     StartWorkflowRequest, WorkflowDefinition, WorkflowDefinitionRegistration,
     WorkflowExecutionRecord, WorkflowStore,
 };
+
+const DEFINITIONS: &str = "workflows.definitions";
+const EXECUTIONS: &str = "workflows.executions";
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryWorkflowStore;
@@ -31,14 +35,11 @@ impl InMemoryWorkflowStore {
         &self,
         tx: &mut <InMemoryBackend as Backend>::Tx,
     ) -> BackendResult<Vec<WorkflowExecutionRecord>> {
-        let mut by_id = tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .workflow_executions
-            .clone();
-        by_id.append(&mut tx.workflow_execution_puts.clone());
-        Ok(by_id.into_values().collect())
+        Ok(tx
+            .query(EXECUTIONS, &Query::All)?
+            .iter()
+            .map(|record| memory_codec::workflow_execution_from_json(&record.document))
+            .collect())
     }
 }
 
@@ -64,13 +65,14 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
             &request.definition.workflow_name,
             request.definition.workflow_version,
         )?;
-        tx.workflow_definition_puts.insert(
-            workflow_definition_key(
+        tx.put(
+            DEFINITIONS,
+            &workflow_definition_key(
                 &request.definition.workflow_name,
                 request.definition.workflow_version,
             ),
-            request.definition.clone(),
-        );
+            memory_codec::workflow_definition_to_json(&request.definition),
+        )?;
         Ok(WorkflowDefinitionRegistration {
             definition: request.definition.clone(),
             created: existing.is_none(),
@@ -96,16 +98,9 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
         workflow_version: i64,
     ) -> BackendResult<Option<WorkflowDefinition>> {
         let key = workflow_definition_key(workflow_name, workflow_version);
-        if let Some(definition) = tx.workflow_definition_puts.get(&key) {
-            return Ok(Some(definition.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .workflow_definitions
-            .get(&key)
-            .cloned())
+            .get(DEFINITIONS, &key)?
+            .map(|record| memory_codec::workflow_definition_from_json(&record.document)))
     }
 
     fn start(
@@ -138,8 +133,11 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
             claim_expires_at: None,
             state: request.state.clone(),
         };
-        tx.workflow_execution_puts
-            .insert(record.workflow_execution_id.clone(), record.clone());
+        tx.put(
+            EXECUTIONS,
+            &record.workflow_execution_id,
+            memory_codec::workflow_execution_to_json(&record),
+        )?;
         Ok(record)
     }
 
@@ -182,8 +180,11 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
             execution.claimed_by = Some(request.worker.clone());
             execution.claim_expires_at = Some(request.now + request.lease_duration);
             execution.attempt += 1;
-            tx.workflow_execution_puts
-                .insert(execution.workflow_execution_id.clone(), execution.clone());
+            tx.put(
+                EXECUTIONS,
+                &execution.workflow_execution_id,
+                memory_codec::workflow_execution_to_json(&execution),
+            )?;
             claimed.push(execution);
         }
         Ok(claimed)
@@ -208,8 +209,11 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
         let mut execution = self.require_execution(tx, &request.workflow_execution_id)?;
         require_claim(&execution, &request.worker, &request.current_step)?;
         execution.claim_expires_at = Some(request.now + request.lease_duration);
-        tx.workflow_execution_puts
-            .insert(execution.workflow_execution_id.clone(), execution.clone());
+        tx.put(
+            EXECUTIONS,
+            &execution.workflow_execution_id,
+            memory_codec::workflow_execution_to_json(&execution),
+        )?;
         Ok(execution)
     }
 
@@ -240,8 +244,11 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
         } else {
             execution.status = "Completed".to_string();
         }
-        tx.workflow_execution_puts
-            .insert(execution.workflow_execution_id.clone(), execution.clone());
+        tx.put(
+            EXECUTIONS,
+            &execution.workflow_execution_id,
+            memory_codec::workflow_execution_to_json(&execution),
+        )?;
         Ok(execution)
     }
 
@@ -270,8 +277,11 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
         } else {
             "Running".to_string()
         };
-        tx.workflow_execution_puts
-            .insert(execution.workflow_execution_id.clone(), execution.clone());
+        tx.put(
+            EXECUTIONS,
+            &execution.workflow_execution_id,
+            memory_codec::workflow_execution_to_json(&execution),
+        )?;
         Ok(execution)
     }
 
@@ -295,8 +305,11 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
         execution.status = "Canceled".to_string();
         execution.claimed_by = None;
         execution.claim_expires_at = None;
-        tx.workflow_execution_puts
-            .insert(execution.workflow_execution_id.clone(), execution.clone());
+        tx.put(
+            EXECUTIONS,
+            &execution.workflow_execution_id,
+            memory_codec::workflow_execution_to_json(&execution),
+        )?;
         Ok(execution)
     }
 
@@ -316,16 +329,9 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
         tx: &mut <InMemoryBackend as Backend>::Tx,
         workflow_execution_id: &str,
     ) -> BackendResult<Option<WorkflowExecutionRecord>> {
-        if let Some(execution) = tx.workflow_execution_puts.get(workflow_execution_id) {
-            return Ok(Some(execution.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .workflow_executions
-            .get(workflow_execution_id)
-            .cloned())
+            .get(EXECUTIONS, workflow_execution_id)?
+            .map(|record| memory_codec::workflow_execution_from_json(&record.document)))
     }
 }
 

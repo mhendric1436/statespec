@@ -4,8 +4,12 @@ use crate::lease::{
     LeaseInspectRequest, LeaseRecord, LeaseRegisterDefinitionResult, LeaseReleaseRequest,
     LeaseRenewRequest, LeaseStore,
 };
-use crate::memory_backend::{lock_error, InMemoryBackend};
+use crate::memory_backend::InMemoryBackend;
+use crate::memory_codec;
 use crate::memory_transaction::definition_key;
+
+const DEFINITIONS: &str = "leases.definitions";
+const LEASES: &str = "leases.records";
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryLeaseStore;
@@ -52,8 +56,11 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
         definition: &LeaseDefinition,
     ) -> BackendResult<LeaseRegisterDefinitionResult> {
         let existing = self.inspect_definition_tx(tx, &definition.id)?;
-        tx.lease_definition_puts
-            .insert(lease_definition_key(&definition.id), definition.clone());
+        tx.put(
+            DEFINITIONS,
+            &lease_definition_key(&definition.id),
+            memory_codec::lease_definition_to_json(definition),
+        )?;
         Ok(LeaseRegisterDefinitionResult {
             registered_new: existing.is_none(),
             definition: definition.clone(),
@@ -77,16 +84,9 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
         definition_id: &LeaseDefinitionId,
     ) -> BackendResult<Option<LeaseDefinition>> {
         let key = lease_definition_key(definition_id);
-        if let Some(definition) = tx.lease_definition_puts.get(&key) {
-            return Ok(Some(definition.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .lease_definitions
-            .get(&key)
-            .cloned())
+            .get(DEFINITIONS, &key)?
+            .map(|record| memory_codec::lease_definition_from_json(&record.document)))
     }
 
     fn acquire(
@@ -142,8 +142,7 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
             fencing_token: token,
         };
         let key = lease_key(&request.definition_id, &request.resource);
-        tx.lease_erases.remove(&key);
-        tx.lease_puts.insert(key, record.clone());
+        tx.put(LEASES, &key, memory_codec::lease_record_to_json(&record))?;
         Ok(LeaseAcquireResult {
             acquired: true,
             lease: Some(record),
@@ -174,10 +173,11 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
         let mut record = self.require_lease(tx, &request.definition_id, &request.resource)?;
         require_holder(&record, &request.holder, request.fencing_token)?;
         record.expires_at = request.now + definition.ttl;
-        tx.lease_puts.insert(
-            lease_key(&request.definition_id, &request.resource),
-            record.clone(),
-        );
+        tx.put(
+            LEASES,
+            &lease_key(&request.definition_id, &request.resource),
+            memory_codec::lease_record_to_json(&record),
+        )?;
         Ok(record)
     }
 
@@ -199,8 +199,7 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
         let record = self.require_lease(tx, &request.definition_id, &request.resource)?;
         require_holder(&record, &request.holder, request.fencing_token)?;
         let key = lease_key(&request.definition_id, &request.resource);
-        tx.lease_puts.remove(&key);
-        tx.lease_erases.insert(key);
+        tx.erase(LEASES, &key)?;
         Ok(())
     }
 
@@ -221,19 +220,9 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
         request: &LeaseInspectRequest,
     ) -> BackendResult<Option<LeaseRecord>> {
         let key = lease_key(&request.definition_id, &request.resource);
-        if tx.lease_erases.contains(&key) {
-            return Ok(None);
-        }
-        if let Some(lease) = tx.lease_puts.get(&key) {
-            return Ok(Some(lease.clone()));
-        }
         Ok(tx
-            .state
-            .lock()
-            .map_err(lock_error)?
-            .leases
-            .get(&key)
-            .cloned())
+            .get(LEASES, &key)?
+            .map(|record| memory_codec::lease_record_from_json(&record.document)))
     }
 }
 
