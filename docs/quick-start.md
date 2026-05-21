@@ -282,6 +282,7 @@ Typical generated output roots:
 build/generated/<example>/cpp/
   common/
     memory/
+    runtime/
   api/
   worker/
   Makefile
@@ -289,6 +290,7 @@ build/generated/<example>/cpp/
 build/generated/<example>/go/
   common/backend/
     memory/
+    runtime/
   api/backend/
   worker/backend/
   go.mod
@@ -297,6 +299,7 @@ build/generated/<example>/go/
 build/generated/<example>/java/
   common/com/statespec/backend/
     memory/
+    runtime/
   common/com/statespec/generated/
   api/com/statespec/generated/
   worker/com/statespec/generated/
@@ -305,12 +308,17 @@ build/generated/<example>/java/
 build/generated/<example>/rust/
   common/
     memory/
+    runtime/
   api/
   worker/
   Cargo.toml
   lib.rs
   Makefile
 ```
+
+The `memory/` paths contain concrete in-memory backend and transaction adapters. The
+`runtime/` paths contain backend-neutral stores, sinks, and codecs for feature flags,
+queues, leases, workflows, logs, and metrics.
 
 Generated files are disposable. Keep user-owned application code outside the generated
 output tree and import or include the generated contracts.

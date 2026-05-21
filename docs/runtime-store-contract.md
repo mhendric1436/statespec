@@ -91,13 +91,15 @@ Backends should not expose native queue maps, lease maps, workflow maps, feature
 maps, log buffers, or metric buffers. Those records are normal versioned documents in
 component-owned collections.
 
-## Generated Layout Direction
+## Generated Layout
 
-The long-term generated layout should separate backend-neutral runtime stores from
-concrete backend adapters:
+Generated bindings separate backend-neutral runtime stores from concrete backend
+adapters. The concrete in-memory backend and transaction live under `memory/`, while
+typed stores, sinks, and shared runtime codecs live under `runtime/`.
 
 ```text
 common/runtime/
+  codec.*
   feature_flags.*
   queues.*
   leases.*
@@ -108,12 +110,11 @@ common/runtime/
 common/memory/
   backend.*
   transaction.*
-  storage/codec helpers as needed
 ```
 
-Some current generated artifacts may still live under memory-specific directories while
-the refactor is in progress. Even in those transitional paths, runtime store code should
-use only the public backend and transaction abstractions.
+Language packaging may add language-specific prefixes, such as
+`common/backend/runtime` for Go or `common/com/statespec/backend/runtime` for Java, but
+the ownership split is the same in C++, Go, Java, and Rust.
 
 ## Test Expectations
 
@@ -123,6 +124,9 @@ Each language should have tests proving that:
 - runtime stores can operate through backend abstractions
 - transaction-scoped methods compose multiple runtime operations atomically
 - generated API and Worker app fixtures can link stores with the in-memory backend
+- generated binding fixtures cover the same runtime composition path across C++, Go,
+  Java, and Rust: feature flags, queues, leases, workflows, logs, metrics, inspect
+  APIs, and generic backend `put`/`query` primitives
 
 This contract keeps StateSpec runtime semantics portable across in-memory, PostgreSQL,
 or future backend adapters without reimplementing queues, leases, workflows, feature

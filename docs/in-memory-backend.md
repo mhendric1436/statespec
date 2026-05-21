@@ -12,17 +12,18 @@ transport-facing API or treat it as a production persistence model.
 
 ## Scope
 
-The in-memory backend package currently emits local implementations for these binding
-interfaces in each language:
+The generated common tier currently emits two kinds of runtime support in each language:
 
-- `IBackend` / `Backend`
-- `ITransaction` / transaction type
-- `IFeatureFlagStore`
-- `IQueueStore`
-- `ILeaseStore`
-- `IWorkflowStore`
-- `ILogSink`
-- `IMetricSink`
+1. Concrete in-memory backend adapters:
+   - `IBackend` / `Backend`
+   - `ITransaction` / transaction type
+2. Backend-neutral runtime clients:
+   - `IFeatureFlagStore`
+   - `IQueueStore`
+   - `ILeaseStore`
+   - `IWorkflowStore`
+   - `ILogSink`
+   - `IMetricSink`
 
 The backend and transaction pieces must remain generic. Feature flag, queue, lease,
 workflow, log, and metric implementations are separate store/sink clients that use the
@@ -30,12 +31,13 @@ backend by registering collections and reading or writing versioned records.
 
 Those store/sink clients are backend-neutral runtime components. They should depend on
 the public `Backend`/`IBackend` and `Transaction`/`ITransaction` abstractions, not on
-`InMemoryBackend`, `InMemoryTransaction`, or other memory-specific concrete types. The
-current generated layout may still place them beside the in-memory adapter while the
-cross-language layout is being refactored, but their contract is not memory-specific.
+`InMemoryBackend`, `InMemoryTransaction`, or other memory-specific concrete types.
 
-The memory package should be generated under the `common` tier so both API and Worker
-tiers can reuse the same implementation.
+The `memory/` package or directory should contain only the concrete in-memory backend
+adapter and transaction. The `runtime/` package or directory should contain codecs,
+stores, and sinks that are reusable with any backend adapter implementing the OCC
+interfaces. Both are generated under the `common` tier so API and Worker tiers can reuse
+the same contracts.
 
 ## Directory Layout
 
@@ -140,6 +142,17 @@ Repository-level generated app linking coverage is exercised by:
 ```sh
 make test-generated-apps
 ```
+
+Repository-level cross-language runtime fixture coverage is exercised by:
+
+```sh
+make test
+```
+
+The generated binding fixtures for C++, Go, Java, and Rust should stay behaviorally
+aligned. Each language fixture should prove that one in-memory backend instance can
+compose the backend-neutral feature flag, queue, lease, workflow, log, and metric
+clients, and should also exercise generic backend `put`/`query` primitives.
 
 ## Shared State Model
 

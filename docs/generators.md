@@ -65,8 +65,9 @@ transaction artifacts provide generic OCC collection storage only. Feature flag,
 lease, workflow, log, and metric artifacts are typed store/sink clients that register
 their own collections and persist records through the generic backend interface.
 Those typed store/sink artifacts are backend-neutral runtime clients. They should not
-depend on memory-specific backend or transaction concrete types, even when current
-generated filenames still place them under memory-oriented directories.
+depend on memory-specific backend or transaction concrete types. Generated outputs use
+`memory/` paths for concrete backend adapters and `runtime/` paths for backend-neutral
+stores, sinks, and codecs.
 
 The common in-memory backend artifact responsibilities are:
 
@@ -128,6 +129,27 @@ In-memory backend filenames:
 | `go` | `common/backend/memory/backend.go`, `common/backend/memory/transaction.go`, `common/backend/runtime/codec.go`, `common/backend/runtime/feature_flags.go`, `common/backend/runtime/queues.go`, `common/backend/runtime/leases.go`, `common/backend/runtime/workflows.go`, `common/backend/runtime/logs.go`, `common/backend/runtime/metrics.go` |
 | `java` | `common/com/statespec/backend/memory/InMemoryBackend.java`, `common/com/statespec/backend/memory/InMemoryTransaction.java`, `common/com/statespec/backend/runtime/RuntimeCodec.java`, `common/com/statespec/backend/runtime/RuntimeFeatureFlagStore.java`, `common/com/statespec/backend/runtime/RuntimeQueueStore.java`, `common/com/statespec/backend/runtime/RuntimeLeaseStore.java`, `common/com/statespec/backend/runtime/RuntimeWorkflowStore.java`, `common/com/statespec/backend/runtime/RuntimeLogSink.java`, `common/com/statespec/backend/runtime/RuntimeMetricSink.java` |
 | `rust` | `common/memory/backend.rs`, `common/memory/transaction.rs`, `common/runtime/codec.rs`, `common/runtime/feature_flags.rs`, `common/runtime/queues.rs`, `common/runtime/leases.rs`, `common/runtime/workflows.rs`, `common/runtime/logs.rs`, `common/runtime/metrics.rs` |
+
+## Cross-Language Fixture Parity
+
+Generated binding tests are expected to keep C++, Go, Java, and Rust behaviorally
+aligned. When a runtime capability is added to one language fixture, add the equivalent
+coverage to the other language fixtures unless the capability is intentionally
+unsupported and documented.
+
+The common runtime fixture shape is:
+
+- generate bindings from the shared full-feature fixture
+- compile the generated common, API, and worker artifacts with language-native tooling
+- link or run a metadata resolver fixture
+- instantiate one generated in-memory backend
+- compose backend-neutral feature flag, queue, lease, workflow, log, and metric runtime
+  clients through that backend
+- exercise transaction-scoped registration, runtime operations, inspect APIs, and
+  generic backend `put`/`query` primitives
+
+The generated app e2e fixtures additionally verify that API and Worker tier artifacts
+link against the generated common tier and in-memory backend in all four languages.
 
 ## Supported Languages
 

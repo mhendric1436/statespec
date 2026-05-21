@@ -182,6 +182,15 @@ on `InMemoryBackend`, `InMemoryTransaction`, or equivalent memory-specific types
 in-memory backend is one concrete adapter behind the same OCC interfaces used by
 production backends.
 
+Generated artifact layout must preserve that boundary:
+
+- `memory/` contains only concrete in-memory backend and transaction adapters.
+- `runtime/` contains backend-neutral codecs, feature flag stores, queue stores, lease
+  stores, workflow stores, log sinks, and metric sinks.
+
+Language packaging may add language-specific path prefixes, but it must not collapse
+backend-neutral stores back into memory-specific packages.
+
 Do not add domain-specific transaction staging fields such as queue message maps,
 workflow execution maps, lease maps, feature flag maps, log append buffers, or metric
 append buffers to backend or transaction implementations. Those records belong in
@@ -852,6 +861,26 @@ Every language feature should have:
 - semantic validation coverage
 
 Top-level `make test` runs core and CLI tests. `make test-bindings` runs binding-local tests for C++, Go, Java, and Rust. `make test-generated-apps` runs complete generated API/worker app fixture checks.
+
+### Cross-language binding fixture parity
+
+Generated binding fixtures for C++, Go, Java, and Rust should cover the same runtime
+contract. When adding or changing generated runtime behavior in one language, update the
+other language fixtures in the same PR unless the difference is intentionally documented.
+
+Each language fixture should verify:
+
+- generated common, API, and worker artifacts compile with language-native tooling
+- metadata resolver fixtures link and run
+- one in-memory backend instance composes backend-neutral feature flag, queue, lease,
+  workflow, log, and metric runtime clients
+- transaction-scoped registration and runtime operations work through the public backend
+  and transaction interfaces
+- inspect APIs are usable for logs and metrics
+- generic backend `put`/`query` primitives work independently of typed runtime stores
+
+Generated app e2e fixtures should also remain aligned across languages for API app
+linking, Worker app linking, generated manifest shape, and in-memory backend composition.
 
 ---
 
