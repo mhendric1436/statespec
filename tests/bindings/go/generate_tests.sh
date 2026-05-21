@@ -27,13 +27,13 @@ assert_file_exists "$TMPDIR/out-go/common/backend/queue.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/workflow.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/memory/backend.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/memory/transaction.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/codec.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/feature_flags.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/queues.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/leases.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/workflows.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/logs.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/metrics.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/runtime/feature_flags.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/runtime/queues.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/runtime/leases.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/runtime/workflows.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/runtime/logs.go"
+assert_file_exists "$TMPDIR/out-go/common/backend/runtime/metrics.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/descriptors.go"
 assert_file_exists "$TMPDIR/out-go/go.mod"
 assert_file_exists "$TMPDIR/out-go/Makefile"
@@ -89,13 +89,13 @@ assert_file_contains "$TMPDIR/out-go/common/backend/workflow.go" "type KeepAlive
 assert_file_contains "$TMPDIR/out-go/common/backend/workflow.go" "KeepAliveStepTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/memory/backend.go" "type Backend struct"
 assert_file_contains "$TMPDIR/out-go/common/backend/memory/transaction.go" "type Transaction struct"
-assert_file_contains "$TMPDIR/out-go/common/backend/memory/codec.go" "featureFlagDefinitionToJSON"
-assert_file_contains "$TMPDIR/out-go/common/backend/memory/feature_flags.go" "type FeatureFlagStore struct"
-assert_file_contains "$TMPDIR/out-go/common/backend/memory/queues.go" "type QueueStore struct"
-assert_file_contains "$TMPDIR/out-go/common/backend/memory/leases.go" "type LeaseStore struct"
-assert_file_contains "$TMPDIR/out-go/common/backend/memory/workflows.go" "type WorkflowStore struct"
-assert_file_contains "$TMPDIR/out-go/common/backend/memory/logs.go" "func (s *LogSink) InspectEvents"
-assert_file_contains "$TMPDIR/out-go/common/backend/memory/metrics.go" "func (s *MetricSink) InspectSamples"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/codec.go" "featureFlagDefinitionToJSON"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/feature_flags.go" "type FeatureFlagStore struct"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/queues.go" "type QueueStore struct"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/leases.go" "type LeaseStore struct"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/workflows.go" "type WorkflowStore struct"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/logs.go" "func (s *LogSink) InspectEvents"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/metrics.go" "func (s *MetricSink) InspectSamples"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type FeatureFlagDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func FeatureFlagDefinitions() []FeatureFlagDescriptor"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type ShapeDescriptor struct"
@@ -210,8 +210,8 @@ assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "TypeName: \
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "TypeName: \"int?\""
 
 cp "$SCRIPT_DIR/metadata_resolver_fixture_test.go" "$TMPDIR/out-go/common/backend/metadata_resolver_fixture_test.go"
-cat > "$TMPDIR/out-go/common/backend/memory/memory_fixture_test.go" <<'EOF'
-package memory_test
+cat > "$TMPDIR/out-go/common/backend/runtime/runtime_fixture_test.go" <<'EOF'
+package runtime_test
 
 import (
 	"context"
@@ -220,17 +220,18 @@ import (
 
 	common "statespec-generated/common/backend"
 	"statespec-generated/common/backend/memory"
+	"statespec-generated/common/backend/runtime"
 )
 
 func TestMemoryBackendStoresComposeInTransaction(t *testing.T) {
 	ctx := context.Background()
 	backend := memory.NewBackend()
-	flags := memory.NewFeatureFlagStore()
-	queues := memory.NewQueueStore()
-	leases := memory.NewLeaseStore()
-	workflows := memory.NewWorkflowStore()
-	logs := memory.NewLogSink()
-	metrics := memory.NewMetricSink()
+	flags := runtime.NewFeatureFlagStore()
+	queues := runtime.NewQueueStore()
+	leases := runtime.NewLeaseStore()
+	workflows := runtime.NewWorkflowStore()
+	logs := runtime.NewLogSink()
+	metrics := runtime.NewMetricSink()
 
 	tx, err := backend.Begin(ctx)
 	if err != nil {

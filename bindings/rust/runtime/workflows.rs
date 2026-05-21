@@ -1,6 +1,6 @@
 use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query, Transaction};
-use crate::memory_codec;
-use crate::memory_transaction::definition_key;
+use crate::runtime_codec;
+use crate::runtime_codec::definition_key;
 use crate::workflow::{
     CancelWorkflowRequest, ClaimWorkflowStepRequest, CompleteWorkflowStepRequest,
     FailWorkflowStepRequest, KeepAliveWorkflowStepRequest, RegisterWorkflowDefinitionRequest,
@@ -12,9 +12,9 @@ const DEFINITIONS: &str = "workflows.definitions";
 const EXECUTIONS: &str = "workflows.executions";
 
 #[derive(Debug, Clone, Default)]
-pub struct InMemoryWorkflowStore;
+pub struct RuntimeWorkflowStore;
 
-impl InMemoryWorkflowStore {
+impl RuntimeWorkflowStore {
     pub fn new() -> Self {
         Self
     }
@@ -24,7 +24,7 @@ impl InMemoryWorkflowStore {
         tx: &mut B::Tx,
         workflow_execution_id: &str,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_tx(self, tx, workflow_execution_id)?
+        <RuntimeWorkflowStore as WorkflowStore<B>>::inspect_tx(self, tx, workflow_execution_id)?
             .ok_or_else(|| BackendError::NotFound {
                 message: "unknown workflow execution".to_string(),
             })
@@ -37,19 +37,19 @@ impl InMemoryWorkflowStore {
         Ok(tx
             .query(EXECUTIONS, &Query::All)?
             .iter()
-            .map(|record| memory_codec::workflow_execution_from_json(&record.document))
+            .map(|record| runtime_codec::workflow_execution_from_json(&record.document))
             .collect())
     }
 }
 
-impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
+impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
     fn register_definition(
         &self,
         backend: &B,
         request: &RegisterWorkflowDefinitionRequest,
     ) -> BackendResult<WorkflowDefinitionRegistration> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::register_definition_tx(
+        let result = <RuntimeWorkflowStore as WorkflowStore<B>>::register_definition_tx(
             self, &mut tx, request,
         )?;
         backend.commit(tx)?;
@@ -61,7 +61,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         tx: &mut B::Tx,
         request: &RegisterWorkflowDefinitionRequest,
     ) -> BackendResult<WorkflowDefinitionRegistration> {
-        let existing = <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_definition_tx(
+        let existing = <RuntimeWorkflowStore as WorkflowStore<B>>::inspect_definition_tx(
             self,
             tx,
             &request.definition.workflow_name,
@@ -73,7 +73,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
                 &request.definition.workflow_name,
                 request.definition.workflow_version,
             ),
-            memory_codec::workflow_definition_to_json(&request.definition),
+            runtime_codec::workflow_definition_to_json(&request.definition),
         )?;
         Ok(WorkflowDefinitionRegistration {
             definition: request.definition.clone(),
@@ -88,7 +88,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         workflow_version: i64,
     ) -> BackendResult<Option<WorkflowDefinition>> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_definition_tx(
+        let result = <RuntimeWorkflowStore as WorkflowStore<B>>::inspect_definition_tx(
             self,
             &mut tx,
             workflow_name,
@@ -107,7 +107,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         let key = workflow_definition_key(workflow_name, workflow_version);
         Ok(tx
             .get(DEFINITIONS, &key)?
-            .map(|record| memory_codec::workflow_definition_from_json(&record.document)))
+            .map(|record| runtime_codec::workflow_definition_from_json(&record.document)))
     }
 
     fn start(
@@ -116,7 +116,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         request: &StartWorkflowRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::start_tx(self, &mut tx, request)?;
+        let result = <RuntimeWorkflowStore as WorkflowStore<B>>::start_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -126,7 +126,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         tx: &mut B::Tx,
         request: &StartWorkflowRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        if let Some(existing) = <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_tx(
+        if let Some(existing) = <RuntimeWorkflowStore as WorkflowStore<B>>::inspect_tx(
             self,
             tx,
             &request.workflow_execution_id,
@@ -147,7 +147,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         tx.put(
             EXECUTIONS,
             &record.workflow_execution_id,
-            memory_codec::workflow_execution_to_json(&record),
+            runtime_codec::workflow_execution_to_json(&record),
         )?;
         Ok(record)
     }
@@ -159,7 +159,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
     ) -> BackendResult<Vec<WorkflowExecutionRecord>> {
         let mut tx = backend.begin()?;
         let result =
-            <InMemoryWorkflowStore as WorkflowStore<B>>::claim_steps_tx(self, &mut tx, request)?;
+            <RuntimeWorkflowStore as WorkflowStore<B>>::claim_steps_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -195,7 +195,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
             tx.put(
                 EXECUTIONS,
                 &execution.workflow_execution_id,
-                memory_codec::workflow_execution_to_json(&execution),
+                runtime_codec::workflow_execution_to_json(&execution),
             )?;
             claimed.push(execution);
         }
@@ -208,9 +208,8 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         request: &KeepAliveWorkflowStepRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::keep_alive_step_tx(
-            self, &mut tx, request,
-        )?;
+        let result =
+            <RuntimeWorkflowStore as WorkflowStore<B>>::keep_alive_step_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -226,7 +225,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         tx.put(
             EXECUTIONS,
             &execution.workflow_execution_id,
-            memory_codec::workflow_execution_to_json(&execution),
+            runtime_codec::workflow_execution_to_json(&execution),
         )?;
         Ok(execution)
     }
@@ -238,7 +237,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
         let result =
-            <InMemoryWorkflowStore as WorkflowStore<B>>::complete_step_tx(self, &mut tx, request)?;
+            <RuntimeWorkflowStore as WorkflowStore<B>>::complete_step_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -262,7 +261,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         tx.put(
             EXECUTIONS,
             &execution.workflow_execution_id,
-            memory_codec::workflow_execution_to_json(&execution),
+            runtime_codec::workflow_execution_to_json(&execution),
         )?;
         Ok(execution)
     }
@@ -274,7 +273,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
         let result =
-            <InMemoryWorkflowStore as WorkflowStore<B>>::fail_step_tx(self, &mut tx, request)?;
+            <RuntimeWorkflowStore as WorkflowStore<B>>::fail_step_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -296,7 +295,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         tx.put(
             EXECUTIONS,
             &execution.workflow_execution_id,
-            memory_codec::workflow_execution_to_json(&execution),
+            runtime_codec::workflow_execution_to_json(&execution),
         )?;
         Ok(execution)
     }
@@ -307,8 +306,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         request: &CancelWorkflowRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
-        let result =
-            <InMemoryWorkflowStore as WorkflowStore<B>>::cancel_tx(self, &mut tx, request)?;
+        let result = <RuntimeWorkflowStore as WorkflowStore<B>>::cancel_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -325,7 +323,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         tx.put(
             EXECUTIONS,
             &execution.workflow_execution_id,
-            memory_codec::workflow_execution_to_json(&execution),
+            runtime_codec::workflow_execution_to_json(&execution),
         )?;
         Ok(execution)
     }
@@ -336,7 +334,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
         workflow_execution_id: &str,
     ) -> BackendResult<Option<WorkflowExecutionRecord>> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_tx(
+        let result = <RuntimeWorkflowStore as WorkflowStore<B>>::inspect_tx(
             self,
             &mut tx,
             workflow_execution_id,
@@ -352,7 +350,7 @@ impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
     ) -> BackendResult<Option<WorkflowExecutionRecord>> {
         Ok(tx
             .get(EXECUTIONS, workflow_execution_id)?
-            .map(|record| memory_codec::workflow_execution_from_json(&record.document)))
+            .map(|record| runtime_codec::workflow_execution_from_json(&record.document)))
     }
 }
 

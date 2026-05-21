@@ -1,21 +1,21 @@
 use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query, Transaction};
 use crate::json::Json;
-use crate::memory_codec;
-use crate::memory_transaction::definition_key;
 use crate::queue::{
     AckMessageRequest, ClaimMessageRequest, EnqueueMessageRequest, FailMessageRequest,
     QueueDefinition, QueueDefinitionRegistration, QueueMessageRecord, QueueStore,
     RegisterQueueDefinitionRequest,
 };
+use crate::runtime_codec;
+use crate::runtime_codec::definition_key;
 
 const DEFINITIONS: &str = "queues.definitions";
 const MESSAGES: &str = "queues.messages";
 const IDEMPOTENCY: &str = "queues.idempotency";
 
 #[derive(Debug, Clone, Default)]
-pub struct InMemoryQueueStore;
+pub struct RuntimeQueueStore;
 
-impl InMemoryQueueStore {
+impl RuntimeQueueStore {
     pub fn new() -> Self {
         Self
     }
@@ -26,7 +26,7 @@ impl InMemoryQueueStore {
         message_id: &str,
     ) -> BackendResult<QueueMessageRecord> {
         tx.get(MESSAGES, message_id)?
-            .map(|record| memory_codec::queue_message_from_json(&record.document))
+            .map(|record| runtime_codec::queue_message_from_json(&record.document))
             .ok_or_else(|| BackendError::NotFound {
                 message: format!("unknown queue message {message_id}"),
             })
@@ -36,12 +36,12 @@ impl InMemoryQueueStore {
         Ok(tx
             .query(MESSAGES, &Query::All)?
             .iter()
-            .map(|record| memory_codec::queue_message_from_json(&record.document))
+            .map(|record| runtime_codec::queue_message_from_json(&record.document))
             .collect())
     }
 }
 
-impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
+impl<B: Backend> QueueStore<B> for RuntimeQueueStore {
     fn register_definition(
         &self,
         backend: &B,
@@ -49,7 +49,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
     ) -> BackendResult<QueueDefinitionRegistration> {
         let mut tx = backend.begin()?;
         let result =
-            <InMemoryQueueStore as QueueStore<B>>::register_definition_tx(self, &mut tx, request)?;
+            <RuntimeQueueStore as QueueStore<B>>::register_definition_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -59,7 +59,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         tx: &mut B::Tx,
         request: &RegisterQueueDefinitionRequest,
     ) -> BackendResult<QueueDefinitionRegistration> {
-        let existing = <InMemoryQueueStore as QueueStore<B>>::inspect_definition_tx(
+        let existing = <RuntimeQueueStore as QueueStore<B>>::inspect_definition_tx(
             self,
             tx,
             &request.definition.queue,
@@ -68,7 +68,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         tx.put(
             DEFINITIONS,
             &queue_definition_key(&request.definition.queue, &request.definition.channel),
-            memory_codec::queue_definition_to_json(&request.definition),
+            runtime_codec::queue_definition_to_json(&request.definition),
         )?;
         Ok(QueueDefinitionRegistration {
             definition: request.definition.clone(),
@@ -83,7 +83,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         channel: &str,
     ) -> BackendResult<Option<QueueDefinition>> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryQueueStore as QueueStore<B>>::inspect_definition_tx(
+        let result = <RuntimeQueueStore as QueueStore<B>>::inspect_definition_tx(
             self, &mut tx, queue, channel,
         )?;
         backend.commit(tx)?;
@@ -99,7 +99,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         let key = queue_definition_key(queue, channel);
         Ok(tx
             .get(DEFINITIONS, &key)?
-            .map(|record| memory_codec::queue_definition_from_json(&record.document)))
+            .map(|record| runtime_codec::queue_definition_from_json(&record.document)))
     }
 
     fn enqueue(
@@ -108,7 +108,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         request: &EnqueueMessageRequest,
     ) -> BackendResult<QueueMessageRecord> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryQueueStore as QueueStore<B>>::enqueue_tx(self, &mut tx, request)?;
+        let result = <RuntimeQueueStore as QueueStore<B>>::enqueue_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -125,7 +125,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
                 idempotency
             );
             if let Some(record) = tx.get(IDEMPOTENCY, &key)? {
-                let message_id = memory_codec::string_from_json(&record.document);
+                let message_id = runtime_codec::string_from_json(&record.document);
                 return self.require_message::<B>(tx, &message_id);
             }
             tx.put(IDEMPOTENCY, &key, Json::String(request.message_id.clone()))?;
@@ -143,7 +143,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         tx.put(
             MESSAGES,
             &record.message_id,
-            memory_codec::queue_message_to_json(&record),
+            runtime_codec::queue_message_to_json(&record),
         )?;
         Ok(record)
     }
@@ -154,7 +154,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         request: &ClaimMessageRequest,
     ) -> BackendResult<Vec<QueueMessageRecord>> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryQueueStore as QueueStore<B>>::claim_tx(self, &mut tx, request)?;
+        let result = <RuntimeQueueStore as QueueStore<B>>::claim_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -191,7 +191,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
             tx.put(
                 MESSAGES,
                 &message.message_id,
-                memory_codec::queue_message_to_json(&message),
+                runtime_codec::queue_message_to_json(&message),
             )?;
             claimed.push(message);
         }
@@ -200,7 +200,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
 
     fn acknowledge(&self, backend: &B, request: &AckMessageRequest) -> BackendResult<()> {
         let mut tx = backend.begin()?;
-        <InMemoryQueueStore as QueueStore<B>>::acknowledge_tx(self, &mut tx, request)?;
+        <RuntimeQueueStore as QueueStore<B>>::acknowledge_tx(self, &mut tx, request)?;
         backend.commit(tx)
     }
 
@@ -211,14 +211,14 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         tx.put(
             MESSAGES,
             &message.message_id,
-            memory_codec::queue_message_to_json(&message),
+            runtime_codec::queue_message_to_json(&message),
         )?;
         Ok(())
     }
 
     fn fail(&self, backend: &B, request: &FailMessageRequest) -> BackendResult<QueueMessageRecord> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryQueueStore as QueueStore<B>>::fail_tx(self, &mut tx, request)?;
+        let result = <RuntimeQueueStore as QueueStore<B>>::fail_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -240,14 +240,14 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
         tx.put(
             MESSAGES,
             &message.message_id,
-            memory_codec::queue_message_to_json(&message),
+            runtime_codec::queue_message_to_json(&message),
         )?;
         Ok(message)
     }
 
     fn inspect(&self, backend: &B, message_id: &str) -> BackendResult<Option<QueueMessageRecord>> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryQueueStore as QueueStore<B>>::inspect_tx(self, &mut tx, message_id)?;
+        let result = <RuntimeQueueStore as QueueStore<B>>::inspect_tx(self, &mut tx, message_id)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -259,7 +259,7 @@ impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
     ) -> BackendResult<Option<QueueMessageRecord>> {
         Ok(tx
             .get(MESSAGES, message_id)?
-            .map(|record| memory_codec::queue_message_from_json(&record.document)))
+            .map(|record| runtime_codec::queue_message_from_json(&record.document)))
     }
 }
 

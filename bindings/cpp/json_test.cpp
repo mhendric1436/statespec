@@ -3,13 +3,13 @@
 #include "feature_flag.hpp"
 #include "log.hpp"
 #include "memory/backend.hpp"
-#include "memory/feature_flag_store.hpp"
-#include "memory/lease_store.hpp"
-#include "memory/log_sink.hpp"
-#include "memory/metric_sink.hpp"
-#include "memory/queue_store.hpp"
-#include "memory/workflow_store.hpp"
 #include "metric.hpp"
+#include "runtime/feature_flag_store.hpp"
+#include "runtime/lease_store.hpp"
+#include "runtime/log_sink.hpp"
+#include "runtime/metric_sink.hpp"
+#include "runtime/queue_store.hpp"
+#include "runtime/workflow_store.hpp"
 
 #include "catch2/catch_amalgamated.hpp"
 
@@ -266,14 +266,15 @@ TEST_CASE("C++ in-memory backend composes runtime stores")
 {
     using namespace statespec::backend;
     using namespace statespec::backend::memory;
+    using namespace statespec::backend::runtime;
 
     InMemoryBackend backend;
-    InMemoryFeatureFlagStore feature_flags;
-    InMemoryQueueStore queues;
-    InMemoryLeaseStore leases;
-    InMemoryWorkflowStore workflows;
-    InMemoryLogSink logs;
-    InMemoryMetricSink metrics;
+    RuntimeFeatureFlagStore feature_flags;
+    RuntimeQueueStore queues;
+    RuntimeLeaseStore leases;
+    RuntimeWorkflowStore workflows;
+    RuntimeLogSink logs;
+    RuntimeMetricSink metrics;
 
     backend.ensure_collection(CollectionDescriptor{.name = "orders", .key_fields = {"order_id"}});
     auto tx = backend.begin();

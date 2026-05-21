@@ -1,4 +1,4 @@
-package com.statespec.backend.memory;
+package com.statespec.backend.runtime;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.FeatureFlag;
@@ -16,9 +16,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-final class InMemoryCodec
+final class RuntimeCodec
 {
-    private InMemoryCodec() {}
+    private RuntimeCodec() {}
+
+    static String definitionKey(Object... parts)
+    {
+        StringBuilder key = new StringBuilder();
+        for (int index = 0; index < parts.length; index++)
+        {
+            if (index > 0)
+            {
+                key.append(':');
+            }
+            key.append(parts[index]);
+        }
+        return key.toString();
+    }
 
     static Json optionalString(Optional<String> value)
     {
@@ -75,7 +89,7 @@ final class InMemoryCodec
 
     static Json optionalDuration(Optional<Duration> value)
     {
-        return value.map(InMemoryCodec::durationToJson).orElseGet(Json::nullValue);
+        return value.map(RuntimeCodec::durationToJson).orElseGet(Json::nullValue);
     }
 
     static Optional<Duration> optionalDurationFromJson(Json value)
@@ -99,7 +113,7 @@ final class InMemoryCodec
 
     static Json optionalInstant(Optional<Instant> value)
     {
-        return value.map(InMemoryCodec::instantToJson).orElseGet(Json::nullValue);
+        return value.map(RuntimeCodec::instantToJson).orElseGet(Json::nullValue);
     }
 
     static Optional<Instant> optionalInstantFromJson(Json value)

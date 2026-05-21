@@ -1640,32 +1640,32 @@ GenerationResult generate_go_bindings(
             "common/backend/memory/transaction.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
-            result, options.output_dir, templates, "backend/memory/codec.go.tmpl",
-            "common/backend/memory/codec.go", diagnostics, GeneratedArtifactTier::Common
+            result, options.output_dir, templates, "backend/runtime/codec.go.tmpl",
+            "common/backend/runtime/codec.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
-            result, options.output_dir, templates, "backend/memory/feature_flags.go.tmpl",
-            "common/backend/memory/feature_flags.go", diagnostics, GeneratedArtifactTier::Common
+            result, options.output_dir, templates, "backend/runtime/feature_flags.go.tmpl",
+            "common/backend/runtime/feature_flags.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
-            result, options.output_dir, templates, "backend/memory/queues.go.tmpl",
-            "common/backend/memory/queues.go", diagnostics, GeneratedArtifactTier::Common
+            result, options.output_dir, templates, "backend/runtime/queues.go.tmpl",
+            "common/backend/runtime/queues.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
-            result, options.output_dir, templates, "backend/memory/leases.go.tmpl",
-            "common/backend/memory/leases.go", diagnostics, GeneratedArtifactTier::Common
+            result, options.output_dir, templates, "backend/runtime/leases.go.tmpl",
+            "common/backend/runtime/leases.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
-            result, options.output_dir, templates, "backend/memory/workflows.go.tmpl",
-            "common/backend/memory/workflows.go", diagnostics, GeneratedArtifactTier::Common
+            result, options.output_dir, templates, "backend/runtime/workflows.go.tmpl",
+            "common/backend/runtime/workflows.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
-            result, options.output_dir, templates, "backend/memory/logs.go.tmpl",
-            "common/backend/memory/logs.go", diagnostics, GeneratedArtifactTier::Common
+            result, options.output_dir, templates, "backend/runtime/logs.go.tmpl",
+            "common/backend/runtime/logs.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
-            result, options.output_dir, templates, "backend/memory/metrics.go.tmpl",
-            "common/backend/memory/metrics.go", diagnostics, GeneratedArtifactTier::Common
+            result, options.output_dir, templates, "backend/runtime/metrics.go.tmpl",
+            "common/backend/runtime/metrics.go", diagnostics, GeneratedArtifactTier::Common
         );
         add_generated_template_file(
             result, options.output_dir, templates, "generated/descriptors.go.tmpl",

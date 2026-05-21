@@ -1868,30 +1868,30 @@ GenerationResult generate_cpp_bindings(
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/codec.hpp", "memory/codec.hpp", diagnostics
+        result, options.output_dir, templates, "runtime/codec.hpp", "runtime/codec.hpp", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/feature_flag_store.hpp",
-        "memory/feature_flag_store.hpp", diagnostics
+        result, options.output_dir, templates, "runtime/feature_flag_store.hpp",
+        "runtime/feature_flag_store.hpp", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/queue_store.hpp", "memory/queue_store.hpp",
+        result, options.output_dir, templates, "runtime/queue_store.hpp", "runtime/queue_store.hpp",
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/lease_store.hpp", "memory/lease_store.hpp",
+        result, options.output_dir, templates, "runtime/lease_store.hpp", "runtime/lease_store.hpp",
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/workflow_store.hpp",
-        "memory/workflow_store.hpp", diagnostics
+        result, options.output_dir, templates, "runtime/workflow_store.hpp",
+        "runtime/workflow_store.hpp", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/log_sink.hpp", "memory/log_sink.hpp",
+        result, options.output_dir, templates, "runtime/log_sink.hpp", "runtime/log_sink.hpp",
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/metric_sink.hpp", "memory/metric_sink.hpp",
+        result, options.output_dir, templates, "runtime/metric_sink.hpp", "runtime/metric_sink.hpp",
         diagnostics
     );
 

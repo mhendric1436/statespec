@@ -3,10 +3,10 @@
 #include "backend.hpp"
 #include "codec.hpp"
 
-namespace statespec::backend::memory
+namespace statespec::backend::runtime
 {
 
-class InMemoryFeatureFlagStore : public IFeatureFlagStore
+class RuntimeFeatureFlagStore : public IFeatureFlagStore
 {
   public:
     FeatureFlagRegisterDefinitionResult register_definition(
@@ -119,4 +119,4 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
     }
 };
 
-} // namespace statespec::backend::memory
+} // namespace statespec::backend::runtime

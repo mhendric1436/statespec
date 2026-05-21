@@ -1,4 +1,4 @@
-package com.statespec.backend.memory;
+package com.statespec.backend.runtime;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.Workflow;
@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public final class InMemoryWorkflowStore implements Workflow
+public final class RuntimeWorkflowStore implements Workflow
 {
     private static final String DEFINITIONS = "workflows.definitions";
     private static final String EXECUTIONS = "workflows.executions";
@@ -45,7 +45,7 @@ public final class InMemoryWorkflowStore implements Workflow
             workflowDefinitionKey(
                 request.definition().workflowName(), request.definition().workflowVersion()
             ),
-            InMemoryCodec.workflowDefinitionToJson(request.definition())
+            RuntimeCodec.workflowDefinitionToJson(request.definition())
         );
         return new WorkflowDefinitionRegistration(request.definition(), existing.isEmpty());
     }
@@ -72,7 +72,7 @@ public final class InMemoryWorkflowStore implements Workflow
     {
         var key = workflowDefinitionKey(workflowName, workflowVersion);
         return tx.get(DEFINITIONS, key)
-            .map(record -> InMemoryCodec.workflowDefinitionFromJson(record.document()));
+            .map(record -> RuntimeCodec.workflowDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -112,7 +112,7 @@ public final class InMemoryWorkflowStore implements Workflow
             request.stateJson()
         );
         tx.put(
-            EXECUTIONS, record.workflowExecutionId(), InMemoryCodec.workflowExecutionToJson(record)
+            EXECUTIONS, record.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(record)
         );
         return record;
     }
@@ -172,7 +172,7 @@ public final class InMemoryWorkflowStore implements Workflow
             );
             tx.put(
                 EXECUTIONS, updated.workflowExecutionId(),
-                InMemoryCodec.workflowExecutionToJson(updated)
+                RuntimeCodec.workflowExecutionToJson(updated)
             );
             claimed.add(updated);
         }
@@ -213,8 +213,7 @@ public final class InMemoryWorkflowStore implements Workflow
             Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
         );
         tx.put(
-            EXECUTIONS, updated.workflowExecutionId(),
-            InMemoryCodec.workflowExecutionToJson(updated)
+            EXECUTIONS, updated.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(updated)
         );
         return updated;
     }
@@ -255,8 +254,7 @@ public final class InMemoryWorkflowStore implements Workflow
             request.stateJson()
         );
         tx.put(
-            EXECUTIONS, updated.workflowExecutionId(),
-            InMemoryCodec.workflowExecutionToJson(updated)
+            EXECUTIONS, updated.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(updated)
         );
         return updated;
     }
@@ -296,8 +294,7 @@ public final class InMemoryWorkflowStore implements Workflow
             Optional.empty(), execution.stateJson()
         );
         tx.put(
-            EXECUTIONS, updated.workflowExecutionId(),
-            InMemoryCodec.workflowExecutionToJson(updated)
+            EXECUTIONS, updated.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(updated)
         );
         return updated;
     }
@@ -335,8 +332,7 @@ public final class InMemoryWorkflowStore implements Workflow
             Optional.empty(), execution.stateJson()
         );
         tx.put(
-            EXECUTIONS, updated.workflowExecutionId(),
-            InMemoryCodec.workflowExecutionToJson(updated)
+            EXECUTIONS, updated.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(updated)
         );
         return updated;
     }
@@ -360,7 +356,7 @@ public final class InMemoryWorkflowStore implements Workflow
     ) throws Backend.BackendException
     {
         return tx.get(EXECUTIONS, workflowExecutionId)
-            .map(record -> InMemoryCodec.workflowExecutionFromJson(record.document()));
+            .map(record -> RuntimeCodec.workflowExecutionFromJson(record.document()));
     }
 
     private WorkflowExecutionRecord requireExecution(
@@ -379,7 +375,7 @@ public final class InMemoryWorkflowStore implements Workflow
         var executions = new ArrayList<WorkflowExecutionRecord>();
         for (var record : records)
         {
-            executions.add(InMemoryCodec.workflowExecutionFromJson(record.document()));
+            executions.add(RuntimeCodec.workflowExecutionFromJson(record.document()));
         }
         return executions;
     }
@@ -389,7 +385,7 @@ public final class InMemoryWorkflowStore implements Workflow
         long version
     )
     {
-        return InMemoryTransaction.definitionKey(name, version);
+        return RuntimeCodec.definitionKey(name, version);
     }
 
     private static void requireClaim(

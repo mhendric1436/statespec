@@ -4,7 +4,7 @@ test:
 	go test ./...
 
 format:
-	gofmt -w backend/*.go backend/memory/*.go.tmpl
+	gofmt -w backend/*.go backend/memory/*.go.tmpl backend/runtime/*.go.tmpl
 
 clean:
 	go clean -testcache

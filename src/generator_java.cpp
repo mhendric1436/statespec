@@ -1742,37 +1742,37 @@ GenerationResult generate_java_bindings(
             output_root / "memory" / "InMemoryTransaction.java", diagnostics
         );
         add_template_file(
-            result, options.output_dir, templates, output_root / "memory" / "InMemoryCodec.java",
-            output_root / "memory" / "InMemoryCodec.java", diagnostics
+            result, options.output_dir, templates, output_root / "runtime" / "RuntimeCodec.java",
+            output_root / "runtime" / "RuntimeCodec.java", diagnostics
         );
         add_template_file(
             result, options.output_dir, templates,
-            output_root / "memory" / "InMemoryFeatureFlagStore.java",
-            output_root / "memory" / "InMemoryFeatureFlagStore.java", diagnostics
+            output_root / "runtime" / "RuntimeFeatureFlagStore.java",
+            output_root / "runtime" / "RuntimeFeatureFlagStore.java", diagnostics
         );
         add_template_file(
             result, options.output_dir, templates,
-            output_root / "memory" / "InMemoryQueueStore.java",
-            output_root / "memory" / "InMemoryQueueStore.java", diagnostics
+            output_root / "runtime" / "RuntimeQueueStore.java",
+            output_root / "runtime" / "RuntimeQueueStore.java", diagnostics
         );
         add_template_file(
             result, options.output_dir, templates,
-            output_root / "memory" / "InMemoryLeaseStore.java",
-            output_root / "memory" / "InMemoryLeaseStore.java", diagnostics
+            output_root / "runtime" / "RuntimeLeaseStore.java",
+            output_root / "runtime" / "RuntimeLeaseStore.java", diagnostics
         );
         add_template_file(
             result, options.output_dir, templates,
-            output_root / "memory" / "InMemoryWorkflowStore.java",
-            output_root / "memory" / "InMemoryWorkflowStore.java", diagnostics
+            output_root / "runtime" / "RuntimeWorkflowStore.java",
+            output_root / "runtime" / "RuntimeWorkflowStore.java", diagnostics
         );
         add_template_file(
-            result, options.output_dir, templates, output_root / "memory" / "InMemoryLogSink.java",
-            output_root / "memory" / "InMemoryLogSink.java", diagnostics
+            result, options.output_dir, templates, output_root / "runtime" / "RuntimeLogSink.java",
+            output_root / "runtime" / "RuntimeLogSink.java", diagnostics
         );
         add_template_file(
             result, options.output_dir, templates,
-            output_root / "memory" / "InMemoryMetricSink.java",
-            output_root / "memory" / "InMemoryMetricSink.java", diagnostics
+            output_root / "runtime" / "RuntimeMetricSink.java",
+            output_root / "runtime" / "RuntimeMetricSink.java", diagnostics
         );
         add_generated_template_file(
             result, options.output_dir, templates, "generated/Descriptors.java.tmpl",

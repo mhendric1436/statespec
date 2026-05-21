@@ -179,20 +179,20 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "memory_backend";
     case BindingAppArtifactKind::MemoryTransaction:
         return "memory_transaction";
-    case BindingAppArtifactKind::MemoryCodec:
-        return "memory_codec";
-    case BindingAppArtifactKind::MemoryFeatureFlagStore:
-        return "memory_feature_flag_store";
-    case BindingAppArtifactKind::MemoryQueueStore:
-        return "memory_queue_store";
-    case BindingAppArtifactKind::MemoryLeaseStore:
-        return "memory_lease_store";
-    case BindingAppArtifactKind::MemoryWorkflowStore:
-        return "memory_workflow_store";
-    case BindingAppArtifactKind::MemoryLogSink:
-        return "memory_log_sink";
-    case BindingAppArtifactKind::MemoryMetricSink:
-        return "memory_metric_sink";
+    case BindingAppArtifactKind::RuntimeCodec:
+        return "runtime_codec";
+    case BindingAppArtifactKind::RuntimeFeatureFlagStore:
+        return "runtime_feature_flag_store";
+    case BindingAppArtifactKind::RuntimeQueueStore:
+        return "runtime_queue_store";
+    case BindingAppArtifactKind::RuntimeLeaseStore:
+        return "runtime_lease_store";
+    case BindingAppArtifactKind::RuntimeWorkflowStore:
+        return "runtime_workflow_store";
+    case BindingAppArtifactKind::RuntimeLogSink:
+        return "runtime_log_sink";
+    case BindingAppArtifactKind::RuntimeMetricSink:
+        return "runtime_metric_sink";
     case BindingAppArtifactKind::ApiApplication:
         return "api_application";
     case BindingAppArtifactKind::ApiServer:
@@ -234,19 +234,19 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "In-memory backend composition root for local API and worker linking"},
             {"common/memory/transaction.hpp", common, Kind::MemoryTransaction,
              "In-memory optimistic-concurrency transaction"},
-            {"common/memory/codec.hpp", common, Kind::MemoryCodec,
-             "In-memory runtime record JSON codec"},
-            {"common/memory/feature_flag_store.hpp", common, Kind::MemoryFeatureFlagStore,
-             "In-memory feature flag store"},
-            {"common/memory/queue_store.hpp", common, Kind::MemoryQueueStore,
-             "In-memory queue store"},
-            {"common/memory/lease_store.hpp", common, Kind::MemoryLeaseStore,
-             "In-memory lease store"},
-            {"common/memory/workflow_store.hpp", common, Kind::MemoryWorkflowStore,
-             "In-memory workflow store"},
-            {"common/memory/log_sink.hpp", common, Kind::MemoryLogSink, "In-memory log sink"},
-            {"common/memory/metric_sink.hpp", common, Kind::MemoryMetricSink,
-             "In-memory metric sink"},
+            {"common/runtime/codec.hpp", common, Kind::RuntimeCodec,
+             "Runtime record JSON codec"},
+            {"common/runtime/feature_flag_store.hpp", common, Kind::RuntimeFeatureFlagStore,
+             "Backend-neutral feature flag store"},
+            {"common/runtime/queue_store.hpp", common, Kind::RuntimeQueueStore,
+             "Backend-neutral queue store"},
+            {"common/runtime/lease_store.hpp", common, Kind::RuntimeLeaseStore,
+             "Backend-neutral lease store"},
+            {"common/runtime/workflow_store.hpp", common, Kind::RuntimeWorkflowStore,
+             "Backend-neutral workflow store"},
+            {"common/runtime/log_sink.hpp", common, Kind::RuntimeLogSink, "Backend-neutral log sink"},
+            {"common/runtime/metric_sink.hpp", common, Kind::RuntimeMetricSink,
+             "Backend-neutral metric sink"},
             {"api/api_application.hpp", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/api_server.hpp", api, Kind::ApiServer, "API server lifecycle and request loop",
@@ -274,19 +274,19 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "In-memory backend composition root for local API and worker linking"},
             {"common/backend/memory/transaction.go", common, Kind::MemoryTransaction,
              "In-memory optimistic-concurrency transaction"},
-            {"common/backend/memory/codec.go", common, Kind::MemoryCodec,
-             "In-memory runtime record JSON codec"},
-            {"common/backend/memory/feature_flags.go", common, Kind::MemoryFeatureFlagStore,
-             "In-memory feature flag store"},
-            {"common/backend/memory/queues.go", common, Kind::MemoryQueueStore,
-             "In-memory queue store"},
-            {"common/backend/memory/leases.go", common, Kind::MemoryLeaseStore,
-             "In-memory lease store"},
-            {"common/backend/memory/workflows.go", common, Kind::MemoryWorkflowStore,
-             "In-memory workflow store"},
-            {"common/backend/memory/logs.go", common, Kind::MemoryLogSink, "In-memory log sink"},
-            {"common/backend/memory/metrics.go", common, Kind::MemoryMetricSink,
-             "In-memory metric sink"},
+            {"common/backend/runtime/codec.go", common, Kind::RuntimeCodec,
+             "Runtime record JSON codec"},
+            {"common/backend/runtime/feature_flags.go", common, Kind::RuntimeFeatureFlagStore,
+             "Backend-neutral feature flag store"},
+            {"common/backend/runtime/queues.go", common, Kind::RuntimeQueueStore,
+             "Backend-neutral queue store"},
+            {"common/backend/runtime/leases.go", common, Kind::RuntimeLeaseStore,
+             "Backend-neutral lease store"},
+            {"common/backend/runtime/workflows.go", common, Kind::RuntimeWorkflowStore,
+             "Backend-neutral workflow store"},
+            {"common/backend/runtime/logs.go", common, Kind::RuntimeLogSink, "Backend-neutral log sink"},
+            {"common/backend/runtime/metrics.go", common, Kind::RuntimeMetricSink,
+             "Backend-neutral metric sink"},
             {"api/backend/api_application.go", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/backend/api_server.go", api, Kind::ApiServer,
@@ -315,20 +315,20 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "In-memory backend composition root for local API and worker linking"},
             {"common/com/statespec/backend/memory/InMemoryTransaction.java", common,
              Kind::MemoryTransaction, "In-memory optimistic-concurrency transaction"},
-            {"common/com/statespec/backend/memory/InMemoryCodec.java", common, Kind::MemoryCodec,
-             "In-memory runtime record JSON codec"},
-            {"common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java", common,
-             Kind::MemoryFeatureFlagStore, "In-memory feature flag store"},
-            {"common/com/statespec/backend/memory/InMemoryQueueStore.java", common,
-             Kind::MemoryQueueStore, "In-memory queue store"},
-            {"common/com/statespec/backend/memory/InMemoryLeaseStore.java", common,
-             Kind::MemoryLeaseStore, "In-memory lease store"},
-            {"common/com/statespec/backend/memory/InMemoryWorkflowStore.java", common,
-             Kind::MemoryWorkflowStore, "In-memory workflow store"},
-            {"common/com/statespec/backend/memory/InMemoryLogSink.java", common,
-             Kind::MemoryLogSink, "In-memory log sink"},
-            {"common/com/statespec/backend/memory/InMemoryMetricSink.java", common,
-             Kind::MemoryMetricSink, "In-memory metric sink"},
+            {"common/com/statespec/backend/runtime/RuntimeCodec.java", common, Kind::RuntimeCodec,
+             "Runtime record JSON codec"},
+            {"common/com/statespec/backend/runtime/RuntimeFeatureFlagStore.java", common,
+             Kind::RuntimeFeatureFlagStore, "Backend-neutral feature flag store"},
+            {"common/com/statespec/backend/runtime/RuntimeQueueStore.java", common,
+             Kind::RuntimeQueueStore, "Backend-neutral queue store"},
+            {"common/com/statespec/backend/runtime/RuntimeLeaseStore.java", common,
+             Kind::RuntimeLeaseStore, "Backend-neutral lease store"},
+            {"common/com/statespec/backend/runtime/RuntimeWorkflowStore.java", common,
+             Kind::RuntimeWorkflowStore, "Backend-neutral workflow store"},
+            {"common/com/statespec/backend/runtime/RuntimeLogSink.java", common,
+             Kind::RuntimeLogSink, "Backend-neutral log sink"},
+            {"common/com/statespec/backend/runtime/RuntimeMetricSink.java", common,
+             Kind::RuntimeMetricSink, "Backend-neutral metric sink"},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer,
@@ -358,16 +358,16 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "In-memory backend composition root for local API and worker linking"},
             {"common/memory/transaction.rs", common, Kind::MemoryTransaction,
              "In-memory optimistic-concurrency transaction"},
-            {"common/memory/codec.rs", common, Kind::MemoryCodec,
-             "In-memory runtime record JSON codec"},
-            {"common/memory/feature_flags.rs", common, Kind::MemoryFeatureFlagStore,
-             "In-memory feature flag store"},
-            {"common/memory/queues.rs", common, Kind::MemoryQueueStore, "In-memory queue store"},
-            {"common/memory/leases.rs", common, Kind::MemoryLeaseStore, "In-memory lease store"},
-            {"common/memory/workflows.rs", common, Kind::MemoryWorkflowStore,
-             "In-memory workflow store"},
-            {"common/memory/logs.rs", common, Kind::MemoryLogSink, "In-memory log sink"},
-            {"common/memory/metrics.rs", common, Kind::MemoryMetricSink, "In-memory metric sink"},
+            {"common/runtime/codec.rs", common, Kind::RuntimeCodec,
+             "Runtime record JSON codec"},
+            {"common/runtime/feature_flags.rs", common, Kind::RuntimeFeatureFlagStore,
+             "Backend-neutral feature flag store"},
+            {"common/runtime/queues.rs", common, Kind::RuntimeQueueStore, "Backend-neutral queue store"},
+            {"common/runtime/leases.rs", common, Kind::RuntimeLeaseStore, "Backend-neutral lease store"},
+            {"common/runtime/workflows.rs", common, Kind::RuntimeWorkflowStore,
+             "Backend-neutral workflow store"},
+            {"common/runtime/logs.rs", common, Kind::RuntimeLogSink, "Backend-neutral log sink"},
+            {"common/runtime/metrics.rs", common, Kind::RuntimeMetricSink, "Backend-neutral metric sink"},
             {"api/api_application.rs", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/api_server.rs", api, Kind::ApiServer, "API server lifecycle and request loop",

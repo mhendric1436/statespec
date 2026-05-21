@@ -28,13 +28,13 @@ assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Queue.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Workflow.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryBackend.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryTransaction.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryCodec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryQueueStore.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryLeaseStore.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryWorkflowStore.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryLogSink.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryMetricSink.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeCodec.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeFeatureFlagStore.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeQueueStore.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeLeaseStore.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeWorkflowStore.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeLogSink.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeMetricSink.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java"
 assert_file_exists "$TMPDIR/out-java/Makefile"
 assert_file_exists "$TMPDIR/out-java/api/com/statespec/generated/ApiDescriptors.java"
@@ -89,13 +89,13 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Workflow.jav
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/Workflow.java" "keepAliveStepTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryBackend.java" "public final class InMemoryBackend"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryTransaction.java" "public final class InMemoryTransaction"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryCodec.java" "final class InMemoryCodec"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java" "implements FeatureFlag"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryQueueStore.java" "implements Queue"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryLeaseStore.java" "implements Lease"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryWorkflowStore.java" "implements Workflow"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryLogSink.java" "inspectEvents"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryMetricSink.java" "inspectSamples"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeCodec.java" "final class RuntimeCodec"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeFeatureFlagStore.java" "implements FeatureFlag"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeQueueStore.java" "implements Queue"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeLeaseStore.java" "implements Lease"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeWorkflowStore.java" "implements Workflow"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeLogSink.java" "inspectEvents"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/RuntimeMetricSink.java" "inspectSamples"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "class Descriptors"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record ShapeDescriptor"
@@ -216,6 +216,12 @@ import com.statespec.backend.Log;
 import com.statespec.backend.Metric;
 import com.statespec.backend.Queue;
 import com.statespec.backend.Workflow;
+import com.statespec.backend.runtime.RuntimeFeatureFlagStore;
+import com.statespec.backend.runtime.RuntimeLeaseStore;
+import com.statespec.backend.runtime.RuntimeLogSink;
+import com.statespec.backend.runtime.RuntimeMetricSink;
+import com.statespec.backend.runtime.RuntimeQueueStore;
+import com.statespec.backend.runtime.RuntimeWorkflowStore;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -227,12 +233,12 @@ public final class MemoryBackendFixture
     public static void main(String[] args) throws Exception
     {
         var backend = new InMemoryBackend();
-        var flags = new InMemoryFeatureFlagStore();
-        var queues = new InMemoryQueueStore();
-        var leases = new InMemoryLeaseStore();
-        var workflows = new InMemoryWorkflowStore();
-        var logs = new InMemoryLogSink();
-        var metrics = new InMemoryMetricSink();
+        var flags = new RuntimeFeatureFlagStore();
+        var queues = new RuntimeQueueStore();
+        var leases = new RuntimeLeaseStore();
+        var workflows = new RuntimeWorkflowStore();
+        var logs = new RuntimeLogSink();
+        var metrics = new RuntimeMetricSink();
 
         var tx = backend.begin();
         flags.registerDefinitionTx(

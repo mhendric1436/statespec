@@ -1780,27 +1780,27 @@ GenerationResult generate_rust_bindings(
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/codec.rs", "memory/codec.rs", diagnostics
+        result, options.output_dir, templates, "runtime/codec.rs", "runtime/codec.rs", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/feature_flags.rs", "memory/feature_flags.rs",
+        result, options.output_dir, templates, "runtime/feature_flags.rs", "runtime/feature_flags.rs",
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/queues.rs", "memory/queues.rs", diagnostics
+        result, options.output_dir, templates, "runtime/queues.rs", "runtime/queues.rs", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/leases.rs", "memory/leases.rs", diagnostics
+        result, options.output_dir, templates, "runtime/leases.rs", "runtime/leases.rs", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/workflows.rs", "memory/workflows.rs",
+        result, options.output_dir, templates, "runtime/workflows.rs", "runtime/workflows.rs",
         diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/logs.rs", "memory/logs.rs", diagnostics
+        result, options.output_dir, templates, "runtime/logs.rs", "runtime/logs.rs", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "memory/metrics.rs", "memory/metrics.rs", diagnostics
+        result, options.output_dir, templates, "runtime/metrics.rs", "runtime/metrics.rs", diagnostics
     );
 
     if (!diagnostics.has_errors())

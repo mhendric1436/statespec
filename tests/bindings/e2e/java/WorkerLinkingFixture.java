@@ -3,7 +3,7 @@ package com.statespec.generated;
 import com.statespec.backend.Json;
 import com.statespec.backend.Workflow;
 import com.statespec.backend.memory.InMemoryBackend;
-import com.statespec.backend.memory.InMemoryWorkflowStore;
+import com.statespec.backend.runtime.RuntimeWorkflowStore;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +30,7 @@ public final class WorkerLinkingFixture
     public static void main(String[] args) throws Exception
     {
         InMemoryBackend backend = new InMemoryBackend();
-        InMemoryWorkflowStore workflows = new InMemoryWorkflowStore();
+        RuntimeWorkflowStore workflows = new RuntimeWorkflowStore();
 
         workflows.registerDefinition(
             backend, new Workflow.RegisterWorkflowDefinitionRequest(new Workflow.WorkflowDefinition(

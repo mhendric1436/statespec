@@ -6,7 +6,7 @@ import (
 
 	api "statespec-generated/api/backend"
 	common "statespec-generated/common/backend"
-	"statespec-generated/common/backend/memory"
+	"statespec-generated/common/backend/runtime"
 )
 
 type linkingHandler struct {

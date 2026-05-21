@@ -10,42 +10,45 @@ pub mod workflow;
 
 pub mod memory {
     pub mod backend;
+    pub mod transaction;
+}
+
+pub mod runtime {
     pub mod codec;
     pub mod feature_flags;
     pub mod leases;
     pub mod logs;
     pub mod metrics;
     pub mod queues;
-    pub mod transaction;
     pub mod workflows;
 }
 
 pub mod memory_backend {
     pub use crate::memory::backend::*;
 }
-pub(crate) mod memory_codec {
-    pub(crate) use crate::memory::codec::*;
+pub(crate) mod runtime_codec {
+    pub(crate) use crate::runtime::codec::*;
 }
-pub mod memory_feature_flags {
-    pub use crate::memory::feature_flags::*;
+pub mod runtime_feature_flags {
+    pub use crate::runtime::feature_flags::*;
 }
-pub mod memory_leases {
-    pub use crate::memory::leases::*;
+pub mod runtime_leases {
+    pub use crate::runtime::leases::*;
 }
-pub mod memory_logs {
-    pub use crate::memory::logs::*;
+pub mod runtime_logs {
+    pub use crate::runtime::logs::*;
 }
-pub mod memory_metrics {
-    pub use crate::memory::metrics::*;
+pub mod runtime_metrics {
+    pub use crate::runtime::metrics::*;
 }
-pub mod memory_queues {
-    pub use crate::memory::queues::*;
+pub mod runtime_queues {
+    pub use crate::runtime::queues::*;
 }
 pub mod memory_transaction {
     pub use crate::memory::transaction::*;
 }
-pub mod memory_workflows {
-    pub use crate::memory::workflows::*;
+pub mod runtime_workflows {
+    pub use crate::runtime::workflows::*;
 }
 
 #[cfg(test)]

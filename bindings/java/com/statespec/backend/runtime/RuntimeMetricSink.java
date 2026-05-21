@@ -1,16 +1,16 @@
-package com.statespec.backend.memory;
+package com.statespec.backend.runtime;
 
 import com.statespec.backend.Backend;
-import com.statespec.backend.Log;
+import com.statespec.backend.Metric;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-public final class InMemoryLogSink implements Log
+public final class RuntimeMetricSink implements Metric
 {
-    private static final String DEFINITIONS = "logs.definitions";
-    private static final String EVENTS = "logs.events";
+    private static final String DEFINITIONS = "metrics.definitions";
+    private static final String SAMPLES = "metrics.samples";
 
     @Override
     public DefinitionRegistration registerDefinition(
@@ -39,7 +39,7 @@ public final class InMemoryLogSink implements Log
     ) throws Backend.BackendException
     {
         var existing = inspectDefinitionTx(tx, definition.name());
-        tx.put(DEFINITIONS, definition.name(), InMemoryCodec.logDefinitionToJson(definition));
+        tx.put(DEFINITIONS, definition.name(), RuntimeCodec.metricDefinitionToJson(definition));
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -62,19 +62,19 @@ public final class InMemoryLogSink implements Log
     ) throws Backend.BackendException
     {
         return tx.get(DEFINITIONS, name)
-            .map(record -> InMemoryCodec.logDefinitionFromJson(record.document()));
+            .map(record -> RuntimeCodec.metricDefinitionFromJson(record.document()));
     }
 
     @Override
-    public void emit(
+    public void record(
         Backend backend,
-        Event event
+        Sample sample
     ) throws Backend.BackendException
     {
         var tx = backend.begin();
         try
         {
-            emitTx(tx, event);
+            recordTx(tx, sample);
             backend.commit(tx);
         }
         catch (Backend.BackendException error)
@@ -85,37 +85,37 @@ public final class InMemoryLogSink implements Log
     }
 
     @Override
-    public void emitTx(
+    public void recordTx(
         Backend.Transaction tx,
-        Event event
+        Sample sample
     ) throws Backend.BackendException
     {
-        var events = tx.query(EVENTS, new Backend.Query.All());
-        tx.put(EVENTS, eventKey(events.size()), InMemoryCodec.logEventToJson(event));
+        var samples = tx.query(SAMPLES, new Backend.Query.All());
+        tx.put(SAMPLES, sampleKey(samples.size()), RuntimeCodec.metricSampleToJson(sample));
     }
 
-    public List<Event> inspectEvents(Backend backend) throws Backend.BackendException
+    public List<Sample> inspectSamples(Backend backend) throws Backend.BackendException
     {
         var tx = backend.begin();
-        var events = inspectEventsTx(tx);
+        var samples = inspectSamplesTx(tx);
         backend.commit(tx);
-        return events;
+        return samples;
     }
 
-    public List<Event> inspectEventsTx(Backend.Transaction tx) throws Backend.BackendException
+    public List<Sample> inspectSamplesTx(Backend.Transaction tx) throws Backend.BackendException
     {
-        var events = new ArrayList<Log.Event>();
-        var records = tx.query(EVENTS, new Backend.Query.All());
+        var samples = new ArrayList<Metric.Sample>();
+        var records = tx.query(SAMPLES, new Backend.Query.All());
         records.sort(Comparator.comparing(Backend.VersionedRecord::key));
         for (var record : records)
         {
-            events.add(InMemoryCodec.logEventFromJson(record.document()));
+            samples.add(RuntimeCodec.metricSampleFromJson(record.document()));
         }
-        return events;
+        return samples;
     }
 
-    private static String eventKey(int index)
+    private static String sampleKey(int index)
     {
-        return String.format("event:%020d", index + 1);
+        return String.format("sample:%020d", index + 1);
     }
 }

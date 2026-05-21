@@ -3,28 +3,28 @@ use crate::feature_flag::{
     FeatureFlagDefinition, FeatureFlagEvaluationRequest, FeatureFlagRegisterDefinitionResult,
     FeatureFlagStore, FeatureFlagValue,
 };
-use crate::memory_codec;
+use crate::runtime_codec;
 
 const DEFINITIONS: &str = "feature_flags.definitions";
 const VALUES: &str = "feature_flags.values";
 
 #[derive(Debug, Clone, Default)]
-pub struct InMemoryFeatureFlagStore;
+pub struct RuntimeFeatureFlagStore;
 
-impl InMemoryFeatureFlagStore {
+impl RuntimeFeatureFlagStore {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl<B: Backend> FeatureFlagStore<B> for InMemoryFeatureFlagStore {
+impl<B: Backend> FeatureFlagStore<B> for RuntimeFeatureFlagStore {
     fn register_definition(
         &self,
         backend: &B,
         definition: &FeatureFlagDefinition,
     ) -> BackendResult<FeatureFlagRegisterDefinitionResult> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::register_definition_tx(
+        let result = <RuntimeFeatureFlagStore as FeatureFlagStore<B>>::register_definition_tx(
             self, &mut tx, definition,
         )?;
         backend.commit(tx)?;
@@ -36,7 +36,7 @@ impl<B: Backend> FeatureFlagStore<B> for InMemoryFeatureFlagStore {
         tx: &mut B::Tx,
         definition: &FeatureFlagDefinition,
     ) -> BackendResult<FeatureFlagRegisterDefinitionResult> {
-        let existing = <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
+        let existing = <RuntimeFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
             self,
             tx,
             &definition.name,
@@ -44,7 +44,7 @@ impl<B: Backend> FeatureFlagStore<B> for InMemoryFeatureFlagStore {
         tx.put(
             DEFINITIONS,
             &definition.name,
-            memory_codec::feature_flag_definition_to_json(definition),
+            runtime_codec::feature_flag_definition_to_json(definition),
         )?;
         Ok(FeatureFlagRegisterDefinitionResult {
             registered_new: existing.is_none(),
@@ -58,7 +58,7 @@ impl<B: Backend> FeatureFlagStore<B> for InMemoryFeatureFlagStore {
         name: &str,
     ) -> BackendResult<Option<FeatureFlagDefinition>> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
+        let result = <RuntimeFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
             self, &mut tx, name,
         )?;
         backend.commit(tx)?;
@@ -72,7 +72,7 @@ impl<B: Backend> FeatureFlagStore<B> for InMemoryFeatureFlagStore {
     ) -> BackendResult<Option<FeatureFlagDefinition>> {
         Ok(tx
             .get(DEFINITIONS, name)?
-            .map(|record| memory_codec::feature_flag_definition_from_json(&record.document)))
+            .map(|record| runtime_codec::feature_flag_definition_from_json(&record.document)))
     }
 
     fn evaluate(
@@ -82,7 +82,7 @@ impl<B: Backend> FeatureFlagStore<B> for InMemoryFeatureFlagStore {
     ) -> BackendResult<FeatureFlagValue> {
         let mut tx = backend.begin()?;
         let result =
-            <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::evaluate_tx(self, &mut tx, request)?;
+            <RuntimeFeatureFlagStore as FeatureFlagStore<B>>::evaluate_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -93,9 +93,11 @@ impl<B: Backend> FeatureFlagStore<B> for InMemoryFeatureFlagStore {
         request: &FeatureFlagEvaluationRequest,
     ) -> BackendResult<FeatureFlagValue> {
         if let Some(record) = tx.get(VALUES, &request.name)? {
-            return Ok(memory_codec::feature_flag_value_from_json(&record.document));
+            return Ok(runtime_codec::feature_flag_value_from_json(
+                &record.document,
+            ));
         }
-        <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
+        <RuntimeFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
             self,
             tx,
             &request.name,

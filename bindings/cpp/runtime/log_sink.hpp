@@ -3,10 +3,10 @@
 #include "backend.hpp"
 #include "codec.hpp"
 
-namespace statespec::backend::memory
+namespace statespec::backend::runtime
 {
 
-class InMemoryLogSink : public ILogSink
+class RuntimeLogSink : public ILogSink
 {
   public:
     LogDefinitionRegistration register_definition(
@@ -108,4 +108,4 @@ class InMemoryLogSink : public ILogSink
     std::uint64_t next_event_id_ = 0;
 };
 
-} // namespace statespec::backend::memory
+} // namespace statespec::backend::runtime

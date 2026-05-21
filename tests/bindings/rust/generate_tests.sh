@@ -28,13 +28,13 @@ assert_file_exists "$TMPDIR/out-rust/common/queue.rs"
 assert_file_exists "$TMPDIR/out-rust/common/workflow.rs"
 assert_file_exists "$TMPDIR/out-rust/common/memory/backend.rs"
 assert_file_exists "$TMPDIR/out-rust/common/memory/transaction.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/codec.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/feature_flags.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/queues.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/leases.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/workflows.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/logs.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/metrics.rs"
+assert_file_exists "$TMPDIR/out-rust/common/runtime/codec.rs"
+assert_file_exists "$TMPDIR/out-rust/common/runtime/feature_flags.rs"
+assert_file_exists "$TMPDIR/out-rust/common/runtime/queues.rs"
+assert_file_exists "$TMPDIR/out-rust/common/runtime/leases.rs"
+assert_file_exists "$TMPDIR/out-rust/common/runtime/workflows.rs"
+assert_file_exists "$TMPDIR/out-rust/common/runtime/logs.rs"
+assert_file_exists "$TMPDIR/out-rust/common/runtime/metrics.rs"
 assert_file_exists "$TMPDIR/out-rust/common/descriptors.rs"
 assert_file_exists "$TMPDIR/out-rust/Cargo.toml"
 assert_file_exists "$TMPDIR/out-rust/Makefile"
@@ -103,13 +103,13 @@ assert_file_contains "$TMPDIR/out-rust/common/workflow.rs" "pub struct KeepAlive
 assert_file_contains "$TMPDIR/out-rust/common/workflow.rs" "fn keep_alive_step_tx"
 assert_file_contains "$TMPDIR/out-rust/common/memory/backend.rs" "pub struct InMemoryBackend"
 assert_file_contains "$TMPDIR/out-rust/common/memory/transaction.rs" "pub struct InMemoryTransaction"
-assert_file_contains "$TMPDIR/out-rust/common/memory/codec.rs" "feature_flag_definition_to_json"
-assert_file_contains "$TMPDIR/out-rust/common/memory/feature_flags.rs" "pub struct InMemoryFeatureFlagStore"
-assert_file_contains "$TMPDIR/out-rust/common/memory/queues.rs" "pub struct InMemoryQueueStore"
-assert_file_contains "$TMPDIR/out-rust/common/memory/leases.rs" "pub struct InMemoryLeaseStore"
-assert_file_contains "$TMPDIR/out-rust/common/memory/workflows.rs" "pub struct InMemoryWorkflowStore"
-assert_file_contains "$TMPDIR/out-rust/common/memory/logs.rs" "inspect_events"
-assert_file_contains "$TMPDIR/out-rust/common/memory/metrics.rs" "inspect_samples"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/codec.rs" "feature_flag_definition_to_json"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/feature_flags.rs" "pub struct RuntimeFeatureFlagStore"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/queues.rs" "pub struct RuntimeQueueStore"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/leases.rs" "pub struct RuntimeLeaseStore"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/workflows.rs" "pub struct RuntimeWorkflowStore"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/logs.rs" "inspect_events"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/metrics.rs" "inspect_samples"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct FeatureFlagDefinition"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn feature_flag_definitions() -> Vec<FeatureFlagDefinition>"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct ShapeDescriptor"
@@ -237,12 +237,12 @@ use statespec_generated::lease::{
 };
 use statespec_generated::log::{LogDefinition, LogEvent, LogLevel, LogSink};
 use statespec_generated::memory_backend::InMemoryBackend;
-use statespec_generated::memory_feature_flags::InMemoryFeatureFlagStore;
-use statespec_generated::memory_leases::InMemoryLeaseStore;
-use statespec_generated::memory_logs::InMemoryLogSink;
-use statespec_generated::memory_metrics::InMemoryMetricSink;
-use statespec_generated::memory_queues::InMemoryQueueStore;
-use statespec_generated::memory_workflows::InMemoryWorkflowStore;
+use statespec_generated::runtime_feature_flags::RuntimeFeatureFlagStore;
+use statespec_generated::runtime_leases::RuntimeLeaseStore;
+use statespec_generated::runtime_logs::RuntimeLogSink;
+use statespec_generated::runtime_metrics::RuntimeMetricSink;
+use statespec_generated::runtime_queues::RuntimeQueueStore;
+use statespec_generated::runtime_workflows::RuntimeWorkflowStore;
 use statespec_generated::metric::{MetricDefinition, MetricKind, MetricSample, MetricSink};
 use statespec_generated::queue::{
     ClaimMessageRequest, EnqueueMessageRequest, QueueDefinition, QueueStore,
@@ -256,15 +256,15 @@ use statespec_generated::workflow::{
 #[test]
 fn memory_backend_stores_compose_in_transaction() {
     let backend = InMemoryBackend::new();
-    let flags = InMemoryFeatureFlagStore::new();
-    let queues = InMemoryQueueStore::new();
-    let leases = InMemoryLeaseStore::new();
-    let workflows = InMemoryWorkflowStore::new();
-    let logs = InMemoryLogSink::new();
-    let metrics = InMemoryMetricSink::new();
+    let flags = RuntimeFeatureFlagStore::new();
+    let queues = RuntimeQueueStore::new();
+    let leases = RuntimeLeaseStore::new();
+    let workflows = RuntimeWorkflowStore::new();
+    let logs = RuntimeLogSink::new();
+    let metrics = RuntimeMetricSink::new();
 
     let mut tx = backend.begin().unwrap();
-    <InMemoryFeatureFlagStore as FeatureFlagStore<InMemoryBackend>>::register_definition_tx(
+    <RuntimeFeatureFlagStore as FeatureFlagStore<InMemoryBackend>>::register_definition_tx(
         &flags,
         &mut tx,
         &FeatureFlagDefinition {
@@ -278,7 +278,7 @@ fn memory_backend_stores_compose_in_transaction() {
         },
     )
     .unwrap();
-    <InMemoryQueueStore as QueueStore<InMemoryBackend>>::register_definition_tx(
+    <RuntimeQueueStore as QueueStore<InMemoryBackend>>::register_definition_tx(
         &queues,
         &mut tx,
         &RegisterQueueDefinitionRequest {
@@ -297,7 +297,7 @@ fn memory_backend_stores_compose_in_transaction() {
         name: "workflow_step".to_string(),
         version: 1,
     };
-    <InMemoryLeaseStore as LeaseStore<InMemoryBackend>>::register_definition_tx(
+    <RuntimeLeaseStore as LeaseStore<InMemoryBackend>>::register_definition_tx(
         &leases,
         &mut tx,
         &LeaseDefinition {
@@ -310,7 +310,7 @@ fn memory_backend_stores_compose_in_transaction() {
         },
     )
     .unwrap();
-    <InMemoryWorkflowStore as WorkflowStore<InMemoryBackend>>::register_definition_tx(
+    <RuntimeWorkflowStore as WorkflowStore<InMemoryBackend>>::register_definition_tx(
         &workflows,
         &mut tx,
         &RegisterWorkflowDefinitionRequest {
@@ -330,7 +330,7 @@ fn memory_backend_stores_compose_in_transaction() {
         },
     )
     .unwrap();
-    <InMemoryLogSink as LogSink<InMemoryBackend>>::register_definition_tx(
+    <RuntimeLogSink as LogSink<InMemoryBackend>>::register_definition_tx(
         &logs,
         &mut tx,
         &LogDefinition {
@@ -341,7 +341,7 @@ fn memory_backend_stores_compose_in_transaction() {
         },
     )
     .unwrap();
-    <InMemoryMetricSink as MetricSink<InMemoryBackend>>::register_definition_tx(
+    <RuntimeMetricSink as MetricSink<InMemoryBackend>>::register_definition_tx(
         &metrics,
         &mut tx,
         &MetricDefinition {

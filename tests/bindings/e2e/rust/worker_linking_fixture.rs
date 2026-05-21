@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use statespec_generated::json::Json;
 use statespec_generated::memory_backend::InMemoryBackend;
-use statespec_generated::memory_workflows::InMemoryWorkflowStore;
+use statespec_generated::runtime_workflows::RuntimeWorkflowStore;
 use statespec_generated::workflow::{
     RegisterWorkflowDefinitionRequest, StartWorkflowRequest, WorkflowDefinition,
     WorkflowStepDefinition, WorkflowStore,
@@ -28,7 +28,7 @@ impl WorkflowStepHandler for LinkingWorkflowStepHandler {
 #[test]
 fn generated_worker_runner_links_with_memory_backend() {
     let backend = InMemoryBackend::new();
-    let workflows = InMemoryWorkflowStore::new();
+    let workflows = RuntimeWorkflowStore::new();
 
     workflows
         .register_definition(

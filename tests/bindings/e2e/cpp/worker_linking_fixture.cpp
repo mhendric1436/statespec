@@ -1,5 +1,5 @@
 #include "common/memory/backend.hpp"
-#include "common/memory/workflow_store.hpp"
+#include "common/runtime/workflow_store.hpp"
 #include "worker/workflow_runner.hpp"
 
 #include <chrono>
@@ -29,7 +29,7 @@ class LinkingWorkflowStepHandler final : public statespec_generated::worker::IWo
 int main()
 {
     statespec::backend::memory::InMemoryBackend backend;
-    statespec::backend::memory::InMemoryWorkflowStore workflows;
+    statespec::backend::runtime::RuntimeWorkflowStore workflows;
 
     workflows.register_definition(
         backend, statespec::backend::RegisterWorkflowDefinitionRequest{

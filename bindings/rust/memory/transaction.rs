@@ -173,10 +173,6 @@ pub(crate) fn record_version_key(collection: &str, key: &str) -> String {
     format!("record:{collection}:{key}")
 }
 
-pub(crate) fn definition_key(parts: &[String]) -> String {
-    parts.join(":")
-}
-
 pub(crate) fn version_or_zero(versions: &BTreeMap<String, Version>, key: &str) -> Version {
     versions.get(key).copied().unwrap_or(0)
 }

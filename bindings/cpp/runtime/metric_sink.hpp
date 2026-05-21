@@ -3,10 +3,10 @@
 #include "backend.hpp"
 #include "codec.hpp"
 
-namespace statespec::backend::memory
+namespace statespec::backend::runtime
 {
 
-class InMemoryMetricSink : public IMetricSink
+class RuntimeMetricSink : public IMetricSink
 {
   public:
     MetricDefinitionRegistration register_definition(
@@ -112,4 +112,4 @@ class InMemoryMetricSink : public IMetricSink
     std::uint64_t next_sample_id_ = 0;
 };
 
-} // namespace statespec::backend::memory
+} // namespace statespec::backend::runtime

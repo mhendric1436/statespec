@@ -12,6 +12,10 @@ use crate::metric::{MetricDefinition, MetricKind, MetricSample};
 use crate::queue::{QueueDefinition, QueueMessageRecord};
 use crate::workflow::{WorkflowDefinition, WorkflowExecutionRecord, WorkflowStepDefinition};
 
+pub(crate) fn definition_key(parts: &[String]) -> String {
+    parts.join(":")
+}
+
 pub(crate) fn optional_string(value: &Option<String>) -> Json {
     value.clone().map(Json::String).unwrap_or(Json::Null)
 }

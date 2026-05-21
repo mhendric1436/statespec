@@ -10,7 +10,7 @@
 #include <chrono>
 #include <cstdint>
 
-namespace statespec::backend::memory::detail
+namespace statespec::backend::runtime::detail
 {
 
 inline std::int64_t seconds_count(std::chrono::seconds value)
@@ -562,4 +562,4 @@ inline MetricSample metric_sample_from_json(const Json& json)
     };
 }
 
-} // namespace statespec::backend::memory::detail
+} // namespace statespec::backend::runtime::detail

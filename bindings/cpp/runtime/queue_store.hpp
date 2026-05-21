@@ -5,10 +5,10 @@
 
 #include <algorithm>
 
-namespace statespec::backend::memory
+namespace statespec::backend::runtime
 {
 
-class InMemoryQueueStore : public IQueueStore
+class RuntimeQueueStore : public IQueueStore
 {
   public:
     QueueDefinitionRegistration register_definition(
@@ -258,7 +258,7 @@ class InMemoryQueueStore : public IQueueStore
         const std::string& message_id
     )
     {
-        InMemoryQueueStore store;
+        RuntimeQueueStore store;
         auto message = store.inspectTx(tx, message_id);
         if (!message.has_value())
         {
@@ -281,4 +281,4 @@ class InMemoryQueueStore : public IQueueStore
     }
 };
 
-} // namespace statespec::backend::memory
+} // namespace statespec::backend::runtime

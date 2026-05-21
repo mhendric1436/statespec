@@ -44,13 +44,13 @@ C++:
 ```text
 common/memory/backend.hpp
 common/memory/transaction.hpp
-common/memory/codec.hpp
-common/memory/feature_flag_store.hpp
-common/memory/queue_store.hpp
-common/memory/lease_store.hpp
-common/memory/workflow_store.hpp
-common/memory/log_sink.hpp
-common/memory/metric_sink.hpp
+common/runtime/codec.hpp
+common/runtime/feature_flag_store.hpp
+common/runtime/queue_store.hpp
+common/runtime/lease_store.hpp
+common/runtime/workflow_store.hpp
+common/runtime/log_sink.hpp
+common/runtime/metric_sink.hpp
 ```
 
 Go:
@@ -58,13 +58,13 @@ Go:
 ```text
 common/backend/memory/backend.go
 common/backend/memory/transaction.go
-common/backend/memory/codec.go
-common/backend/memory/feature_flags.go
-common/backend/memory/queues.go
-common/backend/memory/leases.go
-common/backend/memory/workflows.go
-common/backend/memory/logs.go
-common/backend/memory/metrics.go
+common/backend/runtime/codec.go
+common/backend/runtime/feature_flags.go
+common/backend/runtime/queues.go
+common/backend/runtime/leases.go
+common/backend/runtime/workflows.go
+common/backend/runtime/logs.go
+common/backend/runtime/metrics.go
 ```
 
 Java:
@@ -72,13 +72,13 @@ Java:
 ```text
 common/com/statespec/backend/memory/InMemoryBackend.java
 common/com/statespec/backend/memory/InMemoryTransaction.java
-common/com/statespec/backend/memory/InMemoryCodec.java
-common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java
-common/com/statespec/backend/memory/InMemoryQueueStore.java
-common/com/statespec/backend/memory/InMemoryLeaseStore.java
-common/com/statespec/backend/memory/InMemoryWorkflowStore.java
-common/com/statespec/backend/memory/InMemoryLogSink.java
-common/com/statespec/backend/memory/InMemoryMetricSink.java
+common/com/statespec/backend/runtime/RuntimeCodec.java
+common/com/statespec/backend/runtime/RuntimeFeatureFlagStore.java
+common/com/statespec/backend/runtime/RuntimeQueueStore.java
+common/com/statespec/backend/runtime/RuntimeLeaseStore.java
+common/com/statespec/backend/runtime/RuntimeWorkflowStore.java
+common/com/statespec/backend/runtime/RuntimeLogSink.java
+common/com/statespec/backend/runtime/RuntimeMetricSink.java
 ```
 
 Rust:
@@ -86,13 +86,13 @@ Rust:
 ```text
 common/memory/backend.rs
 common/memory/transaction.rs
-common/memory/codec.rs
-common/memory/feature_flags.rs
-common/memory/queues.rs
-common/memory/leases.rs
-common/memory/workflows.rs
-common/memory/logs.rs
-common/memory/metrics.rs
+common/runtime/codec.rs
+common/runtime/feature_flags.rs
+common/runtime/queues.rs
+common/runtime/leases.rs
+common/runtime/workflows.rs
+common/runtime/logs.rs
+common/runtime/metrics.rs
 ```
 
 These paths are part of the cross-language artifact model. C++, Go, Java, and Rust currently

@@ -3,10 +3,10 @@
 #include "backend.hpp"
 #include "codec.hpp"
 
-namespace statespec::backend::memory
+namespace statespec::backend::runtime
 {
 
-class InMemoryWorkflowStore : public IWorkflowStore
+class RuntimeWorkflowStore : public IWorkflowStore
 {
   public:
     WorkflowDefinitionRegistration register_definition(
@@ -331,7 +331,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const std::string& workflow_execution_id
     )
     {
-        InMemoryWorkflowStore store;
+        RuntimeWorkflowStore store;
         auto execution = store.inspectTx(tx, workflow_execution_id);
         if (!execution.has_value())
         {
@@ -356,4 +356,4 @@ class InMemoryWorkflowStore : public IWorkflowStore
     }
 };
 
-} // namespace statespec::backend::memory
+} // namespace statespec::backend::runtime

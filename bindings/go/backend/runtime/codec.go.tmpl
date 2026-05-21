@@ -1,4 +1,4 @@
-package memory
+package runtime
 
 import (
 	"fmt"
@@ -12,6 +12,21 @@ func optionalString(value *string) common.JSON {
 		return common.JSONNull()
 	}
 	return common.JSONString(*value)
+}
+
+func definitionKey(parts ...any) string {
+	out := ""
+	for index, part := range parts {
+		if index > 0 {
+			out += ":"
+		}
+		out += fmt.Sprint(part)
+	}
+	return out
+}
+
+func conflict(kind common.ConflictKind, message string) error {
+	return common.ConflictError{Kind: kind, Message: message}
 }
 
 func stringPtrFromJSON(value common.JSON) *string {

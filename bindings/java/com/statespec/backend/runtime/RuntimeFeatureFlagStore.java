@@ -1,10 +1,10 @@
-package com.statespec.backend.memory;
+package com.statespec.backend.runtime;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.FeatureFlag;
 import java.util.Optional;
 
-public final class InMemoryFeatureFlagStore implements FeatureFlag
+public final class RuntimeFeatureFlagStore implements FeatureFlag
 {
     private static final String DEFINITIONS = "feature_flags.definitions";
     private static final String VALUES = "feature_flags.values";
@@ -37,7 +37,7 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
     {
         var existing = inspectDefinitionTx(tx, definition.name());
         tx.put(
-            DEFINITIONS, definition.name(), InMemoryCodec.featureFlagDefinitionToJson(definition)
+            DEFINITIONS, definition.name(), RuntimeCodec.featureFlagDefinitionToJson(definition)
         );
         return new RegisterDefinitionResult(existing.isEmpty(), definition);
     }
@@ -61,7 +61,7 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
     ) throws Backend.BackendException
     {
         return tx.get(DEFINITIONS, name)
-            .map(record -> InMemoryCodec.featureFlagDefinitionFromJson(record.document()));
+            .map(record -> RuntimeCodec.featureFlagDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -85,7 +85,7 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
         var override = tx.get(VALUES, request.name());
         if (override.isPresent())
         {
-            return InMemoryCodec.featureFlagValueFromJson(override.get().document());
+            return RuntimeCodec.featureFlagValueFromJson(override.get().document());
         }
         var definition = inspectDefinitionTx(tx, request.name());
         if (definition.isEmpty())

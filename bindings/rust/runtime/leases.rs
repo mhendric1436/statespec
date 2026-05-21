@@ -4,16 +4,16 @@ use crate::lease::{
     LeaseInspectRequest, LeaseRecord, LeaseRegisterDefinitionResult, LeaseReleaseRequest,
     LeaseRenewRequest, LeaseStore,
 };
-use crate::memory_codec;
-use crate::memory_transaction::definition_key;
+use crate::runtime_codec;
+use crate::runtime_codec::definition_key;
 
 const DEFINITIONS: &str = "leases.definitions";
 const LEASES: &str = "leases.records";
 
 #[derive(Debug, Clone, Default)]
-pub struct InMemoryLeaseStore;
+pub struct RuntimeLeaseStore;
 
-impl InMemoryLeaseStore {
+impl RuntimeLeaseStore {
     pub fn new() -> Self {
         Self
     }
@@ -24,7 +24,7 @@ impl InMemoryLeaseStore {
         definition_id: &LeaseDefinitionId,
         resource: &str,
     ) -> BackendResult<LeaseRecord> {
-        <InMemoryLeaseStore as LeaseStore<B>>::inspect_tx(
+        <RuntimeLeaseStore as LeaseStore<B>>::inspect_tx(
             self,
             tx,
             &LeaseInspectRequest {
@@ -38,14 +38,14 @@ impl InMemoryLeaseStore {
     }
 }
 
-impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
+impl<B: Backend> LeaseStore<B> for RuntimeLeaseStore {
     fn register_definition(
         &self,
         backend: &B,
         definition: &LeaseDefinition,
     ) -> BackendResult<LeaseRegisterDefinitionResult> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryLeaseStore as LeaseStore<B>>::register_definition_tx(
+        let result = <RuntimeLeaseStore as LeaseStore<B>>::register_definition_tx(
             self, &mut tx, definition,
         )?;
         backend.commit(tx)?;
@@ -58,11 +58,11 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         definition: &LeaseDefinition,
     ) -> BackendResult<LeaseRegisterDefinitionResult> {
         let existing =
-            <InMemoryLeaseStore as LeaseStore<B>>::inspect_definition_tx(self, tx, &definition.id)?;
+            <RuntimeLeaseStore as LeaseStore<B>>::inspect_definition_tx(self, tx, &definition.id)?;
         tx.put(
             DEFINITIONS,
             &lease_definition_key(&definition.id),
-            memory_codec::lease_definition_to_json(definition),
+            runtime_codec::lease_definition_to_json(definition),
         )?;
         Ok(LeaseRegisterDefinitionResult {
             registered_new: existing.is_none(),
@@ -76,7 +76,7 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         definition_id: &LeaseDefinitionId,
     ) -> BackendResult<Option<LeaseDefinition>> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryLeaseStore as LeaseStore<B>>::inspect_definition_tx(
+        let result = <RuntimeLeaseStore as LeaseStore<B>>::inspect_definition_tx(
             self,
             &mut tx,
             definition_id,
@@ -93,7 +93,7 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         let key = lease_definition_key(definition_id);
         Ok(tx
             .get(DEFINITIONS, &key)?
-            .map(|record| memory_codec::lease_definition_from_json(&record.document)))
+            .map(|record| runtime_codec::lease_definition_from_json(&record.document)))
     }
 
     fn acquire(
@@ -102,7 +102,7 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         request: &LeaseAcquireRequest,
     ) -> BackendResult<LeaseAcquireResult> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryLeaseStore as LeaseStore<B>>::acquire_tx(self, &mut tx, request)?;
+        let result = <RuntimeLeaseStore as LeaseStore<B>>::acquire_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -112,7 +112,7 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         tx: &mut B::Tx,
         request: &LeaseAcquireRequest,
     ) -> BackendResult<LeaseAcquireResult> {
-        let definition = <InMemoryLeaseStore as LeaseStore<B>>::inspect_definition_tx(
+        let definition = <RuntimeLeaseStore as LeaseStore<B>>::inspect_definition_tx(
             self,
             tx,
             &request.definition_id,
@@ -120,7 +120,7 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         .ok_or_else(|| BackendError::NotFound {
             message: "unknown lease definition".to_string(),
         })?;
-        let existing = <InMemoryLeaseStore as LeaseStore<B>>::inspect_tx(
+        let existing = <RuntimeLeaseStore as LeaseStore<B>>::inspect_tx(
             self,
             tx,
             &LeaseInspectRequest {
@@ -153,7 +153,7 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
             fencing_token: token,
         };
         let key = lease_key(&request.definition_id, &request.resource);
-        tx.put(LEASES, &key, memory_codec::lease_record_to_json(&record))?;
+        tx.put(LEASES, &key, runtime_codec::lease_record_to_json(&record))?;
         Ok(LeaseAcquireResult {
             acquired: true,
             lease: Some(record),
@@ -162,13 +162,13 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
 
     fn renew(&self, backend: &B, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryLeaseStore as LeaseStore<B>>::renew_tx(self, &mut tx, request)?;
+        let result = <RuntimeLeaseStore as LeaseStore<B>>::renew_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn renew_tx(&self, tx: &mut B::Tx, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord> {
-        let definition = <InMemoryLeaseStore as LeaseStore<B>>::inspect_definition_tx(
+        let definition = <RuntimeLeaseStore as LeaseStore<B>>::inspect_definition_tx(
             self,
             tx,
             &request.definition_id,
@@ -182,14 +182,14 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         tx.put(
             LEASES,
             &lease_key(&request.definition_id, &request.resource),
-            memory_codec::lease_record_to_json(&record),
+            runtime_codec::lease_record_to_json(&record),
         )?;
         Ok(record)
     }
 
     fn release(&self, backend: &B, request: &LeaseReleaseRequest) -> BackendResult<()> {
         let mut tx = backend.begin()?;
-        <InMemoryLeaseStore as LeaseStore<B>>::release_tx(self, &mut tx, request)?;
+        <RuntimeLeaseStore as LeaseStore<B>>::release_tx(self, &mut tx, request)?;
         backend.commit(tx)
     }
 
@@ -207,7 +207,7 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         request: &LeaseInspectRequest,
     ) -> BackendResult<Option<LeaseRecord>> {
         let mut tx = backend.begin()?;
-        let result = <InMemoryLeaseStore as LeaseStore<B>>::inspect_tx(self, &mut tx, request)?;
+        let result = <RuntimeLeaseStore as LeaseStore<B>>::inspect_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
@@ -220,7 +220,7 @@ impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
         let key = lease_key(&request.definition_id, &request.resource);
         Ok(tx
             .get(LEASES, &key)?
-            .map(|record| memory_codec::lease_record_from_json(&record.document)))
+            .map(|record| runtime_codec::lease_record_from_json(&record.document)))
     }
 }
 

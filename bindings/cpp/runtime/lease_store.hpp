@@ -3,10 +3,10 @@
 #include "backend.hpp"
 #include "codec.hpp"
 
-namespace statespec::backend::memory
+namespace statespec::backend::runtime
 {
 
-class InMemoryLeaseStore : public ILeaseStore
+class RuntimeLeaseStore : public ILeaseStore
 {
   public:
     LeaseRegisterDefinitionResult register_definition(
@@ -200,7 +200,7 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseDefinitionId& id
     )
     {
-        InMemoryLeaseStore store;
+        RuntimeLeaseStore store;
         auto definition = store.inspect_definitionTx(tx, id);
         if (!definition.has_value())
         {
@@ -215,7 +215,7 @@ class InMemoryLeaseStore : public ILeaseStore
         const std::string& resource
     )
     {
-        InMemoryLeaseStore store;
+        RuntimeLeaseStore store;
         auto lease = store.inspectTx(tx, LeaseInspectRequest{id, resource});
         if (!lease.has_value())
         {
@@ -238,4 +238,4 @@ class InMemoryLeaseStore : public ILeaseStore
     }
 };
 
-} // namespace statespec::backend::memory
+} // namespace statespec::backend::runtime
