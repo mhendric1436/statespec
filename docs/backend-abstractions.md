@@ -107,6 +107,12 @@ Higher-level runtime components are typed clients of this generic layer. Each co
 must register its required collections and store its records through the generic
 `Backend` and `Transaction` interfaces.
 
+Typed runtime components must be backend-neutral. A queue store, lease store, workflow
+store, feature flag store, log sink, or metric sink should not depend on
+`InMemoryBackend`, `InMemoryTransaction`, or equivalent memory-specific concrete types.
+The in-memory backend is one adapter behind the same public OCC interfaces that a
+production backend implements.
+
 Examples:
 
 ```text

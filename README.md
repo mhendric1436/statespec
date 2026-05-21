@@ -433,6 +433,8 @@ registration, versioned records, queries, transaction read/write sets, commit, a
 abort. Queues, leases, workflows, feature flags, logs, and metrics are typed users of
 that generic backend model: each runtime component registers the collections it needs
 and stores its records through the same OCC `Backend` and `Transaction` interfaces.
+Those typed runtime stores are backend-neutral clients, not in-memory backend features;
+they should work with any backend adapter that implements the OCC interfaces.
 
 ---
 

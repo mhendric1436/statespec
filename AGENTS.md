@@ -177,6 +177,11 @@ stores, feature flag stores, log sinks, and metric sinks must register the colle
 they need and persist their records through `Backend`/`IBackend` and
 `Transaction`/`ITransaction`.
 
+Typed runtime stores and sinks must be backend-neutral clients. They should not depend
+on `InMemoryBackend`, `InMemoryTransaction`, or equivalent memory-specific types. The
+in-memory backend is one concrete adapter behind the same OCC interfaces used by
+production backends.
+
 Do not add domain-specific transaction staging fields such as queue message maps,
 workflow execution maps, lease maps, feature flag maps, log append buffers, or metric
 append buffers to backend or transaction implementations. Those records belong in

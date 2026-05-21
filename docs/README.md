@@ -29,6 +29,7 @@ truth for system behavior.
 | [generators.md](generators.md) | CLI-selected binding generation and expected output layout. |
 | [generated-extension-points.md](generated-extension-points.md) | User-owned API, worker, workflow step, and operator metadata implementation boundaries. |
 | [backend-abstractions.md](backend-abstractions.md) | OCC-centered backend abstraction source artifacts and runtime contracts. |
+| [runtime-store-contract.md](runtime-store-contract.md) | Backend-neutral contract for feature flag, queue, lease, workflow, log, and metric stores. |
 | [in-memory-backend.md](in-memory-backend.md) | Cross-language in-memory backend contract, generated paths, and local API plus Worker app linking guidance. |
 | [style-guide.md](style-guide.md) | Naming, ordering, and maintainability conventions for `.sspec` files. |
 

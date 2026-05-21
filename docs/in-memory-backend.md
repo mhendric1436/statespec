@@ -12,7 +12,8 @@ transport-facing API or treat it as a production persistence model.
 
 ## Scope
 
-The in-memory backend package covers these binding interfaces in each language:
+The in-memory backend package currently emits local implementations for these binding
+interfaces in each language:
 
 - `IBackend` / `Backend`
 - `ITransaction` / transaction type
@@ -26,6 +27,12 @@ The in-memory backend package covers these binding interfaces in each language:
 The backend and transaction pieces must remain generic. Feature flag, queue, lease,
 workflow, log, and metric implementations are separate store/sink clients that use the
 backend by registering collections and reading or writing versioned records.
+
+Those store/sink clients are backend-neutral runtime components. They should depend on
+the public `Backend`/`IBackend` and `Transaction`/`ITransaction` abstractions, not on
+`InMemoryBackend`, `InMemoryTransaction`, or other memory-specific concrete types. The
+current generated layout may still place them beside the in-memory adapter while the
+cross-language layout is being refactored, but their contract is not memory-specific.
 
 The memory package should be generated under the `common` tier so both API and Worker
 tiers can reuse the same implementation.

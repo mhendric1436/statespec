@@ -64,6 +64,9 @@ The generated in-memory backend follows the backend boundary rule: backend and
 transaction artifacts provide generic OCC collection storage only. Feature flag, queue,
 lease, workflow, log, and metric artifacts are typed store/sink clients that register
 their own collections and persist records through the generic backend interface.
+Those typed store/sink artifacts are backend-neutral runtime clients. They should not
+depend on memory-specific backend or transaction concrete types, even when current
+generated filenames still place them under memory-oriented directories.
 
 The common in-memory backend artifact responsibilities are:
 
