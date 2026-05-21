@@ -337,6 +337,28 @@ func TestMemoryBackendStoresComposeInTransaction(t *testing.T) {
 	if err != nil || len(samples) != 1 {
 		t.Fatalf("metric inspect failed: %v %#v", err, samples)
 	}
+
+	writeTx, err := backend.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Put(ctx, writeTx, common.CollectionName("orders"), common.Key("order-1"), common.JSONObject(map[string]common.JSON{"status": common.JSONString("new")})); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Commit(ctx, writeTx); err != nil {
+		t.Fatal(err)
+	}
+	readTx, err := backend.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records, err := backend.Query(ctx, readTx, common.CollectionName("orders"), common.KeyPrefixQuery("order-"))
+	if err != nil || len(records) != 1 {
+		t.Fatalf("backend query failed: %v %#v", err, records)
+	}
+	if err := backend.Commit(ctx, readTx); err != nil {
+		t.Fatal(err)
+	}
 }
 EOF
 (cd "$TMPDIR/out-go" && go test ./...)
