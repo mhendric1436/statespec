@@ -1783,8 +1783,8 @@ GenerationResult generate_rust_bindings(
         result, options.output_dir, templates, "runtime/codec.rs", "runtime/codec.rs", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "runtime/feature_flags.rs", "runtime/feature_flags.rs",
-        diagnostics
+        result, options.output_dir, templates, "runtime/feature_flags.rs",
+        "runtime/feature_flags.rs", diagnostics
     );
     add_template_file(
         result, options.output_dir, templates, "runtime/queues.rs", "runtime/queues.rs", diagnostics
@@ -1800,7 +1800,8 @@ GenerationResult generate_rust_bindings(
         result, options.output_dir, templates, "runtime/logs.rs", "runtime/logs.rs", diagnostics
     );
     add_template_file(
-        result, options.output_dir, templates, "runtime/metrics.rs", "runtime/metrics.rs", diagnostics
+        result, options.output_dir, templates, "runtime/metrics.rs", "runtime/metrics.rs",
+        diagnostics
     );
 
     if (!diagnostics.has_errors())

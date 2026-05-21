@@ -288,7 +288,7 @@ void test_binding_app_artifact_kind_names()
     );
     require_string_equal(
         statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::RuntimeCodec),
-        "runtime_codec", "memory codec artifact kind name"
+        "runtime_codec", "runtime codec artifact kind name"
     );
     require_string_equal(
         statespec::binding_app_artifact_kind_name(

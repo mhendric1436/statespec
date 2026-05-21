@@ -35,13 +35,13 @@ common/com/statespec/backend/Metric.java
 common/com/statespec/backend/Queue.java
 common/com/statespec/backend/Workflow.java
 common/com/statespec/backend/memory/InMemoryBackend.java
+common/com/statespec/backend/memory/InMemoryTransaction.java
 common/com/statespec/backend/runtime/RuntimeCodec.java
 common/com/statespec/backend/runtime/RuntimeFeatureFlagStore.java
 common/com/statespec/backend/runtime/RuntimeLeaseStore.java
 common/com/statespec/backend/runtime/RuntimeLogSink.java
 common/com/statespec/backend/runtime/RuntimeMetricSink.java
 common/com/statespec/backend/runtime/RuntimeQueueStore.java
-common/com/statespec/backend/memory/InMemoryTransaction.java
 common/com/statespec/backend/runtime/RuntimeWorkflowStore.java
 common/com/statespec/generated/Descriptors.java
 worker/com/statespec/generated/WorkerApplication.java
