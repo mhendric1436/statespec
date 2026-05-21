@@ -43,10 +43,12 @@ public final class InMemoryTransaction implements Backend.Transaction
         erases.clear();
     }
 
-    Optional<Backend.VersionedRecord>
+    @Override
+    public Optional<Backend.VersionedRecord>
     get(String collection,
         String key) throws Backend.BackendException
     {
+        requireOpen();
         var versionKey = recordVersionKey(collection, key);
         if (erases.contains(versionKey))
         {
@@ -71,11 +73,13 @@ public final class InMemoryTransaction implements Backend.Transaction
         }
     }
 
-    List<Backend.VersionedRecord> query(
+    @Override
+    public List<Backend.VersionedRecord> query(
         String collection,
         Backend.Query query
     ) throws Backend.BackendException
     {
+        requireOpen();
         var byKey = new HashMap<String, Backend.VersionedRecord>();
         synchronized (state)
         {
@@ -115,22 +119,26 @@ public final class InMemoryTransaction implements Backend.Transaction
         return matched;
     }
 
-    void
+    @Override
+    public void
     put(String collection,
         String key,
         Json document) throws Backend.BackendException
     {
+        requireOpen();
         get(collection, key);
         var versionKey = recordVersionKey(collection, key);
         puts.put(versionKey, new Backend.VersionedRecord(collection, key, 0L, document));
         erases.remove(versionKey);
     }
 
-    void erase(
+    @Override
+    public void erase(
         String collection,
         String key
     ) throws Backend.BackendException
     {
+        requireOpen();
         get(collection, key);
         var versionKey = recordVersionKey(collection, key);
         puts.remove(versionKey);
@@ -139,6 +147,7 @@ public final class InMemoryTransaction implements Backend.Transaction
 
     void commit() throws Backend.BackendException
     {
+        requireOpen();
         synchronized (state)
         {
             for (var entry : readVersions.entrySet())
@@ -180,6 +189,14 @@ public final class InMemoryTransaction implements Backend.Transaction
             throw new Backend.BackendException("expected open in-memory transaction");
         }
         return memoryTx;
+    }
+
+    private void requireOpen() throws Backend.BackendException
+    {
+        if (!isOpen())
+        {
+            throw new Backend.BackendException("expected open in-memory transaction");
+        }
     }
 
     static String recordVersionKey(

@@ -16,6 +16,41 @@ public final class MetadataResolverFixture
             return true;
         }
         @Override public void abort() throws Backend.BackendException {}
+
+        @Override
+        public Optional<Backend.VersionedRecord>
+        get(String collection,
+            String key) throws Backend.BackendException
+        {
+            throw new Backend.BackendException("unsupported fixture transaction get");
+        }
+
+        @Override
+        public List<Backend.VersionedRecord> query(
+            String collection,
+            Backend.Query query
+        ) throws Backend.BackendException
+        {
+            throw new Backend.BackendException("unsupported fixture transaction query");
+        }
+
+        @Override
+        public void
+        put(String collection,
+            String key,
+            Json document) throws Backend.BackendException
+        {
+            throw new Backend.BackendException("unsupported fixture transaction put");
+        }
+
+        @Override
+        public void erase(
+            String collection,
+            String key
+        ) throws Backend.BackendException
+        {
+            throw new Backend.BackendException("unsupported fixture transaction erase");
+        }
     }
 
     private static final class FixtureResolver implements ExternalSystem

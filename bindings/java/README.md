@@ -122,6 +122,10 @@ Backend.Transaction
 ```java
 isOpen()
 abort()
+get(collection, key)
+query(collection, query)
+put(collection, key, document)
+erase(collection, key)
 ```
 
 The backend owns commit behavior through:
@@ -129,6 +133,12 @@ The backend owns commit behavior through:
 ```java
 backend.commit(tx)
 ```
+
+Runtime stores use only `Backend` and `Backend.Transaction`; they should not
+downcast to `InMemoryBackend` or `InMemoryTransaction`. Queues, leases,
+workflows, feature flags, logs, and metrics are typed clients that register
+their collections and persist records through the generic OCC
+collection/document API.
 
 ## Runtime Components
 

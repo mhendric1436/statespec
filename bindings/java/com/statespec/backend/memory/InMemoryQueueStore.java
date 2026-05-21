@@ -39,10 +39,9 @@ public final class InMemoryQueueStore implements Queue
         RegisterQueueDefinitionRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var existing =
             inspectDefinitionTx(tx, request.definition().queue(), request.definition().channel());
-        memoryTx.put(
+        tx.put(
             DEFINITIONS,
             queueDefinitionKey(request.definition().queue(), request.definition().channel()),
             InMemoryCodec.queueDefinitionToJson(request.definition())
@@ -70,9 +69,8 @@ public final class InMemoryQueueStore implements Queue
         String channel
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var key = queueDefinitionKey(queue, channel);
-        return memoryTx.get(DEFINITIONS, key)
+        return tx.get(DEFINITIONS, key)
             .map(record -> InMemoryCodec.queueDefinitionFromJson(record.document()));
     }
 
@@ -102,25 +100,22 @@ public final class InMemoryQueueStore implements Queue
         EnqueueMessageRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         if (request.idempotencyKey().isPresent())
         {
             var idempotencyKey = queueDefinitionKey(request.queue(), request.channel()) + "|" +
                                  request.idempotencyKey().get();
-            var existing = memoryTx.get(IDEMPOTENCY, idempotencyKey);
+            var existing = tx.get(IDEMPOTENCY, idempotencyKey);
             if (existing.isPresent())
             {
-                return requireMessage(
-                    memoryTx, InMemoryCodec.stringFromJson(existing.get().document())
-                );
+                return requireMessage(tx, InMemoryCodec.stringFromJson(existing.get().document()));
             }
-            memoryTx.put(IDEMPOTENCY, idempotencyKey, Json.string(request.messageId()));
+            tx.put(IDEMPOTENCY, idempotencyKey, Json.string(request.messageId()));
         }
         var record = new QueueMessageRecord(
             request.messageId(), request.queue(), request.channel(), "Pending", 0L,
             Optional.empty(), Optional.empty(), request.payloadJson()
         );
-        memoryTx.put(MESSAGES, record.messageId(), InMemoryCodec.queueMessageToJson(record));
+        tx.put(MESSAGES, record.messageId(), InMemoryCodec.queueMessageToJson(record));
         return record;
     }
 
@@ -150,9 +145,8 @@ public final class InMemoryQueueStore implements Queue
         ClaimMessageRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var claimed = new ArrayList<QueueMessageRecord>();
-        for (var message : allMessages(memoryTx))
+        for (var message : allMessages(tx))
         {
             if (claimed.size() >= request.maxMessages())
             {
@@ -176,7 +170,7 @@ public final class InMemoryQueueStore implements Queue
                 message.attempts() + 1, Optional.of(request.claimant()),
                 Optional.of(request.now().plus(request.visibilityTimeout())), message.payloadJson()
             );
-            memoryTx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
+            tx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
             claimed.add(updated);
         }
         return claimed;
@@ -207,14 +201,13 @@ public final class InMemoryQueueStore implements Queue
         AckMessageRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        var message = requireMessage(memoryTx, request.messageId());
+        var message = requireMessage(tx, request.messageId());
         requireClaimant(message, request.claimant());
         var updated = new QueueMessageRecord(
             message.messageId(), message.queue(), message.channel(), "Acked", message.attempts(),
             message.claimedBy(), message.claimExpiresAt(), message.payloadJson()
         );
-        memoryTx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
+        tx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
     }
 
     @Override
@@ -243,15 +236,14 @@ public final class InMemoryQueueStore implements Queue
         FailMessageRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        var message = requireMessage(memoryTx, request.messageId());
+        var message = requireMessage(tx, request.messageId());
         requireClaimant(message, request.claimant());
         var status = message.attempts() >= request.maxAttempts() ? "DeadLettered" : "Pending";
         var updated = new QueueMessageRecord(
             message.messageId(), message.queue(), message.channel(), status, message.attempts(),
             Optional.empty(), Optional.empty(), message.payloadJson()
         );
-        memoryTx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
+        tx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
         return updated;
     }
 
@@ -273,13 +265,12 @@ public final class InMemoryQueueStore implements Queue
         String messageId
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        return memoryTx.get(MESSAGES, messageId)
+        return tx.get(MESSAGES, messageId)
             .map(record -> InMemoryCodec.queueMessageFromJson(record.document()));
     }
 
     private QueueMessageRecord requireMessage(
-        InMemoryTransaction tx,
+        Backend.Transaction tx,
         String messageId
     ) throws Backend.BackendException
     {
@@ -288,7 +279,7 @@ public final class InMemoryQueueStore implements Queue
             .orElseThrow(() -> new Backend.BackendException("unknown queue message " + messageId));
     }
 
-    private List<QueueMessageRecord> allMessages(InMemoryTransaction tx)
+    private List<QueueMessageRecord> allMessages(Backend.Transaction tx)
         throws Backend.BackendException
     {
         var records = tx.query(MESSAGES, new Backend.Query.All());

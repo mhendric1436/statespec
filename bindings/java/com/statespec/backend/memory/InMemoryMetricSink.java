@@ -38,11 +38,8 @@ public final class InMemoryMetricSink implements Metric
         Definition definition
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(tx, definition.name());
-        memoryTx.put(
-            DEFINITIONS, definition.name(), InMemoryCodec.metricDefinitionToJson(definition)
-        );
+        tx.put(DEFINITIONS, definition.name(), InMemoryCodec.metricDefinitionToJson(definition));
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -64,8 +61,7 @@ public final class InMemoryMetricSink implements Metric
         String name
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        return memoryTx.get(DEFINITIONS, name)
+        return tx.get(DEFINITIONS, name)
             .map(record -> InMemoryCodec.metricDefinitionFromJson(record.document()));
     }
 
@@ -94,9 +90,8 @@ public final class InMemoryMetricSink implements Metric
         Sample sample
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        var samples = memoryTx.query(SAMPLES, new Backend.Query.All());
-        memoryTx.put(SAMPLES, sampleKey(samples.size()), InMemoryCodec.metricSampleToJson(sample));
+        var samples = tx.query(SAMPLES, new Backend.Query.All());
+        tx.put(SAMPLES, sampleKey(samples.size()), InMemoryCodec.metricSampleToJson(sample));
     }
 
     public List<Sample> inspectSamples(Backend backend) throws Backend.BackendException
@@ -109,9 +104,8 @@ public final class InMemoryMetricSink implements Metric
 
     public List<Sample> inspectSamplesTx(Backend.Transaction tx) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var samples = new ArrayList<Metric.Sample>();
-        var records = memoryTx.query(SAMPLES, new Backend.Query.All());
+        var records = tx.query(SAMPLES, new Backend.Query.All());
         records.sort(Comparator.comparing(Backend.VersionedRecord::key));
         for (var record : records)
         {

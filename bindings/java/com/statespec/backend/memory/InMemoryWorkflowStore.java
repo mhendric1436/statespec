@@ -37,11 +37,10 @@ public final class InMemoryWorkflowStore implements Workflow
         RegisterWorkflowDefinitionRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(
             tx, request.definition().workflowName(), request.definition().workflowVersion()
         );
-        memoryTx.put(
+        tx.put(
             DEFINITIONS,
             workflowDefinitionKey(
                 request.definition().workflowName(), request.definition().workflowVersion()
@@ -71,9 +70,8 @@ public final class InMemoryWorkflowStore implements Workflow
         long workflowVersion
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var key = workflowDefinitionKey(workflowName, workflowVersion);
-        return memoryTx.get(DEFINITIONS, key)
+        return tx.get(DEFINITIONS, key)
             .map(record -> InMemoryCodec.workflowDefinitionFromJson(record.document()));
     }
 
@@ -103,7 +101,6 @@ public final class InMemoryWorkflowStore implements Workflow
         StartWorkflowRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectTx(tx, request.workflowExecutionId());
         if (existing.isPresent())
         {
@@ -114,7 +111,7 @@ public final class InMemoryWorkflowStore implements Workflow
             request.startStep(), "Running", 0L, Optional.empty(), Optional.empty(),
             request.stateJson()
         );
-        memoryTx.put(
+        tx.put(
             EXECUTIONS, record.workflowExecutionId(), InMemoryCodec.workflowExecutionToJson(record)
         );
         return record;
@@ -146,9 +143,8 @@ public final class InMemoryWorkflowStore implements Workflow
         ClaimWorkflowStepRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var claimed = new ArrayList<WorkflowExecutionRecord>();
-        for (var execution : allExecutions(memoryTx))
+        for (var execution : allExecutions(tx))
         {
             if (claimed.size() >= request.maxSteps())
             {
@@ -174,7 +170,7 @@ public final class InMemoryWorkflowStore implements Workflow
                 execution.attempt() + 1, Optional.of(request.worker()),
                 Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
             );
-            memoryTx.put(
+            tx.put(
                 EXECUTIONS, updated.workflowExecutionId(),
                 InMemoryCodec.workflowExecutionToJson(updated)
             );
@@ -209,7 +205,6 @@ public final class InMemoryWorkflowStore implements Workflow
         KeepAliveWorkflowStepRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var execution = requireExecution(tx, request.workflowExecutionId());
         requireClaim(execution, request.worker(), request.currentStep());
         var updated = new WorkflowExecutionRecord(
@@ -217,7 +212,7 @@ public final class InMemoryWorkflowStore implements Workflow
             execution.currentStep(), execution.status(), execution.attempt(), execution.claimedBy(),
             Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
         );
-        memoryTx.put(
+        tx.put(
             EXECUTIONS, updated.workflowExecutionId(),
             InMemoryCodec.workflowExecutionToJson(updated)
         );
@@ -250,7 +245,6 @@ public final class InMemoryWorkflowStore implements Workflow
         CompleteWorkflowStepRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var execution = requireExecution(tx, request.workflowExecutionId());
         requireClaim(execution, request.worker(), request.completedStep());
         var status = request.nextStep().isPresent() ? "Running" : "Completed";
@@ -260,7 +254,7 @@ public final class InMemoryWorkflowStore implements Workflow
             step, status, execution.attempt(), Optional.empty(), Optional.empty(),
             request.stateJson()
         );
-        memoryTx.put(
+        tx.put(
             EXECUTIONS, updated.workflowExecutionId(),
             InMemoryCodec.workflowExecutionToJson(updated)
         );
@@ -293,7 +287,6 @@ public final class InMemoryWorkflowStore implements Workflow
         FailWorkflowStepRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var execution = requireExecution(tx, request.workflowExecutionId());
         requireClaim(execution, request.worker(), request.failedStep());
         var status = execution.attempt() >= request.maxAttempts() ? "Failed" : "Running";
@@ -302,7 +295,7 @@ public final class InMemoryWorkflowStore implements Workflow
             execution.currentStep(), status, execution.attempt(), Optional.empty(),
             Optional.empty(), execution.stateJson()
         );
-        memoryTx.put(
+        tx.put(
             EXECUTIONS, updated.workflowExecutionId(),
             InMemoryCodec.workflowExecutionToJson(updated)
         );
@@ -335,14 +328,13 @@ public final class InMemoryWorkflowStore implements Workflow
         CancelWorkflowRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var execution = requireExecution(tx, request.workflowExecutionId());
         var updated = new WorkflowExecutionRecord(
             execution.workflowExecutionId(), execution.workflowName(), execution.workflowVersion(),
             execution.currentStep(), "Canceled", execution.attempt(), Optional.empty(),
             Optional.empty(), execution.stateJson()
         );
-        memoryTx.put(
+        tx.put(
             EXECUTIONS, updated.workflowExecutionId(),
             InMemoryCodec.workflowExecutionToJson(updated)
         );
@@ -367,8 +359,7 @@ public final class InMemoryWorkflowStore implements Workflow
         String workflowExecutionId
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        return memoryTx.get(EXECUTIONS, workflowExecutionId)
+        return tx.get(EXECUTIONS, workflowExecutionId)
             .map(record -> InMemoryCodec.workflowExecutionFromJson(record.document()));
     }
 
@@ -381,7 +372,7 @@ public final class InMemoryWorkflowStore implements Workflow
             .orElseThrow(() -> new Backend.BackendException("unknown workflow execution"));
     }
 
-    private List<WorkflowExecutionRecord> allExecutions(InMemoryTransaction tx)
+    private List<WorkflowExecutionRecord> allExecutions(Backend.Transaction tx)
         throws Backend.BackendException
     {
         var records = tx.query(EXECUTIONS, new Backend.Query.All());

@@ -35,9 +35,8 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
         Definition definition
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(tx, definition.name());
-        memoryTx.put(
+        tx.put(
             DEFINITIONS, definition.name(), InMemoryCodec.featureFlagDefinitionToJson(definition)
         );
         return new RegisterDefinitionResult(existing.isEmpty(), definition);
@@ -61,8 +60,7 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
         String name
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        return memoryTx.get(DEFINITIONS, name)
+        return tx.get(DEFINITIONS, name)
             .map(record -> InMemoryCodec.featureFlagDefinitionFromJson(record.document()));
     }
 
@@ -84,8 +82,7 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
         EvaluationRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        var override = memoryTx.get(VALUES, request.name());
+        var override = tx.get(VALUES, request.name());
         if (override.isPresent())
         {
             return InMemoryCodec.featureFlagValueFromJson(override.get().document());

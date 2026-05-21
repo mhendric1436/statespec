@@ -237,6 +237,25 @@ public interface Backend
         boolean isOpen();
 
         void abort() throws BackendException;
+
+        Optional<VersionedRecord>
+        get(String collection,
+            String key) throws BackendException;
+
+        List<VersionedRecord> query(
+            String collection,
+            Query query
+        ) throws BackendException;
+
+        void
+        put(String collection,
+            String key,
+            Json document) throws BackendException;
+
+        void erase(
+            String collection,
+            String key
+        ) throws BackendException;
     }
 
     BackendCapabilities capabilities();

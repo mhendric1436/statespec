@@ -35,9 +35,8 @@ public final class InMemoryLeaseStore implements Lease
         LeaseDefinition definition
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(tx, definition.id());
-        memoryTx.put(
+        tx.put(
             DEFINITIONS, leaseDefinitionKey(definition.id()),
             InMemoryCodec.leaseDefinitionToJson(definition)
         );
@@ -62,9 +61,8 @@ public final class InMemoryLeaseStore implements Lease
         LeaseDefinitionId definitionId
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var key = leaseDefinitionKey(definitionId);
-        return memoryTx.get(DEFINITIONS, key)
+        return tx.get(DEFINITIONS, key)
             .map(record -> InMemoryCodec.leaseDefinitionFromJson(record.document()));
     }
 
@@ -94,7 +92,6 @@ public final class InMemoryLeaseStore implements Lease
         LeaseAcquireRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var definition = inspectDefinitionTx(tx, request.definitionId());
         if (definition.isEmpty())
         {
@@ -118,7 +115,7 @@ public final class InMemoryLeaseStore implements Lease
             request.now().plus(definition.get().ttl()), token
         );
         var key = leaseKey(request.definitionId(), request.resource());
-        memoryTx.put(LEASES, key, InMemoryCodec.leaseRecordToJson(record));
+        tx.put(LEASES, key, InMemoryCodec.leaseRecordToJson(record));
         return new LeaseAcquireResult(true, Optional.of(record));
     }
 
@@ -148,7 +145,6 @@ public final class InMemoryLeaseStore implements Lease
         LeaseRenewRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var definition = inspectDefinitionTx(tx, request.definitionId());
         if (definition.isEmpty())
         {
@@ -160,7 +156,7 @@ public final class InMemoryLeaseStore implements Lease
             record.definitionId(), record.resource(), record.holder(),
             request.now().plus(definition.get().ttl()), record.fencingToken()
         );
-        memoryTx.put(
+        tx.put(
             LEASES, leaseKey(request.definitionId(), request.resource()),
             InMemoryCodec.leaseRecordToJson(updated)
         );
@@ -192,11 +188,10 @@ public final class InMemoryLeaseStore implements Lease
         LeaseReleaseRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var record = requireLease(tx, request.definitionId(), request.resource());
         requireHolder(record, request.holder(), request.fencingToken());
         var key = leaseKey(request.definitionId(), request.resource());
-        memoryTx.erase(LEASES, key);
+        tx.erase(LEASES, key);
     }
 
     @Override
@@ -217,9 +212,8 @@ public final class InMemoryLeaseStore implements Lease
         LeaseInspectRequest request
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var key = leaseKey(request.definitionId(), request.resource());
-        return memoryTx.get(LEASES, key)
+        return tx.get(LEASES, key)
             .map(record -> InMemoryCodec.leaseRecordFromJson(record.document()));
     }
 

@@ -38,9 +38,8 @@ public final class InMemoryLogSink implements Log
         Definition definition
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(tx, definition.name());
-        memoryTx.put(DEFINITIONS, definition.name(), InMemoryCodec.logDefinitionToJson(definition));
+        tx.put(DEFINITIONS, definition.name(), InMemoryCodec.logDefinitionToJson(definition));
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -62,8 +61,7 @@ public final class InMemoryLogSink implements Log
         String name
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        return memoryTx.get(DEFINITIONS, name)
+        return tx.get(DEFINITIONS, name)
             .map(record -> InMemoryCodec.logDefinitionFromJson(record.document()));
     }
 
@@ -92,9 +90,8 @@ public final class InMemoryLogSink implements Log
         Event event
     ) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        var events = memoryTx.query(EVENTS, new Backend.Query.All());
-        memoryTx.put(EVENTS, eventKey(events.size()), InMemoryCodec.logEventToJson(event));
+        var events = tx.query(EVENTS, new Backend.Query.All());
+        tx.put(EVENTS, eventKey(events.size()), InMemoryCodec.logEventToJson(event));
     }
 
     public List<Event> inspectEvents(Backend backend) throws Backend.BackendException
@@ -107,9 +104,8 @@ public final class InMemoryLogSink implements Log
 
     public List<Event> inspectEventsTx(Backend.Transaction tx) throws Backend.BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
         var events = new ArrayList<Log.Event>();
-        var records = memoryTx.query(EVENTS, new Backend.Query.All());
+        var records = tx.query(EVENTS, new Backend.Query.All());
         records.sort(Comparator.comparing(Backend.VersionedRecord::key));
         for (var record : records)
         {

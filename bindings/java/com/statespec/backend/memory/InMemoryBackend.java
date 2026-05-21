@@ -41,8 +41,7 @@ public final class InMemoryBackend implements Backend
         String collection,
         String key) throws BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        return memoryTx.get(collection, key);
+        return tx.get(collection, key);
     }
 
     @Override
@@ -52,8 +51,7 @@ public final class InMemoryBackend implements Backend
         Query query
     ) throws BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        return memoryTx.query(collection, query);
+        return tx.query(collection, query);
     }
 
     @Override
@@ -63,8 +61,7 @@ public final class InMemoryBackend implements Backend
         String key,
         Json document) throws BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        memoryTx.put(collection, key, document);
+        tx.put(collection, key, document);
     }
 
     @Override
@@ -74,8 +71,7 @@ public final class InMemoryBackend implements Backend
         String key
     ) throws BackendException
     {
-        var memoryTx = InMemoryTransaction.require(tx);
-        memoryTx.erase(collection, key);
+        tx.erase(collection, key);
     }
 
     @Override public void commit(Transaction tx) throws BackendException
