@@ -1,0 +1,24 @@
+#pragma once
+
+#include "statespec/generator_bindings.hpp"
+
+#include <string>
+
+namespace statespec
+{
+
+std::string generate_go_descriptor_prelude(const IrSystem& system);
+std::string generate_go_feature_flag_descriptors(const IrSystem& system);
+std::string generate_go_declaration_descriptors(const IrSystem& system);
+std::string generate_go_external_system_descriptors(const IrSystem& system);
+std::string generate_go_api_descriptors(const IrSystem& system);
+std::string generate_go_worker_descriptors(const IrSystem& system);
+std::string generate_go_policy_descriptors(const IrSystem& system);
+std::string generate_go_shape_descriptors(const IrSystem& system);
+std::string generate_go_observability_descriptors(const IrSystem& system);
+std::string generate_go_entity_descriptors(const IrSystem& system);
+std::string generate_go_runtime_descriptors(const IrSystem& system);
+std::string generate_go_observability_registration(const IrSystem& system);
+std::string generate_go_runtime_registration(const IrSystem& system);
+
+} // namespace statespec
