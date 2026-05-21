@@ -1742,6 +1742,10 @@ GenerationResult generate_java_bindings(
             output_root / "memory" / "InMemoryTransaction.java", diagnostics
         );
         add_template_file(
+            result, options.output_dir, templates, output_root / "memory" / "InMemoryCodec.java",
+            output_root / "memory" / "InMemoryCodec.java", diagnostics
+        );
+        add_template_file(
             result, options.output_dir, templates,
             output_root / "memory" / "InMemoryFeatureFlagStore.java",
             output_root / "memory" / "InMemoryFeatureFlagStore.java", diagnostics

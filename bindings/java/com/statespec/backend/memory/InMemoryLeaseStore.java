@@ -6,6 +6,9 @@ import java.util.Optional;
 
 public final class InMemoryLeaseStore implements Lease
 {
+    private static final String DEFINITIONS = "leases.definitions";
+    private static final String LEASES = "leases.records";
+
     @Override
     public LeaseRegisterDefinitionResult registerDefinition(
         Backend backend,
@@ -34,7 +37,10 @@ public final class InMemoryLeaseStore implements Lease
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(tx, definition.id());
-        memoryTx.leaseDefinitionPuts.put(leaseDefinitionKey(definition.id()), definition);
+        memoryTx.put(
+            DEFINITIONS, leaseDefinitionKey(definition.id()),
+            InMemoryCodec.leaseDefinitionToJson(definition)
+        );
         return new LeaseRegisterDefinitionResult(existing.isEmpty(), definition);
     }
 
@@ -58,14 +64,8 @@ public final class InMemoryLeaseStore implements Lease
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var key = leaseDefinitionKey(definitionId);
-        if (memoryTx.leaseDefinitionPuts.containsKey(key))
-        {
-            return Optional.of(memoryTx.leaseDefinitionPuts.get(key));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.leaseDefinitions.get(key));
-        }
+        return memoryTx.get(DEFINITIONS, key)
+            .map(record -> InMemoryCodec.leaseDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -118,8 +118,7 @@ public final class InMemoryLeaseStore implements Lease
             request.now().plus(definition.get().ttl()), token
         );
         var key = leaseKey(request.definitionId(), request.resource());
-        memoryTx.leasePuts.put(key, record);
-        memoryTx.leaseErases.remove(key);
+        memoryTx.put(LEASES, key, InMemoryCodec.leaseRecordToJson(record));
         return new LeaseAcquireResult(true, Optional.of(record));
     }
 
@@ -161,7 +160,10 @@ public final class InMemoryLeaseStore implements Lease
             record.definitionId(), record.resource(), record.holder(),
             request.now().plus(definition.get().ttl()), record.fencingToken()
         );
-        memoryTx.leasePuts.put(leaseKey(request.definitionId(), request.resource()), updated);
+        memoryTx.put(
+            LEASES, leaseKey(request.definitionId(), request.resource()),
+            InMemoryCodec.leaseRecordToJson(updated)
+        );
         return updated;
     }
 
@@ -194,8 +196,7 @@ public final class InMemoryLeaseStore implements Lease
         var record = requireLease(tx, request.definitionId(), request.resource());
         requireHolder(record, request.holder(), request.fencingToken());
         var key = leaseKey(request.definitionId(), request.resource());
-        memoryTx.leasePuts.remove(key);
-        memoryTx.leaseErases.add(key);
+        memoryTx.erase(LEASES, key);
     }
 
     @Override
@@ -218,18 +219,8 @@ public final class InMemoryLeaseStore implements Lease
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var key = leaseKey(request.definitionId(), request.resource());
-        if (memoryTx.leaseErases.contains(key))
-        {
-            return Optional.empty();
-        }
-        if (memoryTx.leasePuts.containsKey(key))
-        {
-            return Optional.of(memoryTx.leasePuts.get(key));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.leases.get(key));
-        }
+        return memoryTx.get(LEASES, key)
+            .map(record -> InMemoryCodec.leaseRecordFromJson(record.document()));
     }
 
     private LeaseRecord requireLease(

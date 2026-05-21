@@ -1,18 +1,13 @@
 package com.statespec.backend.memory;
 
 import com.statespec.backend.Backend;
-import com.statespec.backend.FeatureFlag;
 import com.statespec.backend.Json;
-import com.statespec.backend.Lease;
-import com.statespec.backend.Log;
-import com.statespec.backend.Metric;
-import com.statespec.backend.Queue;
-import com.statespec.backend.Workflow;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public final class InMemoryTransaction implements Backend.Transaction
@@ -22,19 +17,6 @@ public final class InMemoryTransaction implements Backend.Transaction
         final Map<String, Map<String, Backend.VersionedRecord>> records = new HashMap<>();
         final Map<String, Long> versions = new HashMap<>();
         final Map<String, Backend.CollectionDescriptor> collections = new HashMap<>();
-        final Map<String, FeatureFlag.Definition> featureFlagDefinitions = new HashMap<>();
-        final Map<String, FeatureFlag.Value> featureFlagValues = new HashMap<>();
-        final Map<String, Queue.QueueDefinition> queueDefinitions = new HashMap<>();
-        final Map<String, Queue.QueueMessageRecord> queueMessages = new HashMap<>();
-        final Map<String, String> queueIdempotencyKeys = new HashMap<>();
-        final Map<String, Lease.LeaseDefinition> leaseDefinitions = new HashMap<>();
-        final Map<String, Lease.LeaseRecord> leases = new HashMap<>();
-        final Map<String, Workflow.WorkflowDefinition> workflowDefinitions = new HashMap<>();
-        final Map<String, Workflow.WorkflowExecutionRecord> workflowExecutions = new HashMap<>();
-        final Map<String, Log.Definition> logDefinitions = new HashMap<>();
-        final List<Log.Event> logEvents = new ArrayList<>();
-        final Map<String, Metric.Definition> metricDefinitions = new HashMap<>();
-        final List<Metric.Sample> metricSamples = new ArrayList<>();
     }
 
     final State state;
@@ -42,20 +24,6 @@ public final class InMemoryTransaction implements Backend.Transaction
     final Map<String, Long> readVersions = new HashMap<>();
     final Map<String, Backend.VersionedRecord> puts = new HashMap<>();
     final Set<String> erases = new HashSet<>();
-    final Map<String, FeatureFlag.Definition> featureFlagDefinitionPuts = new HashMap<>();
-    final Map<String, FeatureFlag.Value> featureFlagValuePuts = new HashMap<>();
-    final Map<String, Queue.QueueDefinition> queueDefinitionPuts = new HashMap<>();
-    final Map<String, Queue.QueueMessageRecord> queueMessagePuts = new HashMap<>();
-    final Map<String, String> queueIdempotencyPuts = new HashMap<>();
-    final Map<String, Lease.LeaseDefinition> leaseDefinitionPuts = new HashMap<>();
-    final Map<String, Lease.LeaseRecord> leasePuts = new HashMap<>();
-    final Set<String> leaseErases = new HashSet<>();
-    final Map<String, Workflow.WorkflowDefinition> workflowDefinitionPuts = new HashMap<>();
-    final Map<String, Workflow.WorkflowExecutionRecord> workflowExecutionPuts = new HashMap<>();
-    final Map<String, Log.Definition> logDefinitionPuts = new HashMap<>();
-    final List<Log.Event> logEventAppends = new ArrayList<>();
-    final Map<String, Metric.Definition> metricDefinitionPuts = new HashMap<>();
-    final List<Metric.Sample> metricSampleAppends = new ArrayList<>();
 
     InMemoryTransaction(State state)
     {
@@ -73,20 +41,136 @@ public final class InMemoryTransaction implements Backend.Transaction
         readVersions.clear();
         puts.clear();
         erases.clear();
-        featureFlagDefinitionPuts.clear();
-        featureFlagValuePuts.clear();
-        queueDefinitionPuts.clear();
-        queueMessagePuts.clear();
-        queueIdempotencyPuts.clear();
-        leaseDefinitionPuts.clear();
-        leasePuts.clear();
-        leaseErases.clear();
-        workflowDefinitionPuts.clear();
-        workflowExecutionPuts.clear();
-        logDefinitionPuts.clear();
-        logEventAppends.clear();
-        metricDefinitionPuts.clear();
-        metricSampleAppends.clear();
+    }
+
+    Optional<Backend.VersionedRecord>
+    get(String collection,
+        String key) throws Backend.BackendException
+    {
+        var versionKey = recordVersionKey(collection, key);
+        if (erases.contains(versionKey))
+        {
+            return Optional.empty();
+        }
+        if (puts.containsKey(versionKey))
+        {
+            return Optional.of(puts.get(versionKey));
+        }
+
+        synchronized (state)
+        {
+            var collectionRecords = state.records.get(collection);
+            if (collectionRecords == null || !collectionRecords.containsKey(key))
+            {
+                readVersions.put(versionKey, 0L);
+                return Optional.empty();
+            }
+            var record = collectionRecords.get(key);
+            readVersions.put(versionKey, record.version());
+            return Optional.of(record);
+        }
+    }
+
+    List<Backend.VersionedRecord> query(
+        String collection,
+        Backend.Query query
+    ) throws Backend.BackendException
+    {
+        var byKey = new HashMap<String, Backend.VersionedRecord>();
+        synchronized (state)
+        {
+            var collectionRecords = state.records.get(collection);
+            if (collectionRecords != null)
+            {
+                byKey.putAll(collectionRecords);
+            }
+        }
+        for (var record : puts.values())
+        {
+            if (record.collection().equals(collection))
+            {
+                byKey.put(record.key(), record);
+            }
+        }
+        for (var versionKey : erases)
+        {
+            var prefix = "record:" + collection + ":";
+            if (versionKey.startsWith(prefix))
+            {
+                byKey.remove(versionKey.substring(prefix.length()));
+            }
+        }
+
+        var matched = new ArrayList<Backend.VersionedRecord>();
+        for (var record : byKey.values())
+        {
+            if (matches(record, query))
+            {
+                readVersions.put(
+                    recordVersionKey(record.collection(), record.key()), record.version()
+                );
+                matched.add(record);
+            }
+        }
+        return matched;
+    }
+
+    void
+    put(String collection,
+        String key,
+        Json document) throws Backend.BackendException
+    {
+        get(collection, key);
+        var versionKey = recordVersionKey(collection, key);
+        puts.put(versionKey, new Backend.VersionedRecord(collection, key, 0L, document));
+        erases.remove(versionKey);
+    }
+
+    void erase(
+        String collection,
+        String key
+    ) throws Backend.BackendException
+    {
+        get(collection, key);
+        var versionKey = recordVersionKey(collection, key);
+        puts.remove(versionKey);
+        erases.add(versionKey);
+    }
+
+    void commit() throws Backend.BackendException
+    {
+        synchronized (state)
+        {
+            for (var entry : readVersions.entrySet())
+            {
+                if (versionOrZero(state.versions, entry.getKey()) != entry.getValue())
+                {
+                    throw new Backend.ConflictException(
+                        Backend.ConflictKind.VERSION_CONFLICT, "in-memory OCC conflict"
+                    );
+                }
+            }
+            for (var versionKey : erases)
+            {
+                eraseCommittedRecord(versionKey);
+                state.versions.put(versionKey, versionOrZero(state.versions, versionKey) + 1);
+            }
+            for (var entry : puts.entrySet())
+            {
+                var versionKey = entry.getKey();
+                var version = versionOrZero(state.versions, versionKey) + 1;
+                state.versions.put(versionKey, version);
+                var record = entry.getValue();
+                state.records.computeIfAbsent(record.collection(), ignored -> new HashMap<>())
+                    .put(
+                        record.key(),
+                        new Backend.VersionedRecord(
+                            record.collection(), record.key(), version, record.document()
+                        )
+                    );
+            }
+        }
+        abort();
     }
 
     static InMemoryTransaction require(Backend.Transaction tx) throws Backend.BackendException
@@ -145,5 +229,49 @@ public final class InMemoryTransaction implements Backend.Transaction
             current = next.get();
         }
         return current;
+    }
+
+    private void eraseCommittedRecord(String versionKey)
+    {
+        var prefix = "record:";
+        if (!versionKey.startsWith(prefix))
+        {
+            return;
+        }
+        var rest = versionKey.substring(prefix.length());
+        var separator = rest.indexOf(':');
+        if (separator < 0)
+        {
+            return;
+        }
+        var collection = rest.substring(0, separator);
+        var key = rest.substring(separator + 1);
+        var records = state.records.get(collection);
+        if (records != null)
+        {
+            records.remove(key);
+        }
+    }
+
+    private static boolean matches(
+        Backend.VersionedRecord record,
+        Backend.Query query
+    )
+    {
+        if (query instanceof Backend.Query.All)
+        {
+            return true;
+        }
+        if (query instanceof Backend.Query.KeyPrefix keyPrefix)
+        {
+            return record.key().startsWith(keyPrefix.prefix());
+        }
+        if (query instanceof Backend.Query.JsonEquals jsonEquals)
+        {
+            var value = findJsonPath(record.document(), jsonEquals.path());
+            return value != null &&
+                value.canonicalString().equals(jsonEquals.value().canonicalString());
+        }
+        return true;
     }
 }

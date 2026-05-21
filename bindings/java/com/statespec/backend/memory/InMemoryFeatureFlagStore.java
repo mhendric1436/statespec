@@ -6,6 +6,9 @@ import java.util.Optional;
 
 public final class InMemoryFeatureFlagStore implements FeatureFlag
 {
+    private static final String DEFINITIONS = "feature_flags.definitions";
+    private static final String VALUES = "feature_flags.values";
+
     @Override
     public RegisterDefinitionResult registerDefinition(
         Backend backend,
@@ -34,7 +37,9 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(tx, definition.name());
-        memoryTx.featureFlagDefinitionPuts.put(definition.name(), definition);
+        memoryTx.put(
+            DEFINITIONS, definition.name(), InMemoryCodec.featureFlagDefinitionToJson(definition)
+        );
         return new RegisterDefinitionResult(existing.isEmpty(), definition);
     }
 
@@ -57,14 +62,8 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
     ) throws Backend.BackendException
     {
         var memoryTx = InMemoryTransaction.require(tx);
-        if (memoryTx.featureFlagDefinitionPuts.containsKey(name))
-        {
-            return Optional.of(memoryTx.featureFlagDefinitionPuts.get(name));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.featureFlagDefinitions.get(name));
-        }
+        return memoryTx.get(DEFINITIONS, name)
+            .map(record -> InMemoryCodec.featureFlagDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -86,16 +85,10 @@ public final class InMemoryFeatureFlagStore implements FeatureFlag
     ) throws Backend.BackendException
     {
         var memoryTx = InMemoryTransaction.require(tx);
-        if (memoryTx.featureFlagValuePuts.containsKey(request.name()))
+        var override = memoryTx.get(VALUES, request.name());
+        if (override.isPresent())
         {
-            return memoryTx.featureFlagValuePuts.get(request.name());
-        }
-        synchronized (memoryTx.state)
-        {
-            if (memoryTx.state.featureFlagValues.containsKey(request.name()))
-            {
-                return memoryTx.state.featureFlagValues.get(request.name());
-            }
+            return InMemoryCodec.featureFlagValueFromJson(override.get().document());
         }
         var definition = inspectDefinitionTx(tx, request.name());
         if (definition.isEmpty())

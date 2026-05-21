@@ -1,14 +1,18 @@
 package com.statespec.backend.memory;
 
 import com.statespec.backend.Backend;
+import com.statespec.backend.Json;
 import com.statespec.backend.Queue;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
 public final class InMemoryQueueStore implements Queue
 {
+    private static final String DEFINITIONS = "queues.definitions";
+    private static final String MESSAGES = "queues.messages";
+    private static final String IDEMPOTENCY = "queues.idempotency";
+
     @Override
     public QueueDefinitionRegistration registerDefinition(
         Backend backend,
@@ -38,9 +42,10 @@ public final class InMemoryQueueStore implements Queue
         var memoryTx = InMemoryTransaction.require(tx);
         var existing =
             inspectDefinitionTx(tx, request.definition().queue(), request.definition().channel());
-        memoryTx.queueDefinitionPuts.put(
+        memoryTx.put(
+            DEFINITIONS,
             queueDefinitionKey(request.definition().queue(), request.definition().channel()),
-            request.definition()
+            InMemoryCodec.queueDefinitionToJson(request.definition())
         );
         return new QueueDefinitionRegistration(request.definition(), existing.isEmpty());
     }
@@ -67,14 +72,8 @@ public final class InMemoryQueueStore implements Queue
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var key = queueDefinitionKey(queue, channel);
-        if (memoryTx.queueDefinitionPuts.containsKey(key))
-        {
-            return Optional.of(memoryTx.queueDefinitionPuts.get(key));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.queueDefinitions.get(key));
-        }
+        return memoryTx.get(DEFINITIONS, key)
+            .map(record -> InMemoryCodec.queueDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -108,26 +107,20 @@ public final class InMemoryQueueStore implements Queue
         {
             var idempotencyKey = queueDefinitionKey(request.queue(), request.channel()) + "|" +
                                  request.idempotencyKey().get();
-            if (memoryTx.queueIdempotencyPuts.containsKey(idempotencyKey))
+            var existing = memoryTx.get(IDEMPOTENCY, idempotencyKey);
+            if (existing.isPresent())
             {
-                return requireMessage(memoryTx, memoryTx.queueIdempotencyPuts.get(idempotencyKey));
+                return requireMessage(
+                    memoryTx, InMemoryCodec.stringFromJson(existing.get().document())
+                );
             }
-            synchronized (memoryTx.state)
-            {
-                if (memoryTx.state.queueIdempotencyKeys.containsKey(idempotencyKey))
-                {
-                    return requireMessage(
-                        memoryTx, memoryTx.state.queueIdempotencyKeys.get(idempotencyKey)
-                    );
-                }
-            }
-            memoryTx.queueIdempotencyPuts.put(idempotencyKey, request.messageId());
+            memoryTx.put(IDEMPOTENCY, idempotencyKey, Json.string(request.messageId()));
         }
         var record = new QueueMessageRecord(
             request.messageId(), request.queue(), request.channel(), "Pending", 0L,
             Optional.empty(), Optional.empty(), request.payloadJson()
         );
-        memoryTx.queueMessagePuts.put(record.messageId(), record);
+        memoryTx.put(MESSAGES, record.messageId(), InMemoryCodec.queueMessageToJson(record));
         return record;
     }
 
@@ -183,7 +176,7 @@ public final class InMemoryQueueStore implements Queue
                 message.attempts() + 1, Optional.of(request.claimant()),
                 Optional.of(request.now().plus(request.visibilityTimeout())), message.payloadJson()
             );
-            memoryTx.queueMessagePuts.put(updated.messageId(), updated);
+            memoryTx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
             claimed.add(updated);
         }
         return claimed;
@@ -217,13 +210,11 @@ public final class InMemoryQueueStore implements Queue
         var memoryTx = InMemoryTransaction.require(tx);
         var message = requireMessage(memoryTx, request.messageId());
         requireClaimant(message, request.claimant());
-        memoryTx.queueMessagePuts.put(
-            message.messageId(), new QueueMessageRecord(
-                                     message.messageId(), message.queue(), message.channel(),
-                                     "Acked", message.attempts(), message.claimedBy(),
-                                     message.claimExpiresAt(), message.payloadJson()
-                                 )
+        var updated = new QueueMessageRecord(
+            message.messageId(), message.queue(), message.channel(), "Acked", message.attempts(),
+            message.claimedBy(), message.claimExpiresAt(), message.payloadJson()
         );
+        memoryTx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
     }
 
     @Override
@@ -260,7 +251,7 @@ public final class InMemoryQueueStore implements Queue
             message.messageId(), message.queue(), message.channel(), status, message.attempts(),
             Optional.empty(), Optional.empty(), message.payloadJson()
         );
-        memoryTx.queueMessagePuts.put(updated.messageId(), updated);
+        memoryTx.put(MESSAGES, updated.messageId(), InMemoryCodec.queueMessageToJson(updated));
         return updated;
     }
 
@@ -283,14 +274,8 @@ public final class InMemoryQueueStore implements Queue
     ) throws Backend.BackendException
     {
         var memoryTx = InMemoryTransaction.require(tx);
-        if (memoryTx.queueMessagePuts.containsKey(messageId))
-        {
-            return Optional.of(memoryTx.queueMessagePuts.get(messageId));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.queueMessages.get(messageId));
-        }
+        return memoryTx.get(MESSAGES, messageId)
+            .map(record -> InMemoryCodec.queueMessageFromJson(record.document()));
     }
 
     private QueueMessageRecord requireMessage(
@@ -298,29 +283,21 @@ public final class InMemoryQueueStore implements Queue
         String messageId
     ) throws Backend.BackendException
     {
-        if (tx.queueMessagePuts.containsKey(messageId))
-        {
-            return tx.queueMessagePuts.get(messageId);
-        }
-        synchronized (tx.state)
-        {
-            if (tx.state.queueMessages.containsKey(messageId))
-            {
-                return tx.state.queueMessages.get(messageId);
-            }
-        }
-        throw new Backend.BackendException("unknown queue message " + messageId);
+        return tx.get(MESSAGES, messageId)
+            .map(record -> InMemoryCodec.queueMessageFromJson(record.document()))
+            .orElseThrow(() -> new Backend.BackendException("unknown queue message " + messageId));
     }
 
     private List<QueueMessageRecord> allMessages(InMemoryTransaction tx)
+        throws Backend.BackendException
     {
-        var byId = new HashMap<String, QueueMessageRecord>();
-        synchronized (tx.state)
+        var records = tx.query(MESSAGES, new Backend.Query.All());
+        var messages = new ArrayList<QueueMessageRecord>();
+        for (var record : records)
         {
-            byId.putAll(tx.state.queueMessages);
+            messages.add(InMemoryCodec.queueMessageFromJson(record.document()));
         }
-        byId.putAll(tx.queueMessagePuts);
-        return new ArrayList<>(byId.values());
+        return messages;
     }
 
     private static String queueDefinitionKey(

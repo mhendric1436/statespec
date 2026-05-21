@@ -3,12 +3,14 @@ package com.statespec.backend.memory;
 import com.statespec.backend.Backend;
 import com.statespec.backend.Workflow;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
 public final class InMemoryWorkflowStore implements Workflow
 {
+    private static final String DEFINITIONS = "workflows.definitions";
+    private static final String EXECUTIONS = "workflows.executions";
+
     @Override
     public WorkflowDefinitionRegistration registerDefinition(
         Backend backend,
@@ -39,11 +41,12 @@ public final class InMemoryWorkflowStore implements Workflow
         var existing = inspectDefinitionTx(
             tx, request.definition().workflowName(), request.definition().workflowVersion()
         );
-        memoryTx.workflowDefinitionPuts.put(
+        memoryTx.put(
+            DEFINITIONS,
             workflowDefinitionKey(
                 request.definition().workflowName(), request.definition().workflowVersion()
             ),
-            request.definition()
+            InMemoryCodec.workflowDefinitionToJson(request.definition())
         );
         return new WorkflowDefinitionRegistration(request.definition(), existing.isEmpty());
     }
@@ -70,14 +73,8 @@ public final class InMemoryWorkflowStore implements Workflow
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var key = workflowDefinitionKey(workflowName, workflowVersion);
-        if (memoryTx.workflowDefinitionPuts.containsKey(key))
-        {
-            return Optional.of(memoryTx.workflowDefinitionPuts.get(key));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.workflowDefinitions.get(key));
-        }
+        return memoryTx.get(DEFINITIONS, key)
+            .map(record -> InMemoryCodec.workflowDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -117,7 +114,9 @@ public final class InMemoryWorkflowStore implements Workflow
             request.startStep(), "Running", 0L, Optional.empty(), Optional.empty(),
             request.stateJson()
         );
-        memoryTx.workflowExecutionPuts.put(record.workflowExecutionId(), record);
+        memoryTx.put(
+            EXECUTIONS, record.workflowExecutionId(), InMemoryCodec.workflowExecutionToJson(record)
+        );
         return record;
     }
 
@@ -175,7 +174,10 @@ public final class InMemoryWorkflowStore implements Workflow
                 execution.attempt() + 1, Optional.of(request.worker()),
                 Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
             );
-            memoryTx.workflowExecutionPuts.put(updated.workflowExecutionId(), updated);
+            memoryTx.put(
+                EXECUTIONS, updated.workflowExecutionId(),
+                InMemoryCodec.workflowExecutionToJson(updated)
+            );
             claimed.add(updated);
         }
         return claimed;
@@ -215,7 +217,10 @@ public final class InMemoryWorkflowStore implements Workflow
             execution.currentStep(), execution.status(), execution.attempt(), execution.claimedBy(),
             Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
         );
-        memoryTx.workflowExecutionPuts.put(updated.workflowExecutionId(), updated);
+        memoryTx.put(
+            EXECUTIONS, updated.workflowExecutionId(),
+            InMemoryCodec.workflowExecutionToJson(updated)
+        );
         return updated;
     }
 
@@ -255,7 +260,10 @@ public final class InMemoryWorkflowStore implements Workflow
             step, status, execution.attempt(), Optional.empty(), Optional.empty(),
             request.stateJson()
         );
-        memoryTx.workflowExecutionPuts.put(updated.workflowExecutionId(), updated);
+        memoryTx.put(
+            EXECUTIONS, updated.workflowExecutionId(),
+            InMemoryCodec.workflowExecutionToJson(updated)
+        );
         return updated;
     }
 
@@ -294,7 +302,10 @@ public final class InMemoryWorkflowStore implements Workflow
             execution.currentStep(), status, execution.attempt(), Optional.empty(),
             Optional.empty(), execution.stateJson()
         );
-        memoryTx.workflowExecutionPuts.put(updated.workflowExecutionId(), updated);
+        memoryTx.put(
+            EXECUTIONS, updated.workflowExecutionId(),
+            InMemoryCodec.workflowExecutionToJson(updated)
+        );
         return updated;
     }
 
@@ -331,7 +342,10 @@ public final class InMemoryWorkflowStore implements Workflow
             execution.currentStep(), "Canceled", execution.attempt(), Optional.empty(),
             Optional.empty(), execution.stateJson()
         );
-        memoryTx.workflowExecutionPuts.put(updated.workflowExecutionId(), updated);
+        memoryTx.put(
+            EXECUTIONS, updated.workflowExecutionId(),
+            InMemoryCodec.workflowExecutionToJson(updated)
+        );
         return updated;
     }
 
@@ -354,14 +368,8 @@ public final class InMemoryWorkflowStore implements Workflow
     ) throws Backend.BackendException
     {
         var memoryTx = InMemoryTransaction.require(tx);
-        if (memoryTx.workflowExecutionPuts.containsKey(workflowExecutionId))
-        {
-            return Optional.of(memoryTx.workflowExecutionPuts.get(workflowExecutionId));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.workflowExecutions.get(workflowExecutionId));
-        }
+        return memoryTx.get(EXECUTIONS, workflowExecutionId)
+            .map(record -> InMemoryCodec.workflowExecutionFromJson(record.document()));
     }
 
     private WorkflowExecutionRecord requireExecution(
@@ -374,14 +382,15 @@ public final class InMemoryWorkflowStore implements Workflow
     }
 
     private List<WorkflowExecutionRecord> allExecutions(InMemoryTransaction tx)
+        throws Backend.BackendException
     {
-        var byId = new HashMap<String, WorkflowExecutionRecord>();
-        synchronized (tx.state)
+        var records = tx.query(EXECUTIONS, new Backend.Query.All());
+        var executions = new ArrayList<WorkflowExecutionRecord>();
+        for (var record : records)
         {
-            byId.putAll(tx.state.workflowExecutions);
+            executions.add(InMemoryCodec.workflowExecutionFromJson(record.document()));
         }
-        byId.putAll(tx.workflowExecutionPuts);
-        return new ArrayList<>(byId.values());
+        return executions;
     }
 
     private static String workflowDefinitionKey(

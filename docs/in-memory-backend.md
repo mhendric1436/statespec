@@ -65,6 +65,7 @@ Java:
 ```text
 common/com/statespec/backend/memory/InMemoryBackend.java
 common/com/statespec/backend/memory/InMemoryTransaction.java
+common/com/statespec/backend/memory/InMemoryCodec.java
 common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java
 common/com/statespec/backend/memory/InMemoryQueueStore.java
 common/com/statespec/backend/memory/InMemoryLeaseStore.java

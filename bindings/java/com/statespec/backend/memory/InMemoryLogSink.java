@@ -3,11 +3,15 @@ package com.statespec.backend.memory;
 import com.statespec.backend.Backend;
 import com.statespec.backend.Log;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 public final class InMemoryLogSink implements Log
 {
+    private static final String DEFINITIONS = "logs.definitions";
+    private static final String EVENTS = "logs.events";
+
     @Override
     public DefinitionRegistration registerDefinition(
         Backend backend,
@@ -36,7 +40,7 @@ public final class InMemoryLogSink implements Log
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(tx, definition.name());
-        memoryTx.logDefinitionPuts.put(definition.name(), definition);
+        memoryTx.put(DEFINITIONS, definition.name(), InMemoryCodec.logDefinitionToJson(definition));
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -59,14 +63,8 @@ public final class InMemoryLogSink implements Log
     ) throws Backend.BackendException
     {
         var memoryTx = InMemoryTransaction.require(tx);
-        if (memoryTx.logDefinitionPuts.containsKey(name))
-        {
-            return Optional.of(memoryTx.logDefinitionPuts.get(name));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.logDefinitions.get(name));
-        }
+        return memoryTx.get(DEFINITIONS, name)
+            .map(record -> InMemoryCodec.logDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -95,7 +93,8 @@ public final class InMemoryLogSink implements Log
     ) throws Backend.BackendException
     {
         var memoryTx = InMemoryTransaction.require(tx);
-        memoryTx.logEventAppends.add(event);
+        var events = memoryTx.query(EVENTS, new Backend.Query.All());
+        memoryTx.put(EVENTS, eventKey(events.size()), InMemoryCodec.logEventToJson(event));
     }
 
     public List<Event> inspectEvents(Backend backend) throws Backend.BackendException
@@ -110,11 +109,17 @@ public final class InMemoryLogSink implements Log
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var events = new ArrayList<Log.Event>();
-        synchronized (memoryTx.state)
+        var records = memoryTx.query(EVENTS, new Backend.Query.All());
+        records.sort(Comparator.comparing(Backend.VersionedRecord::key));
+        for (var record : records)
         {
-            events.addAll(memoryTx.state.logEvents);
+            events.add(InMemoryCodec.logEventFromJson(record.document()));
         }
-        events.addAll(memoryTx.logEventAppends);
         return events;
+    }
+
+    private static String eventKey(int index)
+    {
+        return String.format("event:%020d", index + 1);
     }
 }

@@ -35,6 +35,7 @@ common/com/statespec/backend/Metric.java
 common/com/statespec/backend/Queue.java
 common/com/statespec/backend/Workflow.java
 common/com/statespec/backend/memory/InMemoryBackend.java
+common/com/statespec/backend/memory/InMemoryCodec.java
 common/com/statespec/backend/memory/InMemoryFeatureFlagStore.java
 common/com/statespec/backend/memory/InMemoryLeaseStore.java
 common/com/statespec/backend/memory/InMemoryLogSink.java

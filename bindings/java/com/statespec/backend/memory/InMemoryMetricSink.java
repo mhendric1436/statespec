@@ -3,11 +3,15 @@ package com.statespec.backend.memory;
 import com.statespec.backend.Backend;
 import com.statespec.backend.Metric;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 public final class InMemoryMetricSink implements Metric
 {
+    private static final String DEFINITIONS = "metrics.definitions";
+    private static final String SAMPLES = "metrics.samples";
+
     @Override
     public DefinitionRegistration registerDefinition(
         Backend backend,
@@ -36,7 +40,9 @@ public final class InMemoryMetricSink implements Metric
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var existing = inspectDefinitionTx(tx, definition.name());
-        memoryTx.metricDefinitionPuts.put(definition.name(), definition);
+        memoryTx.put(
+            DEFINITIONS, definition.name(), InMemoryCodec.metricDefinitionToJson(definition)
+        );
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -59,14 +65,8 @@ public final class InMemoryMetricSink implements Metric
     ) throws Backend.BackendException
     {
         var memoryTx = InMemoryTransaction.require(tx);
-        if (memoryTx.metricDefinitionPuts.containsKey(name))
-        {
-            return Optional.of(memoryTx.metricDefinitionPuts.get(name));
-        }
-        synchronized (memoryTx.state)
-        {
-            return Optional.ofNullable(memoryTx.state.metricDefinitions.get(name));
-        }
+        return memoryTx.get(DEFINITIONS, name)
+            .map(record -> InMemoryCodec.metricDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -95,7 +95,8 @@ public final class InMemoryMetricSink implements Metric
     ) throws Backend.BackendException
     {
         var memoryTx = InMemoryTransaction.require(tx);
-        memoryTx.metricSampleAppends.add(sample);
+        var samples = memoryTx.query(SAMPLES, new Backend.Query.All());
+        memoryTx.put(SAMPLES, sampleKey(samples.size()), InMemoryCodec.metricSampleToJson(sample));
     }
 
     public List<Sample> inspectSamples(Backend backend) throws Backend.BackendException
@@ -110,11 +111,17 @@ public final class InMemoryMetricSink implements Metric
     {
         var memoryTx = InMemoryTransaction.require(tx);
         var samples = new ArrayList<Metric.Sample>();
-        synchronized (memoryTx.state)
+        var records = memoryTx.query(SAMPLES, new Backend.Query.All());
+        records.sort(Comparator.comparing(Backend.VersionedRecord::key));
+        for (var record : records)
         {
-            samples.addAll(memoryTx.state.metricSamples);
+            samples.add(InMemoryCodec.metricSampleFromJson(record.document()));
         }
-        samples.addAll(memoryTx.metricSampleAppends);
         return samples;
+    }
+
+    private static String sampleKey(int index)
+    {
+        return String.format("sample:%020d", index + 1);
     }
 }
