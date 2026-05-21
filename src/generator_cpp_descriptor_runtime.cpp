@@ -1,0 +1,95 @@
+#include "generator_cpp_descriptor_areas.hpp"
+
+#include "generator_cpp_descriptor_support.hpp"
+
+#include <sstream>
+
+namespace statespec
+{
+
+std::string generate_cpp_runtime_descriptors(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "inline std::vector<statespec::backend::QueueDefinition> queue_definitions()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& queue : system.queues)
+    {
+        out << "        statespec::backend::QueueDefinition{\n";
+        out << "            " << cpp_string(queue.name) << ",\n";
+        out << "            " << cpp_string(queue.channel.value_or("default")) << ",\n";
+        out << "            std::chrono::seconds{"
+            << parse_duration_seconds(queue.visibility_timeout) << "},\n";
+        out << "            " << queue.max_attempts.value_or(1) << ",\n";
+        out << "            " << optional_string_expr(queue.dead_letter) << ",\n";
+        out << "            \"{}\",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<LeaseDefinition> lease_definitions()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& lease : system.leases)
+    {
+        out << "        LeaseDefinition{\n";
+        out << "            " << cpp_string(lease.name) << ",\n";
+        out << "            " << optional_string_expr(lease.resource) << ",\n";
+        out << "            std::chrono::seconds{" << parse_duration_seconds(lease.ttl) << "},\n";
+        if (lease.renew_every.has_value())
+        {
+            out << "            std::optional<std::chrono::seconds>{std::chrono::seconds{"
+                << parse_duration_seconds(lease.renew_every) << "}},\n";
+        }
+        else
+        {
+            out << "            std::nullopt,\n";
+        }
+        out << "            " << optional_string_expr(lease.holder) << ",\n";
+        out << "            " << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
+        if (lease.max_ttl.has_value())
+        {
+            out << "            std::optional<std::chrono::seconds>{std::chrono::seconds{"
+                << parse_duration_seconds(lease.max_ttl) << "}},\n";
+        }
+        else
+        {
+            out << "            std::nullopt,\n";
+        }
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    out << "inline std::vector<statespec::backend::WorkflowDefinition> workflow_definitions()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& workflow : system.workflows)
+    {
+        out << "        statespec::backend::WorkflowDefinition{\n";
+        out << "            " << cpp_string(workflow.name) << ",\n";
+        out << "            " << workflow.version.value_or(1) << ",\n";
+        out << "            " << cpp_string(workflow.start_step.value_or("")) << ",\n";
+        out << "            std::chrono::seconds{"
+            << parse_duration_seconds(workflow.expected_execution_time) << "},\n";
+        out << "            " << (workflow.singleton.value_or(false) ? "true" : "false") << ",\n";
+        out << "            {\n";
+        for (const auto& step : workflow.steps)
+        {
+            out << "                statespec::backend::WorkflowStepDefinition{"
+                << cpp_string(step.name) << ", std::chrono::seconds{"
+                << parse_duration_seconds(step.expected_execution_time) << "}, "
+                << step.max_retries.value_or(0) << "},\n";
+        }
+        out << "            },\n";
+        out << "            \"{}\",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+
+    return out.str();
+}
+
+} // namespace statespec
