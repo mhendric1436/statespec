@@ -270,6 +270,46 @@ class ITransaction
 
     virtual bool is_open() const = 0;
     virtual void abort() = 0;
+
+    virtual std::optional<VersionedRecord>
+    get(const CollectionName& collection,
+        const Key& key)
+    {
+        (void)collection;
+        (void)key;
+        throw BackendError("transaction does not support generic get");
+    }
+
+    virtual std::vector<VersionedRecord> query(
+        const CollectionName& collection,
+        const Query& query
+    )
+    {
+        (void)collection;
+        (void)query;
+        throw BackendError("transaction does not support generic query");
+    }
+
+    virtual void
+    put(const CollectionName& collection,
+        const Key& key,
+        Json document)
+    {
+        (void)collection;
+        (void)key;
+        (void)document;
+        throw BackendError("transaction does not support generic put");
+    }
+
+    virtual void erase(
+        const CollectionName& collection,
+        const Key& key
+    )
+    {
+        (void)collection;
+        (void)key;
+        throw BackendError("transaction does not support generic erase");
+    }
 };
 
 class IBackend

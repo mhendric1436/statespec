@@ -26,9 +26,8 @@ class InMemoryMetricSink : public IMetricSink
         const MetricDefinition& definition
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto existing = inspect_definitionTx(memory_tx, definition.name);
-        memory_tx.put(
+        const auto existing = inspect_definitionTx(tx, definition.name);
+        tx.put(
             kDefinitionsCollection, definition.name, detail::metric_definition_to_json(definition)
         );
         return MetricDefinitionRegistration{!existing.has_value(), definition};
@@ -50,7 +49,7 @@ class InMemoryMetricSink : public IMetricSink
         const std::string& name
     ) override
     {
-        auto record = as_memory_tx(tx).get(kDefinitionsCollection, name);
+        auto record = tx.get(kDefinitionsCollection, name);
         if (!record.has_value())
         {
             return std::nullopt;
@@ -74,7 +73,7 @@ class InMemoryMetricSink : public IMetricSink
         const MetricSample& sample
     ) override
     {
-        as_memory_tx(tx).put(
+        tx.put(
             kSamplesCollection, next_sample_key(sample.name), detail::metric_sample_to_json(sample)
         );
     }

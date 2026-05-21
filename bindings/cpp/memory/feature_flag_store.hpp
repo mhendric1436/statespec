@@ -26,9 +26,8 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
         const FeatureFlagDefinition& definition
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto existing = inspect_definitionTx(memory_tx, definition.name);
-        memory_tx.put(
+        const auto existing = inspect_definitionTx(tx, definition.name);
+        tx.put(
             kDefinitionsCollection, definition.name,
             detail::feature_flag_definition_to_json(definition)
         );
@@ -51,7 +50,7 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
         const std::string& name
     ) override
     {
-        auto record = as_memory_tx(tx).get(kDefinitionsCollection, name);
+        auto record = tx.get(kDefinitionsCollection, name);
         if (!record.has_value())
         {
             return std::nullopt;
@@ -75,13 +74,12 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
         const FeatureFlagEvaluationRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        if (const auto record = memory_tx.get(kValuesCollection, evaluation_key(request));
+        if (const auto record = tx.get(kValuesCollection, evaluation_key(request));
             record.has_value())
         {
             return detail::feature_flag_value_from_json(record->document);
         }
-        const auto definition = inspect_definitionTx(memory_tx, request.name);
+        const auto definition = inspect_definitionTx(tx, request.name);
         if (!definition.has_value())
         {
             throw BackendError("unknown feature flag: " + request.name);
@@ -95,7 +93,7 @@ class InMemoryFeatureFlagStore : public IFeatureFlagStore
         FeatureFlagValue value
     )
     {
-        as_memory_tx(tx).put(
+        tx.put(
             kValuesCollection, evaluation_key(request), detail::feature_flag_value_to_json(value)
         );
     }

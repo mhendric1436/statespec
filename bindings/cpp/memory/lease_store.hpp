@@ -26,9 +26,8 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseDefinition& definition
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto existing = inspect_definitionTx(memory_tx, definition.id);
-        memory_tx.put(
+        const auto existing = inspect_definitionTx(tx, definition.id);
+        tx.put(
             kDefinitionsCollection, definition_key(definition.id),
             detail::lease_definition_to_json(definition)
         );
@@ -51,8 +50,7 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseDefinitionId& definition_id
     ) override
     {
-        const auto record =
-            as_memory_tx(tx).get(kDefinitionsCollection, definition_key(definition_id));
+        const auto record = tx.get(kDefinitionsCollection, definition_key(definition_id));
         if (!record.has_value())
         {
             return std::nullopt;
@@ -76,10 +74,9 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseAcquireRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto definition = require_definition(memory_tx, request.definition_id);
+        const auto definition = require_definition(tx, request.definition_id);
         const auto existing =
-            inspectTx(memory_tx, LeaseInspectRequest{request.definition_id, request.resource});
+            inspectTx(tx, LeaseInspectRequest{request.definition_id, request.resource});
         if (existing.has_value() && existing->holder.has_value() &&
             existing->expires_at > request.now)
         {
@@ -92,7 +89,7 @@ class InMemoryLeaseStore : public ILeaseStore
         lease.holder = request.holder;
         lease.expires_at = request.now + definition.ttl;
         lease.fencing_token = existing.has_value() ? existing->fencing_token + 1 : 1;
-        memory_tx.put(
+        tx.put(
             kLeasesCollection, lease_key(request.definition_id, request.resource),
             detail::lease_record_to_json(lease)
         );
@@ -115,12 +112,11 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseRenewRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        const auto definition = require_definition(memory_tx, request.definition_id);
-        auto lease = require_lease(memory_tx, request.definition_id, request.resource);
+        const auto definition = require_definition(tx, request.definition_id);
+        auto lease = require_lease(tx, request.definition_id, request.resource);
         require_holder(lease, request.holder, request.fencing_token);
         lease.expires_at = request.now + definition.ttl;
-        memory_tx.put(
+        tx.put(
             kLeasesCollection, lease_key(request.definition_id, request.resource),
             detail::lease_record_to_json(lease)
         );
@@ -142,10 +138,9 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseReleaseRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto lease = require_lease(memory_tx, request.definition_id, request.resource);
+        auto lease = require_lease(tx, request.definition_id, request.resource);
         require_holder(lease, request.holder, request.fencing_token);
-        memory_tx.erase(kLeasesCollection, lease_key(request.definition_id, request.resource));
+        tx.erase(kLeasesCollection, lease_key(request.definition_id, request.resource));
     }
 
     std::optional<LeaseRecord> inspect(
@@ -164,9 +159,8 @@ class InMemoryLeaseStore : public ILeaseStore
         const LeaseInspectRequest& request
     ) override
     {
-        const auto record = as_memory_tx(tx).get(
-            kLeasesCollection, lease_key(request.definition_id, request.resource)
-        );
+        const auto record =
+            tx.get(kLeasesCollection, lease_key(request.definition_id, request.resource));
         if (!record.has_value())
         {
             return std::nullopt;

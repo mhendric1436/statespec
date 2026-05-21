@@ -152,6 +152,10 @@ Transactions implement `statespec::backend::ITransaction`.
 ```cpp
 is_open()
 abort()
+get(collection, key)
+query(collection, query)
+put(collection, key, document)
+erase(collection, key)
 ```
 
 The backend owns commit behavior through:
@@ -202,6 +206,10 @@ operationTx(ITransaction& tx, const Request& request)
 
 Use these when composing multiple entity, lease, queue, workflow, or feature flag
 operations into one transaction.
+
+Runtime stores use only `IBackend` and `ITransaction`. They should not downcast to
+`memory::InMemoryBackend` or `memory::InMemoryTransaction`; the in-memory backend is one
+adapter behind the same OCC transaction interface.
 
 ## Feature Flag API
 

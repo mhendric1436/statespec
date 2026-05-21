@@ -28,13 +28,10 @@ class InMemoryQueueStore : public IQueueStore
         const RegisterQueueDefinitionRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
         const auto key = definition_key(request.definition.queue, request.definition.channel);
         const auto existing =
-            inspect_definitionTx(memory_tx, request.definition.queue, request.definition.channel);
-        memory_tx.put(
-            kDefinitionsCollection, key, detail::queue_definition_to_json(request.definition)
-        );
+            inspect_definitionTx(tx, request.definition.queue, request.definition.channel);
+        tx.put(kDefinitionsCollection, key, detail::queue_definition_to_json(request.definition));
         return QueueDefinitionRegistration{request.definition, !existing.has_value()};
     }
 
@@ -56,8 +53,7 @@ class InMemoryQueueStore : public IQueueStore
         const std::string& channel
     ) override
     {
-        const auto record =
-            as_memory_tx(tx).get(kDefinitionsCollection, definition_key(queue, channel));
+        const auto record = tx.get(kDefinitionsCollection, definition_key(queue, channel));
         if (!record.has_value())
         {
             return std::nullopt;
@@ -82,17 +78,16 @@ class InMemoryQueueStore : public IQueueStore
         const EnqueueMessageRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
         if (request.idempotency_key.has_value())
         {
             const auto idempotency_key =
                 definition_key(request.queue, request.channel) + "|" + *request.idempotency_key;
-            if (const auto existing = memory_tx.get(kIdempotencyCollection, idempotency_key);
+            if (const auto existing = tx.get(kIdempotencyCollection, idempotency_key);
                 existing.has_value())
             {
-                return *inspectTx(memory_tx, existing->document.at("message_id").as_string());
+                return *inspectTx(tx, existing->document.at("message_id").as_string());
             }
-            memory_tx.put(
+            tx.put(
                 kIdempotencyCollection, idempotency_key,
                 Json::object({{"message_id", request.message_id}})
             );
@@ -104,9 +99,7 @@ class InMemoryQueueStore : public IQueueStore
         record.channel = request.channel;
         record.status = "Pending";
         record.payload = request.payload;
-        memory_tx.put(
-            kMessagesCollection, record.message_id, detail::queue_message_to_json(record)
-        );
+        tx.put(kMessagesCollection, record.message_id, detail::queue_message_to_json(record));
         return record;
     }
 
@@ -126,8 +119,7 @@ class InMemoryQueueStore : public IQueueStore
         const ClaimMessageRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto messages = all_messages(memory_tx);
+        auto messages = all_messages(tx);
         std::vector<QueueMessageRecord> claimed;
         for (auto& message : messages)
         {
@@ -151,9 +143,7 @@ class InMemoryQueueStore : public IQueueStore
             message.claimed_by = request.claimant;
             message.claim_expires_at = request.now + request.visibility_timeout;
             ++message.attempts;
-            memory_tx.put(
-                kMessagesCollection, message.message_id, detail::queue_message_to_json(message)
-            );
+            tx.put(kMessagesCollection, message.message_id, detail::queue_message_to_json(message));
             claimed.push_back(message);
         }
         return claimed;
@@ -174,13 +164,10 @@ class InMemoryQueueStore : public IQueueStore
         const AckMessageRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto message = require_message(memory_tx, request.message_id);
+        auto message = require_message(tx, request.message_id);
         require_claimant(message, request.claimant);
         message.status = "Acked";
-        memory_tx.put(
-            kMessagesCollection, message.message_id, detail::queue_message_to_json(message)
-        );
+        tx.put(kMessagesCollection, message.message_id, detail::queue_message_to_json(message));
     }
 
     QueueMessageRecord fail(
@@ -199,15 +186,12 @@ class InMemoryQueueStore : public IQueueStore
         const FailMessageRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto message = require_message(memory_tx, request.message_id);
+        auto message = require_message(tx, request.message_id);
         require_claimant(message, request.claimant);
         message.claimed_by.reset();
         message.claim_expires_at.reset();
         message.status = message.attempts >= request.max_attempts ? "DeadLettered" : "Pending";
-        memory_tx.put(
-            kMessagesCollection, message.message_id, detail::queue_message_to_json(message)
-        );
+        tx.put(kMessagesCollection, message.message_id, detail::queue_message_to_json(message));
         return message;
     }
 
@@ -227,7 +211,7 @@ class InMemoryQueueStore : public IQueueStore
         const std::string& message_id
     ) override
     {
-        const auto record = as_memory_tx(tx).get(kMessagesCollection, message_id);
+        const auto record = tx.get(kMessagesCollection, message_id);
         if (!record.has_value())
         {
             return std::nullopt;
@@ -259,10 +243,10 @@ class InMemoryQueueStore : public IQueueStore
         return queue + ":" + channel;
     }
 
-    static std::vector<QueueMessageRecord> all_messages(InMemoryTransaction& memory_tx)
+    static std::vector<QueueMessageRecord> all_messages(ITransaction& tx)
     {
         std::vector<QueueMessageRecord> messages;
-        for (const auto& record : memory_tx.query(kMessagesCollection, Query::all()))
+        for (const auto& record : tx.query(kMessagesCollection, Query::all()))
         {
             messages.push_back(detail::queue_message_from_json(record.document));
         }

@@ -67,7 +67,7 @@ class InMemoryTransaction : public ITransaction
 
     std::optional<VersionedRecord>
     get(const CollectionName& collection,
-        const Key& key)
+        const Key& key) override
     {
         require_open();
         const auto version_key = detail::record_version_key(collection, key);
@@ -101,7 +101,7 @@ class InMemoryTransaction : public ITransaction
     std::vector<VersionedRecord> query(
         const CollectionName& collection,
         const Query& query
-    )
+    ) override
     {
         require_open();
         std::vector<VersionedRecord> records;
@@ -159,7 +159,7 @@ class InMemoryTransaction : public ITransaction
     void
     put(const CollectionName& collection,
         const Key& key,
-        Json document)
+        Json document) override
     {
         require_open();
         (void)get(collection, key);
@@ -171,7 +171,7 @@ class InMemoryTransaction : public ITransaction
     void erase(
         const CollectionName& collection,
         const Key& key
-    )
+    ) override
     {
         require_open();
         (void)get(collection, key);

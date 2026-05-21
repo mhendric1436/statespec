@@ -26,11 +26,10 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const RegisterWorkflowDefinitionRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
         const auto existing = inspect_definitionTx(
-            memory_tx, request.definition.workflow_name, request.definition.workflow_version
+            tx, request.definition.workflow_name, request.definition.workflow_version
         );
-        memory_tx.put(
+        tx.put(
             kDefinitionsCollection,
             definition_key(request.definition.workflow_name, request.definition.workflow_version),
             detail::workflow_definition_to_json(request.definition)
@@ -56,9 +55,8 @@ class InMemoryWorkflowStore : public IWorkflowStore
         std::int64_t workflow_version
     ) override
     {
-        const auto record = as_memory_tx(tx).get(
-            kDefinitionsCollection, definition_key(workflow_name, workflow_version)
-        );
+        const auto record =
+            tx.get(kDefinitionsCollection, definition_key(workflow_name, workflow_version));
         if (!record.has_value())
         {
             return std::nullopt;
@@ -83,8 +81,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const StartWorkflowRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        if (const auto existing = inspectTx(memory_tx, request.workflow_execution_id);
+        if (const auto existing = inspectTx(tx, request.workflow_execution_id);
             existing.has_value())
         {
             return *existing;
@@ -96,7 +93,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         record.current_step = request.start_step;
         record.status = "Running";
         record.state = request.state;
-        memory_tx.put(
+        tx.put(
             kExecutionsCollection, record.workflow_execution_id,
             detail::workflow_execution_to_json(record)
         );
@@ -119,8 +116,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const ClaimWorkflowStepRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto executions = all_executions(memory_tx);
+        auto executions = all_executions(tx);
         std::vector<WorkflowExecutionRecord> claimed;
         for (auto& execution : executions)
         {
@@ -145,7 +141,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
             execution.claimed_by = request.worker;
             execution.claim_expires_at = request.now + request.lease_duration;
             ++execution.attempt;
-            memory_tx.put(
+            tx.put(
                 kExecutionsCollection, execution.workflow_execution_id,
                 detail::workflow_execution_to_json(execution)
             );
@@ -170,11 +166,10 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const KeepAliveWorkflowStepRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto execution = require_execution(memory_tx, request.workflow_execution_id);
+        auto execution = require_execution(tx, request.workflow_execution_id);
         require_claim(execution, request.worker, request.current_step);
         execution.claim_expires_at = request.now + request.lease_duration;
-        memory_tx.put(
+        tx.put(
             kExecutionsCollection, execution.workflow_execution_id,
             detail::workflow_execution_to_json(execution)
         );
@@ -197,8 +192,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const CompleteWorkflowStepRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto execution = require_execution(memory_tx, request.workflow_execution_id);
+        auto execution = require_execution(tx, request.workflow_execution_id);
         require_claim(execution, request.worker, request.completed_step);
         execution.state = request.state;
         execution.claimed_by.reset();
@@ -212,7 +206,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         {
             execution.status = "Completed";
         }
-        memory_tx.put(
+        tx.put(
             kExecutionsCollection, execution.workflow_execution_id,
             detail::workflow_execution_to_json(execution)
         );
@@ -235,13 +229,12 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const FailWorkflowStepRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto execution = require_execution(memory_tx, request.workflow_execution_id);
+        auto execution = require_execution(tx, request.workflow_execution_id);
         require_claim(execution, request.worker, request.failed_step);
         execution.claimed_by.reset();
         execution.claim_expires_at.reset();
         execution.status = execution.attempt >= request.max_attempts ? "Failed" : "Running";
-        memory_tx.put(
+        tx.put(
             kExecutionsCollection, execution.workflow_execution_id,
             detail::workflow_execution_to_json(execution)
         );
@@ -264,12 +257,11 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const CancelWorkflowRequest& request
     ) override
     {
-        auto& memory_tx = as_memory_tx(tx);
-        auto execution = require_execution(memory_tx, request.workflow_execution_id);
+        auto execution = require_execution(tx, request.workflow_execution_id);
         execution.status = "Canceled";
         execution.claimed_by.reset();
         execution.claim_expires_at.reset();
-        memory_tx.put(
+        tx.put(
             kExecutionsCollection, execution.workflow_execution_id,
             detail::workflow_execution_to_json(execution)
         );
@@ -292,7 +284,7 @@ class InMemoryWorkflowStore : public IWorkflowStore
         const std::string& workflow_execution_id
     ) override
     {
-        const auto record = as_memory_tx(tx).get(kExecutionsCollection, workflow_execution_id);
+        const auto record = tx.get(kExecutionsCollection, workflow_execution_id);
         if (!record.has_value())
         {
             return std::nullopt;
@@ -324,10 +316,10 @@ class InMemoryWorkflowStore : public IWorkflowStore
         return workflow_name + ":" + std::to_string(workflow_version);
     }
 
-    static std::vector<WorkflowExecutionRecord> all_executions(InMemoryTransaction& memory_tx)
+    static std::vector<WorkflowExecutionRecord> all_executions(ITransaction& tx)
     {
         std::vector<WorkflowExecutionRecord> executions;
-        for (const auto& record : memory_tx.query(kExecutionsCollection, Query::all()))
+        for (const auto& record : tx.query(kExecutionsCollection, Query::all()))
         {
             executions.push_back(detail::workflow_execution_from_json(record.document));
         }
