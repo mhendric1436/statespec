@@ -1,10 +1,9 @@
-use crate::backend::{Backend, BackendError, BackendResult, ConflictKind};
+use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Transaction};
 use crate::lease::{
     LeaseAcquireRequest, LeaseAcquireResult, LeaseDefinition, LeaseDefinitionId,
     LeaseInspectRequest, LeaseRecord, LeaseRegisterDefinitionResult, LeaseReleaseRequest,
     LeaseRenewRequest, LeaseStore,
 };
-use crate::memory_backend::InMemoryBackend;
 use crate::memory_codec;
 use crate::memory_transaction::definition_key;
 
@@ -19,13 +18,14 @@ impl InMemoryLeaseStore {
         Self
     }
 
-    fn require_lease(
+    fn require_lease<B: Backend>(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         definition_id: &LeaseDefinitionId,
         resource: &str,
     ) -> BackendResult<LeaseRecord> {
-        self.inspect_tx(
+        <InMemoryLeaseStore as LeaseStore<B>>::inspect_tx(
+            self,
             tx,
             &LeaseInspectRequest {
                 definition_id: definition_id.clone(),
@@ -38,24 +38,27 @@ impl InMemoryLeaseStore {
     }
 }
 
-impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
+impl<B: Backend> LeaseStore<B> for InMemoryLeaseStore {
     fn register_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         definition: &LeaseDefinition,
     ) -> BackendResult<LeaseRegisterDefinitionResult> {
         let mut tx = backend.begin()?;
-        let result = self.register_definition_tx(&mut tx, definition)?;
+        let result = <InMemoryLeaseStore as LeaseStore<B>>::register_definition_tx(
+            self, &mut tx, definition,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn register_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         definition: &LeaseDefinition,
     ) -> BackendResult<LeaseRegisterDefinitionResult> {
-        let existing = self.inspect_definition_tx(tx, &definition.id)?;
+        let existing =
+            <InMemoryLeaseStore as LeaseStore<B>>::inspect_definition_tx(self, tx, &definition.id)?;
         tx.put(
             DEFINITIONS,
             &lease_definition_key(&definition.id),
@@ -69,18 +72,22 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
 
     fn inspect_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         definition_id: &LeaseDefinitionId,
     ) -> BackendResult<Option<LeaseDefinition>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_definition_tx(&mut tx, definition_id)?;
+        let result = <InMemoryLeaseStore as LeaseStore<B>>::inspect_definition_tx(
+            self,
+            &mut tx,
+            definition_id,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         definition_id: &LeaseDefinitionId,
     ) -> BackendResult<Option<LeaseDefinition>> {
         let key = lease_definition_key(definition_id);
@@ -91,26 +98,30 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
 
     fn acquire(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &LeaseAcquireRequest,
     ) -> BackendResult<LeaseAcquireResult> {
         let mut tx = backend.begin()?;
-        let result = self.acquire_tx(&mut tx, request)?;
+        let result = <InMemoryLeaseStore as LeaseStore<B>>::acquire_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn acquire_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &LeaseAcquireRequest,
     ) -> BackendResult<LeaseAcquireResult> {
-        let definition = self
-            .inspect_definition_tx(tx, &request.definition_id)?
-            .ok_or_else(|| BackendError::NotFound {
-                message: "unknown lease definition".to_string(),
-            })?;
-        let existing = self.inspect_tx(
+        let definition = <InMemoryLeaseStore as LeaseStore<B>>::inspect_definition_tx(
+            self,
+            tx,
+            &request.definition_id,
+        )?
+        .ok_or_else(|| BackendError::NotFound {
+            message: "unknown lease definition".to_string(),
+        })?;
+        let existing = <InMemoryLeaseStore as LeaseStore<B>>::inspect_tx(
+            self,
             tx,
             &LeaseInspectRequest {
                 definition_id: request.definition_id.clone(),
@@ -149,28 +160,23 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
         })
     }
 
-    fn renew(
-        &self,
-        backend: &InMemoryBackend,
-        request: &LeaseRenewRequest,
-    ) -> BackendResult<LeaseRecord> {
+    fn renew(&self, backend: &B, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord> {
         let mut tx = backend.begin()?;
-        let result = self.renew_tx(&mut tx, request)?;
+        let result = <InMemoryLeaseStore as LeaseStore<B>>::renew_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
-    fn renew_tx(
-        &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
-        request: &LeaseRenewRequest,
-    ) -> BackendResult<LeaseRecord> {
-        let definition = self
-            .inspect_definition_tx(tx, &request.definition_id)?
-            .ok_or_else(|| BackendError::NotFound {
-                message: "unknown lease definition".to_string(),
-            })?;
-        let mut record = self.require_lease(tx, &request.definition_id, &request.resource)?;
+    fn renew_tx(&self, tx: &mut B::Tx, request: &LeaseRenewRequest) -> BackendResult<LeaseRecord> {
+        let definition = <InMemoryLeaseStore as LeaseStore<B>>::inspect_definition_tx(
+            self,
+            tx,
+            &request.definition_id,
+        )?
+        .ok_or_else(|| BackendError::NotFound {
+            message: "unknown lease definition".to_string(),
+        })?;
+        let mut record = self.require_lease::<B>(tx, &request.definition_id, &request.resource)?;
         require_holder(&record, &request.holder, request.fencing_token)?;
         record.expires_at = request.now + definition.ttl;
         tx.put(
@@ -181,22 +187,14 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
         Ok(record)
     }
 
-    fn release(
-        &self,
-        backend: &InMemoryBackend,
-        request: &LeaseReleaseRequest,
-    ) -> BackendResult<()> {
+    fn release(&self, backend: &B, request: &LeaseReleaseRequest) -> BackendResult<()> {
         let mut tx = backend.begin()?;
-        self.release_tx(&mut tx, request)?;
+        <InMemoryLeaseStore as LeaseStore<B>>::release_tx(self, &mut tx, request)?;
         backend.commit(tx)
     }
 
-    fn release_tx(
-        &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
-        request: &LeaseReleaseRequest,
-    ) -> BackendResult<()> {
-        let record = self.require_lease(tx, &request.definition_id, &request.resource)?;
+    fn release_tx(&self, tx: &mut B::Tx, request: &LeaseReleaseRequest) -> BackendResult<()> {
+        let record = self.require_lease::<B>(tx, &request.definition_id, &request.resource)?;
         require_holder(&record, &request.holder, request.fencing_token)?;
         let key = lease_key(&request.definition_id, &request.resource);
         tx.erase(LEASES, &key)?;
@@ -205,18 +203,18 @@ impl LeaseStore<InMemoryBackend> for InMemoryLeaseStore {
 
     fn inspect(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &LeaseInspectRequest,
     ) -> BackendResult<Option<LeaseRecord>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_tx(&mut tx, request)?;
+        let result = <InMemoryLeaseStore as LeaseStore<B>>::inspect_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &LeaseInspectRequest,
     ) -> BackendResult<Option<LeaseRecord>> {
         let key = lease_key(&request.definition_id, &request.resource);

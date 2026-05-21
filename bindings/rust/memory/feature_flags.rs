@@ -1,9 +1,8 @@
-use crate::backend::{Backend, BackendError, BackendResult};
+use crate::backend::{Backend, BackendError, BackendResult, Transaction};
 use crate::feature_flag::{
     FeatureFlagDefinition, FeatureFlagEvaluationRequest, FeatureFlagRegisterDefinitionResult,
     FeatureFlagStore, FeatureFlagValue,
 };
-use crate::memory_backend::InMemoryBackend;
 use crate::memory_codec;
 
 const DEFINITIONS: &str = "feature_flags.definitions";
@@ -18,24 +17,30 @@ impl InMemoryFeatureFlagStore {
     }
 }
 
-impl FeatureFlagStore<InMemoryBackend> for InMemoryFeatureFlagStore {
+impl<B: Backend> FeatureFlagStore<B> for InMemoryFeatureFlagStore {
     fn register_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         definition: &FeatureFlagDefinition,
     ) -> BackendResult<FeatureFlagRegisterDefinitionResult> {
         let mut tx = backend.begin()?;
-        let result = self.register_definition_tx(&mut tx, definition)?;
+        let result = <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::register_definition_tx(
+            self, &mut tx, definition,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn register_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         definition: &FeatureFlagDefinition,
     ) -> BackendResult<FeatureFlagRegisterDefinitionResult> {
-        let existing = self.inspect_definition_tx(tx, &definition.name)?;
+        let existing = <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
+            self,
+            tx,
+            &definition.name,
+        )?;
         tx.put(
             DEFINITIONS,
             &definition.name,
@@ -49,18 +54,20 @@ impl FeatureFlagStore<InMemoryBackend> for InMemoryFeatureFlagStore {
 
     fn inspect_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         name: &str,
     ) -> BackendResult<Option<FeatureFlagDefinition>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_definition_tx(&mut tx, name)?;
+        let result = <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
+            self, &mut tx, name,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         name: &str,
     ) -> BackendResult<Option<FeatureFlagDefinition>> {
         Ok(tx
@@ -70,27 +77,32 @@ impl FeatureFlagStore<InMemoryBackend> for InMemoryFeatureFlagStore {
 
     fn evaluate(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &FeatureFlagEvaluationRequest,
     ) -> BackendResult<FeatureFlagValue> {
         let mut tx = backend.begin()?;
-        let result = self.evaluate_tx(&mut tx, request)?;
+        let result =
+            <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::evaluate_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn evaluate_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &FeatureFlagEvaluationRequest,
     ) -> BackendResult<FeatureFlagValue> {
         if let Some(record) = tx.get(VALUES, &request.name)? {
             return Ok(memory_codec::feature_flag_value_from_json(&record.document));
         }
-        self.inspect_definition_tx(tx, &request.name)?
-            .map(|definition| definition.default_value)
-            .ok_or_else(|| BackendError::NotFound {
-                message: format!("unknown feature flag {}", request.name),
-            })
+        <InMemoryFeatureFlagStore as FeatureFlagStore<B>>::inspect_definition_tx(
+            self,
+            tx,
+            &request.name,
+        )?
+        .map(|definition| definition.default_value)
+        .ok_or_else(|| BackendError::NotFound {
+            message: format!("unknown feature flag {}", request.name),
+        })
     }
 }

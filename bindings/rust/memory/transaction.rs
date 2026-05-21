@@ -34,91 +34,18 @@ impl InMemoryTransaction {
         }
     }
 
-    pub(crate) fn get(
-        &mut self,
-        collection: &str,
-        key: &str,
-    ) -> BackendResult<Option<VersionedRecord>> {
-        let version_key = record_version_key(collection, key);
-        if self.erases.contains(&version_key) {
-            return Ok(None);
+    fn require_open(&self) -> BackendResult<()> {
+        if self.open {
+            Ok(())
+        } else {
+            Err(BackendError::Internal {
+                message: "expected open in-memory transaction".to_string(),
+            })
         }
-        if let Some(record) = self.puts.get(&version_key) {
-            return Ok(Some(record.clone()));
-        }
-
-        let state = self.state.lock().map_err(lock_error)?;
-        let record = state
-            .records
-            .get(collection)
-            .and_then(|records| records.get(key))
-            .cloned();
-        self.read_versions.insert(
-            version_key,
-            record.as_ref().map(|record| record.version).unwrap_or(0),
-        );
-        Ok(record)
-    }
-
-    pub(crate) fn query(
-        &mut self,
-        collection: &str,
-        query: &Query,
-    ) -> BackendResult<Vec<VersionedRecord>> {
-        let mut by_key = {
-            let state = self.state.lock().map_err(lock_error)?;
-            state.records.get(collection).cloned().unwrap_or_default()
-        };
-        for record in self.puts.values() {
-            if record.collection == collection {
-                by_key.insert(record.key.clone(), record.clone());
-            }
-        }
-        let prefix = format!("record:{collection}:");
-        for version_key in &self.erases {
-            if let Some(key) = version_key.strip_prefix(&prefix) {
-                by_key.remove(key);
-            }
-        }
-
-        let mut matched = Vec::new();
-        for record in by_key.values() {
-            if matches_query(record, query) {
-                self.read_versions.insert(
-                    record_version_key(&record.collection, &record.key),
-                    record.version,
-                );
-                matched.push(record.clone());
-            }
-        }
-        Ok(matched)
-    }
-
-    pub(crate) fn put(&mut self, collection: &str, key: &str, document: Json) -> BackendResult<()> {
-        let _ = self.get(collection, key)?;
-        let version_key = record_version_key(collection, key);
-        self.puts.insert(
-            version_key.clone(),
-            VersionedRecord {
-                collection: collection.to_string(),
-                key: key.to_string(),
-                version: 0,
-                document,
-            },
-        );
-        self.erases.remove(&version_key);
-        Ok(())
-    }
-
-    pub(crate) fn erase(&mut self, collection: &str, key: &str) -> BackendResult<()> {
-        let _ = self.get(collection, key)?;
-        let version_key = record_version_key(collection, key);
-        self.puts.remove(&version_key);
-        self.erases.insert(version_key);
-        Ok(())
     }
 
     pub(crate) fn commit(&mut self) -> BackendResult<()> {
+        self.require_open()?;
         let mut state = self.state.lock().map_err(lock_error)?;
         for (version_key, expected_version) in &self.read_versions {
             if version_or_zero(&state.versions, version_key) != *expected_version {
@@ -158,6 +85,86 @@ impl Transaction for InMemoryTransaction {
         self.read_versions.clear();
         self.puts.clear();
         self.erases.clear();
+        Ok(())
+    }
+
+    fn get(&mut self, collection: &str, key: &str) -> BackendResult<Option<VersionedRecord>> {
+        self.require_open()?;
+        let version_key = record_version_key(collection, key);
+        if self.erases.contains(&version_key) {
+            return Ok(None);
+        }
+        if let Some(record) = self.puts.get(&version_key) {
+            return Ok(Some(record.clone()));
+        }
+
+        let state = self.state.lock().map_err(lock_error)?;
+        let record = state
+            .records
+            .get(collection)
+            .and_then(|records| records.get(key))
+            .cloned();
+        self.read_versions.insert(
+            version_key,
+            record.as_ref().map(|record| record.version).unwrap_or(0),
+        );
+        Ok(record)
+    }
+
+    fn query(&mut self, collection: &str, query: &Query) -> BackendResult<Vec<VersionedRecord>> {
+        self.require_open()?;
+        let mut by_key = {
+            let state = self.state.lock().map_err(lock_error)?;
+            state.records.get(collection).cloned().unwrap_or_default()
+        };
+        for record in self.puts.values() {
+            if record.collection == collection {
+                by_key.insert(record.key.clone(), record.clone());
+            }
+        }
+        let prefix = format!("record:{collection}:");
+        for version_key in &self.erases {
+            if let Some(key) = version_key.strip_prefix(&prefix) {
+                by_key.remove(key);
+            }
+        }
+
+        let mut matched = Vec::new();
+        for record in by_key.values() {
+            if matches_query(record, query) {
+                self.read_versions.insert(
+                    record_version_key(&record.collection, &record.key),
+                    record.version,
+                );
+                matched.push(record.clone());
+            }
+        }
+        Ok(matched)
+    }
+
+    fn put(&mut self, collection: &str, key: &str, document: Json) -> BackendResult<()> {
+        self.require_open()?;
+        let _ = self.get(collection, key)?;
+        let version_key = record_version_key(collection, key);
+        self.puts.insert(
+            version_key.clone(),
+            VersionedRecord {
+                collection: collection.to_string(),
+                key: key.to_string(),
+                version: 0,
+                document,
+            },
+        );
+        self.erases.remove(&version_key);
+        Ok(())
+    }
+
+    fn erase(&mut self, collection: &str, key: &str) -> BackendResult<()> {
+        self.require_open()?;
+        let _ = self.get(collection, key)?;
+        let version_key = record_version_key(collection, key);
+        self.puts.remove(&version_key);
+        self.erases.insert(version_key);
         Ok(())
     }
 }

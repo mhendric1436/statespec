@@ -1,6 +1,5 @@
-use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query};
+use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query, Transaction};
 use crate::json::Json;
-use crate::memory_backend::InMemoryBackend;
 use crate::memory_codec;
 use crate::memory_transaction::definition_key;
 use crate::queue::{
@@ -21,9 +20,9 @@ impl InMemoryQueueStore {
         Self
     }
 
-    fn require_message(
+    fn require_message<B: Backend>(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         message_id: &str,
     ) -> BackendResult<QueueMessageRecord> {
         tx.get(MESSAGES, message_id)?
@@ -33,10 +32,7 @@ impl InMemoryQueueStore {
             })
     }
 
-    fn all_messages(
-        &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
-    ) -> BackendResult<Vec<QueueMessageRecord>> {
+    fn all_messages<B: Backend>(&self, tx: &mut B::Tx) -> BackendResult<Vec<QueueMessageRecord>> {
         Ok(tx
             .query(MESSAGES, &Query::All)?
             .iter()
@@ -45,25 +41,30 @@ impl InMemoryQueueStore {
     }
 }
 
-impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
+impl<B: Backend> QueueStore<B> for InMemoryQueueStore {
     fn register_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &RegisterQueueDefinitionRequest,
     ) -> BackendResult<QueueDefinitionRegistration> {
         let mut tx = backend.begin()?;
-        let result = self.register_definition_tx(&mut tx, request)?;
+        let result =
+            <InMemoryQueueStore as QueueStore<B>>::register_definition_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn register_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &RegisterQueueDefinitionRequest,
     ) -> BackendResult<QueueDefinitionRegistration> {
-        let existing =
-            self.inspect_definition_tx(tx, &request.definition.queue, &request.definition.channel)?;
+        let existing = <InMemoryQueueStore as QueueStore<B>>::inspect_definition_tx(
+            self,
+            tx,
+            &request.definition.queue,
+            &request.definition.channel,
+        )?;
         tx.put(
             DEFINITIONS,
             &queue_definition_key(&request.definition.queue, &request.definition.channel),
@@ -77,19 +78,21 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
 
     fn inspect_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         queue: &str,
         channel: &str,
     ) -> BackendResult<Option<QueueDefinition>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_definition_tx(&mut tx, queue, channel)?;
+        let result = <InMemoryQueueStore as QueueStore<B>>::inspect_definition_tx(
+            self, &mut tx, queue, channel,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         queue: &str,
         channel: &str,
     ) -> BackendResult<Option<QueueDefinition>> {
@@ -101,18 +104,18 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
 
     fn enqueue(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &EnqueueMessageRequest,
     ) -> BackendResult<QueueMessageRecord> {
         let mut tx = backend.begin()?;
-        let result = self.enqueue_tx(&mut tx, request)?;
+        let result = <InMemoryQueueStore as QueueStore<B>>::enqueue_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn enqueue_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &EnqueueMessageRequest,
     ) -> BackendResult<QueueMessageRecord> {
         if let Some(idempotency) = &request.idempotency_key {
@@ -123,7 +126,7 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
             );
             if let Some(record) = tx.get(IDEMPOTENCY, &key)? {
                 let message_id = memory_codec::string_from_json(&record.document);
-                return self.require_message(tx, &message_id);
+                return self.require_message::<B>(tx, &message_id);
             }
             tx.put(IDEMPOTENCY, &key, Json::String(request.message_id.clone()))?;
         }
@@ -147,22 +150,22 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
 
     fn claim(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &ClaimMessageRequest,
     ) -> BackendResult<Vec<QueueMessageRecord>> {
         let mut tx = backend.begin()?;
-        let result = self.claim_tx(&mut tx, request)?;
+        let result = <InMemoryQueueStore as QueueStore<B>>::claim_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn claim_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &ClaimMessageRequest,
     ) -> BackendResult<Vec<QueueMessageRecord>> {
         let mut claimed = Vec::new();
-        for mut message in self.all_messages(tx)? {
+        for mut message in self.all_messages::<B>(tx)? {
             if claimed.len() >= request.max_messages as usize {
                 break;
             }
@@ -195,22 +198,14 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
         Ok(claimed)
     }
 
-    fn acknowledge(
-        &self,
-        backend: &InMemoryBackend,
-        request: &AckMessageRequest,
-    ) -> BackendResult<()> {
+    fn acknowledge(&self, backend: &B, request: &AckMessageRequest) -> BackendResult<()> {
         let mut tx = backend.begin()?;
-        self.acknowledge_tx(&mut tx, request)?;
+        <InMemoryQueueStore as QueueStore<B>>::acknowledge_tx(self, &mut tx, request)?;
         backend.commit(tx)
     }
 
-    fn acknowledge_tx(
-        &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
-        request: &AckMessageRequest,
-    ) -> BackendResult<()> {
-        let mut message = self.require_message(tx, &request.message_id)?;
+    fn acknowledge_tx(&self, tx: &mut B::Tx, request: &AckMessageRequest) -> BackendResult<()> {
+        let mut message = self.require_message::<B>(tx, &request.message_id)?;
         require_claimant(&message, &request.claimant)?;
         message.status = "Acked".to_string();
         tx.put(
@@ -221,23 +216,19 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
         Ok(())
     }
 
-    fn fail(
-        &self,
-        backend: &InMemoryBackend,
-        request: &FailMessageRequest,
-    ) -> BackendResult<QueueMessageRecord> {
+    fn fail(&self, backend: &B, request: &FailMessageRequest) -> BackendResult<QueueMessageRecord> {
         let mut tx = backend.begin()?;
-        let result = self.fail_tx(&mut tx, request)?;
+        let result = <InMemoryQueueStore as QueueStore<B>>::fail_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn fail_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &FailMessageRequest,
     ) -> BackendResult<QueueMessageRecord> {
-        let mut message = self.require_message(tx, &request.message_id)?;
+        let mut message = self.require_message::<B>(tx, &request.message_id)?;
         require_claimant(&message, &request.claimant)?;
         message.claimed_by = None;
         message.claim_expires_at = None;
@@ -254,20 +245,16 @@ impl QueueStore<InMemoryBackend> for InMemoryQueueStore {
         Ok(message)
     }
 
-    fn inspect(
-        &self,
-        backend: &InMemoryBackend,
-        message_id: &str,
-    ) -> BackendResult<Option<QueueMessageRecord>> {
+    fn inspect(&self, backend: &B, message_id: &str) -> BackendResult<Option<QueueMessageRecord>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_tx(&mut tx, message_id)?;
+        let result = <InMemoryQueueStore as QueueStore<B>>::inspect_tx(self, &mut tx, message_id)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         message_id: &str,
     ) -> BackendResult<Option<QueueMessageRecord>> {
         Ok(tx

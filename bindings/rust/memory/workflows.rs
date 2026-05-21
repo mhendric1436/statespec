@@ -1,5 +1,4 @@
-use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query};
-use crate::memory_backend::InMemoryBackend;
+use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query, Transaction};
 use crate::memory_codec;
 use crate::memory_transaction::definition_key;
 use crate::workflow::{
@@ -20,20 +19,20 @@ impl InMemoryWorkflowStore {
         Self
     }
 
-    fn require_execution(
+    fn require_execution<B: Backend>(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         workflow_execution_id: &str,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        self.inspect_tx(tx, workflow_execution_id)?
+        <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_tx(self, tx, workflow_execution_id)?
             .ok_or_else(|| BackendError::NotFound {
                 message: "unknown workflow execution".to_string(),
             })
     }
 
-    fn all_executions(
+    fn all_executions<B: Backend>(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
     ) -> BackendResult<Vec<WorkflowExecutionRecord>> {
         Ok(tx
             .query(EXECUTIONS, &Query::All)?
@@ -43,24 +42,27 @@ impl InMemoryWorkflowStore {
     }
 }
 
-impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
+impl<B: Backend> WorkflowStore<B> for InMemoryWorkflowStore {
     fn register_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &RegisterWorkflowDefinitionRequest,
     ) -> BackendResult<WorkflowDefinitionRegistration> {
         let mut tx = backend.begin()?;
-        let result = self.register_definition_tx(&mut tx, request)?;
+        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::register_definition_tx(
+            self, &mut tx, request,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn register_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &RegisterWorkflowDefinitionRequest,
     ) -> BackendResult<WorkflowDefinitionRegistration> {
-        let existing = self.inspect_definition_tx(
+        let existing = <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_definition_tx(
+            self,
             tx,
             &request.definition.workflow_name,
             request.definition.workflow_version,
@@ -81,19 +83,24 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
 
     fn inspect_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         workflow_name: &str,
         workflow_version: i64,
     ) -> BackendResult<Option<WorkflowDefinition>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_definition_tx(&mut tx, workflow_name, workflow_version)?;
+        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_definition_tx(
+            self,
+            &mut tx,
+            workflow_name,
+            workflow_version,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         workflow_name: &str,
         workflow_version: i64,
     ) -> BackendResult<Option<WorkflowDefinition>> {
@@ -105,21 +112,25 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
 
     fn start(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &StartWorkflowRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
-        let result = self.start_tx(&mut tx, request)?;
+        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::start_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn start_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &StartWorkflowRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        if let Some(existing) = self.inspect_tx(tx, &request.workflow_execution_id)? {
+        if let Some(existing) = <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_tx(
+            self,
+            tx,
+            &request.workflow_execution_id,
+        )? {
             return Ok(existing);
         }
         let record = WorkflowExecutionRecord {
@@ -143,22 +154,23 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
 
     fn claim_steps(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &ClaimWorkflowStepRequest,
     ) -> BackendResult<Vec<WorkflowExecutionRecord>> {
         let mut tx = backend.begin()?;
-        let result = self.claim_steps_tx(&mut tx, request)?;
+        let result =
+            <InMemoryWorkflowStore as WorkflowStore<B>>::claim_steps_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn claim_steps_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &ClaimWorkflowStepRequest,
     ) -> BackendResult<Vec<WorkflowExecutionRecord>> {
         let mut claimed = Vec::new();
-        for mut execution in self.all_executions(tx)? {
+        for mut execution in self.all_executions::<B>(tx)? {
             if claimed.len() >= request.max_steps as usize {
                 break;
             }
@@ -192,21 +204,23 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
 
     fn keep_alive_step(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &KeepAliveWorkflowStepRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
-        let result = self.keep_alive_step_tx(&mut tx, request)?;
+        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::keep_alive_step_tx(
+            self, &mut tx, request,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn keep_alive_step_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &KeepAliveWorkflowStepRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        let mut execution = self.require_execution(tx, &request.workflow_execution_id)?;
+        let mut execution = self.require_execution::<B>(tx, &request.workflow_execution_id)?;
         require_claim(&execution, &request.worker, &request.current_step)?;
         execution.claim_expires_at = Some(request.now + request.lease_duration);
         tx.put(
@@ -219,21 +233,22 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
 
     fn complete_step(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &CompleteWorkflowStepRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
-        let result = self.complete_step_tx(&mut tx, request)?;
+        let result =
+            <InMemoryWorkflowStore as WorkflowStore<B>>::complete_step_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn complete_step_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &CompleteWorkflowStepRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        let mut execution = self.require_execution(tx, &request.workflow_execution_id)?;
+        let mut execution = self.require_execution::<B>(tx, &request.workflow_execution_id)?;
         require_claim(&execution, &request.worker, &request.completed_step)?;
         execution.state = request.state.clone();
         execution.claimed_by = None;
@@ -254,21 +269,22 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
 
     fn fail_step(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &FailWorkflowStepRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
-        let result = self.fail_step_tx(&mut tx, request)?;
+        let result =
+            <InMemoryWorkflowStore as WorkflowStore<B>>::fail_step_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn fail_step_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &FailWorkflowStepRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        let mut execution = self.require_execution(tx, &request.workflow_execution_id)?;
+        let mut execution = self.require_execution::<B>(tx, &request.workflow_execution_id)?;
         require_claim(&execution, &request.worker, &request.failed_step)?;
         execution.claimed_by = None;
         execution.claim_expires_at = None;
@@ -287,21 +303,22 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
 
     fn cancel(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         request: &CancelWorkflowRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut tx = backend.begin()?;
-        let result = self.cancel_tx(&mut tx, request)?;
+        let result =
+            <InMemoryWorkflowStore as WorkflowStore<B>>::cancel_tx(self, &mut tx, request)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn cancel_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         request: &CancelWorkflowRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        let mut execution = self.require_execution(tx, &request.workflow_execution_id)?;
+        let mut execution = self.require_execution::<B>(tx, &request.workflow_execution_id)?;
         execution.status = "Canceled".to_string();
         execution.claimed_by = None;
         execution.claim_expires_at = None;
@@ -315,18 +332,22 @@ impl WorkflowStore<InMemoryBackend> for InMemoryWorkflowStore {
 
     fn inspect(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         workflow_execution_id: &str,
     ) -> BackendResult<Option<WorkflowExecutionRecord>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_tx(&mut tx, workflow_execution_id)?;
+        let result = <InMemoryWorkflowStore as WorkflowStore<B>>::inspect_tx(
+            self,
+            &mut tx,
+            workflow_execution_id,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         workflow_execution_id: &str,
     ) -> BackendResult<Option<WorkflowExecutionRecord>> {
         Ok(tx

@@ -23,6 +23,26 @@ mod tests {
         fn abort(&mut self) -> BackendResult<()> {
             Ok(())
         }
+
+        fn get(&mut self, _collection: &str, _key: &str) -> BackendResult<Option<VersionedRecord>> {
+            Ok(None)
+        }
+
+        fn query(
+            &mut self,
+            _collection: &str,
+            _query: &Query,
+        ) -> BackendResult<Vec<VersionedRecord>> {
+            Ok(vec![])
+        }
+
+        fn put(&mut self, _collection: &str, _key: &str, _document: Json) -> BackendResult<()> {
+            Ok(())
+        }
+
+        fn erase(&mut self, _collection: &str, _key: &str) -> BackendResult<()> {
+            Ok(())
+        }
     }
 
     struct FixtureBackend;

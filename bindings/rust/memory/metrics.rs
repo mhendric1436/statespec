@@ -1,5 +1,4 @@
-use crate::backend::{Backend, BackendResult, Query};
-use crate::memory_backend::InMemoryBackend;
+use crate::backend::{Backend, BackendResult, Query, Transaction};
 use crate::memory_codec;
 use crate::metric::{MetricDefinition, MetricDefinitionRegistration, MetricSample, MetricSink};
 
@@ -14,16 +13,16 @@ impl InMemoryMetricSink {
         Self
     }
 
-    pub fn inspect_samples(&self, backend: &InMemoryBackend) -> BackendResult<Vec<MetricSample>> {
+    pub fn inspect_samples<B: Backend>(&self, backend: &B) -> BackendResult<Vec<MetricSample>> {
         let mut tx = backend.begin()?;
-        let samples = self.inspect_samples_tx(&mut tx)?;
+        let samples = self.inspect_samples_tx::<B>(&mut tx)?;
         backend.commit(tx)?;
         Ok(samples)
     }
 
-    pub fn inspect_samples_tx(
+    pub fn inspect_samples_tx<B: Backend>(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
     ) -> BackendResult<Vec<MetricSample>> {
         Ok(tx
             .query(SAMPLES, &Query::All)?
@@ -33,24 +32,30 @@ impl InMemoryMetricSink {
     }
 }
 
-impl MetricSink<InMemoryBackend> for InMemoryMetricSink {
+impl<B: Backend> MetricSink<B> for InMemoryMetricSink {
     fn register_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         definition: &MetricDefinition,
     ) -> BackendResult<MetricDefinitionRegistration> {
         let mut tx = backend.begin()?;
-        let result = self.register_definition_tx(&mut tx, definition)?;
+        let result = <InMemoryMetricSink as MetricSink<B>>::register_definition_tx(
+            self, &mut tx, definition,
+        )?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn register_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         definition: &MetricDefinition,
     ) -> BackendResult<MetricDefinitionRegistration> {
-        let existing = self.inspect_definition_tx(tx, &definition.name)?;
+        let existing = <InMemoryMetricSink as MetricSink<B>>::inspect_definition_tx(
+            self,
+            tx,
+            &definition.name,
+        )?;
         tx.put(
             DEFINITIONS,
             &definition.name,
@@ -64,18 +69,19 @@ impl MetricSink<InMemoryBackend> for InMemoryMetricSink {
 
     fn inspect_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         name: &str,
     ) -> BackendResult<Option<MetricDefinition>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_definition_tx(&mut tx, name)?;
+        let result =
+            <InMemoryMetricSink as MetricSink<B>>::inspect_definition_tx(self, &mut tx, name)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         name: &str,
     ) -> BackendResult<Option<MetricDefinition>> {
         Ok(tx
@@ -83,17 +89,13 @@ impl MetricSink<InMemoryBackend> for InMemoryMetricSink {
             .map(|record| memory_codec::metric_definition_from_json(&record.document)))
     }
 
-    fn record_metric(&self, backend: &InMemoryBackend, sample: &MetricSample) -> BackendResult<()> {
+    fn record_metric(&self, backend: &B, sample: &MetricSample) -> BackendResult<()> {
         let mut tx = backend.begin()?;
-        self.record_metric_tx(&mut tx, sample)?;
+        <InMemoryMetricSink as MetricSink<B>>::record_metric_tx(self, &mut tx, sample)?;
         backend.commit(tx)
     }
 
-    fn record_metric_tx(
-        &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
-        sample: &MetricSample,
-    ) -> BackendResult<()> {
+    fn record_metric_tx(&self, tx: &mut B::Tx, sample: &MetricSample) -> BackendResult<()> {
         let key = format!("sample:{:020}", tx.query(SAMPLES, &Query::All)?.len() + 1);
         tx.put(SAMPLES, &key, memory_codec::metric_sample_to_json(sample))?;
         Ok(())

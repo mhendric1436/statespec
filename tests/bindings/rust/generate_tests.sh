@@ -264,73 +264,74 @@ fn memory_backend_stores_compose_in_transaction() {
     let metrics = InMemoryMetricSink::new();
 
     let mut tx = backend.begin().unwrap();
-    flags
-        .register_definition_tx(
-            &mut tx,
-            &FeatureFlagDefinition {
-                name: "new_scheduler".to_string(),
-                flag_type: FeatureFlagType::Bool,
-                default_value: FeatureFlagValue::Bool(true),
-                scope: FeatureFlagScopeKind::System,
-                owner: None,
-                description: None,
-                expires: None,
+    <InMemoryFeatureFlagStore as FeatureFlagStore<InMemoryBackend>>::register_definition_tx(
+        &flags,
+        &mut tx,
+        &FeatureFlagDefinition {
+            name: "new_scheduler".to_string(),
+            flag_type: FeatureFlagType::Bool,
+            default_value: FeatureFlagValue::Bool(true),
+            scope: FeatureFlagScopeKind::System,
+            owner: None,
+            description: None,
+            expires: None,
+        },
+    )
+    .unwrap();
+    <InMemoryQueueStore as QueueStore<InMemoryBackend>>::register_definition_tx(
+        &queues,
+        &mut tx,
+        &RegisterQueueDefinitionRequest {
+            definition: QueueDefinition {
+                queue: "workflow".to_string(),
+                channel: "launch".to_string(),
+                visibility_timeout: Duration::from_secs(60),
+                max_attempts: 3,
+                dead_letter_queue: None,
+                metadata: Json::Object(BTreeMap::new()),
             },
-        )
-        .unwrap();
-    queues
-        .register_definition_tx(
-            &mut tx,
-            &RegisterQueueDefinitionRequest {
-                definition: QueueDefinition {
-                    queue: "workflow".to_string(),
-                    channel: "launch".to_string(),
-                    visibility_timeout: Duration::from_secs(60),
-                    max_attempts: 3,
-                    dead_letter_queue: None,
-                    metadata: Json::Object(BTreeMap::new()),
-                },
-            },
-        )
-        .unwrap();
+        },
+    )
+    .unwrap();
     let lease_id = LeaseDefinitionId {
         name: "workflow_step".to_string(),
         version: 1,
     };
-    leases
-        .register_definition_tx(
-            &mut tx,
-            &LeaseDefinition {
-                id: lease_id.clone(),
-                resource_pattern: "workflow/*".to_string(),
-                ttl: Duration::from_secs(60),
-                renew_every: Duration::from_secs(30),
-                max_ttl: None,
-                fencing_token: true,
+    <InMemoryLeaseStore as LeaseStore<InMemoryBackend>>::register_definition_tx(
+        &leases,
+        &mut tx,
+        &LeaseDefinition {
+            id: lease_id.clone(),
+            resource_pattern: "workflow/*".to_string(),
+            ttl: Duration::from_secs(60),
+            renew_every: Duration::from_secs(30),
+            max_ttl: None,
+            fencing_token: true,
+        },
+    )
+    .unwrap();
+    <InMemoryWorkflowStore as WorkflowStore<InMemoryBackend>>::register_definition_tx(
+        &workflows,
+        &mut tx,
+        &RegisterWorkflowDefinitionRequest {
+            definition: WorkflowDefinition {
+                workflow_name: "ProvisionService".to_string(),
+                workflow_version: 1,
+                start_step: "validate_request".to_string(),
+                expected_execution_time: Duration::from_secs(60),
+                singleton: false,
+                steps: vec![WorkflowStepDefinition {
+                    name: "validate_request".to_string(),
+                    expected_execution_time: Duration::from_secs(1),
+                    max_retries: 3,
+                }],
+                metadata: Json::Object(BTreeMap::new()),
             },
-        )
-        .unwrap();
-    workflows
-        .register_definition_tx(
-            &mut tx,
-            &RegisterWorkflowDefinitionRequest {
-                definition: WorkflowDefinition {
-                    workflow_name: "ProvisionService".to_string(),
-                    workflow_version: 1,
-                    start_step: "validate_request".to_string(),
-                    expected_execution_time: Duration::from_secs(60),
-                    singleton: false,
-                    steps: vec![WorkflowStepDefinition {
-                        name: "validate_request".to_string(),
-                        expected_execution_time: Duration::from_secs(1),
-                        max_retries: 3,
-                    }],
-                    metadata: Json::Object(BTreeMap::new()),
-                },
-            },
-        )
-        .unwrap();
-    logs.register_definition_tx(
+        },
+    )
+    .unwrap();
+    <InMemoryLogSink as LogSink<InMemoryBackend>>::register_definition_tx(
+        &logs,
         &mut tx,
         &LogDefinition {
             name: "launch_decision".to_string(),
@@ -340,18 +341,18 @@ fn memory_backend_stores_compose_in_transaction() {
         },
     )
     .unwrap();
-    metrics
-        .register_definition_tx(
-            &mut tx,
-            &MetricDefinition {
-                name: "launch_attempts".to_string(),
-                kind: MetricKind::Counter,
-                backend_name: "workflow_launch_attempts_total".to_string(),
-                unit: "1".to_string(),
-                labels: vec![],
-            },
-        )
-        .unwrap();
+    <InMemoryMetricSink as MetricSink<InMemoryBackend>>::register_definition_tx(
+        &metrics,
+        &mut tx,
+        &MetricDefinition {
+            name: "launch_attempts".to_string(),
+            kind: MetricKind::Counter,
+            backend_name: "workflow_launch_attempts_total".to_string(),
+            unit: "1".to_string(),
+            labels: vec![],
+        },
+    )
+    .unwrap();
     backend.commit(tx).unwrap();
 
     let flag = flags

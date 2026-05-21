@@ -150,6 +150,10 @@ pub enum Query {
 pub trait Transaction {
     fn is_open(&self) -> bool;
     fn abort(&mut self) -> BackendResult<()>;
+    fn get(&mut self, collection: &str, key: &str) -> BackendResult<Option<VersionedRecord>>;
+    fn query(&mut self, collection: &str, query: &Query) -> BackendResult<Vec<VersionedRecord>>;
+    fn put(&mut self, collection: &str, key: &str, document: Json) -> BackendResult<()>;
+    fn erase(&mut self, collection: &str, key: &str) -> BackendResult<()>;
 }
 
 pub trait Backend {

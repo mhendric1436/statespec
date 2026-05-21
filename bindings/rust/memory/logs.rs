@@ -1,6 +1,5 @@
-use crate::backend::{Backend, BackendResult, Query};
+use crate::backend::{Backend, BackendResult, Query, Transaction};
 use crate::log::{LogDefinition, LogDefinitionRegistration, LogEvent, LogSink};
-use crate::memory_backend::InMemoryBackend;
 use crate::memory_codec;
 
 const DEFINITIONS: &str = "logs.definitions";
@@ -14,17 +13,14 @@ impl InMemoryLogSink {
         Self
     }
 
-    pub fn inspect_events(&self, backend: &InMemoryBackend) -> BackendResult<Vec<LogEvent>> {
+    pub fn inspect_events<B: Backend>(&self, backend: &B) -> BackendResult<Vec<LogEvent>> {
         let mut tx = backend.begin()?;
-        let events = self.inspect_events_tx(&mut tx)?;
+        let events = self.inspect_events_tx::<B>(&mut tx)?;
         backend.commit(tx)?;
         Ok(events)
     }
 
-    pub fn inspect_events_tx(
-        &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
-    ) -> BackendResult<Vec<LogEvent>> {
+    pub fn inspect_events_tx<B: Backend>(&self, tx: &mut B::Tx) -> BackendResult<Vec<LogEvent>> {
         Ok(tx
             .query(EVENTS, &Query::All)?
             .iter()
@@ -33,24 +29,26 @@ impl InMemoryLogSink {
     }
 }
 
-impl LogSink<InMemoryBackend> for InMemoryLogSink {
+impl<B: Backend> LogSink<B> for InMemoryLogSink {
     fn register_definition(
         &self,
-        backend: &InMemoryBackend,
+        backend: &B,
         definition: &LogDefinition,
     ) -> BackendResult<LogDefinitionRegistration> {
         let mut tx = backend.begin()?;
-        let result = self.register_definition_tx(&mut tx, definition)?;
+        let result =
+            <InMemoryLogSink as LogSink<B>>::register_definition_tx(self, &mut tx, definition)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn register_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         definition: &LogDefinition,
     ) -> BackendResult<LogDefinitionRegistration> {
-        let existing = self.inspect_definition_tx(tx, &definition.name)?;
+        let existing =
+            <InMemoryLogSink as LogSink<B>>::inspect_definition_tx(self, tx, &definition.name)?;
         tx.put(
             DEFINITIONS,
             &definition.name,
@@ -62,20 +60,16 @@ impl LogSink<InMemoryBackend> for InMemoryLogSink {
         })
     }
 
-    fn inspect_definition(
-        &self,
-        backend: &InMemoryBackend,
-        name: &str,
-    ) -> BackendResult<Option<LogDefinition>> {
+    fn inspect_definition(&self, backend: &B, name: &str) -> BackendResult<Option<LogDefinition>> {
         let mut tx = backend.begin()?;
-        let result = self.inspect_definition_tx(&mut tx, name)?;
+        let result = <InMemoryLogSink as LogSink<B>>::inspect_definition_tx(self, &mut tx, name)?;
         backend.commit(tx)?;
         Ok(result)
     }
 
     fn inspect_definition_tx(
         &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
+        tx: &mut B::Tx,
         name: &str,
     ) -> BackendResult<Option<LogDefinition>> {
         Ok(tx
@@ -83,17 +77,13 @@ impl LogSink<InMemoryBackend> for InMemoryLogSink {
             .map(|record| memory_codec::log_definition_from_json(&record.document)))
     }
 
-    fn emit_log(&self, backend: &InMemoryBackend, event: &LogEvent) -> BackendResult<()> {
+    fn emit_log(&self, backend: &B, event: &LogEvent) -> BackendResult<()> {
         let mut tx = backend.begin()?;
-        self.emit_log_tx(&mut tx, event)?;
+        <InMemoryLogSink as LogSink<B>>::emit_log_tx(self, &mut tx, event)?;
         backend.commit(tx)
     }
 
-    fn emit_log_tx(
-        &self,
-        tx: &mut <InMemoryBackend as Backend>::Tx,
-        event: &LogEvent,
-    ) -> BackendResult<()> {
+    fn emit_log_tx(&self, tx: &mut B::Tx, event: &LogEvent) -> BackendResult<()> {
         let key = format!("event:{:020}", tx.query(EVENTS, &Query::All)?.len() + 1);
         tx.put(EVENTS, &key, memory_codec::log_event_to_json(event))?;
         Ok(())

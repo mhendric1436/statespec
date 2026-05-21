@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use crate::backend::{
-    Backend, BackendCapabilities, BackendResult, CollectionDescriptor, Query, VersionedRecord,
+    Backend, BackendCapabilities, BackendResult, CollectionDescriptor, Query, Transaction,
+    VersionedRecord,
 };
 use crate::json::Json;
 use crate::memory_transaction::{lock_error, InMemoryState, InMemoryTransaction};
