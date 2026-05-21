@@ -73,6 +73,26 @@ void add_java_common_runtime_artifacts(
         output_root / "runtime" / "Codec.java", diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, output_root / "runtime" / "FeatureFlagCodec.java",
+        output_root / "runtime" / "FeatureFlagCodec.java", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, output_root / "runtime" / "QueueCodec.java",
+        output_root / "runtime" / "QueueCodec.java", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, output_root / "runtime" / "LeaseCodec.java",
+        output_root / "runtime" / "LeaseCodec.java", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, output_root / "runtime" / "WorkflowCodec.java",
+        output_root / "runtime" / "WorkflowCodec.java", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, output_root / "runtime" / "ObservabilityCodec.java",
+        output_root / "runtime" / "ObservabilityCodec.java", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, output_root / "runtime" / "FeatureFlagStore.java",
         output_root / "runtime" / "FeatureFlagStore.java", diagnostics
     );

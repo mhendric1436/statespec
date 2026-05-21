@@ -38,7 +38,7 @@ public final class LeaseStore implements Lease
         var existing = inspectDefinitionTx(tx, definition.id());
         tx.put(
             DEFINITIONS, leaseDefinitionKey(definition.id()),
-            Codec.leaseDefinitionToJson(definition)
+            LeaseCodec.leaseDefinitionToJson(definition)
         );
         return new LeaseRegisterDefinitionResult(existing.isEmpty(), definition);
     }
@@ -63,7 +63,7 @@ public final class LeaseStore implements Lease
     {
         var key = leaseDefinitionKey(definitionId);
         return tx.get(DEFINITIONS, key)
-            .map(record -> Codec.leaseDefinitionFromJson(record.document()));
+            .map(record -> LeaseCodec.leaseDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -115,7 +115,7 @@ public final class LeaseStore implements Lease
             request.now().plus(definition.get().ttl()), token
         );
         var key = leaseKey(request.definitionId(), request.resource());
-        tx.put(LEASES, key, Codec.leaseRecordToJson(record));
+        tx.put(LEASES, key, LeaseCodec.leaseRecordToJson(record));
         return new LeaseAcquireResult(true, Optional.of(record));
     }
 
@@ -158,7 +158,7 @@ public final class LeaseStore implements Lease
         );
         tx.put(
             LEASES, leaseKey(request.definitionId(), request.resource()),
-            Codec.leaseRecordToJson(updated)
+            LeaseCodec.leaseRecordToJson(updated)
         );
         return updated;
     }
@@ -213,7 +213,7 @@ public final class LeaseStore implements Lease
     ) throws Backend.BackendException
     {
         var key = leaseKey(request.definitionId(), request.resource());
-        return tx.get(LEASES, key).map(record -> Codec.leaseRecordFromJson(record.document()));
+        return tx.get(LEASES, key).map(record -> LeaseCodec.leaseRecordFromJson(record.document()));
     }
 
     private LeaseRecord requireLease(

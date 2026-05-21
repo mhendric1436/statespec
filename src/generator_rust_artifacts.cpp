@@ -145,6 +145,30 @@ void add_rust_common_runtime_artifacts(
         result, options.output_dir, templates, "runtime/codec.rs", "runtime/codec.rs", diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, "runtime/codec_core.rs", "runtime/codec_core.rs",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_feature_flags.rs",
+        "runtime/codec_feature_flags.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_queues.rs", "runtime/codec_queues.rs",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_leases.rs", "runtime/codec_leases.rs",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_workflows.rs",
+        "runtime/codec_workflows.rs", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_observability.rs",
+        "runtime/codec_observability.rs", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, "runtime/feature_flags.rs",
         "runtime/feature_flags.rs", diagnostics
     );

@@ -1,0 +1,64 @@
+package runtime
+
+import common "statespec-generated/common/backend"
+
+func featureFlagValueToJSON(value common.FeatureFlagValue) common.JSON {
+	object := map[string]common.JSON{"type": common.JSONString(string(value.Type))}
+	switch value.Type {
+	case common.FeatureFlagBool:
+		object["value"] = common.JSONBool(value.BoolValue)
+	case common.FeatureFlagString:
+		object["value"] = common.JSONString(value.StringValue)
+	case common.FeatureFlagInteger:
+		object["value"] = common.JSONInt(value.IntValue)
+	case common.FeatureFlagDecimal:
+		jsonValue, err := common.JSONFloat(value.DecimalValue)
+		if err != nil {
+			jsonValue = common.JSONNull()
+		}
+		object["value"] = jsonValue
+	}
+	return common.JSONObject(object)
+}
+
+func featureFlagValueFromJSON(value common.JSON) common.FeatureFlagValue {
+	object, _ := value.AsObject()
+	flagType := common.FeatureFlagType(stringFromJSON(object["type"]))
+	switch flagType {
+	case common.FeatureFlagBool:
+		return common.BoolFeatureFlagValue(boolFromJSON(object["value"]))
+	case common.FeatureFlagString:
+		return common.StringFeatureFlagValue(stringFromJSON(object["value"]))
+	case common.FeatureFlagInteger:
+		return common.IntegerFeatureFlagValue(intFromJSON(object["value"]))
+	case common.FeatureFlagDecimal:
+		return common.DecimalFeatureFlagValue(floatFromJSON(object["value"]))
+	default:
+		return common.FeatureFlagValue{}
+	}
+}
+
+func featureFlagDefinitionToJSON(definition common.FeatureFlagDefinition) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"name":          common.JSONString(definition.Name),
+		"type":          common.JSONString(string(definition.Type)),
+		"default_value": featureFlagValueToJSON(definition.DefaultValue),
+		"scope":         common.JSONString(string(definition.Scope)),
+		"owner":         optionalString(definition.Owner),
+		"description":   optionalString(definition.Description),
+		"expires":       optionalString(definition.Expires),
+	})
+}
+
+func featureFlagDefinitionFromJSON(value common.JSON) common.FeatureFlagDefinition {
+	object, _ := value.AsObject()
+	return common.FeatureFlagDefinition{
+		Name:         stringFromJSON(object["name"]),
+		Type:         common.FeatureFlagType(stringFromJSON(object["type"])),
+		DefaultValue: featureFlagValueFromJSON(object["default_value"]),
+		Scope:        common.FeatureFlagScopeKind(stringFromJSON(object["scope"])),
+		Owner:        stringPtrFromJSON(object["owner"]),
+		Description:  stringPtrFromJSON(object["description"]),
+		Expires:      stringPtrFromJSON(object["expires"]),
+	}
+}

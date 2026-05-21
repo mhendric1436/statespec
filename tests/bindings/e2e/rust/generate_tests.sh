@@ -38,6 +38,12 @@ common/memory/transaction.rs
 common/metric.rs
 common/queue.rs
 common/runtime/codec.rs
+common/runtime/codec_core.rs
+common/runtime/codec_feature_flags.rs
+common/runtime/codec_leases.rs
+common/runtime/codec_observability.rs
+common/runtime/codec_queues.rs
+common/runtime/codec_workflows.rs
 common/runtime/feature_flags.rs
 common/runtime/leases.rs
 common/runtime/logs.rs

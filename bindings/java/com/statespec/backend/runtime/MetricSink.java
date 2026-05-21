@@ -39,7 +39,9 @@ public final class MetricSink implements Metric
     ) throws Backend.BackendException
     {
         var existing = inspectDefinitionTx(tx, definition.name());
-        tx.put(DEFINITIONS, definition.name(), Codec.metricDefinitionToJson(definition));
+        tx.put(
+            DEFINITIONS, definition.name(), ObservabilityCodec.metricDefinitionToJson(definition)
+        );
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -62,7 +64,7 @@ public final class MetricSink implements Metric
     ) throws Backend.BackendException
     {
         return tx.get(DEFINITIONS, name)
-            .map(record -> Codec.metricDefinitionFromJson(record.document()));
+            .map(record -> ObservabilityCodec.metricDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -91,7 +93,7 @@ public final class MetricSink implements Metric
     ) throws Backend.BackendException
     {
         var samples = tx.query(SAMPLES, new Backend.Query.All());
-        tx.put(SAMPLES, sampleKey(samples.size()), Codec.metricSampleToJson(sample));
+        tx.put(SAMPLES, sampleKey(samples.size()), ObservabilityCodec.metricSampleToJson(sample));
     }
 
     public List<Sample> inspectSamples(Backend backend) throws Backend.BackendException
@@ -109,7 +111,7 @@ public final class MetricSink implements Metric
         records.sort(Comparator.comparing(Backend.VersionedRecord::key));
         for (var record : records)
         {
-            samples.add(Codec.metricSampleFromJson(record.document()));
+            samples.add(ObservabilityCodec.metricSampleFromJson(record.document()));
         }
         return samples;
     }

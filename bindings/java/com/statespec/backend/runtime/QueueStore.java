@@ -44,7 +44,7 @@ public final class QueueStore implements Queue
         tx.put(
             DEFINITIONS,
             queueDefinitionKey(request.definition().queue(), request.definition().channel()),
-            Codec.queueDefinitionToJson(request.definition())
+            QueueCodec.queueDefinitionToJson(request.definition())
         );
         return new QueueDefinitionRegistration(request.definition(), existing.isEmpty());
     }
@@ -71,7 +71,7 @@ public final class QueueStore implements Queue
     {
         var key = queueDefinitionKey(queue, channel);
         return tx.get(DEFINITIONS, key)
-            .map(record -> Codec.queueDefinitionFromJson(record.document()));
+            .map(record -> QueueCodec.queueDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -115,7 +115,7 @@ public final class QueueStore implements Queue
             request.messageId(), request.queue(), request.channel(), "Pending", 0L,
             Optional.empty(), Optional.empty(), request.payloadJson()
         );
-        tx.put(MESSAGES, record.messageId(), Codec.queueMessageToJson(record));
+        tx.put(MESSAGES, record.messageId(), QueueCodec.queueMessageToJson(record));
         return record;
     }
 
@@ -170,7 +170,7 @@ public final class QueueStore implements Queue
                 message.attempts() + 1, Optional.of(request.claimant()),
                 Optional.of(request.now().plus(request.visibilityTimeout())), message.payloadJson()
             );
-            tx.put(MESSAGES, updated.messageId(), Codec.queueMessageToJson(updated));
+            tx.put(MESSAGES, updated.messageId(), QueueCodec.queueMessageToJson(updated));
             claimed.add(updated);
         }
         return claimed;
@@ -207,7 +207,7 @@ public final class QueueStore implements Queue
             message.messageId(), message.queue(), message.channel(), "Acked", message.attempts(),
             message.claimedBy(), message.claimExpiresAt(), message.payloadJson()
         );
-        tx.put(MESSAGES, updated.messageId(), Codec.queueMessageToJson(updated));
+        tx.put(MESSAGES, updated.messageId(), QueueCodec.queueMessageToJson(updated));
     }
 
     @Override
@@ -243,7 +243,7 @@ public final class QueueStore implements Queue
             message.messageId(), message.queue(), message.channel(), status, message.attempts(),
             Optional.empty(), Optional.empty(), message.payloadJson()
         );
-        tx.put(MESSAGES, updated.messageId(), Codec.queueMessageToJson(updated));
+        tx.put(MESSAGES, updated.messageId(), QueueCodec.queueMessageToJson(updated));
         return updated;
     }
 
@@ -266,7 +266,7 @@ public final class QueueStore implements Queue
     ) throws Backend.BackendException
     {
         return tx.get(MESSAGES, messageId)
-            .map(record -> Codec.queueMessageFromJson(record.document()));
+            .map(record -> QueueCodec.queueMessageFromJson(record.document()));
     }
 
     private QueueMessageRecord requireMessage(
@@ -275,7 +275,7 @@ public final class QueueStore implements Queue
     ) throws Backend.BackendException
     {
         return tx.get(MESSAGES, messageId)
-            .map(record -> Codec.queueMessageFromJson(record.document()))
+            .map(record -> QueueCodec.queueMessageFromJson(record.document()))
             .orElseThrow(() -> new Backend.BackendException("unknown queue message " + messageId));
     }
 
@@ -286,7 +286,7 @@ public final class QueueStore implements Queue
         var messages = new ArrayList<QueueMessageRecord>();
         for (var record : records)
         {
-            messages.add(Codec.queueMessageFromJson(record.document()));
+            messages.add(QueueCodec.queueMessageFromJson(record.document()));
         }
         return messages;
     }

@@ -116,6 +116,30 @@ void add_cpp_common_runtime_artifacts(
         result, options.output_dir, templates, "runtime/codec.hpp", "runtime/codec.hpp", diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, "runtime/codec_core.hpp", "runtime/codec_core.hpp",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_feature_flags.hpp",
+        "runtime/codec_feature_flags.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_queues.hpp",
+        "runtime/codec_queues.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_leases.hpp",
+        "runtime/codec_leases.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_workflows.hpp",
+        "runtime/codec_workflows.hpp", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_observability.hpp",
+        "runtime/codec_observability.hpp", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, "runtime/feature_flag_store.hpp",
         "runtime/feature_flag_store.hpp", diagnostics
     );

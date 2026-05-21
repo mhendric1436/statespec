@@ -36,7 +36,9 @@ public final class FeatureFlagStore implements FeatureFlag
     ) throws Backend.BackendException
     {
         var existing = inspectDefinitionTx(tx, definition.name());
-        tx.put(DEFINITIONS, definition.name(), Codec.featureFlagDefinitionToJson(definition));
+        tx.put(
+            DEFINITIONS, definition.name(), FeatureFlagCodec.featureFlagDefinitionToJson(definition)
+        );
         return new RegisterDefinitionResult(existing.isEmpty(), definition);
     }
 
@@ -59,7 +61,7 @@ public final class FeatureFlagStore implements FeatureFlag
     ) throws Backend.BackendException
     {
         return tx.get(DEFINITIONS, name)
-            .map(record -> Codec.featureFlagDefinitionFromJson(record.document()));
+            .map(record -> FeatureFlagCodec.featureFlagDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -83,7 +85,7 @@ public final class FeatureFlagStore implements FeatureFlag
         var override = tx.get(VALUES, request.name());
         if (override.isPresent())
         {
-            return Codec.featureFlagValueFromJson(override.get().document());
+            return FeatureFlagCodec.featureFlagValueFromJson(override.get().document());
         }
         var definition = inspectDefinitionTx(tx, request.name());
         if (definition.isEmpty())

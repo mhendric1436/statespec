@@ -1,0 +1,59 @@
+package runtime
+
+import common "statespec-generated/common/backend"
+
+func leaseDefinitionIDToJSON(id common.LeaseDefinitionID) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"name":    common.JSONString(id.Name),
+		"version": common.JSONInt(int64(id.Version)),
+	})
+}
+
+func leaseDefinitionIDFromJSON(value common.JSON) common.LeaseDefinitionID {
+	object, _ := value.AsObject()
+	return common.LeaseDefinitionID{Name: stringFromJSON(object["name"]), Version: uint64(intFromJSON(object["version"]))}
+}
+
+func leaseDefinitionToJSON(definition common.LeaseDefinition) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"id":               leaseDefinitionIDToJSON(definition.ID),
+		"resource_pattern": common.JSONString(definition.ResourcePattern),
+		"ttl":              durationToJSON(definition.TTL),
+		"renew_every":      durationToJSON(definition.RenewEvery),
+		"max_ttl":          optionalDurationToJSON(definition.MaxTTL),
+		"fencing_token":    common.JSONBool(definition.FencingToken),
+	})
+}
+
+func leaseDefinitionFromJSON(value common.JSON) common.LeaseDefinition {
+	object, _ := value.AsObject()
+	return common.LeaseDefinition{
+		ID:              leaseDefinitionIDFromJSON(object["id"]),
+		ResourcePattern: stringFromJSON(object["resource_pattern"]),
+		TTL:             durationFromJSON(object["ttl"]),
+		RenewEvery:      durationFromJSON(object["renew_every"]),
+		MaxTTL:          optionalDurationFromJSON(object["max_ttl"]),
+		FencingToken:    boolFromJSON(object["fencing_token"]),
+	}
+}
+
+func leaseRecordToJSON(record common.LeaseRecord) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"definition_id": leaseDefinitionIDToJSON(record.DefinitionID),
+		"resource":      common.JSONString(record.Resource),
+		"holder":        optionalString(record.Holder),
+		"expires_at":    timeToJSON(record.ExpiresAt),
+		"fencing_token": common.JSONInt(int64(record.FencingToken)),
+	})
+}
+
+func leaseRecordFromJSON(value common.JSON) common.LeaseRecord {
+	object, _ := value.AsObject()
+	return common.LeaseRecord{
+		DefinitionID: leaseDefinitionIDFromJSON(object["definition_id"]),
+		Resource:     stringFromJSON(object["resource"]),
+		Holder:       stringPtrFromJSON(object["holder"]),
+		ExpiresAt:    timeFromJSON(object["expires_at"]),
+		FencingToken: uint64(intFromJSON(object["fencing_token"])),
+	}
+}

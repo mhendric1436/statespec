@@ -118,6 +118,26 @@ void add_go_common_runtime_artifacts(
         "common/backend/runtime/codec.go", diagnostics, GeneratedArtifactTier::Common
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "backend/runtime/codec_feature_flags.go.tmpl",
+        "common/backend/runtime/codec_feature_flags.go", diagnostics, GeneratedArtifactTier::Common
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "backend/runtime/codec_queues.go.tmpl",
+        "common/backend/runtime/codec_queues.go", diagnostics, GeneratedArtifactTier::Common
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "backend/runtime/codec_leases.go.tmpl",
+        "common/backend/runtime/codec_leases.go", diagnostics, GeneratedArtifactTier::Common
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "backend/runtime/codec_workflows.go.tmpl",
+        "common/backend/runtime/codec_workflows.go", diagnostics, GeneratedArtifactTier::Common
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "backend/runtime/codec_observability.go.tmpl",
+        "common/backend/runtime/codec_observability.go", diagnostics, GeneratedArtifactTier::Common
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "backend/runtime/feature_flags.go.tmpl",
         "common/backend/runtime/feature_flags.go", diagnostics, GeneratedArtifactTier::Common
     );

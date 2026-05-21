@@ -1,0 +1,83 @@
+package runtime
+
+import common "statespec-generated/common/backend"
+
+func workflowStepDefinitionToJSON(step common.WorkflowStepDefinition) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"name":                    common.JSONString(step.Name),
+		"expected_execution_time": durationToJSON(step.ExpectedExecutionTime),
+		"max_retries":             common.JSONInt(int64(step.MaxRetries)),
+	})
+}
+
+func workflowStepDefinitionFromJSON(value common.JSON) common.WorkflowStepDefinition {
+	object, _ := value.AsObject()
+	return common.WorkflowStepDefinition{
+		Name:                  stringFromJSON(object["name"]),
+		ExpectedExecutionTime: durationFromJSON(object["expected_execution_time"]),
+		MaxRetries:            uint32(intFromJSON(object["max_retries"])),
+	}
+}
+
+func workflowDefinitionToJSON(definition common.WorkflowDefinition) common.JSON {
+	steps := make([]common.JSON, 0, len(definition.Steps))
+	for _, step := range definition.Steps {
+		steps = append(steps, workflowStepDefinitionToJSON(step))
+	}
+	return common.JSONObject(map[string]common.JSON{
+		"workflow_name":           common.JSONString(definition.WorkflowName),
+		"workflow_version":        common.JSONInt(definition.WorkflowVersion),
+		"start_step":              common.JSONString(definition.StartStep),
+		"expected_execution_time": durationToJSON(definition.ExpectedExecutionTime),
+		"singleton":               common.JSONBool(definition.Singleton),
+		"steps":                   common.JSONArray(steps),
+		"metadata":                definition.Metadata,
+	})
+}
+
+func workflowDefinitionFromJSON(value common.JSON) common.WorkflowDefinition {
+	object, _ := value.AsObject()
+	stepValues, _ := object["steps"].AsArray()
+	steps := make([]common.WorkflowStepDefinition, 0, len(stepValues))
+	for _, step := range stepValues {
+		steps = append(steps, workflowStepDefinitionFromJSON(step))
+	}
+	return common.WorkflowDefinition{
+		WorkflowName:          stringFromJSON(object["workflow_name"]),
+		WorkflowVersion:       intFromJSON(object["workflow_version"]),
+		StartStep:             stringFromJSON(object["start_step"]),
+		ExpectedExecutionTime: durationFromJSON(object["expected_execution_time"]),
+		Singleton:             boolFromJSON(object["singleton"]),
+		Steps:                 steps,
+		Metadata:              object["metadata"],
+	}
+}
+
+func workflowExecutionToJSON(execution common.WorkflowExecutionRecord) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"workflow_execution_id": common.JSONString(execution.WorkflowExecutionID),
+		"workflow_name":         common.JSONString(execution.WorkflowName),
+		"workflow_version":      common.JSONInt(execution.WorkflowVersion),
+		"current_step":          common.JSONString(execution.CurrentStep),
+		"status":                common.JSONString(execution.Status),
+		"attempt":               common.JSONInt(int64(execution.Attempt)),
+		"claimed_by":            optionalString(execution.ClaimedBy),
+		"claim_expires_at":      optionalTimeToJSON(execution.ClaimExpiresAt),
+		"state":                 execution.State,
+	})
+}
+
+func workflowExecutionFromJSON(value common.JSON) common.WorkflowExecutionRecord {
+	object, _ := value.AsObject()
+	return common.WorkflowExecutionRecord{
+		WorkflowExecutionID: stringFromJSON(object["workflow_execution_id"]),
+		WorkflowName:        stringFromJSON(object["workflow_name"]),
+		WorkflowVersion:     intFromJSON(object["workflow_version"]),
+		CurrentStep:         stringFromJSON(object["current_step"]),
+		Status:              stringFromJSON(object["status"]),
+		Attempt:             uint64(intFromJSON(object["attempt"])),
+		ClaimedBy:           stringPtrFromJSON(object["claimed_by"]),
+		ClaimExpiresAt:      optionalTimeFromJSON(object["claim_expires_at"]),
+		State:               object["state"],
+	}
+}

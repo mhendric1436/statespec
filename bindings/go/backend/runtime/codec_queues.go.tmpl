@@ -1,0 +1,53 @@
+package runtime
+
+import common "statespec-generated/common/backend"
+
+func queueDefinitionToJSON(definition common.QueueDefinition) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"queue":              common.JSONString(definition.Queue),
+		"channel":            common.JSONString(definition.Channel),
+		"visibility_timeout": durationToJSON(definition.VisibilityTimeout),
+		"max_attempts":       common.JSONInt(int64(definition.MaxAttempts)),
+		"dead_letter_queue":  optionalString(definition.DeadLetterQueue),
+		"metadata":           definition.Metadata,
+	})
+}
+
+func queueDefinitionFromJSON(value common.JSON) common.QueueDefinition {
+	object, _ := value.AsObject()
+	return common.QueueDefinition{
+		Queue:             stringFromJSON(object["queue"]),
+		Channel:           stringFromJSON(object["channel"]),
+		VisibilityTimeout: durationFromJSON(object["visibility_timeout"]),
+		MaxAttempts:       uint32(intFromJSON(object["max_attempts"])),
+		DeadLetterQueue:   stringPtrFromJSON(object["dead_letter_queue"]),
+		Metadata:          object["metadata"],
+	}
+}
+
+func queueMessageToJSON(message common.QueueMessageRecord) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"message_id":       common.JSONString(message.MessageID),
+		"queue":            common.JSONString(message.Queue),
+		"channel":          common.JSONString(message.Channel),
+		"status":           common.JSONString(message.Status),
+		"attempts":         common.JSONInt(int64(message.Attempts)),
+		"claimed_by":       optionalString(message.ClaimedBy),
+		"claim_expires_at": optionalTimeToJSON(message.ClaimExpiresAt),
+		"payload":          message.Payload,
+	})
+}
+
+func queueMessageFromJSON(value common.JSON) common.QueueMessageRecord {
+	object, _ := value.AsObject()
+	return common.QueueMessageRecord{
+		MessageID:      stringFromJSON(object["message_id"]),
+		Queue:          stringFromJSON(object["queue"]),
+		Channel:        stringFromJSON(object["channel"]),
+		Status:         stringFromJSON(object["status"]),
+		Attempts:       uint64(intFromJSON(object["attempts"])),
+		ClaimedBy:      stringPtrFromJSON(object["claimed_by"]),
+		ClaimExpiresAt: optionalTimeFromJSON(object["claim_expires_at"]),
+		Payload:        object["payload"],
+	}
+}

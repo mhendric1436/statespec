@@ -45,7 +45,7 @@ public final class WorkflowStore implements Workflow
             workflowDefinitionKey(
                 request.definition().workflowName(), request.definition().workflowVersion()
             ),
-            Codec.workflowDefinitionToJson(request.definition())
+            WorkflowCodec.workflowDefinitionToJson(request.definition())
         );
         return new WorkflowDefinitionRegistration(request.definition(), existing.isEmpty());
     }
@@ -72,7 +72,7 @@ public final class WorkflowStore implements Workflow
     {
         var key = workflowDefinitionKey(workflowName, workflowVersion);
         return tx.get(DEFINITIONS, key)
-            .map(record -> Codec.workflowDefinitionFromJson(record.document()));
+            .map(record -> WorkflowCodec.workflowDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -111,7 +111,9 @@ public final class WorkflowStore implements Workflow
             request.startStep(), "Running", 0L, Optional.empty(), Optional.empty(),
             request.stateJson()
         );
-        tx.put(EXECUTIONS, record.workflowExecutionId(), Codec.workflowExecutionToJson(record));
+        tx.put(
+            EXECUTIONS, record.workflowExecutionId(), WorkflowCodec.workflowExecutionToJson(record)
+        );
         return record;
     }
 
@@ -169,7 +171,8 @@ public final class WorkflowStore implements Workflow
                 Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
             );
             tx.put(
-                EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated)
+                EXECUTIONS, updated.workflowExecutionId(),
+                WorkflowCodec.workflowExecutionToJson(updated)
             );
             claimed.add(updated);
         }
@@ -209,7 +212,10 @@ public final class WorkflowStore implements Workflow
             execution.currentStep(), execution.status(), execution.attempt(), execution.claimedBy(),
             Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
         );
-        tx.put(EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated));
+        tx.put(
+            EXECUTIONS, updated.workflowExecutionId(),
+            WorkflowCodec.workflowExecutionToJson(updated)
+        );
         return updated;
     }
 
@@ -248,7 +254,10 @@ public final class WorkflowStore implements Workflow
             step, status, execution.attempt(), Optional.empty(), Optional.empty(),
             request.stateJson()
         );
-        tx.put(EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated));
+        tx.put(
+            EXECUTIONS, updated.workflowExecutionId(),
+            WorkflowCodec.workflowExecutionToJson(updated)
+        );
         return updated;
     }
 
@@ -286,7 +295,10 @@ public final class WorkflowStore implements Workflow
             execution.currentStep(), status, execution.attempt(), Optional.empty(),
             Optional.empty(), execution.stateJson()
         );
-        tx.put(EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated));
+        tx.put(
+            EXECUTIONS, updated.workflowExecutionId(),
+            WorkflowCodec.workflowExecutionToJson(updated)
+        );
         return updated;
     }
 
@@ -322,7 +334,10 @@ public final class WorkflowStore implements Workflow
             execution.currentStep(), "Canceled", execution.attempt(), Optional.empty(),
             Optional.empty(), execution.stateJson()
         );
-        tx.put(EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated));
+        tx.put(
+            EXECUTIONS, updated.workflowExecutionId(),
+            WorkflowCodec.workflowExecutionToJson(updated)
+        );
         return updated;
     }
 
@@ -345,7 +360,7 @@ public final class WorkflowStore implements Workflow
     ) throws Backend.BackendException
     {
         return tx.get(EXECUTIONS, workflowExecutionId)
-            .map(record -> Codec.workflowExecutionFromJson(record.document()));
+            .map(record -> WorkflowCodec.workflowExecutionFromJson(record.document()));
     }
 
     private WorkflowExecutionRecord requireExecution(
@@ -364,7 +379,7 @@ public final class WorkflowStore implements Workflow
         var executions = new ArrayList<WorkflowExecutionRecord>();
         for (var record : records)
         {
-            executions.add(Codec.workflowExecutionFromJson(record.document()));
+            executions.add(WorkflowCodec.workflowExecutionFromJson(record.document()));
         }
         return executions;
     }

@@ -39,7 +39,7 @@ public final class LogSink implements Log
     ) throws Backend.BackendException
     {
         var existing = inspectDefinitionTx(tx, definition.name());
-        tx.put(DEFINITIONS, definition.name(), Codec.logDefinitionToJson(definition));
+        tx.put(DEFINITIONS, definition.name(), ObservabilityCodec.logDefinitionToJson(definition));
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -62,7 +62,7 @@ public final class LogSink implements Log
     ) throws Backend.BackendException
     {
         return tx.get(DEFINITIONS, name)
-            .map(record -> Codec.logDefinitionFromJson(record.document()));
+            .map(record -> ObservabilityCodec.logDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class LogSink implements Log
     ) throws Backend.BackendException
     {
         var events = tx.query(EVENTS, new Backend.Query.All());
-        tx.put(EVENTS, eventKey(events.size()), Codec.logEventToJson(event));
+        tx.put(EVENTS, eventKey(events.size()), ObservabilityCodec.logEventToJson(event));
     }
 
     public List<Event> inspectEvents(Backend backend) throws Backend.BackendException
@@ -109,7 +109,7 @@ public final class LogSink implements Log
         records.sort(Comparator.comparing(Backend.VersionedRecord::key));
         for (var record : records)
         {
-            events.add(Codec.logEventFromJson(record.document()));
+            events.add(ObservabilityCodec.logEventFromJson(record.document()));
         }
         return events;
     }
