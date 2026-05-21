@@ -8,12 +8,12 @@ import com.statespec.backend.Log;
 import com.statespec.backend.Metric;
 import com.statespec.backend.Queue;
 import com.statespec.backend.Workflow;
-import com.statespec.backend.runtime.RuntimeFeatureFlagStore;
-import com.statespec.backend.runtime.RuntimeLeaseStore;
-import com.statespec.backend.runtime.RuntimeLogSink;
-import com.statespec.backend.runtime.RuntimeMetricSink;
-import com.statespec.backend.runtime.RuntimeQueueStore;
-import com.statespec.backend.runtime.RuntimeWorkflowStore;
+import com.statespec.backend.runtime.FeatureFlagStore;
+import com.statespec.backend.runtime.LeaseStore;
+import com.statespec.backend.runtime.LogSink;
+import com.statespec.backend.runtime.MetricSink;
+import com.statespec.backend.runtime.QueueStore;
+import com.statespec.backend.runtime.WorkflowStore;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -25,12 +25,12 @@ public final class MemoryBackendFixture
     public static void main(String[] args) throws Exception
     {
         var backend = new InMemoryBackend();
-        var flags = new RuntimeFeatureFlagStore();
-        var queues = new RuntimeQueueStore();
-        var leases = new RuntimeLeaseStore();
-        var workflows = new RuntimeWorkflowStore();
-        var logs = new RuntimeLogSink();
-        var metrics = new RuntimeMetricSink();
+        var flags = new FeatureFlagStore();
+        var queues = new QueueStore();
+        var leases = new LeaseStore();
+        var workflows = new WorkflowStore();
+        var logs = new LogSink();
+        var metrics = new MetricSink();
 
         var tx = backend.begin();
         flags.registerDefinitionTx(

@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public final class RuntimeQueueStore implements Queue
+public final class QueueStore implements Queue
 {
     private static final String DEFINITIONS = "queues.definitions";
     private static final String MESSAGES = "queues.messages";
@@ -44,7 +44,7 @@ public final class RuntimeQueueStore implements Queue
         tx.put(
             DEFINITIONS,
             queueDefinitionKey(request.definition().queue(), request.definition().channel()),
-            RuntimeCodec.queueDefinitionToJson(request.definition())
+            Codec.queueDefinitionToJson(request.definition())
         );
         return new QueueDefinitionRegistration(request.definition(), existing.isEmpty());
     }
@@ -71,7 +71,7 @@ public final class RuntimeQueueStore implements Queue
     {
         var key = queueDefinitionKey(queue, channel);
         return tx.get(DEFINITIONS, key)
-            .map(record -> RuntimeCodec.queueDefinitionFromJson(record.document()));
+            .map(record -> Codec.queueDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -107,7 +107,7 @@ public final class RuntimeQueueStore implements Queue
             var existing = tx.get(IDEMPOTENCY, idempotencyKey);
             if (existing.isPresent())
             {
-                return requireMessage(tx, RuntimeCodec.stringFromJson(existing.get().document()));
+                return requireMessage(tx, Codec.stringFromJson(existing.get().document()));
             }
             tx.put(IDEMPOTENCY, idempotencyKey, Json.string(request.messageId()));
         }
@@ -115,7 +115,7 @@ public final class RuntimeQueueStore implements Queue
             request.messageId(), request.queue(), request.channel(), "Pending", 0L,
             Optional.empty(), Optional.empty(), request.payloadJson()
         );
-        tx.put(MESSAGES, record.messageId(), RuntimeCodec.queueMessageToJson(record));
+        tx.put(MESSAGES, record.messageId(), Codec.queueMessageToJson(record));
         return record;
     }
 
@@ -170,7 +170,7 @@ public final class RuntimeQueueStore implements Queue
                 message.attempts() + 1, Optional.of(request.claimant()),
                 Optional.of(request.now().plus(request.visibilityTimeout())), message.payloadJson()
             );
-            tx.put(MESSAGES, updated.messageId(), RuntimeCodec.queueMessageToJson(updated));
+            tx.put(MESSAGES, updated.messageId(), Codec.queueMessageToJson(updated));
             claimed.add(updated);
         }
         return claimed;
@@ -207,7 +207,7 @@ public final class RuntimeQueueStore implements Queue
             message.messageId(), message.queue(), message.channel(), "Acked", message.attempts(),
             message.claimedBy(), message.claimExpiresAt(), message.payloadJson()
         );
-        tx.put(MESSAGES, updated.messageId(), RuntimeCodec.queueMessageToJson(updated));
+        tx.put(MESSAGES, updated.messageId(), Codec.queueMessageToJson(updated));
     }
 
     @Override
@@ -243,7 +243,7 @@ public final class RuntimeQueueStore implements Queue
             message.messageId(), message.queue(), message.channel(), status, message.attempts(),
             Optional.empty(), Optional.empty(), message.payloadJson()
         );
-        tx.put(MESSAGES, updated.messageId(), RuntimeCodec.queueMessageToJson(updated));
+        tx.put(MESSAGES, updated.messageId(), Codec.queueMessageToJson(updated));
         return updated;
     }
 
@@ -266,7 +266,7 @@ public final class RuntimeQueueStore implements Queue
     ) throws Backend.BackendException
     {
         return tx.get(MESSAGES, messageId)
-            .map(record -> RuntimeCodec.queueMessageFromJson(record.document()));
+            .map(record -> Codec.queueMessageFromJson(record.document()));
     }
 
     private QueueMessageRecord requireMessage(
@@ -275,7 +275,7 @@ public final class RuntimeQueueStore implements Queue
     ) throws Backend.BackendException
     {
         return tx.get(MESSAGES, messageId)
-            .map(record -> RuntimeCodec.queueMessageFromJson(record.document()))
+            .map(record -> Codec.queueMessageFromJson(record.document()))
             .orElseThrow(() -> new Backend.BackendException("unknown queue message " + messageId));
     }
 
@@ -286,7 +286,7 @@ public final class RuntimeQueueStore implements Queue
         var messages = new ArrayList<QueueMessageRecord>();
         for (var record : records)
         {
-            messages.add(RuntimeCodec.queueMessageFromJson(record.document()));
+            messages.add(Codec.queueMessageFromJson(record.document()));
         }
         return messages;
     }
@@ -296,7 +296,7 @@ public final class RuntimeQueueStore implements Queue
         String channel
     )
     {
-        return RuntimeCodec.definitionKey(queue, channel);
+        return Codec.definitionKey(queue, channel);
     }
 
     private static void requireClaimant(

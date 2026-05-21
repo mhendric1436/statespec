@@ -7,7 +7,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-public final class RuntimeMetricSink implements Metric
+public final class MetricSink implements Metric
 {
     private static final String DEFINITIONS = "metrics.definitions";
     private static final String SAMPLES = "metrics.samples";
@@ -39,7 +39,7 @@ public final class RuntimeMetricSink implements Metric
     ) throws Backend.BackendException
     {
         var existing = inspectDefinitionTx(tx, definition.name());
-        tx.put(DEFINITIONS, definition.name(), RuntimeCodec.metricDefinitionToJson(definition));
+        tx.put(DEFINITIONS, definition.name(), Codec.metricDefinitionToJson(definition));
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -62,7 +62,7 @@ public final class RuntimeMetricSink implements Metric
     ) throws Backend.BackendException
     {
         return tx.get(DEFINITIONS, name)
-            .map(record -> RuntimeCodec.metricDefinitionFromJson(record.document()));
+            .map(record -> Codec.metricDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class RuntimeMetricSink implements Metric
     ) throws Backend.BackendException
     {
         var samples = tx.query(SAMPLES, new Backend.Query.All());
-        tx.put(SAMPLES, sampleKey(samples.size()), RuntimeCodec.metricSampleToJson(sample));
+        tx.put(SAMPLES, sampleKey(samples.size()), Codec.metricSampleToJson(sample));
     }
 
     public List<Sample> inspectSamples(Backend backend) throws Backend.BackendException
@@ -109,7 +109,7 @@ public final class RuntimeMetricSink implements Metric
         records.sort(Comparator.comparing(Backend.VersionedRecord::key));
         for (var record : records)
         {
-            samples.add(RuntimeCodec.metricSampleFromJson(record.document()));
+            samples.add(Codec.metricSampleFromJson(record.document()));
         }
         return samples;
     }

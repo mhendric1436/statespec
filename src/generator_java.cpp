@@ -1742,37 +1742,33 @@ GenerationResult generate_java_bindings(
             output_root / "memory" / "InMemoryTransaction.java", diagnostics
         );
         add_template_file(
-            result, options.output_dir, templates, output_root / "runtime" / "RuntimeCodec.java",
-            output_root / "runtime" / "RuntimeCodec.java", diagnostics
+            result, options.output_dir, templates, output_root / "runtime" / "Codec.java",
+            output_root / "runtime" / "Codec.java", diagnostics
         );
         add_template_file(
             result, options.output_dir, templates,
-            output_root / "runtime" / "RuntimeFeatureFlagStore.java",
-            output_root / "runtime" / "RuntimeFeatureFlagStore.java", diagnostics
+            output_root / "runtime" / "FeatureFlagStore.java",
+            output_root / "runtime" / "FeatureFlagStore.java", diagnostics
         );
         add_template_file(
-            result, options.output_dir, templates,
-            output_root / "runtime" / "RuntimeQueueStore.java",
-            output_root / "runtime" / "RuntimeQueueStore.java", diagnostics
+            result, options.output_dir, templates, output_root / "runtime" / "QueueStore.java",
+            output_root / "runtime" / "QueueStore.java", diagnostics
         );
         add_template_file(
-            result, options.output_dir, templates,
-            output_root / "runtime" / "RuntimeLeaseStore.java",
-            output_root / "runtime" / "RuntimeLeaseStore.java", diagnostics
+            result, options.output_dir, templates, output_root / "runtime" / "LeaseStore.java",
+            output_root / "runtime" / "LeaseStore.java", diagnostics
         );
         add_template_file(
-            result, options.output_dir, templates,
-            output_root / "runtime" / "RuntimeWorkflowStore.java",
-            output_root / "runtime" / "RuntimeWorkflowStore.java", diagnostics
+            result, options.output_dir, templates, output_root / "runtime" / "WorkflowStore.java",
+            output_root / "runtime" / "WorkflowStore.java", diagnostics
         );
         add_template_file(
-            result, options.output_dir, templates, output_root / "runtime" / "RuntimeLogSink.java",
-            output_root / "runtime" / "RuntimeLogSink.java", diagnostics
+            result, options.output_dir, templates, output_root / "runtime" / "LogSink.java",
+            output_root / "runtime" / "LogSink.java", diagnostics
         );
         add_template_file(
-            result, options.output_dir, templates,
-            output_root / "runtime" / "RuntimeMetricSink.java",
-            output_root / "runtime" / "RuntimeMetricSink.java", diagnostics
+            result, options.output_dir, templates, output_root / "runtime" / "MetricSink.java",
+            output_root / "runtime" / "MetricSink.java", diagnostics
         );
         add_generated_template_file(
             result, options.output_dir, templates, "generated/Descriptors.java.tmpl",

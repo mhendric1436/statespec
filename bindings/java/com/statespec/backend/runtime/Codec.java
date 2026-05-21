@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-final class RuntimeCodec
+final class Codec
 {
-    private RuntimeCodec() {}
+    private Codec() {}
 
     static String definitionKey(Object... parts)
     {
@@ -89,7 +89,7 @@ final class RuntimeCodec
 
     static Json optionalDuration(Optional<Duration> value)
     {
-        return value.map(RuntimeCodec::durationToJson).orElseGet(Json::nullValue);
+        return value.map(Codec::durationToJson).orElseGet(Json::nullValue);
     }
 
     static Optional<Duration> optionalDurationFromJson(Json value)
@@ -113,7 +113,7 @@ final class RuntimeCodec
 
     static Json optionalInstant(Optional<Instant> value)
     {
-        return value.map(RuntimeCodec::instantToJson).orElseGet(Json::nullValue);
+        return value.map(Codec::instantToJson).orElseGet(Json::nullValue);
     }
 
     static Optional<Instant> optionalInstantFromJson(Json value)

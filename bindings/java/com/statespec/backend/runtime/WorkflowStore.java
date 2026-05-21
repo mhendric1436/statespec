@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public final class RuntimeWorkflowStore implements Workflow
+public final class WorkflowStore implements Workflow
 {
     private static final String DEFINITIONS = "workflows.definitions";
     private static final String EXECUTIONS = "workflows.executions";
@@ -45,7 +45,7 @@ public final class RuntimeWorkflowStore implements Workflow
             workflowDefinitionKey(
                 request.definition().workflowName(), request.definition().workflowVersion()
             ),
-            RuntimeCodec.workflowDefinitionToJson(request.definition())
+            Codec.workflowDefinitionToJson(request.definition())
         );
         return new WorkflowDefinitionRegistration(request.definition(), existing.isEmpty());
     }
@@ -72,7 +72,7 @@ public final class RuntimeWorkflowStore implements Workflow
     {
         var key = workflowDefinitionKey(workflowName, workflowVersion);
         return tx.get(DEFINITIONS, key)
-            .map(record -> RuntimeCodec.workflowDefinitionFromJson(record.document()));
+            .map(record -> Codec.workflowDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -111,9 +111,7 @@ public final class RuntimeWorkflowStore implements Workflow
             request.startStep(), "Running", 0L, Optional.empty(), Optional.empty(),
             request.stateJson()
         );
-        tx.put(
-            EXECUTIONS, record.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(record)
-        );
+        tx.put(EXECUTIONS, record.workflowExecutionId(), Codec.workflowExecutionToJson(record));
         return record;
     }
 
@@ -171,8 +169,7 @@ public final class RuntimeWorkflowStore implements Workflow
                 Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
             );
             tx.put(
-                EXECUTIONS, updated.workflowExecutionId(),
-                RuntimeCodec.workflowExecutionToJson(updated)
+                EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated)
             );
             claimed.add(updated);
         }
@@ -212,9 +209,7 @@ public final class RuntimeWorkflowStore implements Workflow
             execution.currentStep(), execution.status(), execution.attempt(), execution.claimedBy(),
             Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
         );
-        tx.put(
-            EXECUTIONS, updated.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(updated)
-        );
+        tx.put(EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated));
         return updated;
     }
 
@@ -253,9 +248,7 @@ public final class RuntimeWorkflowStore implements Workflow
             step, status, execution.attempt(), Optional.empty(), Optional.empty(),
             request.stateJson()
         );
-        tx.put(
-            EXECUTIONS, updated.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(updated)
-        );
+        tx.put(EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated));
         return updated;
     }
 
@@ -293,9 +286,7 @@ public final class RuntimeWorkflowStore implements Workflow
             execution.currentStep(), status, execution.attempt(), Optional.empty(),
             Optional.empty(), execution.stateJson()
         );
-        tx.put(
-            EXECUTIONS, updated.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(updated)
-        );
+        tx.put(EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated));
         return updated;
     }
 
@@ -331,9 +322,7 @@ public final class RuntimeWorkflowStore implements Workflow
             execution.currentStep(), "Canceled", execution.attempt(), Optional.empty(),
             Optional.empty(), execution.stateJson()
         );
-        tx.put(
-            EXECUTIONS, updated.workflowExecutionId(), RuntimeCodec.workflowExecutionToJson(updated)
-        );
+        tx.put(EXECUTIONS, updated.workflowExecutionId(), Codec.workflowExecutionToJson(updated));
         return updated;
     }
 
@@ -356,7 +345,7 @@ public final class RuntimeWorkflowStore implements Workflow
     ) throws Backend.BackendException
     {
         return tx.get(EXECUTIONS, workflowExecutionId)
-            .map(record -> RuntimeCodec.workflowExecutionFromJson(record.document()));
+            .map(record -> Codec.workflowExecutionFromJson(record.document()));
     }
 
     private WorkflowExecutionRecord requireExecution(
@@ -375,7 +364,7 @@ public final class RuntimeWorkflowStore implements Workflow
         var executions = new ArrayList<WorkflowExecutionRecord>();
         for (var record : records)
         {
-            executions.add(RuntimeCodec.workflowExecutionFromJson(record.document()));
+            executions.add(Codec.workflowExecutionFromJson(record.document()));
         }
         return executions;
     }
@@ -385,7 +374,7 @@ public final class RuntimeWorkflowStore implements Workflow
         long version
     )
     {
-        return RuntimeCodec.definitionKey(name, version);
+        return Codec.definitionKey(name, version);
     }
 
     private static void requireClaim(

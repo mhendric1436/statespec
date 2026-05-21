@@ -4,7 +4,7 @@ import com.statespec.backend.Backend;
 import com.statespec.backend.Lease;
 import java.util.Optional;
 
-public final class RuntimeLeaseStore implements Lease
+public final class LeaseStore implements Lease
 {
     private static final String DEFINITIONS = "leases.definitions";
     private static final String LEASES = "leases.records";
@@ -38,7 +38,7 @@ public final class RuntimeLeaseStore implements Lease
         var existing = inspectDefinitionTx(tx, definition.id());
         tx.put(
             DEFINITIONS, leaseDefinitionKey(definition.id()),
-            RuntimeCodec.leaseDefinitionToJson(definition)
+            Codec.leaseDefinitionToJson(definition)
         );
         return new LeaseRegisterDefinitionResult(existing.isEmpty(), definition);
     }
@@ -63,7 +63,7 @@ public final class RuntimeLeaseStore implements Lease
     {
         var key = leaseDefinitionKey(definitionId);
         return tx.get(DEFINITIONS, key)
-            .map(record -> RuntimeCodec.leaseDefinitionFromJson(record.document()));
+            .map(record -> Codec.leaseDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -115,7 +115,7 @@ public final class RuntimeLeaseStore implements Lease
             request.now().plus(definition.get().ttl()), token
         );
         var key = leaseKey(request.definitionId(), request.resource());
-        tx.put(LEASES, key, RuntimeCodec.leaseRecordToJson(record));
+        tx.put(LEASES, key, Codec.leaseRecordToJson(record));
         return new LeaseAcquireResult(true, Optional.of(record));
     }
 
@@ -158,7 +158,7 @@ public final class RuntimeLeaseStore implements Lease
         );
         tx.put(
             LEASES, leaseKey(request.definitionId(), request.resource()),
-            RuntimeCodec.leaseRecordToJson(updated)
+            Codec.leaseRecordToJson(updated)
         );
         return updated;
     }
@@ -213,8 +213,7 @@ public final class RuntimeLeaseStore implements Lease
     ) throws Backend.BackendException
     {
         var key = leaseKey(request.definitionId(), request.resource());
-        return tx.get(LEASES, key)
-            .map(record -> RuntimeCodec.leaseRecordFromJson(record.document()));
+        return tx.get(LEASES, key).map(record -> Codec.leaseRecordFromJson(record.document()));
     }
 
     private LeaseRecord requireLease(
@@ -229,7 +228,7 @@ public final class RuntimeLeaseStore implements Lease
 
     private static String leaseDefinitionKey(LeaseDefinitionId id)
     {
-        return RuntimeCodec.definitionKey(id.name(), id.version());
+        return Codec.definitionKey(id.name(), id.version());
     }
 
     private static String leaseKey(
@@ -237,7 +236,7 @@ public final class RuntimeLeaseStore implements Lease
         String resource
     )
     {
-        return RuntimeCodec.definitionKey(id.name(), id.version(), resource);
+        return Codec.definitionKey(id.name(), id.version(), resource);
     }
 
     private static void requireHolder(

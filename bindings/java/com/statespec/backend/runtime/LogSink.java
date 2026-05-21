@@ -7,7 +7,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-public final class RuntimeLogSink implements Log
+public final class LogSink implements Log
 {
     private static final String DEFINITIONS = "logs.definitions";
     private static final String EVENTS = "logs.events";
@@ -39,7 +39,7 @@ public final class RuntimeLogSink implements Log
     ) throws Backend.BackendException
     {
         var existing = inspectDefinitionTx(tx, definition.name());
-        tx.put(DEFINITIONS, definition.name(), RuntimeCodec.logDefinitionToJson(definition));
+        tx.put(DEFINITIONS, definition.name(), Codec.logDefinitionToJson(definition));
         return new DefinitionRegistration(existing.isEmpty(), definition);
     }
 
@@ -62,7 +62,7 @@ public final class RuntimeLogSink implements Log
     ) throws Backend.BackendException
     {
         return tx.get(DEFINITIONS, name)
-            .map(record -> RuntimeCodec.logDefinitionFromJson(record.document()));
+            .map(record -> Codec.logDefinitionFromJson(record.document()));
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class RuntimeLogSink implements Log
     ) throws Backend.BackendException
     {
         var events = tx.query(EVENTS, new Backend.Query.All());
-        tx.put(EVENTS, eventKey(events.size()), RuntimeCodec.logEventToJson(event));
+        tx.put(EVENTS, eventKey(events.size()), Codec.logEventToJson(event));
     }
 
     public List<Event> inspectEvents(Backend backend) throws Backend.BackendException
@@ -109,7 +109,7 @@ public final class RuntimeLogSink implements Log
         records.sort(Comparator.comparing(Backend.VersionedRecord::key));
         for (var record : records)
         {
-            events.add(RuntimeCodec.logEventFromJson(record.document()));
+            events.add(Codec.logEventFromJson(record.document()));
         }
         return events;
     }
