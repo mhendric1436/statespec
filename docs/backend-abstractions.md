@@ -96,6 +96,12 @@ ensure_collections / EnsureCollections / ensureCollections
 runtimes can provision all required collections with one API call rather than one call per
 collection.
 
+Collection descriptor registration is also the schema upgrade boundary. Re-registering
+an existing collection is valid only when the requested descriptor is identical or
+backwards compatible with the stored descriptor. Incompatible descriptor changes must
+fail with a schema conflict instead of replacing the registered contract. See
+[schema-upgrades.md](schema-upgrades.md) for the compatibility definition.
+
 ## Backend Boundary
 
 Backends and transactions provide generic OCC document storage. They are not queue,

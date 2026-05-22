@@ -428,6 +428,12 @@ Runtime component APIs support backend-managed calls and caller-managed transact
 calls. Caller-managed variants use a `Tx` suffix, adapted to each language's naming
 conventions.
 
+Collection descriptor registration is the schema upgrade boundary for generated
+applications. Backends must accept identical descriptors and backwards-compatible
+descriptor evolution, but must reject incompatible changes with a schema conflict rather
+than silently replacing a registered collection contract. See
+[`docs/schema-upgrades.md`](docs/schema-upgrades.md) for the compatibility rules.
+
 Backends and transactions are intentionally component-neutral. They own collection
 registration, versioned records, queries, transaction read/write sets, commit, and
 abort. Queues, leases, workflows, feature flags, logs, and metrics are typed users of

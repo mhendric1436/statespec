@@ -29,6 +29,7 @@ truth for system behavior.
 | [generators.md](generators.md) | CLI-selected binding generation and expected output layout. |
 | [generated-extension-points.md](generated-extension-points.md) | User-owned API, worker, workflow step, and operator metadata implementation boundaries. |
 | [backend-abstractions.md](backend-abstractions.md) | OCC-centered backend abstraction source artifacts and runtime contracts. |
+| [schema-upgrades.md](schema-upgrades.md) | Backwards-compatible collection descriptor upgrade rules for backend adapters. |
 | [runtime-store-contract.md](runtime-store-contract.md) | Backend-neutral contract for feature flag, queue, lease, workflow, log, and metric stores. |
 | [in-memory-backend.md](in-memory-backend.md) | Cross-language in-memory backend contract, generated paths, and local API plus Worker app linking guidance. |
 | [style-guide.md](style-guide.md) | Naming, ordering, and maintainability conventions for `.sspec` files. |
@@ -42,8 +43,9 @@ truth for system behavior.
 5. Use the focused guides while authoring specific sections.
 6. Read [generated-extension-points.md](generated-extension-points.md) before wiring generated code into runtime applications.
 7. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
-8. Read [in-memory-backend.md](in-memory-backend.md) before using generated local/test backend adapters.
-9. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
+8. Read [schema-upgrades.md](schema-upgrades.md) before implementing collection registration in a backend adapter.
+9. Read [in-memory-backend.md](in-memory-backend.md) before using generated local/test backend adapters.
+10. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
 
 ## Source Of Truth
 
