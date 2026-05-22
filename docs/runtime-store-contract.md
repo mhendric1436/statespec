@@ -6,6 +6,17 @@ of the StateSpec OCC backend model. They are not in-memory backend features.
 This contract applies to generated and hand-written binding implementations for C++,
 Go, Java, and Rust.
 
+Generated bindings follow two separate rules:
+
+- Descriptor values are spec-driven. Generated descriptors expose the queues, leases,
+  workflows, feature flags, logs, metrics, and other declarations present in the
+  `.sspec` input, and unused descriptor lists are absent or empty according to the
+  language descriptor shape.
+- Runtime artifacts are usage-pruned. Backend and transaction contracts remain generic
+  and always available, while typed runtime stores, sinks, codecs, app wiring, imports,
+  and module manifests are emitted only when the spec or generated API/Worker app needs
+  that runtime domain.
+
 ## Boundary
 
 Runtime stores and sinks must depend on the public backend and transaction interfaces:
@@ -116,11 +127,19 @@ Language packaging may add language-specific prefixes, such as
 `common/backend/runtime` for Go or `common/com/statespec/backend/runtime` for Java, but
 the ownership split is the same in C++, Go, Java, and Rust.
 
+Backend and transaction files are always emitted because they are the generic OCC
+contract shared by descriptors, entity repositories, API app shells, Worker app shells,
+and typed runtime stores. Runtime store files are not always emitted. A generator should
+emit only the store and codec files needed by the declared domains and generated app
+composition roots.
+
 ## Test Expectations
 
 Each language should have tests proving that:
 
 - the in-memory backend and transaction contain no typed runtime state
+- generated descriptor values reflect only spec declarations
+- unused runtime files, imports, members, and language module declarations are pruned
 - runtime stores can operate through backend abstractions
 - transaction-scoped methods compose multiple runtime operations atomically
 - generated API and Worker app fixtures can link stores with the in-memory backend

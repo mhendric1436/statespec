@@ -37,6 +37,17 @@ flag, log, and metric record shapes live with their respective runtime interface
 Backend and transaction implementations must not carry domain-specific state for those
 runtime components.
 
+Generated common output always includes the backend and transaction contracts because
+they are generic OCC document primitives. Typed runtime clients are usage-pruned: a
+queue store, lease store, workflow store, feature flag store, log sink, metric sink, or
+related codec is generated only when the specification or generated app requires that
+domain.
+
+Generated descriptor values are independent of runtime artifact availability. Descriptor
+files report the declarations present in the `.sspec` input, and unused descriptor lists
+are empty or absent according to the target language shape. The presence of a generic
+backend contract must not synthesize runtime descriptor values.
+
 `FieldDescriptor` has the same conceptual shape in every binding:
 
 ```text

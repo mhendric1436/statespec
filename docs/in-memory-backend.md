@@ -25,6 +25,16 @@ The generated common tier currently emits two kinds of runtime support in each l
    - `ILogSink`
    - `IMetricSink`
 
+The backend and transaction adapters are generic OCC contracts and are always available
+in generated common output. The typed runtime clients are usage-pruned: they are emitted
+only when the `.sspec` file or generated API/Worker app needs feature flags, queues,
+leases, workflows, logs, or metrics.
+
+Generated descriptor values remain spec-driven. The descriptor file may expose an empty
+or absent descriptor list for an unused domain, but it must not invent feature flag,
+queue, lease, workflow, log, or metric definitions just because the in-memory backend or
+runtime store template exists.
+
 The backend and transaction pieces must remain generic. Feature flag, queue, lease,
 workflow, log, and metric implementations are separate store/sink clients that use the
 backend by registering collections and reading or writing versioned records.
@@ -97,8 +107,9 @@ common/runtime/logs.rs
 common/runtime/metrics.rs
 ```
 
-These paths are part of the cross-language artifact model. C++, Go, Java, and Rust currently
-emit the listed files.
+These paths are part of the cross-language artifact model. The `memory/` backend and
+transaction paths are emitted consistently. The `runtime/` store, sink, and codec paths
+are emitted when the corresponding runtime domain is used.
 
 ## Generated App Linking
 
@@ -152,7 +163,9 @@ make test
 The generated binding fixtures for C++, Go, Java, and Rust should stay behaviorally
 aligned. Each language fixture should prove that one in-memory backend instance can
 compose the backend-neutral feature flag, queue, lease, workflow, log, and metric
-clients, and should also exercise generic backend `put`/`query` primitives.
+clients when those domains are generated, should verify unused runtime domains are
+pruned from files/imports/members/module declarations, and should also exercise generic
+backend `put`/`query` primitives.
 
 ## Shared State Model
 

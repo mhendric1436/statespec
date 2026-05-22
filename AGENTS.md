@@ -228,15 +228,32 @@ Feature flag usage is persisted-state access. Evaluation must be available as a 
 
 Generated binding code must consume these transaction-aware interfaces. Generators must not emit direct persisted-state reads, in-memory feature flag resolvers, or target-language helper APIs that bypass the canonical backend transaction model.
 
+Generated descriptor values are spec-driven. Descriptor functions and records must report
+what the `.sspec` file declares, and unused declaration categories should be absent or
+empty according to the language's descriptor shape. Do not synthesize queue, lease,
+workflow, feature flag, log, metric, API, worker, or app descriptor values merely
+because a runtime helper exists.
+
+Generated runtime artifacts are usage-pruned. Backend and transaction contracts remain
+generic and always available in the common tier, but typed runtime stores, sinks,
+codecs, worker views, app composition roots, module manifests, and compile-check
+includes should be emitted only when the spec or generated API/Worker app needs that
+runtime domain.
+
+Runtime stores are typed backend clients. A generated queue, lease, workflow, feature
+flag, log, or metric store is emitted because the spec or generated app references that
+domain; it must still operate through the generic backend/transaction model and must not
+be treated as a backend feature.
+
 ---
 
 ## Generated Application Architecture
 
 Language bindings for C++, Go, Java, and Rust generate deployable artifact groups:
 
-- `common` contains backend interfaces, typed runtime surfaces, shared descriptors, entity/workflow/queue/lease/log/metric/feature-flag definitions, external-system metadata helpers, and generated build files.
+- `common` contains backend interfaces, usage-pruned typed runtime surfaces, shared descriptors, entity/workflow/queue/lease/log/metric/feature-flag definitions, external-system metadata helpers, and generated build files.
 - `api` contains API tier descriptors, route descriptors, handler contracts, dispatchers, operator metadata APIs, and API server shells.
-- `worker` contains worker descriptors, worker contexts, queue/lease/workflow views, workflow step handler contracts, worker registries, worker app shells, and workflow runners with keep-alive support.
+- `worker` contains worker descriptors, worker contexts, usage-pruned queue/lease/workflow views, workflow step handler contracts, worker registries, worker app shells, and workflow runners with keep-alive support.
 
 The generator tier option controls emitted artifacts:
 
@@ -806,6 +823,9 @@ Each generator should:
 - avoid hidden runtime assumptions
 - emit clear warnings for unsupported language features
 - emit tiered app artifacts into `common`, `api`, and `worker` paths where applicable
+- keep generated descriptor values spec-driven
+- prune generated runtime artifacts, imports, module declarations, and compile-check
+  manifests by actual runtime usage
 - use template files for mostly static runtime/app scaffolding
 
 Generated output should include a header indicating it is generated from StateSpec.
@@ -816,6 +836,12 @@ Generated bindings should include local build files that compile the emitted pac
 - Go uses generated `go.mod` and `Makefile`.
 - Java uses generated `Makefile` and core Java compiler/runtime only.
 - Rust uses generated `Cargo.toml`, `lib.rs`, and `Makefile`.
+
+Generated build files must not reference pruned runtime files. If a spec only uses
+workflows, the module manifest and compile-check surface should not import feature flag,
+queue, log, or metric runtime stores. Backend and transaction interfaces are the
+exception: they are generic contracts and remain available even when no typed runtime
+domain is used.
 
 ---
 
@@ -871,6 +897,8 @@ other language fixtures in the same PR unless the difference is intentionally do
 Each language fixture should verify:
 
 - generated common, API, and worker artifacts compile with language-native tooling
+- generated descriptor values reflect only the spec declarations
+- unused runtime files, imports, members, and module declarations are pruned
 - metadata resolver fixtures link and run
 - one in-memory backend instance composes backend-neutral feature flag, queue, lease,
   workflow, log, and metric runtime clients

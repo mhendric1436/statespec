@@ -46,6 +46,19 @@ as focused files for descriptors, handlers, routes, and external-system operator
 metadata APIs. Worker-tier code is emitted under `worker/` as focused files for
 worker descriptors, contexts, handlers, queues, leases, and workflows.
 
+Descriptor values are spec-driven. Generated descriptor files expose values for
+declarations that exist in the `.sspec` input, and unused declaration categories are
+absent or empty according to the target language's descriptor shape. A runtime helper
+being available in the binding library must not cause synthetic descriptor values to
+appear.
+
+Runtime artifacts are usage-pruned. Backend and transaction contracts are generic and
+are always available in the common tier, but typed runtime stores, sinks, codecs, worker
+views, app composition roots, imports, module declarations, compile-check includes, and
+language package manifests are emitted only when the spec or generated app needs that
+runtime domain. For example, a spec that declares only queues should not emit workflow,
+lease, feature flag, log, or metric runtime stores.
+
 Generated application shells are intentionally separated from user-owned implementation
 code. See [generated-extension-points.md](generated-extension-points.md) for the API
 handler, worker handler, workflow step handler, and operator metadata handler contracts
@@ -69,12 +82,17 @@ depend on memory-specific backend or transaction concrete types. Generated outpu
 `memory/` paths for concrete backend adapters and `runtime/` paths for backend-neutral
 stores, sinks, and codecs.
 
-The common in-memory backend artifact responsibilities are:
+Backend and transaction artifacts are always generic OCC document primitives:
 
 | Kind | Responsibility |
 |---|---|
 | `memory_backend` | In-memory backend composition root for local API and worker linking |
 | `memory_transaction` | Optimistic-concurrency transaction implementation |
+
+Typed runtime artifacts are generated only when used by the spec or generated app:
+
+| Kind | Responsibility |
+|---|---|
 | `runtime_feature_flag_store` | Feature flag definition, override, and evaluation store |
 | `runtime_queue_store` | Queue definition, enqueue, claim, ack, and fail store |
 | `runtime_lease_store` | Lease definition, acquire, renew, release, and fencing store |
@@ -122,7 +140,8 @@ Generated worker application filenames:
 | `java` | `worker/com/statespec/generated/WorkerApplication.java`, `worker/com/statespec/generated/WorkerRuntime.java`, `worker/com/statespec/generated/WorkerRegistry.java`, `worker/com/statespec/generated/WorkflowRunner.java`, `worker/com/statespec/generated/WorkflowStepHandlers.java`, `worker/com/statespec/generated/WorkerMain.java` |
 | `rust` | `worker/worker_application.rs`, `worker/worker_runtime.rs`, `worker/worker_registry.rs`, `worker/workflow_runner.rs`, `worker/workflow_step_handlers.rs`, `worker/main.rs` |
 
-In-memory backend filenames:
+In-memory backend filenames are always emitted as generic backend adapters. Runtime
+store filenames in the same table are usage-pruned:
 
 | Language | Files |
 |---|---|
@@ -377,6 +396,9 @@ The generated transaction-scoped runtime bootstrap APIs are:
 
 These helpers accept caller-managed OCC transaction objects and backend catalog stores,
 matching the binding model used for leases, queues, workflows, logs, and metrics.
+Each helper is emitted only when its runtime domain is used. A spec with no queues does
+not emit queue runtime stores or queue registration helpers; a spec with logs but no
+metrics emits log-specific support without metric-specific support.
 
 Generated binding packages also include separate runtime log and metric request and sink
 types:

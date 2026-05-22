@@ -11,6 +11,13 @@ workflow step names, and backend catalog definitions. Runtime implementations ow
 framework adapters, authentication, authorization integration, concrete backend
 adapters, remote API clients, and business logic inside API and worker handlers.
 
+Generated descriptor values are spec-driven. They report declarations from the
+validated `.sspec` input, while unused descriptor domains are empty or absent according
+to the target language's descriptor surface. Runtime artifacts are usage-pruned:
+backend and transaction contracts remain available as generic OCC primitives, but typed
+runtime stores, sinks, codecs, imports, module declarations, and app wiring are emitted
+only when the spec or generated app needs them.
+
 For local generated app linking and handler tests, the generated common tier includes an
 in-memory backend that implements the same OCC backend interfaces. See
 [in-memory-backend.md](in-memory-backend.md).
@@ -33,7 +40,7 @@ Generated code owns:
   alive, advance declared `transition_to` targets, and complete or fail steps through
   backend workflow stores
 - transaction-scoped catalog registration helpers for queues, leases, workflows, feature
-  flags, logs, and metrics
+  flags, logs, and metrics when those runtime domains are used
 - operator metadata lookup, default mapping applicators, external-system client call
   adapters, default generic repositories, and API handler contracts for external systems
 

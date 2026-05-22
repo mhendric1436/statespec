@@ -128,6 +128,11 @@ configuration checks, and adapter setup. Generated descriptors also include boot
 helpers that register observability and workflow catalogs through the runtime binding
 interfaces.
 
+Descriptor values are driven only by declared `log` and `metric` blocks. Runtime sink
+and codec artifacts are usage-pruned: they are emitted when logs or metrics are present,
+while the generic backend and transaction contracts remain available regardless of
+observability usage.
+
 The generated descriptor APIs are:
 
 | Language | Log descriptors | Metric descriptors |

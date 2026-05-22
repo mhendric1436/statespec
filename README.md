@@ -436,6 +436,12 @@ and stores its records through the same OCC `Backend` and `Transaction` interfac
 Those typed runtime stores are backend-neutral clients, not in-memory backend features;
 they should work with any backend adapter that implements the OCC interfaces.
 
+Generated descriptor values are driven by the `.sspec` declarations. Generated runtime
+artifacts are usage-pruned: backend and transaction contracts remain generic and always
+available, while typed stores, sinks, codecs, module declarations, imports, and app
+wiring for feature flags, queues, leases, workflows, logs, and metrics are emitted only
+when the spec or generated API/Worker app needs them.
+
 ---
 
 ## Language Bindings
@@ -452,9 +458,9 @@ Reference backend and runtime component bindings are provided for:
 Shared binding documentation is in
 [`docs/backend-abstractions.md`](docs/backend-abstractions.md).
 
-Generated binding packages include separate runtime surfaces for backend operations,
-queues, leases, workflows, logs, metrics, and feature flags where supported by the
-binding.
+Generated binding packages include separate runtime surfaces for backend operations and
+usage-pruned typed clients for queues, leases, workflows, logs, metrics, and feature
+flags where supported by the binding.
 
 ---
 
