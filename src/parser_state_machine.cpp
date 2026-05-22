@@ -1,6 +1,7 @@
 #include "statespec/parser.hpp"
 
 #include "parser_helpers.hpp"
+#include "statespec/language_constants.hpp"
 
 #include <utility>
 
@@ -86,10 +87,10 @@ StateDecl Parser::parse_state_decl(DiagnosticBag& diagnostics)
                 consume(TokenKind::Colon, "expected ':' after terminal", diagnostics);
                 const auto terminal =
                     consume(TokenKind::BooleanLiteral, "expected terminal boolean", diagnostics);
-                state.terminal = terminal.lexeme == "true";
+                state.terminal = terminal.lexeme == SyntaxBooleanTrue;
                 consume_optional_semicolon();
             }
-            else if (is_named_identifier(peek(), "garbage_collection"))
+            else if (is_named_identifier(peek(), SyntaxIdentifierGarbageCollection))
             {
                 auto policy = parse_garbage_collection_policy_decl(diagnostics);
                 if (state.garbage_collection.has_value())
@@ -123,14 +124,14 @@ GarbageCollectionPolicyDecl Parser::parse_garbage_collection_policy_decl(Diagnos
 
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (is_named_identifier(peek(), "after"))
+        if (is_named_identifier(peek(), SyntaxIdentifierAfter))
         {
             advance();
             consume(TokenKind::Colon, "expected ':' after garbage_collection.after", diagnostics);
             policy.after = parse_simple_value(diagnostics, "garbage_collection.after");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "mode"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierMode))
         {
             advance();
             consume(TokenKind::Colon, "expected ':' after garbage_collection.mode", diagnostics);

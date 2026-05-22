@@ -1,6 +1,7 @@
 #include "statespec/parser.hpp"
 
 #include "parser_helpers.hpp"
+#include "statespec/language_constants.hpp"
 
 #include <utility>
 #include <vector>
@@ -24,7 +25,9 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
     {
         if (match(TokenKind::KeywordVersion))
         {
-            workflow.member_order.push_back(BlockMemberOrder{"version", previous().range});
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordVersion}, previous().range}
+            );
             workflow.version = parse_int_or_zero(
                 consume(TokenKind::IntegerLiteral, "expected workflow version integer", diagnostics)
             );
@@ -32,17 +35,21 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordSingleton))
         {
-            workflow.member_order.push_back(BlockMemberOrder{"singleton", previous().range});
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordSingleton}, previous().range}
+            );
             const auto value =
                 consume(TokenKind::BooleanLiteral, "expected singleton boolean", diagnostics);
-            workflow.singleton = value.lexeme == "true";
+            workflow.singleton = value.lexeme == SyntaxBooleanTrue;
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "expected_execution_time"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierExpectedExecutionTime))
         {
             const auto expected_time_start = advance();
             workflow.member_order.push_back(
-                BlockMemberOrder{"expected_execution_time", expected_time_start.range}
+                BlockMemberOrder{
+                    std::string{SyntaxIdentifierExpectedExecutionTime}, expected_time_start.range
+                }
             );
             auto value =
                 consume(TokenKind::DurationLiteral, "expected workflow duration", diagnostics);
@@ -51,39 +58,51 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordStart))
         {
-            workflow.member_order.push_back(BlockMemberOrder{"start", previous().range});
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordStart}, previous().range}
+            );
             workflow.start_step =
                 consume(TokenKind::Identifier, "expected start step name", diagnostics).lexeme;
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordOn))
         {
-            workflow.member_order.push_back(BlockMemberOrder{"on", previous().range});
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordOn}, previous().range}
+            );
             workflow.on = parse_qualified_name(diagnostics, "workflow trigger");
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordInput))
         {
-            workflow.member_order.push_back(BlockMemberOrder{"input", previous().range});
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordInput}, previous().range}
+            );
             workflow.input = parse_qualified_name(diagnostics, "workflow input");
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordState))
         {
-            workflow.member_order.push_back(BlockMemberOrder{"state", previous().range});
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordState}, previous().range}
+            );
             workflow.state = parse_qualified_name(diagnostics, "workflow state");
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordLoad))
         {
             auto load = parse_workflow_load_decl(diagnostics);
-            workflow.member_order.push_back(BlockMemberOrder{"load", load.range});
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordLoad}, load.range}
+            );
             workflow.loads.push_back(std::move(load));
         }
         else if (check(TokenKind::KeywordStep))
         {
             auto step = parse_workflow_step_decl(diagnostics);
-            workflow.member_order.push_back(BlockMemberOrder{"step", step.range});
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordStep}, step.range}
+            );
             workflow.steps.push_back(std::move(step));
         }
         else
@@ -102,7 +121,7 @@ WorkflowLoadDecl Parser::parse_workflow_load_decl(DiagnosticBag& diagnostics)
     const auto start = previous();
     WorkflowLoadDecl load;
     load.entity = parse_qualified_name(diagnostics, "workflow load entity");
-    if (!is_named_identifier(peek(), "by"))
+    if (!is_named_identifier(peek(), SyntaxIdentifierBy))
     {
         diagnostics.error(peek().range, "SSPEC0200", "expected by in workflow load");
     }
@@ -130,7 +149,7 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after workflow step name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (is_named_identifier(peek(), "expected_execution_time"))
+        if (is_named_identifier(peek(), SyntaxIdentifierExpectedExecutionTime))
         {
             advance();
             const auto value =

@@ -4,6 +4,7 @@
 
 #include <exception>
 #include <string>
+#include <string_view>
 
 namespace statespec::parser_detail
 {
@@ -31,7 +32,7 @@ inline std::string strip_quotes(const std::string& value)
 
 inline bool is_named_identifier(
     const Token& token,
-    const std::string& name
+    std::string_view name
 )
 {
     return token.kind == TokenKind::Identifier && token.lexeme == name;

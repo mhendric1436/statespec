@@ -20,14 +20,14 @@ FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after feature flag name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (is_named_identifier(peek(), "type"))
+        if (is_named_identifier(peek(), SyntaxIdentifierType))
         {
             advance();
             feature_flag.type =
                 consume(TokenKind::Identifier, "expected feature flag type", diagnostics).lexeme;
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "default"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierDefault))
         {
             advance();
             if (check_any({
@@ -49,7 +49,7 @@ FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)
             }
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "scope"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierScope))
         {
             advance();
             if (match(TokenKind::KeywordSystem))
@@ -58,17 +58,17 @@ FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)
             }
             else if (match(TokenKind::KeywordTenant))
             {
-                feature_flag.scope = "tenant";
+                feature_flag.scope = std::string{SyntaxKeywordTenant};
             }
-            else if (is_named_identifier(peek(), "user"))
+            else if (is_named_identifier(peek(), SyntaxIdentifierUser))
             {
                 advance();
-                feature_flag.scope = "user";
+                feature_flag.scope = std::string{SyntaxIdentifierUser};
             }
             else if (match(TokenKind::KeywordEntity))
             {
-                feature_flag.scope =
-                    "entity " + parse_qualified_name(diagnostics, "feature flag entity scope");
+                feature_flag.scope = std::string{SyntaxKeywordEntity} + " " +
+                                     parse_qualified_name(diagnostics, "feature flag entity scope");
             }
             else
             {
@@ -76,19 +76,19 @@ FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)
             }
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "owner"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierOwner))
         {
             advance();
             feature_flag.owner = parse_simple_value(diagnostics, "feature flag owner");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "description"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierDescription))
         {
             advance();
             feature_flag.description = parse_simple_value(diagnostics, "feature flag description");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "expires"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierExpires))
         {
             advance();
             feature_flag.expires = parse_simple_value(diagnostics, "feature flag expiration");
@@ -115,24 +115,30 @@ LogDecl Parser::parse_log_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after log name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (is_named_identifier(peek(), "level"))
+        if (is_named_identifier(peek(), SyntaxIdentifierLevel))
         {
             const auto level = advance();
-            log.member_order.push_back(BlockMemberOrder{"level", level.range});
+            log.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxIdentifierLevel}, level.range}
+            );
             log.level = consume(TokenKind::Identifier, "expected log level", diagnostics).lexeme;
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "event_name"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierEventName))
         {
             const auto event_name = advance();
-            log.member_order.push_back(BlockMemberOrder{"event_name", event_name.range});
+            log.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxIdentifierEventName}, event_name.range}
+            );
             log.event_name = parse_simple_value(diagnostics, "log event_name");
             consume_optional_semicolon();
         }
         else if (check(TokenKind::KeywordFields))
         {
             const auto fields = advance();
-            log.member_order.push_back(BlockMemberOrder{"fields", fields.range});
+            log.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordFields}, fields.range}
+            );
             consume(TokenKind::LeftBrace, "expected '{' after log fields", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -162,32 +168,40 @@ MetricDecl Parser::parse_metric_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after metric name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (is_named_identifier(peek(), "kind"))
+        if (is_named_identifier(peek(), SyntaxIdentifierKind))
         {
             const auto kind = advance();
-            metric.member_order.push_back(BlockMemberOrder{"kind", kind.range});
+            metric.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxIdentifierKind}, kind.range}
+            );
             metric.kind =
                 consume(TokenKind::Identifier, "expected metric kind", diagnostics).lexeme;
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "name"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierName))
         {
             const auto name_member = advance();
-            metric.member_order.push_back(BlockMemberOrder{"name", name_member.range});
+            metric.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxIdentifierName}, name_member.range}
+            );
             metric.backend_name = parse_simple_value(diagnostics, "metric name");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "unit"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierUnit))
         {
             const auto unit = advance();
-            metric.member_order.push_back(BlockMemberOrder{"unit", unit.range});
+            metric.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxIdentifierUnit}, unit.range}
+            );
             metric.unit = parse_simple_value(diagnostics, "metric unit");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "labels"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierLabels))
         {
             const auto labels = advance();
-            metric.member_order.push_back(BlockMemberOrder{"labels", labels.range});
+            metric.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxIdentifierLabels}, labels.range}
+            );
             consume(TokenKind::LeftBrace, "expected '{' after metric labels", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {

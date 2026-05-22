@@ -1,6 +1,7 @@
 #include "statespec/parser.hpp"
 
 #include "parser_helpers.hpp"
+#include "statespec/language_constants.hpp"
 
 namespace statespec
 {
@@ -23,19 +24,19 @@ QueueDecl Parser::parse_queue_decl(DiagnosticBag& diagnostics)
             queue.namespace_name = parse_simple_value(diagnostics, "queue namespace");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "channel"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierChannel))
         {
             advance();
             queue.channel = parse_simple_value(diagnostics, "queue channel");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "visibility_timeout"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierVisibilityTimeout))
         {
             advance();
             queue.visibility_timeout = parse_simple_value(diagnostics, "visibility timeout");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "max_attempts"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierMaxAttempts))
         {
             advance();
             queue.max_attempts = parse_int_or_zero(
@@ -43,7 +44,7 @@ QueueDecl Parser::parse_queue_decl(DiagnosticBag& diagnostics)
             );
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "dead_letter"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierDeadLetter))
         {
             advance();
             queue.dead_letter = parse_qualified_name(diagnostics, "dead_letter target");
@@ -75,7 +76,7 @@ MessageDecl Parser::parse_message_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after message name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (is_named_identifier(peek(), "idempotency_key"))
+        if (is_named_identifier(peek(), SyntaxIdentifierIdempotencyKey))
         {
             advance();
             message.idempotency_key =
@@ -114,39 +115,39 @@ LeaseDecl Parser::parse_lease_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::LeftBrace, "expected '{' after lease name", diagnostics);
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        if (is_named_identifier(peek(), "resource"))
+        if (is_named_identifier(peek(), SyntaxIdentifierResource))
         {
             advance();
             lease.resource = parse_simple_value(diagnostics, "lease resource");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "ttl"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierTtl))
         {
             advance();
             lease.ttl = parse_simple_value(diagnostics, "lease ttl");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "renew_every"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierRenewEvery))
         {
             advance();
             lease.renew_every = parse_simple_value(diagnostics, "lease renew_every");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "holder"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierHolder))
         {
             advance();
             lease.holder = parse_simple_value(diagnostics, "lease holder");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "fencing_token"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierFencingToken))
         {
             advance();
             const auto value =
                 consume(TokenKind::BooleanLiteral, "expected fencing_token boolean", diagnostics);
-            lease.fencing_token = value.lexeme == "true";
+            lease.fencing_token = value.lexeme == SyntaxBooleanTrue;
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "max_ttl"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierMaxTtl))
         {
             advance();
             lease.max_ttl = parse_simple_value(diagnostics, "lease max_ttl");
@@ -178,7 +179,7 @@ WorkerDecl Parser::parse_worker_decl(DiagnosticBag& diagnostics)
         {
             const auto value =
                 consume(TokenKind::BooleanLiteral, "expected singleton boolean", diagnostics);
-            worker.singleton = value.lexeme == "true";
+            worker.singleton = value.lexeme == SyntaxBooleanTrue;
             consume_optional_semicolon();
         }
         else if (match(TokenKind::KeywordLease))

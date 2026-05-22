@@ -1,6 +1,7 @@
 #include "statespec/parser.hpp"
 
 #include "parser_helpers.hpp"
+#include "statespec/language_constants.hpp"
 
 #include <vector>
 
@@ -22,14 +23,18 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
     {
         if (match(TokenKind::KeywordKey))
         {
-            entity.member_order.push_back(BlockMemberOrder{"key", previous().range});
+            entity.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordKey}, previous().range}
+            );
             entity.key_fields = parse_identifier_list(diagnostics);
             consume_optional_semicolon();
         }
         else if (check(TokenKind::KeywordFields))
         {
             const auto fields_start = advance();
-            entity.member_order.push_back(BlockMemberOrder{"fields", fields_start.range});
+            entity.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordFields}, fields_start.range}
+            );
             consume(TokenKind::LeftBrace, "expected '{' after fields", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -41,18 +46,24 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         {
             entity.state_machine = parse_state_machine_decl(diagnostics);
             entity.member_order.push_back(
-                BlockMemberOrder{"state_machine", entity.state_machine->range}
+                BlockMemberOrder{
+                    std::string{SyntaxKeywordStateMachine}, entity.state_machine->range
+                }
             );
         }
         else if (check(TokenKind::KeywordOwnership))
         {
             entity.ownership = parse_ownership_decl(diagnostics);
-            entity.member_order.push_back(BlockMemberOrder{"ownership", entity.ownership->range});
+            entity.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordOwnership}, entity.ownership->range}
+            );
         }
         else if (check(TokenKind::KeywordRelations))
         {
             const auto relations_start = advance();
-            entity.member_order.push_back(BlockMemberOrder{"relations", relations_start.range});
+            entity.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordRelations}, relations_start.range}
+            );
             consume(TokenKind::LeftBrace, "expected '{' after relations", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -63,7 +74,9 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         else if (check(TokenKind::KeywordChildren))
         {
             const auto children_start = advance();
-            entity.member_order.push_back(BlockMemberOrder{"children", children_start.range});
+            entity.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordChildren}, children_start.range}
+            );
             consume(TokenKind::LeftBrace, "expected '{' after children", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -74,7 +87,9 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         else if (check(TokenKind::KeywordInvariants))
         {
             const auto invariants_start = advance();
-            entity.member_order.push_back(BlockMemberOrder{"invariants", invariants_start.range});
+            entity.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordInvariants}, invariants_start.range}
+            );
             consume(TokenKind::LeftBrace, "expected '{' after invariants", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -85,7 +100,9 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
         else if (check(TokenKind::KeywordIndexes))
         {
             const auto indexes_start = advance();
-            entity.member_order.push_back(BlockMemberOrder{"indexes", indexes_start.range});
+            entity.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordIndexes}, indexes_start.range}
+            );
             consume(TokenKind::LeftBrace, "expected '{' after indexes", diagnostics);
             while (!check(TokenKind::RightBrace) && !is_at_end())
             {
@@ -155,11 +172,11 @@ RelationDecl Parser::parse_relation_decl(DiagnosticBag& diagnostics)
     RelationDecl relation;
     if (start.kind == TokenKind::KeywordParent)
     {
-        relation.kind = "parent";
+        relation.kind = std::string{SyntaxKeywordParent};
     }
     else if (start.kind == TokenKind::KeywordRef)
     {
-        relation.kind = "ref";
+        relation.kind = std::string{SyntaxKeywordRef};
     }
     else
     {
@@ -171,7 +188,7 @@ RelationDecl Parser::parse_relation_decl(DiagnosticBag& diagnostics)
 
     relation.name = consume(TokenKind::Identifier, "expected relation name", diagnostics).lexeme;
     consume(TokenKind::Colon, "expected ':' after relation name", diagnostics);
-    if (relation.kind == "parent" && match(TokenKind::KeywordOptional))
+    if (relation.kind == SyntaxKeywordParent && match(TokenKind::KeywordOptional))
     {
         relation.optional = true;
     }
@@ -190,7 +207,7 @@ RelationDecl Parser::parse_relation_decl(DiagnosticBag& diagnostics)
     {
         while (!check(TokenKind::RightBrace) && !is_at_end())
         {
-            if (is_named_identifier(peek(), "kind"))
+            if (is_named_identifier(peek(), SyntaxIdentifierKind))
             {
                 advance();
                 consume(TokenKind::Colon, "expected ':' after relation kind", diagnostics);
@@ -198,7 +215,7 @@ RelationDecl Parser::parse_relation_decl(DiagnosticBag& diagnostics)
                     consume(TokenKind::Identifier, "expected relation kind", diagnostics).lexeme;
                 consume_optional_semicolon();
             }
-            else if (is_named_identifier(peek(), "on_parent_delete"))
+            else if (is_named_identifier(peek(), SyntaxIdentifierOnParentDelete))
             {
                 advance();
                 consume(TokenKind::Colon, "expected ':' after on_parent_delete", diagnostics);
@@ -207,14 +224,14 @@ RelationDecl Parser::parse_relation_decl(DiagnosticBag& diagnostics)
                         .lexeme;
                 consume_optional_semicolon();
             }
-            else if (is_named_identifier(peek(), "parent_must_be_in"))
+            else if (is_named_identifier(peek(), SyntaxIdentifierParentMustBeIn))
             {
                 advance();
                 consume(TokenKind::Colon, "expected ':' after parent_must_be_in", diagnostics);
                 relation.parent_must_be_in = parse_identifier_list(diagnostics);
                 consume_optional_semicolon();
             }
-            else if (is_named_identifier(peek(), "unique_within_parent"))
+            else if (is_named_identifier(peek(), SyntaxIdentifierUniqueWithinParent))
             {
                 advance();
                 consume(TokenKind::Colon, "expected ':' after unique_within_parent", diagnostics);
@@ -243,7 +260,7 @@ ChildDecl Parser::parse_child_decl(DiagnosticBag& diagnostics)
     consume(TokenKind::Colon, "expected ':' after child collection name", diagnostics);
     child.target_entity = parse_qualified_name(diagnostics, "child entity");
     const auto by = consume(TokenKind::Identifier, "expected by in child collection", diagnostics);
-    if (by.lexeme != "by")
+    if (by.lexeme != SyntaxIdentifierBy)
     {
         diagnostics.error(by.range, "SSPEC0200", "expected by in child collection");
     }
@@ -291,14 +308,14 @@ FieldDecl Parser::parse_field_decl(DiagnosticBag& diagnostics)
 IndexDecl Parser::parse_index_decl(DiagnosticBag& diagnostics)
 {
     const auto kind = consume(TokenKind::Identifier, "expected index kind", diagnostics);
-    const bool unique = kind.lexeme == "unique";
-    if (kind.lexeme != "index" && kind.lexeme != "unique")
+    const bool unique = kind.lexeme == SyntaxIdentifierUnique;
+    if (kind.lexeme != SyntaxIdentifierIndex && kind.lexeme != SyntaxIdentifierUnique)
     {
         diagnostics.error(kind.range, "SSPEC0200", "expected 'index' or 'unique'");
     }
 
     const auto name = consume(TokenKind::Identifier, "expected index name", diagnostics);
-    if (!is_named_identifier(peek(), "on") && !check(TokenKind::KeywordOn))
+    if (!is_named_identifier(peek(), SyntaxKeywordOn) && !check(TokenKind::KeywordOn))
     {
         diagnostics.error(peek().range, "SSPEC0200", "expected 'on' after index name");
     }

@@ -1,6 +1,7 @@
 #include "statespec/parser.hpp"
 
 #include "parser_helpers.hpp"
+#include "statespec/language_constants.hpp"
 
 #include <utility>
 
@@ -31,7 +32,7 @@ ValueDecl Parser::parse_value_decl(DiagnosticBag& diagnostics)
 
     consume(TokenKind::Colon, "expected ':' after value name", diagnostics);
     value.type = parse_type_name(diagnostics);
-    if (check(TokenKind::KeywordWhere) || is_named_identifier(peek(), "where"))
+    if (check(TokenKind::KeywordWhere) || is_named_identifier(peek(), SyntaxKeywordWhere))
     {
         advance();
         value.constraint = parse_simple_expression_until_boundary();
@@ -139,7 +140,7 @@ ExternalSystemDecl Parser::parse_external_system_decl(DiagnosticBag& diagnostics
             skip_balanced_block();
             continue;
         }
-        if (is_named_identifier(peek(), "metadata"))
+        if (is_named_identifier(peek(), SyntaxIdentifierMetadata))
         {
             auto metadata = parse_external_system_metadata_decl(diagnostics);
             if (external_system.metadata.has_value())
@@ -201,7 +202,7 @@ ExternalSystemMetadataDecl Parser::parse_external_system_metadata_decl(Diagnosti
             metadata.entity = parse_qualified_name(diagnostics, "external_system metadata entity");
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "profile_field"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierProfileField))
         {
             advance();
             metadata.profile_field =
@@ -209,13 +210,13 @@ ExternalSystemMetadataDecl Parser::parse_external_system_metadata_decl(Diagnosti
                     .lexeme;
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "required_fields"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierRequiredFields))
         {
             advance();
             metadata.required_fields = parse_identifier_list(diagnostics);
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "mappings"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierMappings))
         {
             advance();
             consume(TokenKind::LeftBrace, "expected '{' after metadata mappings", diagnostics);

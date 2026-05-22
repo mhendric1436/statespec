@@ -1,5 +1,7 @@
 #include "statespec/parser.hpp"
 
+#include "statespec/language_constants.hpp"
+
 namespace statespec
 {
 
@@ -73,7 +75,9 @@ PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
     {
         if (match(TokenKind::KeywordTenant))
         {
-            policy.member_order.push_back(BlockMemberOrder{"tenant", previous().range});
+            policy.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordTenant}, previous().range}
+            );
             consume(TokenKind::KeywordScopedBy, "expected scoped_by after tenant", diagnostics);
             policy.tenant_scoped_by =
                 consume(TokenKind::Identifier, "expected tenant scope field", diagnostics).lexeme;
@@ -81,7 +85,9 @@ PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordAllow))
         {
-            policy.member_order.push_back(BlockMemberOrder{"allow", previous().range});
+            policy.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordAllow}, previous().range}
+            );
             PolicyRuleDecl rule;
             const auto rule_start = previous();
             rule.action = parse_qualified_name(diagnostics, "allow action");
@@ -95,7 +101,9 @@ PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordDeny))
         {
-            policy.member_order.push_back(BlockMemberOrder{"deny", previous().range});
+            policy.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordDeny}, previous().range}
+            );
             PolicyRuleDecl rule;
             const auto rule_start = previous();
             rule.action = parse_qualified_name(diagnostics, "deny action");
@@ -109,7 +117,9 @@ PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordQuota))
         {
-            policy.member_order.push_back(BlockMemberOrder{"quota", previous().range});
+            policy.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordQuota}, previous().range}
+            );
             QuotaDecl quota;
             const auto quota_start = previous();
             quota.name = consume(TokenKind::Identifier, "expected quota name", diagnostics).lexeme;
@@ -121,7 +131,9 @@ PolicyDecl Parser::parse_policy_decl(DiagnosticBag& diagnostics)
         }
         else if (match(TokenKind::KeywordAudit))
         {
-            policy.member_order.push_back(BlockMemberOrder{"audit", previous().range});
+            policy.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordAudit}, previous().range}
+            );
             policy.audits.push_back(parse_qualified_name(diagnostics, "audit action"));
             consume_optional_semicolon();
         }

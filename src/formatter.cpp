@@ -1,5 +1,7 @@
 #include "statespec/formatter.hpp"
 
+#include "statespec/language_constants.hpp"
+
 #include <algorithm>
 #include <sstream>
 
@@ -176,20 +178,22 @@ void write_indent(
 bool is_feature_flag_member_start(const Token& token)
 {
     return token.kind == TokenKind::Identifier &&
-           (token.lexeme == "type" || token.lexeme == "default" || token.lexeme == "scope" ||
-            token.lexeme == "owner" || token.lexeme == "description" || token.lexeme == "expires");
+           (token.lexeme == SyntaxIdentifierType || token.lexeme == SyntaxIdentifierDefault ||
+            token.lexeme == SyntaxIdentifierScope || token.lexeme == SyntaxIdentifierOwner ||
+            token.lexeme == SyntaxIdentifierDescription || token.lexeme == SyntaxIdentifierExpires);
 }
 
 bool is_state_option_member_start(const Token& token)
 {
     return token.kind == TokenKind::KeywordTerminal ||
-           (token.kind == TokenKind::Identifier && token.lexeme == "garbage_collection");
+           (token.kind == TokenKind::Identifier &&
+            token.lexeme == SyntaxIdentifierGarbageCollection);
 }
 
 bool is_garbage_collection_member_start(const Token& token)
 {
     return token.kind == TokenKind::Identifier &&
-           (token.lexeme == "after" || token.lexeme == "mode");
+           (token.lexeme == SyntaxIdentifierAfter || token.lexeme == SyntaxIdentifierMode);
 }
 
 } // namespace
@@ -242,7 +246,8 @@ std::string format_tokens(
         const bool in_state_options_block =
             !block_stack.empty() && block_stack.back() == TokenKind::KeywordState;
         const bool in_garbage_collection_block =
-            !block_name_stack.empty() && block_name_stack.back() == "garbage_collection";
+            !block_name_stack.empty() &&
+            block_name_stack.back() == SyntaxIdentifierGarbageCollection;
         if (!at_line_start &&
             (token.range.begin.line > previous_source_line ||
              (in_feature_flag_block && is_feature_flag_member_start(token) &&

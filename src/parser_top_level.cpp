@@ -1,6 +1,7 @@
 #include "statespec/parser.hpp"
 
 #include "parser_helpers.hpp"
+#include "statespec/language_constants.hpp"
 
 #include <utility>
 
@@ -73,7 +74,9 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         if (match(TokenKind::KeywordTenant))
         {
             const auto tenant_start = previous();
-            system.member_order.push_back(BlockMemberOrder{"tenant", tenant_start.range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordTenant}, tenant_start.range}
+            );
             consume(TokenKind::KeywordScopedBy, "expected scoped_by after tenant", diagnostics);
             TenantScopeDecl tenant_scope;
             tenant_scope.field_name =
@@ -82,13 +85,15 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
             system.tenant_scope = tenant_scope;
             consume_optional_semicolon();
         }
-        else if (is_named_identifier(peek(), "system_tenant"))
+        else if (is_named_identifier(peek(), SyntaxIdentifierSystemTenant))
         {
             const auto system_tenant_start = advance();
             system.member_order.push_back(
-                BlockMemberOrder{"system_tenant", system_tenant_start.range}
+                BlockMemberOrder{
+                    std::string{SyntaxIdentifierSystemTenant}, system_tenant_start.range
+                }
             );
-            if (!is_named_identifier(peek(), "configured"))
+            if (!is_named_identifier(peek(), SyntaxIdentifierConfigured))
             {
                 diagnostics.error(
                     peek().range, "SSPEC0200", "expected configured after system_tenant"
@@ -106,82 +111,114 @@ SystemDecl Parser::parse_system_decl(DiagnosticBag& diagnostics)
         }
         else if (check(TokenKind::KeywordEntity))
         {
-            system.member_order.push_back(BlockMemberOrder{"entity", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordEntity}, peek().range}
+            );
             system.entities.push_back(parse_entity_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordValue))
         {
-            system.member_order.push_back(BlockMemberOrder{"value", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordValue}, peek().range}
+            );
             system.values.push_back(parse_value_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordEnum))
         {
-            system.member_order.push_back(BlockMemberOrder{"enum", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordEnum}, peek().range}
+            );
             system.enums.push_back(parse_enum_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordEvent))
         {
-            system.member_order.push_back(BlockMemberOrder{"event", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordEvent}, peek().range}
+            );
             system.events.push_back(parse_event_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordShape))
         {
-            system.member_order.push_back(BlockMemberOrder{"shape", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordShape}, peek().range}
+            );
             system.shapes.push_back(parse_shape_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordExternalSystem))
         {
-            system.member_order.push_back(BlockMemberOrder{"external_system", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordExternalSystem}, peek().range}
+            );
             system.external_systems.push_back(parse_external_system_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordFeatureFlag))
         {
-            system.member_order.push_back(BlockMemberOrder{"feature_flag", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordFeatureFlag}, peek().range}
+            );
             system.feature_flags.push_back(parse_feature_flag_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordLog))
         {
-            system.member_order.push_back(BlockMemberOrder{"log", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordLog}, peek().range}
+            );
             system.logs.push_back(parse_log_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordMetric))
         {
-            system.member_order.push_back(BlockMemberOrder{"metric", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordMetric}, peek().range}
+            );
             system.metrics.push_back(parse_metric_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordQueue))
         {
-            system.member_order.push_back(BlockMemberOrder{"queue", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordQueue}, peek().range}
+            );
             system.queues.push_back(parse_queue_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordLease))
         {
-            system.member_order.push_back(BlockMemberOrder{"lease", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordLease}, peek().range}
+            );
             system.leases.push_back(parse_lease_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordWorker))
         {
-            system.member_order.push_back(BlockMemberOrder{"worker", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordWorker}, peek().range}
+            );
             system.workers.push_back(parse_worker_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordApiServer))
         {
-            system.member_order.push_back(BlockMemberOrder{"api_server", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordApiServer}, peek().range}
+            );
             system.api_servers.push_back(parse_api_server_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordApi))
         {
-            system.member_order.push_back(BlockMemberOrder{"api", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordApi}, peek().range}
+            );
             system.apis.push_back(parse_api_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordWorkflow))
         {
-            system.member_order.push_back(BlockMemberOrder{"workflow", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordWorkflow}, peek().range}
+            );
             system.workflows.push_back(parse_workflow_decl(diagnostics));
         }
         else if (check(TokenKind::KeywordPolicy))
         {
-            system.member_order.push_back(BlockMemberOrder{"policy", peek().range});
+            system.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordPolicy}, peek().range}
+            );
             system.policies.push_back(parse_policy_decl(diagnostics));
         }
         else
