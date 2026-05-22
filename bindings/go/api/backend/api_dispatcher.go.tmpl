@@ -15,18 +15,7 @@ func FindAPITierRoute(routeName string) (common.ApiRouteDescriptor, bool) {
 	return common.ApiRouteDescriptor{}, false
 }
 
-func DispatchAPITierRoute(ctx context.Context, handler common.APIHandler, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
-	if _, ok := FindAPITierRoute(routeName); !ok {
-		return common.APIResponse{}, false, nil
-	}
-	response, err := handler.Handle(ctx, request)
-	if err != nil {
-		return common.APIResponse{}, true, err
-	}
-	return response, true, nil
-}
-
-func DispatchAPITierOperationRoute(ctx context.Context, handler APITierOperationHandler, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
+func DispatchAPITierRoute(ctx context.Context, handler APITierHandler, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
 	route, ok := FindAPITierRoute(routeName)
 	if !ok {
 		return common.APIResponse{}, false, nil

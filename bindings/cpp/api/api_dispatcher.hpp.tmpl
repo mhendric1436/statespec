@@ -22,19 +22,6 @@ inline std::optional<ApiRouteDescriptor> find_api_route(std::string_view route_n
 }
 
 inline std::optional<ApiResponse> dispatch_api_route(
-    IApiHandler& handler,
-    std::string_view route_name,
-    const ApiRequestContext& context
-)
-{
-    if (!find_api_route(route_name).has_value())
-    {
-        return std::nullopt;
-    }
-    return handler.handle(context);
-}
-
-inline std::optional<ApiResponse> dispatch_api_operation_route(
     IApiOperationHandler& handler,
     std::string_view route_name,
     const ApiRequestContext& context

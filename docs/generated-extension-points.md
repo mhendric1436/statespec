@@ -54,27 +54,25 @@ same generated interfaces.
 
 API handlers receive a framework-neutral request context and return a generated API
 response. The generated dispatcher maps an API server route name such as
-`ProvisionApi.StartProvision` to the handler call. Framework adapters should translate
-HTTP requests into the generated request context, call the handler, and translate the
-response back to the selected HTTP framework.
+`ProvisionApi.StartProvision` to the declared operation-specific handler method.
+Framework adapters should translate HTTP requests into the generated request context,
+call the typed handler, and translate the response back to the selected HTTP framework.
 
 | Language | Generated API handler surface |
 |---|---|
-| C++ | `statespec_generated::IApiHandler` and `api/api_handlers.hpp` |
-| Go | `common.APIHandler` and `api/backend.APITierHandler` |
-| Java | `Descriptors.ApiHandler` and `ApiHandlers.Handler` |
-| Rust | `descriptors::ApiHandler` and `api::api_handlers` |
+| C++ | `statespec_generated::api::IApiOperationHandler` in `api/api_handlers.hpp` |
+| Go | `api/backend.APITierHandler` |
+| Java | `ApiHandlers.Handler` |
+| Rust | `api_handlers::ApiHandler` |
 
 API handlers may start workflows, enqueue messages, resolve operator metadata, or read
 entities, but any persisted state access must use the generated backend/OCC transaction
 model. Handler code should not bypass `IBackend` and `ITransaction` or the equivalent
 language bindings for direct store access.
 
-The API tier also generates operation-specific handler interfaces and dispatch methods.
-These typed operation handlers are the preferred API extension point for new code because
-the generated dispatcher routes directly from a declared API name to the corresponding
-operation method. The older generic API handler remains available for framework adapters
-and compatibility.
+Typed operation handlers are the canonical API extension point. StateSpec does not
+generate a parallel generic API handler path; each declared API operation maps to one
+generated handler method and one dispatcher branch.
 
 When testing API handlers locally, inject the generated in-memory backend through the
 same application-owned dependency path that production code uses for its durable

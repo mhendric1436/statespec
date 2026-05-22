@@ -13,7 +13,15 @@ type linkingHandler struct {
 	backend *memory.Backend
 }
 
-func (h linkingHandler) Handle(ctx context.Context, request common.APIRequestContext) (common.APIResponse, error) {
+func (h linkingHandler) HandleStartProvision(ctx context.Context, request common.APIRequestContext) (common.APIResponse, error) {
+	return h.recordRequest(ctx, request)
+}
+
+func (h linkingHandler) HandleReportProvisionReady(ctx context.Context, request common.APIRequestContext) (common.APIResponse, error) {
+	return h.recordRequest(ctx, request)
+}
+
+func (h linkingHandler) recordRequest(ctx context.Context, request common.APIRequestContext) (common.APIResponse, error) {
 	tx, err := h.backend.Begin(ctx)
 	if err != nil {
 		return common.APIResponse{}, err

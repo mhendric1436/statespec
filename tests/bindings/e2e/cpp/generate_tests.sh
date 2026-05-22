@@ -80,6 +80,7 @@ assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionCo
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_server.hpp" "class ApiServer"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_dispatcher.hpp" "dispatch_api_route"
+assert_file_not_contains "$TMPDIR/out-app-cpp/api/api_dispatcher.hpp" "dispatch_api_operation_route"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_registry.hpp" "find_worker_descriptor"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "keep_alive_step"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.validate_request\""

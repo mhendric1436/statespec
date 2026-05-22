@@ -15,18 +15,7 @@ public final class ApiDispatcher {
     }
 
     public static Optional<Descriptors.ApiResponse> dispatchApiRoute(
-        Descriptors.ApiHandler handler,
-        String routeName,
-        Descriptors.ApiRequestContext context
-    ) throws Exception {
-        if (!findApiRoute(routeName).isPresent()) {
-            return Optional.empty();
-        }
-        return Optional.of(handler.handle(context));
-    }
-
-    public static Optional<Descriptors.ApiResponse> dispatchApiOperationRoute(
-        ApiHandlers.OperationHandler handler,
+        ApiHandlers.Handler handler,
         String routeName,
         Descriptors.ApiRequestContext context
     ) throws Exception {

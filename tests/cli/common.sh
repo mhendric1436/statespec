@@ -63,6 +63,16 @@ assert_file_contains() {
     fi
 }
 
+assert_file_not_contains() {
+    path="$1"
+    needle="$2"
+    if grep -F -- "$needle" "$path" >/dev/null 2>&1; then
+        echo "expected $path not to contain: $needle" >&2
+        cat "$path" >&2 || true
+        exit 1
+    fi
+}
+
 assert_file_manifest_equals() {
     require_test_tmpdir
     root="$1"

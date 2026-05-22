@@ -8,7 +8,7 @@ import (
 
 type APITierServer struct {
 	Descriptor common.ApiServerDescriptor
-	Handler    common.APIHandler
+	Handler    APITierHandler
 }
 
 func FindAPITierServer(serverName string) (common.ApiServerDescriptor, bool) {

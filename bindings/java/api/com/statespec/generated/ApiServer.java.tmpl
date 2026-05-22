@@ -4,9 +4,9 @@ import java.util.Optional;
 
 public final class ApiServer {
     private final Descriptors.ApiServerDescriptor descriptor;
-    private final Descriptors.ApiHandler handler;
+    private final ApiHandlers.Handler handler;
 
-    public ApiServer(Descriptors.ApiServerDescriptor descriptor, Descriptors.ApiHandler handler) {
+    public ApiServer(Descriptors.ApiServerDescriptor descriptor, ApiHandlers.Handler handler) {
         this.descriptor = descriptor;
         this.handler = handler;
     }

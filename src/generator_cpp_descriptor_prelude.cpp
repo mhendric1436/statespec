@@ -337,13 +337,6 @@ std::string generate_cpp_descriptor_prelude(const IrSystem& system)
     out << "    statespec::backend::Json body;\n";
     out << "};\n\n";
 
-    out << "class IApiHandler\n";
-    out << "{\n";
-    out << "public:\n";
-    out << "    virtual ~IApiHandler() = default;\n";
-    out << "    virtual ApiResponse handle(const ApiRequestContext& context) = 0;\n";
-    out << "};\n\n";
-
     out << "class IExternalSystemOperatorMetadataApiHandler\n";
     out << "{\n";
     out << "public:\n";

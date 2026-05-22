@@ -10,12 +10,25 @@ public final class ApiLinkingFixture
 {
     private ApiLinkingFixture() {}
 
-    private static final class LinkingHandler implements Descriptors.ApiHandler
+    private static final class LinkingHandler implements ApiHandlers.Handler
     {
         private final InMemoryBackend backend = new InMemoryBackend();
 
         @Override
-        public Descriptors.ApiResponse handle(Descriptors.ApiRequestContext context)
+        public Descriptors.ApiResponse handleStartProvision(Descriptors.ApiRequestContext context)
+            throws Exception
+        {
+            return recordRequest(context);
+        }
+
+        @Override
+        public Descriptors.ApiResponse
+        handleReportProvisionReady(Descriptors.ApiRequestContext context) throws Exception
+        {
+            return recordRequest(context);
+        }
+
+        private Descriptors.ApiResponse recordRequest(Descriptors.ApiRequestContext context)
             throws Exception
         {
             Backend.Transaction tx = backend.begin();

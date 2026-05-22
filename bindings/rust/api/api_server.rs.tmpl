@@ -1,7 +1,8 @@
 use crate::api_descriptors;
 use crate::api_dispatcher;
+use crate::api_handlers::ApiHandler;
 use crate::backend::BackendResult;
-use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse, ApiServerDescriptor};
+use crate::descriptors::{ApiRequestContext, ApiResponse, ApiServerDescriptor};
 
 pub struct ApiServer<H: ApiHandler> {
     pub descriptor: ApiServerDescriptor,

@@ -291,9 +291,6 @@ std::string generate_rust_descriptor_prelude(const IrSystem& system)
     out << "    pub status_code: i32,\n";
     out << "    pub body: Json,\n";
     out << "}\n\n";
-    out << "pub trait ApiHandler {\n";
-    out << "    fn handle(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse>;\n";
-    out << "}\n\n";
     out << "pub trait ExternalSystemOperatorMetadataApiHandler<B: Backend> {\n";
     out << "    fn handle_upsert_metadata_tx<R: ExternalSystemOperatorMetadataRepository<B>>(\n";
     out << "        &self,\n";

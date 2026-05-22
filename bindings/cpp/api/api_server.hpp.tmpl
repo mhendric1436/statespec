@@ -28,7 +28,7 @@ class ApiServer
   public:
     ApiServer(
         ApiServerDescriptor descriptor,
-        IApiHandler& handler
+        IApiOperationHandler& handler
     )
         : descriptor_(std::move(descriptor)),
           handler_(handler)
@@ -55,7 +55,7 @@ class ApiServer
 
   private:
     ApiServerDescriptor descriptor_;
-    IApiHandler& handler_;
+    IApiOperationHandler& handler_;
 };
 
 } // namespace statespec_generated::api

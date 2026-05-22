@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
+use statespec_generated::api_handlers::ApiHandler;
 use statespec_generated::api_server::{find_api_server, ApiServer};
 use statespec_generated::backend::Backend;
-use statespec_generated::descriptors::{ApiHandler, ApiRequestContext, ApiResponse};
+use statespec_generated::descriptors::{ApiRequestContext, ApiResponse};
 use statespec_generated::json::Json;
 use statespec_generated::memory_backend::InMemoryBackend;
 
@@ -11,7 +12,23 @@ struct LinkingHandler {
 }
 
 impl ApiHandler for LinkingHandler {
-    fn handle(
+    fn handle_start_provision(
+        &self,
+        context: &ApiRequestContext,
+    ) -> statespec_generated::backend::BackendResult<ApiResponse> {
+        self.record_request(context)
+    }
+
+    fn handle_report_provision_ready(
+        &self,
+        context: &ApiRequestContext,
+    ) -> statespec_generated::backend::BackendResult<ApiResponse> {
+        self.record_request(context)
+    }
+}
+
+impl LinkingHandler {
+    fn record_request(
         &self,
         context: &ApiRequestContext,
     ) -> statespec_generated::backend::BackendResult<ApiResponse> {

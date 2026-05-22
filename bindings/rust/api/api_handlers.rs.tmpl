@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use crate::backend::BackendResult;
 
-pub use crate::descriptors::{ApiHandler, ApiRequestContext, ApiResponse};
+pub use crate::descriptors::{ApiRequestContext, ApiResponse};
 
-pub trait ApiOperationHandler {
+pub trait ApiHandler {
 {{api_operation_handler_methods}}}

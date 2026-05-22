@@ -283,10 +283,6 @@ std::string generate_java_descriptor_prelude(const IrSystem& system)
     out << "        int statusCode,\n";
     out << "        Json body\n";
     out << "    ) {}\n\n";
-    out << "    public interface ApiHandler {\n";
-    out << "        ApiResponse handle(ApiRequestContext context) throws Exception;\n";
-    out << "    }\n\n";
-
     out << "    public interface ExternalSystemOperatorMetadataApiHandler {\n";
     out << "        ApiResponse handleUpsertMetadataTx(\n";
     out << "            Backend.Transaction tx,\n";

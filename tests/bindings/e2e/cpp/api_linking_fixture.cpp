@@ -3,11 +3,25 @@
 
 #include <stdexcept>
 
-class LinkingApiHandler final : public statespec_generated::api::IApiHandler
+class LinkingApiHandler final : public statespec_generated::api::IApiOperationHandler
 {
   public:
     statespec_generated::api::ApiResponse
-    handle(const statespec_generated::api::ApiRequestContext& context) override
+    handle_start_provision(const statespec_generated::api::ApiRequestContext& context) override
+    {
+        return record_request(context);
+    }
+
+    statespec_generated::api::ApiResponse handle_report_provision_ready(
+        const statespec_generated::api::ApiRequestContext& context
+    ) override
+    {
+        return record_request(context);
+    }
+
+  private:
+    statespec_generated::api::ApiResponse
+    record_request(const statespec_generated::api::ApiRequestContext& context)
     {
         backend_.ensure_collection(
             statespec::backend::CollectionDescriptor{
@@ -33,7 +47,6 @@ class LinkingApiHandler final : public statespec_generated::api::IApiHandler
         };
     }
 
-  private:
     statespec::backend::memory::InMemoryBackend backend_;
 };
 

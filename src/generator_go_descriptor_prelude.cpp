@@ -253,9 +253,6 @@ std::string generate_go_descriptor_prelude(const IrSystem& system)
     out << "\tStatusCode int\n";
     out << "\tBody JSON\n";
     out << "}\n\n";
-    out << "type APIHandler interface {\n";
-    out << "\tHandle(context.Context, APIRequestContext) (APIResponse, error)\n";
-    out << "}\n\n";
     out << "type ExternalSystemOperatorMetadataAPIHandler interface {\n";
     out << "\tHandleUpsertMetadataTx(context.Context, Transaction, "
            "ExternalSystemOperatorMetadataRepository, "
