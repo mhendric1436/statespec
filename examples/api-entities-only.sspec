@@ -16,6 +16,17 @@ system ApiEntitiesOnly {
     status string
   }
 
+  shape AccountListResponse {
+    tenant_id string
+    accounts AccountResponse[]
+  }
+
+  shape UpdateAccountStatusRequest {
+    tenant_id string
+    account_id string
+    status string
+  }
+
   shape CreateProjectRequest {
     tenant_id string
     account_id string
@@ -28,6 +39,19 @@ system ApiEntitiesOnly {
     account_id string
     project_id string
     name string
+    status string
+  }
+
+  shape ProjectListResponse {
+    tenant_id string
+    account_id string
+    projects ProjectResponse[]
+  }
+
+  shape UpdateProjectStatusRequest {
+    tenant_id string
+    account_id string
+    project_id string
     status string
   }
 
@@ -47,6 +71,14 @@ system ApiEntitiesOnly {
     task_id string
     title string
     priority int
+    status string
+  }
+
+  shape UpdateTaskStatusRequest {
+    tenant_id string
+    account_id string
+    project_id string
+    task_id string
     status string
   }
 
@@ -229,6 +261,24 @@ system ApiEntitiesOnly {
     output AccountResponse
   }
 
+  api ListAccounts {
+    method GET
+    path "/v1/tenants/{tenant_id}/accounts"
+    output AccountListResponse
+  }
+
+  api UpdateAccountStatus {
+    method PATCH
+    path "/v1/tenants/{tenant_id}/accounts/{account_id}/status"
+    input UpdateAccountStatusRequest
+    output AccountResponse
+  }
+
+  api DeleteAccount {
+    method DELETE
+    path "/v1/tenants/{tenant_id}/accounts/{account_id}"
+  }
+
   api CreateProject {
     method POST
     path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects/{project_id}"
@@ -242,11 +292,47 @@ system ApiEntitiesOnly {
     output ProjectResponse
   }
 
+  api ListAccountProjects {
+    method GET
+    path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects"
+    output ProjectListResponse
+  }
+
+  api UpdateProjectStatus {
+    method PATCH
+    path "/v1/tenants/{tenant_id}/projects/{project_id}/status"
+    input UpdateProjectStatusRequest
+    output ProjectResponse
+  }
+
+  api DeleteProject {
+    method DELETE
+    path "/v1/tenants/{tenant_id}/projects/{project_id}"
+  }
+
   api CreateTask {
     method POST
     path "/v1/tenants/{tenant_id}/projects/{project_id}/tasks/{task_id}"
     input CreateTaskRequest
     output TaskResponse
+  }
+
+  api GetTask {
+    method GET
+    path "/v1/tenants/{tenant_id}/tasks/{task_id}"
+    output TaskResponse
+  }
+
+  api UpdateTaskStatus {
+    method PATCH
+    path "/v1/tenants/{tenant_id}/tasks/{task_id}/status"
+    input UpdateTaskStatusRequest
+    output TaskResponse
+  }
+
+  api DeleteTask {
+    method DELETE
+    path "/v1/tenants/{tenant_id}/tasks/{task_id}"
   }
 
   api ListProjectTasks {
@@ -258,9 +344,18 @@ system ApiEntitiesOnly {
   api_server EntityApi {
     serves CreateAccount
     serves GetAccount
+    serves ListAccounts
+    serves UpdateAccountStatus
+    serves DeleteAccount
     serves CreateProject
     serves GetProject
+    serves ListAccountProjects
+    serves UpdateProjectStatus
+    serves DeleteProject
     serves CreateTask
+    serves GetTask
+    serves UpdateTaskStatus
+    serves DeleteTask
     serves ListProjectTasks
     concurrency 32
   }
