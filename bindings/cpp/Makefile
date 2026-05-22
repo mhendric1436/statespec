@@ -8,6 +8,8 @@ BIN_DIR := $(BUILD_DIR)/bin
 ROOT_DIR := ../..
 CATCH_SRC := $(ROOT_DIR)/third_party/catch2/catch_amalgamated.cpp
 JSON_TEST := $(BIN_DIR)/json_test
+SCHEMA_COMPATIBILITY_TEST := $(BIN_DIR)/schema_compatibility_test
+BINDING_TESTS := $(JSON_TEST) $(SCHEMA_COMPATIBILITY_TEST)
 GENERATED_FORMAT_TEMPLATES := $(filter-out generated/descriptors.hpp.tmpl generated/runtime_registration.hpp.tmpl,$(wildcard generated/*.hpp.tmpl))
 API_FORMAT_TEMPLATES := $(filter-out api/api_application.hpp.tmpl,$(wildcard api/*.hpp.tmpl))
 WORKER_FORMAT_TEMPLATES := $(filter-out worker/worker_runtime.hpp.tmpl,$(wildcard worker/*.hpp.tmpl))
@@ -15,10 +17,11 @@ FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(GENERATED_FORMAT_TEMPLATES
 
 .PHONY: test build format clean help
 
-test: $(JSON_TEST)
+test: $(BINDING_TESTS)
 	$(JSON_TEST)
+	$(SCHEMA_COMPATIBILITY_TEST)
 
-build: $(JSON_TEST)
+build: $(BINDING_TESTS)
 
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
@@ -26,6 +29,10 @@ format:
 $(JSON_TEST): json_test.cpp backend.hpp external_system.hpp feature_flag.hpp json.hpp log.hpp metric.hpp $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp) $(CATCH_SRC)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party json_test.cpp $(CATCH_SRC) -o $@ $(LDFLAGS)
+
+$(SCHEMA_COMPATIBILITY_TEST): schema_compatibility_test.cpp backend.hpp schema_compatibility.hpp $(CATCH_SRC)
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party schema_compatibility_test.cpp $(CATCH_SRC) -o $@ $(LDFLAGS)
 
 clean:
 	rm -rf $(BUILD_DIR)
