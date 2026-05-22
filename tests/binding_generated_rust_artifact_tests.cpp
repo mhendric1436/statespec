@@ -52,14 +52,6 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"worker/worker_contexts.rs", worker},
             {"worker/worker_descriptors.rs", worker},
             {"worker/worker_registry.rs", worker},
-            {"worker/worker_application.rs", worker},
-            {"worker/worker_runtime.rs", worker},
-            {"worker/workflow_step_handlers.rs", worker},
-            {"worker/workflow_runner.rs", worker},
-            {"worker/worker_leases.rs", worker},
-            {"worker/worker_queues.rs", worker},
-            {"worker/worker_workflows.rs", worker},
-            {"worker/main.rs", worker},
         }
     );
 }
@@ -108,37 +100,6 @@ void test_rust_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "worker/worker_registry.rs", "worker/worker_registry.rs",
         statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_application.rs", "worker/worker_application.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_runtime.rs", "worker/worker_runtime.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/workflow_step_handlers.rs", "worker/workflow_step_handlers.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/workflow_runner.rs", "worker/workflow_runner.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_queues.rs", "worker/worker_queues.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_leases.rs", "worker/worker_leases.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_workflows.rs", "worker/worker_workflows.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/main.rs", "worker/main.rs", statespec::GeneratedArtifactTier::Worker
     );
 }
 

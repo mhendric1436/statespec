@@ -125,20 +125,20 @@ void test_rust_lib_rs_matches_selected_tier()
         "worker lib declares worker registry module"
     );
     require(
-        worker_lib.find("pub mod worker_application;") != std::string::npos,
-        "worker lib declares worker application module"
+        worker_lib.find("pub mod worker_application;") == std::string::npos,
+        "worker lib excludes worker application module when no worker is declared"
     );
     require(
-        worker_lib.find("pub mod workflow_step_handlers;") != std::string::npos,
-        "worker lib declares workflow step handler module"
+        worker_lib.find("pub mod workflow_step_handlers;") == std::string::npos,
+        "worker lib excludes workflow step handler module when no worker or workflow is declared"
     );
     require(
-        worker_lib.find("pub mod workflow_runner;") != std::string::npos,
-        "worker lib declares workflow runner module"
+        worker_lib.find("pub mod workflow_runner;") == std::string::npos,
+        "worker lib excludes workflow runner module when no worker or workflow is declared"
     );
     require(
-        worker_lib.find("pub mod worker_workflows;") != std::string::npos,
-        "worker lib declares worker workflow module"
+        worker_lib.find("pub mod worker_workflows;") == std::string::npos,
+        "worker lib excludes worker workflow module when workflows are unused"
     );
 
     require(!diagnostics.has_errors(), "rust tier-aware lib generation should not fail");
@@ -233,20 +233,21 @@ void test_cpp_makefile_matches_selected_tier()
         "worker Makefile includes worker registry header"
     );
     require(
-        worker_makefile.find("worker/worker_application.hpp") != std::string::npos,
-        "worker Makefile includes worker application header"
+        worker_makefile.find("worker/worker_application.hpp") == std::string::npos,
+        "worker Makefile excludes worker application header when no worker is declared"
     );
     require(
-        worker_makefile.find("worker/workflow_step_handlers.hpp") != std::string::npos,
-        "worker Makefile includes workflow step handlers header"
+        worker_makefile.find("worker/workflow_step_handlers.hpp") == std::string::npos,
+        "worker Makefile excludes workflow step handlers header when no worker or workflow is "
+        "declared"
     );
     require(
-        worker_makefile.find("worker/workflow_runner.hpp") != std::string::npos,
-        "worker Makefile includes workflow runner header"
+        worker_makefile.find("worker/workflow_runner.hpp") == std::string::npos,
+        "worker Makefile excludes workflow runner header when no worker or workflow is declared"
     );
     require(
-        worker_makefile.find("worker/worker_workflows.hpp") != std::string::npos,
-        "worker Makefile includes worker workflows header"
+        worker_makefile.find("worker/worker_workflows.hpp") == std::string::npos,
+        "worker Makefile excludes worker workflows header when workflows are unused"
     );
     require(
         worker_makefile.find("build-worker") != std::string::npos,

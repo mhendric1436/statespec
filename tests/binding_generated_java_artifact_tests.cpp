@@ -50,14 +50,6 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"worker/com/statespec/generated/WorkerContexts.java", worker},
             {"worker/com/statespec/generated/WorkerDescriptors.java", worker},
             {"worker/com/statespec/generated/WorkerRegistry.java", worker},
-            {"worker/com/statespec/generated/WorkerApplication.java", worker},
-            {"worker/com/statespec/generated/WorkerRuntime.java", worker},
-            {"worker/com/statespec/generated/WorkflowStepHandlers.java", worker},
-            {"worker/com/statespec/generated/WorkflowRunner.java", worker},
-            {"worker/com/statespec/generated/WorkerMain.java", worker},
-            {"worker/com/statespec/generated/WorkerLeases.java", worker},
-            {"worker/com/statespec/generated/WorkerQueues.java", worker},
-            {"worker/com/statespec/generated/WorkerWorkflows.java", worker},
         }
     );
 }
@@ -107,43 +99,6 @@ void test_java_binding_generator_models_artifact_paths()
         result, "worker/com/statespec/generated/WorkerRegistry.java",
         "worker/com/statespec/generated/WorkerRegistry.java",
         statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerApplication.java",
-        "worker/com/statespec/generated/WorkerApplication.java",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerRuntime.java",
-        "worker/com/statespec/generated/WorkerRuntime.java",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkflowStepHandlers.java",
-        "worker/com/statespec/generated/WorkflowStepHandlers.java",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkflowRunner.java",
-        "worker/com/statespec/generated/WorkflowRunner.java",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerQueues.java",
-        "worker/com/statespec/generated/WorkerQueues.java", statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerLeases.java",
-        "worker/com/statespec/generated/WorkerLeases.java", statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerWorkflows.java",
-        "worker/com/statespec/generated/WorkerWorkflows.java",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerMain.java",
-        "worker/com/statespec/generated/WorkerMain.java", statespec::GeneratedArtifactTier::Worker
     );
 }
 

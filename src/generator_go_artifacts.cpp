@@ -372,6 +372,10 @@ void add_go_worker_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
+    const auto include_worker_composition = !system.workers.empty();
+    const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
+
     add_generated_template_file(
         result, options.output_dir, templates, "worker/backend/worker_descriptors.go.tmpl",
         "worker/backend/worker_descriptors.go", diagnostics, GeneratedArtifactTier::Worker
@@ -384,47 +388,63 @@ void add_go_worker_artifacts(
         result, options.output_dir, templates, "worker/backend/worker_registry.go.tmpl",
         "worker/backend/worker_registry.go", diagnostics, GeneratedArtifactTier::Worker
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/backend/worker_application.go.tmpl",
-        "worker/backend/worker_application.go", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/backend/worker_runtime.go.tmpl",
-        "worker/backend/worker_runtime.go", diagnostics, GeneratedArtifactTier::Worker,
-        go_worker_runtime_bootstrap_values(system)
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/backend/workflow_step_handlers.go.tmpl",
-        "worker/backend/workflow_step_handlers.go", diagnostics, GeneratedArtifactTier::Worker,
-        TemplateRenderer::Values{
-            {"workflow_step_handler_methods", generate_workflow_step_handler_methods_go(system)},
-            {"workflow_step_handler_keys", generate_workflow_step_handler_keys_go(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/backend/workflow_runner.go.tmpl",
-        "worker/backend/workflow_runner.go", diagnostics, GeneratedArtifactTier::Worker,
-        TemplateRenderer::Values{
-            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_go(system)},
-            {"workflow_step_next_cases", generate_workflow_step_next_cases_go(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/backend/worker_queues.go.tmpl",
-        "worker/backend/worker_queues.go", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/backend/worker_leases.go.tmpl",
-        "worker/backend/worker_leases.go", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/backend/worker_workflows.go.tmpl",
-        "worker/backend/worker_workflows.go", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/cmd/worker/main.go.tmpl",
-        "worker/cmd/worker/main.go", diagnostics, GeneratedArtifactTier::Worker
-    );
+    if (include_worker_composition)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_application.go.tmpl",
+            "worker/backend/worker_application.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_runtime.go.tmpl",
+            "worker/backend/worker_runtime.go", diagnostics, GeneratedArtifactTier::Worker,
+            go_worker_runtime_bootstrap_values(system)
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/cmd/worker/main.go.tmpl",
+            "worker/cmd/worker/main.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (include_worker_execution)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/workflow_step_handlers.go.tmpl",
+            "worker/backend/workflow_step_handlers.go", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_handler_methods",
+                 generate_workflow_step_handler_methods_go(system)},
+                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_go(system)}
+            }
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/workflow_runner.go.tmpl",
+            "worker/backend/workflow_runner.go", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_go(system)},
+                {"workflow_step_next_cases", generate_workflow_step_next_cases_go(system)}
+            }
+        );
+    }
+    if (usage.uses_queues)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_queues.go.tmpl",
+            "worker/backend/worker_queues.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (usage.uses_leases)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_leases.go.tmpl",
+            "worker/backend/worker_leases.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/backend/worker_workflows.go.tmpl",
+            "worker/backend/worker_workflows.go", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
 }
 
 } // namespace statespec

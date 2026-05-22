@@ -58,6 +58,10 @@ TemplateRenderer::Values cpp_makefile_values(
     const auto include_worker =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
     const auto include_api_composition = include_api && !system.api_servers.empty();
+    const auto usage = runtime_domain_usage(system);
+    const auto include_worker_composition = include_worker && !system.workers.empty();
+    const auto include_worker_execution =
+        include_worker && (include_worker_composition || usage.uses_workflows);
 
     std::ostringstream target_additions;
     std::ostringstream phony_targets;
@@ -100,20 +104,38 @@ TemplateRenderer::Values cpp_makefile_values(
         target_additions << "\nPACKAGE_TARGETS += package-worker";
         phony_targets << " check-worker build-worker package-worker";
         worker_rules << "check-worker: $(BUILD_DIR)/.dir\n";
-        worker_rules << "\tprintf '#include \"worker/worker_application.hpp\"\\n"
-                        "#include \"worker/worker_contexts.hpp\"\\n"
+        worker_rules << "\tprintf '#include \"worker/worker_contexts.hpp\"\\n"
                         "#include \"worker/worker_descriptors.hpp\"\\n"
-                        "#include \"worker/worker_leases.hpp\"\\n"
-                        "#include \"worker/worker_queues.hpp\"\\n"
-                        "#include \"worker/worker_registry.hpp\"\\n"
-                        "#include \"worker/worker_runtime.hpp\"\\n"
-                        "#include \"worker/worker_workflows.hpp\"\\n"
-                        "#include \"worker/workflow_runner.hpp\"\\n"
-                        "#include \"worker/workflow_step_handlers.hpp\"\\n"
-                        "int main() { return 0; }\\n' | "
+                        "#include \"worker/worker_registry.hpp\"\\n";
+        if (include_worker_composition)
+        {
+            worker_rules << "#include \"worker/worker_application.hpp\"\\n"
+                            "#include \"worker/worker_runtime.hpp\"\\n";
+        }
+        if (usage.uses_leases)
+        {
+            worker_rules << "#include \"worker/worker_leases.hpp\"\\n";
+        }
+        if (usage.uses_queues)
+        {
+            worker_rules << "#include \"worker/worker_queues.hpp\"\\n";
+        }
+        if (usage.uses_workflows)
+        {
+            worker_rules << "#include \"worker/worker_workflows.hpp\"\\n";
+        }
+        if (include_worker_execution)
+        {
+            worker_rules << "#include \"worker/workflow_runner.hpp\"\\n"
+                            "#include \"worker/workflow_step_handlers.hpp\"\\n";
+        }
+        worker_rules << "int main() { return 0; }\\n' | "
                         "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
         worker_rules << "build-worker: check-worker\n";
-        worker_rules << "\t$(CXX) $(CXXFLAGS) worker/main.cpp -o $(BUILD_DIR)/worker-main\n\n";
+        if (include_worker_composition)
+        {
+            worker_rules << "\t$(CXX) $(CXXFLAGS) worker/main.cpp -o $(BUILD_DIR)/worker-main\n\n";
+        }
         worker_rules << "package-worker: build-worker $(DIST_DIR)\n";
         worker_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-cpp.tgz common worker "
                         "Makefile\n\n";
@@ -436,6 +458,10 @@ void add_cpp_worker_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
+    const auto include_worker_composition = !system.workers.empty();
+    const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
+
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_descriptors.hpp.tmpl",
         "worker/worker_descriptors.hpp", diagnostics, GeneratedArtifactTier::Worker
@@ -448,47 +474,62 @@ void add_cpp_worker_artifacts(
         result, options.output_dir, templates, "worker/worker_registry.hpp.tmpl",
         "worker/worker_registry.hpp", diagnostics, GeneratedArtifactTier::Worker
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_application.hpp.tmpl",
-        "worker/worker_application.hpp", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_runtime.hpp.tmpl",
-        "worker/worker_runtime.hpp", diagnostics, GeneratedArtifactTier::Worker,
-        cpp_runtime_bootstrap_values(system)
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/workflow_step_handlers.hpp.tmpl",
-        "worker/workflow_step_handlers.hpp", diagnostics, GeneratedArtifactTier::Worker,
-        TemplateRenderer::Values{
-            {"workflow_step_handler_methods", generate_workflow_step_handler_methods(system)},
-            {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/workflow_runner.hpp.tmpl",
-        "worker/workflow_runner.hpp", diagnostics, GeneratedArtifactTier::Worker,
-        TemplateRenderer::Values{
-            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases(system)},
-            {"workflow_step_next_cases", generate_workflow_step_next_cases(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_queues.hpp.tmpl",
-        "worker/worker_queues.hpp", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_leases.hpp.tmpl",
-        "worker/worker_leases.hpp", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_workflows.hpp.tmpl",
-        "worker/worker_workflows.hpp", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/main.cpp.tmpl", "worker/main.cpp",
-        diagnostics, GeneratedArtifactTier::Worker
-    );
+    if (include_worker_composition)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_application.hpp.tmpl",
+            "worker/worker_application.hpp", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_runtime.hpp.tmpl",
+            "worker/worker_runtime.hpp", diagnostics, GeneratedArtifactTier::Worker,
+            cpp_runtime_bootstrap_values(system)
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/main.cpp.tmpl", "worker/main.cpp",
+            diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (include_worker_execution)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/workflow_step_handlers.hpp.tmpl",
+            "worker/workflow_step_handlers.hpp", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_handler_methods", generate_workflow_step_handler_methods(system)},
+                {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}
+            }
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/workflow_runner.hpp.tmpl",
+            "worker/workflow_runner.hpp", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases(system)},
+                {"workflow_step_next_cases", generate_workflow_step_next_cases(system)}
+            }
+        );
+    }
+    if (usage.uses_queues)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_queues.hpp.tmpl",
+            "worker/worker_queues.hpp", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (usage.uses_leases)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_leases.hpp.tmpl",
+            "worker/worker_leases.hpp", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_workflows.hpp.tmpl",
+            "worker/worker_workflows.hpp", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
 }
 
 } // namespace statespec

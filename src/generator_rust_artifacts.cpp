@@ -68,6 +68,11 @@ TemplateRenderer::Values rust_lib_values(
     const auto include_api_composition =
         (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api) &&
         !system.api_servers.empty();
+    const auto include_worker =
+        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+    const auto include_worker_composition = include_worker && !system.workers.empty();
+    const auto include_worker_execution =
+        include_worker && (include_worker_composition || usage.uses_workflows);
     std::ostringstream runtime_modules;
     std::ostringstream api_modules;
     std::ostringstream worker_modules;
@@ -132,30 +137,45 @@ TemplateRenderer::Values rust_lib_values(
             api_modules << "pub mod api_main;\n";
         }
     }
-    if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker)
+    if (include_worker)
     {
         worker_modules << "#[path = \"worker/worker_contexts.rs\"]\n";
         worker_modules << "pub mod worker_contexts;\n";
         worker_modules << "#[path = \"worker/worker_descriptors.rs\"]\n";
         worker_modules << "pub mod worker_descriptors;\n";
-        worker_modules << "#[path = \"worker/worker_leases.rs\"]\n";
-        worker_modules << "pub mod worker_leases;\n";
-        worker_modules << "#[path = \"worker/worker_queues.rs\"]\n";
-        worker_modules << "pub mod worker_queues;\n";
-        worker_modules << "#[path = \"worker/worker_workflows.rs\"]\n";
-        worker_modules << "pub mod worker_workflows;\n";
         worker_modules << "#[path = \"worker/worker_registry.rs\"]\n";
         worker_modules << "pub mod worker_registry;\n";
-        worker_modules << "#[path = \"worker/worker_application.rs\"]\n";
-        worker_modules << "pub mod worker_application;\n";
-        worker_modules << "#[path = \"worker/worker_runtime.rs\"]\n";
-        worker_modules << "pub mod worker_runtime;\n";
-        worker_modules << "#[path = \"worker/workflow_step_handlers.rs\"]\n";
-        worker_modules << "pub mod workflow_step_handlers;\n";
-        worker_modules << "#[path = \"worker/workflow_runner.rs\"]\n";
-        worker_modules << "pub mod workflow_runner;\n";
-        worker_modules << "#[path = \"worker/main.rs\"]\n";
-        worker_modules << "pub mod worker_main;\n";
+        if (usage.uses_leases)
+        {
+            worker_modules << "#[path = \"worker/worker_leases.rs\"]\n";
+            worker_modules << "pub mod worker_leases;\n";
+        }
+        if (usage.uses_queues)
+        {
+            worker_modules << "#[path = \"worker/worker_queues.rs\"]\n";
+            worker_modules << "pub mod worker_queues;\n";
+        }
+        if (usage.uses_workflows)
+        {
+            worker_modules << "#[path = \"worker/worker_workflows.rs\"]\n";
+            worker_modules << "pub mod worker_workflows;\n";
+        }
+        if (include_worker_composition)
+        {
+            worker_modules << "#[path = \"worker/worker_application.rs\"]\n";
+            worker_modules << "pub mod worker_application;\n";
+            worker_modules << "#[path = \"worker/worker_runtime.rs\"]\n";
+            worker_modules << "pub mod worker_runtime;\n";
+            worker_modules << "#[path = \"worker/main.rs\"]\n";
+            worker_modules << "pub mod worker_main;\n";
+        }
+        if (include_worker_execution)
+        {
+            worker_modules << "#[path = \"worker/workflow_step_handlers.rs\"]\n";
+            worker_modules << "pub mod workflow_step_handlers;\n";
+            worker_modules << "#[path = \"worker/workflow_runner.rs\"]\n";
+            worker_modules << "pub mod workflow_runner;\n";
+        }
     }
     return TemplateRenderer::Values{
         {"runtime_modules", runtime_modules.str()},
@@ -494,6 +514,10 @@ void add_rust_worker_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
+    const auto include_worker_composition = !system.workers.empty();
+    const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
+
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_descriptors.rs.tmpl",
         "worker/worker_descriptors.rs", diagnostics, GeneratedArtifactTier::Worker
@@ -506,47 +530,63 @@ void add_rust_worker_artifacts(
         result, options.output_dir, templates, "worker/worker_registry.rs.tmpl",
         "worker/worker_registry.rs", diagnostics, GeneratedArtifactTier::Worker
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_application.rs.tmpl",
-        "worker/worker_application.rs", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_runtime.rs.tmpl",
-        "worker/worker_runtime.rs", diagnostics, GeneratedArtifactTier::Worker,
-        rust_runtime_bootstrap_values(system)
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/workflow_step_handlers.rs.tmpl",
-        "worker/workflow_step_handlers.rs", diagnostics, GeneratedArtifactTier::Worker,
-        TemplateRenderer::Values{
-            {"workflow_step_handler_methods", generate_workflow_step_handler_methods_rs(system)},
-            {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/workflow_runner.rs.tmpl",
-        "worker/workflow_runner.rs", diagnostics, GeneratedArtifactTier::Worker,
-        TemplateRenderer::Values{
-            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_rs(system)},
-            {"workflow_step_next_cases", generate_workflow_step_next_cases_rs(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_queues.rs.tmpl",
-        "worker/worker_queues.rs", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_leases.rs.tmpl",
-        "worker/worker_leases.rs", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_workflows.rs.tmpl",
-        "worker/worker_workflows.rs", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/main.rs.tmpl", "worker/main.rs", diagnostics,
-        GeneratedArtifactTier::Worker
-    );
+    if (include_worker_composition)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_application.rs.tmpl",
+            "worker/worker_application.rs", diagnostics, GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_runtime.rs.tmpl",
+            "worker/worker_runtime.rs", diagnostics, GeneratedArtifactTier::Worker,
+            rust_runtime_bootstrap_values(system)
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/main.rs.tmpl", "worker/main.rs",
+            diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (include_worker_execution)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/workflow_step_handlers.rs.tmpl",
+            "worker/workflow_step_handlers.rs", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_handler_methods",
+                 generate_workflow_step_handler_methods_rs(system)},
+                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}
+            }
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/workflow_runner.rs.tmpl",
+            "worker/workflow_runner.rs", diagnostics, GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_rs(system)},
+                {"workflow_step_next_cases", generate_workflow_step_next_cases_rs(system)}
+            }
+        );
+    }
+    if (usage.uses_queues)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_queues.rs.tmpl",
+            "worker/worker_queues.rs", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (usage.uses_leases)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_leases.rs.tmpl",
+            "worker/worker_leases.rs", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "worker/worker_workflows.rs.tmpl",
+            "worker/worker_workflows.rs", diagnostics, GeneratedArtifactTier::Worker
+        );
+    }
 }
 
 } // namespace statespec

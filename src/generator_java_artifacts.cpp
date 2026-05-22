@@ -322,6 +322,10 @@ void add_java_worker_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
+    const auto include_worker_composition = !system.workers.empty();
+    const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
+
     add_generated_template_file(
         result, options.output_dir, templates,
         "worker/com/statespec/generated/WorkerDescriptors.java.tmpl",
@@ -340,61 +344,79 @@ void add_java_worker_artifacts(
         "worker/com/statespec/generated/WorkerRegistry.java", diagnostics,
         GeneratedArtifactTier::Worker
     );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerApplication.java.tmpl",
-        "worker/com/statespec/generated/WorkerApplication.java", diagnostics,
-        GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerRuntime.java.tmpl",
-        "worker/com/statespec/generated/WorkerRuntime.java", diagnostics,
-        GeneratedArtifactTier::Worker, java_runtime_bootstrap_values(system)
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkflowStepHandlers.java.tmpl",
-        "worker/com/statespec/generated/WorkflowStepHandlers.java", diagnostics,
-        GeneratedArtifactTier::Worker,
-        TemplateRenderer::Values{
-            {"workflow_step_handler_methods", generate_workflow_step_handler_methods_java(system)},
-            {"workflow_step_handler_keys", generate_workflow_step_handler_keys_java(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkflowRunner.java.tmpl",
-        "worker/com/statespec/generated/WorkflowRunner.java", diagnostics,
-        GeneratedArtifactTier::Worker,
-        TemplateRenderer::Values{
-            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_java(system)},
-            {"workflow_step_next_cases", generate_workflow_step_next_cases_java(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerQueues.java.tmpl",
-        "worker/com/statespec/generated/WorkerQueues.java", diagnostics,
-        GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerLeases.java.tmpl",
-        "worker/com/statespec/generated/WorkerLeases.java", diagnostics,
-        GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerWorkflows.java.tmpl",
-        "worker/com/statespec/generated/WorkerWorkflows.java", diagnostics,
-        GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerMain.java.tmpl",
-        "worker/com/statespec/generated/WorkerMain.java", diagnostics, GeneratedArtifactTier::Worker
-    );
+    if (include_worker_composition)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerApplication.java.tmpl",
+            "worker/com/statespec/generated/WorkerApplication.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerRuntime.java.tmpl",
+            "worker/com/statespec/generated/WorkerRuntime.java", diagnostics,
+            GeneratedArtifactTier::Worker, java_runtime_bootstrap_values(system)
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerMain.java.tmpl",
+            "worker/com/statespec/generated/WorkerMain.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+    }
+    if (include_worker_execution)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkflowStepHandlers.java.tmpl",
+            "worker/com/statespec/generated/WorkflowStepHandlers.java", diagnostics,
+            GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_handler_methods",
+                 generate_workflow_step_handler_methods_java(system)},
+                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_java(system)}
+            }
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkflowRunner.java.tmpl",
+            "worker/com/statespec/generated/WorkflowRunner.java", diagnostics,
+            GeneratedArtifactTier::Worker,
+            TemplateRenderer::Values{
+                {"workflow_step_dispatch_cases",
+                 generate_workflow_step_dispatch_cases_java(system)},
+                {"workflow_step_next_cases", generate_workflow_step_next_cases_java(system)}
+            }
+        );
+    }
+    if (usage.uses_queues)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerQueues.java.tmpl",
+            "worker/com/statespec/generated/WorkerQueues.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+    }
+    if (usage.uses_leases)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerLeases.java.tmpl",
+            "worker/com/statespec/generated/WorkerLeases.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "worker/com/statespec/generated/WorkerWorkflows.java.tmpl",
+            "worker/com/statespec/generated/WorkerWorkflows.java", diagnostics,
+            GeneratedArtifactTier::Worker
+        );
+    }
 }
 
 } // namespace statespec
