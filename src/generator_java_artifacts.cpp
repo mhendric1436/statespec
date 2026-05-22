@@ -1,5 +1,6 @@
 #include "generator_java_artifacts.hpp"
 
+#include "generator_artifact_paths.hpp"
 #include "generator_java_descriptors.hpp"
 #include "generator_support.hpp"
 #include "statespec/runtime_usage.hpp"
@@ -251,6 +252,36 @@ TemplateRenderer::Values java_api_runtime_bootstrap_values(const IrSystem& syste
     return values;
 }
 
+std::filesystem::path java_api_generated_path(std::string_view filename)
+{
+    return api_artifact_path(
+        join_artifact_path(GeneratedJavaOutputPackagePath, filename).generic_string()
+    );
+}
+
+std::filesystem::path java_worker_generated_path(std::string_view filename)
+{
+    return worker_artifact_path(
+        join_artifact_path(GeneratedJavaOutputPackagePath, filename).generic_string()
+    );
+}
+
+void add_java_generated_template_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_output_path,
+    GeneratedArtifactTier tier,
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates, template_path_for_output(relative_output_path),
+        relative_output_path, diagnostics, tier, values
+    );
+}
+
 } // namespace
 
 void add_java_common_runtime_artifacts(
@@ -262,7 +293,7 @@ void add_java_common_runtime_artifacts(
 )
 {
     const auto usage = runtime_domain_usage(system);
-    const std::filesystem::path output_root{"com/statespec/backend"};
+    const auto output_root = artifact_path(GeneratedJavaBackendPackagePath);
 
     add_template_file(
         result, options.output_dir, templates, output_root / "Json.java", output_root / "Json.java",
@@ -402,14 +433,17 @@ void add_java_common_runtime_artifacts(
         );
     }
     add_generated_template_file(
-        result, options.output_dir, templates, "generated/Descriptors.java.tmpl",
-        "common/com/statespec/generated/Descriptors.java", diagnostics,
-        GeneratedArtifactTier::Common,
+        result, options.output_dir, templates, generated_template_path("Descriptors.java.tmpl"),
+        common_artifact_path(
+            join_artifact_path(GeneratedJavaOutputPackagePath, "Descriptors.java").generic_string()
+        ),
+        diagnostics, GeneratedArtifactTier::Common,
         TemplateRenderer::Values{{"descriptors", generate_descriptors_java(system, templates)}}
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,
-        GeneratedArtifactTier::Common, java_makefile_values(options.tier, system), "common/Makefile"
+        result, options.output_dir, templates, generated_template_path("Makefile.tmpl"),
+        artifact_path(GeneratedArtifactMakefile), diagnostics, GeneratedArtifactTier::Common,
+        java_makefile_values(options.tier, system), common_artifact_path(GeneratedArtifactMakefile)
     );
 }
 
@@ -423,69 +457,59 @@ void add_java_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "api/com/statespec/generated/ApiDescriptors.java.tmpl",
-        "api/com/statespec/generated/ApiDescriptors.java", diagnostics, GeneratedArtifactTier::Api
+    add_java_generated_template_file(
+        result, options, templates, java_api_generated_path("ApiDescriptors.java"),
+        GeneratedArtifactTier::Api, diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/com/statespec/generated/ApiCodecs.java.tmpl",
-        "api/com/statespec/generated/ApiCodecs.java", diagnostics, GeneratedArtifactTier::Api,
+    add_java_generated_template_file(
+        result, options, templates, java_api_generated_path("ApiCodecs.java"),
+        GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{{"api_codecs", generate_api_codecs_java(system)}}
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/com/statespec/generated/ApiHandlers.java.tmpl",
-        "api/com/statespec/generated/ApiHandlers.java", diagnostics, GeneratedArtifactTier::Api,
+    add_java_generated_template_file(
+        result, options, templates, java_api_generated_path("ApiHandlers.java"),
+        GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_handler_methods", generate_api_operation_handler_methods_java(system)}
         }
     );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "api/com/statespec/generated/ApiHandlerRegistry.java.tmpl",
-        "api/com/statespec/generated/ApiHandlerRegistry.java", diagnostics,
-        GeneratedArtifactTier::Api,
+    add_java_generated_template_file(
+        result, options, templates, java_api_generated_path("ApiHandlerRegistry.java"),
+        GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
              generate_api_operation_default_handler_methods_java(system)}
         }
     );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java.tmpl",
-        "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", diagnostics,
-        GeneratedArtifactTier::Api
+    add_java_generated_template_file(
+        result, options, templates,
+        java_api_generated_path("ExternalSystemOperatorMetadataApi.java"),
+        GeneratedArtifactTier::Api, diagnostics
     );
     if (include_api_composition)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "api/com/statespec/generated/ApiApplication.java.tmpl",
-            "api/com/statespec/generated/ApiApplication.java", diagnostics,
-            GeneratedArtifactTier::Api, java_api_runtime_bootstrap_values(system)
+        add_java_generated_template_file(
+            result, options, templates, java_api_generated_path("ApiApplication.java"),
+            GeneratedArtifactTier::Api, diagnostics, java_api_runtime_bootstrap_values(system)
         );
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "api/com/statespec/generated/ApiDispatcher.java.tmpl",
-            "api/com/statespec/generated/ApiDispatcher.java", diagnostics,
-            GeneratedArtifactTier::Api,
+        add_java_generated_template_file(
+            result, options, templates, java_api_generated_path("ApiDispatcher.java"),
+            GeneratedArtifactTier::Api, diagnostics,
             TemplateRenderer::Values{
                 {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_java(system)}
             }
         );
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "api/com/statespec/generated/ApiServer.java.tmpl",
-            "api/com/statespec/generated/ApiServer.java", diagnostics, GeneratedArtifactTier::Api
+        add_java_generated_template_file(
+            result, options, templates, java_api_generated_path("ApiServer.java"),
+            GeneratedArtifactTier::Api, diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "api/com/statespec/generated/ApiRoutes.java.tmpl",
-            "api/com/statespec/generated/ApiRoutes.java", diagnostics, GeneratedArtifactTier::Api
+        add_java_generated_template_file(
+            result, options, templates, java_api_generated_path("ApiRoutes.java"),
+            GeneratedArtifactTier::Api, diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/com/statespec/generated/ApiMain.java.tmpl",
-            "api/com/statespec/generated/ApiMain.java", diagnostics, GeneratedArtifactTier::Api
+        add_java_generated_template_file(
+            result, options, templates, java_api_generated_path("ApiMain.java"),
+            GeneratedArtifactTier::Api, diagnostics
         );
     }
 }
@@ -502,63 +526,47 @@ void add_java_worker_artifacts(
     const auto include_worker_composition = !system.workers.empty();
     const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
 
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerDescriptors.java.tmpl",
-        "worker/com/statespec/generated/WorkerDescriptors.java", diagnostics,
-        GeneratedArtifactTier::Worker
+    add_java_generated_template_file(
+        result, options, templates, java_worker_generated_path("WorkerDescriptors.java"),
+        GeneratedArtifactTier::Worker, diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerContexts.java.tmpl",
-        "worker/com/statespec/generated/WorkerContexts.java", diagnostics,
-        GeneratedArtifactTier::Worker
+    add_java_generated_template_file(
+        result, options, templates, java_worker_generated_path("WorkerContexts.java"),
+        GeneratedArtifactTier::Worker, diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerRegistry.java.tmpl",
-        "worker/com/statespec/generated/WorkerRegistry.java", diagnostics,
-        GeneratedArtifactTier::Worker
+    add_java_generated_template_file(
+        result, options, templates, java_worker_generated_path("WorkerRegistry.java"),
+        GeneratedArtifactTier::Worker, diagnostics
     );
     if (include_worker_composition)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "worker/com/statespec/generated/WorkerApplication.java.tmpl",
-            "worker/com/statespec/generated/WorkerApplication.java", diagnostics,
-            GeneratedArtifactTier::Worker
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkerApplication.java"),
+            GeneratedArtifactTier::Worker, diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "worker/com/statespec/generated/WorkerRuntime.java.tmpl",
-            "worker/com/statespec/generated/WorkerRuntime.java", diagnostics,
-            GeneratedArtifactTier::Worker, java_runtime_bootstrap_values(system)
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkerRuntime.java"),
+            GeneratedArtifactTier::Worker, diagnostics, java_runtime_bootstrap_values(system)
         );
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "worker/com/statespec/generated/WorkerMain.java.tmpl",
-            "worker/com/statespec/generated/WorkerMain.java", diagnostics,
-            GeneratedArtifactTier::Worker
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkerMain.java"),
+            GeneratedArtifactTier::Worker, diagnostics
         );
     }
     if (include_worker_execution)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "worker/com/statespec/generated/WorkflowStepHandlers.java.tmpl",
-            "worker/com/statespec/generated/WorkflowStepHandlers.java", diagnostics,
-            GeneratedArtifactTier::Worker,
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkflowStepHandlers.java"),
+            GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_handler_methods",
                  generate_workflow_step_handler_methods_java(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys_java(system)}
             }
         );
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "worker/com/statespec/generated/WorkflowRunner.java.tmpl",
-            "worker/com/statespec/generated/WorkflowRunner.java", diagnostics,
-            GeneratedArtifactTier::Worker,
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkflowRunner.java"),
+            GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_dispatch_cases",
                  generate_workflow_step_dispatch_cases_java(system)},
@@ -568,29 +576,23 @@ void add_java_worker_artifacts(
     }
     if (usage.uses_queues)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "worker/com/statespec/generated/WorkerQueues.java.tmpl",
-            "worker/com/statespec/generated/WorkerQueues.java", diagnostics,
-            GeneratedArtifactTier::Worker
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkerQueues.java"),
+            GeneratedArtifactTier::Worker, diagnostics
         );
     }
     if (usage.uses_leases)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "worker/com/statespec/generated/WorkerLeases.java.tmpl",
-            "worker/com/statespec/generated/WorkerLeases.java", diagnostics,
-            GeneratedArtifactTier::Worker
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkerLeases.java"),
+            GeneratedArtifactTier::Worker, diagnostics
         );
     }
     if (usage.uses_workflows)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            "worker/com/statespec/generated/WorkerWorkflows.java.tmpl",
-            "worker/com/statespec/generated/WorkerWorkflows.java", diagnostics,
-            GeneratedArtifactTier::Worker
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkerWorkflows.java"),
+            GeneratedArtifactTier::Worker, diagnostics
         );
     }
 }

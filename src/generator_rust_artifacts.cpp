@@ -1,5 +1,6 @@
 #include "generator_rust_artifacts.hpp"
 
+#include "generator_artifact_paths.hpp"
 #include "generator_rust_descriptors.hpp"
 #include "generator_support.hpp"
 #include "statespec/runtime_usage.hpp"
@@ -293,6 +294,41 @@ TemplateRenderer::Values rust_api_runtime_bootstrap_values(const IrSystem& syste
     return values;
 }
 
+void add_rust_common_generated_template_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    std::string_view relative_output_path,
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {},
+    const std::filesystem::path& relative_artifact_path = {}
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates, template_path_for_output(relative_output_path),
+        common_artifact_path(relative_output_path), diagnostics, GeneratedArtifactTier::Common,
+        values,
+        relative_artifact_path.empty() ? common_artifact_path(relative_output_path)
+                                       : relative_artifact_path
+    );
+}
+
+void add_rust_generated_template_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    std::string_view relative_output_path,
+    GeneratedArtifactTier tier,
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates, template_path_for_output(relative_output_path),
+        artifact_path(relative_output_path), diagnostics, tier, values
+    );
+}
+
 } // namespace
 
 void add_rust_common_runtime_artifacts(
@@ -336,10 +372,9 @@ void add_rust_common_runtime_artifacts(
     );
     if (usage.uses_any_runtime_domain)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "runtime/codec.rs.tmpl",
-            "common/runtime/codec.rs", diagnostics, GeneratedArtifactTier::Common,
-            rust_runtime_codec_values(system), "common/runtime/codec.rs"
+        add_rust_common_generated_template_file(
+            result, options, templates, "runtime/codec.rs", diagnostics,
+            rust_runtime_codec_values(system)
         );
         add_template_file(
             result, options.output_dir, templates, "runtime/codec_core.rs", "runtime/codec_core.rs",
@@ -425,21 +460,24 @@ void add_rust_common_runtime_artifacts(
     }
 
     add_generated_template_file(
-        result, options.output_dir, templates, "generated/descriptors.rs.tmpl",
-        "common/descriptors.rs", diagnostics, GeneratedArtifactTier::Common,
+        result, options.output_dir, templates, generated_template_path("descriptors.rs.tmpl"),
+        common_artifact_path("descriptors.rs"), diagnostics, GeneratedArtifactTier::Common,
         TemplateRenderer::Values{{"descriptors", generate_descriptors_rs(system, templates)}}
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "generated/Cargo.toml.tmpl", "Cargo.toml",
-        diagnostics, GeneratedArtifactTier::Common, {}, "common/Cargo.toml"
+        result, options.output_dir, templates, generated_template_path("Cargo.toml.tmpl"),
+        artifact_path(GeneratedArtifactCargoToml), diagnostics, GeneratedArtifactTier::Common, {},
+        common_artifact_path(GeneratedArtifactCargoToml)
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "generated/lib.rs.tmpl", "lib.rs", diagnostics,
-        GeneratedArtifactTier::Common, rust_lib_values(options.tier, system), "common/lib.rs"
+        result, options.output_dir, templates, generated_template_path("lib.rs.tmpl"),
+        artifact_path(GeneratedArtifactRustLib), diagnostics, GeneratedArtifactTier::Common,
+        rust_lib_values(options.tier, system), common_artifact_path(GeneratedArtifactRustLib)
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,
-        GeneratedArtifactTier::Common, rust_makefile_values(options.tier), "common/Makefile"
+        result, options.output_dir, templates, generated_template_path("Makefile.tmpl"),
+        artifact_path(GeneratedArtifactMakefile), diagnostics, GeneratedArtifactTier::Common,
+        rust_makefile_values(options.tier), common_artifact_path(GeneratedArtifactMakefile)
     );
 }
 
@@ -453,59 +491,53 @@ void add_rust_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_descriptors.rs.tmpl",
-        "api/api_descriptors.rs", diagnostics, GeneratedArtifactTier::Api
+    add_rust_generated_template_file(
+        result, options, templates, "api/api_descriptors.rs", GeneratedArtifactTier::Api,
+        diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_codecs.rs.tmpl", "api/api_codecs.rs",
-        diagnostics, GeneratedArtifactTier::Api,
+    add_rust_generated_template_file(
+        result, options, templates, "api/api_codecs.rs", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{{"api_codecs", generate_api_codecs_rs(system)}}
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_handlers.rs.tmpl", "api/api_handlers.rs",
-        diagnostics, GeneratedArtifactTier::Api,
+    add_rust_generated_template_file(
+        result, options, templates, "api/api_handlers.rs", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_handler_methods", generate_api_operation_handler_methods_rs(system)}
         }
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_handler_registry.rs.tmpl",
-        "api/api_handler_registry.rs", diagnostics, GeneratedArtifactTier::Api,
+    add_rust_generated_template_file(
+        result, options, templates, "api/api_handler_registry.rs", GeneratedArtifactTier::Api,
+        diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
              generate_api_operation_default_handler_methods_rs(system)}
         }
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/external_system_operator_metadata_api.rs.tmpl",
-        "api/external_system_operator_metadata_api.rs", diagnostics, GeneratedArtifactTier::Api
+    add_rust_generated_template_file(
+        result, options, templates, "api/external_system_operator_metadata_api.rs",
+        GeneratedArtifactTier::Api, diagnostics
     );
     if (include_api_composition)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/api_application.rs.tmpl",
-            "api/api_application.rs", diagnostics, GeneratedArtifactTier::Api,
-            rust_api_runtime_bootstrap_values(system)
+        add_rust_generated_template_file(
+            result, options, templates, "api/api_application.rs", GeneratedArtifactTier::Api,
+            diagnostics, rust_api_runtime_bootstrap_values(system)
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/api_dispatcher.rs.tmpl",
-            "api/api_dispatcher.rs", diagnostics, GeneratedArtifactTier::Api,
+        add_rust_generated_template_file(
+            result, options, templates, "api/api_dispatcher.rs", GeneratedArtifactTier::Api,
+            diagnostics,
             TemplateRenderer::Values{
                 {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_rs(system)}
             }
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/api_server.rs.tmpl", "api/api_server.rs",
-            diagnostics, GeneratedArtifactTier::Api
+        add_rust_generated_template_file(
+            result, options, templates, "api/api_server.rs", GeneratedArtifactTier::Api, diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/api_routes.rs.tmpl", "api/api_routes.rs",
-            diagnostics, GeneratedArtifactTier::Api
+        add_rust_generated_template_file(
+            result, options, templates, "api/api_routes.rs", GeneratedArtifactTier::Api, diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/main.rs.tmpl", "api/main.rs", diagnostics,
-            GeneratedArtifactTier::Api
+        add_rust_generated_template_file(
+            result, options, templates, "api/main.rs", GeneratedArtifactTier::Api, diagnostics
         );
     }
 }
@@ -522,48 +554,46 @@ void add_rust_worker_artifacts(
     const auto include_worker_composition = !system.workers.empty();
     const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
 
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_descriptors.rs.tmpl",
-        "worker/worker_descriptors.rs", diagnostics, GeneratedArtifactTier::Worker
+    add_rust_generated_template_file(
+        result, options, templates, "worker/worker_descriptors.rs", GeneratedArtifactTier::Worker,
+        diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_contexts.rs.tmpl",
-        "worker/worker_contexts.rs", diagnostics, GeneratedArtifactTier::Worker
+    add_rust_generated_template_file(
+        result, options, templates, "worker/worker_contexts.rs", GeneratedArtifactTier::Worker,
+        diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_registry.rs.tmpl",
-        "worker/worker_registry.rs", diagnostics, GeneratedArtifactTier::Worker
+    add_rust_generated_template_file(
+        result, options, templates, "worker/worker_registry.rs", GeneratedArtifactTier::Worker,
+        diagnostics
     );
     if (include_worker_composition)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_application.rs.tmpl",
-            "worker/worker_application.rs", diagnostics, GeneratedArtifactTier::Worker
+        add_rust_generated_template_file(
+            result, options, templates, "worker/worker_application.rs",
+            GeneratedArtifactTier::Worker, diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_runtime.rs.tmpl",
-            "worker/worker_runtime.rs", diagnostics, GeneratedArtifactTier::Worker,
-            rust_runtime_bootstrap_values(system)
+        add_rust_generated_template_file(
+            result, options, templates, "worker/worker_runtime.rs", GeneratedArtifactTier::Worker,
+            diagnostics, rust_runtime_bootstrap_values(system)
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/main.rs.tmpl", "worker/main.rs",
-            diagnostics, GeneratedArtifactTier::Worker
+        add_rust_generated_template_file(
+            result, options, templates, "worker/main.rs", GeneratedArtifactTier::Worker, diagnostics
         );
     }
     if (include_worker_execution)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/workflow_step_handlers.rs.tmpl",
-            "worker/workflow_step_handlers.rs", diagnostics, GeneratedArtifactTier::Worker,
+        add_rust_generated_template_file(
+            result, options, templates, "worker/workflow_step_handlers.rs",
+            GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_handler_methods",
                  generate_workflow_step_handler_methods_rs(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}
             }
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/workflow_runner.rs.tmpl",
-            "worker/workflow_runner.rs", diagnostics, GeneratedArtifactTier::Worker,
+        add_rust_generated_template_file(
+            result, options, templates, "worker/workflow_runner.rs", GeneratedArtifactTier::Worker,
+            diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_rs(system)},
                 {"workflow_step_next_cases", generate_workflow_step_next_cases_rs(system)}
@@ -572,23 +602,23 @@ void add_rust_worker_artifacts(
     }
     if (usage.uses_queues)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_queues.rs.tmpl",
-            "worker/worker_queues.rs", diagnostics, GeneratedArtifactTier::Worker
+        add_rust_generated_template_file(
+            result, options, templates, "worker/worker_queues.rs", GeneratedArtifactTier::Worker,
+            diagnostics
         );
     }
     if (usage.uses_leases)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_leases.rs.tmpl",
-            "worker/worker_leases.rs", diagnostics, GeneratedArtifactTier::Worker
+        add_rust_generated_template_file(
+            result, options, templates, "worker/worker_leases.rs", GeneratedArtifactTier::Worker,
+            diagnostics
         );
     }
     if (usage.uses_workflows)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_workflows.rs.tmpl",
-            "worker/worker_workflows.rs", diagnostics, GeneratedArtifactTier::Worker
+        add_rust_generated_template_file(
+            result, options, templates, "worker/worker_workflows.rs", GeneratedArtifactTier::Worker,
+            diagnostics
         );
     }
 }

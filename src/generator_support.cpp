@@ -1,5 +1,7 @@
 #include "generator_support.hpp"
 
+#include "generator_artifact_paths.hpp"
+
 #include <exception>
 
 namespace statespec
@@ -28,10 +30,11 @@ void add_template_file(
 
     result.files.push_back(
         GeneratedFile{
-            (output_dir / "common" / relative_output_path).string(),
+            (output_dir / artifact_path(GeneratedArtifactCommonDir) / relative_output_path)
+                .string(),
             content,
             tier,
-            (std::filesystem::path{"common"} / relative_output_path).generic_string(),
+            (artifact_path(GeneratedArtifactCommonDir) / relative_output_path).generic_string(),
         }
     );
 }

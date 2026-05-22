@@ -1,5 +1,6 @@
 #include "generator_cpp_artifacts.hpp"
 
+#include "generator_artifact_paths.hpp"
 #include "generator_cpp_descriptors.hpp"
 #include "generator_support.hpp"
 #include "statespec/runtime_usage.hpp"
@@ -16,7 +17,7 @@ TemplateRenderer::Values cpp_common_runtime_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
     std::ostringstream includes;
-    auto add = [&](std::string_view include) { includes << "#include \"" << include << "\"\\n"; };
+    auto add = [&](std::string_view include) { includes << include_line(include); };
     add("common/schema_compatibility.hpp");
     if (usage.uses_any_runtime_domain)
     {
@@ -240,6 +241,38 @@ TemplateRenderer::Values cpp_api_runtime_values(const IrSystem& system)
     return values;
 }
 
+void add_cpp_common_generated_template_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    std::string_view relative_output_path,
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates, template_path_for_output(relative_output_path),
+        common_artifact_path(relative_output_path), diagnostics, GeneratedArtifactTier::Common,
+        values
+    );
+}
+
+void add_cpp_generated_template_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    std::string_view relative_output_path,
+    GeneratedArtifactTier tier,
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates, template_path_for_output(relative_output_path),
+        artifact_path(relative_output_path), diagnostics, tier, values
+    );
+}
+
 } // namespace
 
 void add_cpp_common_runtime_artifacts(
@@ -286,9 +319,8 @@ void add_cpp_common_runtime_artifacts(
     );
     if (usage.uses_any_runtime_domain)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "runtime/codec.hpp.tmpl",
-            "common/runtime/codec.hpp", diagnostics, GeneratedArtifactTier::Common,
+        add_cpp_common_generated_template_file(
+            result, options, templates, "runtime/codec.hpp", diagnostics,
             cpp_runtime_codec_values(system)
         );
         add_template_file(
@@ -376,15 +408,16 @@ void add_cpp_common_runtime_artifacts(
     }
 
     add_generated_template_file(
-        result, options.output_dir, templates, "generated/descriptors.hpp.tmpl",
-        "common/descriptors.hpp", diagnostics, GeneratedArtifactTier::Common,
+        result, options.output_dir, templates, generated_template_path("descriptors.hpp.tmpl"),
+        common_artifact_path("descriptors.hpp"), diagnostics, GeneratedArtifactTier::Common,
         TemplateRenderer::Values{
             {"system_descriptors", generate_system_descriptors_header(system, templates)}
         }
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,
-        GeneratedArtifactTier::Common, cpp_makefile_values(options.tier, system), "common/Makefile"
+        result, options.output_dir, templates, generated_template_path("Makefile.tmpl"),
+        artifact_path(GeneratedArtifactMakefile), diagnostics, GeneratedArtifactTier::Common,
+        cpp_makefile_values(options.tier, system), common_artifact_path(GeneratedArtifactMakefile)
     );
 }
 
@@ -398,59 +431,55 @@ void add_cpp_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_descriptors.hpp.tmpl",
-        "api/api_descriptors.hpp", diagnostics, GeneratedArtifactTier::Api
+    add_cpp_generated_template_file(
+        result, options, templates, "api/api_descriptors.hpp", GeneratedArtifactTier::Api,
+        diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_codecs.hpp.tmpl", "api/api_codecs.hpp",
-        diagnostics, GeneratedArtifactTier::Api,
+    add_cpp_generated_template_file(
+        result, options, templates, "api/api_codecs.hpp", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{{"api_codecs", generate_api_codecs(system)}}
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_handlers.hpp.tmpl", "api/api_handlers.hpp",
-        diagnostics, GeneratedArtifactTier::Api,
+    add_cpp_generated_template_file(
+        result, options, templates, "api/api_handlers.hpp", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_handler_methods", generate_api_operation_handler_methods(system)}
         }
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_handler_registry.hpp.tmpl",
-        "api/api_handler_registry.hpp", diagnostics, GeneratedArtifactTier::Api,
+    add_cpp_generated_template_file(
+        result, options, templates, "api/api_handler_registry.hpp", GeneratedArtifactTier::Api,
+        diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
              generate_api_operation_default_handler_methods(system)}
         }
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/external_system_operator_metadata_api.hpp.tmpl",
-        "api/external_system_operator_metadata_api.hpp", diagnostics, GeneratedArtifactTier::Api
+    add_cpp_generated_template_file(
+        result, options, templates, "api/external_system_operator_metadata_api.hpp",
+        GeneratedArtifactTier::Api, diagnostics
     );
     if (include_api_composition)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/api_application.hpp.tmpl",
-            "api/api_application.hpp", diagnostics, GeneratedArtifactTier::Api,
-            cpp_api_runtime_values(system)
+        add_cpp_generated_template_file(
+            result, options, templates, "api/api_application.hpp", GeneratedArtifactTier::Api,
+            diagnostics, cpp_api_runtime_values(system)
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/api_dispatcher.hpp.tmpl",
-            "api/api_dispatcher.hpp", diagnostics, GeneratedArtifactTier::Api,
+        add_cpp_generated_template_file(
+            result, options, templates, "api/api_dispatcher.hpp", GeneratedArtifactTier::Api,
+            diagnostics,
             TemplateRenderer::Values{
                 {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases(system)}
             }
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/api_server.hpp.tmpl", "api/api_server.hpp",
-            diagnostics, GeneratedArtifactTier::Api
+        add_cpp_generated_template_file(
+            result, options, templates, "api/api_server.hpp", GeneratedArtifactTier::Api,
+            diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/api_routes.hpp.tmpl", "api/api_routes.hpp",
-            diagnostics, GeneratedArtifactTier::Api
+        add_cpp_generated_template_file(
+            result, options, templates, "api/api_routes.hpp", GeneratedArtifactTier::Api,
+            diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "api/main.cpp.tmpl", "api/main.cpp", diagnostics,
-            GeneratedArtifactTier::Api
+        add_cpp_generated_template_file(
+            result, options, templates, "api/main.cpp", GeneratedArtifactTier::Api, diagnostics
         );
     }
 }
@@ -467,47 +496,46 @@ void add_cpp_worker_artifacts(
     const auto include_worker_composition = !system.workers.empty();
     const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
 
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_descriptors.hpp.tmpl",
-        "worker/worker_descriptors.hpp", diagnostics, GeneratedArtifactTier::Worker
+    add_cpp_generated_template_file(
+        result, options, templates, "worker/worker_descriptors.hpp", GeneratedArtifactTier::Worker,
+        diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_contexts.hpp.tmpl",
-        "worker/worker_contexts.hpp", diagnostics, GeneratedArtifactTier::Worker
+    add_cpp_generated_template_file(
+        result, options, templates, "worker/worker_contexts.hpp", GeneratedArtifactTier::Worker,
+        diagnostics
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_registry.hpp.tmpl",
-        "worker/worker_registry.hpp", diagnostics, GeneratedArtifactTier::Worker
+    add_cpp_generated_template_file(
+        result, options, templates, "worker/worker_registry.hpp", GeneratedArtifactTier::Worker,
+        diagnostics
     );
     if (include_worker_composition)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_application.hpp.tmpl",
-            "worker/worker_application.hpp", diagnostics, GeneratedArtifactTier::Worker
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/worker_application.hpp",
+            GeneratedArtifactTier::Worker, diagnostics
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_runtime.hpp.tmpl",
-            "worker/worker_runtime.hpp", diagnostics, GeneratedArtifactTier::Worker,
-            cpp_runtime_bootstrap_values(system)
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/worker_runtime.hpp", GeneratedArtifactTier::Worker,
+            diagnostics, cpp_runtime_bootstrap_values(system)
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/main.cpp.tmpl", "worker/main.cpp",
-            diagnostics, GeneratedArtifactTier::Worker
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/main.cpp", GeneratedArtifactTier::Worker,
+            diagnostics
         );
     }
     if (include_worker_execution)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/workflow_step_handlers.hpp.tmpl",
-            "worker/workflow_step_handlers.hpp", diagnostics, GeneratedArtifactTier::Worker,
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/workflow_step_handlers.hpp",
+            GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_handler_methods", generate_workflow_step_handler_methods(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}
             }
         );
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/workflow_runner.hpp.tmpl",
-            "worker/workflow_runner.hpp", diagnostics, GeneratedArtifactTier::Worker,
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/workflow_runner.hpp", GeneratedArtifactTier::Worker,
+            diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases(system)},
                 {"workflow_step_next_cases", generate_workflow_step_next_cases(system)}
@@ -516,23 +544,23 @@ void add_cpp_worker_artifacts(
     }
     if (usage.uses_queues)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_queues.hpp.tmpl",
-            "worker/worker_queues.hpp", diagnostics, GeneratedArtifactTier::Worker
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/worker_queues.hpp", GeneratedArtifactTier::Worker,
+            diagnostics
         );
     }
     if (usage.uses_leases)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_leases.hpp.tmpl",
-            "worker/worker_leases.hpp", diagnostics, GeneratedArtifactTier::Worker
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/worker_leases.hpp", GeneratedArtifactTier::Worker,
+            diagnostics
         );
     }
     if (usage.uses_workflows)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates, "worker/worker_workflows.hpp.tmpl",
-            "worker/worker_workflows.hpp", diagnostics, GeneratedArtifactTier::Worker
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/worker_workflows.hpp",
+            GeneratedArtifactTier::Worker, diagnostics
         );
     }
 }
