@@ -1,0 +1,207 @@
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DefaultExternalSystemMetadataMappingApplicator;
+
+impl ExternalSystemMetadataMappingApplicator for DefaultExternalSystemMetadataMappingApplicator {
+    fn apply_external_system_metadata_mappings(
+        &self,
+        plan: &ExternalSystemMetadataMappingPlan,
+        inputs: &ExternalSystemMetadataMappingInputs,
+    ) -> BackendResult<ExternalSystemMetadataMappingOutput> {
+        let mut output = ExternalSystemMetadataMappingOutput {
+            client_config: BTreeMap::new(),
+            request_payload: BTreeMap::new(),
+            missing_sources: missing_external_system_metadata_mapping_sources(plan, inputs),
+        };
+        for assignment in &plan.client_mappings {
+            if let Some(value) = inputs.assignment_value(assignment) {
+                output
+                    .client_config
+                    .insert(assignment.field.clone(), value.clone());
+            }
+        }
+        for assignment in &plan.request_mappings {
+            if let Some(value) = inputs.assignment_value(assignment) {
+                output
+                    .request_payload
+                    .insert(assignment.field.clone(), value.clone());
+            }
+        }
+        Ok(output)
+    }
+}
+
+pub fn external_system_metadata_key(lookup: &ExternalSystemMetadataLookup) -> Option<String> {
+    if !lookup.key_complete() {
+        return None;
+    }
+    let mut key = String::new();
+    for key_field in &lookup.key_fields {
+        let value = lookup
+            .key_values
+            .iter()
+            .find(|key_value| key_value.field == *key_field)?;
+        key.push_str(key_field);
+        key.push('=');
+        key.push_str(&value.value.canonical_string());
+        key.push('\n');
+    }
+    Some(key)
+}
+
+pub fn external_system_metadata_document_with_keys(
+    document: &Json,
+    lookup: &ExternalSystemMetadataLookup,
+) -> Json {
+    let mut values = match document {
+        Json::Object(values) => values.clone(),
+        _ => BTreeMap::new(),
+    };
+    for key_value in &lookup.key_values {
+        values.insert(key_value.field.clone(), key_value.value.clone());
+    }
+    Json::Object(values)
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DefaultExternalSystemOperatorMetadataRepository;
+
+fn assert_external_system_metadata_expected_version(
+    existing: &Option<VersionedRecord>,
+    expected_version: Option<u64>,
+) -> BackendResult<()> {
+    if let Some(expected) = expected_version {
+        if existing.as_ref().map(|record| record.version) != Some(expected) {
+            return Err(BackendError::Conflict {
+                kind: ConflictKind::VersionConflict,
+                message: "external system metadata version conflict".to_string(),
+            });
+        }
+    }
+    Ok(())
+}
+
+impl<B: Backend> ExternalSystemOperatorMetadataRepository<B>
+    for DefaultExternalSystemOperatorMetadataRepository
+{
+    fn upsert_metadata_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &ExternalSystemOperatorMetadataUpsertRequest,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        let Some(key) = external_system_metadata_key(&request.lookup) else {
+            return Ok(None);
+        };
+        let existing = tx.get(&request.lookup.metadata_entity, &key)?;
+        assert_external_system_metadata_expected_version(&existing, request.expected_version)?;
+        tx.put(
+            &request.lookup.metadata_entity,
+            &key,
+            external_system_metadata_document_with_keys(&request.document, &request.lookup),
+        )?;
+        tx.get(&request.lookup.metadata_entity, &key)
+    }
+
+    fn get_metadata_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &ExternalSystemOperatorMetadataGetRequest,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        let Some(key) = external_system_metadata_key(&request.lookup) else {
+            return Ok(None);
+        };
+        tx.get(&request.lookup.metadata_entity, &key)
+    }
+
+    fn disable_metadata_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &ExternalSystemOperatorMetadataDisableRequest,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        self.update_status_tx(
+            tx,
+            &request.lookup,
+            request.expected_version,
+            &request.disabled_status,
+        )
+    }
+
+    fn delete_metadata_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &ExternalSystemOperatorMetadataDeleteRequest,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        self.update_status_tx(
+            tx,
+            &request.lookup,
+            request.expected_version,
+            &request.deleted_status,
+        )
+    }
+}
+
+impl DefaultExternalSystemOperatorMetadataRepository {
+    fn update_status_tx<T: Transaction>(
+        &self,
+        tx: &mut T,
+        lookup: &ExternalSystemMetadataLookup,
+        expected_version: Option<u64>,
+        status: &str,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        let Some(key) = external_system_metadata_key(lookup) else {
+            return Ok(None);
+        };
+        let existing = tx.get(&lookup.metadata_entity, &key)?;
+        if existing.is_none() {
+            return Ok(None);
+        }
+        assert_external_system_metadata_expected_version(&existing, expected_version)?;
+        let mut values = match existing.as_ref().map(|record| &record.document) {
+            Some(Json::Object(values)) => values.clone(),
+            _ => BTreeMap::new(),
+        };
+        for key_value in &lookup.key_values {
+            values.insert(key_value.field.clone(), key_value.value.clone());
+        }
+        values.insert("status".to_string(), Json::String(status.to_string()));
+        tx.put(&lookup.metadata_entity, &key, Json::Object(values))?;
+        tx.get(&lookup.metadata_entity, &key)
+    }
+}
+
+impl<B: Backend> ExternalSystemMetadataResolver<B>
+    for DefaultExternalSystemOperatorMetadataRepository
+{
+    fn resolve_metadata(
+        &self,
+        backend: &B,
+        lookup: &ExternalSystemMetadataLookup,
+    ) -> BackendResult<Option<ExternalSystemMetadataResolution>> {
+        let mut tx = backend.begin()?;
+        let resolved = <Self as ExternalSystemMetadataResolver<B>>::resolve_metadata_tx(
+            self, &mut tx, lookup,
+        )?;
+        backend.commit(tx)?;
+        Ok(resolved)
+    }
+
+    fn resolve_metadata_tx(
+        &self,
+        tx: &mut B::Tx,
+        lookup: &ExternalSystemMetadataLookup,
+    ) -> BackendResult<Option<ExternalSystemMetadataResolution>> {
+        let record = <Self as ExternalSystemOperatorMetadataRepository<B>>::get_metadata_tx(
+            self,
+            tx,
+            &ExternalSystemOperatorMetadataGetRequest {
+                lookup: lookup.clone(),
+            },
+        )?;
+        Ok(record.map(|record| ExternalSystemMetadataResolution {
+            missing_required_fields: crate::external_system::missing_required_metadata_fields(
+                &record.document,
+                &lookup.required_fields,
+            ),
+            record,
+        }))
+    }
+}

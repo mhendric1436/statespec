@@ -125,7 +125,8 @@ std::string generate_descriptors_java(
 {
     std::ostringstream out;
     out << generate_java_descriptor_prelude(
-        system, templates.load("generated/ExternalSystemRuntime.java.tmpl")
+        system, templates.load("generated/ExternalSystemRuntime.java.tmpl"),
+        templates.load("generated/ExternalSystemMetadataRuntime.java.tmpl")
     );
     out << generate_java_feature_flag_descriptors(system);
     out << generate_java_declaration_descriptors(system);

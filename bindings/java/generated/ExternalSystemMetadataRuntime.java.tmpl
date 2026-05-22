@@ -1,0 +1,202 @@
+public
+static final class DefaultExternalSystemMetadataMappingApplicator
+    implements ExternalSystemMetadataMappingApplicator
+{
+    @Override public ExternalSystemMetadataMappingOutput applyExternalSystemMetadataMappings(
+        ExternalSystemMetadataMappingPlan plan,
+        ExternalSystemMetadataMappingInputs inputs
+    )
+    {
+        java.util.HashMap<String, Json> clientConfig = new java.util.HashMap<>();
+        java.util.HashMap<String, Json> requestPayload = new java.util.HashMap<>();
+        for (ExternalSystemMetadataMappingAssignment assignment : plan.clientMappings())
+        {
+            inputs.assignmentValue(assignment)
+                .ifPresent(value->clientConfig.put(assignment.field(), value));
+        }
+        for (ExternalSystemMetadataMappingAssignment assignment : plan.requestMappings())
+        {
+            inputs.assignmentValue(assignment)
+                .ifPresent(value->requestPayload.put(assignment.field(), value));
+        }
+        return new ExternalSystemMetadataMappingOutput(
+            Map.copyOf(clientConfig), Map.copyOf(requestPayload),
+            missingExternalSystemMetadataMappingSources(plan, inputs)
+        );
+    }
+}
+
+public static Optional<String>
+externalSystemMetadataKey(ExternalSystem.MetadataLookup lookup)
+{
+    if (!lookup.keyComplete())
+    {
+        return Optional.empty();
+    }
+    java.util.HashMap<String, Json> values = new java.util.HashMap<>();
+    for (ExternalSystem.MetadataKeyValue keyValue : lookup.keyValues())
+    {
+        values.put(keyValue.field(), keyValue.value());
+    }
+    StringBuilder key = new StringBuilder();
+    for (String keyField : lookup.keyFields())
+    {
+        Json value = values.get(keyField);
+        if (value == null)
+        {
+            return Optional.empty();
+        }
+        key.append(keyField).append('=').append(value.canonicalString()).append('\n');
+    }
+    return Optional.of(key.toString());
+}
+
+public
+static Json externalSystemMetadataDocumentWithKeys(
+    Json document,
+    ExternalSystem.MetadataLookup lookup
+)
+{
+    java.util.HashMap<String, Json> values = new java.util.HashMap<>();
+    if (document instanceof Json.ObjectValue object)
+    {
+        values.putAll(object.values());
+    }
+    for (ExternalSystem.MetadataKeyValue keyValue : lookup.keyValues())
+    {
+        values.put(keyValue.field(), keyValue.value());
+    }
+    return Json.object(values);
+}
+
+public
+static final class DefaultExternalSystemOperatorMetadataRepository implements
+    ExternalSystemOperatorMetadataRepository,
+    ExternalSystem
+{
+    @Override public Optional<Backend.VersionedRecord> upsertMetadataTx(
+        Backend.Transaction tx, ExternalSystemOperatorMetadataUpsertRequest request
+    ) throws Backend.BackendException
+    {
+        Optional<String> key = externalSystemMetadataKey(request.lookup());
+        if (key.isEmpty())
+        {
+            return Optional.empty();
+        }
+        Optional<Backend.VersionedRecord> existing =
+            tx.get(request.lookup().metadataEntity(), key.orElseThrow());
+        assertExpectedVersion(existing, request.expectedVersion());
+        tx.put(
+            request.lookup().metadataEntity(), key.orElseThrow(),
+            externalSystemMetadataDocumentWithKeys(request.document(), request.lookup())
+        );
+        return tx.get(request.lookup().metadataEntity(), key.orElseThrow());
+    }
+
+    @Override public Optional<Backend.VersionedRecord> getMetadataTx(
+        Backend.Transaction tx, ExternalSystemOperatorMetadataGetRequest request
+    ) throws Backend.BackendException
+    {
+        Optional<String> key = externalSystemMetadataKey(request.lookup());
+        return key.isPresent() ? tx.get(request.lookup().metadataEntity(), key.orElseThrow())
+                               : Optional.empty();
+    }
+
+    @Override public Optional<Backend.VersionedRecord> disableMetadataTx(
+        Backend.Transaction tx, ExternalSystemOperatorMetadataDisableRequest request
+    ) throws Backend.BackendException
+    {
+        return updateStatusTx(
+            tx, request.lookup(), request.expectedVersion(), request.disabledStatus()
+        );
+    }
+
+    @Override public Optional<Backend.VersionedRecord> deleteMetadataTx(
+        Backend.Transaction tx, ExternalSystemOperatorMetadataDeleteRequest request
+    ) throws Backend.BackendException
+    {
+        return updateStatusTx(
+            tx, request.lookup(), request.expectedVersion(), request.deletedStatus()
+        );
+    }
+
+    @Override public Optional<ExternalSystem.MetadataResolution> resolveMetadata(
+        Backend backend, ExternalSystem.MetadataLookup lookup
+    ) throws Backend.BackendException
+    {
+        Backend.Transaction tx = backend.begin();
+        Optional<ExternalSystem.MetadataResolution> resolved;
+        try
+        {
+            resolved = resolveMetadataTx(tx, lookup);
+            backend.commit(tx);
+        }
+        catch (Backend.BackendException ex)
+        {
+            tx.abort();
+            throw ex;
+        }
+        return resolved;
+    }
+
+    @Override public Optional<ExternalSystem.MetadataResolution> resolveMetadataTx(
+        Backend.Transaction tx, ExternalSystem.MetadataLookup lookup
+    ) throws Backend.BackendException
+    {
+        Optional<Backend.VersionedRecord> record =
+            getMetadataTx(tx, new ExternalSystemOperatorMetadataGetRequest(lookup));
+        return record.map(value->new ExternalSystem.MetadataResolution(
+            value,
+            ExternalSystem.missingRequiredMetadataFields(value.document(), lookup.requiredFields())
+        ));
+    }
+
+  private
+    static void assertExpectedVersion(
+        Optional<Backend.VersionedRecord> existing, Optional<Long> expectedVersion
+    ) throws Backend.BackendException
+    {
+        if (expectedVersion.isEmpty())
+        {
+            return;
+        }
+        if (existing.isEmpty() || existing.orElseThrow().version() != expectedVersion.orElseThrow())
+        {
+            throw new Backend.ConflictException(
+                Backend.ConflictKind.VERSION_CONFLICT, "external system metadata version conflict"
+            );
+        }
+    }
+
+  private
+    static Optional<Backend.VersionedRecord> updateStatusTx(
+        Backend.Transaction tx, ExternalSystem.MetadataLookup lookup,
+        Optional<Long> expectedVersion, String status
+    ) throws Backend.BackendException
+    {
+        Optional<String> key = externalSystemMetadataKey(lookup);
+        if (key.isEmpty())
+        {
+            return Optional.empty();
+        }
+        Optional<Backend.VersionedRecord> existing =
+            tx.get(lookup.metadataEntity(), key.orElseThrow());
+        if (existing.isEmpty())
+        {
+            return Optional.empty();
+        }
+        assertExpectedVersion(existing, expectedVersion);
+        java.util.HashMap<String, Json> values = new java.util.HashMap<>();
+        if (existing.orElseThrow().document() instanceof Json.ObjectValue object)
+        {
+            values.putAll(object.values());
+        }
+        for (ExternalSystem.MetadataKeyValue keyValue : lookup.keyValues())
+        {
+            values.put(keyValue.field(), keyValue.value());
+        }
+        values.put("status", Json.string(status));
+        tx.put(lookup.metadataEntity(), key.orElseThrow(), Json.object(values));
+        return tx.get(lookup.metadataEntity(), key.orElseThrow());
+    }
+}

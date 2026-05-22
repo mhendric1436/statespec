@@ -1,0 +1,207 @@
+class DefaultExternalSystemMetadataMappingApplicator final
+    : public IExternalSystemMetadataMappingApplicator
+{
+  public:
+    ExternalSystemMetadataMappingOutput apply(
+        const ExternalSystemMetadataMappingPlan& plan,
+        const ExternalSystemMetadataMappingInputs& inputs
+    ) override
+    {
+        ExternalSystemMetadataMappingOutput output;
+        output.missing_sources = missing_external_system_metadata_mapping_sources(plan, inputs);
+        for (const auto& assignment : plan.client_mappings)
+        {
+            if (const auto* value = inputs.source_value(assignment))
+            {
+                output.client_config[assignment.field] = *value;
+            }
+        }
+        for (const auto& assignment : plan.request_mappings)
+        {
+            if (const auto* value = inputs.source_value(assignment))
+            {
+                output.request_payload[assignment.field] = *value;
+            }
+        }
+        return output;
+    }
+};
+
+inline std::optional<statespec::backend::Json> external_system_metadata_key_value(
+    const statespec::backend::ExternalSystemMetadataLookup& lookup,
+    std::string_view field
+)
+{
+    for (const auto& key_value : lookup.key_values)
+    {
+        if (key_value.field == field)
+        {
+            return key_value.value;
+        }
+    }
+    return std::nullopt;
+}
+
+inline std::optional<statespec::backend::Key>
+external_system_metadata_key(const statespec::backend::ExternalSystemMetadataLookup& lookup)
+{
+    if (!lookup.key_complete())
+    {
+        return std::nullopt;
+    }
+    std::string key;
+    for (const auto& key_field : lookup.key_fields)
+    {
+        const auto value = external_system_metadata_key_value(lookup, key_field);
+        if (!value)
+        {
+            return std::nullopt;
+        }
+        key += key_field;
+        key += '=';
+        key += value->canonical_string();
+        key += '\n';
+    }
+    return key;
+}
+
+inline statespec::backend::Json external_system_metadata_document_with_keys(
+    const statespec::backend::Json& document,
+    const statespec::backend::ExternalSystemMetadataLookup& lookup
+)
+{
+    statespec::backend::Json::Object object =
+        document.is_object() ? document.as_object() : statespec::backend::Json::Object{};
+    for (const auto& key_value : lookup.key_values)
+    {
+        object[key_value.field] = key_value.value;
+    }
+    return statespec::backend::Json::object(std::move(object));
+}
+
+class DefaultExternalSystemOperatorMetadataRepository final
+    : public IExternalSystemOperatorMetadataRepository,
+      public statespec::backend::IExternalSystemMetadataResolver
+{
+  public:
+    std::optional<statespec::backend::VersionedRecord> upsert_metadataTx(
+        statespec::backend::ITransaction& tx,
+        const ExternalSystemOperatorMetadataUpsertRequest& request
+    ) override
+    {
+        const auto key = external_system_metadata_key(request.lookup);
+        if (!key)
+        {
+            return std::nullopt;
+        }
+        const auto existing = tx.get(request.lookup.metadata_entity, *key);
+        assert_expected_version(existing, request.expected_version);
+        tx.put(
+            request.lookup.metadata_entity, *key,
+            external_system_metadata_document_with_keys(request.document, request.lookup)
+        );
+        return tx.get(request.lookup.metadata_entity, *key);
+    }
+
+    std::optional<statespec::backend::VersionedRecord> get_metadataTx(
+        statespec::backend::ITransaction& tx,
+        const ExternalSystemOperatorMetadataGetRequest& request
+    ) override
+    {
+        const auto key = external_system_metadata_key(request.lookup);
+        return key ? tx.get(request.lookup.metadata_entity, *key) : std::nullopt;
+    }
+
+    std::optional<statespec::backend::VersionedRecord> disable_metadataTx(
+        statespec::backend::ITransaction& tx,
+        const ExternalSystemOperatorMetadataDisableRequest& request
+    ) override
+    {
+        return update_statusTx(
+            tx, request.lookup, request.expected_version, request.disabled_status
+        );
+    }
+
+    std::optional<statespec::backend::VersionedRecord> delete_metadataTx(
+        statespec::backend::ITransaction& tx,
+        const ExternalSystemOperatorMetadataDeleteRequest& request
+    ) override
+    {
+        return update_statusTx(
+            tx, request.lookup, request.expected_version, request.deleted_status
+        );
+    }
+
+    std::optional<statespec::backend::ExternalSystemMetadataResolution> resolve_metadata(
+        statespec::backend::IBackend& backend,
+        const statespec::backend::ExternalSystemMetadataLookup& lookup
+    ) override
+    {
+        auto tx = backend.begin();
+        auto resolved = resolve_metadataTx(*tx, lookup);
+        backend.commit(*tx);
+        return resolved;
+    }
+
+    std::optional<statespec::backend::ExternalSystemMetadataResolution> resolve_metadataTx(
+        statespec::backend::ITransaction& tx,
+        const statespec::backend::ExternalSystemMetadataLookup& lookup
+    ) override
+    {
+        const auto record = get_metadataTx(tx, ExternalSystemOperatorMetadataGetRequest{lookup});
+        if (!record)
+        {
+            return std::nullopt;
+        }
+        return statespec::backend::ExternalSystemMetadataResolution{
+            *record,
+            statespec::backend::missing_required_metadata_fields(
+                record->document, lookup.required_fields
+            ),
+        };
+    }
+
+  private:
+    static void assert_expected_version(
+        const std::optional<statespec::backend::VersionedRecord>& existing,
+        const std::optional<statespec::backend::Version>& expected_version
+    )
+    {
+        if (!expected_version)
+        {
+            return;
+        }
+        if (!existing || existing->version != *expected_version)
+        {
+            throw statespec::backend::ConflictError(
+                statespec::backend::ConflictKind::VersionConflict,
+                "external system metadata version conflict"
+            );
+        }
+    }
+
+    static std::optional<statespec::backend::VersionedRecord> update_statusTx(
+        statespec::backend::ITransaction& tx,
+        const statespec::backend::ExternalSystemMetadataLookup& lookup,
+        const std::optional<statespec::backend::Version>& expected_version,
+        const std::string& status
+    )
+    {
+        const auto key = external_system_metadata_key(lookup);
+        if (!key)
+        {
+            return std::nullopt;
+        }
+        const auto existing = tx.get(lookup.metadata_entity, *key);
+        if (!existing)
+        {
+            return std::nullopt;
+        }
+        assert_expected_version(existing, expected_version);
+        auto document = external_system_metadata_document_with_keys(existing->document, lookup);
+        auto object = document.as_object();
+        object["status"] = status;
+        tx.put(lookup.metadata_entity, *key, statespec::backend::Json::object(std::move(object)));
+        return tx.get(lookup.metadata_entity, *key);
+    }
+};

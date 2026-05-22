@@ -1,0 +1,158 @@
+type DefaultExternalSystemMetadataMappingApplicator struct{}
+
+func (DefaultExternalSystemMetadataMappingApplicator) ApplyExternalSystemMetadataMappings(ctx context.Context, plan ExternalSystemMetadataMappingPlan, inputs ExternalSystemMetadataMappingInputs) (ExternalSystemMetadataMappingOutput, error) {
+	_ = ctx
+	output := ExternalSystemMetadataMappingOutput{
+		ClientConfig:   map[string]JSON{},
+		RequestPayload: map[string]JSON{},
+		MissingSources: MissingExternalSystemMetadataMappingSources(plan, inputs),
+	}
+	for _, assignment := range plan.ClientMappings {
+		if value, ok := inputs.AssignmentValue(assignment); ok {
+			output.ClientConfig[assignment.Field] = value
+		}
+	}
+	for _, assignment := range plan.RequestMappings {
+		if value, ok := inputs.AssignmentValue(assignment); ok {
+			output.RequestPayload[assignment.Field] = value
+		}
+	}
+	return output, nil
+}
+
+type DefaultExternalSystemOperatorMetadataRepository struct{}
+
+func ExternalSystemMetadataKey(lookup ExternalSystemMetadataLookup) (Key, bool) {
+	if !lookup.KeyComplete() {
+		return "", false
+	}
+	values := map[string]JSON{}
+	for _, keyValue := range lookup.KeyValues {
+		values[keyValue.Field] = keyValue.Value
+	}
+	var builder strings.Builder
+	for _, keyField := range lookup.KeyFields {
+		value, ok := values[keyField]
+		if !ok {
+			return "", false
+		}
+		builder.WriteString(keyField)
+		builder.WriteString("=")
+		builder.WriteString(value.CanonicalString())
+		builder.WriteString("\n")
+	}
+	return Key(builder.String()), true
+}
+
+func externalSystemMetadataDocumentWithKeys(document JSON, lookup ExternalSystemMetadataLookup) JSON {
+	object := map[string]JSON{}
+	if existing, ok := document.AsObject(); ok {
+		for key, value := range existing {
+			object[key] = value
+		}
+	}
+	for _, keyValue := range lookup.KeyValues {
+		object[keyValue.Field] = keyValue.Value
+	}
+	return JSONObject(object)
+}
+
+func assertExternalSystemMetadataExpectedVersion(existing *VersionedRecord, expectedVersion *Version) error {
+	if expectedVersion == nil {
+		return nil
+	}
+	if existing == nil || existing.Version != *expectedVersion {
+		return ConflictError{Kind: VersionConflict, Message: "external system metadata version conflict"}
+	}
+	return nil
+}
+
+func (DefaultExternalSystemOperatorMetadataRepository) UpsertMetadataTx(ctx context.Context, tx Transaction, request ExternalSystemOperatorMetadataUpsertRequest) (*VersionedRecord, error) {
+	key, ok := ExternalSystemMetadataKey(request.Lookup)
+	if !ok {
+		return nil, nil
+	}
+	existing, err := tx.Get(ctx, CollectionName(request.Lookup.MetadataEntity), key)
+	if err != nil {
+		return nil, err
+	}
+	if err := assertExternalSystemMetadataExpectedVersion(existing, request.ExpectedVersion); err != nil {
+		return nil, err
+	}
+	if err := tx.Put(ctx, CollectionName(request.Lookup.MetadataEntity), key, externalSystemMetadataDocumentWithKeys(request.Document, request.Lookup)); err != nil {
+		return nil, err
+	}
+	return tx.Get(ctx, CollectionName(request.Lookup.MetadataEntity), key)
+}
+
+func (DefaultExternalSystemOperatorMetadataRepository) GetMetadataTx(ctx context.Context, tx Transaction, request ExternalSystemOperatorMetadataGetRequest) (*VersionedRecord, error) {
+	key, ok := ExternalSystemMetadataKey(request.Lookup)
+	if !ok {
+		return nil, nil
+	}
+	return tx.Get(ctx, CollectionName(request.Lookup.MetadataEntity), key)
+}
+
+func (r DefaultExternalSystemOperatorMetadataRepository) DisableMetadataTx(ctx context.Context, tx Transaction, request ExternalSystemOperatorMetadataDisableRequest) (*VersionedRecord, error) {
+	return r.updateMetadataStatusTx(ctx, tx, request.Lookup, request.ExpectedVersion, request.DisabledStatus)
+}
+
+func (r DefaultExternalSystemOperatorMetadataRepository) DeleteMetadataTx(ctx context.Context, tx Transaction, request ExternalSystemOperatorMetadataDeleteRequest) (*VersionedRecord, error) {
+	return r.updateMetadataStatusTx(ctx, tx, request.Lookup, request.ExpectedVersion, request.DeletedStatus)
+}
+
+func (r DefaultExternalSystemOperatorMetadataRepository) updateMetadataStatusTx(ctx context.Context, tx Transaction, lookup ExternalSystemMetadataLookup, expectedVersion *Version, status string) (*VersionedRecord, error) {
+	key, ok := ExternalSystemMetadataKey(lookup)
+	if !ok {
+		return nil, nil
+	}
+	existing, err := tx.Get(ctx, CollectionName(lookup.MetadataEntity), key)
+	if err != nil || existing == nil {
+		return existing, err
+	}
+	if err := assertExternalSystemMetadataExpectedVersion(existing, expectedVersion); err != nil {
+		return nil, err
+	}
+	object := map[string]JSON{}
+	if values, ok := existing.Document.AsObject(); ok {
+		for key, value := range values {
+			object[key] = value
+		}
+	}
+	for _, keyValue := range lookup.KeyValues {
+		object[keyValue.Field] = keyValue.Value
+	}
+	object["status"] = JSONString(status)
+	if err := tx.Put(ctx, CollectionName(lookup.MetadataEntity), key, JSONObject(object)); err != nil {
+		return nil, err
+	}
+	return tx.Get(ctx, CollectionName(lookup.MetadataEntity), key)
+}
+
+func (r DefaultExternalSystemOperatorMetadataRepository) ResolveMetadata(ctx context.Context, backend Backend, lookup ExternalSystemMetadataLookup) (*ExternalSystemMetadataResolution, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	resolved, err := r.ResolveMetadataTx(ctx, tx, lookup)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return nil, err
+	}
+	if err := backend.Commit(ctx, tx); err != nil {
+		return nil, err
+	}
+	return resolved, nil
+}
+
+func (r DefaultExternalSystemOperatorMetadataRepository) ResolveMetadataTx(ctx context.Context, tx Transaction, lookup ExternalSystemMetadataLookup) (*ExternalSystemMetadataResolution, error) {
+	record, err := r.GetMetadataTx(ctx, tx, ExternalSystemOperatorMetadataGetRequest{Lookup: lookup})
+	if err != nil || record == nil {
+		return nil, err
+	}
+	return &ExternalSystemMetadataResolution{Record: *record, MissingRequiredFields: MissingRequiredMetadataFields(record.Document, lookup.RequiredFields)}, nil
+}
+
+var _ ExternalSystemMetadataMappingApplicator = DefaultExternalSystemMetadataMappingApplicator{}
+var _ ExternalSystemOperatorMetadataRepository = DefaultExternalSystemOperatorMetadataRepository{}
+var _ ExternalSystemMetadataResolver = DefaultExternalSystemOperatorMetadataRepository{}

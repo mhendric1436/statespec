@@ -2,7 +2,7 @@ JAVA ?= java
 JAVAC ?= javac
 CLANG_FORMAT ?= clang-format
 JAVA_SOURCES := $(shell find com -name '*.java')
-FORMAT_FILES := $(JAVA_SOURCES) generated/ExternalSystemCallAdapters.java.tmpl generated/ExternalSystemRuntime.java.tmpl
+FORMAT_FILES := $(JAVA_SOURCES) generated/ExternalSystemCallAdapters.java.tmpl generated/ExternalSystemMetadataRuntime.java.tmpl generated/ExternalSystemRuntime.java.tmpl
 
 .PHONY: test format clean help
 
