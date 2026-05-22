@@ -5,11 +5,12 @@ LDFLAGS ?=
 
 BUILD_DIR := build
 BIN_DIR := $(BUILD_DIR)/bin
+OBJ_DIR := $(BUILD_DIR)/obj
 ROOT_DIR := ../..
 CATCH_SRC := $(ROOT_DIR)/third_party/catch2/catch_amalgamated.cpp
-JSON_TEST := $(BIN_DIR)/json_test
-SCHEMA_COMPATIBILITY_TEST := $(BIN_DIR)/schema_compatibility_test
-BINDING_TESTS := $(JSON_TEST) $(SCHEMA_COMPATIBILITY_TEST)
+BINDING_TEST := $(BIN_DIR)/binding_tests
+TEST_SOURCES := json_test.cpp schema_compatibility_test.cpp
+TEST_OBJECTS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(TEST_SOURCES))
 GENERATED_FORMAT_TEMPLATES := $(filter-out generated/descriptors.hpp.tmpl generated/runtime_registration.hpp.tmpl,$(wildcard generated/*.hpp.tmpl))
 API_FORMAT_TEMPLATES := $(filter-out api/api_application.hpp.tmpl,$(wildcard api/*.hpp.tmpl))
 WORKER_FORMAT_TEMPLATES := $(filter-out worker/worker_runtime.hpp.tmpl,$(wildcard worker/*.hpp.tmpl))
@@ -17,22 +18,21 @@ FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(GENERATED_FORMAT_TEMPLATES
 
 .PHONY: test build format clean help
 
-test: $(BINDING_TESTS)
-	$(JSON_TEST)
-	$(SCHEMA_COMPATIBILITY_TEST)
+test: $(BINDING_TEST)
+	$(BINDING_TEST)
 
-build: $(BINDING_TESTS)
+build: $(BINDING_TEST)
 
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
 
-$(JSON_TEST): json_test.cpp backend.hpp external_system.hpp feature_flag.hpp json.hpp log.hpp metric.hpp $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp) $(CATCH_SRC)
+$(OBJ_DIR)/%.o: %.cpp $(wildcard *.hpp) $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp)
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party json_test.cpp $(CATCH_SRC) -o $@ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party -c $< -o $@
 
-$(SCHEMA_COMPATIBILITY_TEST): schema_compatibility_test.cpp backend.hpp schema_compatibility.hpp $(CATCH_SRC)
+$(BINDING_TEST): $(TEST_OBJECTS) $(CATCH_SRC)
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party schema_compatibility_test.cpp $(CATCH_SRC) -o $@ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -I. -I$(ROOT_DIR)/third_party $(TEST_OBJECTS) $(CATCH_SRC) -o $@ $(LDFLAGS)
 
 clean:
 	rm -rf $(BUILD_DIR)
