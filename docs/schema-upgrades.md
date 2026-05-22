@@ -23,6 +23,16 @@ own compatibility enforcement. The backend owns descriptor registration because
 collection descriptors are generic OCC storage contracts, not queue, lease, workflow,
 feature flag, log, or metric semantics.
 
+Backend adapters should use the shared schema compatibility helpers instead of
+hand-rolling descriptor comparison:
+
+| Language | Helper file | Compare API | Validate API |
+|---|---|---|---|
+| C++ | `common/schema_compatibility.hpp` | `compare_collection_descriptors` | `validate_collection_descriptor_upgrade` |
+| Go | `common/backend/schema_compatibility.go` | `CompareCollectionDescriptors` | `ValidateCollectionDescriptorUpgrade` |
+| Java | `common/com/statespec/backend/SchemaCompatibility.java` | `compareCollectionDescriptors` | `validateCollectionDescriptorUpgrade` |
+| Rust | `common/schema_compatibility.rs` | `compare_collection_descriptors` | `validate_collection_descriptor_upgrade` |
+
 The expected backend behavior is:
 
 ```text
@@ -130,4 +140,3 @@ Backend conformance tests should cover:
 - decreasing `schema_version` fails with `SchemaConflict`
 - changing descriptor shape without increasing `schema_version` fails with
   `SchemaConflict`
-

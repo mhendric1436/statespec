@@ -321,6 +321,10 @@ void add_rust_common_runtime_artifacts(
     add_template_file(result, options.output_dir, templates, "metric.rs", "metric.rs", diagnostics);
     add_template_file(result, options.output_dir, templates, "queue.rs", "queue.rs", diagnostics);
     add_template_file(
+        result, options.output_dir, templates, "schema_compatibility.rs", "schema_compatibility.rs",
+        diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, "workflow.rs", "workflow.rs", diagnostics
     );
     add_template_file(

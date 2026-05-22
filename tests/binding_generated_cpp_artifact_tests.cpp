@@ -37,6 +37,7 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/log.hpp", common},
             {"common/metric.hpp", common},
             {"common/queue.hpp", common},
+            {"common/schema_compatibility.hpp", common},
             {"common/workflow.hpp", common},
             {"common/memory/backend.hpp", common},
             {"common/memory/transaction.hpp", common},

@@ -198,6 +198,10 @@ void add_go_common_runtime_artifacts(
         result, options.output_dir, templates, "backend/queue.go", "backend/queue.go", diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, "backend/schema_compatibility.go",
+        "backend/schema_compatibility.go", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, "backend/workflow.go", "backend/workflow.go",
         diagnostics
     );

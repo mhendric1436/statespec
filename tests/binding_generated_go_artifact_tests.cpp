@@ -39,6 +39,7 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/memory/transaction.go", common},
             {"common/backend/metric.go", common},
             {"common/backend/queue.go", common},
+            {"common/backend/schema_compatibility.go", common},
             {"common/backend/workflow.go", common},
             {"common/backend/descriptors.go", common},
             {"common/go.mod", common},

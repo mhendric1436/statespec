@@ -100,7 +100,8 @@ Collection descriptor registration is also the schema upgrade boundary. Re-regis
 an existing collection is valid only when the requested descriptor is identical or
 backwards compatible with the stored descriptor. Incompatible descriptor changes must
 fail with a schema conflict instead of replacing the registered contract. See
-[schema-upgrades.md](schema-upgrades.md) for the compatibility definition.
+[schema-upgrades.md](schema-upgrades.md) for the compatibility definition and shared
+helper APIs available to backend adapters.
 
 ## Backend Boundary
 

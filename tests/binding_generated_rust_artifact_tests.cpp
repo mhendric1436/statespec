@@ -37,6 +37,7 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/log.rs", common},
             {"common/metric.rs", common},
             {"common/queue.rs", common},
+            {"common/schema_compatibility.rs", common},
             {"common/workflow.rs", common},
             {"common/memory/backend.rs", common},
             {"common/memory/transaction.rs", common},

@@ -17,6 +17,7 @@ TemplateRenderer::Values cpp_common_runtime_values(const IrSystem& system)
     const auto usage = runtime_domain_usage(system);
     std::ostringstream includes;
     auto add = [&](std::string_view include) { includes << "#include \"" << include << "\"\\n"; };
+    add("common/schema_compatibility.hpp");
     if (usage.uses_any_runtime_domain)
     {
         add("common/runtime/codec.hpp");
@@ -268,6 +269,10 @@ void add_cpp_common_runtime_artifacts(
         result, options.output_dir, templates, "metric.hpp", "metric.hpp", diagnostics
     );
     add_template_file(result, options.output_dir, templates, "queue.hpp", "queue.hpp", diagnostics);
+    add_template_file(
+        result, options.output_dir, templates, "schema_compatibility.hpp",
+        "schema_compatibility.hpp", diagnostics
+    );
     add_template_file(
         result, options.output_dir, templates, "workflow.hpp", "workflow.hpp", diagnostics
     );

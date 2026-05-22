@@ -47,6 +47,7 @@ common/backend/runtime/codec_workflows.go
 common/backend/runtime/leases.go
 common/backend/runtime/queues.go
 common/backend/runtime/workflows.go
+common/backend/schema_compatibility.go
 common/backend/workflow.go
 go.mod
 worker/backend/worker_application.go

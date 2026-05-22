@@ -49,6 +49,7 @@ common/runtime/codec_workflows.rs
 common/runtime/leases.rs
 common/runtime/queues.rs
 common/runtime/workflows.rs
+common/schema_compatibility.rs
 common/workflow.rs
 lib.rs
 worker/main.rs

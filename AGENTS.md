@@ -172,6 +172,13 @@ The backend layer owns only:
 - transaction read sets, staged writes, staged deletes, commit, and abort
 - backend capabilities and conflict reporting
 
+Collection descriptor registration is the schema upgrade boundary. Backend adapters
+must validate re-registration of an existing collection with the shared schema
+compatibility helper for that language, not with hand-rolled per-backend comparison
+logic. Runtime stores define collection descriptors, but only the generic backend
+registration path enforces whether a descriptor upgrade is identical, backwards
+compatible, or a schema conflict.
+
 Runtime components are users of the backend layer. Queue stores, lease stores, workflow
 stores, feature flag stores, log sinks, and metric sinks must register the collections
 they need and persist their records through `Backend`/`IBackend` and

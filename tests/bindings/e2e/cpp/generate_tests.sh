@@ -48,6 +48,7 @@ common/runtime/codec_workflows.hpp
 common/runtime/lease_store.hpp
 common/runtime/queue_store.hpp
 common/runtime/workflow_store.hpp
+common/schema_compatibility.hpp
 common/workflow.hpp
 worker/main.cpp
 worker/worker_application.hpp

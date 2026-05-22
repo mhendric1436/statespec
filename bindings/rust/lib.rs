@@ -6,6 +6,7 @@ pub mod lease;
 pub mod log;
 pub mod metric;
 pub mod queue;
+pub mod schema_compatibility;
 pub mod workflow;
 
 pub mod memory {

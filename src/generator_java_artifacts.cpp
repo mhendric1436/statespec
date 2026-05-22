@@ -54,6 +54,7 @@ TemplateRenderer::Values java_makefile_values(
         "common/com/statespec/backend/Log.java",
         "common/com/statespec/backend/Metric.java",
         "common/com/statespec/backend/Queue.java",
+        "common/com/statespec/backend/SchemaCompatibility.java",
         "common/com/statespec/backend/Workflow.java",
         "common/com/statespec/backend/memory/InMemoryBackend.java",
         "common/com/statespec/backend/memory/InMemoryTransaction.java",
@@ -294,6 +295,10 @@ void add_java_common_runtime_artifacts(
     add_template_file(
         result, options.output_dir, templates, output_root / "Queue.java",
         output_root / "Queue.java", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, output_root / "SchemaCompatibility.java",
+        output_root / "SchemaCompatibility.java", diagnostics
     );
     add_template_file(
         result, options.output_dir, templates, output_root / "Workflow.java",

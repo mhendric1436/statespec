@@ -37,6 +37,7 @@ common/com/statespec/backend/Lease.java
 common/com/statespec/backend/Log.java
 common/com/statespec/backend/Metric.java
 common/com/statespec/backend/Queue.java
+common/com/statespec/backend/SchemaCompatibility.java
 common/com/statespec/backend/Workflow.java
 common/com/statespec/backend/memory/InMemoryBackend.java
 common/com/statespec/backend/memory/InMemoryTransaction.java

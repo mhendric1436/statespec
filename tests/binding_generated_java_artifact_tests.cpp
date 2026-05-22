@@ -37,6 +37,7 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"common/com/statespec/backend/Log.java", common},
             {"common/com/statespec/backend/Metric.java", common},
             {"common/com/statespec/backend/Queue.java", common},
+            {"common/com/statespec/backend/SchemaCompatibility.java", common},
             {"common/com/statespec/backend/Workflow.java", common},
             {"common/com/statespec/backend/memory/InMemoryBackend.java", common},
             {"common/com/statespec/backend/memory/InMemoryTransaction.java", common},
