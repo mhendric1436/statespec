@@ -204,6 +204,8 @@ assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "class IEntityRepo
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "class DefaultEntityRepository"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "class IAccountRepository"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "class DefaultAccountRepository"
+assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "class IOrderRepository"
+assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "class DefaultOrderRepository"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "createTx"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "listByIndexTx"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "entity_lookup_from_document"
