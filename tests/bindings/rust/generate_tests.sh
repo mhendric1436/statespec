@@ -217,6 +217,8 @@ assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub trait EntityR
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct DefaultEntityRepository"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub trait AccountRepository"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct DefaultAccountRepository"
+assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub trait OrderRepository"
+assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct DefaultOrderRepository"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "create_tx"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "list_by_index_tx"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn entity_lookup_from_document"

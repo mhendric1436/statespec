@@ -197,6 +197,8 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptor
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "class DefaultEntityRepository"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "interface AccountRepository"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "class DefaultAccountRepository"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "interface OrderRepository"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "class DefaultOrderRepository"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "createTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "listByIndexTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "entityLookupFromDocument"

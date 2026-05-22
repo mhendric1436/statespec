@@ -206,6 +206,8 @@ assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type Entity
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type DefaultEntityRepository struct"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type AccountRepository interface"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type DefaultAccountRepository struct"
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type OrderRepository interface"
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type DefaultOrderRepository struct"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "CreateTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "ListByIndexTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func EntityLookupFromDocument"
