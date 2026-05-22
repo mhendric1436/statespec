@@ -27,6 +27,68 @@ const IrShape* find_shape(
     return nullptr;
 }
 
+const IrEntity* find_entity(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& entity : system.entities)
+    {
+        if (entity.name == name)
+        {
+            return &entity;
+        }
+    }
+    return nullptr;
+}
+
+const IrField* find_field(
+    const IrShape& shape,
+    const std::string& name
+)
+{
+    for (const auto& field : shape.fields)
+    {
+        if (field.name == name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+const IrEntity* create_entity_for_api_go(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Create";
+    if (api.method.value_or("") != "POST" || api.name.rfind(prefix, 0) != 0 || !api.input)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool create_api_has_required_request_fields_go(
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == "created_at" || field.name == "updated_at" || field.name == "status")
+        {
+            continue;
+        }
+        if (find_field(request, field.name) == nullptr)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::string go_decode_func(const IrField& field)
 {
     const auto base = strip_optional_type(field.type);
@@ -117,6 +179,167 @@ std::string go_default_response_expr(
         return "\"Accepted\"";
     }
     return "\"\"";
+}
+
+std::string go_create_response_expr(
+    const IrField& field,
+    const IrShape& request,
+    const IrEntity& entity,
+    const std::string& context_expr
+)
+{
+    if (find_field(request, field.name) != nullptr)
+    {
+        return "decodedRequest." + pascal_identifier(field.name);
+    }
+    if (field.name == "status")
+    {
+        return go_string(entity.initial_state.value_or("Created"));
+    }
+    return go_default_response_expr(field, context_expr);
+}
+
+void write_go_parent_validation(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    for (const auto& relation : entity.relations)
+    {
+        if (relation.kind != "parent" || relation.optional)
+        {
+            continue;
+        }
+        const auto* parent = find_entity(system, relation.target);
+        if (parent == nullptr)
+        {
+            continue;
+        }
+        out << "\t{\n";
+        out << "\t\tparent := common.Default" << pascal_identifier(parent->name)
+            << "Repository{}\n";
+        out << "\t\tparentRecord, err := parent.GetTx(ctx, tx, []common.EntityKeyValue{\n";
+        for (const auto& key_field : parent->key_fields)
+        {
+            const auto* request_field = find_field(request, key_field);
+            out << "\t\t\t{Field: " << go_string(key_field) << ", Value: ";
+            if (request_field == nullptr)
+            {
+                out << "common.JSONNull()";
+            }
+            else
+            {
+                out << go_encode_expr(
+                    *request_field, "decodedRequest." + pascal_identifier(key_field)
+                );
+            }
+            out << "},\n";
+        }
+        out << "\t\t})\n";
+        out << "\t\tif err != nil { return common.APIResponse{}, err }\n";
+        out << "\t\tif parentRecord == nil { return common.APIResponse{}, fmt.Errorf(\"missing "
+               "required parent "
+            << parent->name << "\") }\n";
+        out << "\t}\n";
+    }
+}
+
+bool write_go_create_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = create_entity_for_api_go(system, api);
+    const auto* request = api.input ? find_shape(system, *api.input) : nullptr;
+    if (entity == nullptr || request == nullptr)
+    {
+        return false;
+    }
+    if (!create_api_has_required_request_fields_go(*entity, *request))
+    {
+        out << "\treturn common.APIResponse{}, fmt.Errorf("
+            << go_string(
+                   "generated create handler for " + api.name +
+                   " requires request fields for every non-foundational " + entity->name +
+                   " entity field"
+               )
+            << ")\n";
+        return true;
+    }
+    const auto status = entity->initial_state.value_or("Created");
+    out << "\tdecodedRequest, err := Decode" << pascal_identifier(api.name) << "Request(request)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
+           "common.APIResponse{}, err }\n";
+    out << "\ttx, err := handler.Backend.Begin(ctx)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tdefer func() { if tx.IsOpen() { _ = tx.Abort(ctx) } }()\n";
+    write_go_parent_validation(out, system, *entity, *request);
+    out << "\tdocument := map[string]common.JSON{}\n";
+    for (const auto& field : entity->fields)
+    {
+        if (field.name == "created_at" || field.name == "updated_at")
+        {
+            out << "\tdocument[" << go_string(field.name)
+                << "] = common.JSONString(time.Now().UTC().Format(time.RFC3339))\n";
+        }
+        else if (field.name == "status")
+        {
+            out << "\tdocument[" << go_string(field.name) << "] = common.JSONString("
+                << go_string(status) << ")\n";
+        }
+        else if (const auto* request_field = find_field(*request, field.name);
+                 request_field != nullptr)
+        {
+            out << "\tdocument[" << go_string(field.name) << "] = "
+                << go_encode_expr(*request_field, "decodedRequest." + pascal_identifier(field.name))
+                << "\n";
+        }
+    }
+    out << "\trecord, err := repository.CreateTx(ctx, tx, common.JSONObject(document))\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tif record == nil { return common.APIResponse{}, fmt.Errorf(\"entity create failed\") "
+           "}\n";
+    out << "\tif err := handler.Backend.Commit(ctx, tx); err != nil { return common.APIResponse{}, "
+           "err }\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "\tresponse := common." << pascal_identifier(shape->name) << "{}\n";
+            for (const auto& field : shape->fields)
+            {
+                const auto access = "response." + pascal_identifier(field.name);
+                const auto value = go_create_response_expr(field, *request, *entity, "request");
+                if (is_optional_type(field.type))
+                {
+                    out << "\t" << lower_camel_identifier(field.name) << " := " << value << "\n";
+                    out << "\t" << access << " = &" << lower_camel_identifier(field.name) << "\n";
+                }
+                else
+                {
+                    out << "\t" << access << " = " << value << "\n";
+                }
+            }
+            out << "\treturn Encode" << pascal_identifier(api.name)
+                << "ResponseWithStatus(response, 201), nil\n";
+        }
+        else
+        {
+            out << "\treturn common.APIResponse{StatusCode: 201, Body: "
+                   "common.JSONObject(map[string]common.JSON{})}, nil\n";
+        }
+    }
+    else
+    {
+        out << "\treturn common.APIResponse{StatusCode: 201, Body: "
+               "common.JSONObject(map[string]common.JSON{})}, nil\n";
+    }
+    return true;
 }
 
 } // namespace
@@ -248,9 +471,14 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
-        out << "func (DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
+        out << "func (handler DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
             << "(ctx context.Context, request common.APIRequestContext) (common.APIResponse, "
                "error) {\n";
+        if (write_go_create_handler_body(out, system, api))
+        {
+            out << "}\n\n";
+            continue;
+        }
         out << "\t_ = ctx\n";
         if (api.input.has_value())
         {

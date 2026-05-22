@@ -28,6 +28,68 @@ const IrShape* find_shape(
     return nullptr;
 }
 
+const IrEntity* find_entity(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& entity : system.entities)
+    {
+        if (entity.name == name)
+        {
+            return &entity;
+        }
+    }
+    return nullptr;
+}
+
+const IrField* find_field(
+    const IrShape& shape,
+    const std::string& name
+)
+{
+    for (const auto& field : shape.fields)
+    {
+        if (field.name == name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+const IrEntity* create_entity_for_api_java(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Create";
+    if (api.method.value_or("") != "POST" || api.name.rfind(prefix, 0) != 0 || !api.input)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool create_api_has_required_request_fields_java(
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == "created_at" || field.name == "updated_at" || field.name == "status")
+        {
+            continue;
+        }
+        if (find_field(request, field.name) == nullptr)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::string java_decode_func(const IrField& field)
 {
     const auto base = strip_optional_type(field.type);
@@ -114,6 +176,197 @@ std::string java_default_response_expr(
         return "\"Accepted\"";
     }
     return "\"\"";
+}
+
+std::string java_create_response_expr(
+    const IrField& field,
+    const IrShape& request,
+    const IrEntity& entity,
+    const std::string& context_expr
+)
+{
+    if (find_field(request, field.name) != nullptr)
+    {
+        return "request." + field.name + "()";
+    }
+    if (field.name == "status")
+    {
+        return java_string(entity.initial_state.value_or("Created"));
+    }
+    return java_default_response_expr(field, context_expr);
+}
+
+std::string java_api_json_expr(
+    const IrField& field,
+    const std::string& accessor
+)
+{
+    auto expression = java_encode_expr(field, accessor);
+    const std::string from = "Json.";
+    const std::string to = "com.statespec.backend.Json.";
+    std::size_t pos = 0;
+    while ((pos = expression.find(from, pos)) != std::string::npos)
+    {
+        expression.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+    return expression;
+}
+
+void write_java_parent_validation(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    for (const auto& relation : entity.relations)
+    {
+        if (relation.kind != "parent" || relation.optional)
+        {
+            continue;
+        }
+        const auto* parent = find_entity(system, relation.target);
+        if (parent == nullptr)
+        {
+            continue;
+        }
+        out << "            {\n";
+        out << "                var parent = new Descriptors.Default"
+            << pascal_identifier(parent->name) << "Repository();\n";
+        out << "                var parentRecord = parent.getTx(\n";
+        out << "                    tx,\n";
+        out << "                    java.util.List.of(\n";
+        for (std::size_t i = 0; i < parent->key_fields.size(); ++i)
+        {
+            const auto& key_field = parent->key_fields[i];
+            const auto* request_field = find_field(request, key_field);
+            out << "                        new Descriptors.EntityKeyValue("
+                << java_string(key_field) << ", ";
+            if (request_field == nullptr)
+            {
+                out << "com.statespec.backend.Json.nullValue()";
+            }
+            else
+            {
+                out << java_api_json_expr(*request_field, "request." + key_field + "()");
+            }
+            out << ")";
+            out << (i + 1 < parent->key_fields.size() ? "," : "") << "\n";
+        }
+        out << "                    )\n";
+        out << "                );\n";
+        out << "                if (parentRecord.isEmpty()) {\n";
+        out << "                    throw new "
+               "com.statespec.backend.Backend.BackendException(\"missing required parent "
+            << parent->name << "\");\n";
+        out << "                }\n";
+        out << "            }\n";
+    }
+}
+
+bool write_java_create_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = create_entity_for_api_java(system, api);
+    const auto* request = api.input ? find_shape(system, *api.input) : nullptr;
+    if (entity == nullptr || request == nullptr)
+    {
+        return false;
+    }
+    if (!create_api_has_required_request_fields_java(*entity, *request))
+    {
+        out << "            throw new com.statespec.backend.Backend.BackendException("
+            << java_string(
+                   "generated create handler for " + api.name +
+                   " requires request fields for every non-foundational " + entity->name +
+                   " entity field"
+               )
+            << ");\n";
+        return true;
+    }
+    const auto status = entity->initial_state.value_or("Created");
+    out << "            var request = ApiCodecs.decode" << pascal_identifier(api.name)
+        << "Request(context);\n";
+    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
+        << "Repository();\n";
+    out << "            repository.registerDescriptor(backend);\n";
+    out << "            var tx = backend.begin();\n";
+    out << "            try {\n";
+    write_java_parent_validation(out, system, *entity, *request);
+    out << "                var document = new java.util.HashMap<String, "
+           "com.statespec.backend.Json>();\n";
+    for (const auto& field : entity->fields)
+    {
+        if (field.name == "created_at" || field.name == "updated_at")
+        {
+            out << "                document.put(" << java_string(field.name)
+                << ", com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
+        }
+        else if (field.name == "status")
+        {
+            out << "                document.put(" << java_string(field.name)
+                << ", com.statespec.backend.Json.string(" << java_string(status) << "));\n";
+        }
+        else if (const auto* request_field = find_field(*request, field.name);
+                 request_field != nullptr)
+        {
+            out << "                document.put(" << java_string(field.name) << ", "
+                << java_api_json_expr(*request_field, "request." + field.name + "()") << ");\n";
+        }
+    }
+    out << "                var record = repository.createTx(\n";
+    out << "                    tx, com.statespec.backend.Json.object(document)\n";
+    out << "                );\n";
+    out << "                if (record.isEmpty()) {\n";
+    out << "                    throw new com.statespec.backend.Backend.BackendException(\"entity "
+           "create failed\");\n";
+    out << "                }\n";
+    out << "                backend.commit(tx);\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "                var response = new Descriptors."
+                << pascal_identifier(shape->name) << "(\n";
+            for (std::size_t i = 0; i < shape->fields.size(); ++i)
+            {
+                const auto& field = shape->fields[i];
+                out << "                    ";
+                if (is_optional_type(field.type))
+                {
+                    out << "Optional.of("
+                        << java_create_response_expr(field, *request, *entity, "context") << ")";
+                }
+                else
+                {
+                    out << java_create_response_expr(field, *request, *entity, "context");
+                }
+                out << (i + 1 < shape->fields.size() ? "," : "") << "\n";
+            }
+            out << "                );\n";
+            out << "                return ApiCodecs.encode" << pascal_identifier(api.name)
+                << "Response(response, 201);\n";
+        }
+        else
+        {
+            out << "                return new Descriptors.ApiResponse(201, "
+                   "com.statespec.backend.Json.object(java.util.Map.of()));\n";
+        }
+    }
+    else
+    {
+        out << "                return new Descriptors.ApiResponse(201, "
+               "com.statespec.backend.Json.object(java.util.Map.of()));\n";
+    }
+    out << "            } catch (Exception error) {\n";
+    out << "                tx.abort();\n";
+    out << "                throw error;\n";
+    out << "            }\n";
+    return true;
 }
 
 } // namespace
@@ -252,7 +505,12 @@ std::string generate_api_operation_default_handler_methods_java(const IrSystem& 
     {
         out << "        @Override\n";
         out << "        public Descriptors.ApiResponse handle" << pascal_identifier(api.name)
-            << "(Descriptors.ApiRequestContext context) {\n";
+            << "(Descriptors.ApiRequestContext context) throws Exception {\n";
+        if (write_java_create_handler_body(out, system, api))
+        {
+            out << "        }\n\n";
+            continue;
+        }
         if (api.input.has_value())
         {
             out << "            var request = ApiCodecs.decode" << pascal_identifier(api.name)

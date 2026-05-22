@@ -29,7 +29,7 @@ func NewAPITierApplication(backend common.Backend, serverName string, handler AP
 }
 
 func NewDefaultAPITierApplication(backend common.Backend, serverName string) (*APITierApplication, bool) {
-	return NewAPITierApplication(backend, serverName, DefaultAPITierHandler{})
+	return NewAPITierApplication(backend, serverName, DefaultAPITierHandler{Backend: backend})
 }
 
 func (app *APITierApplication) Bootstrap(ctx context.Context) error {

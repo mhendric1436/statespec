@@ -15,6 +15,7 @@ TESTS_DIR="$REPO_DIR/tests"
 
 APP_SPEC="$REPO_DIR/testdata/generators/canonical-api-worker-app.sspec"
 E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
+API_ENTITY_SPEC="$REPO_DIR/examples/api-entities-only.sspec"
 APP_MANIFEST="$TMPDIR/expected-go-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
@@ -70,6 +71,18 @@ assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"Upser
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "ExternalSystemOperatorMetadataAPIHandler"
+
+run_expect_status 0 "$CLI" generate bindings --lang go "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-go"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository := common.DefaultAccountRepository{}"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository := common.DefaultProjectRepository{}"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository := common.DefaultTaskRepository{}"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "handler.Backend.Begin(ctx)"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository.CreateTx"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "\"created_at\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "\"updated_at\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "\"status\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "missing required parent Account"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "missing required parent Project"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"

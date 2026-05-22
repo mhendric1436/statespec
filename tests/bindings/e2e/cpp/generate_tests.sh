@@ -15,6 +15,7 @@ TESTS_DIR="$REPO_DIR/tests"
 
 APP_SPEC="$REPO_DIR/testdata/generators/canonical-api-worker-app.sspec"
 E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
+API_ENTITY_SPEC="$REPO_DIR/examples/api-entities-only.sspec"
 APP_MANIFEST="$TMPDIR/expected-cpp-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
@@ -70,6 +71,18 @@ assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"UpsertExter
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "IExternalSystemOperatorMetadataApiHandler"
+
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-cpp"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "DefaultAccountRepository repository"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "DefaultProjectRepository repository"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "DefaultTaskRepository repository"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "backend_.begin()"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "repository.createTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "\"created_at\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "\"updated_at\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "\"status\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "missing required parent Account"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "missing required parent Project"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$APP_SPEC" --out "$TMPDIR/out-app-cpp"

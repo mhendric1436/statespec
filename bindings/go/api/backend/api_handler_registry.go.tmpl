@@ -2,11 +2,18 @@ package backend
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	common "statespec-generated/common/backend"
 )
 
-type DefaultAPITierHandler struct{}
+var _ = fmt.Errorf
+var _ = time.Now
+
+type DefaultAPITierHandler struct {
+	Backend common.Backend
+}
 
 {{api_operation_default_handler_methods}}
 var _ APITierHandler = DefaultAPITierHandler{}

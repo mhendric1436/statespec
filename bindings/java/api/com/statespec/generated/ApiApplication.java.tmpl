@@ -18,7 +18,7 @@ public final class ApiApplication {
     }
 
     public static ApiApplication createDefault(Backend backend, String serverName) {
-        return new ApiApplication(backend, serverName, ApiHandlerRegistry.defaultHandler());
+        return new ApiApplication(backend, serverName, ApiHandlerRegistry.defaultHandler(backend));
     }
 
     public Backend backend() {

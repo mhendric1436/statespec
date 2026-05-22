@@ -27,6 +27,68 @@ const IrShape* find_shape(
     return nullptr;
 }
 
+const IrEntity* find_entity(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& entity : system.entities)
+    {
+        if (entity.name == name)
+        {
+            return &entity;
+        }
+    }
+    return nullptr;
+}
+
+const IrField* find_field(
+    const IrShape& shape,
+    const std::string& name
+)
+{
+    for (const auto& field : shape.fields)
+    {
+        if (field.name == name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+const IrEntity* create_entity_for_api_rs(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Create";
+    if (api.method.value_or("") != "POST" || api.name.rfind(prefix, 0) != 0 || !api.input)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool create_api_has_required_request_fields_rs(
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == "created_at" || field.name == "updated_at" || field.name == "status")
+        {
+            continue;
+        }
+        if (find_field(request, field.name) == nullptr)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::string rust_decode_func(const IrField& field)
 {
     const auto base = strip_optional_type(field.type);
@@ -118,6 +180,175 @@ std::string rust_default_response_expr(
         return "\"Accepted\".to_string()";
     }
     return "String::new()";
+}
+
+std::string rust_create_response_expr(
+    const IrField& field,
+    const IrShape& request,
+    const IrEntity& entity,
+    const std::string& context_expr
+)
+{
+    if (find_field(request, field.name) != nullptr)
+    {
+        return "request." + field.name + ".clone()";
+    }
+    if (field.name == "status")
+    {
+        return rust_string(entity.initial_state.value_or("Created")) + ".to_string()";
+    }
+    return rust_default_response_expr(field, context_expr);
+}
+
+void write_rust_parent_validation(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    for (const auto& relation : entity.relations)
+    {
+        if (relation.kind != "parent" || relation.optional)
+        {
+            continue;
+        }
+        const auto* parent = find_entity(system, relation.target);
+        if (parent == nullptr)
+        {
+            continue;
+        }
+        out << "        {\n";
+        out << "            let parent = Default" << pascal_identifier(parent->name)
+            << "Repository;\n";
+        out << "            let parent_record = <Default" << pascal_identifier(parent->name)
+            << "Repository as " << pascal_identifier(parent->name) << "Repository<B>>::get_tx(\n";
+        out << "                &parent,\n";
+        out << "                &mut tx,\n";
+        out << "                vec![\n";
+        for (const auto& key_field : parent->key_fields)
+        {
+            const auto* request_field = find_field(request, key_field);
+            out << "                    EntityKeyValue { field: " << rust_string(key_field)
+                << ".to_string(), value: ";
+            if (request_field == nullptr)
+            {
+                out << "Json::Null";
+            }
+            else
+            {
+                out << rust_encode_expr(*request_field, "request." + key_field);
+            }
+            out << " },\n";
+        }
+        out << "                ],\n";
+        out << "            )?;\n";
+        out << "            if parent_record.is_none() {\n";
+        out << "                return Err(BackendError::NotFound { message: "
+            << rust_string("missing required parent " + parent->name) << ".to_string() });\n";
+        out << "            }\n";
+        out << "        }\n";
+    }
+}
+
+bool write_rust_create_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = create_entity_for_api_rs(system, api);
+    const auto* request = api.input ? find_shape(system, *api.input) : nullptr;
+    if (entity == nullptr || request == nullptr)
+    {
+        return false;
+    }
+    if (!create_api_has_required_request_fields_rs(*entity, *request))
+    {
+        out << "        return Err(BackendError::InvalidSchema { message: "
+            << rust_string(
+                   "generated create handler for " + api.name +
+                   " requires request fields for every non-foundational " + entity->name +
+                   " entity field"
+               )
+            << ".to_string() });\n";
+        return true;
+    }
+    const auto status = entity->initial_state.value_or("Created");
+    out << "        let request = crate::api_codecs::decode_" << snake_identifier(api.name)
+        << "_request(context)?;\n";
+    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
+    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name)
+        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let mut tx = self.backend.begin()?;\n";
+    write_rust_parent_validation(out, system, *entity, *request);
+    out << "        let mut document = std::collections::BTreeMap::new();\n";
+    for (const auto& field : entity->fields)
+    {
+        if (field.name == "created_at" || field.name == "updated_at")
+        {
+            out << "        document.insert(" << rust_string(field.name)
+                << ".to_string(), Json::String(\"0\".to_string()));\n";
+        }
+        else if (field.name == "status")
+        {
+            out << "        document.insert(" << rust_string(field.name)
+                << ".to_string(), Json::String(" << rust_string(status) << ".to_string()));\n";
+        }
+        else if (const auto* request_field = find_field(*request, field.name);
+                 request_field != nullptr)
+        {
+            out << "        document.insert(" << rust_string(field.name) << ".to_string(), "
+                << rust_encode_expr(*request_field, "request." + field.name) << ");\n";
+        }
+    }
+    out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name) << "Repository<B>>::create_tx(\n";
+    out << "            &repository,\n";
+    out << "            &mut tx,\n";
+    out << "            Json::Object(document),\n";
+    out << "        )?;\n";
+    out << "        if record.is_none() {\n";
+    out << "            return Err(BackendError::Internal { message: \"entity create "
+           "failed\".to_string() });\n";
+    out << "        }\n";
+    out << "        self.backend.commit(tx)?;\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "        let response = " << pascal_identifier(shape->name) << " {\n";
+            for (const auto& field : shape->fields)
+            {
+                out << "            " << field.name << ": ";
+                if (is_optional_type(field.type))
+                {
+                    out << "Some(" << rust_create_response_expr(field, *request, *entity, "context")
+                        << ")";
+                }
+                else
+                {
+                    out << rust_create_response_expr(field, *request, *entity, "context");
+                }
+                out << ",\n";
+            }
+            out << "        };\n";
+            out << "        Ok(crate::api_codecs::encode_" << snake_identifier(api.name)
+                << "_response_with_status(&response, 201))\n";
+        }
+        else
+        {
+            out << "        Ok(ApiResponse { status_code: 201, body: "
+                   "Json::Object(std::collections::BTreeMap::new()) })\n";
+        }
+    }
+    else
+    {
+        out << "        Ok(ApiResponse { status_code: 201, body: "
+               "Json::Object(std::collections::BTreeMap::new()) })\n";
+    }
+    return true;
 }
 
 } // namespace
@@ -243,6 +474,11 @@ std::string generate_api_operation_default_handler_methods_rs(const IrSystem& sy
     {
         out << "    fn handle_" << snake_identifier(api.name)
             << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
+        if (write_rust_create_handler_body(out, system, api))
+        {
+            out << "    }\n\n";
+            continue;
+        }
         if (api.input.has_value())
         {
             out << "        let request = crate::api_codecs::decode_" << snake_identifier(api.name)

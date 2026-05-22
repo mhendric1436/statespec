@@ -9,8 +9,16 @@ namespace statespec_generated::api
 class DefaultApiHandler final : public IApiOperationHandler
 {
   public:
+    explicit DefaultApiHandler(statespec::backend::IBackend& backend)
+        : backend_(backend)
+    {
+    }
+
     // clang-format off
 {{api_operation_default_handler_methods}} // clang-format on
+
+  private:
+    [[maybe_unused]] statespec::backend::IBackend& backend_;
 };
 
 } // namespace statespec_generated::api

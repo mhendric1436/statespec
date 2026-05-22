@@ -15,6 +15,7 @@ TESTS_DIR="$REPO_DIR/tests"
 
 APP_SPEC="$REPO_DIR/testdata/generators/canonical-api-worker-app.sspec"
 E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
+API_ENTITY_SPEC="$REPO_DIR/examples/api-entities-only.sspec"
 APP_MANIFEST="$TMPDIR/expected-rust-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
@@ -72,6 +73,18 @@ assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"UpsertExter
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "ExternalSystemOperatorMetadataApiHandler"
+
+run_expect_status 0 "$CLI" generate bindings --lang rust "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-rust"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "let repository = DefaultAccountRepository;"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "let repository = DefaultProjectRepository;"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "let repository = DefaultTaskRepository;"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "self.backend.begin()"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "create_tx"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "\"created_at\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "\"updated_at\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "\"status\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "missing required parent Account"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "missing required parent Project"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang rust "$APP_SPEC" --out "$TMPDIR/out-app-rust"

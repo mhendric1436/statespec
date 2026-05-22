@@ -27,8 +27,8 @@ impl<B: Backend, H: ApiHandler> ApiApplication<B, H> {
     }
 }
 
-impl<B: Backend> ApiApplication<B, DefaultApiHandler> {
+impl<B: Backend + Clone> ApiApplication<B, DefaultApiHandler<B>> {
     pub fn new_default(server_name: &str, backend: B) -> Option<Self> {
-        Self::new(server_name, DefaultApiHandler, backend)
+        Self::new(server_name, DefaultApiHandler { backend: backend.clone() }, backend)
     }
 }

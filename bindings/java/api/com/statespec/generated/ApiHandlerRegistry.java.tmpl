@@ -6,9 +6,15 @@ public final class ApiHandlerRegistry {
     private ApiHandlerRegistry() {}
 
     public static final class DefaultHandler implements ApiHandlers.Handler {
+        private final com.statespec.backend.Backend backend;
+
+        public DefaultHandler(com.statespec.backend.Backend backend) {
+            this.backend = backend;
+        }
+
 {{api_operation_default_handler_methods}}    }
 
-    public static ApiHandlers.Handler defaultHandler() {
-        return new DefaultHandler();
+    public static ApiHandlers.Handler defaultHandler(com.statespec.backend.Backend backend) {
+        return new DefaultHandler(backend);
     }
 }
