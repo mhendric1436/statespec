@@ -6,6 +6,7 @@ use crate::backend::{
 };
 use crate::json::Json;
 use crate::memory_transaction::{lock_error, InMemoryState, InMemoryTransaction};
+use crate::schema_compatibility::validate_collection_descriptor_upgrade;
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryBackend {
@@ -31,9 +32,11 @@ impl Backend for InMemoryBackend {
     }
 
     fn ensure_collection(&self, descriptor: &CollectionDescriptor) -> BackendResult<()> {
-        self.state
-            .lock()
-            .map_err(lock_error)?
+        let mut state = self.state.lock().map_err(lock_error)?;
+        if let Some(existing) = state.collections.get(&descriptor.name) {
+            validate_collection_descriptor_upgrade(existing, descriptor)?;
+        }
+        state
             .collections
             .insert(descriptor.name.clone(), descriptor.clone());
         Ok(())

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../schema_compatibility.hpp"
 #include "transaction.hpp"
 
 namespace statespec::backend::memory
@@ -18,6 +19,11 @@ class InMemoryBackend : public IBackend
     void ensure_collection(const CollectionDescriptor& descriptor) override
     {
         std::lock_guard<std::mutex> lock(state_->mutex);
+        const auto existing = state_->collections.find(descriptor.name);
+        if (existing != state_->collections.end())
+        {
+            validate_collection_descriptor_upgrade(existing->second, descriptor);
+        }
         state_->collections.insert_or_assign(descriptor.name, descriptor);
     }
 

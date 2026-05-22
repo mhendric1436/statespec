@@ -2,6 +2,7 @@ package runtime_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -146,4 +147,71 @@ func TestMemoryBackendStoresComposeInTransaction(t *testing.T) {
 	if err := backend.Commit(ctx, readTx); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestMemoryBackendEnforcesCompatibleCollectionRegistration(t *testing.T) {
+	ctx := context.Background()
+	backend := memory.NewBackend()
+	base := testCollectionDescriptor()
+
+	if err := backend.EnsureCollection(ctx, base); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.EnsureCollection(ctx, base); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.EnsureCollection(ctx, compatibleCollectionDescriptor()); err != nil {
+		t.Fatal(err)
+	}
+
+	incompatible := compatibleCollectionDescriptor()
+	incompatible.SchemaVersion = 3
+	incompatible.KeyFields = []string{"tenant_id", "order_id"}
+
+	err := backend.EnsureCollection(ctx, incompatible)
+	var conflict common.ConflictError
+	if !errors.As(err, &conflict) || conflict.Kind != common.SchemaConflict {
+		t.Fatalf("expected schema conflict, got %T %v", err, err)
+	}
+}
+
+func testCollectionDescriptor() common.CollectionDescriptor {
+	return common.CollectionDescriptor{
+		Name: "orders",
+		Fields: []common.FieldDescriptor{
+			{
+				Name:     "tenant_id",
+				Type:     common.FieldTypeString,
+				TypeName: "string",
+				Required: true,
+			},
+			{
+				Name:     "status",
+				Type:     common.FieldTypeString,
+				TypeName: "string",
+				Required: false,
+			},
+		},
+		KeyFields: []string{"tenant_id"},
+		Indexes: []common.IndexDescriptor{
+			{
+				Name:   "by_status",
+				Fields: []string{"status"},
+				Unique: false,
+			},
+		},
+		SchemaVersion: 1,
+	}
+}
+
+func compatibleCollectionDescriptor() common.CollectionDescriptor {
+	descriptor := testCollectionDescriptor()
+	descriptor.SchemaVersion = 2
+	descriptor.Fields = append(descriptor.Fields, common.FieldDescriptor{
+		Name:     "description",
+		Type:     common.FieldTypeString,
+		TypeName: "string",
+		Required: false,
+	})
+	return descriptor
 }

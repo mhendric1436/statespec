@@ -2,6 +2,7 @@ package com.statespec.backend.memory;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.Json;
+import com.statespec.backend.SchemaCompatibility;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,15 +15,21 @@ public final class InMemoryBackend implements Backend
         return new BackendCapabilities(true, true, true, false, false, false, false, false, false);
     }
 
-    @Override public void ensureCollection(CollectionDescriptor descriptor)
+    @Override public void ensureCollection(CollectionDescriptor descriptor) throws BackendException
     {
         synchronized (state)
         {
+            var existing = state.collections.get(descriptor.name());
+            if (existing != null)
+            {
+                SchemaCompatibility.validateCollectionDescriptorUpgrade(existing, descriptor);
+            }
             state.collections.put(descriptor.name(), descriptor);
         }
     }
 
-    @Override public void ensureCollections(List<CollectionDescriptor> descriptors)
+    @Override
+    public void ensureCollections(List<CollectionDescriptor> descriptors) throws BackendException
     {
         for (var descriptor : descriptors)
         {

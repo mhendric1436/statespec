@@ -27,7 +27,13 @@ func (b *Backend) EnsureCollection(ctx context.Context, descriptor common.Collec
 	_ = ctx
 	b.state.mu.Lock()
 	defer b.state.mu.Unlock()
-	b.state.collections[common.CollectionName(descriptor.Name)] = descriptor
+	collection := common.CollectionName(descriptor.Name)
+	if existing, ok := b.state.collections[collection]; ok {
+		if err := common.ValidateCollectionDescriptorUpgrade(existing, descriptor); err != nil {
+			return err
+		}
+	}
+	b.state.collections[collection] = descriptor
 	return nil
 }
 

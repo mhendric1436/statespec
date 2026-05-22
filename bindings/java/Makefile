@@ -10,6 +10,7 @@ FORMAT_FILES := $(JAVA_SOURCES) $(GENERATED_FORMAT_TEMPLATES)
 test:
 	$(JAVAC) $(JAVA_SOURCES)
 	$(JAVA) com.statespec.backend.JsonTest
+	$(JAVA) com.statespec.backend.memory.MemoryBackendRegistrationTest
 	$(JAVA) com.statespec.backend.SchemaCompatibilityTest
 
 format:

@@ -69,3 +69,6 @@ mod metric_tests;
 
 #[cfg(test)]
 mod schema_compatibility_tests;
+
+#[cfg(test)]
+mod memory_backend_registration_tests;
