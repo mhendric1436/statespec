@@ -25,14 +25,19 @@ func (l EntityLookup) KeyComplete() bool {
 	return true
 }
 
-type EntityUpsertRequest struct {
+type EntityCreateRequest struct {
 	Lookup          EntityLookup
 	Document        JSON
-	ExpectedVersion *Version
 }
 
 type EntityGetRequest struct {
 	Lookup EntityLookup
+}
+
+type EntityUpsertRequest struct {
+	Lookup          EntityLookup
+	Document        JSON
+	ExpectedVersion *Version
 }
 
 type EntityDeleteRequest struct {
@@ -40,16 +45,18 @@ type EntityDeleteRequest struct {
 	ExpectedVersion *Version
 }
 
-type EntityQueryRequest struct {
-	Entity string
-	Query  Query
+type EntityListByIndexRequest struct {
+	Entity    string
+	IndexName string
+	Values    []IndexValue
 }
 
 type EntityRepository interface {
+	CreateEntityTx(context.Context, Transaction, EntityCreateRequest) (*VersionedRecord, error)
 	UpsertEntityTx(context.Context, Transaction, EntityUpsertRequest) (*VersionedRecord, error)
 	GetEntityTx(context.Context, Transaction, EntityGetRequest) (*VersionedRecord, error)
 	DeleteEntityTx(context.Context, Transaction, EntityDeleteRequest) (*VersionedRecord, error)
-	QueryEntitiesTx(context.Context, Transaction, EntityQueryRequest) ([]VersionedRecord, error)
+	ListEntitiesByIndexTx(context.Context, Transaction, EntityListByIndexRequest) ([]VersionedRecord, error)
 }
 
 func EntityKey(lookup EntityLookup) (Key, bool) {
@@ -111,6 +118,24 @@ func assertEntityExpectedVersion(existing *VersionedRecord, expectedVersion *Ver
 	return nil
 }
 
+func (DefaultEntityRepository) CreateEntityTx(ctx context.Context, tx Transaction, request EntityCreateRequest) (*VersionedRecord, error) {
+	key, ok := EntityKey(request.Lookup)
+	if !ok {
+		return nil, nil
+	}
+	existing, err := tx.Get(ctx, CollectionName(request.Lookup.Entity), key)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return nil, ConflictError{Kind: VersionConflict, Message: "entity already exists"}
+	}
+	if err := tx.Put(ctx, CollectionName(request.Lookup.Entity), key, entityDocumentWithKeys(request.Document, request.Lookup)); err != nil {
+		return nil, err
+	}
+	return tx.Get(ctx, CollectionName(request.Lookup.Entity), key)
+}
+
 func (DefaultEntityRepository) UpsertEntityTx(ctx context.Context, tx Transaction, request EntityUpsertRequest) (*VersionedRecord, error) {
 	key, ok := EntityKey(request.Lookup)
 	if !ok {
@@ -155,8 +180,8 @@ func (DefaultEntityRepository) DeleteEntityTx(ctx context.Context, tx Transactio
 	return existing, nil
 }
 
-func (DefaultEntityRepository) QueryEntitiesTx(ctx context.Context, tx Transaction, request EntityQueryRequest) ([]VersionedRecord, error) {
-	return tx.Query(ctx, CollectionName(request.Entity), request.Query)
+func (DefaultEntityRepository) ListEntitiesByIndexTx(ctx context.Context, tx Transaction, request EntityListByIndexRequest) ([]VersionedRecord, error) {
+	return tx.Query(ctx, CollectionName(request.Entity), IndexEqualsQuery(request.IndexName, request.Values))
 }
 
 var _ EntityRepository = DefaultEntityRepository{}

@@ -1,6 +1,7 @@
 #include "generator_java_descriptor_areas.hpp"
 
 #include "generator_java_descriptor_support.hpp"
+#include "identifier_case.hpp"
 
 #include <sstream>
 
@@ -132,6 +133,146 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
     }
     out << "        );\n";
     out << "    }\n\n";
+
+    for (const auto& entity : system.entities)
+    {
+        const auto type_name = pascal_identifier(entity.name);
+        out << "    public static EntityLookup build" << type_name
+            << "Lookup(List<EntityKeyValue> keyValues) {\n";
+        out << "        return new EntityLookup(\n";
+        out << "            " << java_string(entity.name) << ",\n";
+        out << "            List.of(";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << java_string(entity.key_fields[i]);
+        }
+        out << "),\n";
+        out << "            List.copyOf(keyValues)\n";
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    public interface " << type_name << "Repository {\n";
+        out << "        void registerDescriptor(Backend backend) throws "
+               "Backend.BackendException;\n";
+        out << "        Optional<Backend.VersionedRecord> createTx(\n";
+        out << "            Backend.Transaction tx,\n";
+        out << "            Json document\n";
+        out << "        ) throws Backend.BackendException;\n";
+        out << "        Optional<Backend.VersionedRecord> getTx(\n";
+        out << "            Backend.Transaction tx,\n";
+        out << "            List<EntityKeyValue> keyValues\n";
+        out << "        ) throws Backend.BackendException;\n";
+        out << "        List<Backend.VersionedRecord> listByIndexTx(\n";
+        out << "            Backend.Transaction tx,\n";
+        out << "            String indexName,\n";
+        out << "            List<Backend.IndexValue> values\n";
+        out << "        ) throws Backend.BackendException;\n";
+        out << "    }\n\n";
+        out << "    public static final class Default" << type_name << "Repository implements "
+            << type_name << "Repository {\n";
+        out << "        private final EntityRepository entities = new "
+               "DefaultEntityRepository();\n\n";
+        out << "        @Override public void registerDescriptor(Backend backend)\n";
+        out << "            throws Backend.BackendException\n";
+        out << "        {\n";
+        out << "            backend.ensureCollection(" << lower_camel_identifier(entity.name)
+            << "CollectionDescriptor());\n";
+        out << "        }\n\n";
+        out << "        @Override public Optional<Backend.VersionedRecord> createTx(\n";
+        out << "            Backend.Transaction tx,\n";
+        out << "            Json document\n";
+        out << "        ) throws Backend.BackendException\n";
+        out << "        {\n";
+        out << "            return entities.createEntityTx(\n";
+        out << "                tx,\n";
+        out << "                new EntityCreateRequest(\n";
+        out << "                    entityLookupFromDocument("
+            << lower_camel_identifier(entity.name) << "EntityDescriptor(), document),\n";
+        out << "                    document\n";
+        out << "                )\n";
+        out << "            );\n";
+        out << "        }\n\n";
+        out << "        @Override public Optional<Backend.VersionedRecord> getTx(\n";
+        out << "            Backend.Transaction tx,\n";
+        out << "            List<EntityKeyValue> keyValues\n";
+        out << "        ) throws Backend.BackendException\n";
+        out << "        {\n";
+        out << "            return entities.getEntityTx(\n";
+        out << "                tx, new EntityGetRequest(build" << type_name
+            << "Lookup(keyValues))\n";
+        out << "            );\n";
+        out << "        }\n\n";
+        out << "        @Override public List<Backend.VersionedRecord> listByIndexTx(\n";
+        out << "            Backend.Transaction tx,\n";
+        out << "            String indexName,\n";
+        out << "            List<Backend.IndexValue> values\n";
+        out << "        ) throws Backend.BackendException\n";
+        out << "        {\n";
+        out << "            return entities.listEntitiesByIndexTx(\n";
+        out << "                tx,\n";
+        out << "                new EntityListByIndexRequest(" << java_string(entity.name)
+            << ", indexName, values)\n";
+        out << "            );\n";
+        out << "        }\n";
+        out << "    }\n\n";
+        out << "    public static CollectionDescriptor " << lower_camel_identifier(entity.name)
+            << "CollectionDescriptor() {\n";
+        out << "        return new CollectionDescriptor(\n";
+        out << "            " << java_string(entity.name) << ",\n";
+        out << "            List.of(\n";
+        for (std::size_t i = 0; i < entity.fields.size(); ++i)
+        {
+            out << "                " << java_field_descriptor_expr(entity.fields[i]);
+            out << (i + 1 < entity.fields.size() ? "," : "") << "\n";
+        }
+        out << "            ),\n";
+        out << "            List.of(";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << java_string(entity.key_fields[i]);
+        }
+        out << "),\n";
+        out << "            List.of(\n";
+        for (std::size_t i = 0; i < entity.indexes.size(); ++i)
+        {
+            const auto& index = entity.indexes[i];
+            out << "                new IndexDescriptor(\n";
+            out << "                    " << java_string(index.name) << ",\n";
+            out << "                    List.of(";
+            for (std::size_t field_index = 0; field_index < index.fields.size(); ++field_index)
+            {
+                if (field_index > 0)
+                {
+                    out << ", ";
+                }
+                out << java_string(index.fields[field_index]);
+            }
+            out << "),\n";
+            out << "                    " << (index.unique ? "true" : "false") << "\n";
+            out << "                )" << (i + 1 < entity.indexes.size() ? "," : "") << "\n";
+        }
+        out << "            ),\n";
+        out << "            1L\n";
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    public static EntityDescriptor " << lower_camel_identifier(entity.name)
+            << "EntityDescriptor() {\n";
+        out << "        return entityDescriptors().stream()\n";
+        out << "            .filter(descriptor -> descriptor.name().equals("
+            << java_string(entity.name) << "))\n";
+        out << "            .findFirst()\n";
+        out << "            .orElseThrow(() -> new IllegalStateException(\"entity descriptor not "
+               "found: "
+            << entity.name << "\"));\n";
+        out << "    }\n\n";
+    }
 
     return out.str();
 }

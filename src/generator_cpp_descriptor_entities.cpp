@@ -1,6 +1,7 @@
 #include "generator_cpp_descriptor_areas.hpp"
 
 #include "generator_cpp_descriptor_support.hpp"
+#include "identifier_case.hpp"
 
 #include <sstream>
 
@@ -171,6 +172,152 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
 
     out << "    };\n";
     out << "}\n\n";
+
+    for (const auto& entity : system.entities)
+    {
+        const auto type_name = pascal_identifier(entity.name);
+        const auto function_prefix = snake_identifier(entity.name);
+        out << "inline EntityLookup " << function_prefix
+            << "_lookup(std::vector<EntityKeyValue> key_values)\n";
+        out << "{\n";
+        out << "    return EntityLookup{\n";
+        out << "        " << cpp_string(entity.name) << ",\n";
+        out << "        {";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_string(entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "        std::move(key_values),\n";
+        out << "    };\n";
+        out << "}\n\n";
+        out << "class I" << type_name << "Repository\n";
+        out << "{\n";
+        out << "  public:\n";
+        out << "    virtual ~I" << type_name << "Repository() = default;\n";
+        out << "    virtual void register_descriptor(statespec::backend::IBackend& backend) = 0;\n";
+        out << "    virtual std::optional<statespec::backend::VersionedRecord> createTx(\n";
+        out << "        statespec::backend::ITransaction& tx,\n";
+        out << "        statespec::backend::Json document\n";
+        out << "    ) = 0;\n";
+        out << "    virtual std::optional<statespec::backend::VersionedRecord> getTx(\n";
+        out << "        statespec::backend::ITransaction& tx,\n";
+        out << "        std::vector<EntityKeyValue> key_values\n";
+        out << "    ) = 0;\n";
+        out << "    virtual std::vector<statespec::backend::VersionedRecord> listByIndexTx(\n";
+        out << "        statespec::backend::ITransaction& tx,\n";
+        out << "        std::string index_name,\n";
+        out << "        std::vector<statespec::backend::IndexValue> values\n";
+        out << "    ) = 0;\n";
+        out << "};\n\n";
+        out << "class Default" << type_name << "Repository final : public I" << type_name
+            << "Repository\n";
+        out << "{\n";
+        out << "  public:\n";
+        out << "    void register_descriptor(statespec::backend::IBackend& backend) override\n";
+        out << "    {\n";
+        out << "        backend.ensure_collection(collection_descriptor());\n";
+        out << "    }\n\n";
+        out << "    std::optional<statespec::backend::VersionedRecord> createTx(\n";
+        out << "        statespec::backend::ITransaction& tx,\n";
+        out << "        statespec::backend::Json document\n";
+        out << "    ) override\n";
+        out << "    {\n";
+        out << "        return entities_.create_entityTx(\n";
+        out << "            tx,\n";
+        out << "            EntityCreateRequest{\n";
+        out << "                entity_lookup_from_document(entity_descriptor(), document),\n";
+        out << "                std::move(document),\n";
+        out << "            }\n";
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    std::optional<statespec::backend::VersionedRecord> getTx(\n";
+        out << "        statespec::backend::ITransaction& tx,\n";
+        out << "        std::vector<EntityKeyValue> key_values\n";
+        out << "    ) override\n";
+        out << "    {\n";
+        out << "        return entities_.get_entityTx(\n";
+        out << "            tx, EntityGetRequest{" << function_prefix
+            << "_lookup(std::move(key_values))}\n";
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    std::vector<statespec::backend::VersionedRecord> listByIndexTx(\n";
+        out << "        statespec::backend::ITransaction& tx,\n";
+        out << "        std::string index_name,\n";
+        out << "        std::vector<statespec::backend::IndexValue> values\n";
+        out << "    ) override\n";
+        out << "    {\n";
+        out << "        return entities_.list_entities_by_indexTx(\n";
+        out << "            tx,\n";
+        out << "            EntityListByIndexRequest{\n";
+        out << "                " << cpp_string(entity.name) << ",\n";
+        out << "                std::move(index_name),\n";
+        out << "                std::move(values),\n";
+        out << "            }\n";
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    static statespec::backend::CollectionDescriptor collection_descriptor()\n";
+        out << "    {\n";
+        out << "        return statespec::backend::CollectionDescriptor{\n";
+        out << "            " << cpp_string(entity.name) << ",\n";
+        out << "            {\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "                " << cpp_field_descriptor_expr(field) << ",\n";
+        }
+        out << "            },\n";
+        out << "            {";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_string(entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "            {\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "                statespec::backend::IndexDescriptor{\n";
+            out << "                    " << cpp_string(index.name) << ",\n";
+            out << "                    {";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << cpp_string(index.fields[i]);
+            }
+            out << "},\n";
+            out << "                    " << (index.unique ? "true" : "false") << ",\n";
+            out << "                },\n";
+        }
+        out << "            },\n";
+        out << "            1,\n";
+        out << "        };\n";
+        out << "    }\n\n";
+        out << "    static EntityDescriptor entity_descriptor()\n";
+        out << "    {\n";
+        out << "        for (const auto& descriptor : entity_descriptors())\n";
+        out << "        {\n";
+        out << "            if (descriptor.name == " << cpp_string(entity.name) << ")\n";
+        out << "            {\n";
+        out << "                return descriptor;\n";
+        out << "            }\n";
+        out << "        }\n";
+        out << "        throw statespec::backend::BackendError(\"entity descriptor not found: "
+            << entity.name << "\");\n";
+        out << "    }\n\n";
+        out << "  private:\n";
+        out << "    DefaultEntityRepository entities_;\n";
+        out << "};\n\n";
+    }
 
     return out.str();
 }

@@ -32,16 +32,22 @@ struct EntityLookup
     }
 };
 
-struct EntityUpsertRequest
+struct EntityCreateRequest
 {
     EntityLookup lookup;
     statespec::backend::Json document;
-    std::optional<statespec::backend::Version> expected_version;
 };
 
 struct EntityGetRequest
 {
     EntityLookup lookup;
+};
+
+struct EntityUpsertRequest
+{
+    EntityLookup lookup;
+    statespec::backend::Json document;
+    std::optional<statespec::backend::Version> expected_version;
 };
 
 struct EntityDeleteRequest
@@ -50,16 +56,21 @@ struct EntityDeleteRequest
     std::optional<statespec::backend::Version> expected_version;
 };
 
-struct EntityQueryRequest
+struct EntityListByIndexRequest
 {
     std::string entity;
-    statespec::backend::Query query;
+    std::string index_name;
+    std::vector<statespec::backend::IndexValue> values;
 };
 
 class IEntityRepository
 {
   public:
     virtual ~IEntityRepository() = default;
+    virtual std::optional<statespec::backend::VersionedRecord> create_entityTx(
+        statespec::backend::ITransaction& tx,
+        const EntityCreateRequest& request
+    ) = 0;
     virtual std::optional<statespec::backend::VersionedRecord> upsert_entityTx(
         statespec::backend::ITransaction& tx,
         const EntityUpsertRequest& request
@@ -72,9 +83,9 @@ class IEntityRepository
         statespec::backend::ITransaction& tx,
         const EntityDeleteRequest& request
     ) = 0;
-    virtual std::vector<statespec::backend::VersionedRecord> query_entitiesTx(
+    virtual std::vector<statespec::backend::VersionedRecord> list_entities_by_indexTx(
         statespec::backend::ITransaction& tx,
-        const EntityQueryRequest& request
+        const EntityListByIndexRequest& request
     ) = 0;
 };
 
@@ -152,6 +163,29 @@ inline statespec::backend::Json entity_document_with_keys(
 class DefaultEntityRepository final : public IEntityRepository
 {
   public:
+    std::optional<statespec::backend::VersionedRecord> create_entityTx(
+        statespec::backend::ITransaction& tx,
+        const EntityCreateRequest& request
+    ) override
+    {
+        const auto key = entity_key(request.lookup);
+        if (!key)
+        {
+            return std::nullopt;
+        }
+        const auto existing = tx.get(request.lookup.entity, *key);
+        if (existing)
+        {
+            throw statespec::backend::ConflictError(
+                statespec::backend::ConflictKind::VersionConflict, "entity already exists"
+            );
+        }
+        tx.put(
+            request.lookup.entity, *key, entity_document_with_keys(request.document, request.lookup)
+        );
+        return tx.get(request.lookup.entity, *key);
+    }
+
     std::optional<statespec::backend::VersionedRecord> upsert_entityTx(
         statespec::backend::ITransaction& tx,
         const EntityUpsertRequest& request
@@ -199,12 +233,15 @@ class DefaultEntityRepository final : public IEntityRepository
         return existing;
     }
 
-    std::vector<statespec::backend::VersionedRecord> query_entitiesTx(
+    std::vector<statespec::backend::VersionedRecord> list_entities_by_indexTx(
         statespec::backend::ITransaction& tx,
-        const EntityQueryRequest& request
+        const EntityListByIndexRequest& request
     ) override
     {
-        return tx.query(request.entity, request.query);
+        return tx.query(
+            request.entity,
+            statespec::backend::Query::index_equals(request.index_name, request.values)
+        );
     }
 
   private:

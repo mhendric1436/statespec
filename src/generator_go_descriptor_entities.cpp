@@ -1,6 +1,7 @@
 #include "generator_go_descriptor_areas.hpp"
 
 #include "generator_go_descriptor_support.hpp"
+#include "identifier_case.hpp"
 
 #include <sstream>
 
@@ -169,6 +170,106 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
 
     out << "\t}\n";
     out << "}\n\n";
+
+    for (const auto& entity : system.entities)
+    {
+        const auto type_name = pascal_identifier(entity.name);
+        out << "func " << type_name << "Lookup(keyValues []EntityKeyValue) EntityLookup {\n";
+        out << "\treturn EntityLookup{Entity: " << go_string(entity.name)
+            << ", KeyFields: []string{";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_string(entity.key_fields[i]);
+        }
+        out << "}, KeyValues: keyValues}\n";
+        out << "}\n\n";
+        out << "type " << type_name << "Repository interface {\n";
+        out << "\tRegisterDescriptor(context.Context, Backend) error\n";
+        out << "\tCreateTx(context.Context, Transaction, JSON) (*VersionedRecord, error)\n";
+        out << "\tGetTx(context.Context, Transaction, []EntityKeyValue) (*VersionedRecord, "
+               "error)\n";
+        out << "\tListByIndexTx(context.Context, Transaction, string, []IndexValue) "
+               "([]VersionedRecord, error)\n";
+        out << "}\n\n";
+        out << "type Default" << type_name << "Repository struct{}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) RegisterDescriptor(ctx context.Context, backend Backend) error {\n";
+        out << "\treturn backend.EnsureCollection(ctx, " << type_name
+            << "CollectionDescriptor())\n";
+        out << "}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) CreateTx(ctx context.Context, tx Transaction, document JSON) "
+               "(*VersionedRecord, error) {\n";
+        out << "\treturn DefaultEntityRepository{}.CreateEntityTx(ctx, tx, EntityCreateRequest{\n";
+        out << "\t\tLookup: EntityLookupFromDocument(" << type_name
+            << "EntityDescriptor(), document),\n";
+        out << "\t\tDocument: document,\n";
+        out << "\t})\n";
+        out << "}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) GetTx(ctx context.Context, tx Transaction, keyValues []EntityKeyValue) "
+               "(*VersionedRecord, error) {\n";
+        out << "\treturn DefaultEntityRepository{}.GetEntityTx(ctx, tx, EntityGetRequest{Lookup: "
+            << type_name << "Lookup(keyValues)})\n";
+        out << "}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) ListByIndexTx(ctx context.Context, tx Transaction, indexName string, "
+               "values []IndexValue) ([]VersionedRecord, error) {\n";
+        out << "\treturn DefaultEntityRepository{}.ListEntitiesByIndexTx(ctx, tx, "
+               "EntityListByIndexRequest{Entity: "
+            << go_string(entity.name) << ", IndexName: indexName, Values: values})\n";
+        out << "}\n\n";
+        out << "func " << type_name << "CollectionDescriptor() CollectionDescriptor {\n";
+        out << "\treturn CollectionDescriptor{\n";
+        out << "\t\tName: " << go_string(entity.name) << ",\n";
+        out << "\t\tFields: []FieldDescriptor{\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "\t\t\t" << go_field_descriptor_expr(field) << ",\n";
+        }
+        out << "\t\t},\n";
+        out << "\t\tKeyFields: []string{";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_string(entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "\t\tIndexes: []IndexDescriptor{\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "\t\t\t{Name: " << go_string(index.name) << ", Fields: []string{";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << go_string(index.fields[i]);
+            }
+            out << "}, Unique: " << (index.unique ? "true" : "false") << "},\n";
+        }
+        out << "\t\t},\n";
+        out << "\t\tSchemaVersion: 1,\n";
+        out << "\t}\n";
+        out << "}\n\n";
+        out << "func " << type_name << "EntityDescriptor() EntityDescriptor {\n";
+        out << "\tfor _, descriptor := range EntityDescriptors() {\n";
+        out << "\t\tif descriptor.Name == " << go_string(entity.name) << " {\n";
+        out << "\t\t\treturn descriptor\n";
+        out << "\t\t}\n";
+        out << "\t}\n";
+        out << "\tpanic(\"entity descriptor not found: " << entity.name << "\")\n";
+        out << "}\n\n";
+        out << "var _ " << type_name << "Repository = Default" << type_name << "Repository{}\n\n";
+    }
 
     return out.str();
 }

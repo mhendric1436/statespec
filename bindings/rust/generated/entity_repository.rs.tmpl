@@ -22,15 +22,21 @@ impl EntityLookup {
 }
 
 #[derive(Debug, Clone)]
-pub struct EntityUpsertRequest {
+pub struct EntityCreateRequest {
     pub lookup: EntityLookup,
     pub document: Json,
-    pub expected_version: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
 pub struct EntityGetRequest {
     pub lookup: EntityLookup,
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityUpsertRequest {
+    pub lookup: EntityLookup,
+    pub document: Json,
+    pub expected_version: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -40,12 +46,19 @@ pub struct EntityDeleteRequest {
 }
 
 #[derive(Debug, Clone)]
-pub struct EntityQueryRequest {
+pub struct EntityListByIndexRequest {
     pub entity: String,
-    pub query: crate::backend::Query,
+    pub index_name: String,
+    pub values: Vec<crate::backend::IndexValue>,
 }
 
 pub trait EntityRepository<B: Backend> {
+    fn create_entity_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityCreateRequest,
+    ) -> BackendResult<Option<VersionedRecord>>;
+
     fn upsert_entity_tx(
         &self,
         tx: &mut B::Tx,
@@ -64,10 +77,10 @@ pub trait EntityRepository<B: Backend> {
         request: &EntityDeleteRequest,
     ) -> BackendResult<Option<VersionedRecord>>;
 
-    fn query_entities_tx(
+    fn list_entities_by_index_tx(
         &self,
         tx: &mut B::Tx,
-        request: &EntityQueryRequest,
+        request: &EntityListByIndexRequest,
     ) -> BackendResult<Vec<VersionedRecord>>;
 }
 
@@ -138,6 +151,29 @@ fn assert_entity_expected_version(
 }
 
 impl<B: Backend> EntityRepository<B> for DefaultEntityRepository {
+    fn create_entity_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityCreateRequest,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        let Some(key) = entity_key(&request.lookup) else {
+            return Ok(None);
+        };
+        let existing = tx.get(&request.lookup.entity, &key)?;
+        if existing.is_some() {
+            return Err(BackendError::Conflict {
+                kind: ConflictKind::VersionConflict,
+                message: "entity already exists".to_string(),
+            });
+        }
+        tx.put(
+            &request.lookup.entity,
+            &key,
+            entity_document_with_keys(&request.document, &request.lookup),
+        )?;
+        tx.get(&request.lookup.entity, &key)
+    }
+
     fn upsert_entity_tx(
         &self,
         tx: &mut B::Tx,
@@ -184,11 +220,17 @@ impl<B: Backend> EntityRepository<B> for DefaultEntityRepository {
         Ok(existing)
     }
 
-    fn query_entities_tx(
+    fn list_entities_by_index_tx(
         &self,
         tx: &mut B::Tx,
-        request: &EntityQueryRequest,
+        request: &EntityListByIndexRequest,
     ) -> BackendResult<Vec<VersionedRecord>> {
-        tx.query(&request.entity, &request.query)
+        tx.query(
+            &request.entity,
+            &crate::backend::Query::IndexEquals {
+                index_name: request.index_name.clone(),
+                values: request.values.clone(),
+            },
+        )
     }
 }
