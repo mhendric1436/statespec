@@ -975,6 +975,16 @@ PlantUML architecture diagrams live in `diagrams/*.puml`. `make diagrams-png` re
 
 ---
 
+## Coding Style
+
+Prefer declaring repeated static strings once as named constants and using those constants throughout the code. This applies especially to collection names, field names, descriptor keys, API names, state names, generated filenames, and diagnostic identifiers.
+
+The goal is to let the compiler catch misspellings and stale references where the host language supports it, instead of scattering unchecked string literals across parser, validator, IR, generator, runtime, and test code.
+
+Use local string literals only when the value is genuinely one-off, clearer inline, or part of test data that is intentionally asserting exact generated output.
+
+---
+
 ## Naming Conventions
 
 - Entities: `PascalCase`
