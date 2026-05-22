@@ -9,4 +9,12 @@ using ApiRequestContext = ::statespec_generated::ApiRequestContext;
 using ApiResponse = ::statespec_generated::ApiResponse;
 using IApiHandler = ::statespec_generated::IApiHandler;
 
+class IApiOperationHandler
+{
+  public:
+    virtual ~IApiOperationHandler() = default;
+    // clang-format off
+{{api_operation_handler_methods}} // clang-format on
+};
+
 } // namespace statespec_generated::api

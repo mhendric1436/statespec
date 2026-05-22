@@ -1,7 +1,16 @@
 package backend
 
-import common "statespec-generated/common/backend"
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+var _ = context.Background
 
 type APITierHandler = common.APIHandler
 type APITierRequestContext = common.APIRequestContext
 type APITierResponse = common.APIResponse
+
+type APITierOperationHandler interface {
+{{api_operation_handler_methods}}}

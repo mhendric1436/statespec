@@ -25,3 +25,13 @@ func DispatchAPITierRoute(ctx context.Context, handler common.APIHandler, routeN
 	}
 	return response, true, nil
 }
+
+func DispatchAPITierOperationRoute(ctx context.Context, handler APITierOperationHandler, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
+	route, ok := FindAPITierRoute(routeName)
+	if !ok {
+		return common.APIResponse{}, false, nil
+	}
+	switch route.ApiName {
+{{api_operation_dispatch_cases}}	}
+	return common.APIResponse{}, false, nil
+}

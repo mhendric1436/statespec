@@ -2,6 +2,7 @@
 
 #include "generator_java_descriptor_areas.hpp"
 #include "generator_java_descriptor_support.hpp"
+#include "identifier_case.hpp"
 
 #include <sstream>
 #include <vector>
@@ -43,6 +44,30 @@ std::string generate_workflow_step_handler_keys_java(const IrSystem& system)
     for (std::size_t i = 0; i < keys.size(); ++i)
     {
         out << "            " << java_string(keys[i]) << (i + 1 < keys.size() ? "," : "") << "\n";
+    }
+    return out.str();
+}
+
+std::string generate_api_operation_handler_methods_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "        Descriptors.ApiResponse handle" << pascal_identifier(api.name)
+            << "(Descriptors.ApiRequestContext context) throws Exception;\n";
+    }
+    return out.str();
+}
+
+std::string generate_api_operation_dispatch_cases_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "        if (route.get().apiName().equals(" << java_string(api.name) << ")) {\n";
+        out << "            return Optional.of(handler.handle" << pascal_identifier(api.name)
+            << "(context));\n";
+        out << "        }\n";
     }
     return out.str();
 }

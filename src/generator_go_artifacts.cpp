@@ -188,6 +188,7 @@ void add_go_api_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
+    const IrSystem& system,
     DiagnosticBag& diagnostics
 )
 {
@@ -197,11 +198,17 @@ void add_go_api_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_handlers.go.tmpl",
-        "api/backend/api_handlers.go", diagnostics, GeneratedArtifactTier::Api
+        "api/backend/api_handlers.go", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_handler_methods", generate_api_operation_handler_methods_go(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_dispatcher.go.tmpl",
-        "api/backend/api_dispatcher.go", diagnostics, GeneratedArtifactTier::Api
+        "api/backend/api_dispatcher.go", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_go(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_server.go.tmpl",

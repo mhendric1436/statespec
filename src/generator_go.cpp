@@ -20,7 +20,7 @@ GenerationResult generate_go_bindings(
         return result;
     }
 
-    add_go_api_artifacts(result, options, templates, diagnostics);
+    add_go_api_artifacts(result, options, templates, system, diagnostics);
     add_go_worker_artifacts(result, options, templates, system, diagnostics);
     return result;
 }

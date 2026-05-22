@@ -2,6 +2,7 @@
 
 #include "generator_rust_descriptor_areas.hpp"
 #include "generator_rust_descriptor_support.hpp"
+#include "identifier_case.hpp"
 
 #include <sstream>
 
@@ -36,6 +37,28 @@ std::string generate_workflow_step_handler_keys_rs(const IrSystem& system)
         {
             out << "        " << rust_string(workflow.name + "." + step.name) << ",\n";
         }
+    }
+    return out.str();
+}
+
+std::string generate_api_operation_handler_methods_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "    fn handle_" << snake_identifier(api.name)
+            << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse>;\n";
+    }
+    return out.str();
+}
+
+std::string generate_api_operation_dispatch_cases_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "        " << rust_string(api.name) << " => handler.handle_"
+            << snake_identifier(api.name) << "(context).map(Some),\n";
     }
     return out.str();
 }

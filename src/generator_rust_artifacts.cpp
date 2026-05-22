@@ -226,6 +226,7 @@ void add_rust_api_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
+    const IrSystem& system,
     DiagnosticBag& diagnostics
 )
 {
@@ -235,11 +236,17 @@ void add_rust_api_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_handlers.rs.tmpl", "api/api_handlers.rs",
-        diagnostics, GeneratedArtifactTier::Api
+        diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_handler_methods", generate_api_operation_handler_methods_rs(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_dispatcher.rs.tmpl",
-        "api/api_dispatcher.rs", diagnostics, GeneratedArtifactTier::Api
+        "api/api_dispatcher.rs", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_rs(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_server.rs.tmpl", "api/api_server.rs",

@@ -192,6 +192,7 @@ void add_cpp_api_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
+    const IrSystem& system,
     DiagnosticBag& diagnostics
 )
 {
@@ -201,11 +202,17 @@ void add_cpp_api_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_handlers.hpp.tmpl", "api/api_handlers.hpp",
-        diagnostics, GeneratedArtifactTier::Api
+        diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_handler_methods", generate_api_operation_handler_methods(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_dispatcher.hpp.tmpl",
-        "api/api_dispatcher.hpp", diagnostics, GeneratedArtifactTier::Api
+        "api/api_dispatcher.hpp", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_server.hpp.tmpl", "api/api_server.hpp",

@@ -2,6 +2,7 @@
 
 #include "generator_cpp_descriptor_areas.hpp"
 #include "generator_cpp_descriptor_support.hpp"
+#include "identifier_case.hpp"
 
 #include <sstream>
 
@@ -37,6 +38,30 @@ std::string generate_workflow_step_handler_keys(const IrSystem& system)
         {
             out << "        " << cpp_string(workflow.name + "." + step.name) << ",\n";
         }
+    }
+    return out.str();
+}
+
+std::string generate_api_operation_handler_methods(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "    virtual ApiResponse handle_" << snake_identifier(api.name)
+            << "(const ApiRequestContext& context) = 0;\n";
+    }
+    return out.str();
+}
+
+std::string generate_api_operation_dispatch_cases(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "    if (route->api_name == " << cpp_string(api.name) << ")\n";
+        out << "    {\n";
+        out << "        return handler.handle_" << snake_identifier(api.name) << "(context);\n";
+        out << "    }\n";
     }
     return out.str();
 }

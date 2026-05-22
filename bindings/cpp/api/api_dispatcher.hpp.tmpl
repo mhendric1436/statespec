@@ -34,4 +34,20 @@ inline std::optional<ApiResponse> dispatch_api_route(
     return handler.handle(context);
 }
 
+inline std::optional<ApiResponse> dispatch_api_operation_route(
+    IApiOperationHandler& handler,
+    std::string_view route_name,
+    const ApiRequestContext& context
+)
+{
+    const auto route = find_api_route(route_name);
+    if (!route.has_value())
+    {
+        return std::nullopt;
+    }
+    // clang-format off
+{{api_operation_dispatch_cases}} // clang-format on
+    return std::nullopt;
+}
+
 } // namespace statespec_generated::api

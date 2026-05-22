@@ -24,4 +24,16 @@ public final class ApiDispatcher {
         }
         return Optional.of(handler.handle(context));
     }
+
+    public static Optional<Descriptors.ApiResponse> dispatchApiOperationRoute(
+        ApiHandlers.OperationHandler handler,
+        String routeName,
+        Descriptors.ApiRequestContext context
+    ) throws Exception {
+        Optional<Descriptors.ApiRouteDescriptor> route = findApiRoute(routeName);
+        if (!route.isPresent()) {
+            return Optional.empty();
+        }
+{{api_operation_dispatch_cases}}        return Optional.empty();
+    }
 }

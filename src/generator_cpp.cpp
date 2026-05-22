@@ -20,7 +20,7 @@ GenerationResult generate_cpp_bindings(
         return result;
     }
 
-    add_cpp_api_artifacts(result, options, templates, diagnostics);
+    add_cpp_api_artifacts(result, options, templates, system, diagnostics);
     if (diagnostics.has_errors())
     {
         return result;

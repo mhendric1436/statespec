@@ -2,6 +2,7 @@
 
 #include "generator_go_descriptor_areas.hpp"
 #include "generator_go_descriptor_support.hpp"
+#include "identifier_case.hpp"
 
 #include <sstream>
 
@@ -36,6 +37,33 @@ std::string generate_workflow_step_handler_keys_go(const IrSystem& system)
         {
             out << "\t\t" << go_string(workflow.name + "." + step.name) << ",\n";
         }
+    }
+    return out.str();
+}
+
+std::string generate_api_operation_handler_methods_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "\tHandle" << pascal_identifier(api.name)
+            << "(context.Context, common.APIRequestContext) (common.APIResponse, error)\n";
+    }
+    return out.str();
+}
+
+std::string generate_api_operation_dispatch_cases_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "\tcase " << go_string(api.name) << ":\n";
+        out << "\t\tresponse, err := handler.Handle" << pascal_identifier(api.name)
+            << "(ctx, request)\n";
+        out << "\t\tif err != nil {\n";
+        out << "\t\t\treturn common.APIResponse{}, true, err\n";
+        out << "\t\t}\n";
+        out << "\t\treturn response, true, nil\n";
     }
     return out.str();
 }

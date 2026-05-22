@@ -4,4 +4,7 @@ public final class ApiHandlers {
     private ApiHandlers() {}
 
     public interface Handler extends Descriptors.ApiHandler {}
+
+    public interface OperationHandler {
+{{api_operation_handler_methods}}    }
 }

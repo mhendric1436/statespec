@@ -20,7 +20,7 @@ GenerationResult generate_java_bindings(
         return result;
     }
 
-    add_java_api_artifacts(result, options, templates, diagnostics);
+    add_java_api_artifacts(result, options, templates, system, diagnostics);
     add_java_worker_artifacts(result, options, templates, system, diagnostics);
     return result;
 }

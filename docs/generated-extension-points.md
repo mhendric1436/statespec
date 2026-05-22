@@ -70,6 +70,12 @@ entities, but any persisted state access must use the generated backend/OCC tran
 model. Handler code should not bypass `IBackend` and `ITransaction` or the equivalent
 language bindings for direct store access.
 
+The API tier also generates operation-specific handler interfaces and dispatch methods.
+These typed operation handlers are the preferred API extension point for new code because
+the generated dispatcher routes directly from a declared API name to the corresponding
+operation method. The older generic API handler remains available for framework adapters
+and compatibility.
+
 When testing API handlers locally, inject the generated in-memory backend through the
 same application-owned dependency path that production code uses for its durable
 backend.

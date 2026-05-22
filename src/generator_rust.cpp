@@ -20,7 +20,7 @@ GenerationResult generate_rust_bindings(
         return result;
     }
 
-    add_rust_api_artifacts(result, options, templates, diagnostics);
+    add_rust_api_artifacts(result, options, templates, system, diagnostics);
     add_rust_worker_artifacts(result, options, templates, system, diagnostics);
     return result;
 }
