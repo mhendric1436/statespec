@@ -91,6 +91,9 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_regist
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository.UpdateTx"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "invalid entity status transition"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "updatedDocument[\"updated_at\"]"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "requestedStatus := \"Deleted\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "invalid entity delete transition"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "StatusCode: 204"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/descriptors.go" "UpdateTx"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"

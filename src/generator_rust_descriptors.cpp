@@ -5,6 +5,7 @@
 #include "identifier_case.hpp"
 #include "type_syntax.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 namespace statespec
@@ -155,6 +156,25 @@ const IrEntity* update_status_entity_for_api_rs(
     return find_entity(
         system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
     );
+}
+
+const IrEntity* delete_entity_for_api_rs(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Delete";
+    if (api.method.value_or("") != "DELETE" || api.name.rfind(prefix, 0) != 0)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool has_terminal_deleted_state_rs(const IrEntity& entity)
+{
+    return std::find(entity.terminal_states.begin(), entity.terminal_states.end(), "Deleted") !=
+           entity.terminal_states.end();
 }
 
 const IrIndex* select_list_index_rs(const IrEntity& entity)
@@ -712,6 +732,86 @@ bool write_rust_update_status_handler_body(
     return true;
 }
 
+bool write_rust_delete_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = delete_entity_for_api_rs(system, api);
+    if (entity == nullptr || !has_terminal_deleted_state_rs(*entity))
+    {
+        return false;
+    }
+    out << "        let path_parameters = crate::api_codecs::extract_api_path_parameters("
+        << rust_string(api.path.value_or("")) << ", context.path.as_deref().unwrap_or(\"\"));\n";
+    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
+    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name)
+        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let mut tx = self.backend.begin()?;\n";
+    out << "        let key_values = vec![\n";
+    for (const auto& key_field : entity->key_fields)
+    {
+        out << "            EntityKeyValue { field: " << rust_string(key_field)
+            << ".to_string(), value: crate::api_codecs::path_parameter_json(&path_parameters, "
+            << rust_string(key_field) << ") },\n";
+    }
+    out << "        ];\n";
+    out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name) << "Repository<B>>::get_tx(\n";
+    out << "            &repository,\n";
+    out << "            &mut tx,\n";
+    out << "            key_values.clone(),\n";
+    out << "        )?;\n";
+    out << "        let Some(record) = record else {\n";
+    out << "            self.backend.commit(tx)?;\n";
+    out << "            return Ok(ApiResponse { status_code: 404, body: "
+           "Json::Object(std::collections::BTreeMap::new()) });\n";
+    out << "        };\n";
+    out << "        let Json::Object(mut document) = record.document.clone() else {\n";
+    out << "            return Err(BackendError::InvalidSchema { message: \"entity document must "
+           "be an object\".to_string() });\n";
+    out << "        };\n";
+    out << "        let current_status = match document.get(\"status\") {\n";
+    out << "            Some(Json::String(value)) => value.clone(),\n";
+    out << "            _ => return Err(BackendError::InvalidSchema { message: \"missing entity "
+           "field status\".to_string() }),\n";
+    out << "        };\n";
+    out << "        let requested_status = \"Deleted\".to_string();\n";
+    out << "        let transition_allowed = current_status == requested_status";
+    for (const auto& transition : entity->transitions)
+    {
+        out << " ||\n";
+        out << "            (current_status == " << rust_string(transition.from)
+            << " && requested_status == " << rust_string(transition.to) << ")";
+    }
+    out << ";\n";
+    out << "        if !transition_allowed {\n";
+    out << "            return Err(BackendError::InvalidSchema { message: \"invalid entity delete "
+           "transition\".to_string() });\n";
+    out << "        }\n";
+    out << "        document.insert(\"status\".to_string(), Json::String(requested_status));\n";
+    out << "        document.insert(\"updated_at\".to_string(), "
+           "Json::String(\"0\".to_string()));\n";
+    out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";
+    out << "            &repository,\n";
+    out << "            &mut tx,\n";
+    out << "            key_values,\n";
+    out << "            Json::Object(document),\n";
+    out << "            record.version,\n";
+    out << "        )?;\n";
+    out << "        if updated.is_none() {\n";
+    out << "            return Err(BackendError::Internal { message: \"entity delete update "
+           "failed\".to_string() });\n";
+    out << "        }\n";
+    out << "        self.backend.commit(tx)?;\n";
+    out << "        Ok(ApiResponse { status_code: 204, body: "
+           "Json::Object(std::collections::BTreeMap::new()) })\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_descriptors_rs(
@@ -851,6 +951,11 @@ std::string generate_api_operation_default_handler_methods_rs(const IrSystem& sy
             continue;
         }
         if (write_rust_update_status_handler_body(out, system, api))
+        {
+            out << "    }\n\n";
+            continue;
+        }
+        if (write_rust_delete_handler_body(out, system, api))
         {
             out << "    }\n\n";
             continue;

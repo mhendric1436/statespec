@@ -5,6 +5,7 @@
 #include "identifier_case.hpp"
 #include "type_syntax.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <vector>
 
@@ -156,6 +157,25 @@ const IrEntity* update_status_entity_for_api_java(
     return find_entity(
         system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
     );
+}
+
+const IrEntity* delete_entity_for_api_java(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Delete";
+    if (api.method.value_or("") != "DELETE" || api.name.rfind(prefix, 0) != 0)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool has_terminal_deleted_state_java(const IrEntity& entity)
+{
+    return std::find(entity.terminal_states.begin(), entity.terminal_states.end(), "Deleted") !=
+           entity.terminal_states.end();
 }
 
 const IrIndex* select_list_index_java(const IrEntity& entity)
@@ -780,6 +800,89 @@ bool write_java_update_status_handler_body(
     return true;
 }
 
+bool write_java_delete_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = delete_entity_for_api_java(system, api);
+    if (entity == nullptr || !has_terminal_deleted_state_java(*entity))
+    {
+        return false;
+    }
+    out << "            var pathParameters = ApiCodecs.extractApiPathParameters("
+        << java_string(api.path.value_or("")) << ", context.path().orElse(\"\"));\n";
+    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
+        << "Repository();\n";
+    out << "            repository.registerDescriptor(backend);\n";
+    out << "            var tx = backend.begin();\n";
+    out << "            try {\n";
+    out << "                var keyValues = java.util.List.of(\n";
+    for (std::size_t i = 0; i < entity->key_fields.size(); ++i)
+    {
+        const auto& key_field = entity->key_fields[i];
+        out << "                    new Descriptors.EntityKeyValue(" << java_string(key_field)
+            << ", ApiCodecs.pathParameterJson(pathParameters, " << java_string(key_field) << "))"
+            << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
+    }
+    out << "                );\n";
+    out << "                var record = repository.getTx(tx, keyValues);\n";
+    out << "                if (record.isEmpty()) {\n";
+    out << "                    backend.commit(tx);\n";
+    out << "                    return new Descriptors.ApiResponse(404, "
+           "com.statespec.backend.Json.object(java.util.Map.of()));\n";
+    out << "                }\n";
+    out << "                var currentStatus = ApiCodecs.decodeString(\n";
+    out << "                    record.get().document().find(\"status\").orElseThrow(), "
+           "\"status\"\n";
+    out << "                );\n";
+    out << "                var requestedStatus = \"Deleted\";\n";
+    out << "                var transitionAllowed = currentStatus.equals(requestedStatus)";
+    for (const auto& transition : entity->transitions)
+    {
+        out << " ||\n";
+        out << "                    (currentStatus.equals(" << java_string(transition.from)
+            << ") && requestedStatus.equals(" << java_string(transition.to) << "))";
+    }
+    out << ";\n";
+    out << "                if (!transitionAllowed) {\n";
+    out << "                    throw new com.statespec.backend.Backend.BackendException(\"invalid "
+           "entity delete transition\");\n";
+    out << "                }\n";
+    out << "                if (!(record.get().document() instanceof "
+           "com.statespec.backend.Json.ObjectValue objectValue)) {\n";
+    out << "                    throw new com.statespec.backend.Backend.BackendException(\"entity "
+           "document must be an object\");\n";
+    out << "                }\n";
+    out << "                var document = new java.util.HashMap<String, "
+           "com.statespec.backend.Json>(objectValue.values());\n";
+    out << "                document.put(\"status\", "
+           "com.statespec.backend.Json.string(requestedStatus));\n";
+    out << "                document.put(\"updated_at\", "
+           "com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
+    out << "                var updated = repository.updateTx(\n";
+    out << "                    tx,\n";
+    out << "                    keyValues,\n";
+    out << "                    com.statespec.backend.Json.object(document),\n";
+    out << "                    record.get().version()\n";
+    out << "                );\n";
+    out << "                if (updated.isEmpty()) {\n";
+    out << "                    throw new com.statespec.backend.Backend.BackendException(\"entity "
+           "delete update failed\");\n";
+    out << "                }\n";
+    out << "                backend.commit(tx);\n";
+    out << "                return new Descriptors.ApiResponse(204, "
+           "com.statespec.backend.Json.object(java.util.Map.of()));\n";
+    out << "            } catch (Exception error) {\n";
+    out << "                if (tx.isOpen()) {\n";
+    out << "                    tx.abort();\n";
+    out << "                }\n";
+    out << "                throw error;\n";
+    out << "            }\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_descriptors_java(
@@ -933,6 +1036,11 @@ std::string generate_api_operation_default_handler_methods_java(const IrSystem& 
             continue;
         }
         if (write_java_update_status_handler_body(out, system, api))
+        {
+            out << "        }\n\n";
+            continue;
+        }
+        if (write_java_delete_handler_body(out, system, api))
         {
             out << "        }\n\n";
             continue;

@@ -5,6 +5,7 @@
 #include "identifier_case.hpp"
 #include "type_syntax.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 namespace statespec
@@ -155,6 +156,25 @@ const IrEntity* update_status_entity_for_api_go(
     return find_entity(
         system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
     );
+}
+
+const IrEntity* delete_entity_for_api_go(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Delete";
+    if (api.method.value_or("") != "DELETE" || api.name.rfind(prefix, 0) != 0)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool has_terminal_deleted_state_go(const IrEntity& entity)
+{
+    return std::find(entity.terminal_states.begin(), entity.terminal_states.end(), "Deleted") !=
+           entity.terminal_states.end();
 }
 
 const IrIndex* select_list_index_go(const IrEntity& entity)
@@ -687,6 +707,76 @@ bool write_go_update_status_handler_body(
     return true;
 }
 
+bool write_go_delete_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = delete_entity_for_api_go(system, api);
+    if (entity == nullptr || !has_terminal_deleted_state_go(*entity))
+    {
+        return false;
+    }
+    out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
+        << ", request.Path)\n";
+    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
+           "common.APIResponse{}, err }\n";
+    out << "\ttx, err := handler.Backend.Begin(ctx)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tdefer func() { if tx.IsOpen() { _ = tx.Abort(ctx) } }()\n";
+    out << "\tkeyValues := []common.EntityKeyValue{\n";
+    for (const auto& key_field : entity->key_fields)
+    {
+        out << "\t\t{Field: " << go_string(key_field)
+            << ", Value: pathParameterJSON(pathParameters, " << go_string(key_field) << ")},\n";
+    }
+    out << "\t}\n";
+    out << "\trecord, err := repository.GetTx(ctx, tx, keyValues)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tif record == nil {\n";
+    out << "\t\tif err := handler.Backend.Commit(ctx, tx); err != nil { return "
+           "common.APIResponse{}, err }\n";
+    out << "\t\treturn common.APIResponse{StatusCode: 404, Body: "
+           "common.JSONObject(map[string]common.JSON{})}, nil\n";
+    out << "\t}\n";
+    out << "\tstatusJSON, ok := record.Document.Find(\"status\")\n";
+    out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"missing entity field status\") "
+           "}\n";
+    out << "\tcurrentStatus, err := decodeString(statusJSON, \"status\")\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\trequestedStatus := \"Deleted\"\n";
+    out << "\ttransitionAllowed := currentStatus == requestedStatus";
+    for (const auto& transition : entity->transitions)
+    {
+        out << " ||\n";
+        out << "\t\t(currentStatus == " << go_string(transition.from)
+            << " && requestedStatus == " << go_string(transition.to) << ")";
+    }
+    out << "\n";
+    out << "\tif !transitionAllowed { return common.APIResponse{}, fmt.Errorf(\"invalid entity "
+           "delete transition\") }\n";
+    out << "\tdocument, ok := record.Document.AsObject()\n";
+    out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"entity document must be an "
+           "object\") }\n";
+    out << "\tupdatedDocument := map[string]common.JSON{}\n";
+    out << "\tfor key, value := range document { updatedDocument[key] = value }\n";
+    out << "\tupdatedDocument[\"status\"] = common.JSONString(requestedStatus)\n";
+    out << "\tupdatedDocument[\"updated_at\"] = "
+           "common.JSONString(time.Now().UTC().Format(time.RFC3339))\n";
+    out << "\tupdated, err := repository.UpdateTx(ctx, tx, keyValues, "
+           "common.JSONObject(updatedDocument), record.Version)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tif updated == nil { return common.APIResponse{}, fmt.Errorf(\"entity delete update "
+           "failed\") }\n";
+    out << "\tif err := handler.Backend.Commit(ctx, tx); err != nil { return common.APIResponse{}, "
+           "err }\n";
+    out << "\treturn common.APIResponse{StatusCode: 204, Body: "
+           "common.JSONObject(map[string]common.JSON{})}, nil\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_descriptors_go(
@@ -835,6 +925,11 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
             continue;
         }
         if (write_go_update_status_handler_body(out, system, api))
+        {
+            out << "}\n\n";
+            continue;
+        }
+        if (write_go_delete_handler_body(out, system, api))
         {
             out << "}\n\n";
             continue;

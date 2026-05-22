@@ -5,6 +5,7 @@
 #include "identifier_case.hpp"
 #include "type_syntax.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 namespace statespec
@@ -155,6 +156,25 @@ const IrEntity* update_status_entity_for_api(
     return find_entity(
         system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
     );
+}
+
+const IrEntity* delete_entity_for_api(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Delete";
+    if (api.method.value_or("") != "DELETE" || api.name.rfind(prefix, 0) != 0)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool has_terminal_deleted_state(const IrEntity& entity)
+{
+    return std::find(entity.terminal_states.begin(), entity.terminal_states.end(), "Deleted") !=
+           entity.terminal_states.end();
 }
 
 const IrIndex* select_list_index(const IrEntity& entity)
@@ -709,6 +729,81 @@ bool write_cpp_update_status_handler_body(
     return true;
 }
 
+bool write_cpp_delete_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = delete_entity_for_api(system, api);
+    if (entity == nullptr || !has_terminal_deleted_state(*entity))
+    {
+        return false;
+    }
+
+    out << "        const auto path_parameters = extract_api_path_parameters("
+        << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
+    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        repository.register_descriptor(backend_);\n";
+    out << "        auto tx = backend_.begin();\n";
+    out << "        try\n";
+    out << "        {\n";
+    out << "            std::vector<EntityKeyValue> key_values{\n";
+    for (const auto& key_field : entity->key_fields)
+    {
+        out << "                EntityKeyValue{" << cpp_string(key_field) << ", "
+            << cpp_path_value(key_field) << "},\n";
+    }
+    out << "            };\n";
+    out << "            const auto record = repository.getTx(*tx, key_values);\n";
+    out << "            if (!record.has_value())\n";
+    out << "            {\n";
+    out << "                backend_.commit(*tx);\n";
+    out << "                return ApiResponse{404, statespec::backend::Json::object({})};\n";
+    out << "            }\n";
+    out << "            const auto current_status = decode_string(\n";
+    out << "                require_member(record->document, \"status\"), \"status\"\n";
+    out << "            );\n";
+    out << "            const auto requested_status = std::string{\"Deleted\"};\n";
+    out << "            const bool transition_allowed = current_status == requested_status";
+    for (const auto& transition : entity->transitions)
+    {
+        out << " ||\n";
+        out << "                (current_status == " << cpp_string(transition.from)
+            << " && requested_status == " << cpp_string(transition.to) << ")";
+    }
+    out << ";\n";
+    out << "            if (!transition_allowed)\n";
+    out << "            {\n";
+    out << "                throw statespec::backend::BackendError(\"invalid entity delete "
+           "transition\");\n";
+    out << "            }\n";
+    out << "            auto document = record->document.as_object();\n";
+    out << "            document[\"status\"] = statespec::backend::Json{requested_status};\n";
+    out << "            document[\"updated_at\"] = "
+           "statespec::backend::Json{generated_api_timestamp()};\n";
+    out << "            const auto updated = repository.updateTx(\n";
+    out << "                *tx,\n";
+    out << "                std::move(key_values),\n";
+    out << "                statespec::backend::Json::object(std::move(document)),\n";
+    out << "                record->version\n";
+    out << "            );\n";
+    out << "            if (!updated.has_value())\n";
+    out << "            {\n";
+    out << "                throw statespec::backend::BackendError(\"entity delete update "
+           "failed\");\n";
+    out << "            }\n";
+    out << "            backend_.commit(*tx);\n";
+    out << "            return ApiResponse{204, statespec::backend::Json::object({})};\n";
+    out << "        }\n";
+    out << "        catch (...)\n";
+    out << "        {\n";
+    out << "            tx->abort();\n";
+    out << "            throw;\n";
+    out << "        }\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_system_descriptors_header(
@@ -863,6 +958,11 @@ std::string generate_api_operation_default_handler_methods(const IrSystem& syste
             continue;
         }
         if (write_cpp_update_status_handler_body(out, system, api))
+        {
+            out << "    }\n\n";
+            continue;
+        }
+        if (write_cpp_delete_handler_body(out, system, api))
         {
             out << "    }\n\n";
             continue;
