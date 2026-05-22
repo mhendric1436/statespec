@@ -4,17 +4,12 @@ import (
 	"context"
 
 	common "statespec-generated/common/backend"
-	runtime "statespec-generated/common/backend/runtime"
+{{runtime_store_import}}
 )
 
 type APITierApplication struct {
 	Backend      common.Backend
-	FeatureFlags *runtime.FeatureFlagStore
-	Leases       *runtime.LeaseStore
-	Logs         *runtime.LogSink
-	Metrics      *runtime.MetricSink
-	Queues       *runtime.QueueStore
-	Workflows    *runtime.WorkflowStore
+{{runtime_store_fields}}
 	Server       APITierServer
 }
 
@@ -25,12 +20,7 @@ func NewAPITierApplication(backend common.Backend, serverName string, handler AP
 	}
 	return &APITierApplication{
 		Backend:      backend,
-		FeatureFlags: runtime.NewFeatureFlagStore(),
-		Leases:       runtime.NewLeaseStore(),
-		Logs:         runtime.NewLogSink(),
-		Metrics:      runtime.NewMetricSink(),
-		Queues:       runtime.NewQueueStore(),
-		Workflows:    runtime.NewWorkflowStore(),
+{{runtime_store_initializers}}
 		Server: APITierServer{
 			Descriptor: descriptor,
 			Handler:    handler,

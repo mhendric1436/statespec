@@ -59,10 +59,50 @@ TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier)
     };
 }
 
-TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
+TemplateRenderer::Values rust_lib_values(
+    BindingGenerationTier tier,
+    const IrSystem& system
+)
 {
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream runtime_modules;
     std::ostringstream api_modules;
     std::ostringstream worker_modules;
+    if (usage.uses_any_runtime_domain)
+    {
+        runtime_modules << "#[path = \"common/runtime/codec.rs\"]\n";
+        runtime_modules << "pub(crate) mod runtime_codec;\n";
+    }
+    if (usage.uses_feature_flags)
+    {
+        runtime_modules << "#[path = \"common/runtime/feature_flags.rs\"]\n";
+        runtime_modules << "pub mod runtime_feature_flags;\n";
+    }
+    if (usage.uses_leases)
+    {
+        runtime_modules << "#[path = \"common/runtime/leases.rs\"]\n";
+        runtime_modules << "pub mod runtime_leases;\n";
+    }
+    if (usage.uses_logs)
+    {
+        runtime_modules << "#[path = \"common/runtime/logs.rs\"]\n";
+        runtime_modules << "pub mod runtime_logs;\n";
+    }
+    if (usage.uses_metrics)
+    {
+        runtime_modules << "#[path = \"common/runtime/metrics.rs\"]\n";
+        runtime_modules << "pub mod runtime_metrics;\n";
+    }
+    if (usage.uses_queues)
+    {
+        runtime_modules << "#[path = \"common/runtime/queues.rs\"]\n";
+        runtime_modules << "pub mod runtime_queues;\n";
+    }
+    if (usage.uses_workflows)
+    {
+        runtime_modules << "#[path = \"common/runtime/workflows.rs\"]\n";
+        runtime_modules << "pub mod runtime_workflows;\n";
+    }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
     {
         api_modules << "#[path = \"api/api_descriptors.rs\"]\n";
@@ -112,6 +152,7 @@ TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
         worker_modules << "pub mod worker_main;\n";
     }
     return TemplateRenderer::Values{
+        {"runtime_modules", runtime_modules.str()},
         {"api_modules", api_modules.str()},
         {"worker_modules", worker_modules.str()},
     };
@@ -120,41 +161,110 @@ TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
 TemplateRenderer::Values rust_runtime_bootstrap_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
+    std::ostringstream imports;
+    std::ostringstream worker_imports;
+    std::ostringstream fields;
+    std::ostringstream initializers;
     std::ostringstream generics;
     std::ostringstream arguments;
-    auto add = [&](std::string_view type, std::string_view member)
+    std::ostringstream worker_run_once;
+    auto add =
+        [&](bool used, std::string_view module, std::string_view type, std::string_view member)
     {
+        if (!used)
+        {
+            return;
+        }
+        imports << "use crate::" << module << "::" << type << ";\n";
+        fields << "    pub " << member << ": " << type << ",\n";
+        initializers << "            " << member << ": " << type << "::new(),\n";
         generics << ", " << type;
         arguments << ", &self." << member;
     };
-    if (usage.uses_feature_flags)
-    {
-        add("RuntimeFeatureFlagStore", "feature_flags");
-    }
-    if (usage.uses_queues)
-    {
-        add("RuntimeQueueStore", "queues");
-    }
-    if (usage.uses_leases)
-    {
-        add("RuntimeLeaseStore", "leases");
-    }
+    add(usage.uses_feature_flags, "runtime_feature_flags", "RuntimeFeatureFlagStore",
+        "feature_flags");
+    add(usage.uses_queues, "runtime_queues", "RuntimeQueueStore", "queues");
+    add(usage.uses_leases, "runtime_leases", "RuntimeLeaseStore", "leases");
+    add(usage.uses_workflows, "runtime_workflows", "RuntimeWorkflowStore", "workflows");
+    add(usage.uses_logs, "runtime_logs", "RuntimeLogSink", "logs");
+    add(usage.uses_metrics, "runtime_metrics", "RuntimeMetricSink", "metrics");
     if (usage.uses_workflows)
     {
-        add("RuntimeWorkflowStore", "workflows");
-    }
-    if (usage.uses_logs)
-    {
-        add("RuntimeLogSink", "logs");
-    }
-    if (usage.uses_metrics)
-    {
-        add("RuntimeMetricSink", "metrics");
+        worker_imports << "use crate::workflow_runner::WorkflowRunner;\n";
+        worker_imports << "use crate::workflow_step_handlers::WorkflowStepHandler;\n";
+        worker_imports << "use crate::worker_contexts::WorkerContext;\n";
+        worker_run_once
+            << "    pub fn run_once(\n"
+            << "        &self,\n"
+            << "        context: &WorkerContext,\n"
+            << "        handler: &impl WorkflowStepHandler,\n"
+            << "        workflow_execution_id: &str,\n"
+            << "    ) -> "
+               "crate::backend::BackendResult<Option<crate::workflow::WorkflowExecutionRecord>> "
+               "{\n"
+            << "        let Some(executes) = context.executes.as_ref() else {\n"
+            << "            return Ok(None);\n"
+            << "        };\n"
+            << "        let runner = WorkflowRunner {\n"
+            << "            backend: &self.backend,\n"
+            << "            workflow_store: &self.workflows,\n"
+            << "            handler,\n"
+            << "            worker_name: context.worker_name.clone(),\n"
+            << "            lease_duration: std::time::Duration::from_secs(30),\n"
+            << "            max_attempts: 3,\n"
+            << "        };\n"
+            << "        runner.run_once(workflow_execution_id, executes, 1)\n"
+            << "    }\n";
     }
     return TemplateRenderer::Values{
+        {"runtime_store_imports", imports.str()},
+        {"worker_runtime_imports", worker_imports.str()},
+        {"runtime_store_fields", fields.str()},
+        {"runtime_store_initializers", initializers.str()},
         {"runtime_bootstrap_generic_arguments", generics.str()},
         {"runtime_bootstrap_arguments", arguments.str()},
+        {"worker_runtime_run_once", worker_run_once.str()},
     };
+}
+
+TemplateRenderer::Values rust_runtime_codec_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream modules;
+    std::ostringstream uses;
+    auto add = [&](bool used, std::string_view name, bool reexport = true)
+    {
+        if (!used)
+        {
+            return;
+        }
+        modules << "#[path = \"" << name << ".rs\"]\n";
+        modules << "mod " << name << ";\n";
+        if (reexport)
+        {
+            uses << "pub(crate) use self::" << name << "::*;\n";
+        }
+    };
+    add(true, "codec_core");
+    add(usage.uses_feature_flags, "codec_feature_flags");
+    add(usage.uses_leases, "codec_leases");
+    add(usage.uses_logs, "codec_logs");
+    add(usage.uses_metrics, "codec_metrics");
+    add(usage.uses_observability, "codec_observability", false);
+    add(usage.uses_queues, "codec_queues");
+    add(usage.uses_workflows, "codec_workflows");
+    return TemplateRenderer::Values{
+        {"runtime_codec_modules", modules.str()},
+        {"runtime_codec_uses", uses.str()},
+    };
+}
+
+TemplateRenderer::Values rust_api_runtime_bootstrap_values(const IrSystem& system)
+{
+    auto values = rust_runtime_bootstrap_values(system);
+    values.erase("worker_runtime_imports");
+    values.erase("worker_runtime_run_once");
+    return values;
 }
 
 } // namespace
@@ -167,6 +277,8 @@ void add_rust_common_runtime_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
+
     add_template_file(result, options.output_dir, templates, "json.rs", "json.rs", diagnostics);
     add_template_file(
         result, options.output_dir, templates, "backend.rs", "backend.rs", diagnostics
@@ -192,62 +304,90 @@ void add_rust_common_runtime_artifacts(
         result, options.output_dir, templates, "memory/transaction.rs", "memory/transaction.rs",
         diagnostics
     );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec.rs", "runtime/codec.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_core.rs", "runtime/codec_core.rs",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_feature_flags.rs",
-        "runtime/codec_feature_flags.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_queues.rs", "runtime/codec_queues.rs",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_leases.rs", "runtime/codec_leases.rs",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_workflows.rs",
-        "runtime/codec_workflows.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_observability.rs",
-        "runtime/codec_observability.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_logs.rs", "runtime/codec_logs.rs",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_metrics.rs",
-        "runtime/codec_metrics.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/feature_flags.rs",
-        "runtime/feature_flags.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/queues.rs", "runtime/queues.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/leases.rs", "runtime/leases.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/workflows.rs", "runtime/workflows.rs",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/logs.rs", "runtime/logs.rs", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/metrics.rs", "runtime/metrics.rs",
-        diagnostics
-    );
+    if (usage.uses_any_runtime_domain)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "runtime/codec.rs.tmpl",
+            "common/runtime/codec.rs", diagnostics, GeneratedArtifactTier::Common,
+            rust_runtime_codec_values(system), "common/runtime/codec.rs"
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_core.rs", "runtime/codec_core.rs",
+            diagnostics
+        );
+    }
+    if (usage.uses_feature_flags)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_feature_flags.rs",
+            "runtime/codec_feature_flags.rs", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/feature_flags.rs",
+            "runtime/feature_flags.rs", diagnostics
+        );
+    }
+    if (usage.uses_queues)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_queues.rs",
+            "runtime/codec_queues.rs", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/queues.rs", "runtime/queues.rs",
+            diagnostics
+        );
+    }
+    if (usage.uses_leases)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_leases.rs",
+            "runtime/codec_leases.rs", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/leases.rs", "runtime/leases.rs",
+            diagnostics
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_workflows.rs",
+            "runtime/codec_workflows.rs", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/workflows.rs", "runtime/workflows.rs",
+            diagnostics
+        );
+    }
+    if (usage.uses_observability)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_observability.rs",
+            "runtime/codec_observability.rs", diagnostics
+        );
+    }
+    if (usage.uses_logs)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_logs.rs", "runtime/codec_logs.rs",
+            diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/logs.rs", "runtime/logs.rs", diagnostics
+        );
+    }
+    if (usage.uses_metrics)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_metrics.rs",
+            "runtime/codec_metrics.rs", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/metrics.rs", "runtime/metrics.rs",
+            diagnostics
+        );
+    }
 
     if (diagnostics.has_errors())
     {
@@ -265,7 +405,7 @@ void add_rust_common_runtime_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/lib.rs.tmpl", "lib.rs", diagnostics,
-        GeneratedArtifactTier::Common, rust_lib_values(options.tier), "common/lib.rs"
+        GeneratedArtifactTier::Common, rust_lib_values(options.tier, system), "common/lib.rs"
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,
@@ -288,7 +428,7 @@ void add_rust_api_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_application.rs.tmpl",
         "api/api_application.rs", diagnostics, GeneratedArtifactTier::Api,
-        rust_runtime_bootstrap_values(system)
+        rust_api_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_codecs.rs.tmpl", "api/api_codecs.rs",

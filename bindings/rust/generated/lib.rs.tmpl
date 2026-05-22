@@ -20,20 +20,7 @@ pub mod queue;
 pub mod workflow;
 #[path = "common/memory/backend.rs"]
 pub mod memory_backend;
-#[path = "common/runtime/codec.rs"]
-pub(crate) mod runtime_codec;
-#[path = "common/runtime/feature_flags.rs"]
-pub mod runtime_feature_flags;
-#[path = "common/runtime/leases.rs"]
-pub mod runtime_leases;
-#[path = "common/runtime/logs.rs"]
-pub mod runtime_logs;
-#[path = "common/runtime/metrics.rs"]
-pub mod runtime_metrics;
-#[path = "common/runtime/queues.rs"]
-pub mod runtime_queues;
 #[path = "common/memory/transaction.rs"]
 pub mod memory_transaction;
-#[path = "common/runtime/workflows.rs"]
-pub mod runtime_workflows;
+{{runtime_modules}}
 {{api_modules}}{{worker_modules}}

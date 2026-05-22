@@ -2,31 +2,21 @@ package backend
 
 import (
 	"context"
-	"time"
+{{worker_runtime_time_import}}
 
 	common "statespec-generated/common/backend"
-	runtime "statespec-generated/common/backend/runtime"
+{{runtime_store_import}}
 )
 
 type WorkerTierRuntime struct {
 	Backend      common.Backend
-	FeatureFlags *runtime.FeatureFlagStore
-	Leases       *runtime.LeaseStore
-	Logs         *runtime.LogSink
-	Metrics      *runtime.MetricSink
-	Queues       *runtime.QueueStore
-	Workflows    *runtime.WorkflowStore
+{{runtime_store_fields}}
 }
 
 func NewWorkerTierRuntime(backend common.Backend) *WorkerTierRuntime {
 	return &WorkerTierRuntime{
 		Backend:      backend,
-		FeatureFlags: runtime.NewFeatureFlagStore(),
-		Leases:       runtime.NewLeaseStore(),
-		Logs:         runtime.NewLogSink(),
-		Metrics:      runtime.NewMetricSink(),
-		Queues:       runtime.NewQueueStore(),
-		Workflows:    runtime.NewWorkflowStore(),
+{{runtime_store_initializers}}
 	}
 }
 
@@ -38,17 +28,4 @@ func (runtime *WorkerTierRuntime) Bootstrap(ctx context.Context) error {
 	return common.BootstrapRuntimeCatalog(ctx, runtime.Backend{{runtime_bootstrap_arguments}})
 }
 
-func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext common.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {
-	if workerContext.Executes == nil {
-		return nil, nil
-	}
-	runner := WorkflowRunner{
-		Backend:       runtime.Backend,
-		WorkflowStore: runtime.Workflows,
-		Handler:       handler,
-		WorkerName:    workerContext.WorkerName,
-		LeaseDuration: 30 * time.Second,
-		MaxAttempts:   3,
-	}
-	return runner.RunOnce(ctx, workflowExecutionID, *workerContext.Executes, 1)
-}
+{{worker_runtime_run_once}}

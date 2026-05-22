@@ -1,36 +1,18 @@
 use crate::backend::Backend;
-use crate::runtime_feature_flags::RuntimeFeatureFlagStore;
-use crate::runtime_leases::RuntimeLeaseStore;
-use crate::runtime_logs::RuntimeLogSink;
-use crate::runtime_metrics::RuntimeMetricSink;
-use crate::runtime_queues::RuntimeQueueStore;
-use crate::runtime_workflows::RuntimeWorkflowStore;
-use crate::workflow::WorkflowExecutionRecord;
-use crate::workflow_runner::WorkflowRunner;
-use crate::workflow_step_handlers::WorkflowStepHandler;
-use crate::worker_contexts::WorkerContext;
+{{runtime_store_imports}}
+{{worker_runtime_imports}}
 
 #[derive(Debug, Clone)]
 pub struct WorkerRuntime<B: Backend> {
     pub backend: B,
-    pub feature_flags: RuntimeFeatureFlagStore,
-    pub leases: RuntimeLeaseStore,
-    pub logs: RuntimeLogSink,
-    pub metrics: RuntimeMetricSink,
-    pub queues: RuntimeQueueStore,
-    pub workflows: RuntimeWorkflowStore,
+{{runtime_store_fields}}
 }
 
 impl<B: Backend> WorkerRuntime<B> {
     pub fn new(backend: B) -> Self {
         Self {
             backend,
-            feature_flags: RuntimeFeatureFlagStore::new(),
-            leases: RuntimeLeaseStore::new(),
-            logs: RuntimeLogSink::new(),
-            metrics: RuntimeMetricSink::new(),
-            queues: RuntimeQueueStore::new(),
-            workflows: RuntimeWorkflowStore::new(),
+{{runtime_store_initializers}}
         }
     }
 
@@ -44,23 +26,5 @@ impl<B: Backend> WorkerRuntime<B> {
         )
     }
 
-    pub fn run_once<H: WorkflowStepHandler>(
-        &self,
-        context: &WorkerContext,
-        handler: &H,
-        workflow_execution_id: &str,
-    ) -> crate::backend::BackendResult<Option<WorkflowExecutionRecord>> {
-        let Some(workflow_name) = context.executes.as_deref() else {
-            return Ok(None);
-        };
-        let runner = WorkflowRunner {
-            backend: &self.backend,
-            workflow_store: &self.workflows,
-            handler,
-            worker_name: context.worker_name.clone(),
-            lease_duration: std::time::Duration::from_secs(30),
-            max_attempts: 3,
-        };
-        runner.run_once(workflow_execution_id, workflow_name, 1)
-    }
+{{worker_runtime_run_once}}
 }

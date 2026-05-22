@@ -12,7 +12,46 @@ namespace statespec
 namespace
 {
 
-TemplateRenderer::Values cpp_makefile_values(BindingGenerationTier tier)
+TemplateRenderer::Values cpp_common_runtime_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream includes;
+    auto add = [&](std::string_view include) { includes << "#include \"" << include << "\"\\n"; };
+    if (usage.uses_any_runtime_domain)
+    {
+        add("common/runtime/codec.hpp");
+    }
+    if (usage.uses_feature_flags)
+    {
+        add("common/runtime/feature_flag_store.hpp");
+    }
+    if (usage.uses_queues)
+    {
+        add("common/runtime/queue_store.hpp");
+    }
+    if (usage.uses_leases)
+    {
+        add("common/runtime/lease_store.hpp");
+    }
+    if (usage.uses_workflows)
+    {
+        add("common/runtime/workflow_store.hpp");
+    }
+    if (usage.uses_logs)
+    {
+        add("common/runtime/log_sink.hpp");
+    }
+    if (usage.uses_metrics)
+    {
+        add("common/runtime/metric_sink.hpp");
+    }
+    return TemplateRenderer::Values{{"common_runtime_includes", includes.str()}};
+}
+
+TemplateRenderer::Values cpp_makefile_values(
+    BindingGenerationTier tier,
+    const IrSystem& system
+)
 {
     const auto include_api =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
@@ -77,38 +116,98 @@ TemplateRenderer::Values cpp_makefile_values(BindingGenerationTier tier)
         {"phony_targets", phony_targets.str()},
         {"api_rules", api_rules.str()},
         {"worker_rules", worker_rules.str()},
+        {"common_runtime_includes", cpp_common_runtime_values(system)["common_runtime_includes"]},
     };
 }
 
 TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
+    std::ostringstream includes;
+    std::ostringstream initializers;
+    std::ostringstream members;
     std::ostringstream arguments;
-    if (usage.uses_feature_flags)
+    std::ostringstream worker_run_once;
+
+    auto add = [&](bool used, std::string_view include, std::string_view type,
+                   std::string_view member, std::string_view argument)
     {
-        arguments << ", feature_flags_";
-    }
-    if (usage.uses_queues)
-    {
-        arguments << ", queues_";
-    }
-    if (usage.uses_leases)
-    {
-        arguments << ", leases_";
-    }
+        if (!used)
+        {
+            return;
+        }
+        includes << "#include \"" << include << "\"\n";
+        initializers << ",\n          " << member << "()";
+        members << "    " << type << " " << member << ";\n";
+        arguments << ", " << argument;
+    };
+    add(usage.uses_feature_flags, "../common/runtime/feature_flag_store.hpp",
+        "statespec::backend::runtime::RuntimeFeatureFlagStore", "feature_flags_", "feature_flags_");
+    add(usage.uses_queues, "../common/runtime/queue_store.hpp",
+        "statespec::backend::runtime::RuntimeQueueStore", "queues_", "queues_");
+    add(usage.uses_leases, "../common/runtime/lease_store.hpp",
+        "statespec::backend::runtime::RuntimeLeaseStore", "leases_", "leases_");
+    add(usage.uses_workflows, "../common/runtime/workflow_store.hpp",
+        "statespec::backend::runtime::RuntimeWorkflowStore", "workflows_", "workflows_");
+    add(usage.uses_logs, "../common/runtime/log_sink.hpp",
+        "statespec::backend::runtime::RuntimeLogSink", "logs_", "logs_");
+    add(usage.uses_metrics, "../common/runtime/metric_sink.hpp",
+        "statespec::backend::runtime::RuntimeMetricSink", "metrics_", "metrics_");
+
     if (usage.uses_workflows)
     {
-        arguments << ", workflows_";
+        worker_run_once
+            << "    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(\n"
+            << "        const WorkerContext& context,\n"
+            << "        IWorkflowStepHandler& handler,\n"
+            << "        const std::string& workflow_execution_id\n"
+            << "    )\n"
+            << "    {\n"
+            << "        if (!context.executes.has_value())\n"
+            << "        {\n"
+            << "            return std::nullopt;\n"
+            << "        }\n"
+            << "        WorkflowRunner runner{\n"
+            << "            backend_, workflows_, handler, context.worker_name, "
+               "std::chrono::seconds{30}, 3\n"
+            << "        };\n"
+            << "        return runner.run_once(workflow_execution_id, *context.executes, 1);\n"
+            << "    }\n";
     }
-    if (usage.uses_logs)
+
+    return TemplateRenderer::Values{
+        {"runtime_store_includes", includes.str()},
+        {"runtime_store_initializers", initializers.str()},
+        {"runtime_store_members", members.str()},
+        {"runtime_bootstrap_arguments", arguments.str()},
+        {"worker_runtime_run_once", worker_run_once.str()},
+    };
+}
+
+TemplateRenderer::Values cpp_runtime_codec_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream includes;
+    auto add = [&](bool used, std::string_view include)
     {
-        arguments << ", logs_";
-    }
-    if (usage.uses_metrics)
-    {
-        arguments << ", metrics_";
-    }
-    return TemplateRenderer::Values{{"runtime_bootstrap_arguments", arguments.str()}};
+        if (used)
+        {
+            includes << "#include \"" << include << "\"\n";
+        }
+    };
+    add(usage.uses_feature_flags, "codec_feature_flags.hpp");
+    add(usage.uses_queues, "codec_queues.hpp");
+    add(usage.uses_leases, "codec_leases.hpp");
+    add(usage.uses_workflows, "codec_workflows.hpp");
+    add(usage.uses_observability, "codec_observability.hpp");
+    return TemplateRenderer::Values{{"runtime_codec_includes", includes.str()}};
+}
+
+TemplateRenderer::Values cpp_api_runtime_values(const IrSystem& system)
+{
+    auto values = cpp_runtime_bootstrap_values(system);
+    values.erase("worker_runtime_run_once");
+    return values;
 }
 
 } // namespace
@@ -121,6 +220,8 @@ void add_cpp_common_runtime_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
+
     add_template_file(result, options.output_dir, templates, "json.hpp", "json.hpp", diagnostics);
     add_template_file(
         result, options.output_dir, templates, "backend.hpp", "backend.hpp", diagnostics
@@ -149,65 +250,91 @@ void add_cpp_common_runtime_artifacts(
         result, options.output_dir, templates, "memory/backend.hpp", "memory/backend.hpp",
         diagnostics
     );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec.hpp", "runtime/codec.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_core.hpp", "runtime/codec_core.hpp",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_feature_flags.hpp",
-        "runtime/codec_feature_flags.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_queues.hpp",
-        "runtime/codec_queues.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_leases.hpp",
-        "runtime/codec_leases.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_workflows.hpp",
-        "runtime/codec_workflows.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_observability.hpp",
-        "runtime/codec_observability.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_logs.hpp", "runtime/codec_logs.hpp",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/codec_metrics.hpp",
-        "runtime/codec_metrics.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/feature_flag_store.hpp",
-        "runtime/feature_flag_store.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/queue_store.hpp", "runtime/queue_store.hpp",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/lease_store.hpp", "runtime/lease_store.hpp",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/workflow_store.hpp",
-        "runtime/workflow_store.hpp", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/log_sink.hpp", "runtime/log_sink.hpp",
-        diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, "runtime/metric_sink.hpp", "runtime/metric_sink.hpp",
-        diagnostics
-    );
+    if (usage.uses_any_runtime_domain)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "runtime/codec.hpp.tmpl",
+            "common/runtime/codec.hpp", diagnostics, GeneratedArtifactTier::Common,
+            cpp_runtime_codec_values(system)
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_core.hpp",
+            "runtime/codec_core.hpp", diagnostics
+        );
+    }
+    if (usage.uses_feature_flags)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_feature_flags.hpp",
+            "runtime/codec_feature_flags.hpp", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/feature_flag_store.hpp",
+            "runtime/feature_flag_store.hpp", diagnostics
+        );
+    }
+    if (usage.uses_queues)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_queues.hpp",
+            "runtime/codec_queues.hpp", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/queue_store.hpp",
+            "runtime/queue_store.hpp", diagnostics
+        );
+    }
+    if (usage.uses_leases)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_leases.hpp",
+            "runtime/codec_leases.hpp", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/lease_store.hpp",
+            "runtime/lease_store.hpp", diagnostics
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_workflows.hpp",
+            "runtime/codec_workflows.hpp", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/workflow_store.hpp",
+            "runtime/workflow_store.hpp", diagnostics
+        );
+    }
+    if (usage.uses_observability)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_observability.hpp",
+            "runtime/codec_observability.hpp", diagnostics
+        );
+    }
+    if (usage.uses_logs)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_logs.hpp",
+            "runtime/codec_logs.hpp", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/log_sink.hpp", "runtime/log_sink.hpp",
+            diagnostics
+        );
+    }
+    if (usage.uses_metrics)
+    {
+        add_template_file(
+            result, options.output_dir, templates, "runtime/codec_metrics.hpp",
+            "runtime/codec_metrics.hpp", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/metric_sink.hpp",
+            "runtime/metric_sink.hpp", diagnostics
+        );
+    }
 
     if (diagnostics.has_errors())
     {
@@ -223,7 +350,7 @@ void add_cpp_common_runtime_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,
-        GeneratedArtifactTier::Common, cpp_makefile_values(options.tier), "common/Makefile"
+        GeneratedArtifactTier::Common, cpp_makefile_values(options.tier, system), "common/Makefile"
     );
 }
 
@@ -242,7 +369,7 @@ void add_cpp_api_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_application.hpp.tmpl",
         "api/api_application.hpp", diagnostics, GeneratedArtifactTier::Api,
-        cpp_runtime_bootstrap_values(system)
+        cpp_api_runtime_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_codecs.hpp.tmpl", "api/api_codecs.hpp",

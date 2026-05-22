@@ -6,12 +6,7 @@
 #include "worker_workflows.hpp"
 #include "workflow_runner.hpp"
 
-#include "../common/runtime/feature_flag_store.hpp"
-#include "../common/runtime/lease_store.hpp"
-#include "../common/runtime/log_sink.hpp"
-#include "../common/runtime/metric_sink.hpp"
-#include "../common/runtime/queue_store.hpp"
-#include "../common/runtime/workflow_store.hpp"
+{{runtime_store_includes}}
 
 #include <chrono>
 #include <optional>
@@ -24,13 +19,7 @@ class WorkerRuntime
 {
   public:
     explicit WorkerRuntime(statespec::backend::IBackend& backend)
-        : backend_(backend),
-          feature_flags_(),
-          leases_(),
-          logs_(),
-          metrics_(),
-          queues_(),
-          workflows_()
+        : backend_(backend){{runtime_store_initializers}}
     {
     }
 
@@ -59,30 +48,11 @@ class WorkerRuntime
         }
     }
 
-    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(
-        const WorkerContext& context,
-        IWorkflowStepHandler& handler,
-        const std::string& workflow_execution_id
-    )
-    {
-        if (!context.executes.has_value())
-        {
-            return std::nullopt;
-        }
-        WorkflowRunner runner{
-            backend_, workflows_, handler, context.worker_name, std::chrono::seconds{30}, 3
-        };
-        return runner.run_once(workflow_execution_id, *context.executes, 1);
-    }
+{{worker_runtime_run_once}}
 
   private:
     statespec::backend::IBackend& backend_;
-    statespec::backend::runtime::RuntimeFeatureFlagStore feature_flags_;
-    statespec::backend::runtime::RuntimeLeaseStore leases_;
-    statespec::backend::runtime::RuntimeLogSink logs_;
-    statespec::backend::runtime::RuntimeMetricSink metrics_;
-    statespec::backend::runtime::RuntimeQueueStore queues_;
-    statespec::backend::runtime::RuntimeWorkflowStore workflows_;
+{{runtime_store_members}}
 };
 
 } // namespace statespec_generated::worker

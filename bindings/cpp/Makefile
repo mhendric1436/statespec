@@ -9,7 +9,9 @@ ROOT_DIR := ../..
 CATCH_SRC := $(ROOT_DIR)/third_party/catch2/catch_amalgamated.cpp
 JSON_TEST := $(BIN_DIR)/json_test
 GENERATED_FORMAT_TEMPLATES := $(filter-out generated/descriptors.hpp.tmpl generated/runtime_registration.hpp.tmpl,$(wildcard generated/*.hpp.tmpl))
-FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(GENERATED_FORMAT_TEMPLATES) $(wildcard api/*.hpp.tmpl) $(wildcard api/*.cpp.tmpl) $(wildcard worker/*.hpp.tmpl) $(wildcard worker/*.cpp.tmpl) $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp)
+API_FORMAT_TEMPLATES := $(filter-out api/api_application.hpp.tmpl,$(wildcard api/*.hpp.tmpl))
+WORKER_FORMAT_TEMPLATES := $(filter-out worker/worker_runtime.hpp.tmpl,$(wildcard worker/*.hpp.tmpl))
+FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(GENERATED_FORMAT_TEMPLATES) $(API_FORMAT_TEMPLATES) $(wildcard api/*.cpp.tmpl) $(WORKER_FORMAT_TEMPLATES) $(wildcard worker/*.cpp.tmpl) $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp)
 
 .PHONY: test build format clean help
 

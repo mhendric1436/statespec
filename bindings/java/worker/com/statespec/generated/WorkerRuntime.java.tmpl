@@ -1,32 +1,16 @@
 package com.statespec.generated;
 
 import com.statespec.backend.Backend;
-import com.statespec.backend.runtime.FeatureFlagStore;
-import com.statespec.backend.runtime.LeaseStore;
-import com.statespec.backend.runtime.LogSink;
-import com.statespec.backend.runtime.MetricSink;
-import com.statespec.backend.runtime.QueueStore;
-import com.statespec.backend.runtime.WorkflowStore;
-import java.time.Duration;
-import java.util.Optional;
+{{runtime_store_imports}}
+{{worker_runtime_imports}}
 
 public final class WorkerRuntime {
     private final Backend backend;
-    private final FeatureFlagStore featureFlags;
-    private final LeaseStore leases;
-    private final LogSink logs;
-    private final MetricSink metrics;
-    private final QueueStore queues;
-    private final WorkflowStore workflows;
+{{runtime_store_fields}}
 
     public WorkerRuntime(Backend backend) {
         this.backend = backend;
-        this.featureFlags = new FeatureFlagStore();
-        this.leases = new LeaseStore();
-        this.logs = new LogSink();
-        this.metrics = new MetricSink();
-        this.queues = new QueueStore();
-        this.workflows = new WorkflowStore();
+{{runtime_store_initializers}}
     }
 
     public Backend backend() {
@@ -41,16 +25,5 @@ public final class WorkerRuntime {
         Descriptors.bootstrapRuntimeCatalog(backend{{runtime_bootstrap_arguments}});
     }
 
-    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> runOnce(
-        Descriptors.WorkerContext context,
-        WorkflowStepHandlers.Handler handler,
-        String workflowExecutionId
-    ) throws Exception {
-        if (context.executes().isEmpty()) {
-            return Optional.empty();
-        }
-        WorkflowRunner runner =
-            new WorkflowRunner(backend, workflows, handler, context.workerName(), Duration.ofSeconds(30), 3);
-        return runner.runOnce(workflowExecutionId, context.executes().orElseThrow(), 1);
-    }
+{{worker_runtime_run_once}}
 }

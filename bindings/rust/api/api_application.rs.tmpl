@@ -2,21 +2,11 @@ use crate::api_handler_registry::DefaultApiHandler;
 use crate::api_handlers::ApiHandler;
 use crate::api_server::{find_api_server, ApiServer};
 use crate::backend::Backend;
-use crate::runtime_feature_flags::RuntimeFeatureFlagStore;
-use crate::runtime_leases::RuntimeLeaseStore;
-use crate::runtime_logs::RuntimeLogSink;
-use crate::runtime_metrics::RuntimeMetricSink;
-use crate::runtime_queues::RuntimeQueueStore;
-use crate::runtime_workflows::RuntimeWorkflowStore;
+{{runtime_store_imports}}
 
 pub struct ApiApplication<B: Backend, H: ApiHandler> {
     pub backend: B,
-    pub feature_flags: RuntimeFeatureFlagStore,
-    pub leases: RuntimeLeaseStore,
-    pub logs: RuntimeLogSink,
-    pub metrics: RuntimeMetricSink,
-    pub queues: RuntimeQueueStore,
-    pub workflows: RuntimeWorkflowStore,
+{{runtime_store_fields}}
     pub server: ApiServer<H>,
 }
 
@@ -25,12 +15,7 @@ impl<B: Backend, H: ApiHandler> ApiApplication<B, H> {
         let descriptor = find_api_server(server_name)?;
         Some(Self {
             backend,
-            feature_flags: RuntimeFeatureFlagStore::new(),
-            leases: RuntimeLeaseStore::new(),
-            logs: RuntimeLogSink::new(),
-            metrics: RuntimeMetricSink::new(),
-            queues: RuntimeQueueStore::new(),
-            workflows: RuntimeWorkflowStore::new(),
+{{runtime_store_initializers}}
             server: ApiServer::new(descriptor, handler),
         })
     }

@@ -15,32 +15,68 @@ namespace
 TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
+    std::ostringstream imports;
+    std::ostringstream fields;
+    std::ostringstream initializers;
     std::ostringstream arguments;
-    if (usage.uses_feature_flags)
+    std::ostringstream worker_imports;
+    std::ostringstream worker_run_once;
+
+    auto add = [&](bool used, std::string_view type, std::string_view field)
     {
-        arguments << ", featureFlags";
-    }
-    if (usage.uses_queues)
-    {
-        arguments << ", queues";
-    }
-    if (usage.uses_leases)
-    {
-        arguments << ", leases";
-    }
+        if (!used)
+        {
+            return;
+        }
+        imports << "import com.statespec.backend.runtime." << type << ";\n";
+        fields << "    private final " << type << " " << field << ";\n";
+        initializers << "        this." << field << " = new " << type << "();\n";
+        arguments << ", " << field;
+    };
+    add(usage.uses_feature_flags, "FeatureFlagStore", "featureFlags");
+    add(usage.uses_queues, "QueueStore", "queues");
+    add(usage.uses_leases, "LeaseStore", "leases");
+    add(usage.uses_workflows, "WorkflowStore", "workflows");
+    add(usage.uses_logs, "LogSink", "logs");
+    add(usage.uses_metrics, "MetricSink", "metrics");
     if (usage.uses_workflows)
     {
-        arguments << ", workflows";
+        worker_imports << "import java.time.Duration;\n";
+        worker_imports << "import java.util.Optional;\n";
+        worker_run_once
+            << "    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> "
+               "runOnce(\n"
+            << "        Descriptors.WorkerContext context,\n"
+            << "        WorkflowStepHandlers.Handler handler,\n"
+            << "        String workflowExecutionId\n"
+            << "    ) throws Exception {\n"
+            << "        if (context.executes().isEmpty()) {\n"
+            << "            return Optional.empty();\n"
+            << "        }\n"
+            << "        WorkflowRunner runner =\n"
+            << "            new WorkflowRunner(backend, workflows, handler, context.workerName(), "
+               "Duration.ofSeconds(30), 3);\n"
+            << "        return runner.runOnce(workflowExecutionId, "
+               "context.executes().orElseThrow(), "
+               "1);\n"
+            << "    }\n";
     }
-    if (usage.uses_logs)
-    {
-        arguments << ", logs";
-    }
-    if (usage.uses_metrics)
-    {
-        arguments << ", metrics";
-    }
-    return TemplateRenderer::Values{{"runtime_bootstrap_arguments", arguments.str()}};
+    return TemplateRenderer::Values{
+        {"runtime_store_imports", imports.str()},
+        {"runtime_store_fields", fields.str()},
+        {"runtime_store_initializers", initializers.str()},
+        {"runtime_bootstrap_arguments", arguments.str()},
+        {"worker_runtime_imports", worker_imports.str()},
+        {"worker_runtime_run_once", worker_run_once.str()},
+    };
+}
+
+TemplateRenderer::Values java_api_runtime_bootstrap_values(const IrSystem& system)
+{
+    auto values = java_runtime_bootstrap_values(system);
+    values.erase("worker_runtime_imports");
+    values.erase("worker_runtime_run_once");
+    return values;
 }
 
 } // namespace
@@ -53,6 +89,7 @@ void add_java_common_runtime_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
     const std::filesystem::path output_root{"com/statespec/backend"};
 
     add_template_file(
@@ -105,62 +142,89 @@ void add_java_common_runtime_artifacts(
         result, options.output_dir, templates, output_root / "memory" / "InMemoryTransaction.java",
         output_root / "memory" / "InMemoryTransaction.java", diagnostics
     );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "Codec.java",
-        output_root / "runtime" / "Codec.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "FeatureFlagCodec.java",
-        output_root / "runtime" / "FeatureFlagCodec.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "QueueCodec.java",
-        output_root / "runtime" / "QueueCodec.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "LeaseCodec.java",
-        output_root / "runtime" / "LeaseCodec.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "WorkflowCodec.java",
-        output_root / "runtime" / "WorkflowCodec.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "ObservabilityCodec.java",
-        output_root / "runtime" / "ObservabilityCodec.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "LogCodec.java",
-        output_root / "runtime" / "LogCodec.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "MetricCodec.java",
-        output_root / "runtime" / "MetricCodec.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "FeatureFlagStore.java",
-        output_root / "runtime" / "FeatureFlagStore.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "QueueStore.java",
-        output_root / "runtime" / "QueueStore.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "LeaseStore.java",
-        output_root / "runtime" / "LeaseStore.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "WorkflowStore.java",
-        output_root / "runtime" / "WorkflowStore.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "LogSink.java",
-        output_root / "runtime" / "LogSink.java", diagnostics
-    );
-    add_template_file(
-        result, options.output_dir, templates, output_root / "runtime" / "MetricSink.java",
-        output_root / "runtime" / "MetricSink.java", diagnostics
-    );
+    if (usage.uses_any_runtime_domain)
+    {
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "Codec.java",
+            output_root / "runtime" / "Codec.java", diagnostics
+        );
+    }
+    if (usage.uses_feature_flags)
+    {
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "runtime" / "FeatureFlagCodec.java",
+            output_root / "runtime" / "FeatureFlagCodec.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "runtime" / "FeatureFlagStore.java",
+            output_root / "runtime" / "FeatureFlagStore.java", diagnostics
+        );
+    }
+    if (usage.uses_queues)
+    {
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "QueueCodec.java",
+            output_root / "runtime" / "QueueCodec.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "QueueStore.java",
+            output_root / "runtime" / "QueueStore.java", diagnostics
+        );
+    }
+    if (usage.uses_leases)
+    {
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "LeaseCodec.java",
+            output_root / "runtime" / "LeaseCodec.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "LeaseStore.java",
+            output_root / "runtime" / "LeaseStore.java", diagnostics
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "WorkflowCodec.java",
+            output_root / "runtime" / "WorkflowCodec.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "WorkflowStore.java",
+            output_root / "runtime" / "WorkflowStore.java", diagnostics
+        );
+    }
+    if (usage.uses_observability)
+    {
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "runtime" / "ObservabilityCodec.java",
+            output_root / "runtime" / "ObservabilityCodec.java", diagnostics
+        );
+    }
+    if (usage.uses_logs)
+    {
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "LogCodec.java",
+            output_root / "runtime" / "LogCodec.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "LogSink.java",
+            output_root / "runtime" / "LogSink.java", diagnostics
+        );
+    }
+    if (usage.uses_metrics)
+    {
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "MetricCodec.java",
+            output_root / "runtime" / "MetricCodec.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "MetricSink.java",
+            output_root / "runtime" / "MetricSink.java", diagnostics
+        );
+    }
     add_generated_template_file(
         result, options.output_dir, templates, "generated/Descriptors.java.tmpl",
         "common/com/statespec/generated/Descriptors.java", diagnostics,
@@ -190,7 +254,7 @@ void add_java_api_artifacts(
         result, options.output_dir, templates,
         "api/com/statespec/generated/ApiApplication.java.tmpl",
         "api/com/statespec/generated/ApiApplication.java", diagnostics, GeneratedArtifactTier::Api,
-        java_runtime_bootstrap_values(system)
+        java_api_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/com/statespec/generated/ApiCodecs.java.tmpl",

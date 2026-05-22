@@ -1,21 +1,11 @@
 package com.statespec.generated;
 
 import com.statespec.backend.Backend;
-import com.statespec.backend.runtime.FeatureFlagStore;
-import com.statespec.backend.runtime.LeaseStore;
-import com.statespec.backend.runtime.LogSink;
-import com.statespec.backend.runtime.MetricSink;
-import com.statespec.backend.runtime.QueueStore;
-import com.statespec.backend.runtime.WorkflowStore;
+{{runtime_store_imports}}
 
 public final class ApiApplication {
     private final Backend backend;
-    private final FeatureFlagStore featureFlags;
-    private final LeaseStore leases;
-    private final LogSink logs;
-    private final MetricSink metrics;
-    private final QueueStore queues;
-    private final WorkflowStore workflows;
+{{runtime_store_fields}}
     private final ApiServer server;
 
     public ApiApplication(Backend backend, String serverName, ApiHandlers.Handler handler) {
@@ -23,12 +13,7 @@ public final class ApiApplication {
             ApiServer.findApiServer(serverName)
                 .orElseThrow(() -> new IllegalArgumentException("unknown generated API server"));
         this.backend = backend;
-        this.featureFlags = new FeatureFlagStore();
-        this.leases = new LeaseStore();
-        this.logs = new LogSink();
-        this.metrics = new MetricSink();
-        this.queues = new QueueStore();
-        this.workflows = new WorkflowStore();
+{{runtime_store_initializers}}
         this.server = new ApiServer(descriptor, handler);
     }
 

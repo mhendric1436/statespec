@@ -62,32 +62,62 @@ TemplateRenderer::Values go_makefile_values(BindingGenerationTier tier)
 TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
+    std::ostringstream runtime_import;
+    std::ostringstream fields;
+    std::ostringstream initializers;
     std::ostringstream arguments;
-    if (usage.uses_feature_flags)
+    std::ostringstream worker_run_once;
+    std::ostringstream worker_time_import;
+
+    auto add = [&](bool used, std::string_view field, std::string_view type, std::string_view ctor)
     {
-        arguments << ", app.FeatureFlags";
-    }
-    if (usage.uses_queues)
+        if (!used)
+        {
+            return;
+        }
+        fields << "\t" << field << " *runtime." << type << "\n";
+        initializers << "\t\t" << field << ": runtime." << ctor << "(),\n";
+        arguments << ", app." << field;
+    };
+    if (usage.uses_any_runtime_domain)
     {
-        arguments << ", app.Queues";
+        runtime_import << "\truntime \"statespec-generated/common/backend/runtime\"\n";
     }
-    if (usage.uses_leases)
-    {
-        arguments << ", app.Leases";
-    }
+    add(usage.uses_feature_flags, "FeatureFlags", "FeatureFlagStore", "NewFeatureFlagStore");
+    add(usage.uses_queues, "Queues", "QueueStore", "NewQueueStore");
+    add(usage.uses_leases, "Leases", "LeaseStore", "NewLeaseStore");
+    add(usage.uses_workflows, "Workflows", "WorkflowStore", "NewWorkflowStore");
+    add(usage.uses_logs, "Logs", "LogSink", "NewLogSink");
+    add(usage.uses_metrics, "Metrics", "MetricSink", "NewMetricSink");
     if (usage.uses_workflows)
     {
-        arguments << ", app.Workflows";
+        worker_time_import << "\t\"time\"\n";
+        worker_run_once
+            << "func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext "
+               "common.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) "
+               "(*common.WorkflowExecutionRecord, error) {\n"
+            << "\tif workerContext.Executes == nil {\n"
+            << "\t\treturn nil, nil\n"
+            << "\t}\n"
+            << "\trunner := WorkflowRunner{\n"
+            << "\t\tBackend:       runtime.Backend,\n"
+            << "\t\tWorkflowStore: runtime.Workflows,\n"
+            << "\t\tHandler:       handler,\n"
+            << "\t\tWorkerName:    workerContext.WorkerName,\n"
+            << "\t\tLeaseDuration: 30 * time.Second,\n"
+            << "\t\tMaxAttempts:   3,\n"
+            << "\t}\n"
+            << "\treturn runner.RunOnce(ctx, workflowExecutionID, *workerContext.Executes, 1)\n"
+            << "}\n";
     }
-    if (usage.uses_logs)
-    {
-        arguments << ", app.Logs";
-    }
-    if (usage.uses_metrics)
-    {
-        arguments << ", app.Metrics";
-    }
-    return TemplateRenderer::Values{{"runtime_bootstrap_arguments", arguments.str()}};
+    return TemplateRenderer::Values{
+        {"runtime_store_import", runtime_import.str()},
+        {"runtime_store_fields", fields.str()},
+        {"runtime_store_initializers", initializers.str()},
+        {"runtime_bootstrap_arguments", arguments.str()},
+        {"worker_runtime_time_import", worker_time_import.str()},
+        {"worker_runtime_run_once", worker_run_once.str()},
+    };
 }
 
 TemplateRenderer::Values go_worker_runtime_bootstrap_values(const IrSystem& system)
@@ -103,6 +133,14 @@ TemplateRenderer::Values go_worker_runtime_bootstrap_values(const IrSystem& syst
     return values;
 }
 
+TemplateRenderer::Values go_api_runtime_bootstrap_values(const IrSystem& system)
+{
+    auto values = go_runtime_bootstrap_values(system);
+    values.erase("worker_runtime_time_import");
+    values.erase("worker_runtime_run_once");
+    return values;
+}
+
 } // namespace
 
 void add_go_common_runtime_artifacts(
@@ -113,6 +151,8 @@ void add_go_common_runtime_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
+
     add_template_file(
         result, options.output_dir, templates, "backend/json.go", "backend/json.go", diagnostics
     );
@@ -158,62 +198,88 @@ void add_go_common_runtime_artifacts(
         result, options.output_dir, templates, "backend/memory/transaction.go.tmpl",
         "common/backend/memory/transaction.go", diagnostics, GeneratedArtifactTier::Common
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/codec.go.tmpl",
-        "common/backend/runtime/codec.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/codec_feature_flags.go.tmpl",
-        "common/backend/runtime/codec_feature_flags.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/codec_queues.go.tmpl",
-        "common/backend/runtime/codec_queues.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/codec_leases.go.tmpl",
-        "common/backend/runtime/codec_leases.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/codec_workflows.go.tmpl",
-        "common/backend/runtime/codec_workflows.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/codec_observability.go.tmpl",
-        "common/backend/runtime/codec_observability.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/codec_logs.go.tmpl",
-        "common/backend/runtime/codec_logs.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/codec_metrics.go.tmpl",
-        "common/backend/runtime/codec_metrics.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/feature_flags.go.tmpl",
-        "common/backend/runtime/feature_flags.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/queues.go.tmpl",
-        "common/backend/runtime/queues.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/leases.go.tmpl",
-        "common/backend/runtime/leases.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/workflows.go.tmpl",
-        "common/backend/runtime/workflows.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/logs.go.tmpl",
-        "common/backend/runtime/logs.go", diagnostics, GeneratedArtifactTier::Common
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "backend/runtime/metrics.go.tmpl",
-        "common/backend/runtime/metrics.go", diagnostics, GeneratedArtifactTier::Common
-    );
+    if (usage.uses_any_runtime_domain)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/codec.go.tmpl",
+            "common/backend/runtime/codec.go", diagnostics, GeneratedArtifactTier::Common
+        );
+    }
+    if (usage.uses_feature_flags)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/codec_feature_flags.go.tmpl",
+            "common/backend/runtime/codec_feature_flags.go", diagnostics,
+            GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/feature_flags.go.tmpl",
+            "common/backend/runtime/feature_flags.go", diagnostics, GeneratedArtifactTier::Common
+        );
+    }
+    if (usage.uses_queues)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/codec_queues.go.tmpl",
+            "common/backend/runtime/codec_queues.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/queues.go.tmpl",
+            "common/backend/runtime/queues.go", diagnostics, GeneratedArtifactTier::Common
+        );
+    }
+    if (usage.uses_leases)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/codec_leases.go.tmpl",
+            "common/backend/runtime/codec_leases.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/leases.go.tmpl",
+            "common/backend/runtime/leases.go", diagnostics, GeneratedArtifactTier::Common
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/codec_workflows.go.tmpl",
+            "common/backend/runtime/codec_workflows.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/workflows.go.tmpl",
+            "common/backend/runtime/workflows.go", diagnostics, GeneratedArtifactTier::Common
+        );
+    }
+    if (usage.uses_observability)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/codec_observability.go.tmpl",
+            "common/backend/runtime/codec_observability.go", diagnostics,
+            GeneratedArtifactTier::Common
+        );
+    }
+    if (usage.uses_logs)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/codec_logs.go.tmpl",
+            "common/backend/runtime/codec_logs.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/logs.go.tmpl",
+            "common/backend/runtime/logs.go", diagnostics, GeneratedArtifactTier::Common
+        );
+    }
+    if (usage.uses_metrics)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/codec_metrics.go.tmpl",
+            "common/backend/runtime/codec_metrics.go", diagnostics, GeneratedArtifactTier::Common
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "backend/runtime/metrics.go.tmpl",
+            "common/backend/runtime/metrics.go", diagnostics, GeneratedArtifactTier::Common
+        );
+    }
     add_generated_template_file(
         result, options.output_dir, templates, "generated/descriptors.go.tmpl",
         "common/backend/descriptors.go", diagnostics, GeneratedArtifactTier::Common,
@@ -244,7 +310,7 @@ void add_go_api_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_application.go.tmpl",
         "api/backend/api_application.go", diagnostics, GeneratedArtifactTier::Api,
-        go_runtime_bootstrap_values(system)
+        go_api_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_codecs.go.tmpl",
