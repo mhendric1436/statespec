@@ -42,15 +42,10 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"common/com/statespec/backend/memory/InMemoryTransaction.java", common},
             {"common/com/statespec/generated/Descriptors.java", common},
             {"common/Makefile", common},
-            {"api/com/statespec/generated/ApiApplication.java", api},
             {"api/com/statespec/generated/ApiCodecs.java", api},
             {"api/com/statespec/generated/ApiDescriptors.java", api},
             {"api/com/statespec/generated/ApiHandlers.java", api},
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api},
-            {"api/com/statespec/generated/ApiDispatcher.java", api},
-            {"api/com/statespec/generated/ApiMain.java", api},
-            {"api/com/statespec/generated/ApiServer.java", api},
-            {"api/com/statespec/generated/ApiRoutes.java", api},
             {"api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", api},
             {"worker/com/statespec/generated/WorkerContexts.java", worker},
             {"worker/com/statespec/generated/WorkerDescriptors.java", worker},
@@ -82,10 +77,6 @@ void test_java_binding_generator_models_artifact_paths()
         "api/com/statespec/generated/ApiDescriptors.java", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiApplication.java",
-        "api/com/statespec/generated/ApiApplication.java", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
         result, "api/com/statespec/generated/ApiCodecs.java",
         "api/com/statespec/generated/ApiCodecs.java", statespec::GeneratedArtifactTier::Api
     );
@@ -96,22 +87,6 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "api/com/statespec/generated/ApiHandlerRegistry.java",
         "api/com/statespec/generated/ApiHandlerRegistry.java", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiDispatcher.java",
-        "api/com/statespec/generated/ApiDispatcher.java", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiServer.java",
-        "api/com/statespec/generated/ApiServer.java", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiMain.java",
-        "api/com/statespec/generated/ApiMain.java", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiRoutes.java",
-        "api/com/statespec/generated/ApiRoutes.java", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
         result, "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",

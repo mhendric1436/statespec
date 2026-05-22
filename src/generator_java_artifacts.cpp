@@ -245,16 +245,12 @@ void add_java_api_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto include_api_composition = !system.api_servers.empty();
+
     add_generated_template_file(
         result, options.output_dir, templates,
         "api/com/statespec/generated/ApiDescriptors.java.tmpl",
         "api/com/statespec/generated/ApiDescriptors.java", diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
-        "api/com/statespec/generated/ApiApplication.java.tmpl",
-        "api/com/statespec/generated/ApiApplication.java", diagnostics, GeneratedArtifactTier::Api,
-        java_api_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/com/statespec/generated/ApiCodecs.java.tmpl",
@@ -280,30 +276,42 @@ void add_java_api_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates,
-        "api/com/statespec/generated/ApiDispatcher.java.tmpl",
-        "api/com/statespec/generated/ApiDispatcher.java", diagnostics, GeneratedArtifactTier::Api,
-        TemplateRenderer::Values{
-            {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_java(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/com/statespec/generated/ApiServer.java.tmpl",
-        "api/com/statespec/generated/ApiServer.java", diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/com/statespec/generated/ApiRoutes.java.tmpl",
-        "api/com/statespec/generated/ApiRoutes.java", diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
         "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java.tmpl",
         "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", diagnostics,
         GeneratedArtifactTier::Api
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/com/statespec/generated/ApiMain.java.tmpl",
-        "api/com/statespec/generated/ApiMain.java", diagnostics, GeneratedArtifactTier::Api
-    );
+    if (include_api_composition)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiApplication.java.tmpl",
+            "api/com/statespec/generated/ApiApplication.java", diagnostics,
+            GeneratedArtifactTier::Api, java_api_runtime_bootstrap_values(system)
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiDispatcher.java.tmpl",
+            "api/com/statespec/generated/ApiDispatcher.java", diagnostics,
+            GeneratedArtifactTier::Api,
+            TemplateRenderer::Values{
+                {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_java(system)}
+            }
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiServer.java.tmpl",
+            "api/com/statespec/generated/ApiServer.java", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            "api/com/statespec/generated/ApiRoutes.java.tmpl",
+            "api/com/statespec/generated/ApiRoutes.java", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/com/statespec/generated/ApiMain.java.tmpl",
+            "api/com/statespec/generated/ApiMain.java", diagnostics, GeneratedArtifactTier::Api
+        );
+    }
 }
 
 void add_java_worker_artifacts(

@@ -303,14 +303,11 @@ void add_go_api_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto include_api_composition = !system.api_servers.empty();
+
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_descriptors.go.tmpl",
         "api/backend/api_descriptors.go", diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/backend/api_application.go.tmpl",
-        "api/backend/api_application.go", diagnostics, GeneratedArtifactTier::Api,
-        go_api_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_codecs.go.tmpl",
@@ -333,30 +330,38 @@ void add_go_api_artifacts(
         }
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "api/backend/api_dispatcher.go.tmpl",
-        "api/backend/api_dispatcher.go", diagnostics, GeneratedArtifactTier::Api,
-        TemplateRenderer::Values{
-            {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_go(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/backend/api_server.go.tmpl",
-        "api/backend/api_server.go", diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/backend/api_routes.go.tmpl",
-        "api/backend/api_routes.go", diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
         result, options.output_dir, templates,
         "api/backend/external_system_operator_metadata_api.go.tmpl",
         "api/backend/external_system_operator_metadata_api.go", diagnostics,
         GeneratedArtifactTier::Api
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/cmd/api/main.go.tmpl", "api/cmd/api/main.go",
-        diagnostics, GeneratedArtifactTier::Api
-    );
+    if (include_api_composition)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_application.go.tmpl",
+            "api/backend/api_application.go", diagnostics, GeneratedArtifactTier::Api,
+            go_api_runtime_bootstrap_values(system)
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_dispatcher.go.tmpl",
+            "api/backend/api_dispatcher.go", diagnostics, GeneratedArtifactTier::Api,
+            TemplateRenderer::Values{
+                {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_go(system)}
+            }
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_server.go.tmpl",
+            "api/backend/api_server.go", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/backend/api_routes.go.tmpl",
+            "api/backend/api_routes.go", diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/cmd/api/main.go.tmpl",
+            "api/cmd/api/main.go", diagnostics, GeneratedArtifactTier::Api
+        );
+    }
 }
 
 void add_go_worker_artifacts(

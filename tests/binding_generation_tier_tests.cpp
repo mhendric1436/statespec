@@ -87,16 +87,16 @@ void test_rust_lib_rs_matches_selected_tier()
         "API lib declares API handler module"
     );
     require(
-        api_lib.find("pub mod api_dispatcher;") != std::string::npos,
-        "API lib declares API dispatcher module"
+        api_lib.find("pub mod api_dispatcher;") == std::string::npos,
+        "API lib excludes API dispatcher module when no api_server is declared"
     );
     require(
-        api_lib.find("pub mod api_routes;") != std::string::npos,
-        "API lib declares API route module"
+        api_lib.find("pub mod api_routes;") == std::string::npos,
+        "API lib excludes API route module when no api_server is declared"
     );
     require(
-        api_lib.find("pub mod api_server;") != std::string::npos,
-        "API lib declares API server module"
+        api_lib.find("pub mod api_server;") == std::string::npos,
+        "API lib excludes API server module when no api_server is declared"
     );
     require(
         api_lib.find("pub mod external_system_operator_metadata_api;") != std::string::npos,
@@ -191,16 +191,16 @@ void test_cpp_makefile_matches_selected_tier()
         "API Makefile includes API handlers header"
     );
     require(
-        api_makefile.find("api/api_dispatcher.hpp") != std::string::npos,
-        "API Makefile includes API dispatcher header"
+        api_makefile.find("api/api_dispatcher.hpp") == std::string::npos,
+        "API Makefile excludes API dispatcher header when no api_server is declared"
     );
     require(
-        api_makefile.find("api/api_routes.hpp") != std::string::npos,
-        "API Makefile includes API routes header"
+        api_makefile.find("api/api_routes.hpp") == std::string::npos,
+        "API Makefile excludes API routes header when no api_server is declared"
     );
     require(
-        api_makefile.find("api/api_server.hpp") != std::string::npos,
-        "API Makefile includes API server header"
+        api_makefile.find("api/api_server.hpp") == std::string::npos,
+        "API Makefile excludes API server header when no api_server is declared"
     );
     require(
         api_makefile.find("build-api") != std::string::npos,

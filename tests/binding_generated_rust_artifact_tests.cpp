@@ -44,16 +44,11 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/Cargo.toml", common},
             {"common/lib.rs", common},
             {"common/Makefile", common},
-            {"api/api_application.rs", api},
             {"api/api_codecs.rs", api},
             {"api/api_descriptors.rs", api},
             {"api/api_handlers.rs", api},
             {"api/api_handler_registry.rs", api},
-            {"api/api_dispatcher.rs", api},
-            {"api/api_server.rs", api},
-            {"api/api_routes.rs", api},
             {"api/external_system_operator_metadata_api.rs", api},
-            {"api/main.rs", api},
             {"worker/worker_contexts.rs", worker},
             {"worker/worker_descriptors.rs", worker},
             {"worker/worker_registry.rs", worker},
@@ -89,10 +84,6 @@ void test_rust_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        result, "api/api_application.rs", "api/api_application.rs",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
         result, "api/api_codecs.rs", "api/api_codecs.rs", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
@@ -103,21 +94,8 @@ void test_rust_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        result, "api/api_dispatcher.rs", "api/api_dispatcher.rs",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_server.rs", "api/api_server.rs", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_routes.rs", "api/api_routes.rs", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
         result, "api/external_system_operator_metadata_api.rs",
         "api/external_system_operator_metadata_api.rs", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/main.rs", "api/main.rs", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
         result, "worker/worker_descriptors.rs", "worker/worker_descriptors.rs",

@@ -42,16 +42,11 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/memory/transaction.hpp", common},
             {"common/descriptors.hpp", common},
             {"common/Makefile", common},
-            {"api/api_application.hpp", api},
             {"api/api_codecs.hpp", api},
             {"api/api_descriptors.hpp", api},
             {"api/api_handlers.hpp", api},
             {"api/api_handler_registry.hpp", api},
-            {"api/api_dispatcher.hpp", api},
-            {"api/api_server.hpp", api},
-            {"api/api_routes.hpp", api},
             {"api/external_system_operator_metadata_api.hpp", api},
-            {"api/main.cpp", api},
             {"worker/worker_contexts.hpp", worker},
             {"worker/worker_descriptors.hpp", worker},
             {"worker/worker_registry.hpp", worker},
@@ -82,10 +77,6 @@ void test_cpp_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        result, "api/api_application.hpp", "api/api_application.hpp",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
         result, "api/api_codecs.hpp", "api/api_codecs.hpp", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
@@ -97,21 +88,8 @@ void test_cpp_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        result, "api/api_dispatcher.hpp", "api/api_dispatcher.hpp",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_server.hpp", "api/api_server.hpp", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_routes.hpp", "api/api_routes.hpp", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
         result, "api/external_system_operator_metadata_api.hpp",
         "api/external_system_operator_metadata_api.hpp", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/main.cpp", "api/main.cpp", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
         result, "worker/worker_descriptors.hpp", "worker/worker_descriptors.hpp",

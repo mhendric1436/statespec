@@ -65,6 +65,9 @@ TemplateRenderer::Values rust_lib_values(
 )
 {
     const auto usage = runtime_domain_usage(system);
+    const auto include_api_composition =
+        (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api) &&
+        !system.api_servers.empty();
     std::ostringstream runtime_modules;
     std::ostringstream api_modules;
     std::ostringstream worker_modules;
@@ -107,24 +110,27 @@ TemplateRenderer::Values rust_lib_values(
     {
         api_modules << "#[path = \"api/api_descriptors.rs\"]\n";
         api_modules << "pub mod api_descriptors;\n";
-        api_modules << "#[path = \"api/api_application.rs\"]\n";
-        api_modules << "pub mod api_application;\n";
         api_modules << "#[path = \"api/api_codecs.rs\"]\n";
         api_modules << "pub mod api_codecs;\n";
-        api_modules << "#[path = \"api/api_dispatcher.rs\"]\n";
-        api_modules << "pub mod api_dispatcher;\n";
         api_modules << "#[path = \"api/api_handler_registry.rs\"]\n";
         api_modules << "pub mod api_handler_registry;\n";
         api_modules << "#[path = \"api/api_handlers.rs\"]\n";
         api_modules << "pub mod api_handlers;\n";
-        api_modules << "#[path = \"api/api_routes.rs\"]\n";
-        api_modules << "pub mod api_routes;\n";
-        api_modules << "#[path = \"api/api_server.rs\"]\n";
-        api_modules << "pub mod api_server;\n";
         api_modules << "#[path = \"api/external_system_operator_metadata_api.rs\"]\n";
         api_modules << "pub mod external_system_operator_metadata_api;\n";
-        api_modules << "#[path = \"api/main.rs\"]\n";
-        api_modules << "pub mod api_main;\n";
+        if (include_api_composition)
+        {
+            api_modules << "#[path = \"api/api_application.rs\"]\n";
+            api_modules << "pub mod api_application;\n";
+            api_modules << "#[path = \"api/api_dispatcher.rs\"]\n";
+            api_modules << "pub mod api_dispatcher;\n";
+            api_modules << "#[path = \"api/api_routes.rs\"]\n";
+            api_modules << "pub mod api_routes;\n";
+            api_modules << "#[path = \"api/api_server.rs\"]\n";
+            api_modules << "pub mod api_server;\n";
+            api_modules << "#[path = \"api/main.rs\"]\n";
+            api_modules << "pub mod api_main;\n";
+        }
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker)
     {
@@ -421,14 +427,11 @@ void add_rust_api_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto include_api_composition = !system.api_servers.empty();
+
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_descriptors.rs.tmpl",
         "api/api_descriptors.rs", diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_application.rs.tmpl",
-        "api/api_application.rs", diagnostics, GeneratedArtifactTier::Api,
-        rust_api_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_codecs.rs.tmpl", "api/api_codecs.rs",
@@ -451,28 +454,36 @@ void add_rust_api_artifacts(
         }
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "api/api_dispatcher.rs.tmpl",
-        "api/api_dispatcher.rs", diagnostics, GeneratedArtifactTier::Api,
-        TemplateRenderer::Values{
-            {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_rs(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_server.rs.tmpl", "api/api_server.rs",
-        diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_routes.rs.tmpl", "api/api_routes.rs",
-        diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
         result, options.output_dir, templates, "api/external_system_operator_metadata_api.rs.tmpl",
         "api/external_system_operator_metadata_api.rs", diagnostics, GeneratedArtifactTier::Api
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/main.rs.tmpl", "api/main.rs", diagnostics,
-        GeneratedArtifactTier::Api
-    );
+    if (include_api_composition)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_application.rs.tmpl",
+            "api/api_application.rs", diagnostics, GeneratedArtifactTier::Api,
+            rust_api_runtime_bootstrap_values(system)
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_dispatcher.rs.tmpl",
+            "api/api_dispatcher.rs", diagnostics, GeneratedArtifactTier::Api,
+            TemplateRenderer::Values{
+                {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_rs(system)}
+            }
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_server.rs.tmpl", "api/api_server.rs",
+            diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_routes.rs.tmpl", "api/api_routes.rs",
+            diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/main.rs.tmpl", "api/main.rs", diagnostics,
+            GeneratedArtifactTier::Api
+        );
+    }
 }
 
 void add_rust_worker_artifacts(

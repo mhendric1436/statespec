@@ -57,6 +57,7 @@ TemplateRenderer::Values cpp_makefile_values(
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
     const auto include_worker =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+    const auto include_api_composition = include_api && !system.api_servers.empty();
 
     std::ostringstream target_additions;
     std::ostringstream phony_targets;
@@ -70,18 +71,24 @@ TemplateRenderer::Values cpp_makefile_values(
         phony_targets << " check-api build-api package-api";
         api_rules << "check-api: $(BUILD_DIR)/.dir\n";
         api_rules << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
-                     "#include \"api/api_application.hpp\"\\n"
                      "#include \"api/api_codecs.hpp\"\\n"
-                     "#include \"api/api_dispatcher.hpp\"\\n"
                      "#include \"api/api_handler_registry.hpp\"\\n"
                      "#include \"api/api_handlers.hpp\"\\n"
-                     "#include \"api/api_routes.hpp\"\\n"
-                     "#include \"api/api_server.hpp\"\\n"
-                     "#include \"api/external_system_operator_metadata_api.hpp\"\\n"
-                     "int main() { return 0; }\\n' | "
+                     "#include \"api/external_system_operator_metadata_api.hpp\"\\n";
+        if (include_api_composition)
+        {
+            api_rules << "#include \"api/api_application.hpp\"\\n"
+                         "#include \"api/api_dispatcher.hpp\"\\n"
+                         "#include \"api/api_routes.hpp\"\\n"
+                         "#include \"api/api_server.hpp\"\\n";
+        }
+        api_rules << "int main() { return 0; }\\n' | "
                      "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
         api_rules << "build-api: check-api\n";
-        api_rules << "\t$(CXX) $(CXXFLAGS) api/main.cpp -o $(BUILD_DIR)/api-main\n\n";
+        if (include_api_composition)
+        {
+            api_rules << "\t$(CXX) $(CXXFLAGS) api/main.cpp -o $(BUILD_DIR)/api-main\n\n";
+        }
         api_rules << "package-api: build-api $(DIST_DIR)\n";
         api_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-api-cpp.tgz common api "
                      "Makefile\n\n";
@@ -362,14 +369,11 @@ void add_cpp_api_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto include_api_composition = !system.api_servers.empty();
+
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_descriptors.hpp.tmpl",
         "api/api_descriptors.hpp", diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_application.hpp.tmpl",
-        "api/api_application.hpp", diagnostics, GeneratedArtifactTier::Api,
-        cpp_api_runtime_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_codecs.hpp.tmpl", "api/api_codecs.hpp",
@@ -392,28 +396,36 @@ void add_cpp_api_artifacts(
         }
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "api/api_dispatcher.hpp.tmpl",
-        "api/api_dispatcher.hpp", diagnostics, GeneratedArtifactTier::Api,
-        TemplateRenderer::Values{
-            {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases(system)}
-        }
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_server.hpp.tmpl", "api/api_server.hpp",
-        diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/api_routes.hpp.tmpl", "api/api_routes.hpp",
-        diagnostics, GeneratedArtifactTier::Api
-    );
-    add_generated_template_file(
         result, options.output_dir, templates, "api/external_system_operator_metadata_api.hpp.tmpl",
         "api/external_system_operator_metadata_api.hpp", diagnostics, GeneratedArtifactTier::Api
     );
-    add_generated_template_file(
-        result, options.output_dir, templates, "api/main.cpp.tmpl", "api/main.cpp", diagnostics,
-        GeneratedArtifactTier::Api
-    );
+    if (include_api_composition)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_application.hpp.tmpl",
+            "api/api_application.hpp", diagnostics, GeneratedArtifactTier::Api,
+            cpp_api_runtime_values(system)
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_dispatcher.hpp.tmpl",
+            "api/api_dispatcher.hpp", diagnostics, GeneratedArtifactTier::Api,
+            TemplateRenderer::Values{
+                {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases(system)}
+            }
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_server.hpp.tmpl", "api/api_server.hpp",
+            diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/api_routes.hpp.tmpl", "api/api_routes.hpp",
+            diagnostics, GeneratedArtifactTier::Api
+        );
+        add_generated_template_file(
+            result, options.output_dir, templates, "api/main.cpp.tmpl", "api/main.cpp", diagnostics,
+            GeneratedArtifactTier::Api
+        );
+    }
 }
 
 void add_cpp_worker_artifacts(
