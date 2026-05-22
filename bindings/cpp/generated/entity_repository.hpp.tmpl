@@ -1,0 +1,227 @@
+struct EntityKeyValue
+{
+    std::string field;
+    statespec::backend::Json value;
+};
+
+struct EntityLookup
+{
+    std::string entity;
+    std::vector<std::string> key_fields;
+    std::vector<EntityKeyValue> key_values;
+
+    bool key_complete() const
+    {
+        for (const auto& key_field : key_fields)
+        {
+            bool found = false;
+            for (const auto& key_value : key_values)
+            {
+                if (key_value.field == key_field)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+struct EntityUpsertRequest
+{
+    EntityLookup lookup;
+    statespec::backend::Json document;
+    std::optional<statespec::backend::Version> expected_version;
+};
+
+struct EntityGetRequest
+{
+    EntityLookup lookup;
+};
+
+struct EntityDeleteRequest
+{
+    EntityLookup lookup;
+    std::optional<statespec::backend::Version> expected_version;
+};
+
+struct EntityQueryRequest
+{
+    std::string entity;
+    statespec::backend::Query query;
+};
+
+class IEntityRepository
+{
+  public:
+    virtual ~IEntityRepository() = default;
+    virtual std::optional<statespec::backend::VersionedRecord> upsert_entityTx(
+        statespec::backend::ITransaction& tx,
+        const EntityUpsertRequest& request
+    ) = 0;
+    virtual std::optional<statespec::backend::VersionedRecord> get_entityTx(
+        statespec::backend::ITransaction& tx,
+        const EntityGetRequest& request
+    ) = 0;
+    virtual std::optional<statespec::backend::VersionedRecord> delete_entityTx(
+        statespec::backend::ITransaction& tx,
+        const EntityDeleteRequest& request
+    ) = 0;
+    virtual std::vector<statespec::backend::VersionedRecord> query_entitiesTx(
+        statespec::backend::ITransaction& tx,
+        const EntityQueryRequest& request
+    ) = 0;
+};
+
+inline std::optional<statespec::backend::Json> entity_key_value(
+    const EntityLookup& lookup,
+    std::string_view field
+)
+{
+    for (const auto& key_value : lookup.key_values)
+    {
+        if (key_value.field == field)
+        {
+            return key_value.value;
+        }
+    }
+    return std::nullopt;
+}
+
+inline std::optional<statespec::backend::Key> entity_key(const EntityLookup& lookup)
+{
+    if (!lookup.key_complete())
+    {
+        return std::nullopt;
+    }
+    std::string key;
+    for (const auto& key_field : lookup.key_fields)
+    {
+        const auto value = entity_key_value(lookup, key_field);
+        if (!value)
+        {
+            return std::nullopt;
+        }
+        key += key_field;
+        key += '=';
+        key += value->canonical_string();
+        key += '\n';
+    }
+    return key;
+}
+
+inline EntityLookup entity_lookup_from_document(
+    const EntityDescriptor& entity,
+    const statespec::backend::Json& document
+)
+{
+    EntityLookup lookup{entity.name, entity.key_fields, {}};
+    if (!document.is_object())
+    {
+        return lookup;
+    }
+    for (const auto& key_field : entity.key_fields)
+    {
+        if (const auto* value = document.find(key_field))
+        {
+            lookup.key_values.push_back(EntityKeyValue{key_field, *value});
+        }
+    }
+    return lookup;
+}
+
+inline statespec::backend::Json entity_document_with_keys(
+    const statespec::backend::Json& document,
+    const EntityLookup& lookup
+)
+{
+    statespec::backend::Json::Object object =
+        document.is_object() ? document.as_object() : statespec::backend::Json::Object{};
+    for (const auto& key_value : lookup.key_values)
+    {
+        object[key_value.field] = key_value.value;
+    }
+    return statespec::backend::Json::object(std::move(object));
+}
+
+class DefaultEntityRepository final : public IEntityRepository
+{
+  public:
+    std::optional<statespec::backend::VersionedRecord> upsert_entityTx(
+        statespec::backend::ITransaction& tx,
+        const EntityUpsertRequest& request
+    ) override
+    {
+        const auto key = entity_key(request.lookup);
+        if (!key)
+        {
+            return std::nullopt;
+        }
+        const auto existing = tx.get(request.lookup.entity, *key);
+        assert_expected_version(existing, request.expected_version);
+        tx.put(
+            request.lookup.entity, *key, entity_document_with_keys(request.document, request.lookup)
+        );
+        return tx.get(request.lookup.entity, *key);
+    }
+
+    std::optional<statespec::backend::VersionedRecord> get_entityTx(
+        statespec::backend::ITransaction& tx,
+        const EntityGetRequest& request
+    ) override
+    {
+        const auto key = entity_key(request.lookup);
+        return key ? tx.get(request.lookup.entity, *key) : std::nullopt;
+    }
+
+    std::optional<statespec::backend::VersionedRecord> delete_entityTx(
+        statespec::backend::ITransaction& tx,
+        const EntityDeleteRequest& request
+    ) override
+    {
+        const auto key = entity_key(request.lookup);
+        if (!key)
+        {
+            return std::nullopt;
+        }
+        const auto existing = tx.get(request.lookup.entity, *key);
+        if (!existing)
+        {
+            return std::nullopt;
+        }
+        assert_expected_version(existing, request.expected_version);
+        tx.erase(request.lookup.entity, *key);
+        return existing;
+    }
+
+    std::vector<statespec::backend::VersionedRecord> query_entitiesTx(
+        statespec::backend::ITransaction& tx,
+        const EntityQueryRequest& request
+    ) override
+    {
+        return tx.query(request.entity, request.query);
+    }
+
+  private:
+    static void assert_expected_version(
+        const std::optional<statespec::backend::VersionedRecord>& existing,
+        const std::optional<statespec::backend::Version>& expected_version
+    )
+    {
+        if (!expected_version)
+        {
+            return;
+        }
+        if (!existing || existing->version != *expected_version)
+        {
+            throw statespec::backend::ConflictError(
+                statespec::backend::ConflictKind::VersionConflict, "entity version conflict"
+            );
+        }
+    }
+};

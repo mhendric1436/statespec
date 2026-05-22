@@ -10,7 +10,8 @@ namespace statespec
 std::string generate_java_descriptor_prelude(
     const IrSystem& system,
     const std::string& external_system_runtime,
-    const std::string& external_system_metadata_runtime
+    const std::string& external_system_metadata_runtime,
+    const std::string& entity_repository_runtime
 );
 std::string generate_java_feature_flag_descriptors(const IrSystem& system);
 std::string generate_java_declaration_descriptors(const IrSystem& system);

@@ -9,7 +9,7 @@ test:
 
 format:
 	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) fmt
-	$(RUSTFMT) generated/external_system_call_adapters.rs.tmpl generated/external_system_metadata_runtime.rs.tmpl generated/external_system_runtime.rs.tmpl
+	$(RUSTFMT) generated/entity_repository.rs.tmpl generated/external_system_call_adapters.rs.tmpl generated/external_system_metadata_runtime.rs.tmpl generated/external_system_runtime.rs.tmpl
 
 clean:
 	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) clean

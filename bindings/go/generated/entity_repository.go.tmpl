@@ -1,0 +1,162 @@
+type EntityKeyValue struct {
+	Field string
+	Value JSON
+}
+
+type EntityLookup struct {
+	Entity    string
+	KeyFields []string
+	KeyValues []EntityKeyValue
+}
+
+func (l EntityLookup) KeyComplete() bool {
+	for _, keyField := range l.KeyFields {
+		found := false
+		for _, keyValue := range l.KeyValues {
+			if keyValue.Field == keyField {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+type EntityUpsertRequest struct {
+	Lookup          EntityLookup
+	Document        JSON
+	ExpectedVersion *Version
+}
+
+type EntityGetRequest struct {
+	Lookup EntityLookup
+}
+
+type EntityDeleteRequest struct {
+	Lookup          EntityLookup
+	ExpectedVersion *Version
+}
+
+type EntityQueryRequest struct {
+	Entity string
+	Query  Query
+}
+
+type EntityRepository interface {
+	UpsertEntityTx(context.Context, Transaction, EntityUpsertRequest) (*VersionedRecord, error)
+	GetEntityTx(context.Context, Transaction, EntityGetRequest) (*VersionedRecord, error)
+	DeleteEntityTx(context.Context, Transaction, EntityDeleteRequest) (*VersionedRecord, error)
+	QueryEntitiesTx(context.Context, Transaction, EntityQueryRequest) ([]VersionedRecord, error)
+}
+
+func EntityKey(lookup EntityLookup) (Key, bool) {
+	if !lookup.KeyComplete() {
+		return "", false
+	}
+	values := map[string]JSON{}
+	for _, keyValue := range lookup.KeyValues {
+		values[keyValue.Field] = keyValue.Value
+	}
+	var builder strings.Builder
+	for _, keyField := range lookup.KeyFields {
+		value, ok := values[keyField]
+		if !ok {
+			return "", false
+		}
+		builder.WriteString(keyField)
+		builder.WriteString("=")
+		builder.WriteString(value.CanonicalString())
+		builder.WriteString("\n")
+	}
+	return Key(builder.String()), true
+}
+
+func EntityLookupFromDocument(entity EntityDescriptor, document JSON) EntityLookup {
+	lookup := EntityLookup{Entity: entity.Name, KeyFields: entity.KeyFields}
+	if object, ok := document.AsObject(); ok {
+		for _, keyField := range entity.KeyFields {
+			if value, ok := object[keyField]; ok {
+				lookup.KeyValues = append(lookup.KeyValues, EntityKeyValue{Field: keyField, Value: value})
+			}
+		}
+	}
+	return lookup
+}
+
+func entityDocumentWithKeys(document JSON, lookup EntityLookup) JSON {
+	object := map[string]JSON{}
+	if existing, ok := document.AsObject(); ok {
+		for key, value := range existing {
+			object[key] = value
+		}
+	}
+	for _, keyValue := range lookup.KeyValues {
+		object[keyValue.Field] = keyValue.Value
+	}
+	return JSONObject(object)
+}
+
+type DefaultEntityRepository struct{}
+
+func assertEntityExpectedVersion(existing *VersionedRecord, expectedVersion *Version) error {
+	if expectedVersion == nil {
+		return nil
+	}
+	if existing == nil || existing.Version != *expectedVersion {
+		return ConflictError{Kind: VersionConflict, Message: "entity version conflict"}
+	}
+	return nil
+}
+
+func (DefaultEntityRepository) UpsertEntityTx(ctx context.Context, tx Transaction, request EntityUpsertRequest) (*VersionedRecord, error) {
+	key, ok := EntityKey(request.Lookup)
+	if !ok {
+		return nil, nil
+	}
+	existing, err := tx.Get(ctx, CollectionName(request.Lookup.Entity), key)
+	if err != nil {
+		return nil, err
+	}
+	if err := assertEntityExpectedVersion(existing, request.ExpectedVersion); err != nil {
+		return nil, err
+	}
+	if err := tx.Put(ctx, CollectionName(request.Lookup.Entity), key, entityDocumentWithKeys(request.Document, request.Lookup)); err != nil {
+		return nil, err
+	}
+	return tx.Get(ctx, CollectionName(request.Lookup.Entity), key)
+}
+
+func (DefaultEntityRepository) GetEntityTx(ctx context.Context, tx Transaction, request EntityGetRequest) (*VersionedRecord, error) {
+	key, ok := EntityKey(request.Lookup)
+	if !ok {
+		return nil, nil
+	}
+	return tx.Get(ctx, CollectionName(request.Lookup.Entity), key)
+}
+
+func (DefaultEntityRepository) DeleteEntityTx(ctx context.Context, tx Transaction, request EntityDeleteRequest) (*VersionedRecord, error) {
+	key, ok := EntityKey(request.Lookup)
+	if !ok {
+		return nil, nil
+	}
+	existing, err := tx.Get(ctx, CollectionName(request.Lookup.Entity), key)
+	if err != nil || existing == nil {
+		return existing, err
+	}
+	if err := assertEntityExpectedVersion(existing, request.ExpectedVersion); err != nil {
+		return nil, err
+	}
+	if err := tx.Erase(ctx, CollectionName(request.Lookup.Entity), key); err != nil {
+		return nil, err
+	}
+	return existing, nil
+}
+
+func (DefaultEntityRepository) QueryEntitiesTx(ctx context.Context, tx Transaction, request EntityQueryRequest) ([]VersionedRecord, error) {
+	return tx.Query(ctx, CollectionName(request.Entity), request.Query)
+}
+
+var _ EntityRepository = DefaultEntityRepository{}

@@ -11,7 +11,8 @@ namespace statespec
 std::string generate_cpp_descriptor_prelude(
     const IrSystem& system,
     const std::string& external_system_runtime,
-    const std::string& external_system_metadata_runtime
+    const std::string& external_system_metadata_runtime,
+    const std::string& entity_repository_runtime
 )
 {
     std::ostringstream out;
@@ -493,6 +494,8 @@ std::string generate_cpp_descriptor_prelude(
     out << "    std::optional<std::string> initial_state;\n";
     out << "    std::vector<std::string> terminal_states;\n";
     out << "};\n\n";
+
+    out << entity_repository_runtime << "\n";
 
     return out.str();
 }

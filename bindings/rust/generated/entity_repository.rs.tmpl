@@ -1,0 +1,194 @@
+#[derive(Debug, Clone)]
+pub struct EntityKeyValue {
+    pub field: String,
+    pub value: Json,
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityLookup {
+    pub entity: String,
+    pub key_fields: Vec<String>,
+    pub key_values: Vec<EntityKeyValue>,
+}
+
+impl EntityLookup {
+    pub fn key_complete(&self) -> bool {
+        self.key_fields.iter().all(|key_field| {
+            self.key_values
+                .iter()
+                .any(|key_value| key_value.field == *key_field)
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityUpsertRequest {
+    pub lookup: EntityLookup,
+    pub document: Json,
+    pub expected_version: Option<u64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityGetRequest {
+    pub lookup: EntityLookup,
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityDeleteRequest {
+    pub lookup: EntityLookup,
+    pub expected_version: Option<u64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityQueryRequest {
+    pub entity: String,
+    pub query: crate::backend::Query,
+}
+
+pub trait EntityRepository<B: Backend> {
+    fn upsert_entity_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityUpsertRequest,
+    ) -> BackendResult<Option<VersionedRecord>>;
+
+    fn get_entity_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityGetRequest,
+    ) -> BackendResult<Option<VersionedRecord>>;
+
+    fn delete_entity_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityDeleteRequest,
+    ) -> BackendResult<Option<VersionedRecord>>;
+
+    fn query_entities_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityQueryRequest,
+    ) -> BackendResult<Vec<VersionedRecord>>;
+}
+
+pub fn entity_key(lookup: &EntityLookup) -> Option<String> {
+    if !lookup.key_complete() {
+        return None;
+    }
+    let mut key = String::new();
+    for key_field in &lookup.key_fields {
+        let value = lookup
+            .key_values
+            .iter()
+            .find(|key_value| key_value.field == *key_field)?;
+        key.push_str(key_field);
+        key.push('=');
+        key.push_str(&value.value.canonical_string());
+        key.push('\n');
+    }
+    Some(key)
+}
+
+pub fn entity_lookup_from_document(entity: &EntityDescriptor, document: &Json) -> EntityLookup {
+    let mut lookup = EntityLookup {
+        entity: entity.name.clone(),
+        key_fields: entity.key_fields.clone(),
+        key_values: Vec::new(),
+    };
+    if let Json::Object(values) = document {
+        for key_field in &entity.key_fields {
+            if let Some(value) = values.get(key_field) {
+                lookup.key_values.push(EntityKeyValue {
+                    field: key_field.clone(),
+                    value: value.clone(),
+                });
+            }
+        }
+    }
+    lookup
+}
+
+pub fn entity_document_with_keys(document: &Json, lookup: &EntityLookup) -> Json {
+    let mut values = match document {
+        Json::Object(values) => values.clone(),
+        _ => BTreeMap::new(),
+    };
+    for key_value in &lookup.key_values {
+        values.insert(key_value.field.clone(), key_value.value.clone());
+    }
+    Json::Object(values)
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DefaultEntityRepository;
+
+fn assert_entity_expected_version(
+    existing: &Option<VersionedRecord>,
+    expected_version: Option<u64>,
+) -> BackendResult<()> {
+    if let Some(expected) = expected_version {
+        if existing.as_ref().map(|record| record.version) != Some(expected) {
+            return Err(BackendError::Conflict {
+                kind: ConflictKind::VersionConflict,
+                message: "entity version conflict".to_string(),
+            });
+        }
+    }
+    Ok(())
+}
+
+impl<B: Backend> EntityRepository<B> for DefaultEntityRepository {
+    fn upsert_entity_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityUpsertRequest,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        let Some(key) = entity_key(&request.lookup) else {
+            return Ok(None);
+        };
+        let existing = tx.get(&request.lookup.entity, &key)?;
+        assert_entity_expected_version(&existing, request.expected_version)?;
+        tx.put(
+            &request.lookup.entity,
+            &key,
+            entity_document_with_keys(&request.document, &request.lookup),
+        )?;
+        tx.get(&request.lookup.entity, &key)
+    }
+
+    fn get_entity_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityGetRequest,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        let Some(key) = entity_key(&request.lookup) else {
+            return Ok(None);
+        };
+        tx.get(&request.lookup.entity, &key)
+    }
+
+    fn delete_entity_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityDeleteRequest,
+    ) -> BackendResult<Option<VersionedRecord>> {
+        let Some(key) = entity_key(&request.lookup) else {
+            return Ok(None);
+        };
+        let existing = tx.get(&request.lookup.entity, &key)?;
+        if existing.is_none() {
+            return Ok(None);
+        }
+        assert_entity_expected_version(&existing, request.expected_version)?;
+        tx.erase(&request.lookup.entity, &key)?;
+        Ok(existing)
+    }
+
+    fn query_entities_tx(
+        &self,
+        tx: &mut B::Tx,
+        request: &EntityQueryRequest,
+    ) -> BackendResult<Vec<VersionedRecord>> {
+        tx.query(&request.entity, &request.query)
+    }
+}

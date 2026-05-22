@@ -11,7 +11,8 @@ namespace statespec
 std::string generate_rust_descriptor_prelude(
     const IrSystem& system,
     const std::string& external_system_runtime,
-    const std::string& external_system_metadata_runtime
+    const std::string& external_system_metadata_runtime,
+    const std::string& entity_repository_runtime
 )
 {
     std::ostringstream out;
@@ -432,6 +433,8 @@ std::string generate_rust_descriptor_prelude(
     out << "    pub initial_state: Option<String>,\n";
     out << "    pub terminal_states: Vec<String>,\n";
     out << "}\n\n";
+
+    out << entity_repository_runtime << "\n";
 
     return out.str();
 }

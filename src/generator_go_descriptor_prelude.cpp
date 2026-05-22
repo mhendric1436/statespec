@@ -11,7 +11,8 @@ namespace statespec
 std::string generate_go_descriptor_prelude(
     const IrSystem& system,
     const std::string& external_system_runtime,
-    const std::string& external_system_metadata_runtime
+    const std::string& external_system_metadata_runtime,
+    const std::string& entity_repository_runtime
 )
 {
     std::ostringstream out;
@@ -367,6 +368,7 @@ std::string generate_go_descriptor_prelude(
     out << "\tInitialState *string\n";
     out << "\tTerminalStates []string\n";
     out << "}\n\n";
+    out << entity_repository_runtime << "\n";
     out << "func stringPtr(value string) *string { return &value }\n";
     out << "func durationPtr(value time.Duration) *time.Duration { return &value }\n\n";
 

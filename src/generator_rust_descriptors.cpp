@@ -130,7 +130,8 @@ std::string generate_descriptors_rs(
     std::ostringstream out;
     out << generate_rust_descriptor_prelude(
         system, templates.load("generated/external_system_runtime.rs.tmpl"),
-        templates.load("generated/external_system_metadata_runtime.rs.tmpl")
+        templates.load("generated/external_system_metadata_runtime.rs.tmpl"),
+        templates.load("generated/entity_repository.rs.tmpl")
     );
     out << generate_rust_feature_flag_descriptors(system);
     out << generate_rust_declaration_descriptors(system);
