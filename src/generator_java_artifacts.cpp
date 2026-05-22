@@ -6,11 +6,182 @@
 
 #include <filesystem>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace statespec
 {
 namespace
 {
+
+std::string java_makefile_source_list(const std::vector<std::string>& sources)
+{
+    if (sources.empty())
+    {
+        return {};
+    }
+
+    std::ostringstream out;
+    for (const auto& source : sources)
+    {
+        out << " \\\n  " << source;
+    }
+    return out.str();
+}
+
+TemplateRenderer::Values java_makefile_values(
+    BindingGenerationTier tier,
+    const IrSystem& system
+)
+{
+    const auto usage = runtime_domain_usage(system);
+    const auto include_api =
+        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
+    const auto include_worker =
+        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+    const auto include_api_composition = include_api && !system.api_servers.empty();
+    const auto include_worker_composition = include_worker && !system.workers.empty();
+    const auto include_worker_execution =
+        include_worker && (include_worker_composition || usage.uses_workflows);
+
+    std::vector<std::string> common_sources{
+        "common/com/statespec/backend/Json.java",
+        "common/com/statespec/backend/Backend.java",
+        "common/com/statespec/backend/ExternalSystem.java",
+        "common/com/statespec/backend/FeatureFlag.java",
+        "common/com/statespec/backend/Lease.java",
+        "common/com/statespec/backend/Log.java",
+        "common/com/statespec/backend/Metric.java",
+        "common/com/statespec/backend/Queue.java",
+        "common/com/statespec/backend/Workflow.java",
+        "common/com/statespec/backend/memory/InMemoryBackend.java",
+        "common/com/statespec/backend/memory/InMemoryTransaction.java",
+        "common/com/statespec/generated/Descriptors.java",
+    };
+    auto add_common = [&](bool used, std::string source)
+    {
+        if (used)
+        {
+            common_sources.push_back(std::move(source));
+        }
+    };
+    add_common(usage.uses_any_runtime_domain, "common/com/statespec/backend/runtime/Codec.java");
+    add_common(
+        usage.uses_feature_flags, "common/com/statespec/backend/runtime/FeatureFlagCodec.java"
+    );
+    add_common(
+        usage.uses_feature_flags, "common/com/statespec/backend/runtime/FeatureFlagStore.java"
+    );
+    add_common(usage.uses_queues, "common/com/statespec/backend/runtime/QueueCodec.java");
+    add_common(usage.uses_queues, "common/com/statespec/backend/runtime/QueueStore.java");
+    add_common(usage.uses_leases, "common/com/statespec/backend/runtime/LeaseCodec.java");
+    add_common(usage.uses_leases, "common/com/statespec/backend/runtime/LeaseStore.java");
+    add_common(usage.uses_workflows, "common/com/statespec/backend/runtime/WorkflowCodec.java");
+    add_common(usage.uses_workflows, "common/com/statespec/backend/runtime/WorkflowStore.java");
+    add_common(
+        usage.uses_observability, "common/com/statespec/backend/runtime/ObservabilityCodec.java"
+    );
+    add_common(usage.uses_logs, "common/com/statespec/backend/runtime/LogCodec.java");
+    add_common(usage.uses_logs, "common/com/statespec/backend/runtime/LogSink.java");
+    add_common(usage.uses_metrics, "common/com/statespec/backend/runtime/MetricCodec.java");
+    add_common(usage.uses_metrics, "common/com/statespec/backend/runtime/MetricSink.java");
+
+    std::vector<std::string> api_sources;
+    if (include_api)
+    {
+        api_sources = {
+            "api/com/statespec/generated/ApiDescriptors.java",
+            "api/com/statespec/generated/ApiCodecs.java",
+            "api/com/statespec/generated/ApiHandlers.java",
+            "api/com/statespec/generated/ApiHandlerRegistry.java",
+            "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
+        };
+        if (include_api_composition)
+        {
+            api_sources.push_back("api/com/statespec/generated/ApiApplication.java");
+            api_sources.push_back("api/com/statespec/generated/ApiDispatcher.java");
+            api_sources.push_back("api/com/statespec/generated/ApiServer.java");
+            api_sources.push_back("api/com/statespec/generated/ApiRoutes.java");
+            api_sources.push_back("api/com/statespec/generated/ApiMain.java");
+        }
+    }
+
+    std::vector<std::string> worker_sources;
+    if (include_worker)
+    {
+        worker_sources = {
+            "worker/com/statespec/generated/WorkerDescriptors.java",
+            "worker/com/statespec/generated/WorkerContexts.java",
+            "worker/com/statespec/generated/WorkerRegistry.java",
+        };
+        if (include_worker_composition)
+        {
+            worker_sources.push_back("worker/com/statespec/generated/WorkerApplication.java");
+            worker_sources.push_back("worker/com/statespec/generated/WorkerRuntime.java");
+            worker_sources.push_back("worker/com/statespec/generated/WorkerMain.java");
+        }
+        if (include_worker_execution)
+        {
+            worker_sources.push_back("worker/com/statespec/generated/WorkflowStepHandlers.java");
+            worker_sources.push_back("worker/com/statespec/generated/WorkflowRunner.java");
+        }
+        if (usage.uses_queues)
+        {
+            worker_sources.push_back("worker/com/statespec/generated/WorkerQueues.java");
+        }
+        if (usage.uses_leases)
+        {
+            worker_sources.push_back("worker/com/statespec/generated/WorkerLeases.java");
+        }
+        if (usage.uses_workflows)
+        {
+            worker_sources.push_back("worker/com/statespec/generated/WorkerWorkflows.java");
+        }
+    }
+
+    std::ostringstream build_target_additions;
+    std::ostringstream package_target_additions;
+    std::ostringstream phony_targets;
+    std::ostringstream api_rules;
+    std::ostringstream worker_rules;
+    if (include_api)
+    {
+        build_target_additions << " build-api";
+        package_target_additions << " package-api";
+        phony_targets << " build-api package-api";
+        api_rules << "build-api: $(BUILD_DIR)\n";
+        api_rules << "\t$(JAVAC) -d $(BUILD_DIR) $(COMMON_SOURCES) "
+                     "$(COMMON_EXTENSION_SOURCES) $(API_SOURCES) $(API_EXTENSION_SOURCES)\n\n";
+        api_rules << "package-api: build-api $(DIST_DIR)\n";
+        api_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-api-java.tgz common api "
+                     "Makefile\n\n";
+    }
+    if (include_worker)
+    {
+        build_target_additions << " build-worker";
+        package_target_additions << " package-worker";
+        phony_targets << " build-worker package-worker";
+        worker_rules << "build-worker: $(BUILD_DIR)\n";
+        worker_rules << "\t$(JAVAC) -d $(BUILD_DIR) $(COMMON_SOURCES) "
+                        "$(COMMON_EXTENSION_SOURCES) $(WORKER_SOURCES) "
+                        "$(WORKER_EXTENSION_SOURCES)\n\n";
+        worker_rules << "package-worker: build-worker $(DIST_DIR)\n";
+        worker_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-java.tgz common worker "
+                        "Makefile\n\n";
+    }
+
+    return TemplateRenderer::Values{
+        {"common_sources", java_makefile_source_list(common_sources)},
+        {"api_sources", java_makefile_source_list(api_sources)},
+        {"worker_sources", java_makefile_source_list(worker_sources)},
+        {"build_target_additions", build_target_additions.str()},
+        {"package_target_additions", package_target_additions.str()},
+        {"phony_targets", phony_targets.str()},
+        {"api_rules", api_rules.str()},
+        {"worker_rules", worker_rules.str()},
+    };
+}
 
 TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
 {
@@ -233,7 +404,7 @@ void add_java_common_runtime_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,
-        GeneratedArtifactTier::Common, {}, "common/Makefile"
+        GeneratedArtifactTier::Common, java_makefile_values(options.tier, system), "common/Makefile"
     );
 }
 

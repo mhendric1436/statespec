@@ -73,6 +73,26 @@ void test_rust_lib_rs_matches_selected_tier()
         common_lib.find("pub mod worker_descriptors;") == std::string::npos,
         "common lib excludes worker module"
     );
+    require(
+        common_lib.find("pub mod runtime_feature_flags;") == std::string::npos,
+        "common lib excludes unused feature flag runtime module"
+    );
+    require(
+        common_lib.find("pub mod runtime_queues;") == std::string::npos,
+        "common lib excludes unused queue runtime module"
+    );
+    require(
+        common_lib.find("pub mod runtime_workflows;") == std::string::npos,
+        "common lib excludes unused workflow runtime module"
+    );
+    require(
+        common_lib.find("pub mod runtime_logs;") == std::string::npos,
+        "common lib excludes unused log runtime module"
+    );
+    require(
+        common_lib.find("pub mod runtime_metrics;") == std::string::npos,
+        "common lib excludes unused metric runtime module"
+    );
 
     const auto api_result = generate_for_tier(
         statespec::BindingLanguage::Rust, statespec::BindingGenerationTier::Api, "rust", diagnostics

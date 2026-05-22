@@ -12,17 +12,32 @@ namespace statespec
 namespace
 {
 
-TemplateRenderer::Values go_makefile_values(BindingGenerationTier tier)
+TemplateRenderer::Values go_makefile_values(
+    BindingGenerationTier tier,
+    const IrSystem& system
+)
 {
     const auto include_api =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
     const auto include_worker =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+    const auto include_api_composition = include_api && !system.api_servers.empty();
+    const auto include_worker_composition = include_worker && !system.workers.empty();
 
     std::ostringstream target_additions;
     std::ostringstream phony_targets;
+    std::ostringstream api_package_additions;
+    std::ostringstream worker_package_additions;
     std::ostringstream api_rules;
     std::ostringstream worker_rules;
+    if (include_api_composition)
+    {
+        api_package_additions << " ./api/cmd/api";
+    }
+    if (include_worker_composition)
+    {
+        worker_package_additions << " ./worker/cmd/worker";
+    }
     if (include_api)
     {
         target_additions << "\nCHECK_TARGETS += check-api";
@@ -30,9 +45,9 @@ TemplateRenderer::Values go_makefile_values(BindingGenerationTier tier)
         target_additions << "\nPACKAGE_TARGETS += package-api";
         phony_targets << " check-api build-api package-api";
         api_rules << "check-api:\n";
-        api_rules << "\t$(GO) test ./api/...\n\n";
+        api_rules << "\t$(GO) test $(API_PACKAGES)\n\n";
         api_rules << "build-api:\n";
-        api_rules << "\t$(GO) test ./api/...\n\n";
+        api_rules << "\t$(GO) test $(API_PACKAGES)\n\n";
         api_rules << "package-api: build-api $(DIST_DIR)\n";
         api_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-api-go.tgz common api go.mod "
                      "Makefile\n\n";
@@ -44,9 +59,9 @@ TemplateRenderer::Values go_makefile_values(BindingGenerationTier tier)
         target_additions << "\nPACKAGE_TARGETS += package-worker";
         phony_targets << " check-worker build-worker package-worker";
         worker_rules << "check-worker:\n";
-        worker_rules << "\t$(GO) test ./worker/...\n\n";
+        worker_rules << "\t$(GO) test $(WORKER_PACKAGES)\n\n";
         worker_rules << "build-worker:\n";
-        worker_rules << "\t$(GO) test ./worker/...\n\n";
+        worker_rules << "\t$(GO) test $(WORKER_PACKAGES)\n\n";
         worker_rules << "package-worker: build-worker $(DIST_DIR)\n";
         worker_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-go.tgz common worker "
                         "go.mod Makefile\n\n";
@@ -54,6 +69,8 @@ TemplateRenderer::Values go_makefile_values(BindingGenerationTier tier)
     return TemplateRenderer::Values{
         {"target_additions", target_additions.str()},
         {"phony_targets", phony_targets.str()},
+        {"api_package_additions", api_package_additions.str()},
+        {"worker_package_additions", worker_package_additions.str()},
         {"api_rules", api_rules.str()},
         {"worker_rules", worker_rules.str()},
     };
@@ -291,7 +308,7 @@ void add_go_common_runtime_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,
-        GeneratedArtifactTier::Common, go_makefile_values(options.tier), "common/Makefile"
+        GeneratedArtifactTier::Common, go_makefile_values(options.tier, system), "common/Makefile"
     );
 }
 

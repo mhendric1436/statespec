@@ -1,6 +1,10 @@
 GO ?= go
 DIST_DIR ?= dist
 
+COMMON_PACKAGES := ./common/...
+API_PACKAGES := ./api/backend{{api_package_additions}}
+WORKER_PACKAGES := ./worker/backend{{worker_package_additions}}
+
 CHECK_TARGETS := check-common
 BUILD_TARGETS := build-common
 PACKAGE_TARGETS := package-common{{target_additions}}
@@ -19,10 +23,10 @@ $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
 check-common:
-	$(GO) test ./common/...
+	$(GO) test $(COMMON_PACKAGES)
 
 build-common:
-	$(GO) test ./common/...
+	$(GO) test $(COMMON_PACKAGES)
 
 package-common: build-common $(DIST_DIR)
 	tar -czf $(DIST_DIR)/statespec-generated-common-go.tgz common go.mod Makefile
