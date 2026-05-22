@@ -1,5 +1,6 @@
 #include "generator_cpp_descriptor_support.hpp"
 
+#include "identifier_case.hpp"
 #include "type_syntax.hpp"
 
 #include <cctype>
@@ -38,6 +39,14 @@ std::string cpp_string(const std::string& value)
     }
     out << '"';
     return out.str();
+}
+
+std::string cpp_entity_state_constant_name(
+    const std::string& entity_name,
+    const std::string& state_name
+)
+{
+    return "k" + pascal_identifier(entity_name) + "Status" + pascal_identifier(state_name);
 }
 
 namespace

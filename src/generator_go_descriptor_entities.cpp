@@ -11,6 +11,20 @@ namespace statespec
 std::string generate_go_entity_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
+    if (!system.entities.empty())
+    {
+        out << "const (\n";
+        for (const auto& entity : system.entities)
+        {
+            for (const auto& state : entity.states)
+            {
+                out << "\t" << go_entity_state_constant_name(entity.name, state.name) << " = "
+                    << go_string(state.name) << "\n";
+            }
+        }
+        out << ")\n\n";
+    }
+
     out << "func EntityDescriptors() []EntityDescriptor {\n";
     out << "\treturn []EntityDescriptor{\n";
     for (const auto& entity : system.entities)

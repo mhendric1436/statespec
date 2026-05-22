@@ -11,6 +11,19 @@ namespace statespec
 std::string generate_rust_entity_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
+    for (const auto& entity : system.entities)
+    {
+        for (const auto& state : entity.states)
+        {
+            out << "pub const " << rust_entity_state_constant_name(entity.name, state.name)
+                << ": &str = " << rust_string(state.name) << ";\n";
+        }
+    }
+    if (!system.entities.empty())
+    {
+        out << "\n";
+    }
+
     out << "pub fn entity_descriptors() -> Vec<EntityDescriptor> {\n";
     out << "    vec![\n";
     for (const auto& entity : system.entities)

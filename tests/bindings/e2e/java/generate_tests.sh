@@ -90,10 +90,11 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "repository.updateTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "invalid entity status transition"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "document.put(\"updated_at\""
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "var requestedStatus = \"Deleted\""
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "var requestedStatus = Descriptors.PROJECT_STATUS_DELETED"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "new Descriptors.ApiResponse(204"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/Descriptors.java" "updateTx"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/Descriptors.java" "PROJECT_STATUS_DELETED"
 cp "$SCRIPT_DIR/ApiPersistenceFixture.java" "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiPersistenceFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-java" build-api
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-api-entities-java/build/classes" com.statespec.generated.ApiPersistenceFixture

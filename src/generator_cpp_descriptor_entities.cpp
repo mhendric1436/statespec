@@ -11,6 +11,20 @@ namespace statespec
 std::string generate_cpp_entity_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
+    for (const auto& entity : system.entities)
+    {
+        for (const auto& state : entity.states)
+        {
+            out << "inline constexpr const char* "
+                << cpp_entity_state_constant_name(entity.name, state.name) << " = "
+                << cpp_string(state.name) << ";\n";
+        }
+    }
+    if (!system.entities.empty())
+    {
+        out << "\n";
+    }
+
     out << "inline std::vector<EntityDescriptor> entity_descriptors()\n";
     out << "{\n";
     out << "    return {\n";

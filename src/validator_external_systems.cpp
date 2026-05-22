@@ -1,5 +1,6 @@
 #include "validator_declarations.hpp"
 
+#include "statespec/language_constants.hpp"
 #include "validator_helpers.hpp"
 
 #include <algorithm>
@@ -13,6 +14,10 @@ namespace statespec::validator_detail
 
 namespace
 {
+
+constexpr std::string_view MetadataStatusActive = "Active";
+constexpr std::string_view MetadataStatusDisabled = "Disabled";
+constexpr std::string_view MetadataStatusDeleted = "Deleted";
 
 std::unordered_set<std::string> entity_field_names(const EntityDecl& entity)
 {
@@ -154,9 +159,10 @@ void validate_external_system_metadata_entity_lifecycle(
     DiagnosticBag& diagnostics
 )
 {
-    if (!entity.ownership.has_value() || entity.ownership->authority.value_or("") != "system" ||
-        entity.ownership->system_of_record.value_or("") != "self" ||
-        entity.ownership->lifecycle.value_or("") != "authoritative")
+    if (!entity.ownership.has_value() ||
+        entity.ownership->authority.value_or("") != OwnershipAuthoritySystem ||
+        entity.ownership->system_of_record.value_or("") != OwnershipSystemOfRecordSelf ||
+        entity.ownership->lifecycle.value_or("") != OwnershipLifecycleAuthoritative)
     {
         diagnostics.error(
             metadata.range, "SSPEC4911",
@@ -165,11 +171,12 @@ void validate_external_system_metadata_entity_lifecycle(
         );
     }
 
-    const auto* created_at = find_field(entity, "created_at");
-    const auto* updated_at = find_field(entity, "updated_at");
-    const auto* status = find_field(entity, "status");
-    if (created_at == nullptr || created_at->type != "timestamp" || updated_at == nullptr ||
-        updated_at->type != "timestamp" || status == nullptr || status->type != "string")
+    const auto* created_at = find_field(entity, std::string{EntityCreatedAtFieldName});
+    const auto* updated_at = find_field(entity, std::string{EntityUpdatedAtFieldName});
+    const auto* status = find_field(entity, std::string{EntityStatusFieldName});
+    if (created_at == nullptr || created_at->type != EntityCreatedAtFieldType ||
+        updated_at == nullptr || updated_at->type != EntityUpdatedAtFieldType ||
+        status == nullptr || status->type != EntityStatusFieldType)
     {
         diagnostics.error(
             metadata.range, "SSPEC4912",
@@ -210,7 +217,11 @@ void validate_external_system_metadata_entity_lifecycle(
     }
 
     const auto& state_machine = *entity.state_machine;
-    for (const auto* required_state : {"Active", "Disabled", "Deleted"})
+    for (const auto* required_state : {
+             MetadataStatusActive.data(),
+             MetadataStatusDisabled.data(),
+             MetadataStatusDeleted.data(),
+         })
     {
         if (!has_state(state_machine, required_state))
         {
@@ -222,10 +233,11 @@ void validate_external_system_metadata_entity_lifecycle(
         }
     }
 
-    const auto* deleted = find_state(state_machine, "Deleted");
+    const auto* deleted = find_state(state_machine, std::string{MetadataStatusDeleted});
     const auto deleted_declared_terminal =
         std::find(
-            state_machine.terminal_states.begin(), state_machine.terminal_states.end(), "Deleted"
+            state_machine.terminal_states.begin(), state_machine.terminal_states.end(),
+            std::string{MetadataStatusDeleted}
         ) != state_machine.terminal_states.end();
     if (deleted == nullptr || !deleted->terminal || !deleted_declared_terminal ||
         !deleted->garbage_collection.has_value())
@@ -238,10 +250,10 @@ void validate_external_system_metadata_entity_lifecycle(
     }
 
     const std::vector<std::pair<std::string, std::string>> required_transitions{
-        {"Active", "Disabled"},
-        {"Disabled", "Active"},
-        {"Active", "Deleted"},
-        {"Disabled", "Deleted"},
+        {std::string{MetadataStatusActive}, std::string{MetadataStatusDisabled}},
+        {std::string{MetadataStatusDisabled}, std::string{MetadataStatusActive}},
+        {std::string{MetadataStatusActive}, std::string{MetadataStatusDeleted}},
+        {std::string{MetadataStatusDisabled}, std::string{MetadataStatusDeleted}},
     };
     for (const auto& [from, to] : required_transitions)
     {

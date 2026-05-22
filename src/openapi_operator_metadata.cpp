@@ -1,6 +1,7 @@
 #include "openapi_operator_metadata.hpp"
 
 #include "openapi_paths.hpp"
+#include "statespec/language_constants.hpp"
 #include "type_syntax.hpp"
 
 #include <algorithm>
@@ -51,7 +52,8 @@ bool contains(
 
 bool is_foundational_entity_field(const std::string& name)
 {
-    return name == "created_at" || name == "updated_at" || name == "status";
+    return name == EntityCreatedAtFieldName || name == EntityUpdatedAtFieldName ||
+           name == EntityStatusFieldName;
 }
 
 std::string operator_metadata_base_path(const IrExternalSystemMetadata& metadata)

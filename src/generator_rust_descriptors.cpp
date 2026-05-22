@@ -3,6 +3,7 @@
 #include "generator_rust_descriptor_areas.hpp"
 #include "generator_rust_descriptor_support.hpp"
 #include "identifier_case.hpp"
+#include "statespec/language_constants.hpp"
 #include "type_syntax.hpp"
 
 #include <algorithm>
@@ -171,10 +172,13 @@ const IrEntity* delete_entity_for_api_rs(
     return find_entity(system, api.name.substr(prefix.size()));
 }
 
-bool has_terminal_deleted_state_rs(const IrEntity& entity)
+const std::string* conventional_soft_delete_terminal_state_rs(const IrEntity& entity)
 {
-    return std::find(entity.terminal_states.begin(), entity.terminal_states.end(), "Deleted") !=
-           entity.terminal_states.end();
+    const auto found = std::find(
+        entity.terminal_states.begin(), entity.terminal_states.end(),
+        std::string{ConventionalSoftDeleteTerminalStateName}
+    );
+    return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
 const IrIndex* select_list_index_rs(const IrEntity& entity)
@@ -191,7 +195,7 @@ bool status_update_has_required_request_fields_rs(
     const IrShape& request
 )
 {
-    if (find_field(request, "status") == nullptr)
+    if (find_field(request, std::string{EntityStatusFieldName}) == nullptr)
     {
         return false;
     }
@@ -212,7 +216,8 @@ bool create_api_has_required_request_fields_rs(
 {
     for (const auto& field : entity.fields)
     {
-        if (field.name == "created_at" || field.name == "updated_at" || field.name == "status")
+        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName ||
+            field.name == EntityStatusFieldName)
         {
             continue;
         }
@@ -310,7 +315,7 @@ std::string rust_default_response_expr(
         return "format!(\"{}:{}\", " + context_expr + ".api_name, " + context_expr +
                ".body.canonical_string())";
     }
-    if (field.name == "status")
+    if (field.name == EntityStatusFieldName)
     {
         return "\"Accepted\".to_string()";
     }
@@ -328,9 +333,14 @@ std::string rust_create_response_expr(
     {
         return "request." + field.name + ".clone()";
     }
-    if (field.name == "status")
+    if (field.name == EntityStatusFieldName)
     {
-        return rust_string(entity.initial_state.value_or("Created")) + ".to_string()";
+        if (entity.initial_state.has_value())
+        {
+            return rust_entity_state_constant_name(entity.name, *entity.initial_state) +
+                   ".to_string()";
+        }
+        return "String::new()";
     }
     return rust_default_response_expr(field, context_expr);
 }
@@ -421,15 +431,16 @@ bool write_rust_create_handler_body(
     out << "        let mut document = std::collections::BTreeMap::new();\n";
     for (const auto& field : entity->fields)
     {
-        if (field.name == "created_at" || field.name == "updated_at")
+        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "        document.insert(" << rust_string(field.name)
                 << ".to_string(), Json::String(\"0\".to_string()));\n";
         }
-        else if (field.name == "status")
+        else if (field.name == EntityStatusFieldName)
         {
             out << "        document.insert(" << rust_string(field.name)
-                << ".to_string(), Json::String(" << rust_string(status) << ".to_string()));\n";
+                << ".to_string(), Json::String("
+                << rust_entity_state_constant_name(entity->name, status) << ".to_string()));\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
@@ -668,7 +679,8 @@ bool write_rust_update_status_handler_body(
            "be "
            "an object\".to_string() });\n";
     out << "        };\n";
-    out << "        let current_status = match document.get(\"status\") {\n";
+    out << "        let current_status = match document.get("
+        << rust_string(std::string{EntityStatusFieldName}) << ") {\n";
     out << "            Some(Json::String(value)) => value.clone(),\n";
     out << "            _ => return Err(BackendError::InvalidSchema { message: \"missing entity "
            "field "
@@ -679,16 +691,20 @@ bool write_rust_update_status_handler_body(
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "            (current_status == " << rust_string(transition.from)
-            << " && requested_status == " << rust_string(transition.to) << ")";
+        out << "            (current_status == "
+            << rust_entity_state_constant_name(entity->name, transition.from)
+            << " && requested_status == "
+            << rust_entity_state_constant_name(entity->name, transition.to) << ")";
     }
     out << ";\n";
     out << "        if !transition_allowed {\n";
     out << "            return Err(BackendError::InvalidSchema { message: \"invalid entity status "
            "transition\".to_string() });\n";
     out << "        }\n";
-    out << "        document.insert(\"status\".to_string(), Json::String(requested_status));\n";
-    out << "        document.insert(\"updated_at\".to_string(), "
+    out << "        document.insert(" << rust_string(std::string{EntityStatusFieldName})
+        << ".to_string(), Json::String(requested_status));\n";
+    out << "        document.insert(" << rust_string(std::string{EntityUpdatedAtFieldName})
+        << ".to_string(), "
            "Json::String(\"0\".to_string()));\n";
     out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
         << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";
@@ -739,7 +755,9 @@ bool write_rust_delete_handler_body(
 )
 {
     const auto* entity = delete_entity_for_api_rs(system, api);
-    if (entity == nullptr || !has_terminal_deleted_state_rs(*entity))
+    const auto* delete_state =
+        entity == nullptr ? nullptr : conventional_soft_delete_terminal_state_rs(*entity);
+    if (entity == nullptr || delete_state == nullptr)
     {
         return false;
     }
@@ -773,26 +791,32 @@ bool write_rust_delete_handler_body(
     out << "            return Err(BackendError::InvalidSchema { message: \"entity document must "
            "be an object\".to_string() });\n";
     out << "        };\n";
-    out << "        let current_status = match document.get(\"status\") {\n";
+    out << "        let current_status = match document.get("
+        << rust_string(std::string{EntityStatusFieldName}) << ") {\n";
     out << "            Some(Json::String(value)) => value.clone(),\n";
     out << "            _ => return Err(BackendError::InvalidSchema { message: \"missing entity "
            "field status\".to_string() }),\n";
     out << "        };\n";
-    out << "        let requested_status = \"Deleted\".to_string();\n";
+    out << "        let requested_status = "
+        << rust_entity_state_constant_name(entity->name, *delete_state) << ".to_string();\n";
     out << "        let transition_allowed = current_status == requested_status";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "            (current_status == " << rust_string(transition.from)
-            << " && requested_status == " << rust_string(transition.to) << ")";
+        out << "            (current_status == "
+            << rust_entity_state_constant_name(entity->name, transition.from)
+            << " && requested_status == "
+            << rust_entity_state_constant_name(entity->name, transition.to) << ")";
     }
     out << ";\n";
     out << "        if !transition_allowed {\n";
     out << "            return Err(BackendError::InvalidSchema { message: \"invalid entity delete "
            "transition\".to_string() });\n";
     out << "        }\n";
-    out << "        document.insert(\"status\".to_string(), Json::String(requested_status));\n";
-    out << "        document.insert(\"updated_at\".to_string(), "
+    out << "        document.insert(" << rust_string(std::string{EntityStatusFieldName})
+        << ".to_string(), Json::String(requested_status));\n";
+    out << "        document.insert(" << rust_string(std::string{EntityUpdatedAtFieldName})
+        << ".to_string(), "
            "Json::String(\"0\".to_string()));\n";
     out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
         << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";

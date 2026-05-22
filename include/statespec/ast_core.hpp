@@ -1,5 +1,6 @@
 #pragma once
 
+#include "statespec/language_constants.hpp"
 #include "statespec/source.hpp"
 
 #include <optional>
@@ -8,9 +9,6 @@
 
 namespace statespec
 {
-
-inline constexpr const char* DefaultTenantIdFieldName = "tenant_id";
-inline constexpr const char* DefaultSystemTenantIdConfigKey = "STATESPEC_SYSTEM_TENANT_ID";
 
 struct IncludeDecl
 {
@@ -27,7 +25,7 @@ struct FieldDecl
 
 struct TenantScopeDecl
 {
-    std::string field_name = DefaultTenantIdFieldName;
+    std::string field_name = std::string{DefaultTenantIdFieldName};
     SourceRange range;
 };
 
@@ -39,7 +37,7 @@ enum class SystemTenantSource
 struct SystemTenantDecl
 {
     SystemTenantSource source = SystemTenantSource::Configured;
-    std::string config_key = DefaultSystemTenantIdConfigKey;
+    std::string config_key = std::string{DefaultSystemTenantIdConfigKey};
     SourceRange range;
 };
 

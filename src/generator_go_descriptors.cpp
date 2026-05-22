@@ -3,6 +3,7 @@
 #include "generator_go_descriptor_areas.hpp"
 #include "generator_go_descriptor_support.hpp"
 #include "identifier_case.hpp"
+#include "statespec/language_constants.hpp"
 #include "type_syntax.hpp"
 
 #include <algorithm>
@@ -171,10 +172,13 @@ const IrEntity* delete_entity_for_api_go(
     return find_entity(system, api.name.substr(prefix.size()));
 }
 
-bool has_terminal_deleted_state_go(const IrEntity& entity)
+const std::string* conventional_soft_delete_terminal_state_go(const IrEntity& entity)
 {
-    return std::find(entity.terminal_states.begin(), entity.terminal_states.end(), "Deleted") !=
-           entity.terminal_states.end();
+    const auto found = std::find(
+        entity.terminal_states.begin(), entity.terminal_states.end(),
+        std::string{ConventionalSoftDeleteTerminalStateName}
+    );
+    return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
 const IrIndex* select_list_index_go(const IrEntity& entity)
@@ -191,7 +195,7 @@ bool status_update_has_required_request_fields_go(
     const IrShape& request
 )
 {
-    if (find_field(request, "status") == nullptr)
+    if (find_field(request, std::string{EntityStatusFieldName}) == nullptr)
     {
         return false;
     }
@@ -212,7 +216,8 @@ bool create_api_has_required_request_fields_go(
 {
     for (const auto& field : entity.fields)
     {
-        if (field.name == "created_at" || field.name == "updated_at" || field.name == "status")
+        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName ||
+            field.name == EntityStatusFieldName)
         {
             continue;
         }
@@ -309,7 +314,7 @@ std::string go_default_response_expr(
     {
         return context_expr + ".APIName + \":\" + " + context_expr + ".Body.CanonicalString()";
     }
-    if (field.name == "status")
+    if (field.name == EntityStatusFieldName)
     {
         return "\"Accepted\"";
     }
@@ -327,9 +332,13 @@ std::string go_create_response_expr(
     {
         return "decodedRequest." + pascal_identifier(field.name);
     }
-    if (field.name == "status")
+    if (field.name == EntityStatusFieldName)
     {
-        return go_string(entity.initial_state.value_or("Created"));
+        if (entity.initial_state.has_value())
+        {
+            return "common." + go_entity_state_constant_name(entity.name, *entity.initial_state);
+        }
+        return "\"\"";
     }
     return go_default_response_expr(field, context_expr);
 }
@@ -417,15 +426,15 @@ bool write_go_create_handler_body(
     out << "\tdocument := map[string]common.JSON{}\n";
     for (const auto& field : entity->fields)
     {
-        if (field.name == "created_at" || field.name == "updated_at")
+        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "\tdocument[" << go_string(field.name)
                 << "] = common.JSONString(time.Now().UTC().Format(time.RFC3339))\n";
         }
-        else if (field.name == "status")
+        else if (field.name == EntityStatusFieldName)
         {
             out << "\tdocument[" << go_string(field.name) << "] = common.JSONString("
-                << go_string(status) << ")\n";
+                << "common." << go_entity_state_constant_name(entity->name, status) << ")\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
@@ -644,18 +653,22 @@ bool write_go_update_status_handler_body(
     out << "\t\treturn common.APIResponse{StatusCode: 404, Body: "
            "common.JSONObject(map[string]common.JSON{})}, nil\n";
     out << "\t}\n";
-    out << "\tstatusJSON, ok := record.Document.Find(\"status\")\n";
+    out << "\tstatusJSON, ok := record.Document.Find("
+        << go_string(std::string{EntityStatusFieldName}) << ")\n";
     out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"missing entity field status\") "
            "}\n";
-    out << "\tcurrentStatus, err := decodeString(statusJSON, \"status\")\n";
+    out << "\tcurrentStatus, err := decodeString(statusJSON, "
+        << go_string(std::string{EntityStatusFieldName}) << ")\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
     out << "\trequestedStatus := decodedRequest.Status\n";
     out << "\ttransitionAllowed := currentStatus == requestedStatus";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "\t\t(currentStatus == " << go_string(transition.from)
-            << " && requestedStatus == " << go_string(transition.to) << ")";
+        out << "\t\t(currentStatus == common."
+            << go_entity_state_constant_name(entity->name, transition.from)
+            << " && requestedStatus == common."
+            << go_entity_state_constant_name(entity->name, transition.to) << ")";
     }
     out << "\n";
     out << "\tif !transitionAllowed { return common.APIResponse{}, fmt.Errorf(\"invalid entity "
@@ -665,8 +678,10 @@ bool write_go_update_status_handler_body(
            "object\") }\n";
     out << "\tupdatedDocument := map[string]common.JSON{}\n";
     out << "\tfor key, value := range document { updatedDocument[key] = value }\n";
-    out << "\tupdatedDocument[\"status\"] = common.JSONString(requestedStatus)\n";
-    out << "\tupdatedDocument[\"updated_at\"] = "
+    out << "\tupdatedDocument[" << go_string(std::string{EntityStatusFieldName})
+        << "] = common.JSONString(requestedStatus)\n";
+    out << "\tupdatedDocument[" << go_string(std::string{EntityUpdatedAtFieldName})
+        << "] = "
            "common.JSONString(time.Now().UTC().Format(time.RFC3339))\n";
     out << "\tupdated, err := repository.UpdateTx(ctx, tx, keyValues, "
            "common.JSONObject(updatedDocument), record.Version)\n";
@@ -714,7 +729,9 @@ bool write_go_delete_handler_body(
 )
 {
     const auto* entity = delete_entity_for_api_go(system, api);
-    if (entity == nullptr || !has_terminal_deleted_state_go(*entity))
+    const auto* delete_state =
+        entity == nullptr ? nullptr : conventional_soft_delete_terminal_state_go(*entity);
+    if (entity == nullptr || delete_state == nullptr)
     {
         return false;
     }
@@ -741,18 +758,23 @@ bool write_go_delete_handler_body(
     out << "\t\treturn common.APIResponse{StatusCode: 404, Body: "
            "common.JSONObject(map[string]common.JSON{})}, nil\n";
     out << "\t}\n";
-    out << "\tstatusJSON, ok := record.Document.Find(\"status\")\n";
+    out << "\tstatusJSON, ok := record.Document.Find("
+        << go_string(std::string{EntityStatusFieldName}) << ")\n";
     out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"missing entity field status\") "
            "}\n";
-    out << "\tcurrentStatus, err := decodeString(statusJSON, \"status\")\n";
+    out << "\tcurrentStatus, err := decodeString(statusJSON, "
+        << go_string(std::string{EntityStatusFieldName}) << ")\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
-    out << "\trequestedStatus := \"Deleted\"\n";
+    out << "\trequestedStatus := common."
+        << go_entity_state_constant_name(entity->name, *delete_state) << "\n";
     out << "\ttransitionAllowed := currentStatus == requestedStatus";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "\t\t(currentStatus == " << go_string(transition.from)
-            << " && requestedStatus == " << go_string(transition.to) << ")";
+        out << "\t\t(currentStatus == common."
+            << go_entity_state_constant_name(entity->name, transition.from)
+            << " && requestedStatus == common."
+            << go_entity_state_constant_name(entity->name, transition.to) << ")";
     }
     out << "\n";
     out << "\tif !transitionAllowed { return common.APIResponse{}, fmt.Errorf(\"invalid entity "
@@ -762,8 +784,10 @@ bool write_go_delete_handler_body(
            "object\") }\n";
     out << "\tupdatedDocument := map[string]common.JSON{}\n";
     out << "\tfor key, value := range document { updatedDocument[key] = value }\n";
-    out << "\tupdatedDocument[\"status\"] = common.JSONString(requestedStatus)\n";
-    out << "\tupdatedDocument[\"updated_at\"] = "
+    out << "\tupdatedDocument[" << go_string(std::string{EntityStatusFieldName})
+        << "] = common.JSONString(requestedStatus)\n";
+    out << "\tupdatedDocument[" << go_string(std::string{EntityUpdatedAtFieldName})
+        << "] = "
            "common.JSONString(time.Now().UTC().Format(time.RFC3339))\n";
     out << "\tupdated, err := repository.UpdateTx(ctx, tx, keyValues, "
            "common.JSONObject(updatedDocument), record.Version)\n";

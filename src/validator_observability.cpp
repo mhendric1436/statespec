@@ -1,5 +1,6 @@
 #include "validator_declarations.hpp"
 
+#include "statespec/language_constants.hpp"
 #include "string_utils.hpp"
 #include "validator_helpers.hpp"
 
@@ -98,7 +99,7 @@ bool is_high_cardinality_metric_label_name(
     const std::string& label_name
 )
 {
-    if (label_name == "tenant_id")
+    if (label_name == DefaultTenantIdFieldName)
     {
         return false;
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "statespec/ast.hpp"
+#include "statespec/language_constants.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -192,18 +193,19 @@ inline bool is_duration_literal(const std::string& value)
 
 inline bool is_garbage_collection_mode(const std::string& value)
 {
-    return value == "delete" || value == "tombstone" || value == "archive";
+    return value == GarbageCollectionModeDelete || value == GarbageCollectionModeTombstone ||
+           value == GarbageCollectionModeArchive;
 }
 
 inline bool is_ownership_authority(const std::string& value)
 {
-    return value == "system" || value == "external";
+    return value == OwnershipAuthoritySystem || value == OwnershipAuthorityExternal;
 }
 
 inline bool is_lifecycle_mode(const std::string& value)
 {
-    return value == "authoritative" || value == "managed" || value == "observed" ||
-           value == "projected";
+    return value == OwnershipLifecycleAuthoritative || value == OwnershipLifecycleManaged ||
+           value == OwnershipLifecycleObserved || value == OwnershipLifecycleProjected;
 }
 
 inline bool is_relation_kind(const std::string& value)

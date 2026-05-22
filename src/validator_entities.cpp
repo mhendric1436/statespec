@@ -1,5 +1,6 @@
 #include "validator_entities.hpp"
 
+#include "statespec/language_constants.hpp"
 #include "validator_declarations.hpp"
 #include "validator_helpers.hpp"
 
@@ -304,14 +305,22 @@ void validate_entity_management_fields(
     DiagnosticBag& diagnostics
 )
 {
-    validate_required_entity_field(entity, "created_at", "timestamp", diagnostics);
-    validate_required_entity_field(entity, "updated_at", "timestamp", diagnostics);
-    validate_required_entity_field(entity, "status", "string", diagnostics);
+    validate_required_entity_field(
+        entity, std::string{EntityCreatedAtFieldName}, std::string{EntityCreatedAtFieldType},
+        diagnostics
+    );
+    validate_required_entity_field(
+        entity, std::string{EntityUpdatedAtFieldName}, std::string{EntityUpdatedAtFieldType},
+        diagnostics
+    );
+    validate_required_entity_field(
+        entity, std::string{EntityStatusFieldName}, std::string{EntityStatusFieldType}, diagnostics
+    );
 
     static const std::vector<std::string> canonical_fields{
-        "created_at",
-        "updated_at",
-        "status",
+        std::string{EntityCreatedAtFieldName},
+        std::string{EntityUpdatedAtFieldName},
+        std::string{EntityStatusFieldName},
     };
     if (entity.fields.size() < canonical_fields.size())
     {

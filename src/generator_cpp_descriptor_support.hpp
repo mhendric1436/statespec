@@ -10,6 +10,10 @@ namespace statespec
 {
 
 std::string cpp_string(const std::string& value);
+std::string cpp_entity_state_constant_name(
+    const std::string& entity_name,
+    const std::string& state_name
+);
 std::string cpp_field_descriptor_expr(const IrField& field);
 std::string cpp_shape_type(const std::string& type);
 std::int64_t parse_duration_seconds(const std::optional<std::string>& value);

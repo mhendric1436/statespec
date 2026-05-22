@@ -3,6 +3,7 @@
 #include "generator_java_descriptor_areas.hpp"
 #include "generator_java_descriptor_support.hpp"
 #include "identifier_case.hpp"
+#include "statespec/language_constants.hpp"
 #include "type_syntax.hpp"
 
 #include <algorithm>
@@ -172,10 +173,13 @@ const IrEntity* delete_entity_for_api_java(
     return find_entity(system, api.name.substr(prefix.size()));
 }
 
-bool has_terminal_deleted_state_java(const IrEntity& entity)
+const std::string* conventional_soft_delete_terminal_state_java(const IrEntity& entity)
 {
-    return std::find(entity.terminal_states.begin(), entity.terminal_states.end(), "Deleted") !=
-           entity.terminal_states.end();
+    const auto found = std::find(
+        entity.terminal_states.begin(), entity.terminal_states.end(),
+        std::string{ConventionalSoftDeleteTerminalStateName}
+    );
+    return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
 const IrIndex* select_list_index_java(const IrEntity& entity)
@@ -192,7 +196,7 @@ bool status_update_has_required_request_fields_java(
     const IrShape& request
 )
 {
-    if (find_field(request, "status") == nullptr)
+    if (find_field(request, std::string{EntityStatusFieldName}) == nullptr)
     {
         return false;
     }
@@ -213,7 +217,8 @@ bool create_api_has_required_request_fields_java(
 {
     for (const auto& field : entity.fields)
     {
-        if (field.name == "created_at" || field.name == "updated_at" || field.name == "status")
+        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName ||
+            field.name == EntityStatusFieldName)
         {
             continue;
         }
@@ -306,7 +311,7 @@ std::string java_default_response_expr(
     {
         return context_expr + ".apiName() + \":\" + " + context_expr + ".body().canonicalString()";
     }
-    if (field.name == "status")
+    if (field.name == EntityStatusFieldName)
     {
         return "\"Accepted\"";
     }
@@ -324,9 +329,14 @@ std::string java_create_response_expr(
     {
         return "request." + field.name + "()";
     }
-    if (field.name == "status")
+    if (field.name == EntityStatusFieldName)
     {
-        return java_string(entity.initial_state.value_or("Created"));
+        if (entity.initial_state.has_value())
+        {
+            return "Descriptors." +
+                   java_entity_state_constant_name(entity.name, *entity.initial_state);
+        }
+        return "\"\"";
     }
     return java_default_response_expr(field, context_expr);
 }
@@ -436,15 +446,16 @@ bool write_java_create_handler_body(
            "com.statespec.backend.Json>();\n";
     for (const auto& field : entity->fields)
     {
-        if (field.name == "created_at" || field.name == "updated_at")
+        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "                document.put(" << java_string(field.name)
                 << ", com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
         }
-        else if (field.name == "status")
+        else if (field.name == EntityStatusFieldName)
         {
             out << "                document.put(" << java_string(field.name)
-                << ", com.statespec.backend.Json.string(" << java_string(status) << "));\n";
+                << ", com.statespec.backend.Json.string(Descriptors."
+                << java_entity_state_constant_name(entity->name, status) << "));\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
@@ -713,16 +724,19 @@ bool write_java_update_status_handler_body(
            "com.statespec.backend.Json.object(java.util.Map.of()));\n";
     out << "                }\n";
     out << "                var currentStatus = ApiCodecs.decodeString(\n";
-    out << "                    record.get().document().find(\"status\").orElseThrow(), "
-           "\"status\"\n";
+    out << "                    record.get().document().find("
+        << java_string(std::string{EntityStatusFieldName}) << ").orElseThrow(), "
+        << java_string(std::string{EntityStatusFieldName}) << "\n";
     out << "                );\n";
     out << "                var requestedStatus = request.status();\n";
     out << "                var transitionAllowed = currentStatus.equals(requestedStatus)";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "                    (currentStatus.equals(" << java_string(transition.from)
-            << ") && requestedStatus.equals(" << java_string(transition.to) << "))";
+        out << "                    (currentStatus.equals(Descriptors."
+            << java_entity_state_constant_name(entity->name, transition.from)
+            << ") && requestedStatus.equals(Descriptors."
+            << java_entity_state_constant_name(entity->name, transition.to) << "))";
     }
     out << ";\n";
     out << "                if (!transitionAllowed) {\n";
@@ -736,9 +750,11 @@ bool write_java_update_status_handler_body(
     out << "                }\n";
     out << "                var document = new java.util.HashMap<String, "
            "com.statespec.backend.Json>(objectValue.values());\n";
-    out << "                document.put(\"status\", "
+    out << "                document.put(" << java_string(std::string{EntityStatusFieldName})
+        << ", "
            "com.statespec.backend.Json.string(requestedStatus));\n";
-    out << "                document.put(\"updated_at\", "
+    out << "                document.put(" << java_string(std::string{EntityUpdatedAtFieldName})
+        << ", "
            "com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
     out << "                var updated = repository.updateTx(\n";
     out << "                    tx,\n";
@@ -807,7 +823,9 @@ bool write_java_delete_handler_body(
 )
 {
     const auto* entity = delete_entity_for_api_java(system, api);
-    if (entity == nullptr || !has_terminal_deleted_state_java(*entity))
+    const auto* delete_state =
+        entity == nullptr ? nullptr : conventional_soft_delete_terminal_state_java(*entity);
+    if (entity == nullptr || delete_state == nullptr)
     {
         return false;
     }
@@ -834,16 +852,20 @@ bool write_java_delete_handler_body(
            "com.statespec.backend.Json.object(java.util.Map.of()));\n";
     out << "                }\n";
     out << "                var currentStatus = ApiCodecs.decodeString(\n";
-    out << "                    record.get().document().find(\"status\").orElseThrow(), "
-           "\"status\"\n";
+    out << "                    record.get().document().find("
+        << java_string(std::string{EntityStatusFieldName}) << ").orElseThrow(), "
+        << java_string(std::string{EntityStatusFieldName}) << "\n";
     out << "                );\n";
-    out << "                var requestedStatus = \"Deleted\";\n";
+    out << "                var requestedStatus = Descriptors."
+        << java_entity_state_constant_name(entity->name, *delete_state) << ";\n";
     out << "                var transitionAllowed = currentStatus.equals(requestedStatus)";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "                    (currentStatus.equals(" << java_string(transition.from)
-            << ") && requestedStatus.equals(" << java_string(transition.to) << "))";
+        out << "                    (currentStatus.equals(Descriptors."
+            << java_entity_state_constant_name(entity->name, transition.from)
+            << ") && requestedStatus.equals(Descriptors."
+            << java_entity_state_constant_name(entity->name, transition.to) << "))";
     }
     out << ";\n";
     out << "                if (!transitionAllowed) {\n";
@@ -857,9 +879,11 @@ bool write_java_delete_handler_body(
     out << "                }\n";
     out << "                var document = new java.util.HashMap<String, "
            "com.statespec.backend.Json>(objectValue.values());\n";
-    out << "                document.put(\"status\", "
+    out << "                document.put(" << java_string(std::string{EntityStatusFieldName})
+        << ", "
            "com.statespec.backend.Json.string(requestedStatus));\n";
-    out << "                document.put(\"updated_at\", "
+    out << "                document.put(" << java_string(std::string{EntityUpdatedAtFieldName})
+        << ", "
            "com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
     out << "                var updated = repository.updateTx(\n";
     out << "                    tx,\n";

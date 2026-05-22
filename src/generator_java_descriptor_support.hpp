@@ -10,6 +10,10 @@ namespace statespec
 {
 
 std::string java_string(const std::string& value);
+std::string java_entity_state_constant_name(
+    const std::string& entity_name,
+    const std::string& state_name
+);
 std::string java_field_descriptor_expr(const IrField& field);
 std::string java_shape_type(const std::string& type);
 long long parse_java_duration_seconds(const std::optional<std::string>& value);

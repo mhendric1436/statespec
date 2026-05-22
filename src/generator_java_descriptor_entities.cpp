@@ -11,6 +11,20 @@ namespace statespec
 std::string generate_java_entity_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
+    for (const auto& entity : system.entities)
+    {
+        for (const auto& state : entity.states)
+        {
+            out << "    public static final String "
+                << java_entity_state_constant_name(entity.name, state.name) << " = "
+                << java_string(state.name) << ";\n";
+        }
+    }
+    if (!system.entities.empty())
+    {
+        out << "\n";
+    }
+
     out << "    public static List<EntityDescriptor> entityDescriptors() {\n";
     out << "        return List.of(\n";
     for (std::size_t entity_index = 0; entity_index < system.entities.size(); ++entity_index)

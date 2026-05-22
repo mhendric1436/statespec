@@ -1,5 +1,6 @@
 #include "generator_java_descriptor_support.hpp"
 
+#include "identifier_case.hpp"
 #include "type_syntax.hpp"
 
 #include <cctype>
@@ -38,6 +39,14 @@ std::string java_string(const std::string& value)
     }
     out << '"';
     return out.str();
+}
+
+std::string java_entity_state_constant_name(
+    const std::string& entity_name,
+    const std::string& state_name
+)
+{
+    return upper_snake_identifier(entity_name + "_status_" + state_name);
 }
 
 namespace

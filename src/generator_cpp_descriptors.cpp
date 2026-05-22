@@ -3,6 +3,7 @@
 #include "generator_cpp_descriptor_areas.hpp"
 #include "generator_cpp_descriptor_support.hpp"
 #include "identifier_case.hpp"
+#include "statespec/language_constants.hpp"
 #include "type_syntax.hpp"
 
 #include <algorithm>
@@ -171,10 +172,13 @@ const IrEntity* delete_entity_for_api(
     return find_entity(system, api.name.substr(prefix.size()));
 }
 
-bool has_terminal_deleted_state(const IrEntity& entity)
+const std::string* conventional_soft_delete_terminal_state(const IrEntity& entity)
 {
-    return std::find(entity.terminal_states.begin(), entity.terminal_states.end(), "Deleted") !=
-           entity.terminal_states.end();
+    const auto found = std::find(
+        entity.terminal_states.begin(), entity.terminal_states.end(),
+        std::string{ConventionalSoftDeleteTerminalStateName}
+    );
+    return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
 const IrIndex* select_list_index(const IrEntity& entity)
@@ -191,7 +195,7 @@ bool status_update_has_required_request_fields(
     const IrShape& request
 )
 {
-    if (find_field(request, "status") == nullptr)
+    if (find_field(request, std::string{EntityStatusFieldName}) == nullptr)
     {
         return false;
     }
@@ -212,7 +216,8 @@ bool create_api_has_required_request_fields(
 {
     for (const auto& field : entity.fields)
     {
-        if (field.name == "created_at" || field.name == "updated_at" || field.name == "status")
+        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName ||
+            field.name == EntityStatusFieldName)
         {
             continue;
         }
@@ -305,7 +310,7 @@ std::string cpp_default_response_assignment(
         return prefix + context_expr + ".api_name + \":\" + " + context_expr +
                ".body.canonical_string()" + suffix;
     }
-    if (field.name == "status")
+    if (field.name == EntityStatusFieldName)
     {
         return prefix + "std::string{\"Accepted\"}" + suffix;
     }
@@ -323,9 +328,14 @@ std::string cpp_create_response_assignment(
     {
         return "request." + field.name;
     }
-    if (field.name == "status")
+    if (field.name == EntityStatusFieldName)
     {
-        return "std::string{" + cpp_string(entity.initial_state.value_or("Created")) + "}";
+        if (entity.initial_state.has_value())
+        {
+            return std::string{"std::string{"} +
+                   cpp_entity_state_constant_name(entity.name, *entity.initial_state) + "}";
+        }
+        return "std::string{}";
     }
     return cpp_default_response_assignment(field, context_expr);
 }
@@ -429,15 +439,16 @@ bool write_cpp_create_handler_body(
     out << "            statespec::backend::Json::Object document;\n";
     for (const auto& field : entity->fields)
     {
-        if (field.name == "created_at" || field.name == "updated_at")
+        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "            document[" << cpp_string(field.name)
                 << "] = statespec::backend::Json{generated_api_timestamp()};\n";
         }
-        else if (field.name == "status")
+        else if (field.name == EntityStatusFieldName)
         {
             out << "            document[" << cpp_string(field.name)
-                << "] = statespec::backend::Json{" << cpp_string(status) << "};\n";
+                << "] = statespec::backend::Json{"
+                << cpp_entity_state_constant_name(entity->name, status) << "};\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
@@ -666,15 +677,19 @@ bool write_cpp_update_status_handler_body(
     out << "                return ApiResponse{404, statespec::backend::Json::object({})};\n";
     out << "            }\n";
     out << "            const auto current_status = decode_string(\n";
-    out << "                require_member(record->document, \"status\"), \"status\"\n";
+    out << "                require_member(record->document, "
+        << cpp_string(std::string{EntityStatusFieldName}) << "), "
+        << cpp_string(std::string{EntityStatusFieldName}) << "\n";
     out << "            );\n";
     out << "            const auto requested_status = request.status;\n";
     out << "            const bool transition_allowed = current_status == requested_status";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "                (current_status == " << cpp_string(transition.from)
-            << " && requested_status == " << cpp_string(transition.to) << ")";
+        out << "                (current_status == "
+            << cpp_entity_state_constant_name(entity->name, transition.from)
+            << " && requested_status == "
+            << cpp_entity_state_constant_name(entity->name, transition.to) << ")";
     }
     out << ";\n";
     out << "            if (!transition_allowed)\n";
@@ -683,8 +698,10 @@ bool write_cpp_update_status_handler_body(
            "transition\");\n";
     out << "            }\n";
     out << "            auto document = record->document.as_object();\n";
-    out << "            document[\"status\"] = statespec::backend::Json{requested_status};\n";
-    out << "            document[\"updated_at\"] = "
+    out << "            document[" << cpp_string(std::string{EntityStatusFieldName})
+        << "] = statespec::backend::Json{requested_status};\n";
+    out << "            document[" << cpp_string(std::string{EntityUpdatedAtFieldName})
+        << "] = "
            "statespec::backend::Json{generated_api_timestamp()};\n";
     out << "            const auto updated = repository.updateTx(\n";
     out << "                *tx,\n";
@@ -736,7 +753,9 @@ bool write_cpp_delete_handler_body(
 )
 {
     const auto* entity = delete_entity_for_api(system, api);
-    if (entity == nullptr || !has_terminal_deleted_state(*entity))
+    const auto* delete_state =
+        entity == nullptr ? nullptr : conventional_soft_delete_terminal_state(*entity);
+    if (entity == nullptr || delete_state == nullptr)
     {
         return false;
     }
@@ -762,15 +781,20 @@ bool write_cpp_delete_handler_body(
     out << "                return ApiResponse{404, statespec::backend::Json::object({})};\n";
     out << "            }\n";
     out << "            const auto current_status = decode_string(\n";
-    out << "                require_member(record->document, \"status\"), \"status\"\n";
+    out << "                require_member(record->document, "
+        << cpp_string(std::string{EntityStatusFieldName}) << "), "
+        << cpp_string(std::string{EntityStatusFieldName}) << "\n";
     out << "            );\n";
-    out << "            const auto requested_status = std::string{\"Deleted\"};\n";
+    out << "            const auto requested_status = std::string{"
+        << cpp_entity_state_constant_name(entity->name, *delete_state) << "};\n";
     out << "            const bool transition_allowed = current_status == requested_status";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "                (current_status == " << cpp_string(transition.from)
-            << " && requested_status == " << cpp_string(transition.to) << ")";
+        out << "                (current_status == "
+            << cpp_entity_state_constant_name(entity->name, transition.from)
+            << " && requested_status == "
+            << cpp_entity_state_constant_name(entity->name, transition.to) << ")";
     }
     out << ";\n";
     out << "            if (!transition_allowed)\n";
@@ -779,8 +803,10 @@ bool write_cpp_delete_handler_body(
            "transition\");\n";
     out << "            }\n";
     out << "            auto document = record->document.as_object();\n";
-    out << "            document[\"status\"] = statespec::backend::Json{requested_status};\n";
-    out << "            document[\"updated_at\"] = "
+    out << "            document[" << cpp_string(std::string{EntityStatusFieldName})
+        << "] = statespec::backend::Json{requested_status};\n";
+    out << "            document[" << cpp_string(std::string{EntityUpdatedAtFieldName})
+        << "] = "
            "statespec::backend::Json{generated_api_timestamp()};\n";
     out << "            const auto updated = repository.updateTx(\n";
     out << "                *tx,\n";

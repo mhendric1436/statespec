@@ -1,5 +1,6 @@
 #include "generator_go_descriptor_support.hpp"
 
+#include "identifier_case.hpp"
 #include "type_syntax.hpp"
 
 #include <cctype>
@@ -38,6 +39,14 @@ std::string go_string(const std::string& value)
     }
     out << '"';
     return out.str();
+}
+
+std::string go_entity_state_constant_name(
+    const std::string& entity_name,
+    const std::string& state_name
+)
+{
+    return pascal_identifier(entity_name) + "Status" + pascal_identifier(state_name);
 }
 
 namespace

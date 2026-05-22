@@ -1,6 +1,7 @@
 #include "statespec/parser.hpp"
 
 #include "parser_helpers.hpp"
+#include "statespec/language_constants.hpp"
 
 namespace statespec
 {
@@ -53,7 +54,7 @@ FeatureFlagDecl Parser::parse_feature_flag_decl(DiagnosticBag& diagnostics)
             advance();
             if (match(TokenKind::KeywordSystem))
             {
-                feature_flag.scope = "system";
+                feature_flag.scope = std::string{OwnershipAuthoritySystem};
             }
             else if (match(TokenKind::KeywordTenant))
             {

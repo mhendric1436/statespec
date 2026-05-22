@@ -69,4 +69,17 @@ std::string snake_identifier(
     return result.empty() ? std::string{fallback} : result;
 }
 
+std::string upper_snake_identifier(
+    const std::string& value,
+    std::string_view fallback
+)
+{
+    auto identifier = snake_identifier(value, fallback);
+    for (auto& ch : identifier)
+    {
+        ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+    }
+    return identifier.empty() ? std::string{fallback} : identifier;
+}
+
 } // namespace statespec

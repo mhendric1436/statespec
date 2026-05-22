@@ -9,6 +9,10 @@ namespace statespec
 {
 
 std::string rust_string(const std::string& value);
+std::string rust_entity_state_constant_name(
+    const std::string& entity_name,
+    const std::string& state_name
+);
 std::string rust_field_descriptor_expr(const IrField& field);
 std::string rust_shape_type(const std::string& type);
 long long parse_rust_duration_seconds(const std::optional<std::string>& value);

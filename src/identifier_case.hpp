@@ -21,4 +21,9 @@ std::string snake_identifier(
     std::string_view fallback = "generated_event"
 );
 
+std::string upper_snake_identifier(
+    const std::string& value,
+    std::string_view fallback = "GENERATED_EVENT"
+);
+
 } // namespace statespec

@@ -1,6 +1,7 @@
 #include "semantic_observability.hpp"
 
 #include "semantic_symbols.hpp"
+#include "statespec/language_constants.hpp"
 
 #include <string_view>
 
@@ -44,7 +45,7 @@ void resolve_semantic_observability(
                 flag.name,
                 flag.type.value_or(""),
                 flag.default_value.value_or(""),
-                flag.scope.value_or("system"),
+                flag.scope.value_or(std::string{OwnershipAuthoritySystem}),
                 resolve_feature_flag_scope_target(symbols, flag.scope),
                 flag.owner,
                 flag.description,
