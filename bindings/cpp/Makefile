@@ -8,7 +8,8 @@ BIN_DIR := $(BUILD_DIR)/bin
 ROOT_DIR := ../..
 CATCH_SRC := $(ROOT_DIR)/third_party/catch2/catch_amalgamated.cpp
 JSON_TEST := $(BIN_DIR)/json_test
-FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) generated/entity_repository.hpp.tmpl generated/external_system_call_adapters.hpp.tmpl generated/external_system_metadata_runtime.hpp.tmpl generated/external_system_runtime.hpp.tmpl $(wildcard api/*.hpp.tmpl) $(wildcard api/*.cpp.tmpl) $(wildcard worker/*.hpp.tmpl) $(wildcard worker/*.cpp.tmpl) $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp)
+GENERATED_FORMAT_TEMPLATES := $(filter-out generated/descriptors.hpp.tmpl,$(wildcard generated/*.hpp.tmpl))
+FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(GENERATED_FORMAT_TEMPLATES) $(wildcard api/*.hpp.tmpl) $(wildcard api/*.cpp.tmpl) $(wildcard worker/*.hpp.tmpl) $(wildcard worker/*.cpp.tmpl) $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp)
 
 .PHONY: test build format clean help
 
