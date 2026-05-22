@@ -14,6 +14,7 @@ std::string generate_go_descriptor_prelude(const IrSystem& system)
     out << "package backend\n\n";
     out << "import (\n";
     out << "\t\"context\"\n";
+    out << "\t\"errors\"\n";
     out << "\t\"strconv\"\n";
     out << "\t\"strings\"\n";
     out << "\t\"time\"\n";
@@ -176,6 +177,22 @@ std::string generate_go_descriptor_prelude(const IrSystem& system)
            "ExternalSystemMetadataMappingPlan, ExternalSystemMetadataMappingInputs) "
            "(ExternalSystemMetadataMappingOutput, error)\n";
     out << "}\n\n";
+    out << "type ExternalSystemCallRequest struct {\n";
+    out << "\tExternalSystem string\n";
+    out << "\tClientConfig map[string]JSON\n";
+    out << "\tRequestPayload map[string]JSON\n";
+    out << "}\n\n";
+    out << "type ExternalSystemCallResponse struct {\n";
+    out << "\tStatusCode int\n";
+    out << "\tBody JSON\n";
+    out << "\tMetadata map[string]JSON\n";
+    out << "}\n\n";
+    out << "type ExternalSystemClient interface {\n";
+    out << "\tCallExternalSystem(context.Context, ExternalSystemCallRequest) "
+           "(ExternalSystemCallResponse, error)\n";
+    out << "}\n\n";
+    out << "var ErrExternalSystemMappingIncomplete = errors.New(\"external system mapping "
+           "incomplete\")\n\n";
     out << "type ExternalSystemMetadataDescriptor struct {\n";
     out << "\tEntity string\n";
     out << "\tTenantField *string\n";
@@ -212,6 +229,187 @@ std::string generate_go_descriptor_prelude(const IrSystem& system)
     out << "\tDeleteMetadataTx(context.Context, Transaction, "
            "ExternalSystemOperatorMetadataDeleteRequest) (*VersionedRecord, error)\n";
     out << "}\n\n";
+    out << "type DefaultExternalSystemMetadataMappingApplicator struct{}\n\n";
+    out << "func (DefaultExternalSystemMetadataMappingApplicator) "
+           "ApplyExternalSystemMetadataMappings(ctx context.Context, plan "
+           "ExternalSystemMetadataMappingPlan, inputs ExternalSystemMetadataMappingInputs) "
+           "(ExternalSystemMetadataMappingOutput, error) {\n";
+    out << "\t_ = ctx\n";
+    out << "\toutput := ExternalSystemMetadataMappingOutput{\n";
+    out << "\t\tClientConfig: map[string]JSON{},\n";
+    out << "\t\tRequestPayload: map[string]JSON{},\n";
+    out << "\t\tMissingSources: MissingExternalSystemMetadataMappingSources(plan, inputs),\n";
+    out << "\t}\n";
+    out << "\tfor _, assignment := range plan.ClientMappings {\n";
+    out << "\t\tif value, ok := inputs.AssignmentValue(assignment); ok {\n";
+    out << "\t\t\toutput.ClientConfig[assignment.Field] = value\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\tfor _, assignment := range plan.RequestMappings {\n";
+    out << "\t\tif value, ok := inputs.AssignmentValue(assignment); ok {\n";
+    out << "\t\t\toutput.RequestPayload[assignment.Field] = value\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn output, nil\n";
+    out << "}\n\n";
+    out << "type DefaultExternalSystemOperatorMetadataRepository struct{}\n\n";
+    out << "func ExternalSystemMetadataKey(lookup ExternalSystemMetadataLookup) (Key, bool) "
+           "{\n";
+    out << "\tif !lookup.KeyComplete() {\n";
+    out << "\t\treturn \"\", false\n";
+    out << "\t}\n";
+    out << "\tvalues := map[string]JSON{}\n";
+    out << "\tfor _, keyValue := range lookup.KeyValues {\n";
+    out << "\t\tvalues[keyValue.Field] = keyValue.Value\n";
+    out << "\t}\n";
+    out << "\tvar builder strings.Builder\n";
+    out << "\tfor _, keyField := range lookup.KeyFields {\n";
+    out << "\t\tvalue, ok := values[keyField]\n";
+    out << "\t\tif !ok {\n";
+    out << "\t\t\treturn \"\", false\n";
+    out << "\t\t}\n";
+    out << "\t\tbuilder.WriteString(keyField)\n";
+    out << "\t\tbuilder.WriteString(\"=\")\n";
+    out << "\t\tbuilder.WriteString(value.CanonicalString())\n";
+    out << "\t\tbuilder.WriteString(\"\\n\")\n";
+    out << "\t}\n";
+    out << "\treturn Key(builder.String()), true\n";
+    out << "}\n\n";
+    out << "func externalSystemMetadataDocumentWithKeys(document JSON, lookup "
+           "ExternalSystemMetadataLookup) JSON {\n";
+    out << "\tobject := map[string]JSON{}\n";
+    out << "\tif existing, ok := document.AsObject(); ok {\n";
+    out << "\t\tfor key, value := range existing {\n";
+    out << "\t\t\tobject[key] = value\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\tfor _, keyValue := range lookup.KeyValues {\n";
+    out << "\t\tobject[keyValue.Field] = keyValue.Value\n";
+    out << "\t}\n";
+    out << "\treturn JSONObject(object)\n";
+    out << "}\n\n";
+    out << "func assertExternalSystemMetadataExpectedVersion(existing *VersionedRecord, "
+           "expectedVersion *Version) error {\n";
+    out << "\tif expectedVersion == nil {\n";
+    out << "\t\treturn nil\n";
+    out << "\t}\n";
+    out << "\tif existing == nil || existing.Version != *expectedVersion {\n";
+    out << "\t\treturn ConflictError{Kind: VersionConflict, Message: \"external system "
+           "metadata version conflict\"}\n";
+    out << "\t}\n";
+    out << "\treturn nil\n";
+    out << "}\n\n";
+    out << "func (DefaultExternalSystemOperatorMetadataRepository) UpsertMetadataTx(ctx "
+           "context.Context, tx Transaction, request ExternalSystemOperatorMetadataUpsertRequest) "
+           "(*VersionedRecord, error) {\n";
+    out << "\tkey, ok := ExternalSystemMetadataKey(request.Lookup)\n";
+    out << "\tif !ok {\n";
+    out << "\t\treturn nil, nil\n";
+    out << "\t}\n";
+    out << "\texisting, err := tx.Get(ctx, CollectionName(request.Lookup.MetadataEntity), "
+           "key)\n";
+    out << "\tif err != nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\tif err := assertExternalSystemMetadataExpectedVersion(existing, "
+           "request.ExpectedVersion); err != nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\tif err := tx.Put(ctx, CollectionName(request.Lookup.MetadataEntity), key, "
+           "externalSystemMetadataDocumentWithKeys(request.Document, request.Lookup)); err != "
+           "nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\treturn tx.Get(ctx, CollectionName(request.Lookup.MetadataEntity), key)\n";
+    out << "}\n\n";
+    out << "func (DefaultExternalSystemOperatorMetadataRepository) GetMetadataTx(ctx "
+           "context.Context, tx Transaction, request ExternalSystemOperatorMetadataGetRequest) "
+           "(*VersionedRecord, error) {\n";
+    out << "\tkey, ok := ExternalSystemMetadataKey(request.Lookup)\n";
+    out << "\tif !ok {\n";
+    out << "\t\treturn nil, nil\n";
+    out << "\t}\n";
+    out << "\treturn tx.Get(ctx, CollectionName(request.Lookup.MetadataEntity), key)\n";
+    out << "}\n\n";
+    out << "func (r DefaultExternalSystemOperatorMetadataRepository) DisableMetadataTx(ctx "
+           "context.Context, tx Transaction, request "
+           "ExternalSystemOperatorMetadataDisableRequest) (*VersionedRecord, error) {\n";
+    out << "\treturn r.updateMetadataStatusTx(ctx, tx, request.Lookup, "
+           "request.ExpectedVersion, request.DisabledStatus)\n";
+    out << "}\n\n";
+    out << "func (r DefaultExternalSystemOperatorMetadataRepository) DeleteMetadataTx(ctx "
+           "context.Context, tx Transaction, request "
+           "ExternalSystemOperatorMetadataDeleteRequest) (*VersionedRecord, error) {\n";
+    out << "\treturn r.updateMetadataStatusTx(ctx, tx, request.Lookup, "
+           "request.ExpectedVersion, request.DeletedStatus)\n";
+    out << "}\n\n";
+    out << "func (r DefaultExternalSystemOperatorMetadataRepository) "
+           "updateMetadataStatusTx(ctx context.Context, tx Transaction, lookup "
+           "ExternalSystemMetadataLookup, expectedVersion *Version, status string) "
+           "(*VersionedRecord, error) {\n";
+    out << "\tkey, ok := ExternalSystemMetadataKey(lookup)\n";
+    out << "\tif !ok {\n";
+    out << "\t\treturn nil, nil\n";
+    out << "\t}\n";
+    out << "\texisting, err := tx.Get(ctx, CollectionName(lookup.MetadataEntity), key)\n";
+    out << "\tif err != nil || existing == nil {\n";
+    out << "\t\treturn existing, err\n";
+    out << "\t}\n";
+    out << "\tif err := assertExternalSystemMetadataExpectedVersion(existing, "
+           "expectedVersion); err != nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\tobject := map[string]JSON{}\n";
+    out << "\tif values, ok := existing.Document.AsObject(); ok {\n";
+    out << "\t\tfor key, value := range values {\n";
+    out << "\t\t\tobject[key] = value\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\tfor _, keyValue := range lookup.KeyValues {\n";
+    out << "\t\tobject[keyValue.Field] = keyValue.Value\n";
+    out << "\t}\n";
+    out << "\tobject[\"status\"] = JSONString(status)\n";
+    out << "\tif err := tx.Put(ctx, CollectionName(lookup.MetadataEntity), key, "
+           "JSONObject(object)); err != nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\treturn tx.Get(ctx, CollectionName(lookup.MetadataEntity), key)\n";
+    out << "}\n\n";
+    out << "func (r DefaultExternalSystemOperatorMetadataRepository) ResolveMetadata(ctx "
+           "context.Context, backend Backend, lookup ExternalSystemMetadataLookup) "
+           "(*ExternalSystemMetadataResolution, error) {\n";
+    out << "\ttx, err := backend.Begin(ctx)\n";
+    out << "\tif err != nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\tresolved, err := r.ResolveMetadataTx(ctx, tx, lookup)\n";
+    out << "\tif err != nil {\n";
+    out << "\t\t_ = tx.Abort(ctx)\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\tif err := backend.Commit(ctx, tx); err != nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\treturn resolved, nil\n";
+    out << "}\n\n";
+    out << "func (r DefaultExternalSystemOperatorMetadataRepository) ResolveMetadataTx(ctx "
+           "context.Context, tx Transaction, lookup ExternalSystemMetadataLookup) "
+           "(*ExternalSystemMetadataResolution, error) {\n";
+    out << "\trecord, err := r.GetMetadataTx(ctx, tx, "
+           "ExternalSystemOperatorMetadataGetRequest{Lookup: lookup})\n";
+    out << "\tif err != nil || record == nil {\n";
+    out << "\t\treturn nil, err\n";
+    out << "\t}\n";
+    out << "\treturn &ExternalSystemMetadataResolution{Record: *record, "
+           "MissingRequiredFields: MissingRequiredMetadataFields(record.Document, "
+           "lookup.RequiredFields)}, nil\n";
+    out << "}\n\n";
+    out << "var _ ExternalSystemMetadataMappingApplicator = "
+           "DefaultExternalSystemMetadataMappingApplicator{}\n";
+    out << "var _ ExternalSystemOperatorMetadataRepository = "
+           "DefaultExternalSystemOperatorMetadataRepository{}\n";
+    out << "var _ ExternalSystemMetadataResolver = "
+           "DefaultExternalSystemOperatorMetadataRepository{}\n\n";
     out << "type ExternalSystemDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tProperties []ExternalSystemPropertyDescriptor\n";

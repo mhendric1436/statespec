@@ -206,6 +206,56 @@ std::string generate_java_external_system_descriptors(const IrSystem& system)
     out << "        return resolver.resolveMetadataTx(tx, resolvedLookup);\n";
     out << "    }\n\n";
 
+    out << "    public static ExternalSystemCallRequest buildExternalSystemCallRequest(\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        ExternalSystemMetadataMappingOutput mapped = applicator\n";
+    out << "            .applyExternalSystemMetadataMappings(\n";
+    out << "                externalSystemMetadataMappingPlan(descriptor),\n";
+    out << "                inputs\n";
+    out << "            );\n";
+    out << "        if (!mapped.missingSources().isEmpty()) {\n";
+    out << "            throw new Backend.BackendException(\n";
+    out << "                \"external system mapping incomplete for \" + descriptor.name()\n";
+    out << "            );\n";
+    out << "        }\n";
+    out << "        return new ExternalSystemCallRequest(\n";
+    out << "            descriptor.name(),\n";
+    out << "            mapped.clientConfig(),\n";
+    out << "            mapped.requestPayload()\n";
+    out << "        );\n";
+    out << "    }\n\n";
+    out << "    public static ExternalSystemCallResponse callExternalSystem(\n";
+    out << "        ExternalSystemClient client,\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        return client.callExternalSystem(\n";
+    out << "            buildExternalSystemCallRequest(applicator, descriptor, inputs)\n";
+    out << "        );\n";
+    out << "    }\n\n";
+    out << "    public static Optional<ExternalSystemCallResponse> callExternalSystem(\n";
+    out << "        ExternalSystemClient client,\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        String externalSystem,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        for (ExternalSystemDescriptor descriptor : externalSystemDescriptors()) {\n";
+    out << "            if (descriptor.name().equals(externalSystem)) {\n";
+    out << "                return Optional.of(callExternalSystem(\n";
+    out << "                    client,\n";
+    out << "                    applicator,\n";
+    out << "                    descriptor,\n";
+    out << "                    inputs\n";
+    out << "                ));\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
+    out << "    }\n\n";
+
     return out.str();
 }
 

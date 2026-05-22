@@ -246,12 +246,14 @@ Generated external system metadata includes:
 - required execution metadata fields
 - descriptor-level source-to-target metadata field mappings
 - generated mapping-plan helpers with ordered, client, and request assignment views
-- generated mapping applicator contracts for turning mapping inputs into client
-  configuration and request payloads
+- generated mapping applicator contracts and default implementations for turning mapping
+  inputs into client configuration and request payloads
 - generated root-aware source-value lookup helpers for mapping applicators
 - generated missing-source diagnostics for incomplete mapping inputs
-- generated transaction-scoped operator metadata repository contracts for OCC-backed
-  upsert, get, disable, and delete operations
+- generated generic external-system client interfaces and call adapters that invoke
+  injected protocol-specific clients
+- generated transaction-scoped operator metadata repository contracts and default generic
+  repository implementations for OCC-backed upsert, get, disable, and delete operations
 - generated lookup helpers that build runtime metadata lookup requests from descriptors
 - generated transaction-scoped helpers that call external system metadata resolvers
 - generated resolve helpers validate lookup key completeness before resolver calls

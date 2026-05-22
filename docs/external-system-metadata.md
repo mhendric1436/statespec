@@ -205,16 +205,22 @@ carries the original source path plus normalized `sourceRoot`, `sourceField`,
 strings. Adapters can use the plan to assemble remote client configuration and request
 payloads from user input, loaded entity state, workflow state, and resolved metadata.
 
-Generated bindings define framework-neutral mapping applicator contracts. The contract
-accepts a mapping plan plus source-value maps for `input`, `entity`, `workflow`, and
-`metadata`, and returns separate client configuration and request payload maps. The
-generated source-value container exposes root-aware lookup helpers, so applicators can ask
-for an assignment value without reimplementing `input`/`entity`/`workflow`/`metadata`
-dispatch. Generated bindings also expose structured missing-source diagnostics for a
+Generated bindings define framework-neutral mapping applicator contracts and default
+applicator implementations. The contract accepts a mapping plan plus source-value maps for
+`input`, `entity`, `workflow`, and `metadata`, and returns separate client configuration
+and request payload maps. The generated default applicator copies mapped values into the
+`client` and `request` outputs and returns structured missing-source diagnostics for a
 mapping plan. Each diagnostic carries the original source path, normalized source root and
 field, target root, and target field so runtimes can reject incomplete remote-call
 assembly before invoking an external system. The generated contract does not prescribe a
 concrete HTTP client, serialization framework, or remote API transport.
+
+Generated bindings also define generic external-system client interfaces and call
+adapters. The adapter builds an external-system call request from the descriptor mapping
+plan and source-value inputs, rejects incomplete mappings before any remote side effect,
+and invokes an injected client implementation with `client_config` and `request_payload`
+maps. The injected client owns protocol details such as HTTP method selection, URL
+construction, authentication, retries, serialization, and response decoding.
 
 ## OCC Requirement
 
@@ -248,12 +254,15 @@ resolver, preventing malformed lookups from reaching backend-specific implementa
 Metadata writes should use compare-and-swap semantics so two operators cannot silently
 overwrite each other's endpoint, credential reference, or retry policy updates.
 
-Generated bindings expose transaction-scoped operator metadata repository contracts for
-upsert, get, disable, and delete operations. Repository requests carry the resolved
-metadata lookup and optional expected version values so backend implementations can enforce
-OCC against the same `IBackend`/`ITransaction` model used by other durable StateSpec
-resources. The generated contracts intentionally do not implement persistence; runtime
-bindings provide the backend-specific repository implementation.
+Generated bindings expose transaction-scoped operator metadata repository contracts and
+default repository implementations for upsert, get, disable, and delete operations.
+Repository requests carry the resolved metadata lookup and optional expected version
+values so generated repositories can enforce OCC against the same `IBackend`/
+`ITransaction` model used by other durable StateSpec resources. The generated repository
+stores metadata through generic collection/key/document primitives; backend
+implementations remain unaware of external systems, metadata entities, or mapping
+semantics. Production systems may wrap or replace the generated repository when they need
+additional policy, auditing, or credential-manager integration.
 
 Generated bindings also expose operator metadata API handler contracts. These handlers are
 framework-neutral bridges from an API runtime into the transaction-scoped repository

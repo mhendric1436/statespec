@@ -155,6 +155,44 @@ std::string generate_go_external_system_descriptors(const IrSystem& system)
     out << "\treturn resolution, true, err\n";
     out << "}\n\n";
 
+    out << "func BuildExternalSystemCallRequest(ctx context.Context, applicator "
+           "ExternalSystemMetadataMappingApplicator, descriptor ExternalSystemDescriptor, inputs "
+           "ExternalSystemMetadataMappingInputs) (ExternalSystemCallRequest, error) {\n";
+    out << "\tmapped, err := applicator.ApplyExternalSystemMetadataMappings(ctx, "
+           "BuildExternalSystemMetadataMappingPlan(descriptor), inputs)\n";
+    out << "\tif err != nil {\n";
+    out << "\t\treturn ExternalSystemCallRequest{}, err\n";
+    out << "\t}\n";
+    out << "\tif len(mapped.MissingSources) > 0 {\n";
+    out << "\t\treturn ExternalSystemCallRequest{}, ErrExternalSystemMappingIncomplete\n";
+    out << "\t}\n";
+    out << "\treturn ExternalSystemCallRequest{ExternalSystem: descriptor.Name, "
+           "ClientConfig: mapped.ClientConfig, RequestPayload: mapped.RequestPayload}, nil\n";
+    out << "}\n\n";
+    out << "func CallExternalSystem(ctx context.Context, client ExternalSystemClient, "
+           "applicator ExternalSystemMetadataMappingApplicator, descriptor "
+           "ExternalSystemDescriptor, inputs ExternalSystemMetadataMappingInputs) "
+           "(ExternalSystemCallResponse, error) {\n";
+    out << "\trequest, err := BuildExternalSystemCallRequest(ctx, applicator, descriptor, "
+           "inputs)\n";
+    out << "\tif err != nil {\n";
+    out << "\t\treturn ExternalSystemCallResponse{}, err\n";
+    out << "\t}\n";
+    out << "\treturn client.CallExternalSystem(ctx, request)\n";
+    out << "}\n\n";
+    out << "func CallExternalSystemByName(ctx context.Context, client ExternalSystemClient, "
+           "applicator ExternalSystemMetadataMappingApplicator, externalSystem string, inputs "
+           "ExternalSystemMetadataMappingInputs) (ExternalSystemCallResponse, bool, error) {\n";
+    out << "\tfor _, descriptor := range ExternalSystemDescriptors() {\n";
+    out << "\t\tif descriptor.Name == externalSystem {\n";
+    out << "\t\t\tresponse, err := CallExternalSystem(ctx, client, applicator, descriptor, "
+           "inputs)\n";
+    out << "\t\t\treturn response, true, err\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn ExternalSystemCallResponse{}, false, nil\n";
+    out << "}\n\n";
+
     return out.str();
 }
 

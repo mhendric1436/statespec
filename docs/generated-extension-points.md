@@ -34,8 +34,8 @@ Generated code owns:
   backend workflow stores
 - transaction-scoped catalog registration helpers for queues, leases, workflows, feature
   flags, logs, and metrics
-- operator metadata lookup, mapping, repository, and API handler contracts for external
-  systems
+- operator metadata lookup, default mapping applicators, external-system client call
+  adapters, default generic repositories, and API handler contracts for external systems
 
 User-owned code owns:
 
@@ -44,13 +44,31 @@ User-owned code owns:
 - HTTP server framework adapters and request/response serialization
 - worker and queue polling runtime adapters when the generated runtime is not sufficient
 - backend implementations for the OCC interfaces
-- external client construction, auth, retry policy, timeout policy, and remote API calls
+- external client construction, protocol selection, auth, retry policy, timeout policy,
+  and remote API calls
 - production composition adapters that replace generated default handlers or the
   generated in-memory backend
 
 The composition root may use the generated in-memory backend for local tests and
 examples. Production applications should provide a durable backend adapter behind the
 same generated interfaces.
+
+## External System Client Extension Point
+
+External-system call adapters are generated as framework-neutral helpers. They apply the
+generated metadata mapping plan, fail before invoking a remote system when required
+mapping sources are missing, and pass a generic call request to an injected client.
+
+| Language | Generated external-system client surface |
+|---|---|
+| C++ | `statespec_generated::IExternalSystemClient` |
+| Go | `common.ExternalSystemClient` |
+| Java | `Descriptors.ExternalSystemClient` |
+| Rust | `descriptors::ExternalSystemClient` |
+
+The injected client owns protocol-specific behavior: HTTP or RPC transport, URL and
+header construction, authentication, retries, timeouts, response decoding, and
+circuit-breaker behavior.
 
 ## API Handler Extension Point
 
@@ -112,9 +130,12 @@ request object for upsert, get, disable, or delete.
 | Java | `Descriptors.ExternalSystemOperatorMetadataApiHandler` |
 | Rust | `descriptors::ExternalSystemOperatorMetadataApiHandler` |
 
-The handler should enforce operator-specific policy and response shaping. The repository
-implementation remains backend-owned and must enforce optimistic concurrency through the
-transaction passed into the handler.
+The handler should enforce operator-specific policy and response shaping. The generated
+default repository persists metadata through generic OCC collection/document operations
+on the transaction passed into the handler, including expected-version checks for
+operator updates. Production adapters may wrap or replace the generated repository for
+extra policy or credential-manager integration, but backend implementations should remain
+unaware of external-system metadata concepts.
 
 ## Worker Runtime Extension Point
 
