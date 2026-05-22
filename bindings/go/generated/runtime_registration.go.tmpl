@@ -1,189 +1,26 @@
-func featureFlagTypeFromDescriptor(flagType string) FeatureFlagType {
-	switch flagType {
-	case "string":
-		return FeatureFlagString
-	case "int":
-		return FeatureFlagInteger
-	case "decimal":
-		return FeatureFlagDecimal
-	default:
-		return FeatureFlagBool
-	}
-}
-
-func featureFlagScopeFromDescriptor(scope string) FeatureFlagScopeKind {
-	switch {
-	case scope == "system":
-		return FeatureFlagScopeSystem
-	case scope == "user":
-		return FeatureFlagScopeUser
-	case strings.HasPrefix(scope, "entity "):
-		return FeatureFlagScopeEntity
-	default:
-		return FeatureFlagScopeTenant
-	}
-}
-
-func featureFlagValueFromDescriptor(definition FeatureFlagDescriptor) FeatureFlagValue {
-	switch definition.Type {
-	case "string":
-		return StringFeatureFlagValue(definition.DefaultValue)
-	case "int":
-		value, _ := strconv.ParseInt(definition.DefaultValue, 10, 64)
-		return IntegerFeatureFlagValue(value)
-	case "decimal":
-		value, _ := strconv.ParseFloat(definition.DefaultValue, 64)
-		return DecimalFeatureFlagValue(value)
-	default:
-		return BoolFeatureFlagValue(definition.DefaultValue == "true")
-	}
-}
-
-func leaseDefinitionFromDescriptor(definition LeaseDescriptor) LeaseDefinition {
-	resourcePattern := definition.Name
-	if definition.Resource != nil {
-		resourcePattern = *definition.Resource
-	}
-	renewEvery := definition.TTL
-	if definition.RenewEvery != nil {
-		renewEvery = *definition.RenewEvery
-	}
-	return LeaseDefinition{
-		ID:              LeaseDefinitionID{Name: definition.Name, Version: 1},
-		ResourcePattern: resourcePattern,
-		TTL:             definition.TTL,
-		RenewEvery:      renewEvery,
-		MaxTTL:          definition.MaxTTL,
-		FencingToken:    definition.FencingToken,
-	}
-}
-
-func EnsureSystemCollections(ctx context.Context, backend Backend) error {
+{{feature_flag_helpers}}{{lease_helpers}}func EnsureSystemCollections(ctx context.Context, backend Backend) error {
 	return backend.EnsureCollections(ctx, CollectionDescriptors())
 }
 
-func RegisterFeatureFlagDefinitionsTx(ctx context.Context, tx Transaction, store FeatureFlagStore) error {
-	for _, definition := range FeatureFlagDefinitions() {
-		_, err := store.RegisterDefinitionTx(ctx, tx, FeatureFlagDefinition{
-			Name:         definition.Name,
-			Type:         featureFlagTypeFromDescriptor(definition.Type),
-			DefaultValue: featureFlagValueFromDescriptor(definition),
-			Scope:        featureFlagScopeFromDescriptor(definition.Scope),
-			Owner:        definition.Owner,
-			Description:  definition.Description,
-			Expires:      definition.Expires,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+{{domain_registration_helpers}}func RegisterRuntimeCatalogTx(ctx context.Context, tx Transaction{{tx_parameters}}) error {
+{{tx_calls}}	return nil
 }
 
-func RegisterQueueDefinitionsTx(ctx context.Context, tx Transaction, store QueueStore) error {
-	for _, definition := range QueueDefinitions() {
-		_, err := store.RegisterDefinitionTx(
-			ctx,
-			tx,
-			RegisterQueueDefinitionRequest{Definition: definition},
-		)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func RegisterLeaseDefinitionsTx(ctx context.Context, tx Transaction, store LeaseStore) error {
-	for _, definition := range LeaseDefinitions() {
-		_, err := store.RegisterDefinitionTx(ctx, tx, leaseDefinitionFromDescriptor(definition))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func RegisterLogDefinitionsTx(ctx context.Context, tx Transaction, sink LogSink) error {
-	for _, definition := range LogDefinitions() {
-		_, err := sink.RegisterDefinitionTx(ctx, tx, LogSignalDefinition{
-			Name:      definition.Name,
-			Level:     logLevelFromDescriptor(definition.Level),
-			EventName: definition.EventName,
-			Fields:    definition.Fields,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func RegisterMetricDefinitionsTx(ctx context.Context, tx Transaction, sink MetricSink) error {
-	for _, definition := range MetricDefinitions() {
-		_, err := sink.RegisterDefinitionTx(ctx, tx, MetricInstrumentDefinition{
-			Name:        definition.Name,
-			Kind:        metricKindFromDescriptor(definition.Kind),
-			BackendName: definition.BackendName,
-			Unit:        definition.Unit,
-			Labels:      definition.Labels,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func RegisterObservabilityCatalogTx(ctx context.Context, tx Transaction, logSink LogSink, metricSink MetricSink) error {
-	if err := RegisterLogDefinitionsTx(ctx, tx, logSink); err != nil {
-		return err
-	}
-	return RegisterMetricDefinitionsTx(ctx, tx, metricSink)
-}
-
-func RegisterWorkflowDefinitionsTx(ctx context.Context, tx Transaction, store WorkflowStore) error {
-	for _, definition := range WorkflowDefinitions() {
-		_, err := store.RegisterDefinitionTx(ctx, tx, RegisterWorkflowDefinitionRequest{Definition: definition})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func RegisterRuntimeCatalogTx(ctx context.Context, tx Transaction, featureFlagStore FeatureFlagStore, queueStore QueueStore, leaseStore LeaseStore, workflowStore WorkflowStore, logSink LogSink, metricSink MetricSink) error {
-	if err := RegisterFeatureFlagDefinitionsTx(ctx, tx, featureFlagStore); err != nil {
-		return err
-	}
-	if err := RegisterQueueDefinitionsTx(ctx, tx, queueStore); err != nil {
-		return err
-	}
-	if err := RegisterLeaseDefinitionsTx(ctx, tx, leaseStore); err != nil {
-		return err
-	}
-	if err := RegisterWorkflowDefinitionsTx(ctx, tx, workflowStore); err != nil {
-		return err
-	}
-	return RegisterObservabilityCatalogTx(ctx, tx, logSink, metricSink)
-}
-
-func RegisterRuntimeCatalog(ctx context.Context, backend Backend, featureFlagStore FeatureFlagStore, queueStore QueueStore, leaseStore LeaseStore, workflowStore WorkflowStore, logSink LogSink, metricSink MetricSink) error {
+func RegisterRuntimeCatalog(ctx context.Context, backend Backend{{runtime_parameters}}) error {
 	tx, err := backend.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	if err := RegisterRuntimeCatalogTx(ctx, tx, featureFlagStore, queueStore, leaseStore, workflowStore, logSink, metricSink); err != nil {
+	if err := RegisterRuntimeCatalogTx(ctx, tx{{runtime_arguments}}); err != nil {
 		_ = tx.Abort(ctx)
 		return err
 	}
 	return backend.Commit(ctx, tx)
 }
 
-func BootstrapRuntimeCatalog(ctx context.Context, backend Backend, featureFlagStore FeatureFlagStore, queueStore QueueStore, leaseStore LeaseStore, workflowStore WorkflowStore, logSink LogSink, metricSink MetricSink) error {
+func BootstrapRuntimeCatalog(ctx context.Context, backend Backend{{runtime_parameters}}) error {
 	if err := EnsureSystemCollections(ctx, backend); err != nil {
 		return err
 	}
-	return RegisterRuntimeCatalog(ctx, backend, featureFlagStore, queueStore, leaseStore, workflowStore, logSink, metricSink)
+	return RegisterRuntimeCatalog(ctx, backend{{runtime_arguments}})
 }
-

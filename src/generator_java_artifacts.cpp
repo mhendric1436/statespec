@@ -2,11 +2,48 @@
 
 #include "generator_java_descriptors.hpp"
 #include "generator_support.hpp"
+#include "statespec/runtime_usage.hpp"
 
 #include <filesystem>
+#include <sstream>
 
 namespace statespec
 {
+namespace
+{
+
+TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream arguments;
+    if (usage.uses_feature_flags)
+    {
+        arguments << ", featureFlags";
+    }
+    if (usage.uses_queues)
+    {
+        arguments << ", queues";
+    }
+    if (usage.uses_leases)
+    {
+        arguments << ", leases";
+    }
+    if (usage.uses_workflows)
+    {
+        arguments << ", workflows";
+    }
+    if (usage.uses_logs)
+    {
+        arguments << ", logs";
+    }
+    if (usage.uses_metrics)
+    {
+        arguments << ", metrics";
+    }
+    return TemplateRenderer::Values{{"runtime_bootstrap_arguments", arguments.str()}};
+}
+
+} // namespace
 
 void add_java_common_runtime_artifacts(
     GenerationResult& result,
@@ -152,7 +189,8 @@ void add_java_api_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates,
         "api/com/statespec/generated/ApiApplication.java.tmpl",
-        "api/com/statespec/generated/ApiApplication.java", diagnostics, GeneratedArtifactTier::Api
+        "api/com/statespec/generated/ApiApplication.java", diagnostics, GeneratedArtifactTier::Api,
+        java_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/com/statespec/generated/ApiCodecs.java.tmpl",
@@ -240,7 +278,7 @@ void add_java_worker_artifacts(
         result, options.output_dir, templates,
         "worker/com/statespec/generated/WorkerRuntime.java.tmpl",
         "worker/com/statespec/generated/WorkerRuntime.java", diagnostics,
-        GeneratedArtifactTier::Worker
+        GeneratedArtifactTier::Worker, java_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates,

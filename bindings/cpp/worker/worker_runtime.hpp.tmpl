@@ -49,9 +49,7 @@ class WorkerRuntime
         auto tx = backend_.begin();
         try
         {
-            ::statespec_generated::register_runtime_catalogTx(
-                *tx, feature_flags_, queues_, leases_, workflows_, logs_, metrics_
-            );
+            ::statespec_generated::register_runtime_catalogTx(*tx{{runtime_bootstrap_arguments}});
             backend_.commit(*tx);
         }
         catch (...)

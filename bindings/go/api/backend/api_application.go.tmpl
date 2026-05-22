@@ -43,7 +43,7 @@ func NewDefaultAPITierApplication(backend common.Backend, serverName string) (*A
 }
 
 func (app *APITierApplication) Bootstrap(ctx context.Context) error {
-	return common.BootstrapRuntimeCatalog(ctx, app.Backend, app.FeatureFlags, app.Queues, app.Leases, app.Workflows, app.Logs, app.Metrics)
+	return common.BootstrapRuntimeCatalog(ctx, app.Backend{{runtime_bootstrap_arguments}})
 }
 
 var _ = common.APIResponse{}

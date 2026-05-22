@@ -2,6 +2,7 @@
 
 #include "generator_cpp_descriptors.hpp"
 #include "generator_support.hpp"
+#include "statespec/runtime_usage.hpp"
 
 #include <sstream>
 
@@ -77,6 +78,37 @@ TemplateRenderer::Values cpp_makefile_values(BindingGenerationTier tier)
         {"api_rules", api_rules.str()},
         {"worker_rules", worker_rules.str()},
     };
+}
+
+TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream arguments;
+    if (usage.uses_feature_flags)
+    {
+        arguments << ", feature_flags_";
+    }
+    if (usage.uses_queues)
+    {
+        arguments << ", queues_";
+    }
+    if (usage.uses_leases)
+    {
+        arguments << ", leases_";
+    }
+    if (usage.uses_workflows)
+    {
+        arguments << ", workflows_";
+    }
+    if (usage.uses_logs)
+    {
+        arguments << ", logs_";
+    }
+    if (usage.uses_metrics)
+    {
+        arguments << ", metrics_";
+    }
+    return TemplateRenderer::Values{{"runtime_bootstrap_arguments", arguments.str()}};
 }
 
 } // namespace
@@ -209,7 +241,8 @@ void add_cpp_api_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_application.hpp.tmpl",
-        "api/api_application.hpp", diagnostics, GeneratedArtifactTier::Api
+        "api/api_application.hpp", diagnostics, GeneratedArtifactTier::Api,
+        cpp_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_codecs.hpp.tmpl", "api/api_codecs.hpp",
@@ -282,7 +315,8 @@ void add_cpp_worker_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_runtime.hpp.tmpl",
-        "worker/worker_runtime.hpp", diagnostics, GeneratedArtifactTier::Worker
+        "worker/worker_runtime.hpp", diagnostics, GeneratedArtifactTier::Worker,
+        cpp_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/workflow_step_handlers.hpp.tmpl",

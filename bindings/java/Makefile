@@ -2,7 +2,7 @@ JAVA ?= java
 JAVAC ?= javac
 CLANG_FORMAT ?= clang-format
 JAVA_SOURCES := $(shell find com -name '*.java')
-GENERATED_FORMAT_TEMPLATES := $(filter-out generated/Descriptors.java.tmpl,$(wildcard generated/*.java.tmpl))
+GENERATED_FORMAT_TEMPLATES := $(filter-out generated/Descriptors.java.tmpl generated/RuntimeRegistration.java.tmpl,$(wildcard generated/*.java.tmpl))
 FORMAT_FILES := $(JAVA_SOURCES) $(GENERATED_FORMAT_TEMPLATES)
 
 .PHONY: test format clean help

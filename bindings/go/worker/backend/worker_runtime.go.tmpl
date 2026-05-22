@@ -35,7 +35,7 @@ func (runtime *WorkerTierRuntime) RegisterDefinitions(ctx context.Context) error
 }
 
 func (runtime *WorkerTierRuntime) Bootstrap(ctx context.Context) error {
-	return common.BootstrapRuntimeCatalog(ctx, runtime.Backend, runtime.FeatureFlags, runtime.Queues, runtime.Leases, runtime.Workflows, runtime.Logs, runtime.Metrics)
+	return common.BootstrapRuntimeCatalog(ctx, runtime.Backend{{runtime_bootstrap_arguments}})
 }
 
 func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext common.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {

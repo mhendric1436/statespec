@@ -38,15 +38,7 @@ public final class WorkerRuntime {
     }
 
     public void bootstrap() throws Backend.BackendException {
-        Descriptors.bootstrapRuntimeCatalog(
-            backend,
-            featureFlags,
-            queues,
-            leases,
-            workflows,
-            logs,
-            metrics
-        );
+        Descriptors.bootstrapRuntimeCatalog(backend{{runtime_bootstrap_arguments}});
     }
 
     public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> runOnce(

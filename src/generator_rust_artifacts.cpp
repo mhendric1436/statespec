@@ -2,6 +2,7 @@
 
 #include "generator_rust_descriptors.hpp"
 #include "generator_support.hpp"
+#include "statespec/runtime_usage.hpp"
 
 #include <sstream>
 
@@ -113,6 +114,46 @@ TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
     return TemplateRenderer::Values{
         {"api_modules", api_modules.str()},
         {"worker_modules", worker_modules.str()},
+    };
+}
+
+TemplateRenderer::Values rust_runtime_bootstrap_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream generics;
+    std::ostringstream arguments;
+    auto add = [&](std::string_view type, std::string_view member)
+    {
+        generics << ", " << type;
+        arguments << ", &self." << member;
+    };
+    if (usage.uses_feature_flags)
+    {
+        add("RuntimeFeatureFlagStore", "feature_flags");
+    }
+    if (usage.uses_queues)
+    {
+        add("RuntimeQueueStore", "queues");
+    }
+    if (usage.uses_leases)
+    {
+        add("RuntimeLeaseStore", "leases");
+    }
+    if (usage.uses_workflows)
+    {
+        add("RuntimeWorkflowStore", "workflows");
+    }
+    if (usage.uses_logs)
+    {
+        add("RuntimeLogSink", "logs");
+    }
+    if (usage.uses_metrics)
+    {
+        add("RuntimeMetricSink", "metrics");
+    }
+    return TemplateRenderer::Values{
+        {"runtime_bootstrap_generic_arguments", generics.str()},
+        {"runtime_bootstrap_arguments", arguments.str()},
     };
 }
 
@@ -246,7 +287,8 @@ void add_rust_api_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_application.rs.tmpl",
-        "api/api_application.rs", diagnostics, GeneratedArtifactTier::Api
+        "api/api_application.rs", diagnostics, GeneratedArtifactTier::Api,
+        rust_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_codecs.rs.tmpl", "api/api_codecs.rs",
@@ -319,7 +361,8 @@ void add_rust_worker_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_runtime.rs.tmpl",
-        "worker/worker_runtime.rs", diagnostics, GeneratedArtifactTier::Worker
+        "worker/worker_runtime.rs", diagnostics, GeneratedArtifactTier::Worker,
+        rust_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/workflow_step_handlers.rs.tmpl",

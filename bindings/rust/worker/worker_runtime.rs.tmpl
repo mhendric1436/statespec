@@ -39,22 +39,8 @@ impl<B: Backend> WorkerRuntime<B> {
     }
 
     pub fn bootstrap(&self) -> crate::backend::BackendResult<()> {
-        crate::descriptors::bootstrap_runtime_catalog::<
-            B,
-            RuntimeFeatureFlagStore,
-            RuntimeQueueStore,
-            RuntimeLeaseStore,
-            RuntimeWorkflowStore,
-            RuntimeLogSink,
-            RuntimeMetricSink,
-        >(
-            &self.backend,
-            &self.feature_flags,
-            &self.queues,
-            &self.leases,
-            &self.workflows,
-            &self.logs,
-            &self.metrics,
+        crate::descriptors::bootstrap_runtime_catalog::<B{{runtime_bootstrap_generic_arguments}}>(
+            &self.backend{{runtime_bootstrap_arguments}},
         )
     }
 

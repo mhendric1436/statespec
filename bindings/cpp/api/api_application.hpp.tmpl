@@ -50,9 +50,7 @@ class ApiApplication
 
     void bootstrap()
     {
-        ::statespec_generated::bootstrap_runtime_catalog(
-            backend_, feature_flags_, queues_, leases_, workflows_, logs_, metrics_
-        );
+        ::statespec_generated::bootstrap_runtime_catalog(backend_{{runtime_bootstrap_arguments}});
     }
 
   private:

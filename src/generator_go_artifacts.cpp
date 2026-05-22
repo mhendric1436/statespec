@@ -2,6 +2,7 @@
 
 #include "generator_go_descriptors.hpp"
 #include "generator_support.hpp"
+#include "statespec/runtime_usage.hpp"
 
 #include <sstream>
 
@@ -56,6 +57,50 @@ TemplateRenderer::Values go_makefile_values(BindingGenerationTier tier)
         {"api_rules", api_rules.str()},
         {"worker_rules", worker_rules.str()},
     };
+}
+
+TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream arguments;
+    if (usage.uses_feature_flags)
+    {
+        arguments << ", app.FeatureFlags";
+    }
+    if (usage.uses_queues)
+    {
+        arguments << ", app.Queues";
+    }
+    if (usage.uses_leases)
+    {
+        arguments << ", app.Leases";
+    }
+    if (usage.uses_workflows)
+    {
+        arguments << ", app.Workflows";
+    }
+    if (usage.uses_logs)
+    {
+        arguments << ", app.Logs";
+    }
+    if (usage.uses_metrics)
+    {
+        arguments << ", app.Metrics";
+    }
+    return TemplateRenderer::Values{{"runtime_bootstrap_arguments", arguments.str()}};
+}
+
+TemplateRenderer::Values go_worker_runtime_bootstrap_values(const IrSystem& system)
+{
+    auto values = go_runtime_bootstrap_values(system);
+    auto& arguments = values["runtime_bootstrap_arguments"];
+    std::size_t pos = 0;
+    while ((pos = arguments.find("app.", pos)) != std::string::npos)
+    {
+        arguments.replace(pos, 4, "runtime.");
+        pos += 8;
+    }
+    return values;
 }
 
 } // namespace
@@ -198,7 +243,8 @@ void add_go_api_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_application.go.tmpl",
-        "api/backend/api_application.go", diagnostics, GeneratedArtifactTier::Api
+        "api/backend/api_application.go", diagnostics, GeneratedArtifactTier::Api,
+        go_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_codecs.go.tmpl",
@@ -273,7 +319,8 @@ void add_go_worker_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/backend/worker_runtime.go.tmpl",
-        "worker/backend/worker_runtime.go", diagnostics, GeneratedArtifactTier::Worker
+        "worker/backend/worker_runtime.go", diagnostics, GeneratedArtifactTier::Worker,
+        go_worker_runtime_bootstrap_values(system)
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/backend/workflow_step_handlers.go.tmpl",

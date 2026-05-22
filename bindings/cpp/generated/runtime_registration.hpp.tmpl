@@ -1,216 +1,22 @@
-inline statespec::backend::FeatureFlagType feature_flag_type_from_string(std::string_view type)
-{
-    if (type == "string")
-    {
-        return statespec::backend::FeatureFlagType::String;
-    }
-    if (type == "int")
-    {
-        return statespec::backend::FeatureFlagType::Integer;
-    }
-    if (type == "decimal")
-    {
-        return statespec::backend::FeatureFlagType::Decimal;
-    }
-    return statespec::backend::FeatureFlagType::Bool;
-}
-
-inline statespec::backend::FeatureFlagScopeKind
-feature_flag_scope_from_string(std::string_view scope)
-{
-    if (scope == "system")
-    {
-        return statespec::backend::FeatureFlagScopeKind::System;
-    }
-    if (scope == "user")
-    {
-        return statespec::backend::FeatureFlagScopeKind::User;
-    }
-    if (scope.rfind("entity ", 0) == 0)
-    {
-        return statespec::backend::FeatureFlagScopeKind::Entity;
-    }
-    return statespec::backend::FeatureFlagScopeKind::Tenant;
-}
-
-inline statespec::backend::FeatureFlagValue
-feature_flag_value_from_descriptor(const FeatureFlagDefinition& definition)
-{
-    if (definition.type == "string")
-    {
-        return statespec::backend::FeatureFlagValue::string_value(definition.default_value);
-    }
-    if (definition.type == "int")
-    {
-        return statespec::backend::FeatureFlagValue::integer_value(
-            std::stoll(definition.default_value)
-        );
-    }
-    if (definition.type == "decimal")
-    {
-        return statespec::backend::FeatureFlagValue::decimal_value(
-            std::stod(definition.default_value)
-        );
-    }
-    return statespec::backend::FeatureFlagValue::bool_value(definition.default_value == "true");
-}
-
-inline void ensure_system_collections(statespec::backend::IBackend& backend)
+{{feature_flag_helpers}}{{lease_helpers}}inline void ensure_system_collections(statespec::backend::IBackend& backend)
 {
     backend.ensure_collections(collection_descriptors());
 }
 
-inline void register_feature_flag_definitionsTx(
-    statespec::backend::ITransaction& tx,
-    statespec::backend::IFeatureFlagStore& store
+{{domain_registration_helpers}}inline void register_runtime_catalogTx(
+    statespec::backend::ITransaction& tx{{tx_parameters}}
 )
 {
-    for (const auto& definition : feature_flag_definitions())
-    {
-        store.register_definitionTx(
-            tx, statespec::backend::FeatureFlagDefinition{
-                    definition.name,
-                    feature_flag_type_from_string(definition.type),
-                    feature_flag_value_from_descriptor(definition),
-                    feature_flag_scope_from_string(definition.scope),
-                    definition.owner,
-                    definition.description,
-                    definition.expires,
-                }
-        );
-    }
-}
-
-inline void register_queue_definitionsTx(
-    statespec::backend::ITransaction& tx,
-    statespec::backend::IQueueStore& store
-)
-{
-    for (const auto& definition : queue_definitions())
-    {
-        store.register_definitionTx(
-            tx, statespec::backend::RegisterQueueDefinitionRequest{definition}
-        );
-    }
-}
-
-inline statespec::backend::LeaseDefinition
-lease_definition_from_descriptor(const LeaseDefinition& definition)
-{
-    return statespec::backend::LeaseDefinition{
-        statespec::backend::LeaseDefinitionId{definition.name, 1},
-        definition.resource.value_or(definition.name),
-        definition.ttl,
-        definition.renew_every.value_or(definition.ttl),
-        definition.max_ttl,
-        definition.fencing_token,
-    };
-}
-
-inline void register_lease_definitionsTx(
-    statespec::backend::ITransaction& tx,
-    statespec::backend::ILeaseStore& store
-)
-{
-    for (const auto& definition : lease_definitions())
-    {
-        store.register_definitionTx(tx, lease_definition_from_descriptor(definition));
-    }
-}
-
-inline void register_log_definitionsTx(
-    statespec::backend::ITransaction& tx,
-    statespec::backend::ILogSink& sink
-)
-{
-    for (const auto& definition : log_definitions())
-    {
-        sink.register_definitionTx(
-            tx, statespec::backend::LogDefinition{
-                    definition.name,
-                    log_level_from_string(definition.level),
-                    definition.event_name,
-                    definition.fields,
-                }
-        );
-    }
-}
-
-inline void register_metric_definitionsTx(
-    statespec::backend::ITransaction& tx,
-    statespec::backend::IMetricSink& sink
-)
-{
-    for (const auto& definition : metric_definitions())
-    {
-        sink.register_definitionTx(
-            tx, statespec::backend::MetricDefinition{
-                    definition.name,
-                    metric_kind_from_string(definition.kind),
-                    definition.backend_name,
-                    definition.unit,
-                    definition.labels,
-                }
-        );
-    }
-}
-
-inline void register_observability_catalogTx(
-    statespec::backend::ITransaction& tx,
-    statespec::backend::ILogSink& log_sink,
-    statespec::backend::IMetricSink& metric_sink
-)
-{
-    register_log_definitionsTx(tx, log_sink);
-    register_metric_definitionsTx(tx, metric_sink);
-}
-
-inline void register_workflow_definitionsTx(
-    statespec::backend::ITransaction& tx,
-    statespec::backend::IWorkflowStore& workflow_store
-)
-{
-    for (const auto& definition : workflow_definitions())
-    {
-        workflow_store.register_definitionTx(
-            tx, statespec::backend::RegisterWorkflowDefinitionRequest{definition}
-        );
-    }
-}
-
-inline void register_runtime_catalogTx(
-    statespec::backend::ITransaction& tx,
-    statespec::backend::IFeatureFlagStore& feature_flag_store,
-    statespec::backend::IQueueStore& queue_store,
-    statespec::backend::ILeaseStore& lease_store,
-    statespec::backend::IWorkflowStore& workflow_store,
-    statespec::backend::ILogSink& log_sink,
-    statespec::backend::IMetricSink& metric_sink
-)
-{
-    register_feature_flag_definitionsTx(tx, feature_flag_store);
-    register_queue_definitionsTx(tx, queue_store);
-    register_lease_definitionsTx(tx, lease_store);
-    register_workflow_definitionsTx(tx, workflow_store);
-    register_observability_catalogTx(tx, log_sink, metric_sink);
-}
+{{tx_calls}}}
 
 inline void register_runtime_catalog(
-    statespec::backend::IBackend& backend,
-    statespec::backend::IFeatureFlagStore& feature_flag_store,
-    statespec::backend::IQueueStore& queue_store,
-    statespec::backend::ILeaseStore& lease_store,
-    statespec::backend::IWorkflowStore& workflow_store,
-    statespec::backend::ILogSink& log_sink,
-    statespec::backend::IMetricSink& metric_sink
+    statespec::backend::IBackend& backend{{runtime_parameters}}
 )
 {
     auto tx = backend.begin();
     try
     {
-        register_runtime_catalogTx(
-            *tx, feature_flag_store, queue_store, lease_store, workflow_store, log_sink, metric_sink
-        );
+        register_runtime_catalogTx(*tx{{runtime_arguments}});
         backend.commit(*tx);
     }
     catch (...)
@@ -221,17 +27,9 @@ inline void register_runtime_catalog(
 }
 
 inline void bootstrap_runtime_catalog(
-    statespec::backend::IBackend& backend,
-    statespec::backend::IFeatureFlagStore& feature_flag_store,
-    statespec::backend::IQueueStore& queue_store,
-    statespec::backend::ILeaseStore& lease_store,
-    statespec::backend::IWorkflowStore& workflow_store,
-    statespec::backend::ILogSink& log_sink,
-    statespec::backend::IMetricSink& metric_sink
+    statespec::backend::IBackend& backend{{runtime_parameters}}
 )
 {
     ensure_system_collections(backend);
-    register_runtime_catalog(
-        backend, feature_flag_store, queue_store, lease_store, workflow_store, log_sink, metric_sink
-    );
+    register_runtime_catalog(backend{{runtime_arguments}});
 }
