@@ -4,6 +4,7 @@
 #include "api_server.hpp"
 
 #include "../common/runtime/feature_flag_store.hpp"
+#include "../common/runtime/lease_store.hpp"
 #include "../common/runtime/log_sink.hpp"
 #include "../common/runtime/metric_sink.hpp"
 #include "../common/runtime/queue_store.hpp"
@@ -25,6 +26,7 @@ class ApiApplication
     )
         : backend_(backend),
           feature_flags_(),
+          leases_(),
           logs_(),
           metrics_(),
           queues_(),
@@ -46,6 +48,13 @@ class ApiApplication
         return backend_;
     }
 
+    void bootstrap()
+    {
+        ::statespec_generated::bootstrap_runtime_catalog(
+            backend_, feature_flags_, queues_, leases_, workflows_, logs_, metrics_
+        );
+    }
+
   private:
     static ApiServerDescriptor find_required_server(std::string_view server_name)
     {
@@ -59,6 +68,7 @@ class ApiApplication
 
     statespec::backend::IBackend& backend_;
     statespec::backend::runtime::RuntimeFeatureFlagStore feature_flags_;
+    statespec::backend::runtime::RuntimeLeaseStore leases_;
     statespec::backend::runtime::RuntimeLogSink logs_;
     statespec::backend::runtime::RuntimeMetricSink metrics_;
     statespec::backend::runtime::RuntimeQueueStore queues_;

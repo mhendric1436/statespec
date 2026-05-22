@@ -2,6 +2,7 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.runtime.FeatureFlagStore;
+import com.statespec.backend.runtime.LeaseStore;
 import com.statespec.backend.runtime.LogSink;
 import com.statespec.backend.runtime.MetricSink;
 import com.statespec.backend.runtime.QueueStore;
@@ -10,6 +11,7 @@ import com.statespec.backend.runtime.WorkflowStore;
 public final class ApiApplication {
     private final Backend backend;
     private final FeatureFlagStore featureFlags;
+    private final LeaseStore leases;
     private final LogSink logs;
     private final MetricSink metrics;
     private final QueueStore queues;
@@ -22,6 +24,7 @@ public final class ApiApplication {
                 .orElseThrow(() -> new IllegalArgumentException("unknown generated API server"));
         this.backend = backend;
         this.featureFlags = new FeatureFlagStore();
+        this.leases = new LeaseStore();
         this.logs = new LogSink();
         this.metrics = new MetricSink();
         this.queues = new QueueStore();
@@ -35,6 +38,18 @@ public final class ApiApplication {
 
     public Backend backend() {
         return backend;
+    }
+
+    public void bootstrap() throws Backend.BackendException {
+        Descriptors.bootstrapRuntimeCatalog(
+            backend,
+            featureFlags,
+            queues,
+            leases,
+            workflows,
+            logs,
+            metrics
+        );
     }
 
     public ApiServer server() {

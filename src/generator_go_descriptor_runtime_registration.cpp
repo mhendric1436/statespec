@@ -192,6 +192,31 @@ std::string generate_go_runtime_registration(const IrSystem&)
     out << "\t}\n";
     out << "\treturn RegisterObservabilityCatalogTx(ctx, tx, logSink, metricSink)\n";
     out << "}\n";
+
+    out << "\nfunc RegisterRuntimeCatalog(ctx context.Context, backend Backend, "
+           "featureFlagStore FeatureFlagStore, queueStore QueueStore, leaseStore LeaseStore, "
+           "workflowStore WorkflowStore, logSink LogSink, metricSink MetricSink) error {\n";
+    out << "\ttx, err := backend.Begin(ctx)\n";
+    out << "\tif err != nil {\n";
+    out << "\t\treturn err\n";
+    out << "\t}\n";
+    out << "\tif err := RegisterRuntimeCatalogTx(ctx, tx, featureFlagStore, queueStore, "
+           "leaseStore, workflowStore, logSink, metricSink); err != nil {\n";
+    out << "\t\t_ = tx.Abort(ctx)\n";
+    out << "\t\treturn err\n";
+    out << "\t}\n";
+    out << "\treturn backend.Commit(ctx, tx)\n";
+    out << "}\n";
+
+    out << "\nfunc BootstrapRuntimeCatalog(ctx context.Context, backend Backend, "
+           "featureFlagStore FeatureFlagStore, queueStore QueueStore, leaseStore LeaseStore, "
+           "workflowStore WorkflowStore, logSink LogSink, metricSink MetricSink) error {\n";
+    out << "\tif err := EnsureSystemCollections(ctx, backend); err != nil {\n";
+    out << "\t\treturn err\n";
+    out << "\t}\n";
+    out << "\treturn RegisterRuntimeCatalog(ctx, backend, featureFlagStore, queueStore, "
+           "leaseStore, workflowStore, logSink, metricSink)\n";
+    out << "}\n";
     return out.str();
 }
 

@@ -6,7 +6,10 @@
 #include "worker_workflows.hpp"
 #include "workflow_runner.hpp"
 
+#include "../common/runtime/feature_flag_store.hpp"
 #include "../common/runtime/lease_store.hpp"
+#include "../common/runtime/log_sink.hpp"
+#include "../common/runtime/metric_sink.hpp"
 #include "../common/runtime/queue_store.hpp"
 #include "../common/runtime/workflow_store.hpp"
 
@@ -22,7 +25,10 @@ class WorkerRuntime
   public:
     explicit WorkerRuntime(statespec::backend::IBackend& backend)
         : backend_(backend),
+          feature_flags_(),
           leases_(),
+          logs_(),
+          metrics_(),
           queues_(),
           workflows_()
     {
@@ -35,11 +41,24 @@ class WorkerRuntime
 
     void register_definitions()
     {
+        bootstrap();
+    }
+
+    void bootstrap()
+    {
         auto tx = backend_.begin();
-        register_lease_definitionsTx(*tx, leases_);
-        register_queue_definitionsTx(*tx, queues_);
-        register_workflow_definitionsTx(*tx, workflows_);
-        backend_.commit(*tx);
+        try
+        {
+            ::statespec_generated::register_runtime_catalogTx(
+                *tx, feature_flags_, queues_, leases_, workflows_, logs_, metrics_
+            );
+            backend_.commit(*tx);
+        }
+        catch (...)
+        {
+            tx->abort();
+            throw;
+        }
     }
 
     std::optional<statespec::backend::WorkflowExecutionRecord> run_once(
@@ -60,7 +79,10 @@ class WorkerRuntime
 
   private:
     statespec::backend::IBackend& backend_;
+    statespec::backend::runtime::RuntimeFeatureFlagStore feature_flags_;
     statespec::backend::runtime::RuntimeLeaseStore leases_;
+    statespec::backend::runtime::RuntimeLogSink logs_;
+    statespec::backend::runtime::RuntimeMetricSink metrics_;
     statespec::backend::runtime::RuntimeQueueStore queues_;
     statespec::backend::runtime::RuntimeWorkflowStore workflows_;
 };

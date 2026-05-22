@@ -3,6 +3,7 @@ use crate::api_handlers::ApiHandler;
 use crate::api_server::{find_api_server, ApiServer};
 use crate::backend::Backend;
 use crate::runtime_feature_flags::RuntimeFeatureFlagStore;
+use crate::runtime_leases::RuntimeLeaseStore;
 use crate::runtime_logs::RuntimeLogSink;
 use crate::runtime_metrics::RuntimeMetricSink;
 use crate::runtime_queues::RuntimeQueueStore;
@@ -11,6 +12,7 @@ use crate::runtime_workflows::RuntimeWorkflowStore;
 pub struct ApiApplication<B: Backend, H: ApiHandler> {
     pub backend: B,
     pub feature_flags: RuntimeFeatureFlagStore,
+    pub leases: RuntimeLeaseStore,
     pub logs: RuntimeLogSink,
     pub metrics: RuntimeMetricSink,
     pub queues: RuntimeQueueStore,
@@ -24,12 +26,33 @@ impl<B: Backend, H: ApiHandler> ApiApplication<B, H> {
         Some(Self {
             backend,
             feature_flags: RuntimeFeatureFlagStore::new(),
+            leases: RuntimeLeaseStore::new(),
             logs: RuntimeLogSink::new(),
             metrics: RuntimeMetricSink::new(),
             queues: RuntimeQueueStore::new(),
             workflows: RuntimeWorkflowStore::new(),
             server: ApiServer::new(descriptor, handler),
         })
+    }
+
+    pub fn bootstrap(&self) -> crate::backend::BackendResult<()> {
+        crate::descriptors::bootstrap_runtime_catalog::<
+            B,
+            RuntimeFeatureFlagStore,
+            RuntimeQueueStore,
+            RuntimeLeaseStore,
+            RuntimeWorkflowStore,
+            RuntimeLogSink,
+            RuntimeMetricSink,
+        >(
+            &self.backend,
+            &self.feature_flags,
+            &self.queues,
+            &self.leases,
+            &self.workflows,
+            &self.logs,
+            &self.metrics,
+        )
     }
 }
 

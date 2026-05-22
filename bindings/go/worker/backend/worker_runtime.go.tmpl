@@ -9,39 +9,33 @@ import (
 )
 
 type WorkerTierRuntime struct {
-	Backend   common.Backend
-	Leases    *runtime.LeaseStore
-	Queues    *runtime.QueueStore
-	Workflows *runtime.WorkflowStore
+	Backend      common.Backend
+	FeatureFlags *runtime.FeatureFlagStore
+	Leases       *runtime.LeaseStore
+	Logs         *runtime.LogSink
+	Metrics      *runtime.MetricSink
+	Queues       *runtime.QueueStore
+	Workflows    *runtime.WorkflowStore
 }
 
 func NewWorkerTierRuntime(backend common.Backend) *WorkerTierRuntime {
 	return &WorkerTierRuntime{
-		Backend:   backend,
-		Leases:    runtime.NewLeaseStore(),
-		Queues:    runtime.NewQueueStore(),
-		Workflows: runtime.NewWorkflowStore(),
+		Backend:      backend,
+		FeatureFlags: runtime.NewFeatureFlagStore(),
+		Leases:       runtime.NewLeaseStore(),
+		Logs:         runtime.NewLogSink(),
+		Metrics:      runtime.NewMetricSink(),
+		Queues:       runtime.NewQueueStore(),
+		Workflows:    runtime.NewWorkflowStore(),
 	}
 }
 
 func (runtime *WorkerTierRuntime) RegisterDefinitions(ctx context.Context) error {
-	tx, err := runtime.Backend.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	if err := WorkerTierRegisterLeaseDefinitionsTx(ctx, tx, runtime.Leases); err != nil {
-		_ = tx.Abort(ctx)
-		return err
-	}
-	if err := WorkerTierRegisterQueueDefinitionsTx(ctx, tx, runtime.Queues); err != nil {
-		_ = tx.Abort(ctx)
-		return err
-	}
-	if err := WorkerTierRegisterWorkflowDefinitionsTx(ctx, tx, runtime.Workflows); err != nil {
-		_ = tx.Abort(ctx)
-		return err
-	}
-	return runtime.Backend.Commit(ctx, tx)
+	return runtime.Bootstrap(ctx)
+}
+
+func (runtime *WorkerTierRuntime) Bootstrap(ctx context.Context) error {
+	return common.BootstrapRuntimeCatalog(ctx, runtime.Backend, runtime.FeatureFlags, runtime.Queues, runtime.Leases, runtime.Workflows, runtime.Logs, runtime.Metrics)
 }
 
 func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext common.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {

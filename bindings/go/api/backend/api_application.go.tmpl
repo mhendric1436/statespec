@@ -1,6 +1,8 @@
 package backend
 
 import (
+	"context"
+
 	common "statespec-generated/common/backend"
 	runtime "statespec-generated/common/backend/runtime"
 )
@@ -8,6 +10,7 @@ import (
 type APITierApplication struct {
 	Backend      common.Backend
 	FeatureFlags *runtime.FeatureFlagStore
+	Leases       *runtime.LeaseStore
 	Logs         *runtime.LogSink
 	Metrics      *runtime.MetricSink
 	Queues       *runtime.QueueStore
@@ -23,6 +26,7 @@ func NewAPITierApplication(backend common.Backend, serverName string, handler AP
 	return &APITierApplication{
 		Backend:      backend,
 		FeatureFlags: runtime.NewFeatureFlagStore(),
+		Leases:       runtime.NewLeaseStore(),
 		Logs:         runtime.NewLogSink(),
 		Metrics:      runtime.NewMetricSink(),
 		Queues:       runtime.NewQueueStore(),
@@ -36,6 +40,10 @@ func NewAPITierApplication(backend common.Backend, serverName string, handler AP
 
 func NewDefaultAPITierApplication(backend common.Backend, serverName string) (*APITierApplication, bool) {
 	return NewAPITierApplication(backend, serverName, DefaultAPITierHandler{})
+}
+
+func (app *APITierApplication) Bootstrap(ctx context.Context) error {
+	return common.BootstrapRuntimeCatalog(ctx, app.Backend, app.FeatureFlags, app.Queues, app.Leases, app.Workflows, app.Logs, app.Metrics)
 }
 
 var _ = common.APIResponse{}

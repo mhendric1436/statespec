@@ -178,6 +178,54 @@ std::string generate_java_runtime_registration(const IrSystem&)
     out << "        registerWorkflowDefinitionsTx(tx, workflowStore);\n";
     out << "        registerObservabilityCatalogTx(tx, logSink, metricSink);\n";
     out << "    }\n";
+
+    out << "\n    public static void registerRuntimeCatalog(\n";
+    out << "        Backend backend,\n";
+    out << "        FeatureFlag featureFlagStore,\n";
+    out << "        Queue queueStore,\n";
+    out << "        Lease leaseStore,\n";
+    out << "        Workflow workflowStore,\n";
+    out << "        Log logSink,\n";
+    out << "        Metric metricSink\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        var tx = backend.begin();\n";
+    out << "        try {\n";
+    out << "            registerRuntimeCatalogTx(\n";
+    out << "                tx,\n";
+    out << "                featureFlagStore,\n";
+    out << "                queueStore,\n";
+    out << "                leaseStore,\n";
+    out << "                workflowStore,\n";
+    out << "                logSink,\n";
+    out << "                metricSink\n";
+    out << "            );\n";
+    out << "            backend.commit(tx);\n";
+    out << "        } catch (Backend.BackendException error) {\n";
+    out << "            tx.abort();\n";
+    out << "            throw error;\n";
+    out << "        }\n";
+    out << "    }\n";
+
+    out << "\n    public static void bootstrapRuntimeCatalog(\n";
+    out << "        Backend backend,\n";
+    out << "        FeatureFlag featureFlagStore,\n";
+    out << "        Queue queueStore,\n";
+    out << "        Lease leaseStore,\n";
+    out << "        Workflow workflowStore,\n";
+    out << "        Log logSink,\n";
+    out << "        Metric metricSink\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        ensureSystemCollections(backend);\n";
+    out << "        registerRuntimeCatalog(\n";
+    out << "            backend,\n";
+    out << "            featureFlagStore,\n";
+    out << "            queueStore,\n";
+    out << "            leaseStore,\n";
+    out << "            workflowStore,\n";
+    out << "            logSink,\n";
+    out << "            metricSink\n";
+    out << "        );\n";
+    out << "    }\n";
     return out.str();
 }
 

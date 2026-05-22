@@ -206,6 +206,59 @@ std::string generate_cpp_runtime_registration(const IrSystem&)
     out << "    register_observability_catalogTx(tx, log_sink, metric_sink);\n";
     out << "}\n\n";
 
+    out << "inline void register_runtime_catalog(\n";
+    out << "    statespec::backend::IBackend& backend,\n";
+    out << "    statespec::backend::IFeatureFlagStore& feature_flag_store,\n";
+    out << "    statespec::backend::IQueueStore& queue_store,\n";
+    out << "    statespec::backend::ILeaseStore& lease_store,\n";
+    out << "    statespec::backend::IWorkflowStore& workflow_store,\n";
+    out << "    statespec::backend::ILogSink& log_sink,\n";
+    out << "    statespec::backend::IMetricSink& metric_sink\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    auto tx = backend.begin();\n";
+    out << "    try\n";
+    out << "    {\n";
+    out << "        register_runtime_catalogTx(\n";
+    out << "            *tx,\n";
+    out << "            feature_flag_store,\n";
+    out << "            queue_store,\n";
+    out << "            lease_store,\n";
+    out << "            workflow_store,\n";
+    out << "            log_sink,\n";
+    out << "            metric_sink\n";
+    out << "        );\n";
+    out << "        backend.commit(*tx);\n";
+    out << "    }\n";
+    out << "    catch (...)\n";
+    out << "    {\n";
+    out << "        tx->abort();\n";
+    out << "        throw;\n";
+    out << "    }\n";
+    out << "}\n\n";
+
+    out << "inline void bootstrap_runtime_catalog(\n";
+    out << "    statespec::backend::IBackend& backend,\n";
+    out << "    statespec::backend::IFeatureFlagStore& feature_flag_store,\n";
+    out << "    statespec::backend::IQueueStore& queue_store,\n";
+    out << "    statespec::backend::ILeaseStore& lease_store,\n";
+    out << "    statespec::backend::IWorkflowStore& workflow_store,\n";
+    out << "    statespec::backend::ILogSink& log_sink,\n";
+    out << "    statespec::backend::IMetricSink& metric_sink\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    ensure_system_collections(backend);\n";
+    out << "    register_runtime_catalog(\n";
+    out << "        backend,\n";
+    out << "        feature_flag_store,\n";
+    out << "        queue_store,\n";
+    out << "        lease_store,\n";
+    out << "        workflow_store,\n";
+    out << "        log_sink,\n";
+    out << "        metric_sink\n";
+    out << "    );\n";
+    out << "}\n\n";
+
     return out.str();
 }
 

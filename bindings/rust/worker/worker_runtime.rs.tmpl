@@ -1,5 +1,8 @@
 use crate::backend::Backend;
+use crate::runtime_feature_flags::RuntimeFeatureFlagStore;
 use crate::runtime_leases::RuntimeLeaseStore;
+use crate::runtime_logs::RuntimeLogSink;
+use crate::runtime_metrics::RuntimeMetricSink;
 use crate::runtime_queues::RuntimeQueueStore;
 use crate::runtime_workflows::RuntimeWorkflowStore;
 use crate::workflow::WorkflowExecutionRecord;
@@ -10,7 +13,10 @@ use crate::worker_contexts::WorkerContext;
 #[derive(Debug, Clone)]
 pub struct WorkerRuntime<B: Backend> {
     pub backend: B,
+    pub feature_flags: RuntimeFeatureFlagStore,
     pub leases: RuntimeLeaseStore,
+    pub logs: RuntimeLogSink,
+    pub metrics: RuntimeMetricSink,
     pub queues: RuntimeQueueStore,
     pub workflows: RuntimeWorkflowStore,
 }
@@ -19,27 +25,37 @@ impl<B: Backend> WorkerRuntime<B> {
     pub fn new(backend: B) -> Self {
         Self {
             backend,
+            feature_flags: RuntimeFeatureFlagStore::new(),
             leases: RuntimeLeaseStore::new(),
+            logs: RuntimeLogSink::new(),
+            metrics: RuntimeMetricSink::new(),
             queues: RuntimeQueueStore::new(),
             workflows: RuntimeWorkflowStore::new(),
         }
     }
 
     pub fn register_definitions(&self) -> crate::backend::BackendResult<()> {
-        let mut tx = self.backend.begin()?;
-        crate::descriptors::register_lease_definitions_tx::<B, RuntimeLeaseStore>(
-            &mut tx,
-            &self.leases,
-        )?;
-        crate::descriptors::register_queue_definitions_tx::<B, RuntimeQueueStore>(
-            &mut tx,
+        self.bootstrap()
+    }
+
+    pub fn bootstrap(&self) -> crate::backend::BackendResult<()> {
+        crate::descriptors::bootstrap_runtime_catalog::<
+            B,
+            RuntimeFeatureFlagStore,
+            RuntimeQueueStore,
+            RuntimeLeaseStore,
+            RuntimeWorkflowStore,
+            RuntimeLogSink,
+            RuntimeMetricSink,
+        >(
+            &self.backend,
+            &self.feature_flags,
             &self.queues,
-        )?;
-        crate::descriptors::register_workflow_definitions_tx::<B, RuntimeWorkflowStore>(
-            &mut tx,
+            &self.leases,
             &self.workflows,
-        )?;
-        self.backend.commit(tx)
+            &self.logs,
+            &self.metrics,
+        )
     }
 
     pub fn run_once<H: WorkflowStepHandler>(

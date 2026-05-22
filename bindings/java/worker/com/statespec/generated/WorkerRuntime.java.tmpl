@@ -1,7 +1,10 @@
 package com.statespec.generated;
 
 import com.statespec.backend.Backend;
+import com.statespec.backend.runtime.FeatureFlagStore;
 import com.statespec.backend.runtime.LeaseStore;
+import com.statespec.backend.runtime.LogSink;
+import com.statespec.backend.runtime.MetricSink;
 import com.statespec.backend.runtime.QueueStore;
 import com.statespec.backend.runtime.WorkflowStore;
 import java.time.Duration;
@@ -9,13 +12,19 @@ import java.util.Optional;
 
 public final class WorkerRuntime {
     private final Backend backend;
+    private final FeatureFlagStore featureFlags;
     private final LeaseStore leases;
+    private final LogSink logs;
+    private final MetricSink metrics;
     private final QueueStore queues;
     private final WorkflowStore workflows;
 
     public WorkerRuntime(Backend backend) {
         this.backend = backend;
+        this.featureFlags = new FeatureFlagStore();
         this.leases = new LeaseStore();
+        this.logs = new LogSink();
+        this.metrics = new MetricSink();
         this.queues = new QueueStore();
         this.workflows = new WorkflowStore();
     }
@@ -25,16 +34,19 @@ public final class WorkerRuntime {
     }
 
     public void registerDefinitions() throws Exception {
-        var tx = backend.begin();
-        try {
-            WorkerLeases.registerLeaseDefinitionsTx(tx, leases);
-            WorkerQueues.registerQueueDefinitionsTx(tx, queues);
-            WorkerWorkflows.registerWorkflowDefinitionsTx(tx, workflows);
-            backend.commit(tx);
-        } catch (Exception error) {
-            tx.abort();
-            throw error;
-        }
+        bootstrap();
+    }
+
+    public void bootstrap() throws Backend.BackendException {
+        Descriptors.bootstrapRuntimeCatalog(
+            backend,
+            featureFlags,
+            queues,
+            leases,
+            workflows,
+            logs,
+            metrics
+        );
     }
 
     public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> runOnce(
