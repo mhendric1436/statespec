@@ -1,0 +1,7 @@
+func RegisterObservabilityCatalogTx(ctx context.Context, tx Transaction, logSink LogSink, metricSink MetricSink) error {
+	if err := RegisterLogDefinitionsTx(ctx, tx, logSink); err != nil {
+		return err
+	}
+	return RegisterMetricDefinitionsTx(ctx, tx, metricSink)
+}
+

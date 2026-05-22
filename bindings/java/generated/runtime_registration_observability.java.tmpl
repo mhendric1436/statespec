@@ -1,0 +1,10 @@
+public
+static void registerObservabilityCatalogTx(
+    Backend.Transaction tx,
+    Log logSink,
+    Metric metricSink
+) throws Backend.BackendException
+{
+    registerLogDefinitionsTx(tx, logSink);
+    registerMetricDefinitionsTx(tx, metricSink);
+}

@@ -1,0 +1,13 @@
+pub fn register_observability_catalog_tx<B, L, M>(
+    tx: &mut B::Tx,
+    log_sink: &L,
+    metric_sink: &M,
+) -> BackendResult<()>
+where
+    B: Backend,
+    L: LogSink<B>,
+    M: MetricSink<B>,
+{
+    register_log_definitions_tx(tx, log_sink)?;
+    register_metric_definitions_tx(tx, metric_sink)
+}

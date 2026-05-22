@@ -1,0 +1,12 @@
+inline void register_queue_definitionsTx(
+    statespec::backend::ITransaction& tx,
+    statespec::backend::IQueueStore& store
+)
+{
+    for (const auto& definition : queue_definitions())
+    {
+        store.register_definitionTx(
+            tx, statespec::backend::RegisterQueueDefinitionRequest{definition}
+        );
+    }
+}

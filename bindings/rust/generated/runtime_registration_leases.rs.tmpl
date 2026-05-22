@@ -1,0 +1,26 @@
+fn lease_definition_from_descriptor(definition: LeaseDefinition) -> RuntimeLeaseDefinition {
+    RuntimeLeaseDefinition {
+        id: LeaseDefinitionId {
+            name: definition.name.clone(),
+            version: 1,
+        },
+        resource_pattern: definition
+            .resource
+            .unwrap_or_else(|| definition.name.clone()),
+        ttl: definition.ttl,
+        renew_every: definition.renew_every.unwrap_or(definition.ttl),
+        max_ttl: definition.max_ttl,
+        fencing_token: definition.fencing_token,
+    }
+}
+
+pub fn register_lease_definitions_tx<B: Backend, S: LeaseStore<B>>(
+    tx: &mut B::Tx,
+    store: &S,
+) -> BackendResult<()> {
+    for definition in lease_definitions() {
+        let runtime_definition = lease_definition_from_descriptor(definition);
+        store.register_definition_tx(tx, &runtime_definition)?;
+    }
+    Ok(())
+}

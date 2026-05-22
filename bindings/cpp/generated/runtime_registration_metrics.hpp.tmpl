@@ -1,0 +1,18 @@
+inline void register_metric_definitionsTx(
+    statespec::backend::ITransaction& tx,
+    statespec::backend::IMetricSink& sink
+)
+{
+    for (const auto& definition : metric_definitions())
+    {
+        sink.register_definitionTx(
+            tx, statespec::backend::MetricDefinition{
+                    definition.name,
+                    metric_kind_from_string(definition.kind),
+                    definition.backend_name,
+                    definition.unit,
+                    definition.labels,
+                }
+        );
+    }
+}

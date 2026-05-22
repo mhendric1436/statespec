@@ -1,0 +1,11 @@
+public
+static void registerQueueDefinitionsTx(
+    Backend.Transaction tx,
+    Queue store
+) throws Backend.BackendException
+{
+    for (var definition : queueDefinitions())
+    {
+        store.registerDefinitionTx(tx, new Queue.RegisterQueueDefinitionRequest(definition));
+    }
+}

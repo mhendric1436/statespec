@@ -1,0 +1,9 @@
+pub fn register_queue_definitions_tx<B: Backend, S: QueueStore<B>>(
+    tx: &mut B::Tx,
+    store: &S,
+) -> BackendResult<()> {
+    for definition in queue_definitions() {
+        store.register_definition_tx(tx, &RegisterQueueDefinitionRequest { definition })?;
+    }
+    Ok(())
+}

@@ -1,0 +1,10 @@
+func RegisterQueueDefinitionsTx(ctx context.Context, tx Transaction, store QueueStore) error {
+	for _, definition := range QueueDefinitions() {
+		_, err := store.RegisterDefinitionTx(ctx, tx, RegisterQueueDefinitionRequest{Definition: definition})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+

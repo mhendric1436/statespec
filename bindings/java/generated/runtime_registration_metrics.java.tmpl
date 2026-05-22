@@ -1,0 +1,16 @@
+public
+static void registerMetricDefinitionsTx(
+    Backend.Transaction tx,
+    Metric sink
+) throws Backend.BackendException
+{
+    for (var definition : metricDefinitions())
+    {
+        sink.registerDefinitionTx(
+            tx, new Metric.Definition(
+                    definition.name(), metricKindFromDescriptor(definition.kind()),
+                    definition.backendName(), definition.unit(), definition.labels()
+                )
+        );
+    }
+}

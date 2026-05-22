@@ -1,0 +1,17 @@
+inline void register_log_definitionsTx(
+    statespec::backend::ITransaction& tx,
+    statespec::backend::ILogSink& sink
+)
+{
+    for (const auto& definition : log_definitions())
+    {
+        sink.register_definitionTx(
+            tx, statespec::backend::LogDefinition{
+                    definition.name,
+                    log_level_from_string(definition.level),
+                    definition.event_name,
+                    definition.fields,
+                }
+        );
+    }
+}

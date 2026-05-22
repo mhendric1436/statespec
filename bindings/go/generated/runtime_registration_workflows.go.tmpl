@@ -1,0 +1,10 @@
+func RegisterWorkflowDefinitionsTx(ctx context.Context, tx Transaction, store WorkflowStore) error {
+	for _, definition := range WorkflowDefinitions() {
+		_, err := store.RegisterDefinitionTx(ctx, tx, RegisterWorkflowDefinitionRequest{Definition: definition})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+

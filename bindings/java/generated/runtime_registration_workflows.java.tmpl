@@ -1,0 +1,11 @@
+public
+static void registerWorkflowDefinitionsTx(
+    Backend.Transaction tx,
+    Workflow store
+) throws Backend.BackendException
+{
+    for (var definition : workflowDefinitions())
+    {
+        store.registerDefinitionTx(tx, new Workflow.RegisterWorkflowDefinitionRequest(definition));
+    }
+}

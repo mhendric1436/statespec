@@ -1,0 +1,52 @@
+private
+static FeatureFlag.Type featureFlagTypeFromDescriptor(String type)
+{
+    return switch (type)
+    {
+            case "string" -> FeatureFlag.Type.STRING;
+            case "int" -> FeatureFlag.Type.INT;
+            case "decimal" -> FeatureFlag.Type.DECIMAL;
+            default -> FeatureFlag.Type.BOOL;
+        };
+    }
+
+    private static FeatureFlag.ScopeKind featureFlagScopeFromDescriptor(String scope) {
+        if (scope.equals("system")) {
+            return FeatureFlag.ScopeKind.SYSTEM;
+        }
+        if (scope.equals("user")) {
+            return FeatureFlag.ScopeKind.USER;
+        }
+        if (scope.startsWith("entity ")) {
+            return FeatureFlag.ScopeKind.ENTITY;
+        }
+        return FeatureFlag.ScopeKind.TENANT;
+    }
+
+    private static FeatureFlag.Value featureFlagValueFromDescriptor(
+        FeatureFlagDefinition definition
+    ) {
+        return switch (definition.type()) {
+            case "string" -> new FeatureFlag.Value.StringValue(definition.defaultValue());
+            case "int" -> new FeatureFlag.Value.IntValue(Long.parseLong(definition.defaultValue()));
+            case "decimal" -> new FeatureFlag.Value.DecimalValue(definition.defaultValue());
+            default -> new FeatureFlag.Value.BoolValue(Boolean.parseBoolean(definition.defaultValue()));
+        };
+    }
+
+    public static void registerFeatureFlagDefinitionsTx(
+        Backend.Transaction tx,
+        FeatureFlag store
+    ) throws Backend.BackendException {
+        for (var definition : featureFlagDefinitions())
+                {
+                    store.registerDefinitionTx(
+                        tx, new FeatureFlag.Definition(
+                                definition.name(), featureFlagTypeFromDescriptor(definition.type()),
+                                featureFlagValueFromDescriptor(definition),
+                                featureFlagScopeFromDescriptor(definition.scope()),
+                                definition.owner(), definition.description(), definition.expires()
+                            )
+                    );
+                }
+            }

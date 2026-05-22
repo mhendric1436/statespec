@@ -1,0 +1,12 @@
+inline void register_workflow_definitionsTx(
+    statespec::backend::ITransaction& tx,
+    statespec::backend::IWorkflowStore& workflow_store
+)
+{
+    for (const auto& definition : workflow_definitions())
+    {
+        workflow_store.register_definitionTx(
+            tx, statespec::backend::RegisterWorkflowDefinitionRequest{definition}
+        );
+    }
+}

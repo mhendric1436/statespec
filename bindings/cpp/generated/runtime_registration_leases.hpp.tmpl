@@ -1,0 +1,23 @@
+inline statespec::backend::LeaseDefinition
+lease_definition_from_descriptor(const LeaseDefinition& definition)
+{
+    return statespec::backend::LeaseDefinition{
+        statespec::backend::LeaseDefinitionId{definition.name, 1},
+        definition.resource.value_or(definition.name),
+        definition.ttl,
+        definition.renew_every.value_or(definition.ttl),
+        definition.max_ttl,
+        definition.fencing_token,
+    };
+}
+
+inline void register_lease_definitionsTx(
+    statespec::backend::ITransaction& tx,
+    statespec::backend::ILeaseStore& store
+)
+{
+    for (const auto& definition : lease_definitions())
+    {
+        store.register_definitionTx(tx, lease_definition_from_descriptor(definition));
+    }
+}
