@@ -1,9 +1,11 @@
 package com.statespec.generated;
 
+import com.statespec.backend.memory.InMemoryBackend;
+
 public final class WorkerMain {
     private WorkerMain() {}
 
     public static void main(String[] args) {
-        new WorkerRuntime();
+        new WorkerRuntime(new InMemoryBackend());
     }
 }

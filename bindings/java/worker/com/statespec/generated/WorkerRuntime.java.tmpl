@@ -1,6 +1,6 @@
 package com.statespec.generated;
 
-import com.statespec.backend.memory.InMemoryBackend;
+import com.statespec.backend.Backend;
 import com.statespec.backend.runtime.LeaseStore;
 import com.statespec.backend.runtime.QueueStore;
 import com.statespec.backend.runtime.WorkflowStore;
@@ -8,19 +8,19 @@ import java.time.Duration;
 import java.util.Optional;
 
 public final class WorkerRuntime {
-    private final InMemoryBackend backend;
+    private final Backend backend;
     private final LeaseStore leases;
     private final QueueStore queues;
     private final WorkflowStore workflows;
 
-    public WorkerRuntime() {
-        this.backend = new InMemoryBackend();
+    public WorkerRuntime(Backend backend) {
+        this.backend = backend;
         this.leases = new LeaseStore();
         this.queues = new QueueStore();
         this.workflows = new WorkflowStore();
     }
 
-    public InMemoryBackend backend() {
+    public Backend backend() {
         return backend;
     }
 

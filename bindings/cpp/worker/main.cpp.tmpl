@@ -1,8 +1,10 @@
+#include "../common/memory/backend.hpp"
 #include "worker_runtime.hpp"
 
 int main()
 {
-    statespec_generated::worker::WorkerRuntime runtime;
+    statespec::backend::memory::InMemoryBackend backend;
+    statespec_generated::worker::WorkerRuntime runtime{backend};
     (void)runtime;
     return 0;
 }

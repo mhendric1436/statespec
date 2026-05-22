@@ -1,11 +1,13 @@
 package com.statespec.generated;
 
+import com.statespec.backend.memory.InMemoryBackend;
+
 public final class ApiMain {
     private ApiMain() {}
 
     public static void main(String[] args) {
         for (Descriptors.ApiServerDescriptor descriptor : ApiDescriptors.apiServerDescriptors()) {
-            ApiApplication.createDefault(descriptor.name());
+            ApiApplication.createDefault(new InMemoryBackend(), descriptor.name());
         }
     }
 }

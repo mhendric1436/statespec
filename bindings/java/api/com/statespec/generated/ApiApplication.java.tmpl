@@ -1,6 +1,6 @@
 package com.statespec.generated;
 
-import com.statespec.backend.memory.InMemoryBackend;
+import com.statespec.backend.Backend;
 import com.statespec.backend.runtime.FeatureFlagStore;
 import com.statespec.backend.runtime.LogSink;
 import com.statespec.backend.runtime.MetricSink;
@@ -8,7 +8,7 @@ import com.statespec.backend.runtime.QueueStore;
 import com.statespec.backend.runtime.WorkflowStore;
 
 public final class ApiApplication {
-    private final InMemoryBackend backend;
+    private final Backend backend;
     private final FeatureFlagStore featureFlags;
     private final LogSink logs;
     private final MetricSink metrics;
@@ -16,11 +16,11 @@ public final class ApiApplication {
     private final WorkflowStore workflows;
     private final ApiServer server;
 
-    public ApiApplication(String serverName, ApiHandlers.Handler handler) {
+    public ApiApplication(Backend backend, String serverName, ApiHandlers.Handler handler) {
         Descriptors.ApiServerDescriptor descriptor =
             ApiServer.findApiServer(serverName)
                 .orElseThrow(() -> new IllegalArgumentException("unknown generated API server"));
-        this.backend = new InMemoryBackend();
+        this.backend = backend;
         this.featureFlags = new FeatureFlagStore();
         this.logs = new LogSink();
         this.metrics = new MetricSink();
@@ -29,11 +29,11 @@ public final class ApiApplication {
         this.server = new ApiServer(descriptor, handler);
     }
 
-    public static ApiApplication createDefault(String serverName) {
-        return new ApiApplication(serverName, ApiHandlerRegistry.defaultHandler());
+    public static ApiApplication createDefault(Backend backend, String serverName) {
+        return new ApiApplication(backend, serverName, ApiHandlerRegistry.defaultHandler());
     }
 
-    public InMemoryBackend backend() {
+    public Backend backend() {
         return backend;
     }
 

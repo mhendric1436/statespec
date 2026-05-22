@@ -1,9 +1,12 @@
 package main
 
-import api "statespec-generated/api/backend"
+import (
+	api "statespec-generated/api/backend"
+	"statespec-generated/common/backend/memory"
+)
 
 func main() {
 	for _, descriptor := range api.APITierServerDescriptors() {
-		_, _ = api.NewDefaultAPITierApplication(descriptor.Name)
+		_, _ = api.NewDefaultAPITierApplication(memory.NewBackend(), descriptor.Name)
 	}
 }

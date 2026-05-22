@@ -1,11 +1,13 @@
+#include "../common/memory/backend.hpp"
 #include "api_application.hpp"
 
 int main()
 {
+    statespec::backend::memory::InMemoryBackend backend;
     statespec_generated::api::DefaultApiHandler handler;
     for (const auto& descriptor : statespec_generated::api::api_server_descriptors())
     {
-        statespec_generated::api::ApiApplication app{descriptor.name, handler};
+        statespec_generated::api::ApiApplication app{descriptor.name, handler, backend};
         (void)app;
     }
     return 0;

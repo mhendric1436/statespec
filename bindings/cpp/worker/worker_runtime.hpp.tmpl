@@ -6,7 +6,6 @@
 #include "worker_workflows.hpp"
 #include "workflow_runner.hpp"
 
-#include "../common/memory/backend.hpp"
 #include "../common/runtime/lease_store.hpp"
 #include "../common/runtime/queue_store.hpp"
 #include "../common/runtime/workflow_store.hpp"
@@ -21,15 +20,15 @@ namespace statespec_generated::worker
 class WorkerRuntime
 {
   public:
-    WorkerRuntime()
-        : backend_(),
+    explicit WorkerRuntime(statespec::backend::IBackend& backend)
+        : backend_(backend),
           leases_(),
           queues_(),
           workflows_()
     {
     }
 
-    statespec::backend::memory::InMemoryBackend& backend()
+    statespec::backend::IBackend& backend()
     {
         return backend_;
     }
@@ -60,7 +59,7 @@ class WorkerRuntime
     }
 
   private:
-    statespec::backend::memory::InMemoryBackend backend_;
+    statespec::backend::IBackend& backend_;
     statespec::backend::runtime::RuntimeLeaseStore leases_;
     statespec::backend::runtime::RuntimeQueueStore queues_;
     statespec::backend::runtime::RuntimeWorkflowStore workflows_;

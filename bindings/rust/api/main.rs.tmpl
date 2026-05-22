@@ -1,8 +1,9 @@
 use crate::api_application::ApiApplication;
 use crate::api_descriptors;
+use crate::memory_backend::InMemoryBackend;
 
 pub fn main() {
     for descriptor in api_descriptors::api_server_descriptors() {
-        let _ = ApiApplication::new_default(&descriptor.name);
+        let _ = ApiApplication::new_default(&descriptor.name, InMemoryBackend::new());
     }
 }

@@ -1,15 +1,15 @@
 use crate::api_handler_registry::DefaultApiHandler;
 use crate::api_handlers::ApiHandler;
 use crate::api_server::{find_api_server, ApiServer};
-use crate::memory_backend::InMemoryBackend;
+use crate::backend::Backend;
 use crate::runtime_feature_flags::RuntimeFeatureFlagStore;
 use crate::runtime_logs::RuntimeLogSink;
 use crate::runtime_metrics::RuntimeMetricSink;
 use crate::runtime_queues::RuntimeQueueStore;
 use crate::runtime_workflows::RuntimeWorkflowStore;
 
-pub struct ApiApplication<H: ApiHandler> {
-    pub backend: InMemoryBackend,
+pub struct ApiApplication<B: Backend, H: ApiHandler> {
+    pub backend: B,
     pub feature_flags: RuntimeFeatureFlagStore,
     pub logs: RuntimeLogSink,
     pub metrics: RuntimeMetricSink,
@@ -18,11 +18,11 @@ pub struct ApiApplication<H: ApiHandler> {
     pub server: ApiServer<H>,
 }
 
-impl<H: ApiHandler> ApiApplication<H> {
-    pub fn new(server_name: &str, handler: H) -> Option<Self> {
+impl<B: Backend, H: ApiHandler> ApiApplication<B, H> {
+    pub fn new(server_name: &str, handler: H, backend: B) -> Option<Self> {
         let descriptor = find_api_server(server_name)?;
         Some(Self {
-            backend: InMemoryBackend::new(),
+            backend,
             feature_flags: RuntimeFeatureFlagStore::new(),
             logs: RuntimeLogSink::new(),
             metrics: RuntimeMetricSink::new(),
@@ -33,8 +33,8 @@ impl<H: ApiHandler> ApiApplication<H> {
     }
 }
 
-impl ApiApplication<DefaultApiHandler> {
-    pub fn new_default(server_name: &str) -> Option<Self> {
-        Self::new(server_name, DefaultApiHandler)
+impl<B: Backend> ApiApplication<B, DefaultApiHandler> {
+    pub fn new_default(server_name: &str, backend: B) -> Option<Self> {
+        Self::new(server_name, DefaultApiHandler, backend)
     }
 }

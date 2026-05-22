@@ -1,7 +1,10 @@
 package main
 
-import worker "statespec-generated/worker/backend"
+import (
+	"statespec-generated/common/backend/memory"
+	worker "statespec-generated/worker/backend"
+)
 
 func main() {
-	_ = worker.NewWorkerTierRuntime()
+	_ = worker.NewWorkerTierRuntime(memory.NewBackend())
 }

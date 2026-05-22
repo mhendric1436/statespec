@@ -1,5 +1,4 @@
 use crate::backend::Backend;
-use crate::memory_backend::InMemoryBackend;
 use crate::runtime_leases::RuntimeLeaseStore;
 use crate::runtime_queues::RuntimeQueueStore;
 use crate::runtime_workflows::RuntimeWorkflowStore;
@@ -9,17 +8,17 @@ use crate::workflow_step_handlers::WorkflowStepHandler;
 use crate::worker_contexts::WorkerContext;
 
 #[derive(Debug, Clone)]
-pub struct WorkerRuntime {
-    pub backend: InMemoryBackend,
+pub struct WorkerRuntime<B: Backend> {
+    pub backend: B,
     pub leases: RuntimeLeaseStore,
     pub queues: RuntimeQueueStore,
     pub workflows: RuntimeWorkflowStore,
 }
 
-impl WorkerRuntime {
-    pub fn new() -> Self {
+impl<B: Backend> WorkerRuntime<B> {
+    pub fn new(backend: B) -> Self {
         Self {
-            backend: InMemoryBackend::new(),
+            backend,
             leases: RuntimeLeaseStore::new(),
             queues: RuntimeQueueStore::new(),
             workflows: RuntimeWorkflowStore::new(),
@@ -28,15 +27,15 @@ impl WorkerRuntime {
 
     pub fn register_definitions(&self) -> crate::backend::BackendResult<()> {
         let mut tx = self.backend.begin()?;
-        crate::descriptors::register_lease_definitions_tx::<InMemoryBackend, RuntimeLeaseStore>(
+        crate::descriptors::register_lease_definitions_tx::<B, RuntimeLeaseStore>(
             &mut tx,
             &self.leases,
         )?;
-        crate::descriptors::register_queue_definitions_tx::<InMemoryBackend, RuntimeQueueStore>(
+        crate::descriptors::register_queue_definitions_tx::<B, RuntimeQueueStore>(
             &mut tx,
             &self.queues,
         )?;
-        crate::descriptors::register_workflow_definitions_tx::<InMemoryBackend, RuntimeWorkflowStore>(
+        crate::descriptors::register_workflow_definitions_tx::<B, RuntimeWorkflowStore>(
             &mut tx,
             &self.workflows,
         )?;
@@ -61,11 +60,5 @@ impl WorkerRuntime {
             max_attempts: 3,
         };
         runner.run_once(workflow_execution_id, workflow_name, 1)
-    }
-}
-
-impl Default for WorkerRuntime {
-    fn default() -> Self {
-        Self::new()
     }
 }

@@ -3,7 +3,6 @@
 #include "api_handler_registry.hpp"
 #include "api_server.hpp"
 
-#include "../common/memory/backend.hpp"
 #include "../common/runtime/feature_flag_store.hpp"
 #include "../common/runtime/log_sink.hpp"
 #include "../common/runtime/metric_sink.hpp"
@@ -21,9 +20,10 @@ class ApiApplication
   public:
     explicit ApiApplication(
         std::string_view server_name,
-        IApiOperationHandler& handler
+        IApiOperationHandler& handler,
+        statespec::backend::IBackend& backend
     )
-        : backend_(),
+        : backend_(backend),
           feature_flags_(),
           logs_(),
           metrics_(),
@@ -41,7 +41,7 @@ class ApiApplication
         return server_;
     }
 
-    statespec::backend::memory::InMemoryBackend& backend()
+    statespec::backend::IBackend& backend()
     {
         return backend_;
     }
@@ -57,7 +57,7 @@ class ApiApplication
         return *descriptor;
     }
 
-    statespec::backend::memory::InMemoryBackend backend_;
+    statespec::backend::IBackend& backend_;
     statespec::backend::runtime::RuntimeFeatureFlagStore feature_flags_;
     statespec::backend::runtime::RuntimeLogSink logs_;
     statespec::backend::runtime::RuntimeMetricSink metrics_;
