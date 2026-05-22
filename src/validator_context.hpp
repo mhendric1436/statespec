@@ -3,6 +3,7 @@
 #include "statespec/ast.hpp"
 #include "statespec/diagnostic.hpp"
 #include "statespec/symbol_table.hpp"
+#include "validator_diagnostics.hpp"
 
 #include <string>
 #include <unordered_set>

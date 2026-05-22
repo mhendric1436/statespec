@@ -18,7 +18,8 @@ void validate_shapes(
         if (!is_qualified_pascal_case_name(shape.name))
         {
             diagnostics.error(
-                shape.range, "SSPEC3201", "shape '" + shape.name + "' must use PascalCase"
+                shape.range, diagnostic_codes::ShapeInvalidName,
+                "shape '" + shape.name + "'" + diagnostic_fragments::MustUsePascalCase
             );
         }
         if (shape.fields.empty())
@@ -41,7 +42,8 @@ void validate_values(
         if (!is_qualified_pascal_case_name(value.name))
         {
             diagnostics.error(
-                value.range, "SSPEC4501", "value '" + value.name + "' must use PascalCase"
+                value.range, diagnostic_codes::ValueInvalidName,
+                "value '" + value.name + "'" + diagnostic_fragments::MustUsePascalCase
             );
         }
         if (value.type.empty())
@@ -69,7 +71,8 @@ void validate_enums(
         if (!is_qualified_pascal_case_name(enum_decl.name))
         {
             diagnostics.error(
-                enum_decl.range, "SSPEC4601", "enum '" + enum_decl.name + "' must use PascalCase"
+                enum_decl.range, diagnostic_codes::EnumInvalidName,
+                "enum '" + enum_decl.name + "'" + diagnostic_fragments::MustUsePascalCase
             );
         }
         if (enum_decl.members.empty())
@@ -83,8 +86,9 @@ void validate_enums(
             if (!is_pascal_case_name(member.name))
             {
                 diagnostics.error(
-                    member.range, "SSPEC4602",
-                    "enum member '" + enum_decl.name + "." + member.name + "' must use PascalCase"
+                    member.range, diagnostic_codes::EnumInvalidMemberName,
+                    "enum member '" + enum_decl.name + "." + member.name + "'" +
+                        diagnostic_fragments::MustUsePascalCase
                 );
             }
             if (!members.insert(member.name).second)
@@ -106,7 +110,8 @@ void validate_events(
         if (!is_qualified_pascal_case_name(event.name))
         {
             diagnostics.error(
-                event.range, "SSPEC4701", "event '" + event.name + "' must use PascalCase"
+                event.range, diagnostic_codes::EventInvalidName,
+                "event '" + event.name + "'" + diagnostic_fragments::MustUsePascalCase
             );
         }
         if (event.fields.empty())

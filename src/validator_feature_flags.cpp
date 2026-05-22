@@ -16,7 +16,8 @@ void validate_feature_flags(
         if (!is_qualified_pascal_case_name(flag.name))
         {
             diagnostics.error(
-                flag.range, "SSPEC4201", "feature flag '" + flag.name + "' must use PascalCase"
+                flag.range, diagnostic_codes::FeatureFlagInvalidName,
+                "feature flag '" + flag.name + "'" + diagnostic_fragments::MustUsePascalCase
             );
         }
 
@@ -27,7 +28,7 @@ void validate_feature_flags(
         else if (!is_supported_feature_flag_type(*flag.type))
         {
             diagnostics.error(
-                flag.range, "SSPEC4202",
+                flag.range, diagnostic_codes::FeatureFlagInvalidType,
                 "feature flag '" + flag.name + "' has unsupported type '" + *flag.type + "'"
             );
         }
@@ -39,7 +40,7 @@ void validate_feature_flags(
         else if (!feature_flag_default_matches_type(flag))
         {
             diagnostics.error(
-                flag.range, "SSPEC4203",
+                flag.range, diagnostic_codes::FeatureFlagInvalidDefault,
                 "feature flag '" + flag.name + "' default must match declared type"
             );
         }

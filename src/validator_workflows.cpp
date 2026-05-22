@@ -65,7 +65,7 @@ void validate_workflow_member_order(
         if (order < previous_order)
         {
             diagnostics.warning(
-                member.range, "SSPEC6102",
+                member.range, diagnostic_codes::NoncanonicalWorkflowOrder,
                 "workflow '" + workflow.name +
                     "' members should use canonical order: version, singleton, "
                     "expected_execution_time, start, on, input, state, load, step"

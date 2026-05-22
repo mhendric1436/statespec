@@ -62,7 +62,7 @@ void validate_log_member_order(
         if (order < previous_order)
         {
             diagnostics.warning(
-                member.range, "SSPEC6104",
+                member.range, diagnostic_codes::NoncanonicalLogOrder,
                 "log '" + log.name +
                     "' members should use canonical order: level, event_name, fields"
             );
@@ -84,7 +84,7 @@ void validate_metric_member_order(
         if (order < previous_order)
         {
             diagnostics.warning(
-                member.range, "SSPEC6105",
+                member.range, diagnostic_codes::NoncanonicalMetricOrder,
                 "metric '" + metric.name +
                     "' members should use canonical order: kind, name, unit, labels"
             );
@@ -131,7 +131,7 @@ void validate_log_tenant_field(
     if (!contains(fields, system.tenant_scope->field_name))
     {
         diagnostics.error(
-            log.range, "SSPEC3407",
+            log.range, diagnostic_codes::TenantLogMissingTenantField,
             "log '" + log.name + "' fields must declare tenant field '" +
                 system.tenant_scope->field_name + "'"
         );
@@ -153,7 +153,7 @@ void validate_metric_tenant_label(
     if (!contains(labels, system.tenant_scope->field_name))
     {
         diagnostics.error(
-            metric.range, "SSPEC3408",
+            metric.range, diagnostic_codes::TenantMetricMissingTenantLabel,
             "metric '" + metric.name + "' labels must declare tenant field '" +
                 system.tenant_scope->field_name + "'"
         );
@@ -174,7 +174,10 @@ void validate_logs(
 
         if (!is_qualified_pascal_case_name(log.name))
         {
-            diagnostics.error(log.range, "SSPEC4301", "log '" + log.name + "' must use PascalCase");
+            diagnostics.error(
+                log.range, diagnostic_codes::LogInvalidName,
+                "log '" + log.name + "'" + diagnostic_fragments::MustUsePascalCase
+            );
         }
 
         if (!log.level.has_value())
@@ -184,7 +187,7 @@ void validate_logs(
         else if (!is_supported_log_level(*log.level))
         {
             diagnostics.error(
-                log.range, "SSPEC4302",
+                log.range, diagnostic_codes::LogInvalidLevel,
                 "log '" + log.name + "' has unsupported level '" + *log.level + "'"
             );
         }
@@ -196,7 +199,8 @@ void validate_logs(
         else if (!event_names.insert(*log.event_name).second)
         {
             diagnostics.error(
-                log.range, "SSPEC4303", "duplicate log event_name '" + *log.event_name + "'"
+                log.range, diagnostic_codes::LogDuplicateEventName,
+                "duplicate log event_name '" + *log.event_name + "'"
             );
         }
 
@@ -220,7 +224,8 @@ void validate_metrics(
         if (!is_qualified_pascal_case_name(metric.name))
         {
             diagnostics.error(
-                metric.range, "SSPEC4401", "metric '" + metric.name + "' must use PascalCase"
+                metric.range, diagnostic_codes::MetricInvalidName,
+                "metric '" + metric.name + "'" + diagnostic_fragments::MustUsePascalCase
             );
         }
 
@@ -231,7 +236,7 @@ void validate_metrics(
         else if (!is_supported_metric_kind(*metric.kind))
         {
             diagnostics.error(
-                metric.range, "SSPEC4402",
+                metric.range, diagnostic_codes::MetricInvalidKind,
                 "metric '" + metric.name + "' has unsupported kind '" + *metric.kind + "'"
             );
         }
@@ -243,7 +248,8 @@ void validate_metrics(
         else if (!backend_names.insert(*metric.backend_name).second)
         {
             diagnostics.error(
-                metric.range, "SSPEC4403", "duplicate metric name '" + *metric.backend_name + "'"
+                metric.range, diagnostic_codes::MetricDuplicateBackendName,
+                "duplicate metric name '" + *metric.backend_name + "'"
             );
         }
 
@@ -260,7 +266,7 @@ void validate_metrics(
             if (!is_supported_metric_label_type(label.type))
             {
                 diagnostics.error(
-                    label.range, "SSPEC4404",
+                    label.range, diagnostic_codes::MetricInvalidLabelType,
                     "metric '" + metric.name + "' label '" + label.name +
                         "' must use low-cardinality type string, bool, or int"
                 );
@@ -268,7 +274,7 @@ void validate_metrics(
             if (is_high_cardinality_metric_label_name(system, label.name))
             {
                 diagnostics.error(
-                    label.range, "SSPEC4405",
+                    label.range, diagnostic_codes::MetricHighCardinalityLabel,
                     "metric '" + metric.name + "' label '" + label.name +
                         "' looks high-cardinality; use a log field or aggregate dimension instead"
                 );

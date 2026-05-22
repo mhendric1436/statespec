@@ -278,7 +278,8 @@ class ExpressionSyntaxValidator
         if (!is_allowed_expression_builtin(name))
         {
             diagnostics_.error(
-                range_, "SSPEC5202", "expression function '" + name + "' is not an allowed built-in"
+                range_, diagnostic_codes::ExpressionFunctionNotAllowed,
+                "expression function '" + name + "' is not an allowed built-in"
             );
         }
     }
@@ -332,7 +333,10 @@ class ExpressionSyntaxValidator
             return;
         }
         failed_ = true;
-        diagnostics_.error(range_, "SSPEC5201", "invalid expression: " + message);
+        diagnostics_.error(
+            range_, diagnostic_codes::InvalidExpression,
+            diagnostic_fragments::InvalidExpressionPrefix + message
+        );
     }
 
     SourceRange range_;
@@ -405,7 +409,8 @@ void validate_feature_flag_expression(
         if (flag->type.value_or("") != "bool")
         {
             diagnostics.error(
-                range, "SSPEC4204", "feature_enabled requires bool feature flag '" + flag_name + "'"
+                range, diagnostic_codes::FeatureEnabledRequiresBoolFlag,
+                "feature_enabled requires bool feature flag '" + flag_name + "'"
             );
         }
     }
@@ -432,7 +437,10 @@ void validate_expression(
     auto tokens = lexer.lex(expression_diagnostics);
     if (expression_diagnostics.has_errors())
     {
-        diagnostics.error(range, "SSPEC5201", "invalid expression: lexer rejected expression");
+        diagnostics.error(
+            range, diagnostic_codes::InvalidExpression,
+            std::string{diagnostic_fragments::InvalidExpressionPrefix} + "lexer rejected expression"
+        );
         return;
     }
 

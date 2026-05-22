@@ -16,7 +16,7 @@ void validate_workers(
         if (worker.singleton.value_or(false) && !worker.lease.has_value())
         {
             diagnostics.error(
-                worker.range, "SSPEC3301",
+                worker.range, diagnostic_codes::OwnershipInvalidAuthority,
                 "singleton worker '" + worker.name + "' must declare a lease"
             );
         }

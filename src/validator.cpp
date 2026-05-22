@@ -18,7 +18,9 @@ void Validator::validate(
 {
     if (!spec.system.has_value())
     {
-        diagnostics.error(SourceRange{}, "SSPEC1001", "spec must contain a system declaration");
+        diagnostics.error(
+            SourceRange{}, diagnostic_codes::MissingSystem, "spec must contain a system declaration"
+        );
         return;
     }
 

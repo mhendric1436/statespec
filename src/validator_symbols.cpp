@@ -42,7 +42,11 @@ void validate_symbol_reference(
     const auto symbol = symbols.find(name);
     if (!symbol.has_value() || !symbol_is_one_of(*symbol, allowed_kinds))
     {
-        diagnostics.error(range, "SSPEC3002", "unknown " + kind + " reference '" + name + "'");
+        diagnostics.error(
+            range, diagnostic_codes::UnknownReference,
+            std::string{diagnostic_fragments::UnknownReferencePrefix} + kind +
+                diagnostic_fragments::ReferenceSuffix + name + "'"
+        );
     }
 }
 
@@ -66,7 +70,10 @@ void duplicate_error(
     const std::string& name
 )
 {
-    diagnostics.error(range, "SSPEC3001", "duplicate declaration '" + name + "'");
+    diagnostics.error(
+        range, diagnostic_codes::DuplicateDeclaration,
+        std::string{diagnostic_fragments::DuplicateDeclarationPrefix} + name + "'"
+    );
 }
 
 void unknown_reference_error(
@@ -76,7 +83,11 @@ void unknown_reference_error(
     const std::string& name
 )
 {
-    diagnostics.error(range, "SSPEC3002", "unknown " + kind + " reference '" + name + "'");
+    diagnostics.error(
+        range, diagnostic_codes::UnknownReference,
+        std::string{diagnostic_fragments::UnknownReferencePrefix} + kind +
+            diagnostic_fragments::ReferenceSuffix + name + "'"
+    );
 }
 
 void required_error(
@@ -86,7 +97,10 @@ void required_error(
     const std::string& field
 )
 {
-    diagnostics.error(range, "SSPEC4001", subject + " must declare " + field);
+    diagnostics.error(
+        range, diagnostic_codes::RequiredDeclaration,
+        subject + diagnostic_fragments::MustDeclare + field
+    );
 }
 
 void positive_integer_error(
@@ -96,7 +110,10 @@ void positive_integer_error(
     const std::string& field
 )
 {
-    diagnostics.error(range, "SSPEC4002", subject + " " + field + " must be a positive integer");
+    diagnostics.error(
+        range, diagnostic_codes::PositiveIntegerRequired,
+        subject + " " + field + diagnostic_fragments::MustBePositiveInteger
+    );
 }
 
 void non_negative_integer_error(
@@ -106,7 +123,10 @@ void non_negative_integer_error(
     const std::string& field
 )
 {
-    diagnostics.error(range, "SSPEC4003", subject + " " + field + " must be non-negative");
+    diagnostics.error(
+        range, diagnostic_codes::NonNegativeIntegerRequired,
+        subject + " " + field + diagnostic_fragments::MustBeNonNegative
+    );
 }
 
 void duration_error(
@@ -116,7 +136,10 @@ void duration_error(
     const std::string& field
 )
 {
-    diagnostics.error(range, "SSPEC4004", subject + " " + field + " must be an ISO-8601 duration");
+    diagnostics.error(
+        range, diagnostic_codes::DurationRequired,
+        subject + " " + field + diagnostic_fragments::MustBeIso8601Duration
+    );
 }
 
 void add_symbol(

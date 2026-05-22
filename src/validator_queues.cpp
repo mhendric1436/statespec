@@ -28,7 +28,7 @@ void validate_queue_message_tenant_field(
     if (!contains(payload_fields, tenant_field))
     {
         diagnostics.error(
-            message.range, "SSPEC3402",
+            message.range, diagnostic_codes::TenantQueueMessageMissingTenantField,
             "message '" + queue_message_name(queue, message) +
                 "' payload must declare tenant field '" + tenant_field + "'"
         );

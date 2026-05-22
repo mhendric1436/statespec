@@ -72,7 +72,7 @@ void validate_system_member_order_impl(
         if (order < previous_order)
         {
             diagnostics.warning(
-                member.range, "SSPEC6106",
+                member.range, diagnostic_codes::NoncanonicalSystemOrder,
                 "system '" + system.name +
                     "' members should use canonical order: tenant, system_tenant, "
                     "values/enums/shapes/events, feature_flags, logs/metrics, "

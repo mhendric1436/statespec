@@ -135,7 +135,7 @@ void validate_metadata_mapping_path_shape(
     if (segments.size() < 2)
     {
         diagnostics.error(
-            mapping.range, "SSPEC4906",
+            mapping.range, diagnostic_codes::ExternalSystemMappingInvalidPath,
             "external_system '" + external_system.name + "' metadata mapping " + std::string(side) +
                 " '" + path + "' must include a root and field"
         );
@@ -145,7 +145,7 @@ void validate_metadata_mapping_path_shape(
     if (!contains_name(allowed_roots, segments.front()))
     {
         diagnostics.error(
-            mapping.range, "SSPEC4907",
+            mapping.range, diagnostic_codes::ExternalSystemMappingUnsupportedRoot,
             "external_system '" + external_system.name + "' metadata mapping " + std::string(side) +
                 " '" + path + "' uses unsupported root '" + segments.front() + "'"
         );
@@ -165,7 +165,7 @@ void validate_external_system_metadata_entity_lifecycle(
         entity.ownership->lifecycle.value_or("") != OwnershipLifecycleAuthoritative)
     {
         diagnostics.error(
-            metadata.range, "SSPEC4911",
+            metadata.range, diagnostic_codes::ExternalSystemMetadataRequiresSystemOwnership,
             "external_system '" + external_system.name + "' metadata entity '" + entity.name +
                 "' must use authoritative system ownership"
         );
@@ -179,7 +179,7 @@ void validate_external_system_metadata_entity_lifecycle(
         status == nullptr || status->type != EntityStatusFieldType)
     {
         diagnostics.error(
-            metadata.range, "SSPEC4912",
+            metadata.range, diagnostic_codes::ExternalSystemMetadataRequiresFoundationalFields,
             "external_system '" + external_system.name + "' metadata entity '" + entity.name +
                 "' must declare created_at timestamp, updated_at timestamp, and status string"
         );
@@ -190,7 +190,7 @@ void validate_external_system_metadata_entity_lifecycle(
             entity.key_fields.end())
     {
         diagnostics.error(
-            metadata.range, "SSPEC4913",
+            metadata.range, diagnostic_codes::ExternalSystemMetadataProfileFieldKeyRequired,
             "external_system '" + external_system.name + "' metadata profile_field '" +
                 *metadata.profile_field + "' must be part of metadata entity '" + entity.name +
                 "' key"
@@ -200,7 +200,7 @@ void validate_external_system_metadata_entity_lifecycle(
     if (!has_unique_index_on_fields(entity, entity.key_fields))
     {
         diagnostics.error(
-            metadata.range, "SSPEC4914",
+            metadata.range, diagnostic_codes::ExternalSystemMetadataUniqueKeyIndexRequired,
             "external_system '" + external_system.name + "' metadata entity '" + entity.name +
                 "' must declare a unique index on its key fields"
         );
@@ -209,7 +209,7 @@ void validate_external_system_metadata_entity_lifecycle(
     if (!entity.state_machine.has_value())
     {
         diagnostics.error(
-            metadata.range, "SSPEC4915",
+            metadata.range, diagnostic_codes::ExternalSystemMetadataLifecycleStatesRequired,
             "external_system '" + external_system.name + "' metadata entity '" + entity.name +
                 "' must declare states Active, Disabled, and Deleted"
         );
@@ -226,7 +226,7 @@ void validate_external_system_metadata_entity_lifecycle(
         if (!has_state(state_machine, required_state))
         {
             diagnostics.error(
-                metadata.range, "SSPEC4915",
+                metadata.range, diagnostic_codes::ExternalSystemMetadataLifecycleStatesRequired,
                 "external_system '" + external_system.name + "' metadata entity '" + entity.name +
                     "' must declare state " + std::string(required_state)
             );
@@ -243,7 +243,7 @@ void validate_external_system_metadata_entity_lifecycle(
         !deleted->garbage_collection.has_value())
     {
         diagnostics.error(
-            metadata.range, "SSPEC4916",
+            metadata.range, diagnostic_codes::ExternalSystemMetadataDeletedGcRequired,
             "external_system '" + external_system.name + "' metadata entity '" + entity.name +
                 "' state Deleted must be terminal and declare garbage_collection"
         );
@@ -260,7 +260,7 @@ void validate_external_system_metadata_entity_lifecycle(
         if (!has_transition(state_machine, from, to))
         {
             diagnostics.error(
-                metadata.range, "SSPEC4917",
+                metadata.range, diagnostic_codes::ExternalSystemMetadataLifecycleTransitionRequired,
                 "external_system '" + external_system.name + "' metadata entity '" + entity.name +
                     "' state_machine must declare transition " + from + " -> " + to
             );
@@ -280,7 +280,7 @@ void validate_external_systems(
         if (!is_qualified_pascal_case_name(external_system.name))
         {
             diagnostics.error(
-                external_system.range, "SSPEC4901",
+                external_system.range, diagnostic_codes::ExternalSystemInvalidName,
                 "external_system '" + external_system.name + "' must use PascalCase segments"
             );
         }
@@ -341,7 +341,7 @@ void validate_external_systems(
                 if (!mapping.target.empty() && !mapping_targets.insert(mapping.target).second)
                 {
                     diagnostics.error(
-                        mapping.range, "SSPEC4908",
+                        mapping.range, diagnostic_codes::ExternalSystemMappingDuplicateTarget,
                         "external_system '" + external_system.name + "' metadata mapping target '" +
                             mapping.target + "' is mapped more than once"
                     );
@@ -369,7 +369,7 @@ void validate_external_systems(
                 fields.find(*metadata.profile_field) == fields.end())
             {
                 diagnostics.error(
-                    metadata.range, "SSPEC4902",
+                    metadata.range, diagnostic_codes::ExternalSystemMetadataProfileFieldMissing,
                     "external_system '" + external_system.name + "' metadata profile_field '" +
                         *metadata.profile_field + "' must exist on entity '" + entity->name + "'"
                 );
@@ -380,7 +380,8 @@ void validate_external_systems(
                 if (fields.find(field) == fields.end())
                 {
                     diagnostics.error(
-                        metadata.range, "SSPEC4903",
+                        metadata.range,
+                        diagnostic_codes::ExternalSystemMetadataRequiredFieldMissing,
                         "external_system '" + external_system.name + "' metadata required field '" +
                             field + "' must exist on entity '" + entity->name + "'"
                     );
@@ -396,7 +397,7 @@ void validate_external_systems(
                     if (fields.find(field) == fields.end())
                     {
                         diagnostics.error(
-                            mapping.range, "SSPEC4909",
+                            mapping.range, diagnostic_codes::ExternalSystemMappingFieldMissing,
                             "external_system '" + external_system.name +
                                 "' metadata mapping source field '" + field +
                                 "' must exist on entity '" + entity->name + "'"
@@ -405,7 +406,8 @@ void validate_external_systems(
                     if (required_fields.find(field) == required_fields.end())
                     {
                         diagnostics.error(
-                            mapping.range, "SSPEC4910",
+                            mapping.range,
+                            diagnostic_codes::ExternalSystemMappingRequiredFieldMissing,
                             "external_system '" + external_system.name +
                                 "' metadata mapping source field '" + field +
                                 "' must be listed in required_fields"
@@ -420,7 +422,7 @@ void validate_external_systems(
                 if (fields.find(tenant_field) == fields.end())
                 {
                     diagnostics.error(
-                        metadata.range, "SSPEC4904",
+                        metadata.range, diagnostic_codes::ExternalSystemMetadataTenantFieldMissing,
                         "external_system '" + external_system.name + "' metadata entity '" +
                             entity->name + "' must declare tenant field '" + tenant_field + "'"
                     );
@@ -429,7 +431,7 @@ void validate_external_systems(
                     entity->key_fields.end())
                 {
                     diagnostics.error(
-                        metadata.range, "SSPEC4905",
+                        metadata.range, diagnostic_codes::ExternalSystemMetadataTenantKeyMissing,
                         "external_system '" + external_system.name + "' metadata entity '" +
                             entity->name + "' key must include tenant field '" + tenant_field + "'"
                     );

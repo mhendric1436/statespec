@@ -45,7 +45,7 @@ void validate_policy_member_order(
         if (order < previous_order)
         {
             diagnostics.warning(
-                member.range, "SSPEC6103",
+                member.range, diagnostic_codes::NoncanonicalPolicyOrder,
                 "policy '" + policy.name +
                     "' members should use canonical order: tenant, allow, deny, quota, audit"
             );
@@ -76,7 +76,7 @@ void validate_policies(
             *policy.tenant_scoped_by != system.tenant_scope->field_name)
         {
             diagnostics.error(
-                policy.range, "SSPEC3405",
+                policy.range, diagnostic_codes::TenantPolicyScopeMismatch,
                 "policy '" + policy.name + "' tenant field '" + *policy.tenant_scoped_by +
                     "' must match system tenant field '" + system.tenant_scope->field_name + "'"
             );

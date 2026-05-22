@@ -114,7 +114,7 @@ void validate_leases(
             if (ttl.has_value() && renew_every.has_value() && *renew_every >= *ttl)
             {
                 diagnostics.error(
-                    lease.range, "SSPEC3501",
+                    lease.range, diagnostic_codes::LeaseRenewEveryTooLong,
                     "lease '" + lease.name + "' renew_every must be less than ttl"
                 );
             }
@@ -127,7 +127,7 @@ void validate_leases(
             if (ttl.has_value() && max_ttl.has_value() && *ttl > *max_ttl)
             {
                 diagnostics.error(
-                    lease.range, "SSPEC3502",
+                    lease.range, diagnostic_codes::LeaseTtlTooLong,
                     "lease '" + lease.name + "' ttl must be less than or equal to max_ttl"
                 );
             }

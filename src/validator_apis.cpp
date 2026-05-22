@@ -49,7 +49,7 @@ void validate_api_input_tenant_field(
     if (!contains(fields, tenant_field))
     {
         diagnostics.error(
-            input_shape->range, "SSPEC3403",
+            input_shape->range, diagnostic_codes::TenantApiInputMissingTenantField,
             "API '" + api.name + "' input shape '" + input_shape->name +
                 "' must declare tenant field '" + tenant_field + "'"
         );
@@ -102,7 +102,7 @@ void validate_api_tenant_path(
         path.find("{" + lower_camel_tenant_field + "}") == std::string::npos)
     {
         diagnostics.error(
-            api.range, "SSPEC3406",
+            api.range, diagnostic_codes::TenantApiPathMissingTenantIdentity,
             "API '" + api.name + "' path must include tenant identity for tenant field '" +
                 tenant_field + "'"
         );
@@ -151,7 +151,7 @@ void validate_apis(
         if (api.starts_workflow.has_value() && api.enqueues.has_value())
         {
             diagnostics.error(
-                api.range, "SSPEC4101",
+                api.range, diagnostic_codes::ApiMultiplePrimaryActions,
                 "api '" + api.name + "' must choose one primary action: starts workflow or enqueues"
             );
         }

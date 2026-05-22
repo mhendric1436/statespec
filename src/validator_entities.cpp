@@ -68,7 +68,7 @@ void validate_entity_member_order(
         if (order < previous_order)
         {
             diagnostics.warning(
-                member.range, "SSPEC6101",
+                member.range, diagnostic_codes::NoncanonicalEntityOrder,
                 "entity '" + entity.name +
                     "' members should use canonical order: key, ownership, version, fields, "
                     "state_machine, relations, children, invariants, indexes"
@@ -145,7 +145,7 @@ void validate_state_machine(
             !contains(declared_terminal_states, state.name))
         {
             diagnostics.error(
-                state.range, "SSPEC3107",
+                state.range, diagnostic_codes::EntityDuplicateState,
                 "terminal state '" + state.name + "' must also appear in the terminal list"
             );
         }
@@ -156,7 +156,7 @@ void validate_state_machine(
         if (!contains(inline_terminal_states, terminal))
         {
             diagnostics.error(
-                state_machine.range, "SSPEC3108",
+                state_machine.range, diagnostic_codes::EntityMissingInitialState,
                 "terminal state '" + terminal + "' must declare terminal: true"
             );
         }
@@ -169,7 +169,7 @@ void validate_state_machine(
         if (is_terminal_state && !state.garbage_collection.has_value())
         {
             diagnostics.error(
-                state.range, "SSPEC3109",
+                state.range, diagnostic_codes::EntityStateTransitionGcConflict,
                 "terminal state '" + state.name + "' must declare garbage_collection"
             );
         }
@@ -182,7 +182,8 @@ void validate_state_machine(
         if (!is_terminal_state)
         {
             diagnostics.error(
-                state.garbage_collection->range, "SSPEC3103",
+                state.garbage_collection->range,
+                diagnostic_codes::EntityTerminalGcRequiresRetention,
                 "garbage_collection for state '" + state.name + "' is valid only on terminal states"
             );
         }
@@ -216,7 +217,7 @@ void validate_state_machine(
         else if (!is_garbage_collection_mode(*state.garbage_collection->mode))
         {
             diagnostics.error(
-                state.garbage_collection->range, "SSPEC3104",
+                state.garbage_collection->range, diagnostic_codes::EntityGcRequiresTerminalState,
                 "garbage_collection for state '" + state.name +
                     "' mode must be delete, tombstone, or archive"
             );
@@ -228,7 +229,7 @@ void validate_state_machine(
         if (state.duplicate_garbage_collection_range.has_value())
         {
             diagnostics.error(
-                *state.duplicate_garbage_collection_range, "SSPEC3001",
+                *state.duplicate_garbage_collection_range, diagnostic_codes::DuplicateDeclaration,
                 "duplicate declaration 'garbage_collection'"
             );
         }
@@ -251,7 +252,7 @@ void validate_state_machine(
         if (contains(garbage_collected_states, transition.from))
         {
             diagnostics.error(
-                transition.range, "SSPEC3105",
+                transition.range, diagnostic_codes::EntityUnknownTransitionState,
                 "garbage-collected terminal state '" + transition.from +
                     "' must not have outgoing transitions"
             );
@@ -293,7 +294,7 @@ void validate_required_entity_field(
     if (field->type != expected_type)
     {
         diagnostics.error(
-            field->range, "SSPEC3102",
+            field->range, diagnostic_codes::EntityInvalidStateType,
             "entity '" + entity.name + "' field '" + field_name + "' must have type " +
                 expected_type
         );
@@ -332,7 +333,7 @@ void validate_entity_management_fields(
         if (entity.fields[i].name != canonical_fields[i])
         {
             diagnostics.error(
-                entity.fields[i].range, "SSPEC3106",
+                entity.fields[i].range, diagnostic_codes::EntityDuplicateFieldName,
                 "entity '" + entity.name +
                     "' fields must begin with canonical management fields: created_at "
                     "timestamp, updated_at timestamp, status string"
@@ -358,7 +359,7 @@ void validate_entity_tenant_field(
     if (!contains(fields, tenant_field))
     {
         diagnostics.error(
-            entity.range, "SSPEC3401",
+            entity.range, diagnostic_codes::TenantEntityMissingTenantField,
             "entity '" + entity.name + "' must declare tenant field '" + tenant_field + "'"
         );
     }
@@ -380,7 +381,7 @@ void validate_entity_tenant_key(
         entity.key_fields.end())
     {
         diagnostics.error(
-            entity.range, "SSPEC3404",
+            entity.range, diagnostic_codes::TenantEntityKeyMissingTenantField,
             "entity '" + entity.name + "' key must include tenant field '" + tenant_field + "'"
         );
     }
@@ -442,7 +443,8 @@ void validate_ownership(
     else if (!is_ownership_authority(*ownership.authority))
     {
         diagnostics.error(
-            ownership.range, "SSPEC3301", "ownership authority must be system or external"
+            ownership.range, diagnostic_codes::OwnershipInvalidAuthority,
+            "ownership authority must be system or external"
         );
     }
     if (!ownership.system_of_record.has_value())
@@ -461,7 +463,7 @@ void validate_ownership(
     else if (!is_lifecycle_mode(*ownership.lifecycle))
     {
         diagnostics.error(
-            ownership.range, "SSPEC3302",
+            ownership.range, diagnostic_codes::OwnershipInvalidLifecycle,
             "ownership lifecycle must be authoritative, managed, observed, or projected"
         );
     }
@@ -498,7 +500,7 @@ void validate_relations(
         if (relation.relation_kind.has_value() && !is_relation_kind(*relation.relation_kind))
         {
             diagnostics.error(
-                relation.range, "SSPEC3303",
+                relation.range, diagnostic_codes::RelationInvalidParentDelete,
                 "relation kind must be composition, aggregation, or reference"
             );
         }
@@ -506,7 +508,7 @@ void validate_relations(
             !is_parent_delete_behavior(*relation.on_parent_delete))
         {
             diagnostics.error(
-                relation.range, "SSPEC3304",
+                relation.range, diagnostic_codes::RelationDetachRequiresOptionalParent,
                 "on_parent_delete must be cascade, block, detach, or fail"
             );
         }
@@ -514,7 +516,7 @@ void validate_relations(
             !relation.optional)
         {
             diagnostics.error(
-                relation.range, "SSPEC3305",
+                relation.range, diagnostic_codes::RelationUniqueFieldMissing,
                 "detach parent delete behavior requires an optional parent relation"
             );
         }
@@ -574,7 +576,7 @@ void validate_children(
         else if (relation_target_name(relation->target) != entity.name)
         {
             diagnostics.error(
-                child.range, "SSPEC3306",
+                child.range, diagnostic_codes::ChildUnknownRelation,
                 "child collection '" + child.name +
                     "' must reference a parent relation to entity '" + entity.name + "'"
             );
@@ -623,7 +625,8 @@ void validate_entities(
         if (entity.key_fields.empty())
         {
             diagnostics.error(
-                entity.range, "SSPEC3101", "entity '" + entity.name + "' must declare a key"
+                entity.range, diagnostic_codes::EntityMissingKey,
+                "entity '" + entity.name + "' must declare a key"
             );
         }
         if (entity.fields.empty())
