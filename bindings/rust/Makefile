@@ -1,5 +1,6 @@
 CARGO ?= cargo
 CARGO_TARGET_DIR ?= ../../build/rust-target
+RUSTFMT ?= rustfmt
 
 .PHONY: test format clean help
 
@@ -8,6 +9,7 @@ test:
 
 format:
 	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) fmt
+	$(RUSTFMT) generated/external_system_call_adapters.rs.tmpl generated/external_system_runtime.rs.tmpl
 
 clean:
 	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) clean

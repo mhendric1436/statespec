@@ -8,7 +8,10 @@
 namespace statespec
 {
 
-std::string generate_cpp_descriptor_prelude(const IrSystem& system)
+std::string generate_cpp_descriptor_prelude(
+    const IrSystem& system,
+    const std::string& external_system_runtime
+)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
@@ -226,28 +229,7 @@ std::string generate_cpp_descriptor_prelude(const IrSystem& system)
     out << "    ) = 0;\n";
     out << "};\n\n";
 
-    out << "struct ExternalSystemCallRequest\n";
-    out << "{\n";
-    out << "    std::string external_system;\n";
-    out << "    std::map<std::string, statespec::backend::Json> client_config;\n";
-    out << "    std::map<std::string, statespec::backend::Json> request_payload;\n";
-    out << "};\n\n";
-
-    out << "struct ExternalSystemCallResponse\n";
-    out << "{\n";
-    out << "    int status_code = 200;\n";
-    out << "    statespec::backend::Json body;\n";
-    out << "    std::map<std::string, statespec::backend::Json> metadata;\n";
-    out << "};\n\n";
-
-    out << "class IExternalSystemClient\n";
-    out << "{\n";
-    out << "public:\n";
-    out << "    virtual ~IExternalSystemClient() = default;\n";
-    out << "    virtual ExternalSystemCallResponse call_external_system(\n";
-    out << "        const ExternalSystemCallRequest& request\n";
-    out << "    ) = 0;\n";
-    out << "};\n\n";
+    out << external_system_runtime << "\n";
 
     out << "struct ExternalSystemMetadataDescriptor\n";
     out << "{\n";

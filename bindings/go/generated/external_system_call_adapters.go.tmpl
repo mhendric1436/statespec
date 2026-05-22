@@ -1,0 +1,29 @@
+func BuildExternalSystemCallRequest(ctx context.Context, applicator ExternalSystemMetadataMappingApplicator, descriptor ExternalSystemDescriptor, inputs ExternalSystemMetadataMappingInputs) (ExternalSystemCallRequest, error) {
+	mapped, err := applicator.ApplyExternalSystemMetadataMappings(ctx, BuildExternalSystemMetadataMappingPlan(descriptor), inputs)
+	if err != nil {
+		return ExternalSystemCallRequest{}, err
+	}
+	if len(mapped.MissingSources) > 0 {
+		return ExternalSystemCallRequest{}, ErrExternalSystemMappingIncomplete
+	}
+	return ExternalSystemCallRequest{ExternalSystem: descriptor.Name, ClientConfig: mapped.ClientConfig, RequestPayload: mapped.RequestPayload}, nil
+}
+
+func CallExternalSystem(ctx context.Context, client ExternalSystemClient, applicator ExternalSystemMetadataMappingApplicator, descriptor ExternalSystemDescriptor, inputs ExternalSystemMetadataMappingInputs) (ExternalSystemCallResponse, error) {
+	request, err := BuildExternalSystemCallRequest(ctx, applicator, descriptor, inputs)
+	if err != nil {
+		return ExternalSystemCallResponse{}, err
+	}
+	return client.CallExternalSystem(ctx, request)
+}
+
+func CallExternalSystemByName(ctx context.Context, client ExternalSystemClient, applicator ExternalSystemMetadataMappingApplicator, externalSystem string, inputs ExternalSystemMetadataMappingInputs) (ExternalSystemCallResponse, bool, error) {
+	for _, descriptor := range ExternalSystemDescriptors() {
+		if descriptor.Name == externalSystem {
+			response, err := CallExternalSystem(ctx, client, applicator, descriptor, inputs)
+			return response, true, err
+		}
+	}
+	return ExternalSystemCallResponse{}, false, nil
+}
+

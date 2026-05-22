@@ -128,7 +128,7 @@ void add_java_common_runtime_artifacts(
         result, options.output_dir, templates, "generated/Descriptors.java.tmpl",
         "common/com/statespec/generated/Descriptors.java", diagnostics,
         GeneratedArtifactTier::Common,
-        TemplateRenderer::Values{{"descriptors", generate_descriptors_java(system)}}
+        TemplateRenderer::Values{{"descriptors", generate_descriptors_java(system, templates)}}
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,

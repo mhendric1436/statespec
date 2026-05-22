@@ -172,7 +172,7 @@ void add_go_common_runtime_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "generated/descriptors.go.tmpl",
         "common/backend/descriptors.go", diagnostics, GeneratedArtifactTier::Common,
-        TemplateRenderer::Values{{"descriptors", generate_descriptors_go(system)}}
+        TemplateRenderer::Values{{"descriptors", generate_descriptors_go(system, templates)}}
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/go.mod.tmpl", "go.mod", diagnostics,

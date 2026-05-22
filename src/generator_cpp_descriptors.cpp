@@ -117,13 +117,20 @@ std::string cpp_default_response_assignment(
 
 } // namespace
 
-std::string generate_system_descriptors_header(const IrSystem& system)
+std::string generate_system_descriptors_header(
+    const IrSystem& system,
+    const TemplatePackage& templates
+)
 {
     std::ostringstream out;
-    out << generate_cpp_descriptor_prelude(system);
+    out << generate_cpp_descriptor_prelude(
+        system, templates.load("generated/external_system_runtime.hpp.tmpl")
+    );
     out << generate_cpp_feature_flag_descriptors(system);
     out << generate_cpp_declaration_descriptors(system);
-    out << generate_cpp_external_system_descriptors(system);
+    out << generate_cpp_external_system_descriptors(
+        system, templates.load("generated/external_system_call_adapters.hpp.tmpl")
+    );
     out << generate_cpp_api_descriptors(system);
     out << generate_cpp_worker_descriptors(system);
     out << generate_cpp_policy_descriptors(system);

@@ -7,7 +7,10 @@
 namespace statespec
 {
 
-std::string generate_cpp_external_system_descriptors(const IrSystem& system)
+std::string generate_cpp_external_system_descriptors(
+    const IrSystem& system,
+    const std::string& external_system_call_adapters
+)
 {
     std::ostringstream out;
     out << "inline std::vector<ExternalSystemDescriptor> external_system_descriptors()\n";
@@ -200,59 +203,7 @@ std::string generate_cpp_external_system_descriptors(const IrSystem& system)
     out << "    return resolver.resolve_metadataTx(tx, *lookup);\n";
     out << "}\n\n";
 
-    out << "inline ExternalSystemCallRequest build_external_system_call_request(\n";
-    out << "    IExternalSystemMetadataMappingApplicator& mapping_applicator,\n";
-    out << "    const ExternalSystemDescriptor& descriptor,\n";
-    out << "    const ExternalSystemMetadataMappingInputs& inputs\n";
-    out << ")\n";
-    out << "{\n";
-    out << "    const auto plan = external_system_metadata_mapping_plan(descriptor);\n";
-    out << "    auto mapped = mapping_applicator.apply(plan, inputs);\n";
-    out << "    if (!mapped.missing_sources.empty())\n";
-    out << "    {\n";
-    out << "        throw statespec::backend::BackendError(\n";
-    out << "            \"external system mapping incomplete for \" + descriptor.name\n";
-    out << "        );\n";
-    out << "    }\n";
-    out << "    return ExternalSystemCallRequest{\n";
-    out << "        descriptor.name,\n";
-    out << "        std::move(mapped.client_config),\n";
-    out << "        std::move(mapped.request_payload),\n";
-    out << "    };\n";
-    out << "}\n\n";
-
-    out << "inline ExternalSystemCallResponse call_external_system(\n";
-    out << "    IExternalSystemClient& client,\n";
-    out << "    IExternalSystemMetadataMappingApplicator& mapping_applicator,\n";
-    out << "    const ExternalSystemDescriptor& descriptor,\n";
-    out << "    const ExternalSystemMetadataMappingInputs& inputs\n";
-    out << ")\n";
-    out << "{\n";
-    out << "    auto request = build_external_system_call_request(\n";
-    out << "        mapping_applicator,\n";
-    out << "        descriptor,\n";
-    out << "        inputs\n";
-    out << "    );\n";
-    out << "    return client.call_external_system(request);\n";
-    out << "}\n\n";
-
-    out << "inline std::optional<ExternalSystemCallResponse> call_external_system(\n";
-    out << "    IExternalSystemClient& client,\n";
-    out << "    IExternalSystemMetadataMappingApplicator& mapping_applicator,\n";
-    out << "    std::string_view external_system,\n";
-    out << "    const ExternalSystemMetadataMappingInputs& inputs\n";
-    out << ")\n";
-    out << "{\n";
-    out << "    for (const auto& descriptor : external_system_descriptors())\n";
-    out << "    {\n";
-    out << "        if (descriptor.name == external_system)\n";
-    out << "        {\n";
-    out << "            return call_external_system(client, mapping_applicator, descriptor, "
-           "inputs);\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "    return std::nullopt;\n";
-    out << "}\n\n";
+    out << external_system_call_adapters << "\n";
 
     return out.str();
 }

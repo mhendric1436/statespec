@@ -1,0 +1,51 @@
+public
+static ExternalSystemCallRequest buildExternalSystemCallRequest(
+    ExternalSystemMetadataMappingApplicator applicator,
+    ExternalSystemDescriptor descriptor,
+    ExternalSystemMetadataMappingInputs inputs
+) throws Exception
+{
+    ExternalSystemMetadataMappingOutput mapped = applicator.applyExternalSystemMetadataMappings(
+        externalSystemMetadataMappingPlan(descriptor), inputs
+    );
+    if (!mapped.missingSources().isEmpty())
+    {
+        throw new Backend.BackendException(
+            "external system mapping incomplete for " + descriptor.name()
+        );
+    }
+    return new ExternalSystemCallRequest(
+        descriptor.name(), mapped.clientConfig(), mapped.requestPayload()
+    );
+}
+
+public
+static ExternalSystemCallResponse callExternalSystem(
+    ExternalSystemClient client,
+    ExternalSystemMetadataMappingApplicator applicator,
+    ExternalSystemDescriptor descriptor,
+    ExternalSystemMetadataMappingInputs inputs
+) throws Exception
+{
+    return client.callExternalSystem(
+        buildExternalSystemCallRequest(applicator, descriptor, inputs)
+    );
+}
+
+public
+static Optional<ExternalSystemCallResponse> callExternalSystem(
+    ExternalSystemClient client,
+    ExternalSystemMetadataMappingApplicator applicator,
+    String externalSystem,
+    ExternalSystemMetadataMappingInputs inputs
+) throws Exception
+{
+    for (ExternalSystemDescriptor descriptor : externalSystemDescriptors())
+    {
+        if (descriptor.name().equals(externalSystem))
+        {
+            return Optional.of(callExternalSystem(client, applicator, descriptor, inputs));
+        }
+    }
+    return Optional.empty();
+}

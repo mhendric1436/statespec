@@ -1,0 +1,27 @@
+public
+record ExternalSystemCallRequest(
+    String externalSystem,
+    Map<String,
+        Json> clientConfig,
+    Map<String,
+        Json> requestPayload
+)
+{
+}
+
+public
+record ExternalSystemCallResponse(
+    int statusCode,
+    Json body,
+    Map<String,
+        Json> metadata
+)
+{
+}
+
+public
+interface ExternalSystemClient
+{
+    ExternalSystemCallResponse callExternalSystem(ExternalSystemCallRequest request)
+        throws Exception;
+}

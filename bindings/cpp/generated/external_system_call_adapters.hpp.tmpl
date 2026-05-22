@@ -1,0 +1,48 @@
+inline ExternalSystemCallRequest build_external_system_call_request(
+    IExternalSystemMetadataMappingApplicator& mapping_applicator,
+    const ExternalSystemDescriptor& descriptor,
+    const ExternalSystemMetadataMappingInputs& inputs
+)
+{
+    const auto plan = external_system_metadata_mapping_plan(descriptor);
+    auto mapped = mapping_applicator.apply(plan, inputs);
+    if (!mapped.missing_sources.empty())
+    {
+        throw statespec::backend::BackendError(
+            "external system mapping incomplete for " + descriptor.name
+        );
+    }
+    return ExternalSystemCallRequest{
+        descriptor.name,
+        std::move(mapped.client_config),
+        std::move(mapped.request_payload),
+    };
+}
+
+inline ExternalSystemCallResponse call_external_system(
+    IExternalSystemClient& client,
+    IExternalSystemMetadataMappingApplicator& mapping_applicator,
+    const ExternalSystemDescriptor& descriptor,
+    const ExternalSystemMetadataMappingInputs& inputs
+)
+{
+    auto request = build_external_system_call_request(mapping_applicator, descriptor, inputs);
+    return client.call_external_system(request);
+}
+
+inline std::optional<ExternalSystemCallResponse> call_external_system(
+    IExternalSystemClient& client,
+    IExternalSystemMetadataMappingApplicator& mapping_applicator,
+    std::string_view external_system,
+    const ExternalSystemMetadataMappingInputs& inputs
+)
+{
+    for (const auto& descriptor : external_system_descriptors())
+    {
+        if (descriptor.name == external_system)
+        {
+            return call_external_system(client, mapping_applicator, descriptor, inputs);
+        }
+    }
+    return std::nullopt;
+}

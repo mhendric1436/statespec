@@ -7,10 +7,16 @@
 namespace statespec
 {
 
-std::string generate_cpp_descriptor_prelude(const IrSystem& system);
+std::string generate_cpp_descriptor_prelude(
+    const IrSystem& system,
+    const std::string& external_system_runtime
+);
 std::string generate_cpp_feature_flag_descriptors(const IrSystem& system);
 std::string generate_cpp_declaration_descriptors(const IrSystem& system);
-std::string generate_cpp_external_system_descriptors(const IrSystem& system);
+std::string generate_cpp_external_system_descriptors(
+    const IrSystem& system,
+    const std::string& external_system_call_adapters
+);
 std::string generate_cpp_api_descriptors(const IrSystem& system);
 std::string generate_cpp_worker_descriptors(const IrSystem& system);
 std::string generate_cpp_policy_descriptors(const IrSystem& system);

@@ -1,0 +1,18 @@
+type ExternalSystemCallRequest struct {
+	ExternalSystem string
+	ClientConfig   map[string]JSON
+	RequestPayload map[string]JSON
+}
+
+type ExternalSystemCallResponse struct {
+	StatusCode int
+	Body       JSON
+	Metadata   map[string]JSON
+}
+
+type ExternalSystemClient interface {
+	CallExternalSystem(context.Context, ExternalSystemCallRequest) (ExternalSystemCallResponse, error)
+}
+
+var ErrExternalSystemMappingIncomplete = errors.New("external system mapping incomplete")
+

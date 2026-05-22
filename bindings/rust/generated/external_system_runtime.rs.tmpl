@@ -1,0 +1,20 @@
+#[derive(Debug, Clone)]
+pub struct ExternalSystemCallRequest {
+    pub external_system: String,
+    pub client_config: BTreeMap<String, Json>,
+    pub request_payload: BTreeMap<String, Json>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExternalSystemCallResponse {
+    pub status_code: i32,
+    pub body: Json,
+    pub metadata: BTreeMap<String, Json>,
+}
+
+pub trait ExternalSystemClient {
+    fn call_external_system(
+        &self,
+        request: &ExternalSystemCallRequest,
+    ) -> BackendResult<ExternalSystemCallResponse>;
+}

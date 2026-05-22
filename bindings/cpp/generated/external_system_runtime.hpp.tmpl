@@ -1,0 +1,21 @@
+struct ExternalSystemCallRequest
+{
+    std::string external_system;
+    std::map<std::string, statespec::backend::Json> client_config;
+    std::map<std::string, statespec::backend::Json> request_payload;
+};
+
+struct ExternalSystemCallResponse
+{
+    int status_code = 200;
+    statespec::backend::Json body;
+    std::map<std::string, statespec::backend::Json> metadata;
+};
+
+class IExternalSystemClient
+{
+  public:
+    virtual ~IExternalSystemClient() = default;
+    virtual ExternalSystemCallResponse
+    call_external_system(const ExternalSystemCallRequest& request) = 0;
+};

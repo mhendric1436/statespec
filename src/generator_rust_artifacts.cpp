@@ -216,7 +216,7 @@ void add_rust_common_runtime_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "generated/descriptors.rs.tmpl",
         "common/descriptors.rs", diagnostics, GeneratedArtifactTier::Common,
-        TemplateRenderer::Values{{"descriptors", generate_descriptors_rs(system)}}
+        TemplateRenderer::Values{{"descriptors", generate_descriptors_rs(system, templates)}}
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/Cargo.toml.tmpl", "Cargo.toml",

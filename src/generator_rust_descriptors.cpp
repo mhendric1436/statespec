@@ -122,13 +122,20 @@ std::string rust_default_response_expr(
 
 } // namespace
 
-std::string generate_descriptors_rs(const IrSystem& system)
+std::string generate_descriptors_rs(
+    const IrSystem& system,
+    const TemplatePackage& templates
+)
 {
     std::ostringstream out;
-    out << generate_rust_descriptor_prelude(system);
+    out << generate_rust_descriptor_prelude(
+        system, templates.load("generated/external_system_runtime.rs.tmpl")
+    );
     out << generate_rust_feature_flag_descriptors(system);
     out << generate_rust_declaration_descriptors(system);
-    out << generate_rust_external_system_descriptors(system);
+    out << generate_rust_external_system_descriptors(
+        system, templates.load("generated/external_system_call_adapters.rs.tmpl")
+    );
     out << generate_rust_api_descriptors(system);
     out << generate_rust_worker_descriptors(system);
     out << generate_rust_policy_descriptors(system);

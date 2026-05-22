@@ -7,7 +7,10 @@
 namespace statespec
 {
 
-std::string generate_rust_external_system_descriptors(const IrSystem& system)
+std::string generate_rust_external_system_descriptors(
+    const IrSystem& system,
+    const std::string& external_system_call_adapters
+)
 {
     std::ostringstream out;
     out << "pub fn external_system_descriptors() -> Vec<ExternalSystemDescriptor> {\n";
@@ -173,55 +176,7 @@ std::string generate_rust_external_system_descriptors(const IrSystem& system)
     out << "    }\n";
     out << "}\n\n";
 
-    out << "pub fn build_external_system_call_request<A: "
-           "ExternalSystemMetadataMappingApplicator>(\n";
-    out << "    applicator: &A,\n";
-    out << "    descriptor: &ExternalSystemDescriptor,\n";
-    out << "    inputs: &ExternalSystemMetadataMappingInputs,\n";
-    out << ") -> BackendResult<ExternalSystemCallRequest> {\n";
-    out << "    let mapped = applicator.apply_external_system_metadata_mappings(\n";
-    out << "        &external_system_metadata_mapping_plan(descriptor),\n";
-    out << "        inputs,\n";
-    out << "    )?;\n";
-    out << "    if !mapped.missing_sources.is_empty() {\n";
-    out << "        return Err(BackendError::InvalidSchema {\n";
-    out << "            message: format!(\"external system mapping incomplete for {}\", "
-           "descriptor.name),\n";
-    out << "        });\n";
-    out << "    }\n";
-    out << "    Ok(ExternalSystemCallRequest {\n";
-    out << "        external_system: descriptor.name.clone(),\n";
-    out << "        client_config: mapped.client_config,\n";
-    out << "        request_payload: mapped.request_payload,\n";
-    out << "    })\n";
-    out << "}\n\n";
-    out << "pub fn call_external_system<C: ExternalSystemClient, A: "
-           "ExternalSystemMetadataMappingApplicator>(\n";
-    out << "    client: &C,\n";
-    out << "    applicator: &A,\n";
-    out << "    descriptor: &ExternalSystemDescriptor,\n";
-    out << "    inputs: &ExternalSystemMetadataMappingInputs,\n";
-    out << ") -> BackendResult<ExternalSystemCallResponse> {\n";
-    out << "    let request = build_external_system_call_request(applicator, descriptor, "
-           "inputs)?;\n";
-    out << "    client.call_external_system(&request)\n";
-    out << "}\n\n";
-    out << "pub fn call_external_system_by_name<C: ExternalSystemClient, A: "
-           "ExternalSystemMetadataMappingApplicator>(\n";
-    out << "    client: &C,\n";
-    out << "    applicator: &A,\n";
-    out << "    external_system: &str,\n";
-    out << "    inputs: &ExternalSystemMetadataMappingInputs,\n";
-    out << ") -> BackendResult<Option<ExternalSystemCallResponse>> {\n";
-    out << "    match external_system_descriptors()\n";
-    out << "        .iter()\n";
-    out << "        .find(|descriptor| descriptor.name == external_system)\n";
-    out << "    {\n";
-    out << "        Some(descriptor) => call_external_system(client, applicator, descriptor, "
-           "inputs).map(Some),\n";
-    out << "        None => Ok(None),\n";
-    out << "    }\n";
-    out << "}\n\n";
+    out << external_system_call_adapters << "\n";
 
     return out.str();
 }

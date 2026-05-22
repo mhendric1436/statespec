@@ -1,0 +1,48 @@
+pub fn build_external_system_call_request<A: ExternalSystemMetadataMappingApplicator>(
+    applicator: &A,
+    descriptor: &ExternalSystemDescriptor,
+    inputs: &ExternalSystemMetadataMappingInputs,
+) -> BackendResult<ExternalSystemCallRequest> {
+    let mapped = applicator.apply_external_system_metadata_mappings(
+        &external_system_metadata_mapping_plan(descriptor),
+        inputs,
+    )?;
+    if !mapped.missing_sources.is_empty() {
+        return Err(BackendError::InvalidSchema {
+            message: format!("external system mapping incomplete for {}", descriptor.name),
+        });
+    }
+    Ok(ExternalSystemCallRequest {
+        external_system: descriptor.name.clone(),
+        client_config: mapped.client_config,
+        request_payload: mapped.request_payload,
+    })
+}
+
+pub fn call_external_system<C: ExternalSystemClient, A: ExternalSystemMetadataMappingApplicator>(
+    client: &C,
+    applicator: &A,
+    descriptor: &ExternalSystemDescriptor,
+    inputs: &ExternalSystemMetadataMappingInputs,
+) -> BackendResult<ExternalSystemCallResponse> {
+    let request = build_external_system_call_request(applicator, descriptor, inputs)?;
+    client.call_external_system(&request)
+}
+
+pub fn call_external_system_by_name<
+    C: ExternalSystemClient,
+    A: ExternalSystemMetadataMappingApplicator,
+>(
+    client: &C,
+    applicator: &A,
+    external_system: &str,
+    inputs: &ExternalSystemMetadataMappingInputs,
+) -> BackendResult<Option<ExternalSystemCallResponse>> {
+    match external_system_descriptors()
+        .iter()
+        .find(|descriptor| descriptor.name == external_system)
+    {
+        Some(descriptor) => call_external_system(client, applicator, descriptor, inputs).map(Some),
+        None => Ok(None),
+    }
+}

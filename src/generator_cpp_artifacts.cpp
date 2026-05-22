@@ -185,7 +185,9 @@ void add_cpp_common_runtime_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "generated/descriptors.hpp.tmpl",
         "common/descriptors.hpp", diagnostics, GeneratedArtifactTier::Common,
-        TemplateRenderer::Values{{"system_descriptors", generate_system_descriptors_header(system)}}
+        TemplateRenderer::Values{
+            {"system_descriptors", generate_system_descriptors_header(system, templates)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "generated/Makefile.tmpl", "Makefile", diagnostics,

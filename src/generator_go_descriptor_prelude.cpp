@@ -8,7 +8,10 @@
 namespace statespec
 {
 
-std::string generate_go_descriptor_prelude(const IrSystem& system)
+std::string generate_go_descriptor_prelude(
+    const IrSystem& system,
+    const std::string& external_system_runtime
+)
 {
     std::ostringstream out;
     out << "package backend\n\n";
@@ -177,22 +180,7 @@ std::string generate_go_descriptor_prelude(const IrSystem& system)
            "ExternalSystemMetadataMappingPlan, ExternalSystemMetadataMappingInputs) "
            "(ExternalSystemMetadataMappingOutput, error)\n";
     out << "}\n\n";
-    out << "type ExternalSystemCallRequest struct {\n";
-    out << "\tExternalSystem string\n";
-    out << "\tClientConfig map[string]JSON\n";
-    out << "\tRequestPayload map[string]JSON\n";
-    out << "}\n\n";
-    out << "type ExternalSystemCallResponse struct {\n";
-    out << "\tStatusCode int\n";
-    out << "\tBody JSON\n";
-    out << "\tMetadata map[string]JSON\n";
-    out << "}\n\n";
-    out << "type ExternalSystemClient interface {\n";
-    out << "\tCallExternalSystem(context.Context, ExternalSystemCallRequest) "
-           "(ExternalSystemCallResponse, error)\n";
-    out << "}\n\n";
-    out << "var ErrExternalSystemMappingIncomplete = errors.New(\"external system mapping "
-           "incomplete\")\n\n";
+    out << external_system_runtime << "\n";
     out << "type ExternalSystemMetadataDescriptor struct {\n";
     out << "\tEntity string\n";
     out << "\tTenantField *string\n";

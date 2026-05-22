@@ -8,7 +8,10 @@
 namespace statespec
 {
 
-std::string generate_rust_descriptor_prelude(const IrSystem& system)
+std::string generate_rust_descriptor_prelude(
+    const IrSystem& system,
+    const std::string& external_system_runtime
+)
 {
     std::ostringstream out;
     out << "use std::collections::BTreeMap;\n";
@@ -192,24 +195,7 @@ std::string generate_rust_descriptor_prelude(const IrSystem& system)
     out << "        inputs: &ExternalSystemMetadataMappingInputs,\n";
     out << "    ) -> BackendResult<ExternalSystemMetadataMappingOutput>;\n";
     out << "}\n\n";
-    out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct ExternalSystemCallRequest {\n";
-    out << "    pub external_system: String,\n";
-    out << "    pub client_config: BTreeMap<String, Json>,\n";
-    out << "    pub request_payload: BTreeMap<String, Json>,\n";
-    out << "}\n\n";
-    out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct ExternalSystemCallResponse {\n";
-    out << "    pub status_code: i32,\n";
-    out << "    pub body: Json,\n";
-    out << "    pub metadata: BTreeMap<String, Json>,\n";
-    out << "}\n\n";
-    out << "pub trait ExternalSystemClient {\n";
-    out << "    fn call_external_system(\n";
-    out << "        &self,\n";
-    out << "        request: &ExternalSystemCallRequest,\n";
-    out << "    ) -> BackendResult<ExternalSystemCallResponse>;\n";
-    out << "}\n\n";
+    out << external_system_runtime << "\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ExternalSystemMetadataDescriptor {\n";
     out << "    pub entity: String,\n";

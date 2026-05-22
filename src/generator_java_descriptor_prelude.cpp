@@ -8,7 +8,10 @@
 namespace statespec
 {
 
-std::string generate_java_descriptor_prelude(const IrSystem& system)
+std::string generate_java_descriptor_prelude(
+    const IrSystem& system,
+    const std::string& external_system_runtime
+)
 {
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
@@ -198,21 +201,7 @@ std::string generate_java_descriptor_prelude(const IrSystem& system)
     out << "            ExternalSystemMetadataMappingInputs inputs\n";
     out << "        ) throws Exception;\n";
     out << "    }\n\n";
-    out << "    public record ExternalSystemCallRequest(\n";
-    out << "        String externalSystem,\n";
-    out << "        Map<String, Json> clientConfig,\n";
-    out << "        Map<String, Json> requestPayload\n";
-    out << "    ) {}\n\n";
-    out << "    public record ExternalSystemCallResponse(\n";
-    out << "        int statusCode,\n";
-    out << "        Json body,\n";
-    out << "        Map<String, Json> metadata\n";
-    out << "    ) {}\n\n";
-    out << "    public interface ExternalSystemClient {\n";
-    out << "        ExternalSystemCallResponse callExternalSystem(\n";
-    out << "            ExternalSystemCallRequest request\n";
-    out << "        ) throws Exception;\n";
-    out << "    }\n\n";
+    out << external_system_runtime << "\n";
     out << "    public record ExternalSystemMetadataDescriptor(\n";
     out << "        String entity,\n";
     out << "        Optional<String> tenantField,\n";
