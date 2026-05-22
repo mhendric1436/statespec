@@ -94,6 +94,9 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "new Descriptors.ApiResponse(204"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/Descriptors.java" "updateTx"
+cp "$SCRIPT_DIR/ApiPersistenceFixture.java" "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiPersistenceFixture.java"
+run_expect_status 0 make -C "$TMPDIR/out-api-entities-java" build-api
+run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-api-entities-java/build/classes" com.statespec.generated.ApiPersistenceFixture
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang java "$APP_SPEC" --out "$TMPDIR/out-app-java"

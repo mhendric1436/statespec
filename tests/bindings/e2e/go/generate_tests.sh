@@ -95,6 +95,8 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_regist
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "StatusCode: 204"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/descriptors.go" "UpdateTx"
+cp "$SCRIPT_DIR/api_persistence_fixture_test.go" "$TMPDIR/out-api-entities-go/api/backend/api_persistence_fixture_test.go"
+run_expect_status 0 make -C "$TMPDIR/out-api-entities-go" check-api
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"

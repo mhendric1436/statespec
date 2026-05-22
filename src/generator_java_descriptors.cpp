@@ -811,8 +811,8 @@ bool write_java_delete_handler_body(
     {
         return false;
     }
-    out << "            var pathParameters = ApiCodecs.extractApiPathParameters("
-        << java_string(api.path.value_or("")) << ", context.path().orElse(\"\"));\n";
+    out << "            var pathParameters = extractApiPathParameters("
+        << java_string(api.path.value_or("")) << ", context.path());\n";
     out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
         << "Repository();\n";
     out << "            repository.registerDescriptor(backend);\n";
@@ -823,7 +823,7 @@ bool write_java_delete_handler_body(
     {
         const auto& key_field = entity->key_fields[i];
         out << "                    new Descriptors.EntityKeyValue(" << java_string(key_field)
-            << ", ApiCodecs.pathParameterJson(pathParameters, " << java_string(key_field) << "))"
+            << ", pathParameterJson(pathParameters, " << java_string(key_field) << "))"
             << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
     }
     out << "                );\n";

@@ -743,8 +743,8 @@ bool write_rust_delete_handler_body(
     {
         return false;
     }
-    out << "        let path_parameters = crate::api_codecs::extract_api_path_parameters("
-        << rust_string(api.path.value_or("")) << ", context.path.as_deref().unwrap_or(\"\"));\n";
+    out << "        let path_parameters = extract_api_path_parameters("
+        << rust_string(api.path.value_or("")) << ", &context.path);\n";
     out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
     out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
         << pascal_identifier(entity->name)
@@ -754,7 +754,7 @@ bool write_rust_delete_handler_body(
     for (const auto& key_field : entity->key_fields)
     {
         out << "            EntityKeyValue { field: " << rust_string(key_field)
-            << ".to_string(), value: crate::api_codecs::path_parameter_json(&path_parameters, "
+            << ".to_string(), value: path_parameter_json(&path_parameters, "
             << rust_string(key_field) << ") },\n";
     }
     out << "        ];\n";

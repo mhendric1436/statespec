@@ -95,6 +95,9 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "return ApiResponse{204"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "updateTx"
+run_expect_status 0 make -C "$TMPDIR/out-api-entities-cpp" check-api
+run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-api-entities-cpp" -I"$TMPDIR/out-api-entities-cpp/common" "$SCRIPT_DIR/api_persistence_fixture.cpp" -o "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
+run_expect_status 0 "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$APP_SPEC" --out "$TMPDIR/out-app-cpp"

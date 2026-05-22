@@ -97,6 +97,9 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "status_code: 204"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors.rs" "update_tx"
+mkdir -p "$TMPDIR/out-api-entities-rust/tests"
+cp "$SCRIPT_DIR/api_persistence_fixture.rs" "$TMPDIR/out-api-entities-rust/tests/api_persistence_fixture.rs"
+run_expect_status 0 make -C "$TMPDIR/out-api-entities-rust" check-api
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang rust "$APP_SPEC" --out "$TMPDIR/out-app-rust"
