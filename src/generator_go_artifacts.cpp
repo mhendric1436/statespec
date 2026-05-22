@@ -138,6 +138,14 @@ void add_go_common_runtime_artifacts(
         "common/backend/runtime/codec_observability.go", diagnostics, GeneratedArtifactTier::Common
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "backend/runtime/codec_logs.go.tmpl",
+        "common/backend/runtime/codec_logs.go", diagnostics, GeneratedArtifactTier::Common
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "backend/runtime/codec_metrics.go.tmpl",
+        "common/backend/runtime/codec_metrics.go", diagnostics, GeneratedArtifactTier::Common
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "backend/runtime/feature_flags.go.tmpl",
         "common/backend/runtime/feature_flags.go", diagnostics, GeneratedArtifactTier::Common
     );

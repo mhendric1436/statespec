@@ -140,6 +140,14 @@ void add_cpp_common_runtime_artifacts(
         "runtime/codec_observability.hpp", diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, "runtime/codec_logs.hpp", "runtime/codec_logs.hpp",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_metrics.hpp",
+        "runtime/codec_metrics.hpp", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, "runtime/feature_flag_store.hpp",
         "runtime/feature_flag_store.hpp", diagnostics
     );

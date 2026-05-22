@@ -1,0 +1,40 @@
+package runtime
+
+import common "statespec-generated/common/backend"
+
+func logDefinitionToJSON(definition common.LogSignalDefinition) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"name":       common.JSONString(definition.Name),
+		"level":      common.JSONString(string(definition.Level)),
+		"event_name": common.JSONString(definition.EventName),
+	})
+}
+
+func logDefinitionFromJSON(value common.JSON) common.LogSignalDefinition {
+	object, _ := value.AsObject()
+	return common.LogSignalDefinition{
+		Name:      stringFromJSON(object["name"]),
+		Level:     common.LogLevel(stringFromJSON(object["level"])),
+		EventName: stringFromJSON(object["event_name"]),
+	}
+}
+
+func logEventToJSON(event common.LogEvent) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"name":       common.JSONString(event.Name),
+		"level":      common.JSONString(string(event.Level)),
+		"event_name": common.JSONString(event.EventName),
+		"fields":     common.JSONObject(event.Fields),
+	})
+}
+
+func logEventFromJSON(value common.JSON) common.LogEvent {
+	object, _ := value.AsObject()
+	fields, _ := object["fields"].AsObject()
+	return common.LogEvent{
+		Name:      stringFromJSON(object["name"]),
+		Level:     common.LogLevel(stringFromJSON(object["level"])),
+		EventName: stringFromJSON(object["event_name"]),
+		Fields:    fields,
+	}
+}

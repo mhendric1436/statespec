@@ -47,6 +47,8 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/runtime/codec_leases.rs", common},
             {"common/runtime/codec_workflows.rs", common},
             {"common/runtime/codec_observability.rs", common},
+            {"common/runtime/codec_logs.rs", common},
+            {"common/runtime/codec_metrics.rs", common},
             {"common/runtime/feature_flags.rs", common},
             {"common/runtime/queues.rs", common},
             {"common/runtime/leases.rs", common},

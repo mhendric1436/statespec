@@ -40,6 +40,8 @@ common/runtime/codec.hpp
 common/runtime/codec_core.hpp
 common/runtime/codec_feature_flags.hpp
 common/runtime/codec_leases.hpp
+common/runtime/codec_logs.hpp
+common/runtime/codec_metrics.hpp
 common/runtime/codec_observability.hpp
 common/runtime/codec_queues.hpp
 common/runtime/codec_workflows.hpp

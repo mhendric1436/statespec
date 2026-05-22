@@ -169,6 +169,14 @@ void add_rust_common_runtime_artifacts(
         "runtime/codec_observability.rs", diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, "runtime/codec_logs.rs", "runtime/codec_logs.rs",
+        diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, "runtime/codec_metrics.rs",
+        "runtime/codec_metrics.rs", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, "runtime/feature_flags.rs",
         "runtime/feature_flags.rs", diagnostics
     );

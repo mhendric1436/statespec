@@ -43,6 +43,8 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/runtime/codec_leases.go", common},
             {"common/backend/runtime/codec_workflows.go", common},
             {"common/backend/runtime/codec_observability.go", common},
+            {"common/backend/runtime/codec_logs.go", common},
+            {"common/backend/runtime/codec_metrics.go", common},
             {"common/backend/runtime/feature_flags.go", common},
             {"common/backend/runtime/queues.go", common},
             {"common/backend/runtime/leases.go", common},

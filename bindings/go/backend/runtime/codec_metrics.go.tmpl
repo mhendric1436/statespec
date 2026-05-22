@@ -1,0 +1,50 @@
+package runtime
+
+import common "statespec-generated/common/backend"
+
+func metricDefinitionToJSON(definition common.MetricInstrumentDefinition) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"name":         common.JSONString(definition.Name),
+		"kind":         common.JSONString(string(definition.Kind)),
+		"backend_name": common.JSONString(definition.BackendName),
+		"unit":         common.JSONString(definition.Unit),
+	})
+}
+
+func metricDefinitionFromJSON(value common.JSON) common.MetricInstrumentDefinition {
+	object, _ := value.AsObject()
+	return common.MetricInstrumentDefinition{
+		Name:        stringFromJSON(object["name"]),
+		Kind:        common.MetricKind(stringFromJSON(object["kind"])),
+		BackendName: stringFromJSON(object["backend_name"]),
+		Unit:        stringFromJSON(object["unit"]),
+	}
+}
+
+func metricSampleToJSON(sample common.MetricSample) common.JSON {
+	value, err := common.JSONFloat(sample.Value)
+	if err != nil {
+		value = common.JSONNull()
+	}
+	return common.JSONObject(map[string]common.JSON{
+		"name":         common.JSONString(sample.Name),
+		"kind":         common.JSONString(string(sample.Kind)),
+		"backend_name": common.JSONString(sample.BackendName),
+		"value":        value,
+		"unit":         common.JSONString(sample.Unit),
+		"labels":       common.JSONObject(sample.Labels),
+	})
+}
+
+func metricSampleFromJSON(value common.JSON) common.MetricSample {
+	object, _ := value.AsObject()
+	labels, _ := object["labels"].AsObject()
+	return common.MetricSample{
+		Name:        stringFromJSON(object["name"]),
+		Kind:        common.MetricKind(stringFromJSON(object["kind"])),
+		BackendName: stringFromJSON(object["backend_name"]),
+		Value:       floatFromJSON(object["value"]),
+		Unit:        stringFromJSON(object["unit"]),
+		Labels:      labels,
+	}
+}

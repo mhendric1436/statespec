@@ -93,6 +93,14 @@ void add_java_common_runtime_artifacts(
         output_root / "runtime" / "ObservabilityCodec.java", diagnostics
     );
     add_template_file(
+        result, options.output_dir, templates, output_root / "runtime" / "LogCodec.java",
+        output_root / "runtime" / "LogCodec.java", diagnostics
+    );
+    add_template_file(
+        result, options.output_dir, templates, output_root / "runtime" / "MetricCodec.java",
+        output_root / "runtime" / "MetricCodec.java", diagnostics
+    );
+    add_template_file(
         result, options.output_dir, templates, output_root / "runtime" / "FeatureFlagStore.java",
         output_root / "runtime" / "FeatureFlagStore.java", diagnostics
     );

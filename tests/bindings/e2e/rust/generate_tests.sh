@@ -41,6 +41,8 @@ common/runtime/codec.rs
 common/runtime/codec_core.rs
 common/runtime/codec_feature_flags.rs
 common/runtime/codec_leases.rs
+common/runtime/codec_logs.rs
+common/runtime/codec_metrics.rs
 common/runtime/codec_observability.rs
 common/runtime/codec_queues.rs
 common/runtime/codec_workflows.rs

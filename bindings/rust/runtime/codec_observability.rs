@@ -1,11 +1,7 @@
-use std::collections::BTreeMap;
-
 use crate::backend::{FieldDescriptor, FieldType};
 use crate::json::Json;
-use crate::log::{LogDefinition, LogEvent, LogLevel};
-use crate::metric::{MetricDefinition, MetricKind, MetricSample};
 
-use super::codec_core::{bool_from_json, f64_from_json, object, object_values, string_from_json};
+use super::codec_core::{bool_from_json, object, object_values, string_from_json};
 
 fn field_type_to_string(field_type: FieldType) -> String {
     format!("{field_type:?}")
@@ -53,122 +49,13 @@ fn field_descriptor_from_json(value: &Json) -> FieldDescriptor {
     }
 }
 
-fn fields_to_json(fields: &[FieldDescriptor]) -> Json {
+pub(crate) fn fields_to_json(fields: &[FieldDescriptor]) -> Json {
     Json::Array(fields.iter().map(field_descriptor_to_json).collect())
 }
 
-fn fields_from_json(value: &Json) -> Vec<FieldDescriptor> {
+pub(crate) fn fields_from_json(value: &Json) -> Vec<FieldDescriptor> {
     match value {
         Json::Array(values) => values.iter().map(field_descriptor_from_json).collect(),
         _ => Vec::new(),
-    }
-}
-
-pub(crate) fn log_definition_to_json(definition: &LogDefinition) -> Json {
-    object(vec![
-        ("name", Json::String(definition.name.clone())),
-        ("level", Json::String(format!("{:?}", definition.level))),
-        ("event_name", Json::String(definition.event_name.clone())),
-        ("fields", fields_to_json(&definition.fields)),
-    ])
-}
-
-pub(crate) fn log_definition_from_json(value: &Json) -> LogDefinition {
-    let values = object_values(value);
-    LogDefinition {
-        name: string_from_json(values.get("name").unwrap_or(&Json::Null)),
-        level: match string_from_json(values.get("level").unwrap_or(&Json::Null)).as_str() {
-            "Debug" => LogLevel::Debug,
-            "Warn" => LogLevel::Warn,
-            "Error" => LogLevel::Error,
-            _ => LogLevel::Info,
-        },
-        event_name: string_from_json(values.get("event_name").unwrap_or(&Json::Null)),
-        fields: fields_from_json(values.get("fields").unwrap_or(&Json::Null)),
-    }
-}
-
-pub(crate) fn log_event_to_json(event: &LogEvent) -> Json {
-    object(vec![
-        ("name", Json::String(event.name.clone())),
-        ("level", Json::String(format!("{:?}", event.level))),
-        ("event_name", Json::String(event.event_name.clone())),
-        ("fields", Json::Object(event.fields.clone())),
-    ])
-}
-
-pub(crate) fn log_event_from_json(value: &Json) -> LogEvent {
-    let values = object_values(value);
-    LogEvent {
-        name: string_from_json(values.get("name").unwrap_or(&Json::Null)),
-        level: match string_from_json(values.get("level").unwrap_or(&Json::Null)).as_str() {
-            "Debug" => LogLevel::Debug,
-            "Warn" => LogLevel::Warn,
-            "Error" => LogLevel::Error,
-            _ => LogLevel::Info,
-        },
-        event_name: string_from_json(values.get("event_name").unwrap_or(&Json::Null)),
-        fields: match values.get("fields").unwrap_or(&Json::Null) {
-            Json::Object(fields) => fields.clone(),
-            _ => BTreeMap::new(),
-        },
-    }
-}
-
-pub(crate) fn metric_definition_to_json(definition: &MetricDefinition) -> Json {
-    object(vec![
-        ("name", Json::String(definition.name.clone())),
-        ("kind", Json::String(format!("{:?}", definition.kind))),
-        (
-            "backend_name",
-            Json::String(definition.backend_name.clone()),
-        ),
-        ("unit", Json::String(definition.unit.clone())),
-        ("labels", fields_to_json(&definition.labels)),
-    ])
-}
-
-pub(crate) fn metric_definition_from_json(value: &Json) -> MetricDefinition {
-    let values = object_values(value);
-    MetricDefinition {
-        name: string_from_json(values.get("name").unwrap_or(&Json::Null)),
-        kind: match string_from_json(values.get("kind").unwrap_or(&Json::Null)).as_str() {
-            "Gauge" => MetricKind::Gauge,
-            "Histogram" => MetricKind::Histogram,
-            _ => MetricKind::Counter,
-        },
-        backend_name: string_from_json(values.get("backend_name").unwrap_or(&Json::Null)),
-        unit: string_from_json(values.get("unit").unwrap_or(&Json::Null)),
-        labels: fields_from_json(values.get("labels").unwrap_or(&Json::Null)),
-    }
-}
-
-pub(crate) fn metric_sample_to_json(sample: &MetricSample) -> Json {
-    object(vec![
-        ("name", Json::String(sample.name.clone())),
-        ("kind", Json::String(format!("{:?}", sample.kind))),
-        ("backend_name", Json::String(sample.backend_name.clone())),
-        ("value", Json::Decimal(sample.value)),
-        ("unit", Json::String(sample.unit.clone())),
-        ("labels", Json::Object(sample.labels.clone())),
-    ])
-}
-
-pub(crate) fn metric_sample_from_json(value: &Json) -> MetricSample {
-    let values = object_values(value);
-    MetricSample {
-        name: string_from_json(values.get("name").unwrap_or(&Json::Null)),
-        kind: match string_from_json(values.get("kind").unwrap_or(&Json::Null)).as_str() {
-            "Gauge" => MetricKind::Gauge,
-            "Histogram" => MetricKind::Histogram,
-            _ => MetricKind::Counter,
-        },
-        backend_name: string_from_json(values.get("backend_name").unwrap_or(&Json::Null)),
-        value: f64_from_json(values.get("value").unwrap_or(&Json::Null)),
-        unit: string_from_json(values.get("unit").unwrap_or(&Json::Null)),
-        labels: match values.get("labels").unwrap_or(&Json::Null) {
-            Json::Object(labels) => labels.clone(),
-            _ => BTreeMap::new(),
-        },
     }
 }

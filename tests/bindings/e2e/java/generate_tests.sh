@@ -41,7 +41,9 @@ common/com/statespec/backend/runtime/FeatureFlagCodec.java
 common/com/statespec/backend/runtime/FeatureFlagStore.java
 common/com/statespec/backend/runtime/LeaseCodec.java
 common/com/statespec/backend/runtime/LeaseStore.java
+common/com/statespec/backend/runtime/LogCodec.java
 common/com/statespec/backend/runtime/LogSink.java
+common/com/statespec/backend/runtime/MetricCodec.java
 common/com/statespec/backend/runtime/MetricSink.java
 common/com/statespec/backend/runtime/ObservabilityCodec.java
 common/com/statespec/backend/runtime/QueueCodec.java

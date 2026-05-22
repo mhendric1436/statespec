@@ -4,6 +4,10 @@ mod codec_core;
 mod codec_feature_flags;
 #[path = "codec_leases.rs"]
 mod codec_leases;
+#[path = "codec_logs.rs"]
+mod codec_logs;
+#[path = "codec_metrics.rs"]
+mod codec_metrics;
 #[path = "codec_observability.rs"]
 mod codec_observability;
 #[path = "codec_queues.rs"]
@@ -14,6 +18,7 @@ mod codec_workflows;
 pub(crate) use self::codec_core::*;
 pub(crate) use self::codec_feature_flags::*;
 pub(crate) use self::codec_leases::*;
-pub(crate) use self::codec_observability::*;
+pub(crate) use self::codec_logs::*;
+pub(crate) use self::codec_metrics::*;
 pub(crate) use self::codec_queues::*;
 pub(crate) use self::codec_workflows::*;

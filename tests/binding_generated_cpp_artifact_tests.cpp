@@ -47,6 +47,8 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/runtime/codec_leases.hpp", common},
             {"common/runtime/codec_workflows.hpp", common},
             {"common/runtime/codec_observability.hpp", common},
+            {"common/runtime/codec_logs.hpp", common},
+            {"common/runtime/codec_metrics.hpp", common},
             {"common/runtime/feature_flag_store.hpp", common},
             {"common/runtime/queue_store.hpp", common},
             {"common/runtime/lease_store.hpp", common},

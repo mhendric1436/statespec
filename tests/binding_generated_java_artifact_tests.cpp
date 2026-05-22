@@ -46,6 +46,8 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"common/com/statespec/backend/runtime/LeaseCodec.java", common},
             {"common/com/statespec/backend/runtime/WorkflowCodec.java", common},
             {"common/com/statespec/backend/runtime/ObservabilityCodec.java", common},
+            {"common/com/statespec/backend/runtime/LogCodec.java", common},
+            {"common/com/statespec/backend/runtime/MetricCodec.java", common},
             {"common/com/statespec/backend/runtime/FeatureFlagStore.java", common},
             {"common/com/statespec/backend/runtime/QueueStore.java", common},
             {"common/com/statespec/backend/runtime/LeaseStore.java", common},
