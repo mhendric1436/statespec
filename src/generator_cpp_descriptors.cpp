@@ -140,6 +140,23 @@ const IrEntity* list_entity_for_api(
     return find_entity(system, item_type);
 }
 
+const IrEntity* update_status_entity_for_api(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Update";
+    constexpr std::string_view suffix = "Status";
+    if (api.method.value_or("") != "PATCH" || api.name.rfind(prefix, 0) != 0 ||
+        !ends_with_suffix(api.name, suffix) || !api.input)
+    {
+        return nullptr;
+    }
+    return find_entity(
+        system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
+    );
+}
+
 const IrIndex* select_list_index(const IrEntity& entity)
 {
     if (!entity.indexes.empty())
@@ -147,6 +164,25 @@ const IrIndex* select_list_index(const IrEntity& entity)
         return &entity.indexes.front();
     }
     return nullptr;
+}
+
+bool status_update_has_required_request_fields(
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    if (find_field(request, "status") == nullptr)
+    {
+        return false;
+    }
+    for (const auto& key_field : entity.key_fields)
+    {
+        if (find_field(request, key_field) == nullptr)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool create_api_has_required_request_fields(
@@ -565,6 +601,114 @@ bool write_cpp_list_handler_body(
     return true;
 }
 
+bool write_cpp_update_status_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = update_status_entity_for_api(system, api);
+    const auto* request = api.input ? find_shape(system, *api.input) : nullptr;
+    if (entity == nullptr || request == nullptr)
+    {
+        return false;
+    }
+    if (!status_update_has_required_request_fields(*entity, *request))
+    {
+        out << "        throw statespec::backend::BackendError("
+            << cpp_string(
+                   "generated status update handler for " + api.name +
+                   " requires status and entity key request fields"
+               )
+            << ");\n";
+        return true;
+    }
+
+    out << "        const auto request = decode_" << snake_identifier(api.name)
+        << "_request(context);\n";
+    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        repository.register_descriptor(backend_);\n";
+    out << "        auto tx = backend_.begin();\n";
+    out << "        try\n";
+    out << "        {\n";
+    out << "            std::vector<EntityKeyValue> key_values{\n";
+    for (const auto& key_field : entity->key_fields)
+    {
+        const auto* field = find_field(*request, key_field);
+        out << "                EntityKeyValue{" << cpp_string(key_field) << ", "
+            << cpp_json_expr(*field, "request." + key_field) << "},\n";
+    }
+    out << "            };\n";
+    out << "            const auto record = repository.getTx(*tx, key_values);\n";
+    out << "            if (!record.has_value())\n";
+    out << "            {\n";
+    out << "                backend_.commit(*tx);\n";
+    out << "                return ApiResponse{404, statespec::backend::Json::object({})};\n";
+    out << "            }\n";
+    out << "            const auto current_status = decode_string(\n";
+    out << "                require_member(record->document, \"status\"), \"status\"\n";
+    out << "            );\n";
+    out << "            const auto requested_status = request.status;\n";
+    out << "            const bool transition_allowed = current_status == requested_status";
+    for (const auto& transition : entity->transitions)
+    {
+        out << " ||\n";
+        out << "                (current_status == " << cpp_string(transition.from)
+            << " && requested_status == " << cpp_string(transition.to) << ")";
+    }
+    out << ";\n";
+    out << "            if (!transition_allowed)\n";
+    out << "            {\n";
+    out << "                throw statespec::backend::BackendError(\"invalid entity status "
+           "transition\");\n";
+    out << "            }\n";
+    out << "            auto document = record->document.as_object();\n";
+    out << "            document[\"status\"] = statespec::backend::Json{requested_status};\n";
+    out << "            document[\"updated_at\"] = "
+           "statespec::backend::Json{generated_api_timestamp()};\n";
+    out << "            const auto updated = repository.updateTx(\n";
+    out << "                *tx,\n";
+    out << "                std::move(key_values),\n";
+    out << "                statespec::backend::Json::object(std::move(document)),\n";
+    out << "                record->version\n";
+    out << "            );\n";
+    out << "            if (!updated.has_value())\n";
+    out << "            {\n";
+    out << "                throw statespec::backend::BackendError(\"entity update failed\");\n";
+    out << "            }\n";
+    out << "            backend_.commit(*tx);\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "            ::statespec_generated::" << pascal_identifier(shape->name)
+                << " response{};\n";
+            for (const auto& field : shape->fields)
+            {
+                out << "            response." << field.name << " = "
+                    << cpp_record_response_assignment(field, "updated.value()") << ";\n";
+            }
+            out << "            return encode_" << snake_identifier(api.name)
+                << "_response(response, 200);\n";
+        }
+        else
+        {
+            out << "            return ApiResponse{200, updated->document};\n";
+        }
+    }
+    else
+    {
+        out << "            return ApiResponse{200, updated->document};\n";
+    }
+    out << "        }\n";
+    out << "        catch (...)\n";
+    out << "        {\n";
+    out << "            tx->abort();\n";
+    out << "            throw;\n";
+    out << "        }\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_system_descriptors_header(
@@ -714,6 +858,11 @@ std::string generate_api_operation_default_handler_methods(const IrSystem& syste
             continue;
         }
         if (write_cpp_list_handler_body(out, system, api))
+        {
+            out << "    }\n\n";
+            continue;
+        }
+        if (write_cpp_update_status_handler_body(out, system, api))
         {
             out << "    }\n\n";
             continue;

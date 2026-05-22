@@ -194,6 +194,8 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
                "error)\n";
         out << "\tListByIndexTx(context.Context, Transaction, string, []IndexValue) "
                "([]VersionedRecord, error)\n";
+        out << "\tUpdateTx(context.Context, Transaction, []EntityKeyValue, JSON, Version) "
+               "(*VersionedRecord, error)\n";
         out << "}\n\n";
         out << "type Default" << type_name << "Repository struct{}\n\n";
         out << "func (Default" << type_name
@@ -222,6 +224,16 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
         out << "\treturn DefaultEntityRepository{}.ListEntitiesByIndexTx(ctx, tx, "
                "EntityListByIndexRequest{Entity: "
             << go_string(entity.name) << ", IndexName: indexName, Values: values})\n";
+        out << "}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) UpdateTx(ctx context.Context, tx Transaction, keyValues "
+               "[]EntityKeyValue, document JSON, expectedVersion Version) (*VersionedRecord, "
+               "error) {\n";
+        out << "\treturn DefaultEntityRepository{}.UpsertEntityTx(ctx, tx, EntityUpsertRequest{\n";
+        out << "\t\tLookup: " << type_name << "Lookup(keyValues),\n";
+        out << "\t\tDocument: document,\n";
+        out << "\t\tExpectedVersion: &expectedVersion,\n";
+        out << "\t})\n";
         out << "}\n\n";
         out << "func " << type_name << "CollectionDescriptor() CollectionDescriptor {\n";
         out << "\treturn CollectionDescriptor{\n";

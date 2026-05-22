@@ -88,6 +88,10 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_regist
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository.ListByIndexTx"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "StatusCode: 404"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "common.JSONArray(items)"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository.UpdateTx"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "invalid entity status transition"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "updatedDocument[\"updated_at\"]"
+assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/descriptors.go" "UpdateTx"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"

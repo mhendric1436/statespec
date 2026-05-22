@@ -140,6 +140,23 @@ const IrEntity* list_entity_for_api_go(
     return find_entity(system, item_type);
 }
 
+const IrEntity* update_status_entity_for_api_go(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Update";
+    constexpr std::string_view suffix = "Status";
+    if (api.method.value_or("") != "PATCH" || api.name.rfind(prefix, 0) != 0 ||
+        !ends_with_suffix_go(api.name, suffix) || !api.input)
+    {
+        return nullptr;
+    }
+    return find_entity(
+        system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
+    );
+}
+
 const IrIndex* select_list_index_go(const IrEntity& entity)
 {
     if (!entity.indexes.empty())
@@ -147,6 +164,25 @@ const IrIndex* select_list_index_go(const IrEntity& entity)
         return &entity.indexes.front();
     }
     return nullptr;
+}
+
+bool status_update_has_required_request_fields_go(
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    if (find_field(request, "status") == nullptr)
+    {
+        return false;
+    }
+    for (const auto& key_field : entity.key_fields)
+    {
+        if (find_field(request, key_field) == nullptr)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool create_api_has_required_request_fields_go(
@@ -542,6 +578,115 @@ bool write_go_list_handler_body(
     return true;
 }
 
+bool write_go_update_status_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = update_status_entity_for_api_go(system, api);
+    const auto* request = api.input ? find_shape(system, *api.input) : nullptr;
+    if (entity == nullptr || request == nullptr)
+    {
+        return false;
+    }
+    if (!status_update_has_required_request_fields_go(*entity, *request))
+    {
+        out << "\treturn common.APIResponse{}, fmt.Errorf("
+            << go_string(
+                   "generated status update handler for " + api.name +
+                   " requires status and entity key request fields"
+               )
+            << ")\n";
+        return true;
+    }
+    out << "\tdecodedRequest, err := Decode" << pascal_identifier(api.name) << "Request(request)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
+           "common.APIResponse{}, err }\n";
+    out << "\ttx, err := handler.Backend.Begin(ctx)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tdefer func() { if tx.IsOpen() { _ = tx.Abort(ctx) } }()\n";
+    out << "\tkeyValues := []common.EntityKeyValue{\n";
+    for (const auto& key_field : entity->key_fields)
+    {
+        const auto* field = find_field(*request, key_field);
+        out << "\t\t{Field: " << go_string(key_field) << ", Value: "
+            << go_encode_expr(*field, "decodedRequest." + pascal_identifier(key_field)) << "},\n";
+    }
+    out << "\t}\n";
+    out << "\trecord, err := repository.GetTx(ctx, tx, keyValues)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tif record == nil {\n";
+    out << "\t\tif err := handler.Backend.Commit(ctx, tx); err != nil { return "
+           "common.APIResponse{}, err }\n";
+    out << "\t\treturn common.APIResponse{StatusCode: 404, Body: "
+           "common.JSONObject(map[string]common.JSON{})}, nil\n";
+    out << "\t}\n";
+    out << "\tstatusJSON, ok := record.Document.Find(\"status\")\n";
+    out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"missing entity field status\") "
+           "}\n";
+    out << "\tcurrentStatus, err := decodeString(statusJSON, \"status\")\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\trequestedStatus := decodedRequest.Status\n";
+    out << "\ttransitionAllowed := currentStatus == requestedStatus";
+    for (const auto& transition : entity->transitions)
+    {
+        out << " ||\n";
+        out << "\t\t(currentStatus == " << go_string(transition.from)
+            << " && requestedStatus == " << go_string(transition.to) << ")";
+    }
+    out << "\n";
+    out << "\tif !transitionAllowed { return common.APIResponse{}, fmt.Errorf(\"invalid entity "
+           "status transition\") }\n";
+    out << "\tdocument, ok := record.Document.AsObject()\n";
+    out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"entity document must be an "
+           "object\") }\n";
+    out << "\tupdatedDocument := map[string]common.JSON{}\n";
+    out << "\tfor key, value := range document { updatedDocument[key] = value }\n";
+    out << "\tupdatedDocument[\"status\"] = common.JSONString(requestedStatus)\n";
+    out << "\tupdatedDocument[\"updated_at\"] = "
+           "common.JSONString(time.Now().UTC().Format(time.RFC3339))\n";
+    out << "\tupdated, err := repository.UpdateTx(ctx, tx, keyValues, "
+           "common.JSONObject(updatedDocument), record.Version)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tif updated == nil { return common.APIResponse{}, fmt.Errorf(\"entity update "
+           "failed\") }\n";
+    out << "\tif err := handler.Backend.Commit(ctx, tx); err != nil { return common.APIResponse{}, "
+           "err }\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "\tresponse := common." << pascal_identifier(shape->name) << "{}\n";
+            for (const auto& field : shape->fields)
+            {
+                const auto var_name = "response" + pascal_identifier(field.name);
+                out << "\t" << var_name << "JSON, ok := updated.Document.Find("
+                    << go_string(field.name) << ")\n";
+                out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"missing entity field "
+                    << field.name << "\") }\n";
+                out << "\t" << var_name << ", err := " << go_decode_func(field) << "(" << var_name
+                    << "JSON, " << go_string(field.name) << ")\n";
+                out << "\tif err != nil { return common.APIResponse{}, err }\n";
+                out << "\tresponse." << pascal_identifier(field.name) << " = " << var_name << "\n";
+            }
+            out << "\treturn Encode" << pascal_identifier(api.name)
+                << "ResponseWithStatus(response, 200), nil\n";
+        }
+        else
+        {
+            out << "\treturn common.APIResponse{StatusCode: 200, Body: updated.Document}, nil\n";
+        }
+    }
+    else
+    {
+        out << "\treturn common.APIResponse{StatusCode: 200, Body: updated.Document}, nil\n";
+    }
+    return true;
+}
+
 } // namespace
 
 std::string generate_descriptors_go(
@@ -685,6 +830,11 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
             continue;
         }
         if (write_go_list_handler_body(out, system, api))
+        {
+            out << "}\n\n";
+            continue;
+        }
+        if (write_go_update_status_handler_body(out, system, api))
         {
             out << "}\n\n";
             continue;

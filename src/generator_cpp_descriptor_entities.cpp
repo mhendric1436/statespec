@@ -213,6 +213,12 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
         out << "        std::string index_name,\n";
         out << "        std::vector<statespec::backend::IndexValue> values\n";
         out << "    ) = 0;\n";
+        out << "    virtual std::optional<statespec::backend::VersionedRecord> updateTx(\n";
+        out << "        statespec::backend::ITransaction& tx,\n";
+        out << "        std::vector<EntityKeyValue> key_values,\n";
+        out << "        statespec::backend::Json document,\n";
+        out << "        statespec::backend::Version expected_version\n";
+        out << "    ) = 0;\n";
         out << "};\n\n";
         out << "class Default" << type_name << "Repository final : public I" << type_name
             << "Repository\n";
@@ -257,6 +263,22 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
         out << "                " << cpp_string(entity.name) << ",\n";
         out << "                std::move(index_name),\n";
         out << "                std::move(values),\n";
+        out << "            }\n";
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    std::optional<statespec::backend::VersionedRecord> updateTx(\n";
+        out << "        statespec::backend::ITransaction& tx,\n";
+        out << "        std::vector<EntityKeyValue> key_values,\n";
+        out << "        statespec::backend::Json document,\n";
+        out << "        statespec::backend::Version expected_version\n";
+        out << "    ) override\n";
+        out << "    {\n";
+        out << "        return entities_.upsert_entityTx(\n";
+        out << "            tx,\n";
+        out << "            EntityUpsertRequest{\n";
+        out << "                " << function_prefix << "_lookup(std::move(key_values)),\n";
+        out << "                std::move(document),\n";
+        out << "                expected_version,\n";
         out << "            }\n";
         out << "        );\n";
         out << "    }\n\n";

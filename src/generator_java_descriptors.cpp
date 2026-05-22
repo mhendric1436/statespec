@@ -141,6 +141,23 @@ const IrEntity* list_entity_for_api_java(
     return find_entity(system, item_type);
 }
 
+const IrEntity* update_status_entity_for_api_java(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Update";
+    constexpr std::string_view suffix = "Status";
+    if (api.method.value_or("") != "PATCH" || api.name.rfind(prefix, 0) != 0 ||
+        !ends_with_suffix_java(api.name, suffix) || !api.input)
+    {
+        return nullptr;
+    }
+    return find_entity(
+        system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
+    );
+}
+
 const IrIndex* select_list_index_java(const IrEntity& entity)
 {
     if (!entity.indexes.empty())
@@ -148,6 +165,25 @@ const IrIndex* select_list_index_java(const IrEntity& entity)
         return &entity.indexes.front();
     }
     return nullptr;
+}
+
+bool status_update_has_required_request_fields_java(
+    const IrEntity& entity,
+    const IrShape& request
+)
+{
+    if (find_field(request, "status") == nullptr)
+    {
+        return false;
+    }
+    for (const auto& key_field : entity.key_fields)
+    {
+        if (find_field(request, key_field) == nullptr)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool create_api_has_required_request_fields_java(
@@ -611,6 +647,139 @@ bool write_java_list_handler_body(
     return true;
 }
 
+bool write_java_update_status_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = update_status_entity_for_api_java(system, api);
+    const auto* request = api.input ? find_shape(system, *api.input) : nullptr;
+    if (entity == nullptr || request == nullptr)
+    {
+        return false;
+    }
+    if (!status_update_has_required_request_fields_java(*entity, *request))
+    {
+        out << "            throw new com.statespec.backend.Backend.BackendException("
+            << java_string(
+                   "generated status update handler for " + api.name +
+                   " requires status and entity key request fields"
+               )
+            << ");\n";
+        return true;
+    }
+    out << "            var request = ApiCodecs.decode" << pascal_identifier(api.name)
+        << "Request(context);\n";
+    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
+        << "Repository();\n";
+    out << "            repository.registerDescriptor(backend);\n";
+    out << "            var tx = backend.begin();\n";
+    out << "            try {\n";
+    out << "                var keyValues = java.util.List.of(\n";
+    for (std::size_t i = 0; i < entity->key_fields.size(); ++i)
+    {
+        const auto& key_field = entity->key_fields[i];
+        const auto* field = find_field(*request, key_field);
+        out << "                    new Descriptors.EntityKeyValue(" << java_string(key_field)
+            << ", " << java_api_json_expr(*field, "request." + key_field + "()") << ")"
+            << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
+    }
+    out << "                );\n";
+    out << "                var record = repository.getTx(tx, keyValues);\n";
+    out << "                if (record.isEmpty()) {\n";
+    out << "                    backend.commit(tx);\n";
+    out << "                    return new Descriptors.ApiResponse(404, "
+           "com.statespec.backend.Json.object(java.util.Map.of()));\n";
+    out << "                }\n";
+    out << "                var currentStatus = ApiCodecs.decodeString(\n";
+    out << "                    record.get().document().find(\"status\").orElseThrow(), "
+           "\"status\"\n";
+    out << "                );\n";
+    out << "                var requestedStatus = request.status();\n";
+    out << "                var transitionAllowed = currentStatus.equals(requestedStatus)";
+    for (const auto& transition : entity->transitions)
+    {
+        out << " ||\n";
+        out << "                    (currentStatus.equals(" << java_string(transition.from)
+            << ") && requestedStatus.equals(" << java_string(transition.to) << "))";
+    }
+    out << ";\n";
+    out << "                if (!transitionAllowed) {\n";
+    out << "                    throw new com.statespec.backend.Backend.BackendException(\"invalid "
+           "entity status transition\");\n";
+    out << "                }\n";
+    out << "                if (!(record.get().document() instanceof "
+           "com.statespec.backend.Json.ObjectValue objectValue)) {\n";
+    out << "                    throw new com.statespec.backend.Backend.BackendException(\"entity "
+           "document must be an object\");\n";
+    out << "                }\n";
+    out << "                var document = new java.util.HashMap<String, "
+           "com.statespec.backend.Json>(objectValue.values());\n";
+    out << "                document.put(\"status\", "
+           "com.statespec.backend.Json.string(requestedStatus));\n";
+    out << "                document.put(\"updated_at\", "
+           "com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
+    out << "                var updated = repository.updateTx(\n";
+    out << "                    tx,\n";
+    out << "                    keyValues,\n";
+    out << "                    com.statespec.backend.Json.object(document),\n";
+    out << "                    record.get().version()\n";
+    out << "                );\n";
+    out << "                if (updated.isEmpty()) {\n";
+    out << "                    throw new com.statespec.backend.Backend.BackendException(\"entity "
+           "update failed\");\n";
+    out << "                }\n";
+    out << "                backend.commit(tx);\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "                var responseDocument = updated.get().document();\n";
+            out << "                var response = new Descriptors."
+                << pascal_identifier(shape->name) << "(\n";
+            for (std::size_t i = 0; i < shape->fields.size(); ++i)
+            {
+                const auto& field = shape->fields[i];
+                out << "                    ";
+                if (is_optional_type(field.type))
+                {
+                    out << "Optional.of(ApiCodecs." << java_decode_func(field)
+                        << "(responseDocument.find(" << java_string(field.name)
+                        << ").orElseThrow(), " << java_string(field.name) << "))";
+                }
+                else
+                {
+                    out << "ApiCodecs." << java_decode_func(field) << "(responseDocument.find("
+                        << java_string(field.name) << ").orElseThrow(), " << java_string(field.name)
+                        << ")";
+                }
+                out << (i + 1 < shape->fields.size() ? "," : "") << "\n";
+            }
+            out << "                );\n";
+            out << "                return ApiCodecs.encode" << pascal_identifier(api.name)
+                << "Response(response, 200);\n";
+        }
+        else
+        {
+            out << "                return new Descriptors.ApiResponse(200, "
+                   "updated.get().document());\n";
+        }
+    }
+    else
+    {
+        out << "                return new Descriptors.ApiResponse(200, "
+               "updated.get().document());\n";
+    }
+    out << "            } catch (Exception error) {\n";
+    out << "                if (tx.isOpen()) {\n";
+    out << "                    tx.abort();\n";
+    out << "                }\n";
+    out << "                throw error;\n";
+    out << "            }\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_descriptors_java(
@@ -759,6 +928,11 @@ std::string generate_api_operation_default_handler_methods_java(const IrSystem& 
             continue;
         }
         if (write_java_list_handler_body(out, system, api))
+        {
+            out << "        }\n\n";
+            continue;
+        }
+        if (write_java_update_status_handler_body(out, system, api))
         {
             out << "        }\n\n";
             continue;

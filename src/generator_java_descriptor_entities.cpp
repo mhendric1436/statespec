@@ -170,6 +170,12 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         out << "            String indexName,\n";
         out << "            List<Backend.IndexValue> values\n";
         out << "        ) throws Backend.BackendException;\n";
+        out << "        Optional<Backend.VersionedRecord> updateTx(\n";
+        out << "            Backend.Transaction tx,\n";
+        out << "            List<EntityKeyValue> keyValues,\n";
+        out << "            Json document,\n";
+        out << "            long expectedVersion\n";
+        out << "        ) throws Backend.BackendException;\n";
         out << "    }\n\n";
         out << "    public static final class Default" << type_name << "Repository implements "
             << type_name << "Repository {\n";
@@ -215,6 +221,23 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         out << "                tx,\n";
         out << "                new EntityListByIndexRequest(" << java_string(entity.name)
             << ", indexName, values)\n";
+        out << "            );\n";
+        out << "        }\n";
+        out << "\n";
+        out << "        @Override public Optional<Backend.VersionedRecord> updateTx(\n";
+        out << "            Backend.Transaction tx,\n";
+        out << "            List<EntityKeyValue> keyValues,\n";
+        out << "            Json document,\n";
+        out << "            long expectedVersion\n";
+        out << "        ) throws Backend.BackendException\n";
+        out << "        {\n";
+        out << "            return entities.upsertEntityTx(\n";
+        out << "                tx,\n";
+        out << "                new EntityUpsertRequest(\n";
+        out << "                    build" << type_name << "Lookup(keyValues),\n";
+        out << "                    document,\n";
+        out << "                    Optional.of(expectedVersion)\n";
+        out << "                )\n";
         out << "            );\n";
         out << "        }\n";
         out << "    }\n\n";
