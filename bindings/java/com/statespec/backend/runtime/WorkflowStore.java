@@ -8,8 +8,8 @@ import java.util.Optional;
 
 public final class WorkflowStore implements Workflow
 {
-    private static final String DEFINITIONS = "workflows.definitions";
-    private static final String EXECUTIONS = "workflows.executions";
+    private static final String DEFINITIONS = Backend.RuntimeCollections.WORKFLOW_DEFINITIONS;
+    private static final String EXECUTIONS = Backend.RuntimeCollections.WORKFLOW_EXECUTIONS;
 
     @Override
     public WorkflowDefinitionRegistration registerDefinition(

@@ -9,8 +9,8 @@ import java.util.Optional;
 
 public final class LogSink implements Log
 {
-    private static final String DEFINITIONS = "logs.definitions";
-    private static final String EVENTS = "logs.events";
+    private static final String DEFINITIONS = Backend.RuntimeCollections.LOG_DEFINITIONS;
+    private static final String EVENTS = Backend.RuntimeCollections.LOG_EVENTS;
 
     @Override
     public DefinitionRegistration registerDefinition(

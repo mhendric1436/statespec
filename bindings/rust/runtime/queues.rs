@@ -1,4 +1,6 @@
-use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query, Transaction};
+use crate::backend::{
+    runtime_collections, Backend, BackendError, BackendResult, ConflictKind, Query, Transaction,
+};
 use crate::json::Json;
 use crate::queue::{
     AckMessageRequest, ClaimMessageRequest, EnqueueMessageRequest, FailMessageRequest,
@@ -8,9 +10,9 @@ use crate::queue::{
 use crate::runtime_codec;
 use crate::runtime_codec::definition_key;
 
-const DEFINITIONS: &str = "queues.definitions";
-const MESSAGES: &str = "queues.messages";
-const IDEMPOTENCY: &str = "queues.idempotency";
+const DEFINITIONS: &str = runtime_collections::QUEUE_DEFINITIONS;
+const MESSAGES: &str = runtime_collections::QUEUE_MESSAGES;
+const IDEMPOTENCY: &str = runtime_collections::QUEUE_IDEMPOTENCY;
 
 #[derive(Debug, Clone, Default)]
 pub struct RuntimeQueueStore;

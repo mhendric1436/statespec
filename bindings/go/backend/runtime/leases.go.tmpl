@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	leaseDefinitionsCollection common.CollectionName = "statespec_lease_definitions"
-	leasesCollection           common.CollectionName = "statespec_leases"
+	leaseDefinitionsCollection = common.RuntimeCollectionLeaseDefinitions
+	leasesCollection           = common.RuntimeCollectionLeases
 )
 
 type LeaseStore struct{}
@@ -208,8 +208,8 @@ func (s *LeaseStore) requireLease(ctx context.Context, tx common.Transaction, de
 
 func ensureLeaseCollections(ctx context.Context, backend common.Backend) error {
 	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
-		{Name: string(leaseDefinitionsCollection), KeyFields: []string{"lease_definition"}},
-		{Name: string(leasesCollection), KeyFields: []string{"lease"}},
+		{Name: string(leaseDefinitionsCollection), KeyFields: []string{common.RuntimeKeyFieldLeaseDefinition}},
+		{Name: string(leasesCollection), KeyFields: []string{common.RuntimeKeyFieldLease}},
 	})
 }
 

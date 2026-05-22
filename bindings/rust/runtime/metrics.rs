@@ -1,9 +1,9 @@
-use crate::backend::{Backend, BackendResult, Query, Transaction};
+use crate::backend::{runtime_collections, Backend, BackendResult, Query, Transaction};
 use crate::metric::{MetricDefinition, MetricDefinitionRegistration, MetricSample, MetricSink};
 use crate::runtime_codec;
 
-const DEFINITIONS: &str = "metrics.definitions";
-const SAMPLES: &str = "metrics.samples";
+const DEFINITIONS: &str = runtime_collections::METRIC_DEFINITIONS;
+const SAMPLES: &str = runtime_collections::METRIC_SAMPLES;
 
 #[derive(Debug, Clone, Default)]
 pub struct RuntimeMetricSink;

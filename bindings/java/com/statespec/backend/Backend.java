@@ -6,6 +6,42 @@ import java.util.Optional;
 
 public interface Backend
 {
+    final class RuntimeCollections
+    {
+        public static final String FEATURE_FLAG_DEFINITIONS = "statespec_feature_flag_definitions";
+        public static final String FEATURE_FLAG_VALUES = "statespec_feature_flag_values";
+        public static final String QUEUE_DEFINITIONS = "statespec_queue_definitions";
+        public static final String QUEUE_MESSAGES = "statespec_queue_messages";
+        public static final String QUEUE_IDEMPOTENCY = "statespec_queue_idempotency";
+        public static final String LEASE_DEFINITIONS = "statespec_lease_definitions";
+        public static final String LEASES = "statespec_leases";
+        public static final String WORKFLOW_DEFINITIONS = "statespec_workflow_definitions";
+        public static final String WORKFLOW_EXECUTIONS = "statespec_workflow_executions";
+        public static final String LOG_DEFINITIONS = "statespec_log_definitions";
+        public static final String LOG_EVENTS = "statespec_log_events";
+        public static final String METRIC_DEFINITIONS = "statespec_metric_definitions";
+        public static final String METRIC_SAMPLES = "statespec_metric_samples";
+
+        private RuntimeCollections() {}
+    }
+
+    final class RuntimeKeyFields
+    {
+        public static final String NAME = "name";
+        public static final String SCOPE_KEY = "scope_key";
+        public static final String QUEUE = "queue";
+        public static final String MESSAGE_ID = "message_id";
+        public static final String IDEMPOTENCY_KEY = "idempotency_key";
+        public static final String LEASE_DEFINITION = "lease_definition";
+        public static final String LEASE = "lease";
+        public static final String WORKFLOW_DEFINITION = "workflow_definition";
+        public static final String WORKFLOW_EXECUTION_ID = "workflow_execution_id";
+        public static final String EVENT_ID = "event_id";
+        public static final String SAMPLE_ID = "sample_id";
+
+        private RuntimeKeyFields() {}
+    }
+
     enum FieldType
     {
         STRING,

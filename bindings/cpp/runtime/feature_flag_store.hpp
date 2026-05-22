@@ -99,14 +99,21 @@ class RuntimeFeatureFlagStore : public IFeatureFlagStore
     }
 
   private:
-    static constexpr const char* kDefinitionsCollection = "statespec_feature_flag_definitions";
-    static constexpr const char* kValuesCollection = "statespec_feature_flag_values";
+    static constexpr const char* kDefinitionsCollection =
+        runtime_collections::FeatureFlagDefinitions;
+    static constexpr const char* kValuesCollection = runtime_collections::FeatureFlagValues;
 
     static void ensure_collections(IBackend& backend)
     {
         backend.ensure_collections(
-            {CollectionDescriptor{.name = kDefinitionsCollection, .key_fields = {"name"}},
-             CollectionDescriptor{.name = kValuesCollection, .key_fields = {"scope_key"}}}
+            {CollectionDescriptor{
+                 .name = std::string{kDefinitionsCollection},
+                 .key_fields = {std::string{runtime_key_fields::Name}}
+             },
+             CollectionDescriptor{
+                 .name = std::string{kValuesCollection},
+                 .key_fields = {std::string{runtime_key_fields::ScopeKey}}
+             }}
         );
     }
 

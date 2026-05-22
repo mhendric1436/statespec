@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	queueDefinitionsCollection common.CollectionName = "statespec_queue_definitions"
-	queueMessagesCollection    common.CollectionName = "statespec_queue_messages"
-	queueIdempotencyCollection common.CollectionName = "statespec_queue_idempotency"
+	queueDefinitionsCollection = common.RuntimeCollectionQueueDefinitions
+	queueMessagesCollection    = common.RuntimeCollectionQueueMessages
+	queueIdempotencyCollection = common.RuntimeCollectionQueueIdempotency
 )
 
 type QueueStore struct{}
@@ -259,9 +259,9 @@ func (s *QueueStore) allMessages(ctx context.Context, tx common.Transaction) ([]
 
 func ensureQueueCollections(ctx context.Context, backend common.Backend) error {
 	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
-		{Name: string(queueDefinitionsCollection), KeyFields: []string{"queue"}},
-		{Name: string(queueMessagesCollection), KeyFields: []string{"message_id"}},
-		{Name: string(queueIdempotencyCollection), KeyFields: []string{"idempotency_key"}},
+		{Name: string(queueDefinitionsCollection), KeyFields: []string{common.RuntimeKeyFieldQueue}},
+		{Name: string(queueMessagesCollection), KeyFields: []string{common.RuntimeKeyFieldMessageID}},
+		{Name: string(queueIdempotencyCollection), KeyFields: []string{common.RuntimeKeyFieldIdempotencyKey}},
 	})
 }
 

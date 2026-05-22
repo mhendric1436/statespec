@@ -9,6 +9,36 @@ type CollectionName string
 type Key string
 type Version uint64
 
+const (
+	RuntimeCollectionFeatureFlagDefinitions CollectionName = "statespec_feature_flag_definitions"
+	RuntimeCollectionFeatureFlagValues      CollectionName = "statespec_feature_flag_values"
+	RuntimeCollectionQueueDefinitions       CollectionName = "statespec_queue_definitions"
+	RuntimeCollectionQueueMessages          CollectionName = "statespec_queue_messages"
+	RuntimeCollectionQueueIdempotency       CollectionName = "statespec_queue_idempotency"
+	RuntimeCollectionLeaseDefinitions       CollectionName = "statespec_lease_definitions"
+	RuntimeCollectionLeases                 CollectionName = "statespec_leases"
+	RuntimeCollectionWorkflowDefinitions    CollectionName = "statespec_workflow_definitions"
+	RuntimeCollectionWorkflowExecutions     CollectionName = "statespec_workflow_executions"
+	RuntimeCollectionLogDefinitions         CollectionName = "statespec_log_definitions"
+	RuntimeCollectionLogEvents              CollectionName = "statespec_log_events"
+	RuntimeCollectionMetricDefinitions      CollectionName = "statespec_metric_definitions"
+	RuntimeCollectionMetricSamples          CollectionName = "statespec_metric_samples"
+)
+
+const (
+	RuntimeKeyFieldName                = "name"
+	RuntimeKeyFieldScopeKey            = "scope_key"
+	RuntimeKeyFieldQueue               = "queue"
+	RuntimeKeyFieldMessageID           = "message_id"
+	RuntimeKeyFieldIdempotencyKey      = "idempotency_key"
+	RuntimeKeyFieldLeaseDefinition     = "lease_definition"
+	RuntimeKeyFieldLease               = "lease"
+	RuntimeKeyFieldWorkflowDefinition  = "workflow_definition"
+	RuntimeKeyFieldWorkflowExecutionID = "workflow_execution_id"
+	RuntimeKeyFieldEventID             = "event_id"
+	RuntimeKeyFieldSampleID            = "sample_id"
+)
+
 type FieldType string
 
 const (

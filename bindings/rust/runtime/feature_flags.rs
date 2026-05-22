@@ -1,12 +1,12 @@
-use crate::backend::{Backend, BackendError, BackendResult, Transaction};
+use crate::backend::{runtime_collections, Backend, BackendError, BackendResult, Transaction};
 use crate::feature_flag::{
     FeatureFlagDefinition, FeatureFlagEvaluationRequest, FeatureFlagRegisterDefinitionResult,
     FeatureFlagStore, FeatureFlagValue,
 };
 use crate::runtime_codec;
 
-const DEFINITIONS: &str = "feature_flags.definitions";
-const VALUES: &str = "feature_flags.values";
+const DEFINITIONS: &str = runtime_collections::FEATURE_FLAG_DEFINITIONS;
+const VALUES: &str = runtime_collections::FEATURE_FLAG_VALUES;
 
 #[derive(Debug, Clone, Default)]
 pub struct RuntimeFeatureFlagStore;

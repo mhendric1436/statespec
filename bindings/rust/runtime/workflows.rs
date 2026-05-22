@@ -1,4 +1,6 @@
-use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Query, Transaction};
+use crate::backend::{
+    runtime_collections, Backend, BackendError, BackendResult, ConflictKind, Query, Transaction,
+};
 use crate::runtime_codec;
 use crate::runtime_codec::definition_key;
 use crate::workflow::{
@@ -8,8 +10,8 @@ use crate::workflow::{
     WorkflowExecutionRecord, WorkflowStore,
 };
 
-const DEFINITIONS: &str = "workflows.definitions";
-const EXECUTIONS: &str = "workflows.executions";
+const DEFINITIONS: &str = runtime_collections::WORKFLOW_DEFINITIONS;
+const EXECUTIONS: &str = runtime_collections::WORKFLOW_EXECUTIONS;
 
 #[derive(Debug, Clone, Default)]
 pub struct RuntimeWorkflowStore;

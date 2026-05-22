@@ -1,4 +1,6 @@
-use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Transaction};
+use crate::backend::{
+    runtime_collections, Backend, BackendError, BackendResult, ConflictKind, Transaction,
+};
 use crate::lease::{
     LeaseAcquireRequest, LeaseAcquireResult, LeaseDefinition, LeaseDefinitionId,
     LeaseInspectRequest, LeaseRecord, LeaseRegisterDefinitionResult, LeaseReleaseRequest,
@@ -7,8 +9,8 @@ use crate::lease::{
 use crate::runtime_codec;
 use crate::runtime_codec::definition_key;
 
-const DEFINITIONS: &str = "leases.definitions";
-const LEASES: &str = "leases.records";
+const DEFINITIONS: &str = runtime_collections::LEASE_DEFINITIONS;
+const LEASES: &str = runtime_collections::LEASES;
 
 #[derive(Debug, Clone, Default)]
 pub struct RuntimeLeaseStore;

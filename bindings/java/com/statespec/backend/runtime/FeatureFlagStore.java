@@ -6,8 +6,8 @@ import java.util.Optional;
 
 public final class FeatureFlagStore implements FeatureFlag
 {
-    private static final String DEFINITIONS = "feature_flags.definitions";
-    private static final String VALUES = "feature_flags.values";
+    private static final String DEFINITIONS = Backend.RuntimeCollections.FEATURE_FLAG_DEFINITIONS;
+    private static final String VALUES = Backend.RuntimeCollections.FEATURE_FLAG_VALUES;
 
     @Override
     public RegisterDefinitionResult registerDefinition(

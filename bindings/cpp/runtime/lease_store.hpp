@@ -169,16 +169,19 @@ class RuntimeLeaseStore : public ILeaseStore
     }
 
   private:
-    static constexpr const char* kDefinitionsCollection = "statespec_lease_definitions";
-    static constexpr const char* kLeasesCollection = "statespec_leases";
+    static constexpr const char* kDefinitionsCollection = runtime_collections::LeaseDefinitions;
+    static constexpr const char* kLeasesCollection = runtime_collections::Leases;
 
     static void ensure_collections(IBackend& backend)
     {
         backend.ensure_collections(
             {CollectionDescriptor{
-                 .name = kDefinitionsCollection, .key_fields = {"lease_definition"}
+                 .name = kDefinitionsCollection,
+                 .key_fields = {std::string{runtime_key_fields::LeaseDefinition}}
              },
-             CollectionDescriptor{.name = kLeasesCollection, .key_fields = {"lease"}}}
+             CollectionDescriptor{
+                 .name = kLeasesCollection, .key_fields = {std::string{runtime_key_fields::Lease}}
+             }}
         );
     }
 

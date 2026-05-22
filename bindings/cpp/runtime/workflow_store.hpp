@@ -293,17 +293,19 @@ class RuntimeWorkflowStore : public IWorkflowStore
     }
 
   private:
-    static constexpr const char* kDefinitionsCollection = "statespec_workflow_definitions";
-    static constexpr const char* kExecutionsCollection = "statespec_workflow_executions";
+    static constexpr const char* kDefinitionsCollection = runtime_collections::WorkflowDefinitions;
+    static constexpr const char* kExecutionsCollection = runtime_collections::WorkflowExecutions;
 
     static void ensure_collections(IBackend& backend)
     {
         backend.ensure_collections(
             {CollectionDescriptor{
-                 .name = kDefinitionsCollection, .key_fields = {"workflow_definition"}
+                 .name = kDefinitionsCollection,
+                 .key_fields = {std::string{runtime_key_fields::WorkflowDefinition}}
              },
              CollectionDescriptor{
-                 .name = kExecutionsCollection, .key_fields = {"workflow_execution_id"}
+                 .name = kExecutionsCollection,
+                 .key_fields = {std::string{runtime_key_fields::WorkflowExecutionId}}
              }}
         );
     }

@@ -6,8 +6,8 @@ import java.util.Optional;
 
 public final class LeaseStore implements Lease
 {
-    private static final String DEFINITIONS = "leases.definitions";
-    private static final String LEASES = "leases.records";
+    private static final String DEFINITIONS = Backend.RuntimeCollections.LEASE_DEFINITIONS;
+    private static final String LEASES = Backend.RuntimeCollections.LEASES;
 
     @Override
     public LeaseRegisterDefinitionResult registerDefinition(

@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	featureFlagDefinitionsCollection common.CollectionName = "statespec_feature_flag_definitions"
-	featureFlagValuesCollection      common.CollectionName = "statespec_feature_flag_values"
+	featureFlagDefinitionsCollection = common.RuntimeCollectionFeatureFlagDefinitions
+	featureFlagValuesCollection      = common.RuntimeCollectionFeatureFlagValues
 )
 
 type FeatureFlagStore struct{}
@@ -97,8 +97,8 @@ func (s *FeatureFlagStore) EvaluateTx(ctx context.Context, tx common.Transaction
 
 func ensureFeatureFlagCollections(ctx context.Context, backend common.Backend) error {
 	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
-		{Name: string(featureFlagDefinitionsCollection), KeyFields: []string{"name"}},
-		{Name: string(featureFlagValuesCollection), KeyFields: []string{"scope_key"}},
+		{Name: string(featureFlagDefinitionsCollection), KeyFields: []string{common.RuntimeKeyFieldName}},
+		{Name: string(featureFlagValuesCollection), KeyFields: []string{common.RuntimeKeyFieldScopeKey}},
 	})
 }
 

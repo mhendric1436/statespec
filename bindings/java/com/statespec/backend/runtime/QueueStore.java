@@ -9,9 +9,9 @@ import java.util.Optional;
 
 public final class QueueStore implements Queue
 {
-    private static final String DEFINITIONS = "queues.definitions";
-    private static final String MESSAGES = "queues.messages";
-    private static final String IDEMPOTENCY = "queues.idempotency";
+    private static final String DEFINITIONS = Backend.RuntimeCollections.QUEUE_DEFINITIONS;
+    private static final String MESSAGES = Backend.RuntimeCollections.QUEUE_MESSAGES;
+    private static final String IDEMPOTENCY = Backend.RuntimeCollections.QUEUE_IDEMPOTENCY;
 
     @Override
     public QueueDefinitionRegistration registerDefinition(

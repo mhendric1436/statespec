@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	workflowDefinitionsCollection common.CollectionName = "statespec_workflow_definitions"
-	workflowExecutionsCollection  common.CollectionName = "statespec_workflow_executions"
+	workflowDefinitionsCollection = common.RuntimeCollectionWorkflowDefinitions
+	workflowExecutionsCollection  = common.RuntimeCollectionWorkflowExecutions
 )
 
 type WorkflowStore struct{}
@@ -319,8 +319,8 @@ func (s *WorkflowStore) allExecutions(ctx context.Context, tx common.Transaction
 
 func ensureWorkflowCollections(ctx context.Context, backend common.Backend) error {
 	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
-		{Name: string(workflowDefinitionsCollection), KeyFields: []string{"workflow_definition"}},
-		{Name: string(workflowExecutionsCollection), KeyFields: []string{"workflow_execution_id"}},
+		{Name: string(workflowDefinitionsCollection), KeyFields: []string{common.RuntimeKeyFieldWorkflowDefinition}},
+		{Name: string(workflowExecutionsCollection), KeyFields: []string{common.RuntimeKeyFieldWorkflowExecutionID}},
 	})
 }
 

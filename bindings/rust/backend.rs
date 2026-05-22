@@ -4,6 +4,36 @@ pub type CollectionName = String;
 pub type Key = String;
 pub type Version = u64;
 
+pub mod runtime_collections {
+    pub const FEATURE_FLAG_DEFINITIONS: &str = "statespec_feature_flag_definitions";
+    pub const FEATURE_FLAG_VALUES: &str = "statespec_feature_flag_values";
+    pub const QUEUE_DEFINITIONS: &str = "statespec_queue_definitions";
+    pub const QUEUE_MESSAGES: &str = "statespec_queue_messages";
+    pub const QUEUE_IDEMPOTENCY: &str = "statespec_queue_idempotency";
+    pub const LEASE_DEFINITIONS: &str = "statespec_lease_definitions";
+    pub const LEASES: &str = "statespec_leases";
+    pub const WORKFLOW_DEFINITIONS: &str = "statespec_workflow_definitions";
+    pub const WORKFLOW_EXECUTIONS: &str = "statespec_workflow_executions";
+    pub const LOG_DEFINITIONS: &str = "statespec_log_definitions";
+    pub const LOG_EVENTS: &str = "statespec_log_events";
+    pub const METRIC_DEFINITIONS: &str = "statespec_metric_definitions";
+    pub const METRIC_SAMPLES: &str = "statespec_metric_samples";
+}
+
+pub mod runtime_key_fields {
+    pub const NAME: &str = "name";
+    pub const SCOPE_KEY: &str = "scope_key";
+    pub const QUEUE: &str = "queue";
+    pub const MESSAGE_ID: &str = "message_id";
+    pub const IDEMPOTENCY_KEY: &str = "idempotency_key";
+    pub const LEASE_DEFINITION: &str = "lease_definition";
+    pub const LEASE: &str = "lease";
+    pub const WORKFLOW_DEFINITION: &str = "workflow_definition";
+    pub const WORKFLOW_EXECUTION_ID: &str = "workflow_execution_id";
+    pub const EVENT_ID: &str = "event_id";
+    pub const SAMPLE_ID: &str = "sample_id";
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldType {
     String,

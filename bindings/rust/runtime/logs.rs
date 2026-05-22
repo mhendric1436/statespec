@@ -1,9 +1,9 @@
-use crate::backend::{Backend, BackendResult, Query, Transaction};
+use crate::backend::{runtime_collections, Backend, BackendResult, Query, Transaction};
 use crate::log::{LogDefinition, LogDefinitionRegistration, LogEvent, LogSink};
 use crate::runtime_codec;
 
-const DEFINITIONS: &str = "logs.definitions";
-const EVENTS: &str = "logs.events";
+const DEFINITIONS: &str = runtime_collections::LOG_DEFINITIONS;
+const EVENTS: &str = runtime_collections::LOG_EVENTS;
 
 #[derive(Debug, Clone, Default)]
 pub struct RuntimeLogSink;

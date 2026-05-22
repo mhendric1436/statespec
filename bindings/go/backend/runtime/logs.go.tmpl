@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	logDefinitionsCollection common.CollectionName = "statespec_log_definitions"
-	logEventsCollection      common.CollectionName = "statespec_log_events"
+	logDefinitionsCollection = common.RuntimeCollectionLogDefinitions
+	logEventsCollection      = common.RuntimeCollectionLogEvents
 )
 
 type LogSink struct {
@@ -114,7 +114,7 @@ func (s *LogSink) InspectEventsTx(ctx context.Context, tx common.Transaction) ([
 
 func ensureLogCollections(ctx context.Context, backend common.Backend) error {
 	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
-		{Name: string(logDefinitionsCollection), KeyFields: []string{"name"}},
-		{Name: string(logEventsCollection), KeyFields: []string{"event_id"}},
+		{Name: string(logDefinitionsCollection), KeyFields: []string{common.RuntimeKeyFieldName}},
+		{Name: string(logEventsCollection), KeyFields: []string{common.RuntimeKeyFieldEventID}},
 	})
 }

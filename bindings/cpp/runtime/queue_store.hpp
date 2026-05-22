@@ -220,17 +220,24 @@ class RuntimeQueueStore : public IQueueStore
     }
 
   private:
-    static constexpr const char* kDefinitionsCollection = "statespec_queue_definitions";
-    static constexpr const char* kMessagesCollection = "statespec_queue_messages";
-    static constexpr const char* kIdempotencyCollection = "statespec_queue_idempotency";
+    static constexpr const char* kDefinitionsCollection = runtime_collections::QueueDefinitions;
+    static constexpr const char* kMessagesCollection = runtime_collections::QueueMessages;
+    static constexpr const char* kIdempotencyCollection = runtime_collections::QueueIdempotency;
 
     static void ensure_collections(IBackend& backend)
     {
         backend.ensure_collections(
-            {CollectionDescriptor{.name = kDefinitionsCollection, .key_fields = {"queue"}},
-             CollectionDescriptor{.name = kMessagesCollection, .key_fields = {"message_id"}},
+            {CollectionDescriptor{
+                 .name = kDefinitionsCollection,
+                 .key_fields = {std::string{runtime_key_fields::Queue}}
+             },
              CollectionDescriptor{
-                 .name = kIdempotencyCollection, .key_fields = {"idempotency_key"}
+                 .name = kMessagesCollection,
+                 .key_fields = {std::string{runtime_key_fields::MessageId}}
+             },
+             CollectionDescriptor{
+                 .name = kIdempotencyCollection,
+                 .key_fields = {std::string{runtime_key_fields::IdempotencyKey}}
              }}
         );
     }

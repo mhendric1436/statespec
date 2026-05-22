@@ -93,14 +93,20 @@ class RuntimeMetricSink : public IMetricSink
     }
 
   private:
-    static constexpr const char* kDefinitionsCollection = "statespec_metric_definitions";
-    static constexpr const char* kSamplesCollection = "statespec_metric_samples";
+    static constexpr const char* kDefinitionsCollection = runtime_collections::MetricDefinitions;
+    static constexpr const char* kSamplesCollection = runtime_collections::MetricSamples;
 
     static void ensure_collections(IBackend& backend)
     {
         backend.ensure_collections(
-            {CollectionDescriptor{.name = kDefinitionsCollection, .key_fields = {"name"}},
-             CollectionDescriptor{.name = kSamplesCollection, .key_fields = {"sample_id"}}}
+            {CollectionDescriptor{
+                 .name = kDefinitionsCollection,
+                 .key_fields = {std::string{runtime_key_fields::Name}}
+             },
+             CollectionDescriptor{
+                 .name = kSamplesCollection,
+                 .key_fields = {std::string{runtime_key_fields::SampleId}}
+             }}
         );
     }
 

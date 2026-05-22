@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	metricDefinitionsCollection common.CollectionName = "statespec_metric_definitions"
-	metricSamplesCollection     common.CollectionName = "statespec_metric_samples"
+	metricDefinitionsCollection = common.RuntimeCollectionMetricDefinitions
+	metricSamplesCollection     = common.RuntimeCollectionMetricSamples
 )
 
 type MetricSink struct {
@@ -114,7 +114,7 @@ func (s *MetricSink) InspectSamplesTx(ctx context.Context, tx common.Transaction
 
 func ensureMetricCollections(ctx context.Context, backend common.Backend) error {
 	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
-		{Name: string(metricDefinitionsCollection), KeyFields: []string{"name"}},
-		{Name: string(metricSamplesCollection), KeyFields: []string{"sample_id"}},
+		{Name: string(metricDefinitionsCollection), KeyFields: []string{common.RuntimeKeyFieldName}},
+		{Name: string(metricSamplesCollection), KeyFields: []string{common.RuntimeKeyFieldSampleID}},
 	})
 }

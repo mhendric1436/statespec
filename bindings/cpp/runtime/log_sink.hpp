@@ -89,14 +89,19 @@ class RuntimeLogSink : public ILogSink
     }
 
   private:
-    static constexpr const char* kDefinitionsCollection = "statespec_log_definitions";
-    static constexpr const char* kEventsCollection = "statespec_log_events";
+    static constexpr const char* kDefinitionsCollection = runtime_collections::LogDefinitions;
+    static constexpr const char* kEventsCollection = runtime_collections::LogEvents;
 
     static void ensure_collections(IBackend& backend)
     {
         backend.ensure_collections(
-            {CollectionDescriptor{.name = kDefinitionsCollection, .key_fields = {"name"}},
-             CollectionDescriptor{.name = kEventsCollection, .key_fields = {"event_id"}}}
+            {CollectionDescriptor{
+                 .name = kDefinitionsCollection,
+                 .key_fields = {std::string{runtime_key_fields::Name}}
+             },
+             CollectionDescriptor{
+                 .name = kEventsCollection, .key_fields = {std::string{runtime_key_fields::EventId}}
+             }}
         );
     }
 

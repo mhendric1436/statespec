@@ -9,8 +9,8 @@ import java.util.Optional;
 
 public final class MetricSink implements Metric
 {
-    private static final String DEFINITIONS = "metrics.definitions";
-    private static final String SAMPLES = "metrics.samples";
+    private static final String DEFINITIONS = Backend.RuntimeCollections.METRIC_DEFINITIONS;
+    private static final String SAMPLES = Backend.RuntimeCollections.METRIC_SAMPLES;
 
     @Override
     public DefinitionRegistration registerDefinition(
