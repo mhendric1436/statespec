@@ -86,6 +86,14 @@ Generated API codec files provide the canonical conversion between the framework
 | Java | `ApiCodecs.java` |
 | Rust | `api_codecs.rs` |
 
+The generated default API handler uses these codecs for every declared API operation.
+For APIs with a primary action model such as `starts workflow` or `enqueues`, the default
+handler returns an accepted response shape with deterministic action identifiers when
+the output shape includes fields such as `workflow_execution_id` or `message_id`.
+Production systems should replace or wrap the default handler when they need
+domain-specific persistence, authorization, or runtime side effects beyond the generated
+transport/action skeleton.
+
 When testing API handlers locally, inject the generated in-memory backend through the
 same application-owned dependency path that production code uses for its durable
 backend.

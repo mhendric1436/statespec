@@ -82,6 +82,44 @@ std::string rust_encode_expr(
     return "Json::String(" + accessor + ".clone())";
 }
 
+std::string rust_default_response_expr(
+    const IrField& field,
+    const std::string& context_expr
+)
+{
+    const auto base = strip_optional_type(field.type);
+    if (base == "bool")
+    {
+        return field.name == "accepted" ? "true" : "false";
+    }
+    if (base == "int" || base == "int32")
+    {
+        return "0_i32";
+    }
+    if (base == "int64" || base == "long")
+    {
+        return "0_i64";
+    }
+    if (base == "double" || base == "decimal")
+    {
+        return "0.0_f64";
+    }
+    if (base == "json")
+    {
+        return context_expr + ".body.clone()";
+    }
+    if (field.name == "workflow_execution_id" || field.name == "message_id")
+    {
+        return "format!(\"{}:{}\", " + context_expr + ".api_name, " + context_expr +
+               ".body.canonical_string())";
+    }
+    if (field.name == "status")
+    {
+        return "\"Accepted\".to_string()";
+    }
+    return "String::new()";
+}
+
 } // namespace
 
 std::string generate_descriptors_rs(const IrSystem& system)
@@ -195,12 +233,48 @@ std::string generate_api_operation_default_handler_methods_rs(const IrSystem& sy
     for (const auto& api : system.apis)
     {
         out << "    fn handle_" << snake_identifier(api.name)
-            << "(&self, _context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
-        out << "        Ok(ApiResponse { status_code: 501, body: "
-               "Json::Object(BTreeMap::from([(\"error\".to_string(), "
-               "Json::String(\"handler_not_implemented\".to_string())), (\"api\".to_string(), "
-               "Json::String("
-            << rust_string(api.name) << ".to_string()))])) })\n";
+            << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
+        if (api.input.has_value())
+        {
+            out << "        let request = crate::api_codecs::decode_" << snake_identifier(api.name)
+                << "_request(context)?;\n";
+            out << "        let _ = request;\n";
+        }
+        const auto status_code =
+            api.starts_workflow.has_value() || api.enqueues.has_value() ? 202 : 200;
+        if (api.output.has_value())
+        {
+            if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+            {
+                out << "        let response = " << pascal_identifier(shape->name) << " {\n";
+                for (const auto& field : shape->fields)
+                {
+                    out << "            " << field.name << ": ";
+                    if (is_optional_type(field.type))
+                    {
+                        out << "Some(" << rust_default_response_expr(field, "context") << ")";
+                    }
+                    else
+                    {
+                        out << rust_default_response_expr(field, "context");
+                    }
+                    out << ",\n";
+                }
+                out << "        };\n";
+                out << "        Ok(crate::api_codecs::encode_" << snake_identifier(api.name)
+                    << "_response_with_status(&response, " << status_code << "))\n";
+            }
+            else
+            {
+                out << "        Ok(ApiResponse { status_code: " << status_code
+                    << ", body: crate::json::Json::Object(std::collections::BTreeMap::new()) })\n";
+            }
+        }
+        else
+        {
+            out << "        Ok(ApiResponse { status_code: " << status_code
+                << ", body: crate::json::Json::Object(std::collections::BTreeMap::new()) })\n";
+        }
         out << "    }\n\n";
     }
     return out.str();

@@ -79,6 +79,43 @@ std::string java_encode_expr(
     return "Json.string(" + accessor + ")";
 }
 
+std::string java_default_response_expr(
+    const IrField& field,
+    const std::string& context_expr
+)
+{
+    const auto base = strip_optional_type(field.type);
+    if (base == "bool")
+    {
+        return field.name == "accepted" ? "true" : "false";
+    }
+    if (base == "int" || base == "int32")
+    {
+        return "0";
+    }
+    if (base == "int64" || base == "long")
+    {
+        return "0L";
+    }
+    if (base == "double" || base == "decimal")
+    {
+        return "0.0";
+    }
+    if (base == "json")
+    {
+        return context_expr + ".body()";
+    }
+    if (field.name == "workflow_execution_id" || field.name == "message_id")
+    {
+        return context_expr + ".apiName() + \":\" + " + context_expr + ".body().canonicalString()";
+    }
+    if (field.name == "status")
+    {
+        return "\"Accepted\"";
+    }
+    return "\"\"";
+}
+
 } // namespace
 
 std::string generate_descriptors_java(const IrSystem& system)
@@ -207,11 +244,50 @@ std::string generate_api_operation_default_handler_methods_java(const IrSystem& 
         out << "        @Override\n";
         out << "        public Descriptors.ApiResponse handle" << pascal_identifier(api.name)
             << "(Descriptors.ApiRequestContext context) {\n";
-        out << "            return new Descriptors.ApiResponse(501, "
-               "com.statespec.backend.Json.object(java.util.Map.of(\"error\", "
-               "com.statespec.backend.Json.string(\"handler_not_implemented\"), \"api\", "
-               "com.statespec.backend.Json.string("
-            << java_string(api.name) << "))));\n";
+        if (api.input.has_value())
+        {
+            out << "            var request = ApiCodecs.decode" << pascal_identifier(api.name)
+                << "Request(context);\n";
+            out << "            java.util.Objects.requireNonNull(request);\n";
+        }
+        const auto status_code =
+            api.starts_workflow.has_value() || api.enqueues.has_value() ? 202 : 200;
+        if (api.output.has_value())
+        {
+            if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+            {
+                out << "            var response = new Descriptors."
+                    << pascal_identifier(shape->name) << "(\n";
+                for (std::size_t i = 0; i < shape->fields.size(); ++i)
+                {
+                    const auto& field = shape->fields[i];
+                    out << "                ";
+                    if (is_optional_type(field.type))
+                    {
+                        out << "Optional.of(" << java_default_response_expr(field, "context")
+                            << ")";
+                    }
+                    else
+                    {
+                        out << java_default_response_expr(field, "context");
+                    }
+                    out << (i + 1 < shape->fields.size() ? "," : "") << "\n";
+                }
+                out << "            );\n";
+                out << "            return ApiCodecs.encode" << pascal_identifier(api.name)
+                    << "Response(response, " << status_code << ");\n";
+            }
+            else
+            {
+                out << "            return new Descriptors.ApiResponse(" << status_code
+                    << ", com.statespec.backend.Json.object(java.util.Map.of()));\n";
+            }
+        }
+        else
+        {
+            out << "            return new Descriptors.ApiResponse(" << status_code
+                << ", com.statespec.backend.Json.object(java.util.Map.of()));\n";
+        }
         out << "        }\n\n";
     }
     return out.str();

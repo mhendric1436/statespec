@@ -82,6 +82,43 @@ std::string go_encode_expr(
     return "common.JSONString(" + accessor + ")";
 }
 
+std::string go_default_response_expr(
+    const IrField& field,
+    const std::string& context_expr
+)
+{
+    const auto base = strip_optional_type(field.type);
+    if (base == "bool")
+    {
+        return field.name == "accepted" ? "true" : "false";
+    }
+    if (base == "int" || base == "int32")
+    {
+        return "int32(0)";
+    }
+    if (base == "int64" || base == "long")
+    {
+        return "int64(0)";
+    }
+    if (base == "double" || base == "decimal")
+    {
+        return "float64(0)";
+    }
+    if (base == "json")
+    {
+        return context_expr + ".Body";
+    }
+    if (field.name == "workflow_execution_id" || field.name == "message_id")
+    {
+        return context_expr + ".APIName + \":\" + " + context_expr + ".Body.CanonicalString()";
+    }
+    if (field.name == "status")
+    {
+        return "\"Accepted\"";
+    }
+    return "\"\"";
+}
+
 } // namespace
 
 std::string generate_descriptors_go(const IrSystem& system)
@@ -203,11 +240,53 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
     for (const auto& api : system.apis)
     {
         out << "func (DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
-            << "(context.Context, common.APIRequestContext) (common.APIResponse, error) {\n";
-        out << "\treturn common.APIResponse{StatusCode: 501, Body: "
-               "common.JSONObject(map[string]common.JSON{\"error\": "
-               "common.JSONString(\"handler_not_implemented\"), \"api\": common.JSONString("
-            << go_string(api.name) << ")})}, nil\n";
+            << "(ctx context.Context, request common.APIRequestContext) (common.APIResponse, "
+               "error) {\n";
+        out << "\t_ = ctx\n";
+        if (api.input.has_value())
+        {
+            out << "\tdecodedRequest, err := Decode" << pascal_identifier(api.name)
+                << "Request(request)\n";
+            out << "\tif err != nil { return common.APIResponse{}, err }\n";
+            out << "\t_ = decodedRequest\n";
+        }
+        const auto status_code =
+            api.starts_workflow.has_value() || api.enqueues.has_value() ? 202 : 200;
+        if (api.output.has_value())
+        {
+            if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+            {
+                out << "\tresponse := common." << pascal_identifier(shape->name) << "{}\n";
+                for (const auto& field : shape->fields)
+                {
+                    const auto access = "response." + pascal_identifier(field.name);
+                    const auto value = go_default_response_expr(field, "request");
+                    if (is_optional_type(field.type))
+                    {
+                        out << "\t" << lower_camel_identifier(field.name) << " := " << value
+                            << "\n";
+                        out << "\t" << access << " = &" << lower_camel_identifier(field.name)
+                            << "\n";
+                    }
+                    else
+                    {
+                        out << "\t" << access << " = " << value << "\n";
+                    }
+                }
+                out << "\treturn Encode" << pascal_identifier(api.name)
+                    << "ResponseWithStatus(response, " << status_code << "), nil\n";
+            }
+            else
+            {
+                out << "\treturn common.APIResponse{StatusCode: " << status_code
+                    << ", Body: common.JSONObject(map[string]common.JSON{})}, nil\n";
+            }
+        }
+        else
+        {
+            out << "\treturn common.APIResponse{StatusCode: " << status_code
+                << ", Body: common.JSONObject(map[string]common.JSON{})}, nil\n";
+        }
         out << "}\n\n";
     }
     return out.str();

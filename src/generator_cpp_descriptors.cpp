@@ -70,6 +70,51 @@ std::string cpp_json_expr(
     return "statespec::backend::Json{" + accessor + "}";
 }
 
+std::string cpp_default_response_assignment(
+    const IrField& field,
+    const std::string& context_expr
+)
+{
+    const auto base = strip_optional_type(field.type);
+    const std::string prefix = is_optional_type(field.type) ? "std::optional{" : "";
+    const std::string suffix = is_optional_type(field.type) ? "}" : "";
+    if (base == "bool")
+    {
+        return prefix + std::string(field.name == "accepted" ? "true" : "false") + suffix;
+    }
+    if (base == "int" || base == "int32")
+    {
+        return prefix + "std::int32_t{0}" + suffix;
+    }
+    if (base == "int64" || base == "long")
+    {
+        return prefix + "std::int64_t{0}" + suffix;
+    }
+    if (base == "double" || base == "decimal")
+    {
+        return prefix + "0.0" + suffix;
+    }
+    if (base == "json")
+    {
+        return prefix + context_expr + ".body" + suffix;
+    }
+    if (field.name == "workflow_execution_id")
+    {
+        return prefix + context_expr + ".api_name + \":\" + " + context_expr +
+               ".body.canonical_string()" + suffix;
+    }
+    if (field.name == "message_id")
+    {
+        return prefix + context_expr + ".api_name + \":\" + " + context_expr +
+               ".body.canonical_string()" + suffix;
+    }
+    if (field.name == "status")
+    {
+        return prefix + "std::string{\"Accepted\"}" + suffix;
+    }
+    return prefix + "std::string{}" + suffix;
+}
+
 } // namespace
 
 std::string generate_system_descriptors_header(const IrSystem& system)
@@ -192,11 +237,43 @@ std::string generate_api_operation_default_handler_methods(const IrSystem& syste
     for (const auto& api : system.apis)
     {
         out << "    ApiResponse handle_" << snake_identifier(api.name)
-            << "(const ApiRequestContext&) override\n";
+            << "(const ApiRequestContext& context) override\n";
         out << "    {\n";
-        out << "        return ApiResponse{501, statespec::backend::Json::object({{\"error\", "
-               "\"handler_not_implemented\"}, {\"api\", "
-            << cpp_string(api.name) << "}})};\n";
+        if (api.input.has_value())
+        {
+            out << "        const auto request = decode_" << snake_identifier(api.name)
+                << "_request(context);\n";
+            out << "        (void)request;\n";
+        }
+        if (api.output.has_value())
+        {
+            if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+            {
+                out << "        ::statespec_generated::" << pascal_identifier(shape->name)
+                    << " response{};\n";
+                for (const auto& field : shape->fields)
+                {
+                    out << "        response." << field.name << " = "
+                        << cpp_default_response_assignment(field, "context") << ";\n";
+                }
+                out << "        return encode_" << snake_identifier(api.name)
+                    << "_response(response, "
+                    << (api.starts_workflow.has_value() || api.enqueues.has_value() ? 202 : 200)
+                    << ");\n";
+            }
+            else
+            {
+                out << "        return ApiResponse{"
+                    << (api.starts_workflow.has_value() || api.enqueues.has_value() ? 202 : 200)
+                    << ", statespec::backend::Json::object({})};\n";
+            }
+        }
+        else
+        {
+            out << "        return ApiResponse{"
+                << (api.starts_workflow.has_value() || api.enqueues.has_value() ? 202 : 200)
+                << ", statespec::backend::Json::object({})};\n";
+        }
         out << "    }\n\n";
     }
     return out.str();

@@ -228,6 +228,7 @@ Generated API code owns:
 - Route-to-handler dispatch.
 - API handler interfaces.
 - Typed request and response codecs for declared API input/output shapes.
+- Default API action handlers that decode request shapes and encode accepted action responses.
 - Operator metadata API handler interfaces for external-system metadata.
 - Request and response context types shared by all API handlers.
 
