@@ -1,0 +1,8 @@
+use crate::api_application::ApiApplication;
+use crate::api_descriptors;
+
+pub fn main() {
+    for descriptor in api_descriptors::api_server_descriptors() {
+        let _ = ApiApplication::new_default(&descriptor.name);
+    }
+}

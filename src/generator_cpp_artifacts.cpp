@@ -30,14 +30,17 @@ TemplateRenderer::Values cpp_makefile_values(BindingGenerationTier tier)
         phony_targets << " check-api build-api package-api";
         api_rules << "check-api: $(BUILD_DIR)/.dir\n";
         api_rules << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
+                     "#include \"api/api_application.hpp\"\\n"
                      "#include \"api/api_dispatcher.hpp\"\\n"
+                     "#include \"api/api_handler_registry.hpp\"\\n"
                      "#include \"api/api_handlers.hpp\"\\n"
                      "#include \"api/api_routes.hpp\"\\n"
                      "#include \"api/api_server.hpp\"\\n"
                      "#include \"api/external_system_operator_metadata_api.hpp\"\\n"
                      "int main() { return 0; }\\n' | "
                      "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
-        api_rules << "build-api: check-api\n\n";
+        api_rules << "build-api: check-api\n";
+        api_rules << "\t$(CXX) $(CXXFLAGS) api/main.cpp -o $(BUILD_DIR)/api-main\n\n";
         api_rules << "package-api: build-api $(DIST_DIR)\n";
         api_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-api-cpp.tgz common api "
                      "Makefile\n\n";
@@ -56,12 +59,14 @@ TemplateRenderer::Values cpp_makefile_values(BindingGenerationTier tier)
                         "#include \"worker/worker_leases.hpp\"\\n"
                         "#include \"worker/worker_queues.hpp\"\\n"
                         "#include \"worker/worker_registry.hpp\"\\n"
+                        "#include \"worker/worker_runtime.hpp\"\\n"
                         "#include \"worker/worker_workflows.hpp\"\\n"
                         "#include \"worker/workflow_runner.hpp\"\\n"
                         "#include \"worker/workflow_step_handlers.hpp\"\\n"
                         "int main() { return 0; }\\n' | "
                         "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-worker\n\n";
-        worker_rules << "build-worker: check-worker\n\n";
+        worker_rules << "build-worker: check-worker\n";
+        worker_rules << "\t$(CXX) $(CXXFLAGS) worker/main.cpp -o $(BUILD_DIR)/worker-main\n\n";
         worker_rules << "package-worker: build-worker $(DIST_DIR)\n";
         worker_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-cpp.tgz common worker "
                         "Makefile\n\n";
@@ -201,10 +206,22 @@ void add_cpp_api_artifacts(
         "api/api_descriptors.hpp", diagnostics, GeneratedArtifactTier::Api
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "api/api_application.hpp.tmpl",
+        "api/api_application.hpp", diagnostics, GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "api/api_handlers.hpp.tmpl", "api/api_handlers.hpp",
         diagnostics, GeneratedArtifactTier::Api,
         TemplateRenderer::Values{
             {"api_operation_handler_methods", generate_api_operation_handler_methods(system)}
+        }
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/api_handler_registry.hpp.tmpl",
+        "api/api_handler_registry.hpp", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_default_handler_methods",
+             generate_api_operation_default_handler_methods(system)}
         }
     );
     add_generated_template_file(
@@ -225,6 +242,10 @@ void add_cpp_api_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "api/external_system_operator_metadata_api.hpp.tmpl",
         "api/external_system_operator_metadata_api.hpp", diagnostics, GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/main.cpp.tmpl", "api/main.cpp", diagnostics,
+        GeneratedArtifactTier::Api
     );
 }
 
@@ -253,6 +274,10 @@ void add_cpp_worker_artifacts(
         "worker/worker_application.hpp", diagnostics, GeneratedArtifactTier::Worker
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "worker/worker_runtime.hpp.tmpl",
+        "worker/worker_runtime.hpp", diagnostics, GeneratedArtifactTier::Worker
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "worker/workflow_step_handlers.hpp.tmpl",
         "worker/workflow_step_handlers.hpp", diagnostics, GeneratedArtifactTier::Worker,
         TemplateRenderer::Values{
@@ -278,6 +303,10 @@ void add_cpp_worker_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_workflows.hpp.tmpl",
         "worker/worker_workflows.hpp", diagnostics, GeneratedArtifactTier::Worker
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "worker/main.cpp.tmpl", "worker/main.cpp",
+        diagnostics, GeneratedArtifactTier::Worker
     );
 }
 

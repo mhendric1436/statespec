@@ -1,0 +1,11 @@
+package com.statespec.generated;
+
+public final class ApiMain {
+    private ApiMain() {}
+
+    public static void main(String[] args) {
+        for (Descriptors.ApiServerDescriptor descriptor : ApiDescriptors.apiServerDescriptors()) {
+            ApiApplication.createDefault(descriptor.name());
+        }
+    }
+}

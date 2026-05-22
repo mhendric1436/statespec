@@ -68,4 +68,20 @@ std::string generate_api_operation_dispatch_cases_go(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_operation_default_handler_methods_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "func (DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
+            << "(context.Context, common.APIRequestContext) (common.APIResponse, error) {\n";
+        out << "\treturn common.APIResponse{StatusCode: 501, Body: "
+               "common.JSONObject(map[string]common.JSON{\"error\": "
+               "common.JSONString(\"handler_not_implemented\"), \"api\": common.JSONString("
+            << go_string(api.name) << ")})}, nil\n";
+        out << "}\n\n";
+    }
+    return out.str();
+}
+
 } // namespace statespec

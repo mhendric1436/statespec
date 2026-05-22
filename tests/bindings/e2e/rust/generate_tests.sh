@@ -20,12 +20,15 @@ APP_MANIFEST="$TMPDIR/expected-rust-manifest.txt"
 cat > "$APP_MANIFEST" <<'EOF'
 Cargo.toml
 Makefile
+api/api_application.rs
 api/api_descriptors.rs
 api/api_dispatcher.rs
+api/api_handler_registry.rs
 api/api_handlers.rs
 api/api_routes.rs
 api/api_server.rs
 api/external_system_operator_metadata_api.rs
+api/main.rs
 common/backend.rs
 common/descriptors.rs
 common/external_system.rs
@@ -54,6 +57,7 @@ common/runtime/queues.rs
 common/runtime/workflows.rs
 common/workflow.rs
 lib.rs
+worker/main.rs
 worker/worker_application.rs
 worker/worker_contexts.rs
 worker/worker_descriptors.rs
@@ -61,6 +65,7 @@ worker/worker_handlers.rs
 worker/worker_leases.rs
 worker/worker_queues.rs
 worker/worker_registry.rs
+worker/worker_runtime.rs
 worker/worker_workflows.rs
 worker/workflow_runner.rs
 worker/workflow_step_handlers.rs
@@ -80,10 +85,15 @@ assert_file_manifest_equals "$TMPDIR/out-app-rust" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionApi.StartProvision\""
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-rust/api/api_application.rs" "pub struct ApiApplication"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "pub struct DefaultApiHandler"
+assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiApplication"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_server.rs" "pub struct ApiServer"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_route"
 assert_file_not_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_operation_route"
 assert_file_contains "$TMPDIR/out-app-rust/worker/worker_registry.rs" "pub fn find_worker_descriptor"
+assert_file_contains "$TMPDIR/out-app-rust/worker/worker_runtime.rs" "pub struct WorkerRuntime"
+assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "WorkerRuntime"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "keep_alive_step"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.create_remote_service\""

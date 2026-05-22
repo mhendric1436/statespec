@@ -1,0 +1,15 @@
+#pragma once
+
+#include "api_handlers.hpp"
+
+namespace statespec_generated::api
+{
+
+class DefaultApiHandler final : public IApiOperationHandler
+{
+  public:
+    // clang-format off
+{{api_operation_default_handler_methods}} // clang-format on
+};
+
+} // namespace statespec_generated::api

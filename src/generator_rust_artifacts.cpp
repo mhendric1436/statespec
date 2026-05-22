@@ -66,8 +66,12 @@ TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
     {
         api_modules << "#[path = \"api/api_descriptors.rs\"]\n";
         api_modules << "pub mod api_descriptors;\n";
+        api_modules << "#[path = \"api/api_application.rs\"]\n";
+        api_modules << "pub mod api_application;\n";
         api_modules << "#[path = \"api/api_dispatcher.rs\"]\n";
         api_modules << "pub mod api_dispatcher;\n";
+        api_modules << "#[path = \"api/api_handler_registry.rs\"]\n";
+        api_modules << "pub mod api_handler_registry;\n";
         api_modules << "#[path = \"api/api_handlers.rs\"]\n";
         api_modules << "pub mod api_handlers;\n";
         api_modules << "#[path = \"api/api_routes.rs\"]\n";
@@ -76,6 +80,8 @@ TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
         api_modules << "pub mod api_server;\n";
         api_modules << "#[path = \"api/external_system_operator_metadata_api.rs\"]\n";
         api_modules << "pub mod external_system_operator_metadata_api;\n";
+        api_modules << "#[path = \"api/main.rs\"]\n";
+        api_modules << "pub mod api_main;\n";
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker)
     {
@@ -95,10 +101,14 @@ TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
         worker_modules << "pub mod worker_registry;\n";
         worker_modules << "#[path = \"worker/worker_application.rs\"]\n";
         worker_modules << "pub mod worker_application;\n";
+        worker_modules << "#[path = \"worker/worker_runtime.rs\"]\n";
+        worker_modules << "pub mod worker_runtime;\n";
         worker_modules << "#[path = \"worker/workflow_step_handlers.rs\"]\n";
         worker_modules << "pub mod workflow_step_handlers;\n";
         worker_modules << "#[path = \"worker/workflow_runner.rs\"]\n";
         worker_modules << "pub mod workflow_runner;\n";
+        worker_modules << "#[path = \"worker/main.rs\"]\n";
+        worker_modules << "pub mod worker_main;\n";
     }
     return TemplateRenderer::Values{
         {"api_modules", api_modules.str()},
@@ -235,10 +245,22 @@ void add_rust_api_artifacts(
         "api/api_descriptors.rs", diagnostics, GeneratedArtifactTier::Api
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "api/api_application.rs.tmpl",
+        "api/api_application.rs", diagnostics, GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "api/api_handlers.rs.tmpl", "api/api_handlers.rs",
         diagnostics, GeneratedArtifactTier::Api,
         TemplateRenderer::Values{
             {"api_operation_handler_methods", generate_api_operation_handler_methods_rs(system)}
+        }
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/api_handler_registry.rs.tmpl",
+        "api/api_handler_registry.rs", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_default_handler_methods",
+             generate_api_operation_default_handler_methods_rs(system)}
         }
     );
     add_generated_template_file(
@@ -259,6 +281,10 @@ void add_rust_api_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "api/external_system_operator_metadata_api.rs.tmpl",
         "api/external_system_operator_metadata_api.rs", diagnostics, GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/main.rs.tmpl", "api/main.rs", diagnostics,
+        GeneratedArtifactTier::Api
     );
 }
 
@@ -287,6 +313,10 @@ void add_rust_worker_artifacts(
         "worker/worker_application.rs", diagnostics, GeneratedArtifactTier::Worker
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "worker/worker_runtime.rs.tmpl",
+        "worker/worker_runtime.rs", diagnostics, GeneratedArtifactTier::Worker
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "worker/workflow_step_handlers.rs.tmpl",
         "worker/workflow_step_handlers.rs", diagnostics, GeneratedArtifactTier::Worker,
         TemplateRenderer::Values{
@@ -312,6 +342,10 @@ void add_rust_worker_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_workflows.rs.tmpl",
         "worker/worker_workflows.rs", diagnostics, GeneratedArtifactTier::Worker
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "worker/main.rs.tmpl", "worker/main.rs", diagnostics,
+        GeneratedArtifactTier::Worker
     );
 }
 

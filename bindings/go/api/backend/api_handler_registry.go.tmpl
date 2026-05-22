@@ -1,0 +1,13 @@
+package backend
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type DefaultAPITierHandler struct{}
+
+{{api_operation_default_handler_methods}}
+var _ APITierHandler = DefaultAPITierHandler{}
+

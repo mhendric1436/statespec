@@ -59,22 +59,27 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/Cargo.toml", common},
             {"common/lib.rs", common},
             {"common/Makefile", common},
+            {"api/api_application.rs", api},
             {"api/api_descriptors.rs", api},
             {"api/api_handlers.rs", api},
+            {"api/api_handler_registry.rs", api},
             {"api/api_dispatcher.rs", api},
             {"api/api_server.rs", api},
             {"api/api_routes.rs", api},
             {"api/external_system_operator_metadata_api.rs", api},
+            {"api/main.rs", api},
             {"worker/worker_contexts.rs", worker},
             {"worker/worker_descriptors.rs", worker},
             {"worker/worker_registry.rs", worker},
             {"worker/worker_application.rs", worker},
+            {"worker/worker_runtime.rs", worker},
             {"worker/workflow_step_handlers.rs", worker},
             {"worker/workflow_runner.rs", worker},
             {"worker/worker_handlers.rs", worker},
             {"worker/worker_leases.rs", worker},
             {"worker/worker_queues.rs", worker},
             {"worker/worker_workflows.rs", worker},
+            {"worker/main.rs", worker},
         }
     );
 }
@@ -99,7 +104,15 @@ void test_rust_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
+        result, "api/api_application.rs", "api/api_application.rs",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
         result, "api/api_handlers.rs", "api/api_handlers.rs", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/api_handler_registry.rs", "api/api_handler_registry.rs",
+        statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
         result, "api/api_dispatcher.rs", "api/api_dispatcher.rs",
@@ -116,6 +129,9 @@ void test_rust_binding_generator_models_artifact_paths()
         "api/external_system_operator_metadata_api.rs", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
+        result, "api/main.rs", "api/main.rs", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
         result, "worker/worker_descriptors.rs", "worker/worker_descriptors.rs",
         statespec::GeneratedArtifactTier::Worker
     );
@@ -129,6 +145,10 @@ void test_rust_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/worker_application.rs", "worker/worker_application.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/worker_runtime.rs", "worker/worker_runtime.rs",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
@@ -154,6 +174,9 @@ void test_rust_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "worker/worker_workflows.rs", "worker/worker_workflows.rs",
         statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/main.rs", "worker/main.rs", statespec::GeneratedArtifactTier::Worker
     );
 }
 

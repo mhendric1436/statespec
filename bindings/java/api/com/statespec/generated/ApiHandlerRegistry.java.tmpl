@@ -1,0 +1,15 @@
+package com.statespec.generated;
+
+import com.statespec.backend.Json;
+import java.util.Map;
+
+public final class ApiHandlerRegistry {
+    private ApiHandlerRegistry() {}
+
+    public static final class DefaultHandler implements ApiHandlers.Handler {
+{{api_operation_default_handler_methods}}    }
+
+    public static ApiHandlers.Handler defaultHandler() {
+        return new DefaultHandler();
+    }
+}

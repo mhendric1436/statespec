@@ -1,0 +1,43 @@
+package com.statespec.generated;
+
+import com.statespec.backend.memory.InMemoryBackend;
+import com.statespec.backend.runtime.FeatureFlagStore;
+import com.statespec.backend.runtime.LogSink;
+import com.statespec.backend.runtime.MetricSink;
+import com.statespec.backend.runtime.QueueStore;
+import com.statespec.backend.runtime.WorkflowStore;
+
+public final class ApiApplication {
+    private final InMemoryBackend backend;
+    private final FeatureFlagStore featureFlags;
+    private final LogSink logs;
+    private final MetricSink metrics;
+    private final QueueStore queues;
+    private final WorkflowStore workflows;
+    private final ApiServer server;
+
+    public ApiApplication(String serverName, ApiHandlers.Handler handler) {
+        Descriptors.ApiServerDescriptor descriptor =
+            ApiServer.findApiServer(serverName)
+                .orElseThrow(() -> new IllegalArgumentException("unknown generated API server"));
+        this.backend = new InMemoryBackend();
+        this.featureFlags = new FeatureFlagStore();
+        this.logs = new LogSink();
+        this.metrics = new MetricSink();
+        this.queues = new QueueStore();
+        this.workflows = new WorkflowStore();
+        this.server = new ApiServer(descriptor, handler);
+    }
+
+    public static ApiApplication createDefault(String serverName) {
+        return new ApiApplication(serverName, ApiHandlerRegistry.defaultHandler());
+    }
+
+    public InMemoryBackend backend() {
+        return backend;
+    }
+
+    public ApiServer server() {
+        return server;
+    }
+}

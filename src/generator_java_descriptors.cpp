@@ -72,4 +72,22 @@ std::string generate_api_operation_dispatch_cases_java(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_operation_default_handler_methods_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "        @Override\n";
+        out << "        public Descriptors.ApiResponse handle" << pascal_identifier(api.name)
+            << "(Descriptors.ApiRequestContext context) {\n";
+        out << "            return new Descriptors.ApiResponse(501, "
+               "com.statespec.backend.Json.object(java.util.Map.of(\"error\", "
+               "com.statespec.backend.Json.string(\"handler_not_implemented\"), \"api\", "
+               "com.statespec.backend.Json.string("
+            << java_string(api.name) << "))));\n";
+        out << "        }\n\n";
+    }
+    return out.str();
+}
+
 } // namespace statespec

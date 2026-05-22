@@ -197,10 +197,22 @@ void add_go_api_artifacts(
         "api/backend/api_descriptors.go", diagnostics, GeneratedArtifactTier::Api
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "api/backend/api_application.go.tmpl",
+        "api/backend/api_application.go", diagnostics, GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_handlers.go.tmpl",
         "api/backend/api_handlers.go", diagnostics, GeneratedArtifactTier::Api,
         TemplateRenderer::Values{
             {"api_operation_handler_methods", generate_api_operation_handler_methods_go(system)}
+        }
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/backend/api_handler_registry.go.tmpl",
+        "api/backend/api_handler_registry.go", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_default_handler_methods",
+             generate_api_operation_default_handler_methods_go(system)}
         }
     );
     add_generated_template_file(
@@ -223,6 +235,10 @@ void add_go_api_artifacts(
         "api/backend/external_system_operator_metadata_api.go.tmpl",
         "api/backend/external_system_operator_metadata_api.go", diagnostics,
         GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/cmd/api/main.go.tmpl", "api/cmd/api/main.go",
+        diagnostics, GeneratedArtifactTier::Api
     );
 }
 
@@ -251,6 +267,10 @@ void add_go_worker_artifacts(
         "worker/backend/worker_application.go", diagnostics, GeneratedArtifactTier::Worker
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "worker/backend/worker_runtime.go.tmpl",
+        "worker/backend/worker_runtime.go", diagnostics, GeneratedArtifactTier::Worker
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "worker/backend/workflow_step_handlers.go.tmpl",
         "worker/backend/workflow_step_handlers.go", diagnostics, GeneratedArtifactTier::Worker,
         TemplateRenderer::Values{
@@ -276,6 +296,10 @@ void add_go_worker_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "worker/backend/worker_workflows.go.tmpl",
         "worker/backend/worker_workflows.go", diagnostics, GeneratedArtifactTier::Worker
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "worker/cmd/worker/main.go.tmpl",
+        "worker/cmd/worker/main.go", diagnostics, GeneratedArtifactTier::Worker
     );
 }
 

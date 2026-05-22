@@ -1,0 +1,69 @@
+#pragma once
+
+#include "api_handler_registry.hpp"
+#include "api_server.hpp"
+
+#include "../common/memory/backend.hpp"
+#include "../common/runtime/feature_flag_store.hpp"
+#include "../common/runtime/log_sink.hpp"
+#include "../common/runtime/metric_sink.hpp"
+#include "../common/runtime/queue_store.hpp"
+#include "../common/runtime/workflow_store.hpp"
+
+#include <stdexcept>
+#include <string_view>
+
+namespace statespec_generated::api
+{
+
+class ApiApplication
+{
+  public:
+    explicit ApiApplication(
+        std::string_view server_name,
+        IApiOperationHandler& handler
+    )
+        : backend_(),
+          feature_flags_(),
+          logs_(),
+          metrics_(),
+          queues_(),
+          workflows_(),
+          server_(
+              find_required_server(server_name),
+              handler
+          )
+    {
+    }
+
+    ApiServer& server()
+    {
+        return server_;
+    }
+
+    statespec::backend::memory::InMemoryBackend& backend()
+    {
+        return backend_;
+    }
+
+  private:
+    static ApiServerDescriptor find_required_server(std::string_view server_name)
+    {
+        auto descriptor = find_api_server(server_name);
+        if (!descriptor.has_value())
+        {
+            throw std::runtime_error("unknown generated API server");
+        }
+        return *descriptor;
+    }
+
+    statespec::backend::memory::InMemoryBackend backend_;
+    statespec::backend::runtime::RuntimeFeatureFlagStore feature_flags_;
+    statespec::backend::runtime::RuntimeLogSink logs_;
+    statespec::backend::runtime::RuntimeMetricSink metrics_;
+    statespec::backend::runtime::RuntimeQueueStore queues_;
+    statespec::backend::runtime::RuntimeWorkflowStore workflows_;
+    ApiServer server_;
+};
+
+} // namespace statespec_generated::api

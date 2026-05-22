@@ -1,0 +1,37 @@
+#pragma once
+
+#include "worker_application.hpp"
+#include "workflow_runner.hpp"
+
+#include "../common/memory/backend.hpp"
+#include "../common/runtime/lease_store.hpp"
+#include "../common/runtime/queue_store.hpp"
+#include "../common/runtime/workflow_store.hpp"
+
+namespace statespec_generated::worker
+{
+
+class WorkerRuntime
+{
+  public:
+    WorkerRuntime()
+        : backend_(),
+          leases_(),
+          queues_(),
+          workflows_()
+    {
+    }
+
+    statespec::backend::memory::InMemoryBackend& backend()
+    {
+        return backend_;
+    }
+
+  private:
+    statespec::backend::memory::InMemoryBackend backend_;
+    statespec::backend::runtime::RuntimeLeaseStore leases_;
+    statespec::backend::runtime::RuntimeQueueStore queues_;
+    statespec::backend::runtime::RuntimeWorkflowStore workflows_;
+};
+
+} // namespace statespec_generated::worker

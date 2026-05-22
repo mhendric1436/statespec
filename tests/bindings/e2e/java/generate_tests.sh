@@ -19,9 +19,12 @@ APP_MANIFEST="$TMPDIR/expected-java-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
 Makefile
+api/com/statespec/generated/ApiApplication.java
 api/com/statespec/generated/ApiDescriptors.java
 api/com/statespec/generated/ApiDispatcher.java
+api/com/statespec/generated/ApiHandlerRegistry.java
 api/com/statespec/generated/ApiHandlers.java
+api/com/statespec/generated/ApiMain.java
 api/com/statespec/generated/ApiRoutes.java
 api/com/statespec/generated/ApiServer.java
 api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java
@@ -56,8 +59,10 @@ worker/com/statespec/generated/WorkerContexts.java
 worker/com/statespec/generated/WorkerDescriptors.java
 worker/com/statespec/generated/WorkerHandlers.java
 worker/com/statespec/generated/WorkerLeases.java
+worker/com/statespec/generated/WorkerMain.java
 worker/com/statespec/generated/WorkerQueues.java
 worker/com/statespec/generated/WorkerRegistry.java
+worker/com/statespec/generated/WorkerRuntime.java
 worker/com/statespec/generated/WorkerWorkflows.java
 worker/com/statespec/generated/WorkflowRunner.java
 worker/com/statespec/generated/WorkflowStepHandlers.java
@@ -77,10 +82,15 @@ assert_file_manifest_equals "$TMPDIR/out-app-java" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionApi.StartProvision\""
 assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiApplication.java" "class ApiApplication"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistry.java" "class DefaultHandler"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiApplication"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiServer.java" "class ApiServer"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiRoute"
 assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiOperationRoute"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRegistry.java" "findWorkerDescriptor"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRuntime.java" "class WorkerRuntime"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkerRuntime"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "keepAliveStep"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.create_remote_service\""

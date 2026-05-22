@@ -63,4 +63,21 @@ std::string generate_api_operation_dispatch_cases_rs(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_operation_default_handler_methods_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "    fn handle_" << snake_identifier(api.name)
+            << "(&self, _context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
+        out << "        Ok(ApiResponse { status_code: 501, body: "
+               "Json::Object(BTreeMap::from([(\"error\".to_string(), "
+               "Json::String(\"handler_not_implemented\".to_string())), (\"api\".to_string(), "
+               "Json::String("
+            << rust_string(api.name) << ".to_string()))])) })\n";
+        out << "    }\n\n";
+    }
+    return out.str();
+}
+
 } // namespace statespec

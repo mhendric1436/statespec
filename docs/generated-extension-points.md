@@ -23,9 +23,10 @@ Generated code owns:
   workflows, feature flags, logs, metrics, policies, and external systems
 - DTOs for declared shapes
 - API route descriptors and framework-neutral request/response context types
-- API server shells and route dispatch helpers
-- worker descriptors, worker contexts, worker application shells, and worker registry
-  helpers
+- API server shells, route dispatch helpers, handler registries, local composition roots,
+  and process entrypoints
+- worker descriptors, worker contexts, worker application shells, worker runtimes, worker
+  registry helpers, and process entrypoints
 - workflow step handler context types and deterministic workflow step handler keys
 - workflow runners that claim workflow steps, call user handlers, keep claimed steps
   alive, and complete or fail steps through backend workflow stores
@@ -37,14 +38,14 @@ Generated code owns:
 User-owned code owns:
 
 - concrete API handlers
-- concrete worker handlers
+- concrete worker handlers when the generated runtime is not sufficient
 - concrete workflow step handlers
 - HTTP server framework adapters and request/response serialization
-- queue polling runtime adapters when the generated shell is not sufficient
+- queue polling runtime adapters when the generated runtime is not sufficient
 - backend implementations for the OCC interfaces
 - external client construction, auth, retry policy, timeout policy, and remote API calls
-- application composition roots that connect generated descriptors to real handlers and
-  backend stores
+- production composition adapters that replace generated default handlers or the
+  generated in-memory backend
 
 The composition root may use the generated in-memory backend for local tests and
 examples. Production applications should provide a durable backend adapter behind the

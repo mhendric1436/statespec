@@ -19,12 +19,15 @@ APP_MANIFEST="$TMPDIR/expected-go-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
 Makefile
+api/backend/api_application.go
 api/backend/api_descriptors.go
 api/backend/api_dispatcher.go
+api/backend/api_handler_registry.go
 api/backend/api_handlers.go
 api/backend/api_routes.go
 api/backend/api_server.go
 api/backend/external_system_operator_metadata_api.go
+api/cmd/api/main.go
 common/backend/backend.go
 common/backend/descriptors.go
 common/backend/external_system.go
@@ -59,9 +62,11 @@ worker/backend/worker_handlers.go
 worker/backend/worker_leases.go
 worker/backend/worker_queues.go
 worker/backend/worker_registry.go
+worker/backend/worker_runtime.go
 worker/backend/worker_workflows.go
 worker/backend/workflow_runner.go
 worker/backend/workflow_step_handlers.go
+worker/cmd/worker/main.go
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$E2E_SPEC" --out "$TMPDIR/out-e2e-go"
@@ -78,10 +83,15 @@ assert_file_manifest_equals "$TMPDIR/out-app-go" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionApi.StartProvision\""
 assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_application.go" "type APITierApplication struct"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "type DefaultAPITierHandler struct"
+assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "NewDefaultAPITierApplication"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_server.go" "type APITierServer struct"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_dispatcher.go" "func DispatchAPITierRoute"
 assert_file_not_contains "$TMPDIR/out-app-go/api/backend/api_dispatcher.go" "func DispatchAPITierOperationRoute"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_registry.go" "func FindWorkerTierDescriptor"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_runtime.go" "type WorkerTierRuntime struct"
+assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "NewWorkerTierRuntime"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "KeepAliveStep"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.create_remote_service\""

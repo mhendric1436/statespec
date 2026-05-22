@@ -150,10 +150,25 @@ void add_java_api_artifacts(
         "api/com/statespec/generated/ApiDescriptors.java", diagnostics, GeneratedArtifactTier::Api
     );
     add_generated_template_file(
+        result, options.output_dir, templates,
+        "api/com/statespec/generated/ApiApplication.java.tmpl",
+        "api/com/statespec/generated/ApiApplication.java", diagnostics, GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "api/com/statespec/generated/ApiHandlers.java.tmpl",
         "api/com/statespec/generated/ApiHandlers.java", diagnostics, GeneratedArtifactTier::Api,
         TemplateRenderer::Values{
             {"api_operation_handler_methods", generate_api_operation_handler_methods_java(system)}
+        }
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates,
+        "api/com/statespec/generated/ApiHandlerRegistry.java.tmpl",
+        "api/com/statespec/generated/ApiHandlerRegistry.java", diagnostics,
+        GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{
+            {"api_operation_default_handler_methods",
+             generate_api_operation_default_handler_methods_java(system)}
         }
     );
     add_generated_template_file(
@@ -177,6 +192,10 @@ void add_java_api_artifacts(
         "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java.tmpl",
         "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", diagnostics,
         GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/com/statespec/generated/ApiMain.java.tmpl",
+        "api/com/statespec/generated/ApiMain.java", diagnostics, GeneratedArtifactTier::Api
     );
 }
 
@@ -210,6 +229,12 @@ void add_java_worker_artifacts(
         result, options.output_dir, templates,
         "worker/com/statespec/generated/WorkerApplication.java.tmpl",
         "worker/com/statespec/generated/WorkerApplication.java", diagnostics,
+        GeneratedArtifactTier::Worker
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates,
+        "worker/com/statespec/generated/WorkerRuntime.java.tmpl",
+        "worker/com/statespec/generated/WorkerRuntime.java", diagnostics,
         GeneratedArtifactTier::Worker
     );
     add_generated_template_file(
@@ -250,6 +275,11 @@ void add_java_worker_artifacts(
         "worker/com/statespec/generated/WorkerWorkflows.java.tmpl",
         "worker/com/statespec/generated/WorkerWorkflows.java", diagnostics,
         GeneratedArtifactTier::Worker
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates,
+        "worker/com/statespec/generated/WorkerMain.java.tmpl",
+        "worker/com/statespec/generated/WorkerMain.java", diagnostics, GeneratedArtifactTier::Worker
     );
 }
 

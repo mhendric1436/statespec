@@ -66,4 +66,20 @@ std::string generate_api_operation_dispatch_cases(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_operation_default_handler_methods(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "    ApiResponse handle_" << snake_identifier(api.name)
+            << "(const ApiRequestContext&) override\n";
+        out << "    {\n";
+        out << "        return ApiResponse{501, statespec::backend::Json::object({{\"error\", "
+               "\"handler_not_implemented\"}, {\"api\", "
+            << cpp_string(api.name) << "}})};\n";
+        out << "    }\n\n";
+    }
+    return out.str();
+}
+
 } // namespace statespec

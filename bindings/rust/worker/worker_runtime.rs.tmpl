@@ -1,0 +1,29 @@
+use crate::memory_backend::InMemoryBackend;
+use crate::runtime_leases::RuntimeLeaseStore;
+use crate::runtime_queues::RuntimeQueueStore;
+use crate::runtime_workflows::RuntimeWorkflowStore;
+
+#[derive(Debug, Clone)]
+pub struct WorkerRuntime {
+    pub backend: InMemoryBackend,
+    pub leases: RuntimeLeaseStore,
+    pub queues: RuntimeQueueStore,
+    pub workflows: RuntimeWorkflowStore,
+}
+
+impl WorkerRuntime {
+    pub fn new() -> Self {
+        Self {
+            backend: InMemoryBackend::new(),
+            leases: RuntimeLeaseStore::new(),
+            queues: RuntimeQueueStore::new(),
+            workflows: RuntimeWorkflowStore::new(),
+        }
+    }
+}
+
+impl Default for WorkerRuntime {
+    fn default() -> Self {
+        Self::new()
+    }
+}

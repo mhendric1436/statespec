@@ -57,22 +57,27 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/runtime/metric_sink.hpp", common},
             {"common/descriptors.hpp", common},
             {"common/Makefile", common},
+            {"api/api_application.hpp", api},
             {"api/api_descriptors.hpp", api},
             {"api/api_handlers.hpp", api},
+            {"api/api_handler_registry.hpp", api},
             {"api/api_dispatcher.hpp", api},
             {"api/api_server.hpp", api},
             {"api/api_routes.hpp", api},
             {"api/external_system_operator_metadata_api.hpp", api},
+            {"api/main.cpp", api},
             {"worker/worker_contexts.hpp", worker},
             {"worker/worker_descriptors.hpp", worker},
             {"worker/worker_registry.hpp", worker},
             {"worker/worker_application.hpp", worker},
+            {"worker/worker_runtime.hpp", worker},
             {"worker/workflow_step_handlers.hpp", worker},
             {"worker/workflow_runner.hpp", worker},
             {"worker/worker_handlers.hpp", worker},
             {"worker/worker_leases.hpp", worker},
             {"worker/worker_queues.hpp", worker},
             {"worker/worker_workflows.hpp", worker},
+            {"worker/main.cpp", worker},
         }
     );
 }
@@ -92,7 +97,15 @@ void test_cpp_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
+        result, "api/api_application.hpp", "api/api_application.hpp",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
         result, "api/api_handlers.hpp", "api/api_handlers.hpp",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/api_handler_registry.hpp", "api/api_handler_registry.hpp",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
@@ -110,6 +123,9 @@ void test_cpp_binding_generator_models_artifact_paths()
         "api/external_system_operator_metadata_api.hpp", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
+        result, "api/main.cpp", "api/main.cpp", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
         result, "worker/worker_descriptors.hpp", "worker/worker_descriptors.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
@@ -123,6 +139,10 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/worker_application.hpp", "worker/worker_application.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/worker_runtime.hpp", "worker/worker_runtime.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
@@ -148,6 +168,9 @@ void test_cpp_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "worker/worker_workflows.hpp", "worker/worker_workflows.hpp",
         statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/main.cpp", "worker/main.cpp", statespec::GeneratedArtifactTier::Worker
     );
 }
 

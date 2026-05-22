@@ -19,12 +19,15 @@ APP_MANIFEST="$TMPDIR/expected-cpp-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
 Makefile
+api/api_application.hpp
 api/api_descriptors.hpp
 api/api_dispatcher.hpp
+api/api_handler_registry.hpp
 api/api_handlers.hpp
 api/api_routes.hpp
 api/api_server.hpp
 api/external_system_operator_metadata_api.hpp
+api/main.cpp
 common/backend.hpp
 common/descriptors.hpp
 common/external_system.hpp
@@ -52,6 +55,7 @@ common/runtime/metric_sink.hpp
 common/runtime/queue_store.hpp
 common/runtime/workflow_store.hpp
 common/workflow.hpp
+worker/main.cpp
 worker/worker_application.hpp
 worker/worker_contexts.hpp
 worker/worker_descriptors.hpp
@@ -59,6 +63,7 @@ worker/worker_handlers.hpp
 worker/worker_leases.hpp
 worker/worker_queues.hpp
 worker/worker_registry.hpp
+worker/worker_runtime.hpp
 worker/worker_workflows.hpp
 worker/workflow_runner.hpp
 worker/workflow_step_handlers.hpp
@@ -78,10 +83,15 @@ assert_file_manifest_equals "$TMPDIR/out-app-cpp" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionApi.StartProvision\""
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_application.hpp" "class ApiApplication"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "class DefaultApiHandler"
+assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "ApiApplication"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_server.hpp" "class ApiServer"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_dispatcher.hpp" "dispatch_api_route"
 assert_file_not_contains "$TMPDIR/out-app-cpp/api/api_dispatcher.hpp" "dispatch_api_operation_route"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_registry.hpp" "find_worker_descriptor"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_runtime.hpp" "class WorkerRuntime"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "WorkerRuntime"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "keep_alive_step"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.create_remote_service\""

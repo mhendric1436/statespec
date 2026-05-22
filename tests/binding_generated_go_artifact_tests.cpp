@@ -57,22 +57,27 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/descriptors.go", common},
             {"common/go.mod", common},
             {"common/Makefile", common},
+            {"api/backend/api_application.go", api},
             {"api/backend/api_descriptors.go", api},
             {"api/backend/api_handlers.go", api},
+            {"api/backend/api_handler_registry.go", api},
             {"api/backend/api_dispatcher.go", api},
             {"api/backend/api_server.go", api},
             {"api/backend/api_routes.go", api},
             {"api/backend/external_system_operator_metadata_api.go", api},
+            {"api/cmd/api/main.go", api},
             {"worker/backend/worker_contexts.go", worker},
             {"worker/backend/worker_descriptors.go", worker},
             {"worker/backend/worker_registry.go", worker},
             {"worker/backend/worker_application.go", worker},
+            {"worker/backend/worker_runtime.go", worker},
             {"worker/backend/workflow_step_handlers.go", worker},
             {"worker/backend/workflow_runner.go", worker},
             {"worker/backend/worker_handlers.go", worker},
             {"worker/backend/worker_leases.go", worker},
             {"worker/backend/worker_queues.go", worker},
             {"worker/backend/worker_workflows.go", worker},
+            {"worker/cmd/worker/main.go", worker},
         }
     );
 }
@@ -95,7 +100,15 @@ void test_go_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
+        result, "api/backend/api_application.go", "api/backend/api_application.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
         result, "api/backend/api_handlers.go", "api/backend/api_handlers.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/backend/api_handler_registry.go", "api/backend/api_handler_registry.go",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
@@ -116,6 +129,9 @@ void test_go_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
+        result, "api/cmd/api/main.go", "api/cmd/api/main.go", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
         result, "worker/backend/worker_descriptors.go", "worker/backend/worker_descriptors.go",
         statespec::GeneratedArtifactTier::Worker
     );
@@ -129,6 +145,10 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/backend/worker_application.go", "worker/backend/worker_application.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/backend/worker_runtime.go", "worker/backend/worker_runtime.go",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
@@ -153,6 +173,10 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/backend/worker_workflows.go", "worker/backend/worker_workflows.go",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/cmd/worker/main.go", "worker/cmd/worker/main.go",
         statespec::GeneratedArtifactTier::Worker
     );
 }

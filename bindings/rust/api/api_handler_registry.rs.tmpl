@@ -1,0 +1,11 @@
+use std::collections::BTreeMap;
+
+use crate::api_handlers::{ApiHandler, ApiRequestContext, ApiResponse};
+use crate::backend::BackendResult;
+use crate::json::Json;
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DefaultApiHandler;
+
+impl ApiHandler for DefaultApiHandler {
+{{api_operation_default_handler_methods}}}

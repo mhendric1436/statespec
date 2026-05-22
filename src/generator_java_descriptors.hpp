@@ -15,4 +15,6 @@ std::string generate_api_operation_handler_methods_java(const IrSystem& system);
 
 std::string generate_api_operation_dispatch_cases_java(const IrSystem& system);
 
+std::string generate_api_operation_default_handler_methods_java(const IrSystem& system);
+
 } // namespace statespec

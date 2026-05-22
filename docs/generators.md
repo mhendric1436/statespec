@@ -103,7 +103,7 @@ The worker application artifact responsibilities are:
 | `workflow_step_handlers` | User implementation registry for workflow steps |
 | `worker_main` | Worker process entrypoint |
 
-Planned API application filenames:
+Generated API application filenames:
 
 | Language | Files |
 |---|---|
@@ -112,7 +112,7 @@ Planned API application filenames:
 | `java` | `api/com/statespec/generated/ApiApplication.java`, `api/com/statespec/generated/ApiServer.java`, `api/com/statespec/generated/ApiDispatcher.java`, `api/com/statespec/generated/ApiHandlerRegistry.java`, `api/com/statespec/generated/ApiMain.java` |
 | `rust` | `api/api_application.rs`, `api/api_server.rs`, `api/api_dispatcher.rs`, `api/api_handler_registry.rs`, `api/main.rs` |
 
-Planned worker application filenames:
+Generated worker application filenames:
 
 | Language | Files |
 |---|---|
