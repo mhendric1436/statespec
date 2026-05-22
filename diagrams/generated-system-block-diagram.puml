@@ -6,120 +6,149 @@ skinparam linetype ortho
 skinparam packageStyle rectangle
 
 rectangle ".sspec source" as Source
-rectangle "StateSpec compiler" as Compiler
+rectangle "StateSpec CLI / compiler" as Compiler
 rectangle "Canonical IR" as IR
 
-package "Generated artifacts" {
-  rectangle "Service/API stubs" as ApiStubs
-  rectangle "Worker skeletons" as Workers
-  rectangle "Entity descriptors" as EntityDescriptors
-  rectangle "Workflow descriptors" as WorkflowDescriptors
-  rectangle "Queue descriptors" as QueueDescriptors
-  rectangle "Lease descriptors" as LeaseDescriptors
-  rectangle "Feature flag descriptors" as FeatureFlagDescriptors
-  rectangle "Log descriptors" as LogDescriptors
-  rectangle "Metric descriptors" as MetricDescriptors
+package "Generated common artifacts" {
+  rectangle "common/descriptors\nall descriptors + runtime registration" as Descriptors
+  rectangle "common/backend\nBackend + Transaction contracts" as BackendContracts
+  rectangle "common/backend/runtime\ntyped stores and codecs" as RuntimeStores
+  rectangle "common/backend/memory\nin-memory backend implementation" as MemoryBackend
+  rectangle "EntityRepository" as EntityRepository
+  rectangle "ExternalSystemRuntime\nclient interfaces" as ExternalSystemRuntime
+  rectangle "ExternalSystemMetadataRuntime\nmetadata repository + resolver" as MetadataRuntime
+  rectangle "ExternalSystemCallAdapters\nmapping applicators" as CallAdapters
 }
 
-package "Generated runtime binding surface" {
-  interface "Backend\nIBackend / Backend" as Backend
-  interface "Transaction\nITransaction / Tx" as Tx
-  component "Entity store" as EntityStore
-  component "Workflow store" as WorkflowStore
-  component "Queue store" as QueueStore
-  component "Lease store" as LeaseStore
-  component "Feature flag store" as FeatureFlagStore
-  component "Log sink" as LogSink
-  component "Metric sink" as MetricSink
+package "Generated API artifacts" {
+  rectangle "api/cmd/api/main\nAPI process entrypoint" as ApiMain
+  rectangle "ApiApplication\nAPI composition root" as ApiApplication
+  rectangle "ApiServer" as ApiServer
+  rectangle "ApiDispatcher" as ApiDispatcher
+  rectangle "ApiRoutes / ApiDescriptors" as ApiRoutes
+  rectangle "ApiCodecs" as ApiCodecs
+  interface "IApiOperationHandler" as ApiHandler
+  rectangle "Operator metadata APIs" as OperatorMetadataApi
 }
 
-package "Application runtime" {
-  rectangle "API service" as ApiService
-  rectangle "Workflow workers" as WorkflowWorkers
-  rectangle "Queue workers" as QueueWorkers
+package "Generated worker artifacts" {
+  rectangle "worker/main\nworker process entrypoint" as WorkerMain
+  rectangle "WorkerRuntime\nworker composition root" as WorkerRuntime
+  rectangle "WorkerApplication" as WorkerApplication
+  rectangle "WorkerRegistry / Contexts / Descriptors" as WorkerCatalog
+  rectangle "WorkflowRunner" as WorkflowRunner
+  interface "IWorkflowStepHandler" as StepHandler
+  rectangle "WorkerQueues / WorkerLeases / WorkerWorkflows" as WorkerDefinitions
 }
 
-package "Concrete infrastructure adapters" {
+package "User-owned code" {
+  component "Transport adapter" as Transport
+  component "Concrete API operation handlers" as ConcreteApiHandlers
+  component "Concrete workflow step handlers" as ConcreteStepHandlers
+  component "External system clients" as ExternalClients
+  component "Production backend adapter" as ProductionBackend
+}
+
+package "Runtime infrastructure" {
   database "Versioned persisted state" as PersistedState
-  queue "Message transport" as MessageTransport
-  cloud "Logging backend" as LoggingBackend
-  cloud "Metrics backend" as MetricsBackend
+  queue "Workflow execution records" as WorkflowRecords
+  queue "Durable queue records" as QueueRecords
+  cloud "External systems" as ExternalSystems
+  cloud "Log backend" as LogBackend
+  cloud "Metric backend" as MetricBackend
 }
 
 Source --> Compiler
 Compiler --> IR
 
-IR --> ApiStubs
-IR --> Workers
-IR --> EntityDescriptors
-IR --> WorkflowDescriptors
-IR --> QueueDescriptors
-IR --> LeaseDescriptors
-IR --> FeatureFlagDescriptors
-IR --> LogDescriptors
-IR --> MetricDescriptors
+IR --> Descriptors
+IR --> BackendContracts
+IR --> RuntimeStores
+IR --> MemoryBackend
+IR --> EntityRepository
+IR --> ExternalSystemRuntime
+IR --> MetadataRuntime
+IR --> CallAdapters
+IR --> ApiMain
+IR --> ApiApplication
+IR --> ApiServer
+IR --> ApiDispatcher
+IR --> ApiRoutes
+IR --> ApiCodecs
+IR --> ApiHandler
+IR --> OperatorMetadataApi
+IR --> WorkerMain
+IR --> WorkerRuntime
+IR --> WorkerApplication
+IR --> WorkerCatalog
+IR --> WorkflowRunner
+IR --> StepHandler
+IR --> WorkerDefinitions
 
-ApiStubs --> ApiService
-Workers --> WorkflowWorkers
-Workers --> QueueWorkers
+ApiMain --> ProductionBackend : choose backend implementation
+ApiMain --> ApiApplication : wire backend + handler
+ApiApplication --> Descriptors : bootstrap_runtime_catalog()
+ApiApplication --> RuntimeStores : owns typed stores
+ApiApplication --> ApiServer
+ApiServer --> ApiDispatcher
+ApiDispatcher --> ApiRoutes
+ApiDispatcher --> ApiCodecs
+ApiDispatcher --> ApiHandler
+ConcreteApiHandlers ..|> ApiHandler
+Transport --> ApiServer : normalized request
 
-ApiService --> Backend : begin / commit
-WorkflowWorkers --> Backend : begin / commit
-QueueWorkers --> Backend : begin / commit
-Backend --> Tx : opens transaction
+WorkerMain --> ProductionBackend : choose backend implementation
+WorkerMain --> WorkerRuntime : wire backend
+WorkerMain --> WorkerApplication : wire context + handler
+WorkerRuntime --> Descriptors : bootstrap / register_runtime_catalogTx()
+WorkerRuntime --> RuntimeStores : owns typed stores
+WorkerApplication --> WorkflowRunner
+WorkflowRunner --> StepHandler
+ConcreteStepHandlers ..|> StepHandler
+WorkerCatalog --> Descriptors
+WorkerDefinitions --> Descriptors
 
-ApiService --> EntityStore : read/write Tx
-ApiService --> FeatureFlagStore : evaluateTx
-ApiService --> WorkflowStore : startTx
-ApiService --> QueueStore : enqueueTx
-ApiService --> LogSink : emitTx
-ApiService --> MetricSink : recordTx
+OperatorMetadataApi --> MetadataRuntime
+ConcreteApiHandlers --> EntityRepository
+ConcreteApiHandlers --> MetadataRuntime
+ConcreteApiHandlers --> CallAdapters
+ConcreteApiHandlers --> RuntimeStores
+ConcreteStepHandlers --> EntityRepository
+ConcreteStepHandlers --> MetadataRuntime
+ConcreteStepHandlers --> CallAdapters
+ConcreteStepHandlers --> RuntimeStores
 
-WorkflowWorkers --> EntityStore : read/write Tx
-WorkflowWorkers --> WorkflowStore : claim/complete Tx
-WorkflowWorkers --> QueueStore : enqueueTx
-WorkflowWorkers --> LeaseStore : acquire/renew Tx
-WorkflowWorkers --> FeatureFlagStore : evaluateTx
-WorkflowWorkers --> LogSink : emitTx
-WorkflowWorkers --> MetricSink : recordTx
+ExternalClients ..|> ExternalSystemRuntime
+CallAdapters --> ExternalSystemRuntime
+ExternalSystemRuntime --> ExternalSystems
 
-QueueWorkers --> QueueStore : claim/ack/fail Tx
-QueueWorkers --> EntityStore : read/write Tx
-QueueWorkers --> LogSink : emitTx
-QueueWorkers --> MetricSink : recordTx
+RuntimeStores --> BackendContracts
+EntityRepository --> BackendContracts
+MetadataRuntime --> BackendContracts
+ProductionBackend ..|> BackendContracts
+MemoryBackend ..|> BackendContracts
+BackendContracts --> PersistedState : OCC collections / documents
 
-EntityStore --> Tx
-WorkflowStore --> Tx
-QueueStore --> Tx
-LeaseStore --> Tx
-FeatureFlagStore --> Tx
-LogSink --> Tx
-MetricSink --> Tx
+RuntimeStores --> WorkflowRecords : workflow definitions + executions
+RuntimeStores --> QueueRecords : queue definitions + messages
+RuntimeStores --> LogBackend : log definitions + records
+RuntimeStores --> MetricBackend : metric definitions + samples
 
-Tx --> PersistedState : OCC reads/writes
-QueueStore --> MessageTransport : durable dispatch
-LogSink --> LoggingBackend : structured events
-MetricSink --> MetricsBackend : samples
-
-EntityDescriptors ..> EntityStore : provision collections
-WorkflowDescriptors ..> WorkflowStore : register definitions
-QueueDescriptors ..> QueueStore : create queues
-LeaseDescriptors ..> LeaseStore : register lease definitions
-FeatureFlagDescriptors ..> FeatureFlagStore : register flags
-LogDescriptors ..> LogSink : register event catalog
-MetricDescriptors ..> MetricSink : register metric catalog
-
-note right of Source
-Text remains the source of truth.
-Generated code, descriptors, and runtime
-contracts derive from the validated spec.
+note right of Descriptors
+Common descriptors now include
+ensure_system_collections,
+register_runtime_catalogTx, and
+bootstrap_runtime_catalog helpers.
+API and worker composition roots call
+these during startup.
 end note
 
-note bottom of Tx
-State reads, feature flag evaluation,
-queue/lease/workflow updates, logs, and
-metrics can participate in the same OCC
-transaction when behavior depends on them.
+note bottom of BackendContracts
+Backends and transactions are generic
+OCC collection/document primitives.
+Feature flags, queues, leases, workflows,
+logs, metrics, metadata, and entities are
+typed clients layered on top.
 end note
 
 @enduml

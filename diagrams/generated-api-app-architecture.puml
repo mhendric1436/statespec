@@ -8,103 +8,131 @@ skinparam packageStyle rectangle
 actor "API client" as Client
 
 package "Generated API tier" {
-  rectangle "ApiServer\nrequest lifecycle shell" as ApiServer
-  rectangle "ApiDispatcher\nroute lookup + dispatch" as ApiDispatcher
+  rectangle "api/cmd/api/main\nprocess entrypoint" as ApiMain
+  rectangle "ApiApplication\ncomposition root" as ApiApplication
+  rectangle "ApiServer\nserver descriptor + request shell" as ApiServer
+  rectangle "ApiDispatcher\nroute lookup + typed dispatch" as ApiDispatcher
   rectangle "ApiRoutes\nroute descriptors" as ApiRoutes
-  interface "IApiHandler\nper-action contract" as ApiHandler
-  interface "IExternalSystemOperatorMetadataApiHandler" as OperatorMetadataHandler
-  rectangle "ApiDescriptors\nAPI + server views" as ApiDescriptors
+  rectangle "ApiCodecs\ntyped request/response codecs" as ApiCodecs
+  interface "IApiOperationHandler\ntyped operation methods" as ApiHandler
+  rectangle "ApiHandlerRegistry\ndefault action implementations" as ApiHandlerRegistry
+  rectangle "ExternalSystemOperatorMetadataApi\noperator metadata APIs" as OperatorMetadataApi
+  rectangle "ApiDescriptors\nAPI + server descriptor views" as ApiDescriptors
 }
 
 package "Generated common tier" {
-  rectangle "descriptors\nentities / APIs / routes / workers" as CommonDescriptors
-  component "Entity binding" as EntityBinding
-  component "Workflow binding" as WorkflowBinding
-  component "Queue binding" as QueueBinding
-  component "Feature flag binding" as FeatureFlagBinding
-  component "External system metadata binding" as MetadataBinding
-  component "Log binding" as LogBinding
-  component "Metric binding" as MetricBinding
+  rectangle "descriptors\ncanonical descriptors + bootstrap helpers" as CommonDescriptors
+  rectangle "EntityRepository\nbackend-neutral entity access" as EntityRepository
+  rectangle "ExternalSystemRuntime\nclient interfaces" as ExternalSystemRuntime
+  rectangle "ExternalSystemCallAdapters\nmapping + call adapters" as CallAdapters
+  rectangle "ExternalSystemMetadataRuntime\nmetadata repository + resolver" as MetadataRuntime
+  component "RuntimeFeatureFlagStore" as FeatureFlagStore
+  component "RuntimeQueueStore" as QueueStore
+  component "RuntimeLeaseStore" as LeaseStore
+  component "RuntimeWorkflowStore" as WorkflowStore
+  component "RuntimeLogSink" as LogSink
+  component "RuntimeMetricSink" as MetricSink
 }
 
 package "User-owned API implementation" {
-  component "HTTP / RPC transport adapter" as Transport
+  component "Transport adapter\nHTTP / RPC framework" as Transport
   component "AuthN / AuthZ / tenancy policy" as Auth
-  component "Concrete API handlers" as ConcreteHandlers
-  component "Input validation and domain mapping" as DomainMapping
+  component "Concrete operation handler" as ConcreteHandler
+  component "External system client implementation" as ExternalClientImpl
 }
 
-package "Backend OCC runtime" {
-  interface "IBackend / Backend" as Backend
-  interface "ITransaction / Tx" as Tx
+package "Backend OCC boundary" {
+  interface "Backend / IBackend" as Backend
+  interface "Transaction / ITransaction" as Transaction
   database "Versioned persisted state" as Store
 }
 
-package "Downstream runtime effects" {
-  queue "Workflow start queue" as WorkflowStart
-  queue "Domain queues" as DomainQueues
+package "Runtime effects" {
+  queue "Workflow executions" as WorkflowExecutions
+  queue "Durable queues" as DurableQueues
+  cloud "External systems" as ExternalSystems
   cloud "Logs backend" as LogsBackend
   cloud "Metrics backend" as MetricsBackend
 }
 
-Client --> Transport : HTTP / RPC request
-Transport --> ApiServer : normalized request
-ApiServer --> Auth : authenticate tenant and caller
-Auth --> ApiDispatcher : authorized request context
+Client --> Transport : request
+Transport --> Auth : authenticate tenant and caller
+Auth --> ApiApplication : selected server + context
+ApiMain --> ApiApplication : wires backend + handler
 
-ApiDispatcher --> ApiRoutes : match method + path
-ApiRoutes --> CommonDescriptors : route metadata
-ApiDispatcher --> ApiHandler : dispatch action
-ApiDispatcher --> OperatorMetadataHandler : dispatch operator metadata APIs
+ApiApplication --> ApiServer : owns
+ApiApplication --> Backend : backend reference
+ApiApplication --> FeatureFlagStore : owns
+ApiApplication --> QueueStore : owns
+ApiApplication --> LeaseStore : owns
+ApiApplication --> WorkflowStore : owns
+ApiApplication --> LogSink : owns
+ApiApplication --> MetricSink : owns
+ApiApplication --> CommonDescriptors : bootstrap()
 
-ConcreteHandlers ..|> ApiHandler
-ConcreteHandlers ..|> OperatorMetadataHandler
-ConcreteHandlers --> DomainMapping : map request fields
+CommonDescriptors --> Backend : ensure_collections()
+CommonDescriptors --> Transaction : register_runtime_catalogTx()
+CommonDescriptors --> FeatureFlagStore : register definitions
+CommonDescriptors --> QueueStore : register definitions
+CommonDescriptors --> LeaseStore : register definitions
+CommonDescriptors --> WorkflowStore : register definitions
+CommonDescriptors --> LogSink : register definitions
+CommonDescriptors --> MetricSink : register definitions
 
-ApiDescriptors --> CommonDescriptors
-ApiServer --> ApiDescriptors : server config
+ApiServer --> ApiDescriptors : find server descriptor
+ApiServer --> ApiDispatcher : handle route
+ApiDispatcher --> ApiRoutes : match route name
+ApiDispatcher --> ApiCodecs : decode / encode typed payloads
+ApiDispatcher --> ApiHandler : invoke typed operation method
+ApiHandlerRegistry ..|> ApiHandler
+ConcreteHandler ..|> ApiHandler
 
-ConcreteHandlers --> Backend : begin()
-Backend --> Tx : open OCC transaction
-ConcreteHandlers --> EntityBinding : load / mutate entities Tx
-ConcreteHandlers --> FeatureFlagBinding : evaluateTx
-ConcreteHandlers --> MetadataBinding : resolve / upsert metadata Tx
-ConcreteHandlers --> WorkflowBinding : startTx
-ConcreteHandlers --> QueueBinding : enqueueTx
-ConcreteHandlers --> LogBinding : emitTx
-ConcreteHandlers --> MetricBinding : recordTx
-ConcreteHandlers --> Backend : commit(tx)
+OperatorMetadataApi --> MetadataRuntime : CRUD metadata records
+ConcreteHandler --> EntityRepository : load / save entities
+ConcreteHandler --> MetadataRuntime : resolve metadata
+ConcreteHandler --> CallAdapters : map fields + call external API
+ConcreteHandler --> WorkflowStore : start workflow
+ConcreteHandler --> QueueStore : enqueue
+ConcreteHandler --> FeatureFlagStore : evaluate
+ConcreteHandler --> LogSink : emit
+ConcreteHandler --> MetricSink : record
 
-EntityBinding --> Tx
-FeatureFlagBinding --> Tx
-MetadataBinding --> Tx
-WorkflowBinding --> Tx
-QueueBinding --> Tx
-LogBinding --> Tx
-MetricBinding --> Tx
+ExternalClientImpl ..|> ExternalSystemRuntime
+CallAdapters --> ExternalSystemRuntime : typed client interface
+ExternalSystemRuntime --> ExternalSystems : remote API call
 
-Tx --> Store : optimistic read/write set
-WorkflowBinding --> WorkflowStart : durable launch intent
-QueueBinding --> DomainQueues : durable messages
-LogBinding --> LogsBackend : structured events
-MetricBinding --> MetricsBackend : samples
+EntityRepository --> Backend
+MetadataRuntime --> Backend
+FeatureFlagStore --> Backend
+QueueStore --> Backend
+LeaseStore --> Backend
+WorkflowStore --> Backend
+LogSink --> Backend
+MetricSink --> Backend
+
+Backend --> Transaction : begin()
+Transaction --> Store : OCC read/write set
+WorkflowStore --> WorkflowExecutions : persisted launch intent
+QueueStore --> DurableQueues : persisted messages
+LogSink --> LogsBackend : structured records
+MetricSink --> MetricsBackend : samples
 
 ApiServer --> Transport : response
 Transport --> Client : status + body
 
-note right of ConcreteHandlers
-Generated code defines contracts and
-routing. Application code owns business
-logic, validation beyond the spec, auth,
-transport integration, and concrete
-backend adapters.
+note right of ApiApplication
+The generated composition root owns
+runtime stores and exposes bootstrap().
+The concrete backend implementation is
+selected only at the process entrypoint.
 end note
 
-note bottom of Tx
-Every persisted read that affects API
-behavior should use the same OCC
-transaction as the writes and launch
-side effects it authorizes.
+note bottom of Transaction
+Runtime stores are typed clients of the
+generic OCC backend/transaction boundary.
+Persisted reads that affect behavior
+should participate in the same transaction
+as writes and launched work.
 end note
 
 @enduml

@@ -6,133 +6,143 @@ skinparam linetype ortho
 skinparam packageStyle rectangle
 
 package "Durable work sources" {
-  queue "Workflow step claims" as WorkflowClaims
-  queue "Queue messages" as QueueMessages
-  rectangle "Scheduled / singleton work" as ScheduledWork
+  queue "Workflow executions\nready step records" as WorkflowExecutions
+  rectangle "WorkerContext\nexecutes workflow name" as WorkerContext
 }
 
 package "Generated worker tier" {
-  rectangle "WorkerApplication\nprocess lifecycle shell" as WorkerApplication
+  rectangle "worker/main\nprocess entrypoint" as WorkerMain
+  rectangle "WorkerRuntime\nbackend + runtime stores" as WorkerRuntime
+  rectangle "WorkerApplication\ncontext + handler composition" as WorkerApplication
   rectangle "WorkerRegistry\nworker lookup" as WorkerRegistry
   rectangle "WorkerDescriptors\nworker catalog view" as WorkerDescriptors
-  rectangle "WorkerContexts\nbackend + runtime context" as WorkerContexts
-  rectangle "WorkflowRunner\nclaim / keep alive / complete" as WorkflowRunner
-  interface "IWorkflowStepHandler" as StepHandler
-  interface "IWorker" as WorkerHandler
+  rectangle "WorkerContexts\nworker execution contexts" as WorkerContexts
+  rectangle "WorkflowRunner\nclaim / keep alive / complete / fail" as WorkflowRunner
+  interface "IWorkflowStepHandler\ntyped step methods" as StepHandler
+  rectangle "WorkflowStepHandlers\nhandler keys + context" as StepHandlers
   rectangle "WorkerQueues\nqueue definitions" as WorkerQueues
   rectangle "WorkerLeases\nlease definitions" as WorkerLeases
   rectangle "WorkerWorkflows\nworkflow definitions" as WorkerWorkflows
 }
 
 package "Generated common tier" {
-  rectangle "descriptors\nentities / workflows / queues / leases" as CommonDescriptors
-  component "Entity binding" as EntityBinding
-  component "Workflow binding" as WorkflowBinding
-  component "Queue binding" as QueueBinding
-  component "Lease binding" as LeaseBinding
-  component "Feature flag binding" as FeatureFlagBinding
-  component "External system metadata binding" as MetadataBinding
-  component "Log binding" as LogBinding
-  component "Metric binding" as MetricBinding
+  rectangle "descriptors\ncanonical descriptors + bootstrap helpers" as CommonDescriptors
+  rectangle "EntityRepository\nbackend-neutral entity access" as EntityRepository
+  rectangle "ExternalSystemRuntime\nclient interfaces" as ExternalSystemRuntime
+  rectangle "ExternalSystemCallAdapters\nmapping + call adapters" as CallAdapters
+  rectangle "ExternalSystemMetadataRuntime\nmetadata repository + resolver" as MetadataRuntime
+  component "RuntimeFeatureFlagStore" as FeatureFlagStore
+  component "RuntimeQueueStore" as QueueStore
+  component "RuntimeLeaseStore" as LeaseStore
+  component "RuntimeWorkflowStore" as WorkflowStore
+  component "RuntimeLogSink" as LogSink
+  component "RuntimeMetricSink" as MetricSink
 }
 
 package "User-owned worker implementation" {
-  component "Concrete workflow step handlers" as ConcreteSteps
-  component "Concrete queue workers" as ConcreteWorkers
-  component "External API clients" as ExternalClients
-  component "Retry / timeout policy" as RetryPolicy
+  component "Concrete workflow step handler" as ConcreteStepHandler
+  component "External system client implementation" as ExternalClientImpl
+  component "Retry / timeout / idempotency policy" as RetryPolicy
 }
 
-package "Backend OCC runtime" {
-  interface "IBackend / Backend" as Backend
-  interface "ITransaction / Tx" as Tx
+package "Backend OCC boundary" {
+  interface "Backend / IBackend" as Backend
+  interface "Transaction / ITransaction" as Transaction
   database "Versioned persisted state" as Store
 }
 
 package "Runtime effects" {
-  queue "Follow-up workflow steps" as FollowUpSteps
-  queue "Domain queues" as DomainQueues
+  queue "Next workflow steps" as NextSteps
+  queue "Durable queues" as DurableQueues
   cloud "External systems" as ExternalSystems
   cloud "Logs backend" as LogsBackend
   cloud "Metrics backend" as MetricsBackend
 }
 
-WorkflowClaims --> WorkerApplication : claimed step available
-QueueMessages --> WorkerApplication : claimed message available
-ScheduledWork --> WorkerApplication : scheduled tick
+WorkerMain --> WorkerRuntime : wires backend
+WorkerMain --> WorkerApplication : wires context + handler
+WorkerRuntime --> CommonDescriptors : bootstrap()
+WorkerRuntime --> Backend : backend reference
+WorkerRuntime --> FeatureFlagStore : owns
+WorkerRuntime --> QueueStore : owns
+WorkerRuntime --> LeaseStore : owns
+WorkerRuntime --> WorkflowStore : owns
+WorkerRuntime --> LogSink : owns
+WorkerRuntime --> MetricSink : owns
 
-WorkerApplication --> WorkerRegistry : find worker
+CommonDescriptors --> Transaction : register_runtime_catalogTx()
+CommonDescriptors --> FeatureFlagStore : register definitions
+CommonDescriptors --> QueueStore : register definitions
+CommonDescriptors --> LeaseStore : register definitions
+CommonDescriptors --> WorkflowStore : register definitions
+CommonDescriptors --> LogSink : register definitions
+CommonDescriptors --> MetricSink : register definitions
+
+WorkerApplication --> WorkerContext : selected context
+WorkerApplication --> WorkerRuntime : run_once()
+WorkerApplication --> StepHandler : handler reference
+
 WorkerRegistry --> WorkerDescriptors : catalog lookup
-WorkerDescriptors --> CommonDescriptors
-WorkerApplication --> WorkerContexts : build execution context
+WorkerContexts --> CommonDescriptors : descriptor data
+WorkerDescriptors --> CommonDescriptors : descriptor data
+WorkerQueues --> CommonDescriptors : queue definitions
+WorkerLeases --> CommonDescriptors : lease definitions
+WorkerWorkflows --> CommonDescriptors : workflow definitions
 
-WorkerApplication --> WorkflowRunner : run workflow step
-WorkflowRunner --> WorkerWorkflows : workflow metadata
-WorkflowRunner --> StepHandler : execute step
-WorkflowRunner --> WorkflowBinding : claimTx / completeTx / failTx
-WorkflowRunner --> WorkflowBinding : keep_alive_stepTx
+WorkflowExecutions --> WorkflowStore : claimable records
+WorkerRuntime --> WorkflowRunner : creates runner
+WorkflowRunner --> WorkflowStore : claim_steps()
+WorkflowRunner --> WorkflowStore : keep_alive_step()
+WorkflowRunner --> StepHandlers : typed context
+WorkflowRunner --> StepHandler : invoke generated step method
+WorkflowRunner --> WorkflowStore : complete_step() / fail_step()
 
-WorkerApplication --> WorkerHandler : execute queue worker
-WorkerHandler --> WorkerQueues : queue metadata
-WorkerHandler --> WorkerLeases : singleton / shard lease metadata
+ConcreteStepHandler ..|> StepHandler
+ConcreteStepHandler --> RetryPolicy
+ConcreteStepHandler --> EntityRepository : load / save entities
+ConcreteStepHandler --> MetadataRuntime : resolve metadata
+ConcreteStepHandler --> CallAdapters : map fields + call external API
+ConcreteStepHandler --> FeatureFlagStore : evaluate
+ConcreteStepHandler --> QueueStore : enqueue
+ConcreteStepHandler --> LeaseStore : acquire / renew
+ConcreteStepHandler --> WorkflowStore : schedule work
+ConcreteStepHandler --> LogSink : emit
+ConcreteStepHandler --> MetricSink : record
 
-ConcreteSteps ..|> StepHandler
-ConcreteWorkers ..|> WorkerHandler
-ConcreteSteps --> RetryPolicy
-ConcreteWorkers --> RetryPolicy
-ConcreteSteps --> ExternalClients
-ConcreteWorkers --> ExternalClients
+ExternalClientImpl ..|> ExternalSystemRuntime
+CallAdapters --> ExternalSystemRuntime : typed client interface
+ExternalSystemRuntime --> ExternalSystems : remote API call
 
-WorkerContexts --> Backend
-ConcreteSteps --> Backend : begin()
-ConcreteWorkers --> Backend : begin()
-Backend --> Tx : open OCC transaction
+EntityRepository --> Backend
+MetadataRuntime --> Backend
+FeatureFlagStore --> Backend
+QueueStore --> Backend
+LeaseStore --> Backend
+WorkflowStore --> Backend
+LogSink --> Backend
+MetricSink --> Backend
 
-ConcreteSteps --> EntityBinding : load / mutate entities Tx
-ConcreteSteps --> FeatureFlagBinding : evaluateTx
-ConcreteSteps --> MetadataBinding : resolve metadata Tx
-ConcreteSteps --> WorkflowBinding : schedule next steps Tx
-ConcreteSteps --> QueueBinding : enqueueTx
-ConcreteSteps --> LogBinding : emitTx
-ConcreteSteps --> MetricBinding : recordTx
-
-ConcreteWorkers --> EntityBinding : load / mutate entities Tx
-ConcreteWorkers --> QueueBinding : ack / fail / enqueue Tx
-ConcreteWorkers --> LeaseBinding : acquire / renew Tx
-ConcreteWorkers --> LogBinding : emitTx
-ConcreteWorkers --> MetricBinding : recordTx
-
-EntityBinding --> Tx
-WorkflowBinding --> Tx
-QueueBinding --> Tx
-LeaseBinding --> Tx
-FeatureFlagBinding --> Tx
-MetadataBinding --> Tx
-LogBinding --> Tx
-MetricBinding --> Tx
-
-ConcreteSteps --> Backend : commit(tx)
-ConcreteWorkers --> Backend : commit(tx)
-Tx --> Store : optimistic read/write set
-
-WorkflowBinding --> FollowUpSteps : durable step continuation
-QueueBinding --> DomainQueues : durable message output
-ExternalClients --> ExternalSystems : remote calls
-LogBinding --> LogsBackend : structured events
-MetricBinding --> MetricsBackend : samples
+Backend --> Transaction : begin()
+Transaction --> Store : OCC read/write set
+WorkflowStore --> NextSteps : durable continuation
+QueueStore --> DurableQueues : persisted messages
+LogSink --> LogsBackend : structured records
+MetricSink --> MetricsBackend : samples
 
 note right of WorkflowRunner
-The runner owns generated workflow
-control flow: claim, periodic keep alive,
+The generated runner owns workflow
+step execution mechanics: claim,
+keep alive, typed handler dispatch,
 completion, failure, and retry-visible
-state transitions.
+workflow records.
 end note
 
-note bottom of Tx
-Worker decisions, feature flags, external
-metadata lookup, entity mutations, queue
-updates, logs, and metrics are modeled as
-transaction-aware backend operations.
+note bottom of Transaction
+Runtime stores are typed clients of the
+generic OCC backend/transaction boundary.
+Worker code should keep entity reads,
+metadata reads, feature decisions, queue
+updates, logs, and metrics transaction-aware.
 end note
 
 @enduml
