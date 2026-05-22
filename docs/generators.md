@@ -87,6 +87,7 @@ The API application artifact responsibilities are:
 | Kind | Responsibility |
 |---|---|
 | `api_application` | API application composition root |
+| `api_codecs` | Typed request and response body codecs for API input/output shapes |
 | `api_server` | API server lifecycle and request loop |
 | `api_dispatcher` | Route-to-handler dispatch |
 | `api_handler_registry` | User implementation registry for API handlers |
@@ -107,10 +108,10 @@ Generated API application filenames:
 
 | Language | Files |
 |---|---|
-| `cpp` | `api/api_application.hpp`, `api/api_server.hpp`, `api/api_dispatcher.hpp`, `api/api_handler_registry.hpp`, `api/main.cpp` |
-| `go` | `api/backend/api_application.go`, `api/backend/api_server.go`, `api/backend/api_dispatcher.go`, `api/backend/api_handler_registry.go`, `api/cmd/api/main.go` |
-| `java` | `api/com/statespec/generated/ApiApplication.java`, `api/com/statespec/generated/ApiServer.java`, `api/com/statespec/generated/ApiDispatcher.java`, `api/com/statespec/generated/ApiHandlerRegistry.java`, `api/com/statespec/generated/ApiMain.java` |
-| `rust` | `api/api_application.rs`, `api/api_server.rs`, `api/api_dispatcher.rs`, `api/api_handler_registry.rs`, `api/main.rs` |
+| `cpp` | `api/api_application.hpp`, `api/api_codecs.hpp`, `api/api_server.hpp`, `api/api_dispatcher.hpp`, `api/api_handler_registry.hpp`, `api/main.cpp` |
+| `go` | `api/backend/api_application.go`, `api/backend/api_codecs.go`, `api/backend/api_server.go`, `api/backend/api_dispatcher.go`, `api/backend/api_handler_registry.go`, `api/cmd/api/main.go` |
+| `java` | `api/com/statespec/generated/ApiApplication.java`, `api/com/statespec/generated/ApiCodecs.java`, `api/com/statespec/generated/ApiServer.java`, `api/com/statespec/generated/ApiDispatcher.java`, `api/com/statespec/generated/ApiHandlerRegistry.java`, `api/com/statespec/generated/ApiMain.java` |
+| `rust` | `api/api_application.rs`, `api/api_codecs.rs`, `api/api_server.rs`, `api/api_dispatcher.rs`, `api/api_handler_registry.rs`, `api/main.rs` |
 
 Generated worker application filenames:
 

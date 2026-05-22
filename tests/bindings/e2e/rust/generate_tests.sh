@@ -21,6 +21,7 @@ cat > "$APP_MANIFEST" <<'EOF'
 Cargo.toml
 Makefile
 api/api_application.rs
+api/api_codecs.rs
 api/api_descriptors.rs
 api/api_dispatcher.rs
 api/api_handler_registry.rs
@@ -85,6 +86,8 @@ assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionAp
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-rust/api/api_application.rs" "pub struct ApiApplication"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_codecs.rs" "decode_start_provision_request"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_codecs.rs" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "pub struct DefaultApiHandler"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiApplication"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_server.rs" "pub struct ApiServer"

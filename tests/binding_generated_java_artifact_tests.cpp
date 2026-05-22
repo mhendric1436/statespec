@@ -57,6 +57,7 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"common/com/statespec/generated/Descriptors.java", common},
             {"common/Makefile", common},
             {"api/com/statespec/generated/ApiApplication.java", api},
+            {"api/com/statespec/generated/ApiCodecs.java", api},
             {"api/com/statespec/generated/ApiDescriptors.java", api},
             {"api/com/statespec/generated/ApiHandlers.java", api},
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api},
@@ -97,6 +98,10 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "api/com/statespec/generated/ApiApplication.java",
         "api/com/statespec/generated/ApiApplication.java", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/com/statespec/generated/ApiCodecs.java",
+        "api/com/statespec/generated/ApiCodecs.java", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
         result, "api/com/statespec/generated/ApiHandlers.java",

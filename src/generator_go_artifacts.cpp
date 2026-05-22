@@ -201,6 +201,11 @@ void add_go_api_artifacts(
         "api/backend/api_application.go", diagnostics, GeneratedArtifactTier::Api
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "api/backend/api_codecs.go.tmpl",
+        "api/backend/api_codecs.go", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{{"api_codecs", generate_api_codecs_go(system)}}
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "api/backend/api_handlers.go.tmpl",
         "api/backend/api_handlers.go", diagnostics, GeneratedArtifactTier::Api,
         TemplateRenderer::Values{

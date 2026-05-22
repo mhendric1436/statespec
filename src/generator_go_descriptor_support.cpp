@@ -123,6 +123,10 @@ std::string go_shape_type(const std::string& type)
     {
         mapped = "float64";
     }
+    else if (base == "json")
+    {
+        mapped = "JSON";
+    }
 
     return optional ? "*" + mapped : mapped;
 }

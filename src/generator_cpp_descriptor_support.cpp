@@ -123,6 +123,10 @@ std::string cpp_shape_type(const std::string& type)
     {
         mapped = "double";
     }
+    else if (base == "json")
+    {
+        mapped = "statespec::backend::Json";
+    }
 
     return optional ? "std::optional<" + mapped + ">" : mapped;
 }

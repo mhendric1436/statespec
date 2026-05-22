@@ -3,11 +3,86 @@
 #include "generator_rust_descriptor_areas.hpp"
 #include "generator_rust_descriptor_support.hpp"
 #include "identifier_case.hpp"
+#include "type_syntax.hpp"
 
 #include <sstream>
 
 namespace statespec
 {
+namespace
+{
+
+const IrShape* find_shape(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& shape : system.shapes)
+    {
+        if (shape.name == name)
+        {
+            return &shape;
+        }
+    }
+    return nullptr;
+}
+
+std::string rust_decode_func(const IrField& field)
+{
+    const auto base = strip_optional_type(field.type);
+    if (base == "bool")
+    {
+        return "decode_bool";
+    }
+    if (base == "int" || base == "int32")
+    {
+        return "decode_i32";
+    }
+    if (base == "int64" || base == "long")
+    {
+        return "decode_i64";
+    }
+    if (base == "double" || base == "decimal")
+    {
+        return "decode_f64";
+    }
+    if (base == "json")
+    {
+        return "decode_json";
+    }
+    return "decode_string";
+}
+
+std::string rust_encode_expr(
+    const IrField& field,
+    const std::string& accessor
+)
+{
+    const auto base = strip_optional_type(field.type);
+    if (base == "bool")
+    {
+        return "Json::Bool(" + accessor + ")";
+    }
+    if (base == "int" || base == "int32")
+    {
+        return "Json::Integer(i64::from(" + accessor + "))";
+    }
+    if (base == "int64" || base == "long")
+    {
+        return "Json::Integer(" + accessor + ")";
+    }
+    if (base == "double" || base == "decimal")
+    {
+        return "Json::Decimal(" + accessor + ")";
+    }
+    if (base == "json")
+    {
+        return accessor + ".clone()";
+    }
+    return "Json::String(" + accessor + ".clone())";
+}
+
+} // namespace
 
 std::string generate_descriptors_rs(const IrSystem& system)
 {
@@ -127,6 +202,146 @@ std::string generate_api_operation_default_handler_methods_rs(const IrSystem& sy
                "Json::String("
             << rust_string(api.name) << ".to_string()))])) })\n";
         out << "    }\n\n";
+    }
+    return out.str();
+}
+
+std::string generate_api_codecs_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "fn codec_error(message: impl Into<String>) -> BackendError {\n";
+    out << "    BackendError::Unsupported { message: message.into() }\n";
+    out << "}\n\n";
+    out << "fn require_member<'a>(value: &'a Json, field_name: &str) -> BackendResult<&'a Json> "
+           "{\n";
+    out << "    match value.find(field_name) {\n";
+    out << "        Some(Json::Null) | None => Err(codec_error(format!(\"missing required API "
+           "field {}\", field_name))),\n";
+    out << "        Some(member) => Ok(member),\n";
+    out << "    }\n";
+    out << "}\n\n";
+    out << "fn decode_string(value: &Json, field_name: &str) -> BackendResult<String> {\n";
+    out << "    match value { Json::String(value) => Ok(value.clone()), _ => "
+           "Err(codec_error(format!(\"API field {} must be a string\", field_name))) }\n";
+    out << "}\n\n";
+    out << "fn decode_bool(value: &Json, field_name: &str) -> BackendResult<bool> {\n";
+    out << "    match value { Json::Bool(value) => Ok(*value), _ => Err(codec_error(format!(\"API "
+           "field {} must be a bool\", field_name))) }\n";
+    out << "}\n\n";
+    out << "fn decode_i64(value: &Json, field_name: &str) -> BackendResult<i64> {\n";
+    out << "    match value { Json::Integer(value) => Ok(*value), _ => "
+           "Err(codec_error(format!(\"API field {} must be an integer\", field_name))) }\n";
+    out << "}\n\n";
+    out << "fn decode_i32(value: &Json, field_name: &str) -> BackendResult<i32> {\n";
+    out << "    i32::try_from(decode_i64(value, field_name)?).map_err(|_| "
+           "codec_error(format!(\"API field {} exceeds i32 range\", field_name)))\n";
+    out << "}\n\n";
+    out << "fn decode_f64(value: &Json, field_name: &str) -> BackendResult<f64> {\n";
+    out << "    match value { Json::Decimal(value) => Ok(*value), Json::Integer(value) => "
+           "Ok(*value as f64), _ => Err(codec_error(format!(\"API field {} must be a number\", "
+           "field_name))) }\n";
+    out << "}\n\n";
+    out << "fn decode_json(value: &Json, _field_name: &str) -> BackendResult<Json> {\n";
+    out << "    Ok(value.clone())\n";
+    out << "}\n\n";
+
+    for (const auto& api : system.apis)
+    {
+        if (api.input.has_value())
+        {
+            const auto* shape = find_shape(system, *api.input);
+            if (shape != nullptr)
+            {
+                out << "pub fn decode_" << snake_identifier(api.name)
+                    << "_request(request: &ApiRequestContext) -> BackendResult<"
+                    << pascal_identifier(shape->name) << "> {\n";
+                out << "    Ok(" << pascal_identifier(shape->name) << " {\n";
+                for (const auto& field : shape->fields)
+                {
+                    out << "        " << field.name << ": ";
+                    if (is_optional_type(field.type))
+                    {
+                        out << "match request.body.find(" << rust_string(field.name) << ") {\n";
+                        out << "            Some(Json::Null) | None => None,\n";
+                        out << "            Some(member) => Some(" << rust_decode_func(field)
+                            << "(member, " << rust_string(field.name) << ")?),\n";
+                        out << "        },\n";
+                    }
+                    else
+                    {
+                        out << rust_decode_func(field) << "(require_member(&request.body, "
+                            << rust_string(field.name) << ")?, " << rust_string(field.name)
+                            << ")?,\n";
+                    }
+                }
+                out << "    })\n";
+                out << "}\n\n";
+            }
+        }
+        if (api.output.has_value())
+        {
+            const auto* shape = find_shape(system, *api.output);
+            if (shape != nullptr)
+            {
+                out << "pub fn decode_" << snake_identifier(api.name)
+                    << "_response(response: &ApiResponse) -> BackendResult<"
+                    << pascal_identifier(shape->name) << "> {\n";
+                out << "    Ok(" << pascal_identifier(shape->name) << " {\n";
+                for (const auto& field : shape->fields)
+                {
+                    out << "        " << field.name << ": ";
+                    if (is_optional_type(field.type))
+                    {
+                        out << "match response.body.find(" << rust_string(field.name) << ") {\n";
+                        out << "            Some(Json::Null) | None => None,\n";
+                        out << "            Some(member) => Some(" << rust_decode_func(field)
+                            << "(member, " << rust_string(field.name) << ")?),\n";
+                        out << "        },\n";
+                    }
+                    else
+                    {
+                        out << rust_decode_func(field) << "(require_member(&response.body, "
+                            << rust_string(field.name) << ")?, " << rust_string(field.name)
+                            << ")?,\n";
+                    }
+                }
+                out << "    })\n";
+                out << "}\n\n";
+
+                out << "pub fn encode_" << snake_identifier(api.name) << "_response(response: &"
+                    << pascal_identifier(shape->name) << ") -> ApiResponse {\n";
+                out << "    encode_" << snake_identifier(api.name)
+                    << "_response_with_status(response, 200)\n";
+                out << "}\n\n";
+                out << "pub fn encode_" << snake_identifier(api.name)
+                    << "_response_with_status(response: &" << pascal_identifier(shape->name)
+                    << ", status_code: i32) -> ApiResponse {\n";
+                out << "    let mut body = BTreeMap::new();\n";
+                for (const auto& field : shape->fields)
+                {
+                    if (is_optional_type(field.type))
+                    {
+                        const auto base = strip_optional_type(field.type);
+                        const auto accessor = (base == "bool" || base == "int" || base == "int32" ||
+                                               base == "int64" || base == "long" ||
+                                               base == "double" || base == "decimal")
+                                                  ? "*value"
+                                                  : "value";
+                        out << "    if let Some(value) = &response." << field.name << " {\n";
+                        out << "        body.insert(" << rust_string(field.name) << ".to_string(), "
+                            << rust_encode_expr(field, accessor) << ");\n";
+                        out << "    }\n";
+                    }
+                    else
+                    {
+                        out << "    body.insert(" << rust_string(field.name) << ".to_string(), "
+                            << rust_encode_expr(field, "response." + field.name) << ");\n";
+                    }
+                }
+                out << "    ApiResponse { status_code, body: Json::Object(body) }\n";
+                out << "}\n\n";
+            }
+        }
     }
     return out.str();
 }

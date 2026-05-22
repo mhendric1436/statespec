@@ -68,6 +68,8 @@ TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
         api_modules << "pub mod api_descriptors;\n";
         api_modules << "#[path = \"api/api_application.rs\"]\n";
         api_modules << "pub mod api_application;\n";
+        api_modules << "#[path = \"api/api_codecs.rs\"]\n";
+        api_modules << "pub mod api_codecs;\n";
         api_modules << "#[path = \"api/api_dispatcher.rs\"]\n";
         api_modules << "pub mod api_dispatcher;\n";
         api_modules << "#[path = \"api/api_handler_registry.rs\"]\n";
@@ -245,6 +247,11 @@ void add_rust_api_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_application.rs.tmpl",
         "api/api_application.rs", diagnostics, GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/api_codecs.rs.tmpl", "api/api_codecs.rs",
+        diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{{"api_codecs", generate_api_codecs_rs(system)}}
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_handlers.rs.tmpl", "api/api_handlers.rs",

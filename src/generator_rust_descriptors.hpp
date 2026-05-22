@@ -23,4 +23,6 @@ std::string generate_api_operation_dispatch_cases_rs(const IrSystem& system);
 
 std::string generate_api_operation_default_handler_methods_rs(const IrSystem& system);
 
+std::string generate_api_codecs_rs(const IrSystem& system);
+
 } // namespace statespec

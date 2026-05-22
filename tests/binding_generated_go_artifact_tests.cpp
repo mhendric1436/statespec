@@ -58,6 +58,7 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/go.mod", common},
             {"common/Makefile", common},
             {"api/backend/api_application.go", api},
+            {"api/backend/api_codecs.go", api},
             {"api/backend/api_descriptors.go", api},
             {"api/backend/api_handlers.go", api},
             {"api/backend/api_handler_registry.go", api},
@@ -100,6 +101,10 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "api/backend/api_application.go", "api/backend/api_application.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/backend/api_codecs.go", "api/backend/api_codecs.go",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(

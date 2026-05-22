@@ -20,6 +20,7 @@ APP_MANIFEST="$TMPDIR/expected-go-manifest.txt"
 cat > "$APP_MANIFEST" <<'EOF'
 Makefile
 api/backend/api_application.go
+api/backend/api_codecs.go
 api/backend/api_descriptors.go
 api/backend/api_dispatcher.go
 api/backend/api_handler_registry.go
@@ -83,6 +84,8 @@ assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"Provi
 assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_application.go" "type APITierApplication struct"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func DecodeStartProvisionRequest"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func EncodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "type DefaultAPITierHandler struct"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "NewDefaultAPITierApplication"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_server.go" "type APITierServer struct"

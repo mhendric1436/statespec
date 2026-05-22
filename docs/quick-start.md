@@ -227,6 +227,7 @@ Generated API code owns:
 - Route descriptors derived from `api_server serves` and declared API method/path metadata.
 - Route-to-handler dispatch.
 - API handler interfaces.
+- Typed request and response codecs for declared API input/output shapes.
 - Operator metadata API handler interfaces for external-system metadata.
 - Request and response context types shared by all API handlers.
 
@@ -235,14 +236,15 @@ User code owns:
 - HTTP or RPC framework adapter.
 - Authentication, authorization, and tenant resolution.
 - Concrete API handler implementations.
-- Request deserialization and response serialization for the selected framework.
+- Transport-level request deserialization and response serialization for the selected framework.
 - Concrete backend adapter implementing the generated OCC interfaces.
 - External clients and runtime configuration.
 
 The API app should translate a transport request into a generated request context,
-dispatch through the generated route table, run a user-owned handler, and translate the
-generated response back to the transport. Local tests may use the generated in-memory
-backend as the concrete backend adapter.
+use the generated typed codecs to decode the API body shape, dispatch through the
+generated route table, run a user-owned handler, and translate the generated response
+back to the transport. Local tests may use the generated in-memory backend as the
+concrete backend adapter.
 
 ## Worker App Design
 

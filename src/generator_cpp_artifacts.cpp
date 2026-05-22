@@ -31,6 +31,7 @@ TemplateRenderer::Values cpp_makefile_values(BindingGenerationTier tier)
         api_rules << "check-api: $(BUILD_DIR)/.dir\n";
         api_rules << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
                      "#include \"api/api_application.hpp\"\\n"
+                     "#include \"api/api_codecs.hpp\"\\n"
                      "#include \"api/api_dispatcher.hpp\"\\n"
                      "#include \"api/api_handler_registry.hpp\"\\n"
                      "#include \"api/api_handlers.hpp\"\\n"
@@ -207,6 +208,11 @@ void add_cpp_api_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_application.hpp.tmpl",
         "api/api_application.hpp", diagnostics, GeneratedArtifactTier::Api
+    );
+    add_generated_template_file(
+        result, options.output_dir, templates, "api/api_codecs.hpp.tmpl", "api/api_codecs.hpp",
+        diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{{"api_codecs", generate_api_codecs(system)}}
     );
     add_generated_template_file(
         result, options.output_dir, templates, "api/api_handlers.hpp.tmpl", "api/api_handlers.hpp",

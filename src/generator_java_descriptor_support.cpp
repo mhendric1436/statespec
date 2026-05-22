@@ -123,6 +123,10 @@ std::string java_shape_type(const std::string& type)
     {
         mapped = "Double";
     }
+    else if (base == "json")
+    {
+        mapped = "Json";
+    }
 
     return optional ? "Optional<" + mapped + ">" : mapped;
 }

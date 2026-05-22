@@ -76,6 +76,16 @@ Typed operation handlers are the canonical API extension point. StateSpec does n
 generate a parallel generic API handler path; each declared API operation maps to one
 generated handler method and one dispatcher branch.
 
+Generated API codec files provide the canonical conversion between the framework-neutral
+`ApiRequestContext`/`ApiResponse` JSON bodies and declared API input/output shape types:
+
+| Language | Generated API codec artifact |
+|---|---|
+| C++ | `api/api_codecs.hpp` |
+| Go | `api/backend/api_codecs.go` |
+| Java | `ApiCodecs.java` |
+| Rust | `api_codecs.rs` |
+
 When testing API handlers locally, inject the generated in-memory backend through the
 same application-owned dependency path that production code uses for its durable
 backend.

@@ -20,6 +20,7 @@ APP_MANIFEST="$TMPDIR/expected-cpp-manifest.txt"
 cat > "$APP_MANIFEST" <<'EOF'
 Makefile
 api/api_application.hpp
+api/api_codecs.hpp
 api/api_descriptors.hpp
 api/api_dispatcher.hpp
 api/api_handler_registry.hpp
@@ -83,6 +84,8 @@ assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionAp
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_application.hpp" "class ApiApplication"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "decode_start_provision_request"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "class DefaultApiHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "ApiApplication"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_server.hpp" "class ApiServer"

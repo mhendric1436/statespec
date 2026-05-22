@@ -60,6 +60,7 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/lib.rs", common},
             {"common/Makefile", common},
             {"api/api_application.rs", api},
+            {"api/api_codecs.rs", api},
             {"api/api_descriptors.rs", api},
             {"api/api_handlers.rs", api},
             {"api/api_handler_registry.rs", api},
@@ -105,6 +106,9 @@ void test_rust_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "api/api_application.rs", "api/api_application.rs",
         statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/api_codecs.rs", "api/api_codecs.rs", statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
         result, "api/api_handlers.rs", "api/api_handlers.rs", statespec::GeneratedArtifactTier::Api

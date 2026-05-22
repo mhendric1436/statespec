@@ -123,6 +123,10 @@ std::string rust_shape_type(const std::string& type)
     {
         mapped = "f64";
     }
+    else if (base == "json")
+    {
+        mapped = "Json";
+    }
 
     return optional ? "Option<" + mapped + ">" : mapped;
 }

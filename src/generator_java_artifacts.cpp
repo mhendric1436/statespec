@@ -155,6 +155,11 @@ void add_java_api_artifacts(
         "api/com/statespec/generated/ApiApplication.java", diagnostics, GeneratedArtifactTier::Api
     );
     add_generated_template_file(
+        result, options.output_dir, templates, "api/com/statespec/generated/ApiCodecs.java.tmpl",
+        "api/com/statespec/generated/ApiCodecs.java", diagnostics, GeneratedArtifactTier::Api,
+        TemplateRenderer::Values{{"api_codecs", generate_api_codecs_java(system)}}
+    );
+    add_generated_template_file(
         result, options.output_dir, templates, "api/com/statespec/generated/ApiHandlers.java.tmpl",
         "api/com/statespec/generated/ApiHandlers.java", diagnostics, GeneratedArtifactTier::Api,
         TemplateRenderer::Values{

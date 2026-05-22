@@ -3,11 +3,86 @@
 #include "generator_go_descriptor_areas.hpp"
 #include "generator_go_descriptor_support.hpp"
 #include "identifier_case.hpp"
+#include "type_syntax.hpp"
 
 #include <sstream>
 
 namespace statespec
 {
+namespace
+{
+
+const IrShape* find_shape(
+    const IrSystem& system,
+    const std::string& name
+)
+{
+    for (const auto& shape : system.shapes)
+    {
+        if (shape.name == name)
+        {
+            return &shape;
+        }
+    }
+    return nullptr;
+}
+
+std::string go_decode_func(const IrField& field)
+{
+    const auto base = strip_optional_type(field.type);
+    if (base == "bool")
+    {
+        return "decodeBool";
+    }
+    if (base == "int" || base == "int32")
+    {
+        return "decodeInt32";
+    }
+    if (base == "int64" || base == "long")
+    {
+        return "decodeInt64";
+    }
+    if (base == "double" || base == "decimal")
+    {
+        return "decodeFloat64";
+    }
+    if (base == "json")
+    {
+        return "decodeJSON";
+    }
+    return "decodeString";
+}
+
+std::string go_encode_expr(
+    const IrField& field,
+    const std::string& accessor
+)
+{
+    const auto base = strip_optional_type(field.type);
+    if (base == "bool")
+    {
+        return "common.JSONBool(" + accessor + ")";
+    }
+    if (base == "int" || base == "int32")
+    {
+        return "common.JSONInt(int64(" + accessor + "))";
+    }
+    if (base == "int64" || base == "long")
+    {
+        return "common.JSONInt(" + accessor + ")";
+    }
+    if (base == "double" || base == "decimal")
+    {
+        return "mustJSONFloat(" + accessor + ")";
+    }
+    if (base == "json")
+    {
+        return accessor;
+    }
+    return "common.JSONString(" + accessor + ")";
+}
+
+} // namespace
 
 std::string generate_descriptors_go(const IrSystem& system)
 {
@@ -134,6 +209,178 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
                "common.JSONString(\"handler_not_implemented\"), \"api\": common.JSONString("
             << go_string(api.name) << ")})}, nil\n";
         out << "}\n\n";
+    }
+    return out.str();
+}
+
+std::string generate_api_codecs_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "func requireMember(value common.JSON, fieldName string) (common.JSON, error) {\n";
+    out << "\tmember, ok := value.Find(fieldName)\n";
+    out << "\tif !ok || member.IsNull() {\n";
+    out << "\t\treturn common.JSON{}, fmt.Errorf(\"missing required API field %q\", fieldName)\n";
+    out << "\t}\n";
+    out << "\treturn member, nil\n";
+    out << "}\n\n";
+    out << "func decodeString(value common.JSON, fieldName string) (string, error) {\n";
+    out << "\tdecoded, ok := value.AsString()\n";
+    out << "\tif !ok { return \"\", fmt.Errorf(\"API field %q must be a string\", fieldName) }\n";
+    out << "\treturn decoded, nil\n";
+    out << "}\n\n";
+    out << "func decodeBool(value common.JSON, fieldName string) (bool, error) {\n";
+    out << "\tdecoded, ok := value.AsBool()\n";
+    out << "\tif !ok { return false, fmt.Errorf(\"API field %q must be a bool\", fieldName) }\n";
+    out << "\treturn decoded, nil\n";
+    out << "}\n\n";
+    out << "func decodeInt64(value common.JSON, fieldName string) (int64, error) {\n";
+    out << "\tdecoded, ok := value.AsInt()\n";
+    out << "\tif !ok { return 0, fmt.Errorf(\"API field %q must be an integer\", fieldName) }\n";
+    out << "\treturn decoded, nil\n";
+    out << "}\n\n";
+    out << "func decodeInt32(value common.JSON, fieldName string) (int32, error) {\n";
+    out << "\tdecoded, err := decodeInt64(value, fieldName)\n";
+    out << "\tif err != nil { return 0, err }\n";
+    out << "\treturn int32(decoded), nil\n";
+    out << "}\n\n";
+    out << "func decodeFloat64(value common.JSON, fieldName string) (float64, error) {\n";
+    out << "\tdecoded, ok := value.AsFloat()\n";
+    out << "\tif !ok { return 0, fmt.Errorf(\"API field %q must be a number\", fieldName) }\n";
+    out << "\treturn decoded, nil\n";
+    out << "}\n\n";
+    out << "func decodeJSON(value common.JSON, _ string) (common.JSON, error) {\n";
+    out << "\treturn value, nil\n";
+    out << "}\n\n";
+    out << "func mustJSONFloat(value float64) common.JSON {\n";
+    out << "\tencoded, err := common.JSONFloat(value)\n";
+    out << "\tif err != nil { panic(err) }\n";
+    out << "\treturn encoded\n";
+    out << "}\n\n";
+
+    for (const auto& api : system.apis)
+    {
+        if (api.input.has_value())
+        {
+            const auto* shape = find_shape(system, *api.input);
+            if (shape != nullptr)
+            {
+                out << "func Decode" << pascal_identifier(api.name)
+                    << "Request(request common.APIRequestContext) (common."
+                    << pascal_identifier(shape->name) << ", error) {\n";
+                out << "\tvar decoded common." << pascal_identifier(shape->name) << "\n";
+                for (const auto& field : shape->fields)
+                {
+                    const auto field_name = go_string(field.name);
+                    const auto field_var = lower_camel_identifier(field.name);
+                    const auto field_access = pascal_identifier(field.name);
+                    if (is_optional_type(field.type))
+                    {
+                        out << "\tif member, ok := request.Body.Find(" << field_name
+                            << "); ok && !member.IsNull() {\n";
+                        out << "\t\t" << field_var << ", err := " << go_decode_func(field)
+                            << "(member, " << field_name << ")\n";
+                        out << "\t\tif err != nil { return common."
+                            << pascal_identifier(shape->name) << "{}, err }\n";
+                        out << "\t\tdecoded." << field_access << " = &" << field_var << "\n";
+                        out << "\t}\n";
+                    }
+                    else
+                    {
+                        out << "\t" << field_var << "JSON, err := requireMember(request.Body, "
+                            << field_name << ")\n";
+                        out << "\tif err != nil { return common." << pascal_identifier(shape->name)
+                            << "{}, err }\n";
+                        out << "\t" << field_var << ", err := " << go_decode_func(field) << "("
+                            << field_var << "JSON, " << field_name << ")\n";
+                        out << "\tif err != nil { return common." << pascal_identifier(shape->name)
+                            << "{}, err }\n";
+                        out << "\tdecoded." << field_access << " = " << field_var << "\n";
+                    }
+                }
+                out << "\treturn decoded, nil\n";
+                out << "}\n\n";
+            }
+        }
+
+        if (api.output.has_value())
+        {
+            const auto* shape = find_shape(system, *api.output);
+            if (shape != nullptr)
+            {
+                out << "func Decode" << pascal_identifier(api.name)
+                    << "Response(response common.APIResponse) (common."
+                    << pascal_identifier(shape->name) << ", error) {\n";
+                out << "\trequest := common.APIRequestContext{Body: response.Body}\n";
+                out << "\treturn Decode" << pascal_identifier(api.name)
+                    << "ResponseBody(request)\n";
+                out << "}\n\n";
+
+                out << "func Decode" << pascal_identifier(api.name)
+                    << "ResponseBody(request common.APIRequestContext) (common."
+                    << pascal_identifier(shape->name) << ", error) {\n";
+                out << "\tvar decoded common." << pascal_identifier(shape->name) << "\n";
+                for (const auto& field : shape->fields)
+                {
+                    const auto field_name = go_string(field.name);
+                    const auto field_var = lower_camel_identifier(field.name);
+                    const auto field_access = pascal_identifier(field.name);
+                    if (is_optional_type(field.type))
+                    {
+                        out << "\tif member, ok := request.Body.Find(" << field_name
+                            << "); ok && !member.IsNull() {\n";
+                        out << "\t\t" << field_var << ", err := " << go_decode_func(field)
+                            << "(member, " << field_name << ")\n";
+                        out << "\t\tif err != nil { return common."
+                            << pascal_identifier(shape->name) << "{}, err }\n";
+                        out << "\t\tdecoded." << field_access << " = &" << field_var << "\n";
+                        out << "\t}\n";
+                    }
+                    else
+                    {
+                        out << "\t" << field_var << "JSON, err := requireMember(request.Body, "
+                            << field_name << ")\n";
+                        out << "\tif err != nil { return common." << pascal_identifier(shape->name)
+                            << "{}, err }\n";
+                        out << "\t" << field_var << ", err := " << go_decode_func(field) << "("
+                            << field_var << "JSON, " << field_name << ")\n";
+                        out << "\tif err != nil { return common." << pascal_identifier(shape->name)
+                            << "{}, err }\n";
+                        out << "\tdecoded." << field_access << " = " << field_var << "\n";
+                    }
+                }
+                out << "\treturn decoded, nil\n";
+                out << "}\n\n";
+
+                out << "func Encode" << pascal_identifier(api.name) << "Response(response common."
+                    << pascal_identifier(shape->name) << ") common.APIResponse {\n";
+                out << "\treturn Encode" << pascal_identifier(api.name)
+                    << "ResponseWithStatus(response, 200)\n";
+                out << "}\n\n";
+                out << "func Encode" << pascal_identifier(api.name)
+                    << "ResponseWithStatus(response common." << pascal_identifier(shape->name)
+                    << ", statusCode int) common.APIResponse {\n";
+                out << "\tbody := map[string]common.JSON{}\n";
+                for (const auto& field : shape->fields)
+                {
+                    const auto access = "response." + pascal_identifier(field.name);
+                    if (is_optional_type(field.type))
+                    {
+                        out << "\tif " << access << " != nil {\n";
+                        out << "\t\tbody[" << go_string(field.name)
+                            << "] = " << go_encode_expr(field, "*" + access) << "\n";
+                        out << "\t}\n";
+                    }
+                    else
+                    {
+                        out << "\tbody[" << go_string(field.name)
+                            << "] = " << go_encode_expr(field, access) << "\n";
+                    }
+                }
+                out << "\treturn common.APIResponse{StatusCode: statusCode, Body: "
+                       "common.JSONObject(body)}\n";
+                out << "}\n\n";
+            }
+        }
     }
     return out.str();
 }
