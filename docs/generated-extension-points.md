@@ -27,7 +27,8 @@ Generated code owns:
   and process entrypoints
 - worker descriptors, worker contexts, worker application shells, worker runtimes, worker
   registry helpers, and process entrypoints
-- workflow step handler context types and deterministic workflow step handler keys
+- workflow step handler context types, typed step-specific handler methods, and
+  deterministic workflow step handler keys
 - workflow runners that claim workflow steps, call user handlers, keep claimed steps
   alive, and complete or fail steps through backend workflow stores
 - transaction-scoped catalog registration helpers for queues, leases, workflows, feature
@@ -38,10 +39,9 @@ Generated code owns:
 User-owned code owns:
 
 - concrete API handlers
-- concrete worker handlers when the generated runtime is not sufficient
 - concrete workflow step handlers
 - HTTP server framework adapters and request/response serialization
-- queue polling runtime adapters when the generated runtime is not sufficient
+- worker and queue polling runtime adapters when the generated runtime is not sufficient
 - backend implementations for the OCC interfaces
 - external client construction, auth, retry policy, timeout policy, and remote API calls
 - production composition adapters that replace generated default handlers or the
@@ -119,8 +119,9 @@ through generated backend transaction interfaces.
 
 Workflow step handlers are the primary business-logic extension point for generated
 worker applications. The generated workflow runner owns the workflow store interaction:
-claiming a step, keeping the claim alive, invoking the user handler, completing the step,
-and failing the step when the handler returns an error.
+claiming a step, keeping the claim alive, invoking the generated step-specific user
+handler method, completing the step, and failing the step when the handler returns an
+error.
 
 | Language | Generated workflow step handler surface |
 |---|---|
@@ -129,11 +130,20 @@ and failing the step when the handler returns an error.
 | Java | `WorkflowStepHandlers.Handler` |
 | Rust | `worker::workflow_step_handlers::WorkflowStepHandler` |
 
-The generated context includes the workflow name, workflow version, step name, optional
-execution ID, and input payload. Generated `workflow_step_handler_keys` helpers list the
-valid handler keys in deterministic `WorkflowName.step_name` form. Application code can
-use those keys to register concrete step handlers and fail fast when a declared workflow
-step has no implementation.
+Each declared workflow step maps to one generated handler method. For example,
+`workflow ProvisionService` step `validate_request` maps to:
+
+- C++ `handle_provision_service_validate_request`
+- Go `HandleProvisionServiceValidateRequest`
+- Java `handleProvisionServiceValidateRequest`
+- Rust `handle_provision_service_validate_request`
+
+StateSpec does not generate a parallel generic workflow step handler path. The generated
+context includes the workflow name, workflow version, step name, optional execution ID,
+and input payload. Generated `workflow_step_handler_keys` helpers list the valid handler
+keys in deterministic `WorkflowName.step_name` form. Application code can use those keys
+to register concrete step handlers and fail fast when a declared workflow step has no
+implementation.
 
 Workflow step handlers should be idempotent. A handler may be retried after process
 restart, lease expiry, or backend failover. External calls should use idempotency keys

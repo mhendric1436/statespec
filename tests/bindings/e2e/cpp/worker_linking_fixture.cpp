@@ -8,13 +8,29 @@
 class LinkingWorkflowStepHandler final : public statespec_generated::worker::IWorkflowStepHandler
 {
   public:
-    void handle(const statespec_generated::worker::WorkflowStepHandlerContext& context) override
+    void handle_provision_service_validate_request(
+        const statespec_generated::worker::WorkflowStepHandlerContext& context
+    ) override
     {
         if (context.workflow_name != "ProvisionService" || context.step_name != "validate_request")
         {
             throw std::runtime_error("unexpected workflow step");
         }
         handled_ = true;
+    }
+
+    void handle_provision_service_create_remote_service(
+        const statespec_generated::worker::WorkflowStepHandlerContext&
+    ) override
+    {
+        throw std::runtime_error("unexpected create_remote_service step");
+    }
+
+    void handle_provision_service_wait_for_remote_service(
+        const statespec_generated::worker::WorkflowStepHandlerContext&
+    ) override
+    {
+        throw std::runtime_error("unexpected wait_for_remote_service step");
     }
 
     bool handled() const

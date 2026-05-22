@@ -99,8 +99,8 @@ The worker application artifact responsibilities are:
 | `worker_application` | Worker application composition root |
 | `worker_runtime` | Store composition, definition registration, and workflow execution runtime |
 | `worker_registry` | Registry derived from `worker` declarations |
-| `workflow_runner` | Workflow claim, keep-alive, complete, fail, and retry loop |
-| `workflow_step_handlers` | User implementation registry for workflow steps |
+| `workflow_runner` | Workflow claim, keep-alive, typed step dispatch, complete, fail, and retry loop |
+| `workflow_step_handlers` | Step-specific user implementation contract for declared workflow steps |
 | `worker_main` | Worker process entrypoint |
 
 Generated API application filenames:

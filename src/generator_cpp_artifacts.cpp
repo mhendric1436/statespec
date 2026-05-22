@@ -280,12 +280,16 @@ void add_cpp_worker_artifacts(
         result, options.output_dir, templates, "worker/workflow_step_handlers.hpp.tmpl",
         "worker/workflow_step_handlers.hpp", diagnostics, GeneratedArtifactTier::Worker,
         TemplateRenderer::Values{
+            {"workflow_step_handler_methods", generate_workflow_step_handler_methods(system)},
             {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}
         }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/workflow_runner.hpp.tmpl",
-        "worker/workflow_runner.hpp", diagnostics, GeneratedArtifactTier::Worker
+        "worker/workflow_runner.hpp", diagnostics, GeneratedArtifactTier::Worker,
+        TemplateRenderer::Values{
+            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_queues.hpp.tmpl",

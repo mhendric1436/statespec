@@ -41,6 +41,35 @@ std::string generate_workflow_step_handler_keys_rs(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_step_handler_methods_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "    fn handle_" << snake_identifier(workflow.name + "_" + step.name)
+                << "(&self, context: &WorkflowStepHandlerContext) -> BackendResult<()>;\n";
+        }
+    }
+    return out.str();
+}
+
+std::string generate_workflow_step_dispatch_cases_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "            (" << rust_string(workflow.name) << ", " << rust_string(step.name)
+                << ") => self.handler.handle_" << snake_identifier(workflow.name + "_" + step.name)
+                << "(&context),\n";
+        }
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_handler_methods_rs(const IrSystem& system)
 {
     std::ostringstream out;

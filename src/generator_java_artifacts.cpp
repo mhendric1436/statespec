@@ -243,6 +243,7 @@ void add_java_worker_artifacts(
         "worker/com/statespec/generated/WorkflowStepHandlers.java", diagnostics,
         GeneratedArtifactTier::Worker,
         TemplateRenderer::Values{
+            {"workflow_step_handler_methods", generate_workflow_step_handler_methods_java(system)},
             {"workflow_step_handler_keys", generate_workflow_step_handler_keys_java(system)}
         }
     );
@@ -250,7 +251,10 @@ void add_java_worker_artifacts(
         result, options.output_dir, templates,
         "worker/com/statespec/generated/WorkflowRunner.java.tmpl",
         "worker/com/statespec/generated/WorkflowRunner.java", diagnostics,
-        GeneratedArtifactTier::Worker
+        GeneratedArtifactTier::Worker,
+        TemplateRenderer::Values{
+            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_java(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates,

@@ -48,6 +48,38 @@ std::string generate_workflow_step_handler_keys_java(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_step_handler_methods_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "        void handle" << pascal_identifier(workflow.name + "_" + step.name)
+                << "(Context context) throws Exception;\n";
+        }
+    }
+    return out.str();
+}
+
+std::string generate_workflow_step_dispatch_cases_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "            if (record.workflowName().equals(" << java_string(workflow.name)
+                << ") && record.currentStep().equals(" << java_string(step.name) << ")) {\n";
+            out << "                handler.handle"
+                << pascal_identifier(workflow.name + "_" + step.name) << "(context);\n";
+            out << "                handled = true;\n";
+            out << "            }\n";
+        }
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_handler_methods_java(const IrSystem& system)
 {
     std::ostringstream out;

@@ -41,6 +41,36 @@ std::string generate_workflow_step_handler_keys_go(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_step_handler_methods_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "\tHandle" << pascal_identifier(workflow.name + "_" + step.name)
+                << "(context.Context, WorkflowStepHandlerContext) error\n";
+        }
+    }
+    return out.str();
+}
+
+std::string generate_workflow_step_dispatch_cases_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "\tcase record.WorkflowName == " << go_string(workflow.name)
+                << " && record.CurrentStep == " << go_string(step.name) << ":\n";
+            out << "\t\thandlerErr = runner.Handler.Handle"
+                << pascal_identifier(workflow.name + "_" + step.name) << "(ctx, stepContext)\n";
+        }
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_handler_methods_go(const IrSystem& system)
 {
     std::ostringstream out;

@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	common "statespec-generated/common/backend"
@@ -39,13 +40,18 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 	}); err != nil {
 		return nil, err
 	}
-	handlerErr := runner.Handler.HandleWorkflowStep(ctx, WorkflowStepHandlerContext{
+	stepContext := WorkflowStepHandlerContext{
 		WorkflowName:    record.WorkflowName,
 		WorkflowVersion: record.WorkflowVersion,
 		StepName:        record.CurrentStep,
 		ExecutionID:     &record.WorkflowExecutionID,
 		Input:           record.State,
-	})
+	}
+	var handlerErr error
+	switch {
+{{workflow_step_dispatch_cases}}	default:
+		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s.%s", record.WorkflowName, record.CurrentStep)
+	}
 	if handlerErr != nil {
 		failed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, common.FailWorkflowStepRequest{
 			WorkflowExecutionID: record.WorkflowExecutionID,

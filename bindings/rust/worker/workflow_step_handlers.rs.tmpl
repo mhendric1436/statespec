@@ -11,7 +11,7 @@ pub struct WorkflowStepHandlerContext {
 }
 
 pub trait WorkflowStepHandler {
-    fn handle_workflow_step(&self, context: &WorkflowStepHandlerContext) -> BackendResult<()>;
+{{workflow_step_handler_methods}}
 }
 
 pub fn workflow_step_handler_keys() -> Vec<&'static str> {

@@ -16,8 +16,7 @@ public final class WorkflowStepHandlers {
     ) {}
 
     public interface Handler {
-        void handleWorkflowStep(Context context) throws Exception;
-    }
+{{workflow_step_handler_methods}}    }
 
     public static List<String> workflowStepHandlerKeys() {
         return List.of(

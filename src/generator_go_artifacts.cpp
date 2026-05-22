@@ -274,12 +274,16 @@ void add_go_worker_artifacts(
         result, options.output_dir, templates, "worker/backend/workflow_step_handlers.go.tmpl",
         "worker/backend/workflow_step_handlers.go", diagnostics, GeneratedArtifactTier::Worker,
         TemplateRenderer::Values{
+            {"workflow_step_handler_methods", generate_workflow_step_handler_methods_go(system)},
             {"workflow_step_handler_keys", generate_workflow_step_handler_keys_go(system)}
         }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/backend/workflow_runner.go.tmpl",
-        "worker/backend/workflow_runner.go", diagnostics, GeneratedArtifactTier::Worker
+        "worker/backend/workflow_runner.go", diagnostics, GeneratedArtifactTier::Worker,
+        TemplateRenderer::Values{
+            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_go(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/backend/worker_queues.go.tmpl",

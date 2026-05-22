@@ -95,6 +95,8 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "Kee
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.wait_for_remote_service\""
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "HandleProvisionServiceValidateRequest"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "HandleProvisionServiceValidateRequest"
 cp "$SCRIPT_DIR/api_linking_fixture_test.go" "$TMPDIR/out-app-go/api/backend/api_linking_fixture_test.go"
 cp "$SCRIPT_DIR/worker_linking_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_linking_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-app-go" check

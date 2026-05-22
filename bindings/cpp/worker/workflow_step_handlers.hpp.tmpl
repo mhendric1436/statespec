@@ -22,7 +22,9 @@ class IWorkflowStepHandler
 {
   public:
     virtual ~IWorkflowStepHandler() = default;
-    virtual void handle(const WorkflowStepHandlerContext& context) = 0;
+// clang-format off
+{{workflow_step_handler_methods}}
+// clang-format on
 };
 
 inline std::vector<std::string> workflow_step_handler_keys()

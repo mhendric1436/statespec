@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <exception>
 #include <optional>
+#include <stdexcept>
 #include <string>
 
 #include <utility>
@@ -67,15 +68,19 @@ class WorkflowRunner
         );
         try
         {
-            handler_.handle(
-                WorkflowStepHandlerContext{
-                    record.workflow_name,
-                    static_cast<int>(record.workflow_version),
-                    record.current_step,
-                    record.workflow_execution_id,
-                    record.state,
-                }
-            );
+            WorkflowStepHandlerContext context{
+                record.workflow_name, static_cast<int>(record.workflow_version),
+                record.current_step,  record.workflow_execution_id,
+                record.state,
+            };
+            bool handled = false;
+// clang-format off
+{{workflow_step_dispatch_cases}}
+// clang-format on
+            if (!handled)
+            {
+                throw std::runtime_error("unknown generated workflow step handler");
+            }
             return workflow_store_.complete_step(
                 backend_, statespec::backend::CompleteWorkflowStepRequest{
                               record.workflow_execution_id,

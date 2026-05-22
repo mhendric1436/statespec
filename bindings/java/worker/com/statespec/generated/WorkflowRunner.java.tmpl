@@ -64,15 +64,18 @@ public final class WorkflowRunner {
             )
         );
         try {
-            handler.handleWorkflowStep(
+            WorkflowStepHandlers.Context context =
                 new WorkflowStepHandlers.Context(
                     record.workflowName(),
                     record.workflowVersion(),
                     record.currentStep(),
                     Optional.of(record.workflowExecutionId()),
                     Json.parse(record.stateJson())
-                )
-            );
+                );
+            boolean handled = false;
+{{workflow_step_dispatch_cases}}            if (!handled) {
+                throw new IllegalArgumentException("unknown generated workflow step handler");
+            }
             return Optional.of(
                 workflowStore.completeStep(
                     backend,

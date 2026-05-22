@@ -42,6 +42,39 @@ std::string generate_workflow_step_handler_keys(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_step_handler_methods(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "    virtual void handle_" << snake_identifier(workflow.name + "_" + step.name)
+                << "(const WorkflowStepHandlerContext& context) = 0;\n";
+        }
+    }
+    return out.str();
+}
+
+std::string generate_workflow_step_dispatch_cases(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "            if (record.workflow_name == " << cpp_string(workflow.name)
+                << " && record.current_step == " << cpp_string(step.name) << ")\n";
+            out << "            {\n";
+            out << "                handler_.handle_"
+                << snake_identifier(workflow.name + "_" + step.name) << "(context);\n";
+            out << "                handled = true;\n";
+            out << "            }\n";
+        }
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_handler_methods(const IrSystem& system)
 {
     std::ostringstream out;

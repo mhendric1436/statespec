@@ -15,7 +15,7 @@ type WorkflowStepHandlerContext struct {
 }
 
 type WorkflowStepHandler interface {
-	HandleWorkflowStep(context.Context, WorkflowStepHandlerContext) error
+{{workflow_step_handler_methods}}
 }
 
 func WorkflowStepHandlerKeys() []string {

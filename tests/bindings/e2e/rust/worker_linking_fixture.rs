@@ -15,12 +15,26 @@ use statespec_generated::workflow_step_handlers::{
 struct LinkingWorkflowStepHandler;
 
 impl WorkflowStepHandler for LinkingWorkflowStepHandler {
-    fn handle_workflow_step(
+    fn handle_provision_service_validate_request(
         &self,
         context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<()> {
         assert_eq!(context.workflow_name, "ProvisionService");
         assert_eq!(context.step_name, "validate_request");
+        Ok(())
+    }
+
+    fn handle_provision_service_create_remote_service(
+        &self,
+        _context: &WorkflowStepHandlerContext,
+    ) -> statespec_generated::backend::BackendResult<()> {
+        Ok(())
+    }
+
+    fn handle_provision_service_wait_for_remote_service(
+        &self,
+        _context: &WorkflowStepHandlerContext,
+    ) -> statespec_generated::backend::BackendResult<()> {
         Ok(())
     }
 }

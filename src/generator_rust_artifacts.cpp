@@ -318,12 +318,16 @@ void add_rust_worker_artifacts(
         result, options.output_dir, templates, "worker/workflow_step_handlers.rs.tmpl",
         "worker/workflow_step_handlers.rs", diagnostics, GeneratedArtifactTier::Worker,
         TemplateRenderer::Values{
+            {"workflow_step_handler_methods", generate_workflow_step_handler_methods_rs(system)},
             {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}
         }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/workflow_runner.rs.tmpl",
-        "worker/workflow_runner.rs", diagnostics, GeneratedArtifactTier::Worker
+        "worker/workflow_runner.rs", diagnostics, GeneratedArtifactTier::Worker,
+        TemplateRenderer::Values{
+            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_rs(system)}
+        }
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_queues.rs.tmpl",

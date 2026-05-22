@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use crate::backend::{Backend, BackendResult};
+use crate::backend::{Backend, BackendError, BackendResult};
 use crate::workflow::{
     ClaimWorkflowStepRequest, CompleteWorkflowStepRequest, FailWorkflowStepRequest,
     KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,
@@ -48,15 +48,18 @@ impl<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> WorkflowRunner
                 lease_duration: self.lease_duration,
             },
         )?;
-        let handler_result = self
-            .handler
-            .handle_workflow_step(&WorkflowStepHandlerContext {
-                workflow_name: record.workflow_name.clone(),
-                workflow_version: record.workflow_version,
-                step_name: record.current_step.clone(),
-                execution_id: Some(record.workflow_execution_id.clone()),
-                input: record.state.clone(),
-            });
+        let context = WorkflowStepHandlerContext {
+            workflow_name: record.workflow_name.clone(),
+            workflow_version: record.workflow_version,
+            step_name: record.current_step.clone(),
+            execution_id: Some(record.workflow_execution_id.clone()),
+            input: record.state.clone(),
+        };
+        let handler_result = match (record.workflow_name.as_str(), record.current_step.as_str()) {
+{{workflow_step_dispatch_cases}}            _ => Err(BackendError::Unsupported {
+                message: "unknown generated workflow step handler".to_string(),
+            }),
+        };
         match handler_result {
             Ok(()) => self
                 .workflow_store
