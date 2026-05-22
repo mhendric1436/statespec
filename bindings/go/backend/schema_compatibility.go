@@ -47,6 +47,78 @@ func CompareCollectionDescriptors(existing CollectionDescriptor, requested Colle
 	if collectionDescriptorsEqual(existing, requested) {
 		return SchemaCompatibilityResult{Status: SchemaCompatibilityIdentical}
 	}
+
+	differences := []SchemaCompatibilityDifference{}
+	add := func(reason SchemaCompatibilityReason, path string, message string) {
+		differences = append(differences, SchemaCompatibilityDifference{
+			Reason:  reason,
+			Path:    path,
+			Message: message,
+		})
+	}
+
+	if existing.Name != requested.Name {
+		add(CollectionNameChanged, "name", "collection name changed from '"+existing.Name+"' to '"+requested.Name+"'")
+	}
+	if requested.SchemaVersion < existing.SchemaVersion {
+		add(SchemaVersionDecreased, "schema_version", "schema_version decreased")
+	} else if requested.SchemaVersion == existing.SchemaVersion {
+		add(SchemaVersionNotIncremented, "schema_version", "schema_version must increase when descriptor shape changes")
+	}
+	if !stringSlicesEqual(existing.KeyFields, requested.KeyFields) {
+		add(KeyFieldsChanged, "key_fields", "key_fields changed")
+	}
+
+	for _, existingField := range existing.Fields {
+		requestedField, ok := findFieldDescriptor(requested.Fields, existingField.Name)
+		if !ok {
+			add(FieldRemoved, "fields."+existingField.Name, "field '"+existingField.Name+"' was removed")
+			continue
+		}
+		if existingField.Type != requestedField.Type {
+			add(FieldTypeChanged, "fields."+existingField.Name, "field '"+existingField.Name+"' type changed")
+		}
+		if existingField.TypeName != requestedField.TypeName {
+			add(FieldTypeNameChanged, "fields."+existingField.Name, "field '"+existingField.Name+"' type_name changed")
+		}
+		if !existingField.Required && requestedField.Required {
+			add(FieldBecameRequired, "fields."+existingField.Name, "field '"+existingField.Name+"' became required")
+		}
+	}
+
+	for _, requestedField := range requested.Fields {
+		if _, ok := findFieldDescriptor(existing.Fields, requestedField.Name); !ok && requestedField.Required {
+			add(RequiredFieldAdded, "fields."+requestedField.Name, "required field '"+requestedField.Name+"' was added")
+		}
+	}
+
+	for _, existingIndex := range existing.Indexes {
+		requestedIndex, ok := findIndexDescriptor(requested.Indexes, existingIndex.Name)
+		if !ok {
+			add(IndexRemoved, "indexes."+existingIndex.Name, "index '"+existingIndex.Name+"' was removed")
+			continue
+		}
+		if !stringSlicesEqual(existingIndex.Fields, requestedIndex.Fields) {
+			add(IndexFieldsChanged, "indexes."+existingIndex.Name, "index '"+existingIndex.Name+"' fields changed")
+		}
+		if existingIndex.Unique != requestedIndex.Unique {
+			add(IndexUniquenessChanged, "indexes."+existingIndex.Name, "index '"+existingIndex.Name+"' uniqueness changed")
+		}
+	}
+
+	for _, requestedIndex := range requested.Indexes {
+		if _, ok := findIndexDescriptor(existing.Indexes, requestedIndex.Name); !ok && requestedIndex.Unique {
+			add(UniqueIndexAdded, "indexes."+requestedIndex.Name, "unique index '"+requestedIndex.Name+"' was added")
+		}
+	}
+
+	if len(differences) > 0 {
+		return SchemaCompatibilityResult{
+			Status:      SchemaCompatibilityIncompatible,
+			Differences: differences,
+		}
+	}
+
 	return SchemaCompatibilityResult{Status: SchemaCompatibilityCompatible}
 }
 
@@ -93,4 +165,22 @@ func stringSlicesEqual(left []string, right []string) bool {
 		}
 	}
 	return true
+}
+
+func findFieldDescriptor(fields []FieldDescriptor, name string) (FieldDescriptor, bool) {
+	for _, field := range fields {
+		if field.Name == name {
+			return field, true
+		}
+	}
+	return FieldDescriptor{}, false
+}
+
+func findIndexDescriptor(indexes []IndexDescriptor, name string) (IndexDescriptor, bool) {
+	for _, index := range indexes {
+		if index.Name == name {
+			return index, true
+		}
+	}
+	return IndexDescriptor{}, false
 }

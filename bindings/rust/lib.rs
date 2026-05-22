@@ -66,3 +66,6 @@ mod log_tests;
 
 #[cfg(test)]
 mod metric_tests;
+
+#[cfg(test)]
+mod schema_compatibility_tests;
