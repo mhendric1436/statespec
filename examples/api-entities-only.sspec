@@ -1,0 +1,267 @@
+statespec 0.1;
+system ApiEntitiesOnly {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  shape CreateAccountRequest {
+    tenant_id string
+    account_id string
+    display_name string
+  }
+
+  shape AccountResponse {
+    tenant_id string
+    account_id string
+    display_name string
+    status string
+  }
+
+  shape CreateProjectRequest {
+    tenant_id string
+    account_id string
+    project_id string
+    name string
+  }
+
+  shape ProjectResponse {
+    tenant_id string
+    account_id string
+    project_id string
+    name string
+    status string
+  }
+
+  shape CreateTaskRequest {
+    tenant_id string
+    account_id string
+    project_id string
+    task_id string
+    title string
+    priority int
+  }
+
+  shape TaskResponse {
+    tenant_id string
+    account_id string
+    project_id string
+    task_id string
+    title string
+    priority int
+    status string
+  }
+
+  shape TaskListResponse {
+    tenant_id string
+    account_id string
+    project_id string
+    tasks TaskResponse[]
+  }
+
+  entity Account {
+    key tenant_id, account_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      account_id string
+      display_name string
+    }
+    state_machine {
+      state Active
+      state Suspended
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: tombstone
+        }
+      }
+      initial Active
+      terminal[Deleted]
+      Active -> Suspended
+      Suspended -> Active
+      Active -> Deleted
+      Suspended -> Deleted
+    }
+    children {
+      projects: Project by account_id
+    }
+    indexes {
+      unique by_tenant_account on tenant_id, account_id
+      index by_tenant_status on tenant_id, status
+    }
+  }
+
+  entity Project {
+    key tenant_id, project_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      account_id string
+      project_id string
+      name string
+    }
+    state_machine {
+      state Planned
+      state Active
+      state Archived {
+        terminal: true
+        garbage_collection {
+          after: P180D
+          mode: archive
+        }
+      }
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: tombstone
+        }
+      }
+      initial Planned
+      terminal[Archived, Deleted]
+      Planned -> Active
+      Active -> Archived
+      Planned -> Deleted
+      Active -> Deleted
+    }
+    relations {
+      parent account_id: ref<Account> {
+        kind: composition
+        on_parent_delete: cascade
+        parent_must_be_in:[Active]
+        unique_within_parent:[project_id]
+      }
+    }
+    children {
+      tasks: Task by project_id
+    }
+    indexes {
+      unique by_tenant_project on tenant_id, project_id
+      index by_account_status on tenant_id, account_id, status
+    }
+  }
+
+  entity Task {
+    key tenant_id, task_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      account_id string
+      project_id string
+      task_id string
+      title string
+      priority int
+    }
+    state_machine {
+      state Open
+      state InProgress
+      state Done {
+        terminal: true
+        garbage_collection {
+          after: P365D
+          mode: archive
+        }
+      }
+      state Cancelled {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: tombstone
+        }
+      }
+      initial Open
+      terminal[Done, Cancelled]
+      Open -> InProgress
+      InProgress -> Done
+      Open -> Cancelled
+      InProgress -> Cancelled
+    }
+    relations {
+      parent project_id: ref<Project> {
+        kind: composition
+        on_parent_delete: cascade
+        parent_must_be_in:[Active]
+        unique_within_parent:[task_id]
+      }
+      ref account_id: ref<Account> {
+        kind: reference
+        parent_must_be_in:[Active]
+      }
+    }
+    indexes {
+      unique by_tenant_task on tenant_id, task_id
+      index by_project_status on tenant_id, project_id, status
+      index by_account_priority on tenant_id, account_id, priority
+    }
+  }
+
+  api CreateAccount {
+    method POST
+    path "/v1/tenants/{tenant_id}/accounts/{account_id}"
+    input CreateAccountRequest
+    output AccountResponse
+  }
+
+  api GetAccount {
+    method GET
+    path "/v1/tenants/{tenant_id}/accounts/{account_id}"
+    output AccountResponse
+  }
+
+  api CreateProject {
+    method POST
+    path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects/{project_id}"
+    input CreateProjectRequest
+    output ProjectResponse
+  }
+
+  api GetProject {
+    method GET
+    path "/v1/tenants/{tenant_id}/projects/{project_id}"
+    output ProjectResponse
+  }
+
+  api CreateTask {
+    method POST
+    path "/v1/tenants/{tenant_id}/projects/{project_id}/tasks/{task_id}"
+    input CreateTaskRequest
+    output TaskResponse
+  }
+
+  api ListProjectTasks {
+    method GET
+    path "/v1/tenants/{tenant_id}/projects/{project_id}/tasks"
+    output TaskListResponse
+  }
+
+  api_server EntityApi {
+    serves CreateAccount
+    serves GetAccount
+    serves CreateProject
+    serves GetProject
+    serves CreateTask
+    serves ListProjectTasks
+    concurrency 32
+  }
+}
