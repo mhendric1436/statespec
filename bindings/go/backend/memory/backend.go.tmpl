@@ -38,11 +38,23 @@ func (b *Backend) EnsureCollection(ctx context.Context, descriptor common.Collec
 }
 
 func (b *Backend) EnsureCollections(ctx context.Context, descriptors []common.CollectionDescriptor) error {
-	for _, descriptor := range descriptors {
-		if err := b.EnsureCollection(ctx, descriptor); err != nil {
-			return err
-		}
+	_ = ctx
+	b.state.mu.Lock()
+	defer b.state.mu.Unlock()
+	staged := make(map[common.CollectionName]common.CollectionDescriptor, len(b.state.collections)+len(descriptors))
+	for collection, descriptor := range b.state.collections {
+		staged[collection] = descriptor
 	}
+	for _, descriptor := range descriptors {
+		collection := common.CollectionName(descriptor.Name)
+		if existing, ok := staged[collection]; ok {
+			if err := common.ValidateCollectionDescriptorUpgrade(existing, descriptor); err != nil {
+				return err
+			}
+		}
+		staged[collection] = descriptor
+	}
+	b.state.collections = staged
 	return nil
 }
 

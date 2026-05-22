@@ -2,6 +2,8 @@
 
 #include "catch2/catch_amalgamated.hpp"
 
+#include <string>
+
 namespace
 {
 
@@ -52,6 +54,21 @@ statespec::backend::CollectionDescriptor compatible_descriptor()
     return descriptor;
 }
 
+statespec::backend::CollectionDescriptor alternate_compatible_descriptor()
+{
+    auto descriptor = base_descriptor();
+    descriptor.schema_version = 2;
+    descriptor.fields.push_back(
+        statespec::backend::FieldDescriptor{
+            .name = "notes",
+            .type = statespec::backend::FieldType::String,
+            .type_name = "string",
+            .required = false,
+        }
+    );
+    return descriptor;
+}
+
 } // namespace
 
 TEST_CASE("C++ in-memory backend enforces compatible collection registration")
@@ -75,5 +92,26 @@ TEST_CASE("C++ in-memory backend enforces compatible collection registration")
     catch (const statespec::backend::ConflictError& error)
     {
         REQUIRE(error.kind() == statespec::backend::ConflictKind::SchemaConflict);
+        const std::string message = error.what();
+        REQUIRE(message.find("orders") != std::string::npos);
+        REQUIRE(message.find("KeyFieldsChanged") != std::string::npos);
     }
+}
+
+TEST_CASE("C++ in-memory backend applies collection batches atomically")
+{
+    statespec::backend::memory::InMemoryBackend backend;
+
+    REQUIRE_NOTHROW(backend.ensure_collection(base_descriptor()));
+
+    auto incompatible = base_descriptor();
+    incompatible.schema_version = 2;
+    incompatible.key_fields = {"tenant_id", "order_id"};
+
+    REQUIRE_THROWS_AS(
+        backend.ensure_collections({compatible_descriptor(), incompatible}),
+        statespec::backend::ConflictError
+    );
+
+    REQUIRE_NOTHROW(backend.ensure_collection(alternate_compatible_descriptor()));
 }

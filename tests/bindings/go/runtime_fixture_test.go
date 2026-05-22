@@ -3,6 +3,7 @@ package runtime_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -173,6 +174,33 @@ func TestMemoryBackendEnforcesCompatibleCollectionRegistration(t *testing.T) {
 	if !errors.As(err, &conflict) || conflict.Kind != common.SchemaConflict {
 		t.Fatalf("expected schema conflict, got %T %v", err, err)
 	}
+	if conflict.Message == "" ||
+		!strings.Contains(conflict.Message, "orders") ||
+		!strings.Contains(conflict.Message, "KeyFieldsChanged") {
+		t.Fatalf("expected structured schema conflict message, got %q", conflict.Message)
+	}
+}
+
+func TestMemoryBackendAppliesCollectionBatchesAtomically(t *testing.T) {
+	ctx := context.Background()
+	backend := memory.NewBackend()
+	if err := backend.EnsureCollection(ctx, testCollectionDescriptor()); err != nil {
+		t.Fatal(err)
+	}
+
+	incompatible := testCollectionDescriptor()
+	incompatible.SchemaVersion = 2
+	incompatible.KeyFields = []string{"tenant_id", "order_id"}
+	if err := backend.EnsureCollections(ctx, []common.CollectionDescriptor{
+		compatibleCollectionDescriptor(),
+		incompatible,
+	}); err == nil {
+		t.Fatal("expected schema conflict")
+	}
+
+	if err := backend.EnsureCollection(ctx, alternateCompatibleCollectionDescriptor()); err != nil {
+		t.Fatalf("batch failure partially applied earlier descriptor: %v", err)
+	}
 }
 
 func testCollectionDescriptor() common.CollectionDescriptor {
@@ -209,6 +237,18 @@ func compatibleCollectionDescriptor() common.CollectionDescriptor {
 	descriptor.SchemaVersion = 2
 	descriptor.Fields = append(descriptor.Fields, common.FieldDescriptor{
 		Name:     "description",
+		Type:     common.FieldTypeString,
+		TypeName: "string",
+		Required: false,
+	})
+	return descriptor
+}
+
+func alternateCompatibleCollectionDescriptor() common.CollectionDescriptor {
+	descriptor := testCollectionDescriptor()
+	descriptor.SchemaVersion = 2
+	descriptor.Fields = append(descriptor.Fields, common.FieldDescriptor{
+		Name:     "notes",
 		Type:     common.FieldTypeString,
 		TypeName: "string",
 		Required: false,

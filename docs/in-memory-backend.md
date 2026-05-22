@@ -39,6 +39,13 @@ The backend and transaction pieces must remain generic. Feature flag, queue, lea
 workflow, log, and metric implementations are separate store/sink clients that use the
 backend by registering collections and reading or writing versioned records.
 
+The in-memory backend enforces the same collection descriptor upgrade rules expected of
+production backend adapters. Re-registering a collection goes through the shared schema
+compatibility helpers, and bulk registration is staged atomically before descriptors are
+published. This keeps local generated app restarts honest: calling the generated runtime
+catalog bootstrap multiple times against the same in-memory backend must be idempotent,
+while incompatible descriptor changes must fail with `SchemaConflict`.
+
 Those store/sink clients are backend-neutral runtime components. They should depend on
 the public `Backend`/`IBackend` and `Transaction`/`ITransaction` abstractions, not on
 `InMemoryBackend`, `InMemoryTransaction`, or other memory-specific concrete types.

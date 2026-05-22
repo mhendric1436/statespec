@@ -100,5 +100,6 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "Some(\"cr
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "Some(\"wait_for_remote_service\".to_string())"
 mkdir -p "$TMPDIR/out-app-rust/tests"
 cp "$SCRIPT_DIR/api_linking_fixture.rs" "$TMPDIR/out-app-rust/tests/api_linking_fixture.rs"
+cp "$SCRIPT_DIR/registration_restart_fixture.rs" "$TMPDIR/out-app-rust/tests/registration_restart_fixture.rs"
 cp "$SCRIPT_DIR/worker_linking_fixture.rs" "$TMPDIR/out-app-rust/tests/worker_linking_fixture.rs"
 run_expect_status 0 make -C "$TMPDIR/out-app-rust" check

@@ -1,5 +1,10 @@
 package backend
 
+import (
+	"strconv"
+	"strings"
+)
+
 type SchemaCompatibilityStatus string
 
 const (
@@ -127,9 +132,15 @@ func ValidateCollectionDescriptorUpgrade(existing CollectionDescriptor, requeste
 	if result.Compatible() {
 		return nil
 	}
-	message := "collection schema upgrade is incompatible"
+	message := "collection '" + requested.Name + "' schema upgrade from version " +
+		strconv.FormatUint(existing.SchemaVersion, 10) + " to version " +
+		strconv.FormatUint(requested.SchemaVersion, 10) + " is incompatible"
 	if len(result.Differences) > 0 {
-		message += ": " + result.Differences[0].Message
+		parts := make([]string, 0, len(result.Differences))
+		for _, difference := range result.Differences {
+			parts = append(parts, string(difference.Reason)+" at "+difference.Path+": "+difference.Message)
+		}
+		message += ": " + strings.Join(parts, "; ")
 	}
 	return ConflictError{Kind: SchemaConflict, Message: message}
 }

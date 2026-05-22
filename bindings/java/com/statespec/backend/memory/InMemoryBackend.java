@@ -3,6 +3,7 @@ package com.statespec.backend.memory;
 import com.statespec.backend.Backend;
 import com.statespec.backend.Json;
 import com.statespec.backend.SchemaCompatibility;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,9 +32,20 @@ public final class InMemoryBackend implements Backend
     @Override
     public void ensureCollections(List<CollectionDescriptor> descriptors) throws BackendException
     {
-        for (var descriptor : descriptors)
+        synchronized (state)
         {
-            ensureCollection(descriptor);
+            var staged = new HashMap<>(state.collections);
+            for (var descriptor : descriptors)
+            {
+                var existing = staged.get(descriptor.name());
+                if (existing != null)
+                {
+                    SchemaCompatibility.validateCollectionDescriptorUpgrade(existing, descriptor);
+                }
+                staged.put(descriptor.name(), descriptor);
+            }
+            state.collections.clear();
+            state.collections.putAll(staged);
         }
     }
 

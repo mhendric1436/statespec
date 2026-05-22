@@ -29,10 +29,18 @@ class InMemoryBackend : public IBackend
 
     void ensure_collections(const std::vector<CollectionDescriptor>& descriptors) override
     {
+        std::lock_guard<std::mutex> lock(state_->mutex);
+        auto staged = state_->collections;
         for (const auto& descriptor : descriptors)
         {
-            ensure_collection(descriptor);
+            const auto existing = staged.find(descriptor.name);
+            if (existing != staged.end())
+            {
+                validate_collection_descriptor_upgrade(existing->second, descriptor);
+            }
+            staged.insert_or_assign(descriptor.name, descriptor);
         }
+        state_->collections = std::move(staged);
     }
 
     std::unique_ptr<ITransaction> begin() override

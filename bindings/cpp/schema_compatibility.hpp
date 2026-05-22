@@ -138,6 +138,44 @@ inline SchemaCompatibilityDifference schema_difference(
     return SchemaCompatibilityDifference{reason, std::move(path), std::move(message)};
 }
 
+inline std::string schema_compatibility_reason_name(SchemaCompatibilityReason reason)
+{
+    switch (reason)
+    {
+    case SchemaCompatibilityReason::SchemaVersionDecreased:
+        return "SchemaVersionDecreased";
+    case SchemaCompatibilityReason::SchemaVersionNotIncremented:
+        return "SchemaVersionNotIncremented";
+    case SchemaCompatibilityReason::CollectionNameChanged:
+        return "CollectionNameChanged";
+    case SchemaCompatibilityReason::KeyFieldsChanged:
+        return "KeyFieldsChanged";
+    case SchemaCompatibilityReason::FieldRemoved:
+        return "FieldRemoved";
+    case SchemaCompatibilityReason::FieldRenamed:
+        return "FieldRenamed";
+    case SchemaCompatibilityReason::FieldTypeChanged:
+        return "FieldTypeChanged";
+    case SchemaCompatibilityReason::FieldTypeNameChanged:
+        return "FieldTypeNameChanged";
+    case SchemaCompatibilityReason::RequiredFieldAdded:
+        return "RequiredFieldAdded";
+    case SchemaCompatibilityReason::FieldBecameRequired:
+        return "FieldBecameRequired";
+    case SchemaCompatibilityReason::IndexRemoved:
+        return "IndexRemoved";
+    case SchemaCompatibilityReason::IndexRenamed:
+        return "IndexRenamed";
+    case SchemaCompatibilityReason::IndexFieldsChanged:
+        return "IndexFieldsChanged";
+    case SchemaCompatibilityReason::IndexUniquenessChanged:
+        return "IndexUniquenessChanged";
+    case SchemaCompatibilityReason::UniqueIndexAdded:
+        return "UniqueIndexAdded";
+    }
+    return "Unknown";
+}
+
 inline SchemaCompatibilityResult compare_collection_descriptors(
     const CollectionDescriptor& existing,
     const CollectionDescriptor& requested
@@ -262,10 +300,15 @@ inline void validate_collection_descriptor_upgrade(
         return;
     }
 
-    std::string message = "collection schema upgrade is incompatible";
-    if (!result.differences.empty())
+    std::string message = "collection '" + requested.name + "' schema upgrade from version " +
+                          std::to_string(existing.schema_version) + " to version " +
+                          std::to_string(requested.schema_version) + " is incompatible";
+    for (std::size_t index = 0; index < result.differences.size(); ++index)
     {
-        message += ": " + result.differences.front().message;
+        const auto& difference = result.differences[index];
+        message += index == 0 ? ": " : "; ";
+        message += schema_compatibility_reason_name(difference.reason) + " at " + difference.path +
+                   ": " + difference.message;
     }
     throw ConflictError(ConflictKind::SchemaConflict, message);
 }

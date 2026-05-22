@@ -196,10 +196,23 @@ pub fn validate_collection_descriptor_upgrade(
         return Ok(());
     }
 
-    let mut message = "collection schema upgrade is incompatible".to_string();
-    if let Some(difference) = result.differences.first() {
+    let mut message = format!(
+        "collection '{}' schema upgrade from version {} to version {} is incompatible",
+        requested.name, existing.schema_version, requested.schema_version
+    );
+    if !result.differences.is_empty() {
+        let parts: Vec<String> = result
+            .differences
+            .iter()
+            .map(|difference| {
+                format!(
+                    "{:?} at {}: {}",
+                    difference.reason, difference.path, difference.message
+                )
+            })
+            .collect();
         message.push_str(": ");
-        message.push_str(&difference.message);
+        message.push_str(&parts.join("; "));
     }
     Err(BackendError::Conflict {
         kind: ConflictKind::SchemaConflict,

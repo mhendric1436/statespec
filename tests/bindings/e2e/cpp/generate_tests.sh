@@ -99,5 +99,7 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "next_step
 run_expect_status 0 make -C "$TMPDIR/out-app-cpp" check
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/api_linking_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/api-linking-fixture"
 run_expect_status 0 "$TMPDIR/out-app-cpp/build/api-linking-fixture"
+run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/registration_restart_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/registration-restart-fixture"
+run_expect_status 0 "$TMPDIR/out-app-cpp/build/registration-restart-fixture"
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/worker_linking_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/worker-linking-fixture"
 run_expect_status 0 "$TMPDIR/out-app-cpp/build/worker-linking-fixture"

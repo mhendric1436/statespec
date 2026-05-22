@@ -9,6 +9,7 @@ public final class MemoryBackendRegistrationTest
     public static void main(String[] args) throws Backend.BackendException
     {
         enforcesCompatibleCollectionRegistration();
+        appliesCollectionBatchesAtomically();
     }
 
     private static void enforcesCompatibleCollectionRegistration() throws Backend.BackendException
@@ -34,7 +35,36 @@ public final class MemoryBackendRegistrationTest
             require(
                 error.kind() == Backend.ConflictKind.SCHEMA_CONFLICT, "expected schema conflict"
             );
+            require(error.getMessage().contains("orders"), "expected collection name in message");
+            require(
+                error.getMessage().contains("KEY_FIELDS_CHANGED"),
+                "expected incompatibility reason in message"
+            );
         }
+    }
+
+    private static void appliesCollectionBatchesAtomically() throws Backend.BackendException
+    {
+        var backend = new InMemoryBackend();
+        backend.ensureCollection(baseDescriptor());
+
+        var incompatible = descriptor(
+            baseDescriptor().fields(), List.of("tenant_id", "order_id"), baseDescriptor().indexes(),
+            2L
+        );
+        try
+        {
+            backend.ensureCollections(List.of(compatibleDescriptor(), incompatible));
+            throw new AssertionError("expected schema conflict");
+        }
+        catch (Backend.ConflictException error)
+        {
+            require(
+                error.kind() == Backend.ConflictKind.SCHEMA_CONFLICT, "expected schema conflict"
+            );
+        }
+
+        backend.ensureCollection(alternateCompatibleDescriptor());
     }
 
     private static Backend.CollectionDescriptor baseDescriptor()
@@ -56,6 +86,13 @@ public final class MemoryBackendRegistrationTest
         fields.add(
             new Backend.FieldDescriptor("description", Backend.FieldType.STRING, "string", false)
         );
+        return descriptor(fields, baseDescriptor().keyFields(), baseDescriptor().indexes(), 2L);
+    }
+
+    private static Backend.CollectionDescriptor alternateCompatibleDescriptor()
+    {
+        var fields = new ArrayList<>(baseDescriptor().fields());
+        fields.add(new Backend.FieldDescriptor("notes", Backend.FieldType.STRING, "string", false));
         return descriptor(fields, baseDescriptor().keyFields(), baseDescriptor().indexes(), 2L);
     }
 

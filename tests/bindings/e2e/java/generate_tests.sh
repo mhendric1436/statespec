@@ -96,7 +96,9 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Workfl
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "nextStep = Optional.of(\"create_remote_service\")"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "nextStep = Optional.of(\"wait_for_remote_service\")"
 cp "$SCRIPT_DIR/ApiLinkingFixture.java" "$TMPDIR/out-app-java/api/com/statespec/generated/ApiLinkingFixture.java"
+cp "$SCRIPT_DIR/RegistrationRestartFixture.java" "$TMPDIR/out-app-java/common/com/statespec/generated/RegistrationRestartFixture.java"
 cp "$SCRIPT_DIR/WorkerLinkingFixture.java" "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerLinkingFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-app-java" check
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.ApiLinkingFixture
+run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.RegistrationRestartFixture
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.WorkerLinkingFixture

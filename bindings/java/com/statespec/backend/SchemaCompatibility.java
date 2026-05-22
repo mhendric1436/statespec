@@ -200,9 +200,19 @@ public final class SchemaCompatibility
         }
 
         var message = "collection schema upgrade is incompatible";
+        message = "collection '" + requested.name() + "' schema upgrade from version " +
+                  existing.schemaVersion() + " to version " + requested.schemaVersion() +
+                  " is incompatible";
         if (!result.differences().isEmpty())
         {
-            message = message + ": " + result.differences().get(0).message();
+            var parts = new ArrayList<String>();
+            for (var difference : result.differences())
+            {
+                parts.add(
+                    difference.reason() + " at " + difference.path() + ": " + difference.message()
+                );
+            }
+            message = message + ": " + String.join("; ", parts);
         }
         throw new Backend.ConflictException(Backend.ConflictKind.SCHEMA_CONFLICT, message);
     }

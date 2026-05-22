@@ -175,9 +175,22 @@ The backend layer owns only:
 Collection descriptor registration is the schema upgrade boundary. Backend adapters
 must validate re-registration of an existing collection with the shared schema
 compatibility helper for that language, not with hand-rolled per-backend comparison
-logic. Runtime stores define collection descriptors, but only the generic backend
-registration path enforces whether a descriptor upgrade is identical, backwards
-compatible, or a schema conflict.
+logic. The helper names are:
+
+- C++: `compare_collection_descriptors` and `validate_collection_descriptor_upgrade`
+- Go: `CompareCollectionDescriptors` and `ValidateCollectionDescriptorUpgrade`
+- Java: `SchemaCompatibility.compareCollectionDescriptors` and
+  `SchemaCompatibility.validateCollectionDescriptorUpgrade`
+- Rust: `compare_collection_descriptors` and `validate_collection_descriptor_upgrade`
+
+Runtime stores define collection descriptors, but only the generic backend registration
+path enforces whether a descriptor upgrade is identical, backwards compatible, or a
+schema conflict. Bulk registration APIs such as `ensure_collections`,
+`EnsureCollections`, and `ensureCollections` must validate the whole batch against
+staged descriptor state before applying any descriptor, so a later schema conflict
+cannot partially publish earlier descriptors from the same generated startup pass.
+Schema conflict messages should include the collection name, existing and requested
+schema versions, and the compatibility reason/path details from the shared helper.
 
 Runtime components are users of the backend layer. Queue stores, lease stores, workflow
 stores, feature flag stores, log sinks, and metric sinks must register the collections

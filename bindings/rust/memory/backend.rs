@@ -43,9 +43,15 @@ impl Backend for InMemoryBackend {
     }
 
     fn ensure_collections(&self, descriptors: &[CollectionDescriptor]) -> BackendResult<()> {
+        let mut state = self.state.lock().map_err(lock_error)?;
+        let mut staged = state.collections.clone();
         for descriptor in descriptors {
-            self.ensure_collection(descriptor)?;
+            if let Some(existing) = staged.get(&descriptor.name) {
+                validate_collection_descriptor_upgrade(existing, descriptor)?;
+            }
+            staged.insert(descriptor.name.clone(), descriptor.clone());
         }
+        state.collections = staged;
         Ok(())
     }
 

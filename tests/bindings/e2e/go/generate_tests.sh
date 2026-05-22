@@ -97,5 +97,6 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "Han
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "nextStepValue := \"create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "nextStepValue := \"wait_for_remote_service\""
 cp "$SCRIPT_DIR/api_linking_fixture_test.go" "$TMPDIR/out-app-go/api/backend/api_linking_fixture_test.go"
+cp "$SCRIPT_DIR/registration_restart_fixture_test.go" "$TMPDIR/out-app-go/common/backend/registration_restart_fixture_test.go"
 cp "$SCRIPT_DIR/worker_linking_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_linking_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-app-go" check

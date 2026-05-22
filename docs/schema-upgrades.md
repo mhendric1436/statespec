@@ -18,6 +18,13 @@ ensure_collection(descriptor)
 ensure_collections(descriptors)
 ```
 
+Bulk registration must be atomic. `ensure_collections` must validate the whole requested
+batch against staged descriptor state before applying any descriptor to the backend. If a
+later descriptor in the batch is incompatible, none of the earlier descriptors from that
+same call may be published. This is required for generated application startup because a
+single generated catalog registration should either leave the backend ready for the new
+application version or leave the previous descriptor state untouched.
+
 Typed runtime stores define the descriptors for their own collections, but they do not
 own compatibility enforcement. The backend owns descriptor registration because
 collection descriptors are generic OCC storage contracts, not queue, lease, workflow,
@@ -46,9 +53,26 @@ else:
   fail with SchemaConflict
 ```
 
+For `ensure_collections`, the same behavior is evaluated against a staged descriptor map:
+
+```text
+staged = current registered descriptors
+for descriptor in descriptors:
+  validate descriptor against staged
+  update staged
+publish staged only after every descriptor validates
+```
+
+Schema conflict messages should be structured enough for operators to act on them. At a
+minimum, include the collection name, existing and requested `schema_version`, and all
+reported compatibility reason/path details from the helper result.
+
 Production backends should persist registered descriptors in durable backend-owned
 metadata. In-memory backends may keep descriptors in memory, but must apply the same
 compatibility rules so tests and local generated applications catch unsafe upgrades.
+The generated application fixtures exercise this by bootstrapping the generated runtime
+catalog twice against the same in-memory backend with fresh runtime store instances,
+which models a process restart against retained backend state.
 
 ## Backwards Compatible
 
@@ -140,3 +164,7 @@ Backend conformance tests should cover:
 - decreasing `schema_version` fails with `SchemaConflict`
 - changing descriptor shape without increasing `schema_version` fails with
   `SchemaConflict`
+- `ensure_collections` rejects incompatible batches without partial descriptor
+  publication
+- generated runtime catalog bootstrap is restart-safe against an already registered
+  backend catalog

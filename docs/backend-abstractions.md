@@ -103,6 +103,12 @@ fail with a schema conflict instead of replacing the registered contract. See
 [schema-upgrades.md](schema-upgrades.md) for the compatibility definition and shared
 helper APIs available to backend adapters.
 
+Bulk collection registration is atomic. Backend adapters must validate the full
+descriptor batch against staged descriptor state first and only publish the staged map
+after every descriptor has passed compatibility validation. Generated startup code relies
+on this behavior so application registration either completes as one coherent catalog or
+does not change the registered descriptor set.
+
 ## Backend Boundary
 
 Backends and transactions provide generic OCC document storage. They are not queue,
