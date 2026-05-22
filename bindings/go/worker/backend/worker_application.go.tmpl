@@ -8,9 +8,10 @@ import (
 
 type WorkerTierApplication struct {
 	Context common.WorkerContext
-	Handler common.Worker
+	Runtime *WorkerTierRuntime
+	Handler WorkflowStepHandler
 }
 
-func (app WorkerTierApplication) Run(ctx context.Context) error {
-	return app.Handler.Run(ctx, app.Context)
+func (app WorkerTierApplication) RunOnce(ctx context.Context, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {
+	return app.Runtime.RunOnce(ctx, app.Context, app.Handler, workflowExecutionID)
 }

@@ -321,9 +321,6 @@ std::string generate_java_descriptor_prelude(const IrSystem& system)
     out << "        Optional<String> executes,\n";
     out << "        int concurrency\n";
     out << "    ) {}\n\n";
-    out << "    public interface Worker {\n";
-    out << "        void run(WorkerContext context) throws Exception;\n";
-    out << "    }\n\n";
     out << "    public record PolicyRuleDescriptor(\n";
     out << "        String action,\n";
     out << "        String condition\n";

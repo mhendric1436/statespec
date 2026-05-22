@@ -283,9 +283,6 @@ std::string generate_go_descriptor_prelude(const IrSystem& system)
     out << "\tExecutes *string\n";
     out << "\tConcurrency int\n";
     out << "}\n\n";
-    out << "type Worker interface {\n";
-    out << "\tRun(context.Context, WorkerContext) error\n";
-    out << "}\n\n";
     out << "type PolicyRuleDescriptor struct {\n";
     out << "\tAction string\n";
     out << "\tCondition string\n";

@@ -1,7 +1,12 @@
+use crate::backend::Backend;
 use crate::memory_backend::InMemoryBackend;
 use crate::runtime_leases::RuntimeLeaseStore;
 use crate::runtime_queues::RuntimeQueueStore;
 use crate::runtime_workflows::RuntimeWorkflowStore;
+use crate::workflow::WorkflowExecutionRecord;
+use crate::workflow_runner::WorkflowRunner;
+use crate::workflow_step_handlers::WorkflowStepHandler;
+use crate::worker_contexts::WorkerContext;
 
 #[derive(Debug, Clone)]
 pub struct WorkerRuntime {
@@ -19,6 +24,43 @@ impl WorkerRuntime {
             queues: RuntimeQueueStore::new(),
             workflows: RuntimeWorkflowStore::new(),
         }
+    }
+
+    pub fn register_definitions(&self) -> crate::backend::BackendResult<()> {
+        let mut tx = self.backend.begin()?;
+        crate::descriptors::register_lease_definitions_tx::<InMemoryBackend, RuntimeLeaseStore>(
+            &mut tx,
+            &self.leases,
+        )?;
+        crate::descriptors::register_queue_definitions_tx::<InMemoryBackend, RuntimeQueueStore>(
+            &mut tx,
+            &self.queues,
+        )?;
+        crate::descriptors::register_workflow_definitions_tx::<InMemoryBackend, RuntimeWorkflowStore>(
+            &mut tx,
+            &self.workflows,
+        )?;
+        self.backend.commit(tx)
+    }
+
+    pub fn run_once<H: WorkflowStepHandler>(
+        &self,
+        context: &WorkerContext,
+        handler: &H,
+        workflow_execution_id: &str,
+    ) -> crate::backend::BackendResult<Option<WorkflowExecutionRecord>> {
+        let Some(workflow_name) = context.executes.as_deref() else {
+            return Ok(None);
+        };
+        let runner = WorkflowRunner {
+            backend: &self.backend,
+            workflow_store: &self.workflows,
+            handler,
+            worker_name: context.worker_name.clone(),
+            lease_duration: std::time::Duration::from_secs(30),
+            max_attempts: 3,
+        };
+        runner.run_once(workflow_execution_id, workflow_name, 1)
     }
 }
 

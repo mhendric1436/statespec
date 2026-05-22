@@ -59,7 +59,6 @@ worker/main.cpp
 worker/worker_application.hpp
 worker/worker_contexts.hpp
 worker/worker_descriptors.hpp
-worker/worker_handlers.hpp
 worker/worker_leases.hpp
 worker/worker_queues.hpp
 worker/worker_registry.hpp

@@ -282,10 +282,6 @@ void add_go_worker_artifacts(
         "worker/backend/workflow_runner.go", diagnostics, GeneratedArtifactTier::Worker
     );
     add_generated_template_file(
-        result, options.output_dir, templates, "worker/backend/worker_handlers.go.tmpl",
-        "worker/backend/worker_handlers.go", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
         result, options.output_dir, templates, "worker/backend/worker_queues.go.tmpl",
         "worker/backend/worker_queues.go", diagnostics, GeneratedArtifactTier::Worker
     );

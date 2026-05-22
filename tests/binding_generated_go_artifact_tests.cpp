@@ -73,7 +73,6 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"worker/backend/worker_runtime.go", worker},
             {"worker/backend/workflow_step_handlers.go", worker},
             {"worker/backend/workflow_runner.go", worker},
-            {"worker/backend/worker_handlers.go", worker},
             {"worker/backend/worker_leases.go", worker},
             {"worker/backend/worker_queues.go", worker},
             {"worker/backend/worker_workflows.go", worker},
@@ -157,10 +156,6 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/backend/workflow_runner.go", "worker/backend/workflow_runner.go",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/backend/worker_handlers.go", "worker/backend/worker_handlers.go",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(

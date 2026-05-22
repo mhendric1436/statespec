@@ -335,9 +335,6 @@ std::string generate_rust_descriptor_prelude(const IrSystem& system)
     out << "    pub executes: Option<String>,\n";
     out << "    pub concurrency: i32,\n";
     out << "}\n\n";
-    out << "pub trait Worker {\n";
-    out << "    fn run(&self, context: &WorkerContext) -> BackendResult<()>;\n";
-    out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct PolicyRuleDescriptor {\n";
     out << "    pub action: String,\n";

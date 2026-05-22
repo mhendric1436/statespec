@@ -1,7 +1,8 @@
 #pragma once
 
-#include "worker_handlers.hpp"
 #include "worker_registry.hpp"
+#include "worker_runtime.hpp"
+#include "workflow_step_handlers.hpp"
 
 #include <utility>
 
@@ -13,9 +14,11 @@ class WorkerApplication
   public:
     WorkerApplication(
         WorkerContext context,
-        IWorker& handler
+        WorkerRuntime& runtime,
+        IWorkflowStepHandler& handler
     )
         : context_(std::move(context)),
+          runtime_(runtime),
           handler_(handler)
     {
     }
@@ -25,14 +28,16 @@ class WorkerApplication
         return context_;
     }
 
-    void run()
+    std::optional<statespec::backend::WorkflowExecutionRecord>
+    run_once(const std::string& workflow_execution_id)
     {
-        handler_.run(context_);
+        return runtime_.run_once(context_, handler_, workflow_execution_id);
     }
 
   private:
     WorkerContext context_;
-    IWorker& handler_;
+    WorkerRuntime& runtime_;
+    IWorkflowStepHandler& handler_;
 };
 
 } // namespace statespec_generated::worker

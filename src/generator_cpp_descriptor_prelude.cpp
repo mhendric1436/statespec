@@ -383,13 +383,6 @@ std::string generate_cpp_descriptor_prelude(const IrSystem& system)
     out << "    int concurrency = 1;\n";
     out << "};\n\n";
 
-    out << "class IWorker\n";
-    out << "{\n";
-    out << "public:\n";
-    out << "    virtual ~IWorker() = default;\n";
-    out << "    virtual void run(const WorkerContext& context) = 0;\n";
-    out << "};\n\n";
-
     out << "struct PolicyRuleDescriptor\n";
     out << "{\n";
     out << "    std::string action;\n";

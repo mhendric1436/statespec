@@ -57,7 +57,6 @@ common/com/statespec/generated/Descriptors.java
 worker/com/statespec/generated/WorkerApplication.java
 worker/com/statespec/generated/WorkerContexts.java
 worker/com/statespec/generated/WorkerDescriptors.java
-worker/com/statespec/generated/WorkerHandlers.java
 worker/com/statespec/generated/WorkerLeases.java
 worker/com/statespec/generated/WorkerMain.java
 worker/com/statespec/generated/WorkerQueues.java

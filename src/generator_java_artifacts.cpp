@@ -254,12 +254,6 @@ void add_java_worker_artifacts(
     );
     add_generated_template_file(
         result, options.output_dir, templates,
-        "worker/com/statespec/generated/WorkerHandlers.java.tmpl",
-        "worker/com/statespec/generated/WorkerHandlers.java", diagnostics,
-        GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates,
         "worker/com/statespec/generated/WorkerQueues.java.tmpl",
         "worker/com/statespec/generated/WorkerQueues.java", diagnostics,
         GeneratedArtifactTier::Worker

@@ -1,12 +1,19 @@
 #pragma once
 
-#include "worker_application.hpp"
+#include "worker_leases.hpp"
+#include "worker_queues.hpp"
+#include "worker_registry.hpp"
+#include "worker_workflows.hpp"
 #include "workflow_runner.hpp"
 
 #include "../common/memory/backend.hpp"
 #include "../common/runtime/lease_store.hpp"
 #include "../common/runtime/queue_store.hpp"
 #include "../common/runtime/workflow_store.hpp"
+
+#include <chrono>
+#include <optional>
+#include <string>
 
 namespace statespec_generated::worker
 {
@@ -25,6 +32,31 @@ class WorkerRuntime
     statespec::backend::memory::InMemoryBackend& backend()
     {
         return backend_;
+    }
+
+    void register_definitions()
+    {
+        auto tx = backend_.begin();
+        register_lease_definitionsTx(*tx, leases_);
+        register_queue_definitionsTx(*tx, queues_);
+        register_workflow_definitionsTx(*tx, workflows_);
+        backend_.commit(*tx);
+    }
+
+    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(
+        const WorkerContext& context,
+        IWorkflowStepHandler& handler,
+        const std::string& workflow_execution_id
+    )
+    {
+        if (!context.executes.has_value())
+        {
+            return std::nullopt;
+        }
+        WorkflowRunner runner{
+            backend_, workflows_, handler, context.worker_name, std::chrono::seconds{30}, 3
+        };
+        return runner.run_once(workflow_execution_id, *context.executes, 1);
     }
 
   private:

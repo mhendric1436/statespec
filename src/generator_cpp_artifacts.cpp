@@ -55,7 +55,6 @@ TemplateRenderer::Values cpp_makefile_values(BindingGenerationTier tier)
         worker_rules << "\tprintf '#include \"worker/worker_application.hpp\"\\n"
                         "#include \"worker/worker_contexts.hpp\"\\n"
                         "#include \"worker/worker_descriptors.hpp\"\\n"
-                        "#include \"worker/worker_handlers.hpp\"\\n"
                         "#include \"worker/worker_leases.hpp\"\\n"
                         "#include \"worker/worker_queues.hpp\"\\n"
                         "#include \"worker/worker_registry.hpp\"\\n"
@@ -287,10 +286,6 @@ void add_cpp_worker_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "worker/workflow_runner.hpp.tmpl",
         "worker/workflow_runner.hpp", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_handlers.hpp.tmpl",
-        "worker/worker_handlers.hpp", diagnostics, GeneratedArtifactTier::Worker
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_queues.hpp.tmpl",

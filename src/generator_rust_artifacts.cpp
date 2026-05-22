@@ -89,8 +89,6 @@ TemplateRenderer::Values rust_lib_values(BindingGenerationTier tier)
         worker_modules << "pub mod worker_contexts;\n";
         worker_modules << "#[path = \"worker/worker_descriptors.rs\"]\n";
         worker_modules << "pub mod worker_descriptors;\n";
-        worker_modules << "#[path = \"worker/worker_handlers.rs\"]\n";
-        worker_modules << "pub mod worker_handlers;\n";
         worker_modules << "#[path = \"worker/worker_leases.rs\"]\n";
         worker_modules << "pub mod worker_leases;\n";
         worker_modules << "#[path = \"worker/worker_queues.rs\"]\n";
@@ -326,10 +324,6 @@ void add_rust_worker_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, "worker/workflow_runner.rs.tmpl",
         "worker/workflow_runner.rs", diagnostics, GeneratedArtifactTier::Worker
-    );
-    add_generated_template_file(
-        result, options.output_dir, templates, "worker/worker_handlers.rs.tmpl",
-        "worker/worker_handlers.rs", diagnostics, GeneratedArtifactTier::Worker
     );
     add_generated_template_file(
         result, options.output_dir, templates, "worker/worker_queues.rs.tmpl",

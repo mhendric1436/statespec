@@ -1,6 +1,10 @@
 package backend
 
 import (
+	"context"
+	"time"
+
+	common "statespec-generated/common/backend"
 	"statespec-generated/common/backend/memory"
 	runtime "statespec-generated/common/backend/runtime"
 )
@@ -19,4 +23,39 @@ func NewWorkerTierRuntime() *WorkerTierRuntime {
 		Queues:    runtime.NewQueueStore(),
 		Workflows: runtime.NewWorkflowStore(),
 	}
+}
+
+func (runtime *WorkerTierRuntime) RegisterDefinitions(ctx context.Context) error {
+	tx, err := runtime.Backend.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	if err := WorkerTierRegisterLeaseDefinitionsTx(ctx, tx, runtime.Leases); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+	if err := WorkerTierRegisterQueueDefinitionsTx(ctx, tx, runtime.Queues); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+	if err := WorkerTierRegisterWorkflowDefinitionsTx(ctx, tx, runtime.Workflows); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+	return runtime.Backend.Commit(ctx, tx)
+}
+
+func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext common.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {
+	if workerContext.Executes == nil {
+		return nil, nil
+	}
+	runner := WorkflowRunner{
+		Backend:       runtime.Backend,
+		WorkflowStore: runtime.Workflows,
+		Handler:       handler,
+		WorkerName:    workerContext.WorkerName,
+		LeaseDuration: 30 * time.Second,
+		MaxAttempts:   3,
+	}
+	return runner.RunOnce(ctx, workflowExecutionID, *workerContext.Executes, 1)
 }

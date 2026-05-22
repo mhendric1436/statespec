@@ -97,23 +97,23 @@ The handler should enforce operator-specific policy and response shaping. The re
 implementation remains backend-owned and must enforce optimistic concurrency through the
 transaction passed into the handler.
 
-## Worker Handler Extension Point
+## Worker Runtime Extension Point
 
-Worker handlers are the coarse runtime extension point for a declared `worker`. They
-receive generated worker context metadata such as worker name, singleton flag, lease
-binding, queue binding, workflow binding, and concurrency.
+Worker runtimes are generated for declared `worker` metadata. They own local runtime
+composition for backend stores, definition registration, and one-step workflow execution
+through generated workflow runners. StateSpec no longer generates a parallel coarse
+worker handler interface.
 
-| Language | Generated worker handler surface |
+| Language | Generated worker runtime surface |
 |---|---|
-| C++ | `statespec_generated::IWorker` and `worker/worker_handlers.hpp` |
-| Go | `common.Worker` and `worker/backend.WorkerTierHandler` |
-| Java | `Descriptors.Worker` and `WorkerHandlers.Handler` |
-| Rust | `descriptors::Worker` and `worker::worker_handlers` |
+| C++ | `statespec_generated::worker::WorkerRuntime` |
+| Go | `worker/backend.WorkerTierRuntime` |
+| Java | `WorkerRuntime` |
+| Rust | `worker_runtime::WorkerRuntime` |
 
-Use worker handlers for application-specific runtime composition, custom polling loops,
-or integration with an existing worker framework. When a worker handler reads or mutates
-persisted StateSpec resources, it must do so through the generated backend transaction
-interfaces.
+Use workflow step handlers for business logic. Production adapters may wrap or replace
+the generated runtime loop, but persisted StateSpec resources must still be accessed
+through generated backend transaction interfaces.
 
 ## Workflow Step Handler Extension Point
 

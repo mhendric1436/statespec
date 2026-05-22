@@ -4,6 +4,8 @@ import com.statespec.backend.memory.InMemoryBackend;
 import com.statespec.backend.runtime.LeaseStore;
 import com.statespec.backend.runtime.QueueStore;
 import com.statespec.backend.runtime.WorkflowStore;
+import java.time.Duration;
+import java.util.Optional;
 
 public final class WorkerRuntime {
     private final InMemoryBackend backend;
@@ -20,5 +22,31 @@ public final class WorkerRuntime {
 
     public InMemoryBackend backend() {
         return backend;
+    }
+
+    public void registerDefinitions() throws Exception {
+        var tx = backend.begin();
+        try {
+            WorkerLeases.registerLeaseDefinitionsTx(tx, leases);
+            WorkerQueues.registerQueueDefinitionsTx(tx, queues);
+            WorkerWorkflows.registerWorkflowDefinitionsTx(tx, workflows);
+            backend.commit(tx);
+        } catch (Exception error) {
+            tx.abort();
+            throw error;
+        }
+    }
+
+    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> runOnce(
+        Descriptors.WorkerContext context,
+        WorkflowStepHandlers.Handler handler,
+        String workflowExecutionId
+    ) throws Exception {
+        if (context.executes().isEmpty()) {
+            return Optional.empty();
+        }
+        WorkflowRunner runner =
+            new WorkflowRunner(backend, workflows, handler, context.workerName(), Duration.ofSeconds(30), 3);
+        return runner.runOnce(workflowExecutionId, context.executes().orElseThrow(), 1);
     }
 }

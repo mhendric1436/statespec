@@ -73,7 +73,6 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"worker/worker_runtime.hpp", worker},
             {"worker/workflow_step_handlers.hpp", worker},
             {"worker/workflow_runner.hpp", worker},
-            {"worker/worker_handlers.hpp", worker},
             {"worker/worker_leases.hpp", worker},
             {"worker/worker_queues.hpp", worker},
             {"worker/worker_workflows.hpp", worker},
@@ -151,10 +150,6 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/workflow_runner.hpp", "worker/workflow_runner.hpp",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_handlers.hpp", "worker/worker_handlers.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(

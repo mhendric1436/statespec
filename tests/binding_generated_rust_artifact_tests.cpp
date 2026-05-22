@@ -75,7 +75,6 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"worker/worker_runtime.rs", worker},
             {"worker/workflow_step_handlers.rs", worker},
             {"worker/workflow_runner.rs", worker},
-            {"worker/worker_handlers.rs", worker},
             {"worker/worker_leases.rs", worker},
             {"worker/worker_queues.rs", worker},
             {"worker/worker_workflows.rs", worker},
@@ -157,10 +156,6 @@ void test_rust_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/workflow_runner.rs", "worker/workflow_runner.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_handlers.rs", "worker/worker_handlers.rs",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(
