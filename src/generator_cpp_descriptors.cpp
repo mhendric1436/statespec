@@ -141,7 +141,7 @@ std::string generate_system_descriptors_header(
     out << generate_cpp_entity_descriptors(system);
     out << generate_cpp_runtime_descriptors(system);
     out << generate_cpp_observability_registration(system);
-    out << generate_cpp_runtime_registration(system);
+    out << generate_cpp_runtime_registration(system, templates);
     out << "} // namespace statespec_generated\n";
     return out.str();
 }

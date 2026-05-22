@@ -1,0 +1,191 @@
+private
+static FeatureFlag.Type featureFlagTypeFromDescriptor(String type)
+{
+    return switch (type)
+    {
+            case "string" -> FeatureFlag.Type.STRING;
+            case "int" -> FeatureFlag.Type.INT;
+            case "decimal" -> FeatureFlag.Type.DECIMAL;
+            default -> FeatureFlag.Type.BOOL;
+        };
+    }
+
+    private static FeatureFlag.ScopeKind featureFlagScopeFromDescriptor(String scope) {
+        if (scope.equals("system")) {
+            return FeatureFlag.ScopeKind.SYSTEM;
+        }
+        if (scope.equals("user")) {
+            return FeatureFlag.ScopeKind.USER;
+        }
+        if (scope.startsWith("entity ")) {
+            return FeatureFlag.ScopeKind.ENTITY;
+        }
+        return FeatureFlag.ScopeKind.TENANT;
+    }
+
+    private static FeatureFlag.Value featureFlagValueFromDescriptor(
+        FeatureFlagDefinition definition
+    ) {
+        return switch (definition.type()) {
+            case "string" -> new FeatureFlag.Value.StringValue(definition.defaultValue());
+            case "int" -> new FeatureFlag.Value.IntValue(Long.parseLong(definition.defaultValue()));
+            case "decimal" -> new FeatureFlag.Value.DecimalValue(definition.defaultValue());
+            default -> new FeatureFlag.Value.BoolValue(Boolean.parseBoolean(definition.defaultValue()));
+        };
+    }
+
+    private static Lease.LeaseDefinition leaseDefinitionFromDescriptor(
+        LeaseDefinition definition
+    ) {
+        return new Lease.LeaseDefinition(
+            new Lease.LeaseDefinitionId(definition.name(), 1L),
+            definition.resource().orElse(definition.name()),
+            definition.ttl(),
+            definition.renewEvery().orElse(definition.ttl()),
+            definition.maxTtl(),
+            definition.fencingToken()
+        );
+    }
+
+    public static void ensureSystemCollections(Backend backend)
+        throws Backend.BackendException {
+        backend.ensureCollections(collectionDescriptors());
+    }
+
+    public static void registerFeatureFlagDefinitionsTx(
+        Backend.Transaction tx,
+        FeatureFlag store
+    ) throws Backend.BackendException {
+        for (var definition : featureFlagDefinitions())
+                {
+                    store.registerDefinitionTx(
+                        tx, new FeatureFlag.Definition(
+                                definition.name(), featureFlagTypeFromDescriptor(definition.type()),
+                                featureFlagValueFromDescriptor(definition),
+                                featureFlagScopeFromDescriptor(definition.scope()),
+                                definition.owner(), definition.description(), definition.expires()
+                            )
+                    );
+                }
+            }
+
+          public
+            static void registerQueueDefinitionsTx(Backend.Transaction tx, Queue store)
+                throws Backend.BackendException
+            {
+                for (var definition : queueDefinitions())
+                {
+                    store.registerDefinitionTx(
+                        tx, new Queue.RegisterQueueDefinitionRequest(definition)
+                    );
+                }
+            }
+
+          public
+            static void registerLeaseDefinitionsTx(Backend.Transaction tx, Lease store)
+                throws Backend.BackendException
+            {
+                for (var definition : leaseDefinitions())
+                {
+                    store.registerDefinitionTx(tx, leaseDefinitionFromDescriptor(definition));
+                }
+            }
+
+          public
+            static void registerLogDefinitionsTx(Backend.Transaction tx, Log sink)
+                throws Backend.BackendException
+            {
+                for (var definition : logDefinitions())
+                {
+                    sink.registerDefinitionTx(
+                        tx, new Log.Definition(
+                                definition.name(), logLevelFromDescriptor(definition.level()),
+                                definition.eventName(), definition.fields()
+                            )
+                    );
+                }
+            }
+
+          public
+            static void registerMetricDefinitionsTx(Backend.Transaction tx, Metric sink)
+                throws Backend.BackendException
+            {
+                for (var definition : metricDefinitions())
+                {
+                    sink.registerDefinitionTx(
+                        tx, new Metric.Definition(
+                                definition.name(), metricKindFromDescriptor(definition.kind()),
+                                definition.backendName(), definition.unit(), definition.labels()
+                            )
+                    );
+                }
+            }
+
+          public
+            static void registerObservabilityCatalogTx(
+                Backend.Transaction tx, Log logSink, Metric metricSink
+            ) throws Backend.BackendException
+            {
+                registerLogDefinitionsTx(tx, logSink);
+                registerMetricDefinitionsTx(tx, metricSink);
+            }
+
+          public
+            static void registerWorkflowDefinitionsTx(Backend.Transaction tx, Workflow store)
+                throws Backend.BackendException
+            {
+                for (var definition : workflowDefinitions())
+                {
+                    store.registerDefinitionTx(
+                        tx, new Workflow.RegisterWorkflowDefinitionRequest(definition)
+                    );
+                }
+            }
+
+          public
+            static void registerRuntimeCatalogTx(
+                Backend.Transaction tx, FeatureFlag featureFlagStore, Queue queueStore,
+                Lease leaseStore, Workflow workflowStore, Log logSink, Metric metricSink
+            ) throws Backend.BackendException
+            {
+                registerFeatureFlagDefinitionsTx(tx, featureFlagStore);
+                registerQueueDefinitionsTx(tx, queueStore);
+                registerLeaseDefinitionsTx(tx, leaseStore);
+                registerWorkflowDefinitionsTx(tx, workflowStore);
+                registerObservabilityCatalogTx(tx, logSink, metricSink);
+            }
+
+          public
+            static void registerRuntimeCatalog(
+                Backend backend, FeatureFlag featureFlagStore, Queue queueStore, Lease leaseStore,
+                Workflow workflowStore, Log logSink, Metric metricSink
+            ) throws Backend.BackendException
+            {
+                var tx = backend.begin();
+                try
+                {
+                    registerRuntimeCatalogTx(
+                        tx, featureFlagStore, queueStore, leaseStore, workflowStore, logSink,
+                        metricSink
+                    );
+                    backend.commit(tx);
+                }
+                catch (Backend.BackendException error)
+                {
+                    tx.abort();
+                    throw error;
+                }
+            }
+
+          public
+            static void bootstrapRuntimeCatalog(
+                Backend backend, FeatureFlag featureFlagStore, Queue queueStore, Lease leaseStore,
+                Workflow workflowStore, Log logSink, Metric metricSink
+            ) throws Backend.BackendException
+            {
+                ensureSystemCollections(backend);
+                registerRuntimeCatalog(
+                    backend, featureFlagStore, queueStore, leaseStore, workflowStore, logSink,
+                    metricSink
+                );
+            }

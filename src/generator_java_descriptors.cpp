@@ -142,7 +142,7 @@ std::string generate_descriptors_java(
     out << generate_java_entity_descriptors(system);
     out << generate_java_runtime_descriptors(system);
     out << generate_java_observability_registration(system);
-    out << generate_java_runtime_registration(system);
+    out << generate_java_runtime_registration(system, templates);
     out << "}\n";
     return out.str();
 }

@@ -146,7 +146,7 @@ std::string generate_descriptors_rs(
     out << generate_rust_entity_descriptors(system);
     out << generate_rust_runtime_descriptors(system);
     out << generate_rust_observability_registration(system);
-    out << generate_rust_runtime_registration(system);
+    out << generate_rust_runtime_registration(system, templates);
     return out.str();
 }
 

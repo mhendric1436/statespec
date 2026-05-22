@@ -145,7 +145,7 @@ std::string generate_descriptors_go(
     out << generate_go_entity_descriptors(system);
     out << generate_go_runtime_descriptors(system);
     out << generate_go_observability_registration(system);
-    out << generate_go_runtime_registration(system);
+    out << generate_go_runtime_registration(system, templates);
     return out.str();
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "statespec/generator_bindings.hpp"
+#include "statespec/template_renderer.hpp"
 
 #include <string>
 
@@ -27,6 +28,9 @@ std::string generate_rust_observability_descriptors(const IrSystem& system);
 std::string generate_rust_entity_descriptors(const IrSystem& system);
 std::string generate_rust_runtime_descriptors(const IrSystem& system);
 std::string generate_rust_observability_registration(const IrSystem& system);
-std::string generate_rust_runtime_registration(const IrSystem& system);
+std::string generate_rust_runtime_registration(
+    const IrSystem& system,
+    const TemplatePackage& templates
+);
 
 } // namespace statespec
