@@ -76,14 +76,15 @@ public final class WorkflowRunner {
 {{workflow_step_dispatch_cases}}            if (!handled) {
                 throw new IllegalArgumentException("unknown generated workflow step handler");
             }
-            return Optional.of(
+            Optional<String> nextStep = Optional.empty();
+{{workflow_step_next_cases}}            return Optional.of(
                 workflowStore.completeStep(
                     backend,
                     new Workflow.CompleteWorkflowStepRequest(
                         record.workflowExecutionId(),
                         workerName,
                         record.currentStep(),
-                        Optional.empty(),
+                        nextStep,
                         record.stateJson()
                     )
                 )

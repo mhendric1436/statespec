@@ -54,11 +54,23 @@ fn generated_worker_runner_links_with_memory_backend() {
                     start_step: "validate_request".to_string(),
                     expected_execution_time: Duration::from_secs(60),
                     singleton: false,
-                    steps: vec![WorkflowStepDefinition {
-                        name: "validate_request".to_string(),
-                        expected_execution_time: Duration::from_secs(1),
-                        max_retries: 3,
-                    }],
+                    steps: vec![
+                        WorkflowStepDefinition {
+                            name: "validate_request".to_string(),
+                            expected_execution_time: Duration::from_secs(1),
+                            max_retries: 3,
+                        },
+                        WorkflowStepDefinition {
+                            name: "create_remote_service".to_string(),
+                            expected_execution_time: Duration::from_secs(1),
+                            max_retries: 3,
+                        },
+                        WorkflowStepDefinition {
+                            name: "wait_for_remote_service".to_string(),
+                            expected_execution_time: Duration::from_secs(1),
+                            max_retries: 3,
+                        },
+                    ],
                     metadata: Json::Object(Default::default()),
                 },
             },
@@ -86,9 +98,10 @@ fn generated_worker_runner_links_with_memory_backend() {
         lease_duration: Duration::from_secs(60),
         max_attempts: 3,
     };
-    let completed = runner
+    let advanced = runner
         .run_once("wf-1", "ProvisionService", 1)
         .expect("workflow runner failed")
         .expect("workflow step was not claimed");
-    assert_eq!(completed.status, "Completed");
+    assert_eq!(advanced.status, "Running");
+    assert_eq!(advanced.current_step, "create_remote_service");
 }

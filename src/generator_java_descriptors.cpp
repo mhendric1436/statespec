@@ -80,6 +80,30 @@ std::string generate_workflow_step_dispatch_cases_java(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_step_next_cases_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            for (const auto& statement : step.statements)
+            {
+                if (statement.kind != "transition_to" || !statement.target.has_value())
+                {
+                    continue;
+                }
+                out << "            if (record.workflowName().equals(" << java_string(workflow.name)
+                    << ") && record.currentStep().equals(" << java_string(step.name) << ")) {\n";
+                out << "                nextStep = Optional.of(" << java_string(*statement.target)
+                    << ");\n";
+                out << "            }\n";
+            }
+        }
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_handler_methods_java(const IrSystem& system)
 {
     std::ostringstream out;

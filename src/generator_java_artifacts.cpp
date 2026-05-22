@@ -253,7 +253,8 @@ void add_java_worker_artifacts(
         "worker/com/statespec/generated/WorkflowRunner.java", diagnostics,
         GeneratedArtifactTier::Worker,
         TemplateRenderer::Values{
-            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_java(system)}
+            {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_java(system)},
+            {"workflow_step_next_cases", generate_workflow_step_next_cases_java(system)}
         }
     );
     add_generated_template_file(

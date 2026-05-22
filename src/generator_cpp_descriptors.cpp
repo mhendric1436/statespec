@@ -75,6 +75,30 @@ std::string generate_workflow_step_dispatch_cases(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_step_next_cases(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            for (const auto& statement : step.statements)
+            {
+                if (statement.kind != "transition_to" || !statement.target.has_value())
+                {
+                    continue;
+                }
+                out << "            if (record.workflow_name == " << cpp_string(workflow.name)
+                    << " && record.current_step == " << cpp_string(step.name) << ")\n";
+                out << "            {\n";
+                out << "                next_step = " << cpp_string(*statement.target) << ";\n";
+                out << "            }\n";
+            }
+        }
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_handler_methods(const IrSystem& system)
 {
     std::ostringstream out;

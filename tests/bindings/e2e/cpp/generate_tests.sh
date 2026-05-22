@@ -97,6 +97,8 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.wait_for_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "handle_provision_service_validate_request"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "handler_.handle_provision_service_validate_request"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "next_step = \"create_remote_service\""
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "next_step = \"wait_for_remote_service\""
 run_expect_status 0 make -C "$TMPDIR/out-app-cpp" check
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/api_linking_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/api-linking-fixture"
 run_expect_status 0 "$TMPDIR/out-app-cpp/build/api-linking-fixture"

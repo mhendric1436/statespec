@@ -55,11 +55,17 @@ int main()
                          "validate_request",
                          std::chrono::seconds{60},
                          false,
-                         {statespec::backend::WorkflowStepDefinition{
-                             "validate_request",
-                             std::chrono::seconds{1},
-                             3,
-                         }},
+                         {
+                             statespec::backend::WorkflowStepDefinition{
+                                 "validate_request", std::chrono::seconds{1}, 3
+                             },
+                             statespec::backend::WorkflowStepDefinition{
+                                 "create_remote_service", std::chrono::seconds{1}, 3
+                             },
+                             statespec::backend::WorkflowStepDefinition{
+                                 "wait_for_remote_service", std::chrono::seconds{1}, 3
+                             },
+                         },
                          statespec::backend::Json::object({}),
                      },
                  }
@@ -78,9 +84,10 @@ int main()
     statespec_generated::worker::WorkflowRunner runner{
         backend, workflows, handler, "ProvisionWorker", std::chrono::seconds{60}, 3,
     };
-    const auto completed = runner.run_once("wf-1", "ProvisionService", 1);
-    if (!handler.handled() || !completed.has_value() || completed->status != "Completed")
+    const auto advanced = runner.run_once("wf-1", "ProvisionService", 1);
+    if (!handler.handled() || !advanced.has_value() || advanced->status != "Running" ||
+        advanced->current_step != "create_remote_service")
     {
-        throw std::runtime_error("generated worker runner did not complete linked workflow step");
+        throw std::runtime_error("generated worker runner did not advance linked workflow step");
     }
 }

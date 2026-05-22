@@ -15,6 +15,8 @@ std::string generate_workflow_step_handler_methods_java(const IrSystem& system);
 
 std::string generate_workflow_step_dispatch_cases_java(const IrSystem& system);
 
+std::string generate_workflow_step_next_cases_java(const IrSystem& system);
+
 std::string generate_api_operation_handler_methods_java(const IrSystem& system);
 
 std::string generate_api_operation_dispatch_cases_java(const IrSystem& system);

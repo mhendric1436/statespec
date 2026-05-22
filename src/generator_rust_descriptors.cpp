@@ -70,6 +70,28 @@ std::string generate_workflow_step_dispatch_cases_rs(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_workflow_step_next_cases_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            for (const auto& statement : step.statements)
+            {
+                if (statement.kind != "transition_to" || !statement.target.has_value())
+                {
+                    continue;
+                }
+                out << "            (" << rust_string(workflow.name) << ", "
+                    << rust_string(step.name) << ") => Some(" << rust_string(*statement.target)
+                    << ".to_string()),\n";
+            }
+        }
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_handler_methods_rs(const IrSystem& system)
 {
     std::ostringstream out;

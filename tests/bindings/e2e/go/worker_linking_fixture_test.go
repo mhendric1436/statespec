@@ -45,11 +45,11 @@ func TestGeneratedWorkerRunnerLinksWithMemoryBackend(t *testing.T) {
 			WorkflowVersion:       1,
 			StartStep:             "validate_request",
 			ExpectedExecutionTime: time.Minute,
-			Steps: []common.WorkflowStepDefinition{{
-				Name:                  "validate_request",
-				ExpectedExecutionTime: time.Second,
-				MaxRetries:            3,
-			}},
+			Steps: []common.WorkflowStepDefinition{
+				{Name: "validate_request", ExpectedExecutionTime: time.Second, MaxRetries: 3},
+				{Name: "create_remote_service", ExpectedExecutionTime: time.Second, MaxRetries: 3},
+				{Name: "wait_for_remote_service", ExpectedExecutionTime: time.Second, MaxRetries: 3},
+			},
 			Metadata: common.JSONObject(map[string]common.JSON{}),
 		},
 	})
@@ -76,11 +76,11 @@ func TestGeneratedWorkerRunnerLinksWithMemoryBackend(t *testing.T) {
 		LeaseDuration: time.Minute,
 		MaxAttempts:   3,
 	}
-	completed, err := runner.RunOnce(ctx, "wf-1", "ProvisionService", 1)
+	advanced, err := runner.RunOnce(ctx, "wf-1", "ProvisionService", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !handler.handled || completed == nil || completed.Status != "Completed" {
-		t.Fatalf("worker runner did not complete linked workflow step: handled=%v completed=%#v", handler.handled, completed)
+	if !handler.handled || advanced == nil || advanced.Status != "Running" || advanced.CurrentStep != "create_remote_service" {
+		t.Fatalf("worker runner did not advance linked workflow step: handled=%v advanced=%#v", handler.handled, advanced)
 	}
 }

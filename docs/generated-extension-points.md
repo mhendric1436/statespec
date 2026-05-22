@@ -30,7 +30,8 @@ Generated code owns:
 - workflow step handler context types, typed step-specific handler methods, and
   deterministic workflow step handler keys
 - workflow runners that claim workflow steps, call user handlers, keep claimed steps
-  alive, and complete or fail steps through backend workflow stores
+  alive, advance declared `transition_to` targets, and complete or fail steps through
+  backend workflow stores
 - transaction-scoped catalog registration helpers for queues, leases, workflows, feature
   flags, logs, and metrics
 - operator metadata lookup, mapping, repository, and API handler contracts for external
@@ -120,8 +121,8 @@ through generated backend transaction interfaces.
 Workflow step handlers are the primary business-logic extension point for generated
 worker applications. The generated workflow runner owns the workflow store interaction:
 claiming a step, keeping the claim alive, invoking the generated step-specific user
-handler method, completing the step, and failing the step when the handler returns an
-error.
+handler method, advancing to a declared `transition_to` target when the step succeeds,
+completing terminal steps, and failing the step when the handler returns an error.
 
 | Language | Generated workflow step handler surface |
 |---|---|
@@ -144,6 +145,11 @@ and input payload. Generated `workflow_step_handler_keys` helpers list the valid
 keys in deterministic `WorkflowName.step_name` form. Application code can use those keys
 to register concrete step handlers and fail fast when a declared workflow step has no
 implementation.
+
+The generated runner derives workflow advancement from the `.sspec` workflow body. A
+step with `transition_to next_step` completes the claimed step with `next_step` set to
+that target, leaving the workflow execution `Running`. A step with no transition target
+completes the workflow execution.
 
 Workflow step handlers should be idempotent. A handler may be retried after process
 restart, lease expiry, or backend failover. External calls should use idempotency keys

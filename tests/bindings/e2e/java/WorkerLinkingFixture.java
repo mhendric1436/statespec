@@ -48,9 +48,17 @@ public final class WorkerLinkingFixture
         workflows.registerDefinition(
             backend, new Workflow.RegisterWorkflowDefinitionRequest(new Workflow.WorkflowDefinition(
                          "ProvisionService", 1L, "validate_request", Duration.ofMinutes(1), false,
-                         List.of(new Workflow.WorkflowStepDefinition(
-                             "validate_request", Duration.ofSeconds(1), 3
-                         )),
+                         List.of(
+                             new Workflow.WorkflowStepDefinition(
+                                 "validate_request", Duration.ofSeconds(1), 3
+                             ),
+                             new Workflow.WorkflowStepDefinition(
+                                 "create_remote_service", Duration.ofSeconds(1), 3
+                             ),
+                             new Workflow.WorkflowStepDefinition(
+                                 "wait_for_remote_service", Duration.ofSeconds(1), 3
+                             )
+                         ),
                          "{}"
                      ))
         );
@@ -64,13 +72,13 @@ public final class WorkerLinkingFixture
         WorkflowRunner runner = new WorkflowRunner(
             backend, workflows, handler, "ProvisionWorker", Duration.ofMinutes(1), 3
         );
-        Optional<Workflow.WorkflowExecutionRecord> completed =
+        Optional<Workflow.WorkflowExecutionRecord> advanced =
             runner.runOnce("wf-1", "ProvisionService", 1L);
-        if (!handler.handled || completed.isEmpty() ||
-            !completed.get().status().equals("Completed"))
+        if (!handler.handled || advanced.isEmpty() || !advanced.get().status().equals("Running") ||
+            !advanced.get().currentStep().equals("create_remote_service"))
         {
             throw new IllegalStateException(
-                "generated worker runner did not complete linked workflow step"
+                "generated worker runner did not advance linked workflow step"
             );
         }
     }

@@ -61,19 +61,24 @@ impl<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> WorkflowRunner
             }),
         };
         match handler_result {
-            Ok(()) => self
-                .workflow_store
-                .complete_step(
-                    self.backend,
-                    &CompleteWorkflowStepRequest {
-                        workflow_execution_id: record.workflow_execution_id,
-                        worker: self.worker_name.clone(),
-                        completed_step: record.current_step,
-                        next_step: None,
-                        state: record.state,
-                    },
-                )
-                .map(Some),
+            Ok(()) => {
+                let next_step =
+                    match (record.workflow_name.as_str(), record.current_step.as_str()) {
+{{workflow_step_next_cases}}                            _ => None,
+                    };
+                self.workflow_store
+                    .complete_step(
+                        self.backend,
+                        &CompleteWorkflowStepRequest {
+                            workflow_execution_id: record.workflow_execution_id,
+                            worker: self.worker_name.clone(),
+                            completed_step: record.current_step,
+                            next_step,
+                            state: record.state,
+                        },
+                    )
+                    .map(Some)
+            }
             Err(err) => {
                 let reason = format!("{:?}", err);
                 self.workflow_store
