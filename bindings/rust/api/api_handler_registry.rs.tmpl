@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use crate::api_handlers::{ApiHandler, ApiRequestContext, ApiResponse};
 #[allow(unused_imports)]
-use crate::backend::{Backend, BackendError, BackendResult};
+use crate::backend::{Backend, BackendError, BackendResult, IndexValue};
 use crate::descriptors::*;
 #[allow(unused_imports)]
 use crate::json::Json;
@@ -9,6 +9,48 @@ use crate::json::Json;
 #[derive(Debug, Clone)]
 pub struct DefaultApiHandler<B: Backend> {
     pub backend: B,
+}
+
+#[allow(dead_code)]
+fn extract_api_path_parameters(
+    route_template: &str,
+    actual_path: &Option<String>,
+) -> std::collections::BTreeMap<String, String> {
+    let mut parameters = std::collections::BTreeMap::new();
+    let Some(actual_path) = actual_path else {
+        return parameters;
+    };
+    let template_parts = split_api_path(route_template);
+    let actual_parts = split_api_path(actual_path);
+    for (template_part, actual_part) in template_parts.iter().zip(actual_parts.iter()) {
+        if template_part.starts_with('{') && template_part.ends_with('}') && template_part.len() > 2
+        {
+            parameters.insert(
+                template_part[1..template_part.len() - 1].to_string(),
+                actual_part.clone(),
+            );
+        }
+    }
+    parameters
+}
+
+#[allow(dead_code)]
+fn split_api_path(path: &str) -> Vec<String> {
+    path.split('/')
+        .filter(|part| !part.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+#[allow(dead_code)]
+fn path_parameter_json(
+    parameters: &std::collections::BTreeMap<String, String>,
+    name: &str,
+) -> Json {
+    parameters
+        .get(name)
+        .map(|value| Json::String(value.clone()))
+        .unwrap_or(Json::Null)
 }
 
 impl<B: Backend> ApiHandler for DefaultApiHandler<B> {

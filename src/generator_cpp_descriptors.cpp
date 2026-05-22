@@ -70,6 +70,85 @@ const IrEntity* create_entity_for_api(
     return find_entity(system, api.name.substr(prefix.size()));
 }
 
+const IrEntity* get_entity_for_api(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Get";
+    if (api.method.value_or("") != "GET" || api.name.rfind(prefix, 0) != 0)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool ends_with_suffix(
+    const std::string& value,
+    std::string_view suffix
+)
+{
+    return value.size() >= suffix.size() &&
+           value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+std::string list_item_type(const std::string& type)
+{
+    if (ends_with_suffix(type, "[]"))
+    {
+        return type.substr(0, type.size() - 2);
+    }
+    return {};
+}
+
+const IrField* list_response_field(const IrShape& shape)
+{
+    for (const auto& field : shape.fields)
+    {
+        if (!list_item_type(field.type).empty())
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+const IrEntity* list_entity_for_api(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    if (api.method.value_or("") != "GET" || api.name.rfind("List", 0) != 0 || !api.output)
+    {
+        return nullptr;
+    }
+    const auto* output = find_shape(system, *api.output);
+    if (output == nullptr)
+    {
+        return nullptr;
+    }
+    const auto* list_field = list_response_field(*output);
+    if (list_field == nullptr)
+    {
+        return nullptr;
+    }
+    auto item_type = list_item_type(list_field->type);
+    if (ends_with_suffix(item_type, "Response"))
+    {
+        item_type = item_type.substr(0, item_type.size() - std::string_view{"Response"}.size());
+    }
+    return find_entity(system, item_type);
+}
+
+const IrIndex* select_list_index(const IrEntity& entity)
+{
+    if (!entity.indexes.empty())
+    {
+        return &entity.indexes.front();
+    }
+    return nullptr;
+}
+
 bool create_api_has_required_request_fields(
     const IrEntity& entity,
     const IrShape& request
@@ -193,6 +272,21 @@ std::string cpp_create_response_assignment(
         return "std::string{" + cpp_string(entity.initial_state.value_or("Created")) + "}";
     }
     return cpp_default_response_assignment(field, context_expr);
+}
+
+std::string cpp_record_response_assignment(
+    const IrField& field,
+    const std::string& record_expr
+)
+{
+    return cpp_decode_expr(
+        field, "require_member(" + record_expr + ".document, " + cpp_string(field.name) + ")"
+    );
+}
+
+std::string cpp_path_value(const std::string& field_name)
+{
+    return "path_parameter_json(path_parameters, " + cpp_string(field_name) + ")";
 }
 
 void write_cpp_parent_validation(
@@ -327,6 +421,141 @@ bool write_cpp_create_handler_body(
     {
         out << "            return ApiResponse{201, statespec::backend::Json::object({})};\n";
     }
+    out << "        }\n";
+    out << "        catch (...)\n";
+    out << "        {\n";
+    out << "            tx->abort();\n";
+    out << "            throw;\n";
+    out << "        }\n";
+    return true;
+}
+
+bool write_cpp_get_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = get_entity_for_api(system, api);
+    if (entity == nullptr)
+    {
+        return false;
+    }
+    out << "        const auto path_parameters = extract_api_path_parameters("
+        << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
+    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        repository.register_descriptor(backend_);\n";
+    out << "        auto tx = backend_.begin();\n";
+    out << "        try\n";
+    out << "        {\n";
+    out << "            const auto record = repository.getTx(\n";
+    out << "                *tx,\n";
+    out << "                {\n";
+    for (const auto& key_field : entity->key_fields)
+    {
+        out << "                    EntityKeyValue{" << cpp_string(key_field) << ", "
+            << cpp_path_value(key_field) << "},\n";
+    }
+    out << "                }\n";
+    out << "            );\n";
+    out << "            backend_.commit(*tx);\n";
+    out << "            if (!record.has_value())\n";
+    out << "            {\n";
+    out << "                return ApiResponse{404, statespec::backend::Json::object({})};\n";
+    out << "            }\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "            ::statespec_generated::" << pascal_identifier(shape->name)
+                << " response{};\n";
+            for (const auto& field : shape->fields)
+            {
+                out << "            response." << field.name << " = "
+                    << cpp_record_response_assignment(field, "record.value()") << ";\n";
+            }
+            out << "            return encode_" << snake_identifier(api.name)
+                << "_response(response, 200);\n";
+        }
+        else
+        {
+            out << "            return ApiResponse{200, record->document};\n";
+        }
+    }
+    else
+    {
+        out << "            return ApiResponse{200, record->document};\n";
+    }
+    out << "        }\n";
+    out << "        catch (...)\n";
+    out << "        {\n";
+    out << "            tx->abort();\n";
+    out << "            throw;\n";
+    out << "        }\n";
+    return true;
+}
+
+bool write_cpp_list_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = list_entity_for_api(system, api);
+    const auto* shape = api.output ? find_shape(system, *api.output) : nullptr;
+    const auto* list_field = shape == nullptr ? nullptr : list_response_field(*shape);
+    if (entity == nullptr || shape == nullptr || list_field == nullptr)
+    {
+        return false;
+    }
+    const auto* index = select_list_index(*entity);
+    out << "        const auto path_parameters = extract_api_path_parameters("
+        << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
+    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        repository.register_descriptor(backend_);\n";
+    out << "        auto tx = backend_.begin();\n";
+    out << "        try\n";
+    out << "        {\n";
+    out << "            const auto records = repository.listByIndexTx(\n";
+    out << "                *tx,\n";
+    out << "                " << cpp_string(index == nullptr ? "" : index->name) << ",\n";
+    out << "                {\n";
+    if (index != nullptr)
+    {
+        for (const auto& field_name : index->fields)
+        {
+            if (api.path.value_or("").find("{" + field_name + "}") != std::string::npos)
+            {
+                out << "                    statespec::backend::IndexValue::string_value("
+                       "path_parameter_json(path_parameters, "
+                    << cpp_string(field_name) << ").as_string()),\n";
+            }
+        }
+    }
+    out << "                }\n";
+    out << "            );\n";
+    out << "            backend_.commit(*tx);\n";
+    out << "            statespec::backend::Json::Object body;\n";
+    for (const auto& field : shape->fields)
+    {
+        if (&field == list_field)
+        {
+            out << "            statespec::backend::Json::Array items;\n";
+            out << "            for (const auto& record : records)\n";
+            out << "            {\n";
+            out << "                items.push_back(record.document);\n";
+            out << "            }\n";
+            out << "            body.emplace(" << cpp_string(field.name)
+                << ", statespec::backend::Json::array(std::move(items)));\n";
+        }
+        else
+        {
+            out << "            body.emplace(" << cpp_string(field.name) << ", "
+                << cpp_path_value(field.name) << ");\n";
+        }
+    }
+    out << "            return ApiResponse{200, "
+           "statespec::backend::Json::object(std::move(body))};\n";
     out << "        }\n";
     out << "        catch (...)\n";
     out << "        {\n";
@@ -475,6 +704,16 @@ std::string generate_api_operation_default_handler_methods(const IrSystem& syste
             << "(const ApiRequestContext& context) override\n";
         out << "    {\n";
         if (write_cpp_create_handler_body(out, system, api))
+        {
+            out << "    }\n\n";
+            continue;
+        }
+        if (write_cpp_get_handler_body(out, system, api))
+        {
+            out << "    }\n\n";
+            continue;
+        }
+        if (write_cpp_list_handler_body(out, system, api))
         {
             out << "    }\n\n";
             continue;

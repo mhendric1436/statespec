@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	common "statespec-generated/common/backend"
@@ -10,6 +11,40 @@ import (
 
 var _ = fmt.Errorf
 var _ = time.Now
+
+func extractAPIPathParameters(routeTemplate string, actualPath *string) map[string]string {
+	parameters := map[string]string{}
+	if actualPath == nil {
+		return parameters
+	}
+	templateParts := splitAPIPath(routeTemplate)
+	actualParts := splitAPIPath(*actualPath)
+	for i := 0; i < len(templateParts) && i < len(actualParts); i++ {
+		part := templateParts[i]
+		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") && len(part) > 2 {
+			parameters[part[1:len(part)-1]] = actualParts[i]
+		}
+	}
+	return parameters
+}
+
+func splitAPIPath(path string) []string {
+	parts := []string{}
+	for _, part := range strings.Split(path, "/") {
+		if part != "" {
+			parts = append(parts, part)
+		}
+	}
+	return parts
+}
+
+func pathParameterJSON(parameters map[string]string, name string) common.JSON {
+	value, ok := parameters[name]
+	if !ok {
+		return common.JSONNull()
+	}
+	return common.JSONString(value)
+}
 
 type DefaultAPITierHandler struct {
 	Backend common.Backend

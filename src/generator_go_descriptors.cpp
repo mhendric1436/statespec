@@ -70,6 +70,85 @@ const IrEntity* create_entity_for_api_go(
     return find_entity(system, api.name.substr(prefix.size()));
 }
 
+const IrEntity* get_entity_for_api_go(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Get";
+    if (api.method.value_or("") != "GET" || api.name.rfind(prefix, 0) != 0)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool ends_with_suffix_go(
+    const std::string& value,
+    std::string_view suffix
+)
+{
+    return value.size() >= suffix.size() &&
+           value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+std::string list_item_type_go(const std::string& type)
+{
+    if (ends_with_suffix_go(type, "[]"))
+    {
+        return type.substr(0, type.size() - 2);
+    }
+    return {};
+}
+
+const IrField* list_response_field_go(const IrShape& shape)
+{
+    for (const auto& field : shape.fields)
+    {
+        if (!list_item_type_go(field.type).empty())
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+const IrEntity* list_entity_for_api_go(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    if (api.method.value_or("") != "GET" || api.name.rfind("List", 0) != 0 || !api.output)
+    {
+        return nullptr;
+    }
+    const auto* output = find_shape(system, *api.output);
+    if (output == nullptr)
+    {
+        return nullptr;
+    }
+    const auto* list_field = list_response_field_go(*output);
+    if (list_field == nullptr)
+    {
+        return nullptr;
+    }
+    auto item_type = list_item_type_go(list_field->type);
+    if (ends_with_suffix_go(item_type, "Response"))
+    {
+        item_type = item_type.substr(0, item_type.size() - std::string_view{"Response"}.size());
+    }
+    return find_entity(system, item_type);
+}
+
+const IrIndex* select_list_index_go(const IrEntity& entity)
+{
+    if (!entity.indexes.empty())
+    {
+        return &entity.indexes.front();
+    }
+    return nullptr;
+}
+
 bool create_api_has_required_request_fields_go(
     const IrEntity& entity,
     const IrShape& request
@@ -342,6 +421,127 @@ bool write_go_create_handler_body(
     return true;
 }
 
+bool write_go_get_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = get_entity_for_api_go(system, api);
+    if (entity == nullptr)
+    {
+        return false;
+    }
+    out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
+        << ", request.Path)\n";
+    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
+           "common.APIResponse{}, err }\n";
+    out << "\ttx, err := handler.Backend.Begin(ctx)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tdefer func() { if tx.IsOpen() { _ = tx.Abort(ctx) } }()\n";
+    out << "\trecord, err := repository.GetTx(ctx, tx, []common.EntityKeyValue{\n";
+    for (const auto& key_field : entity->key_fields)
+    {
+        out << "\t\t{Field: " << go_string(key_field)
+            << ", Value: pathParameterJSON(pathParameters, " << go_string(key_field) << ")},\n";
+    }
+    out << "\t})\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tif err := handler.Backend.Commit(ctx, tx); err != nil { return common.APIResponse{}, "
+           "err }\n";
+    out << "\tif record == nil { return common.APIResponse{StatusCode: 404, Body: "
+           "common.JSONObject(map[string]common.JSON{})}, nil }\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "\tresponse := common." << pascal_identifier(shape->name) << "{}\n";
+            for (const auto& field : shape->fields)
+            {
+                const auto var_name = lower_camel_identifier(field.name);
+                out << "\t" << var_name << "JSON, ok := record.Document.Find("
+                    << go_string(field.name) << ")\n";
+                out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"missing entity field "
+                    << field.name << "\") }\n";
+                out << "\t" << var_name << ", err := " << go_decode_func(field) << "(" << var_name
+                    << "JSON, " << go_string(field.name) << ")\n";
+                out << "\tif err != nil { return common.APIResponse{}, err }\n";
+                out << "\tresponse." << pascal_identifier(field.name) << " = " << var_name << "\n";
+            }
+            out << "\treturn Encode" << pascal_identifier(api.name)
+                << "ResponseWithStatus(response, 200), nil\n";
+        }
+        else
+        {
+            out << "\treturn common.APIResponse{StatusCode: 200, Body: record.Document}, nil\n";
+        }
+    }
+    else
+    {
+        out << "\treturn common.APIResponse{StatusCode: 200, Body: record.Document}, nil\n";
+    }
+    return true;
+}
+
+bool write_go_list_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = list_entity_for_api_go(system, api);
+    const auto* shape = api.output ? find_shape(system, *api.output) : nullptr;
+    const auto* list_field = shape == nullptr ? nullptr : list_response_field_go(*shape);
+    if (entity == nullptr || shape == nullptr || list_field == nullptr)
+    {
+        return false;
+    }
+    const auto* index = select_list_index_go(*entity);
+    out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
+        << ", request.Path)\n";
+    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
+           "common.APIResponse{}, err }\n";
+    out << "\ttx, err := handler.Backend.Begin(ctx)\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tdefer func() { if tx.IsOpen() { _ = tx.Abort(ctx) } }()\n";
+    out << "\trecords, err := repository.ListByIndexTx(ctx, tx, "
+        << go_string(index == nullptr ? "" : index->name) << ", []common.IndexValue{\n";
+    if (index != nullptr)
+    {
+        for (const auto& field_name : index->fields)
+        {
+            if (api.path.value_or("").find("{" + field_name + "}") != std::string::npos)
+            {
+                out << "\t\tcommon.StringIndexValue(pathParameters[" << go_string(field_name)
+                    << "]),\n";
+            }
+        }
+    }
+    out << "\t})\n";
+    out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tif err := handler.Backend.Commit(ctx, tx); err != nil { return common.APIResponse{}, "
+           "err }\n";
+    out << "\tbody := map[string]common.JSON{}\n";
+    for (const auto& field : shape->fields)
+    {
+        if (&field == list_field)
+        {
+            out << "\titems := []common.JSON{}\n";
+            out << "\tfor _, record := range records { items = append(items, record.Document) }\n";
+            out << "\tbody[" << go_string(field.name) << "] = common.JSONArray(items)\n";
+        }
+        else
+        {
+            out << "\tbody[" << go_string(field.name) << "] = pathParameterJSON(pathParameters, "
+                << go_string(field.name) << ")\n";
+        }
+    }
+    out << "\treturn common.APIResponse{StatusCode: 200, Body: common.JSONObject(body)}, nil\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_descriptors_go(
@@ -475,6 +675,16 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
             << "(ctx context.Context, request common.APIRequestContext) (common.APIResponse, "
                "error) {\n";
         if (write_go_create_handler_body(out, system, api))
+        {
+            out << "}\n\n";
+            continue;
+        }
+        if (write_go_get_handler_body(out, system, api))
+        {
+            out << "}\n\n";
+            continue;
+        }
+        if (write_go_list_handler_body(out, system, api))
         {
             out << "}\n\n";
             continue;

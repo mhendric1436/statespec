@@ -5,6 +5,45 @@ import java.util.Optional;
 public final class ApiHandlerRegistry {
     private ApiHandlerRegistry() {}
 
+    private static java.util.Map<String, String> extractApiPathParameters(
+        String routeTemplate,
+        Optional<String> actualPath
+    ) {
+        var parameters = new java.util.HashMap<String, String>();
+        if (actualPath.isEmpty()) {
+            return parameters;
+        }
+        var templateParts = splitApiPath(routeTemplate);
+        var actualParts = splitApiPath(actualPath.get());
+        var count = Math.min(templateParts.size(), actualParts.size());
+        for (var i = 0; i < count; i++) {
+            var part = templateParts.get(i);
+            if (part.length() > 2 && part.startsWith("{") && part.endsWith("}")) {
+                parameters.put(part.substring(1, part.length() - 1), actualParts.get(i));
+            }
+        }
+        return parameters;
+    }
+
+    private static java.util.List<String> splitApiPath(String path) {
+        var parts = new java.util.ArrayList<String>();
+        for (var part : path.split("/")) {
+            if (!part.isEmpty()) {
+                parts.add(part);
+            }
+        }
+        return parts;
+    }
+
+    private static com.statespec.backend.Json pathParameterJson(
+        java.util.Map<String, String> parameters,
+        String name
+    ) {
+        var value = parameters.get(name);
+        return value == null ? com.statespec.backend.Json.nullValue()
+                             : com.statespec.backend.Json.string(value);
+    }
+
     public static final class DefaultHandler implements ApiHandlers.Handler {
         private final com.statespec.backend.Backend backend;
 

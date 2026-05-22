@@ -70,6 +70,85 @@ const IrEntity* create_entity_for_api_rs(
     return find_entity(system, api.name.substr(prefix.size()));
 }
 
+const IrEntity* get_entity_for_api_rs(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Get";
+    if (api.method.value_or("") != "GET" || api.name.rfind(prefix, 0) != 0)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool ends_with_suffix_rs(
+    const std::string& value,
+    std::string_view suffix
+)
+{
+    return value.size() >= suffix.size() &&
+           value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+std::string list_item_type_rs(const std::string& type)
+{
+    if (ends_with_suffix_rs(type, "[]"))
+    {
+        return type.substr(0, type.size() - 2);
+    }
+    return {};
+}
+
+const IrField* list_response_field_rs(const IrShape& shape)
+{
+    for (const auto& field : shape.fields)
+    {
+        if (!list_item_type_rs(field.type).empty())
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+const IrEntity* list_entity_for_api_rs(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    if (api.method.value_or("") != "GET" || api.name.rfind("List", 0) != 0 || !api.output)
+    {
+        return nullptr;
+    }
+    const auto* output = find_shape(system, *api.output);
+    if (output == nullptr)
+    {
+        return nullptr;
+    }
+    const auto* list_field = list_response_field_rs(*output);
+    if (list_field == nullptr)
+    {
+        return nullptr;
+    }
+    auto item_type = list_item_type_rs(list_field->type);
+    if (ends_with_suffix_rs(item_type, "Response"))
+    {
+        item_type = item_type.substr(0, item_type.size() - std::string_view{"Response"}.size());
+    }
+    return find_entity(system, item_type);
+}
+
+const IrIndex* select_list_index_rs(const IrEntity& entity)
+{
+    if (!entity.indexes.empty())
+    {
+        return &entity.indexes.front();
+    }
+    return nullptr;
+}
+
 bool create_api_has_required_request_fields_rs(
     const IrEntity& entity,
     const IrShape& request
@@ -351,6 +430,134 @@ bool write_rust_create_handler_body(
     return true;
 }
 
+bool write_rust_get_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = get_entity_for_api_rs(system, api);
+    if (entity == nullptr)
+    {
+        return false;
+    }
+    out << "        let path_parameters = extract_api_path_parameters("
+        << rust_string(api.path.value_or("")) << ", &context.path);\n";
+    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
+    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name)
+        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let mut tx = self.backend.begin()?;\n";
+    out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name) << "Repository<B>>::get_tx(\n";
+    out << "            &repository,\n";
+    out << "            &mut tx,\n";
+    out << "            vec![\n";
+    for (const auto& key_field : entity->key_fields)
+    {
+        out << "                EntityKeyValue { field: " << rust_string(key_field)
+            << ".to_string(), value: path_parameter_json(&path_parameters, "
+            << rust_string(key_field) << ") },\n";
+    }
+    out << "            ],\n";
+    out << "        )?;\n";
+    out << "        self.backend.commit(tx)?;\n";
+    out << "        let Some(record) = record else {\n";
+    out << "            return Ok(ApiResponse { status_code: 404, body: "
+           "Json::Object(std::collections::BTreeMap::new()) });\n";
+    out << "        };\n";
+    out << "        let mut body = std::collections::BTreeMap::new();\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            for (const auto& field : shape->fields)
+            {
+                out << "        if let Json::Object(document) = &record.document {\n";
+                out << "            if let Some(value) = document.get(" << rust_string(field.name)
+                    << ") {\n";
+                out << "                body.insert(" << rust_string(field.name)
+                    << ".to_string(), value.clone());\n";
+                out << "            }\n";
+                out << "        }\n";
+            }
+            out << "        Ok(ApiResponse { status_code: 200, body: Json::Object(body) })\n";
+        }
+        else
+        {
+            out << "        Ok(ApiResponse { status_code: 200, body: record.document })\n";
+        }
+    }
+    else
+    {
+        out << "        Ok(ApiResponse { status_code: 200, body: record.document })\n";
+    }
+    return true;
+}
+
+bool write_rust_list_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = list_entity_for_api_rs(system, api);
+    const auto* shape = api.output ? find_shape(system, *api.output) : nullptr;
+    const auto* list_field = shape == nullptr ? nullptr : list_response_field_rs(*shape);
+    if (entity == nullptr || shape == nullptr || list_field == nullptr)
+    {
+        return false;
+    }
+    const auto* index = select_list_index_rs(*entity);
+    out << "        let path_parameters = extract_api_path_parameters("
+        << rust_string(api.path.value_or("")) << ", &context.path);\n";
+    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
+    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name)
+        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let mut tx = self.backend.begin()?;\n";
+    out << "        let records = <Default" << pascal_identifier(entity->name) << "Repository as "
+        << pascal_identifier(entity->name) << "Repository<B>>::list_by_index_tx(\n";
+    out << "            &repository,\n";
+    out << "            &mut tx,\n";
+    out << "            " << rust_string(index == nullptr ? "" : index->name) << ".to_string(),\n";
+    out << "            vec![\n";
+    if (index != nullptr)
+    {
+        for (const auto& field_name : index->fields)
+        {
+            if (api.path.value_or("").find("{" + field_name + "}") != std::string::npos)
+            {
+                out << "                IndexValue::String(path_parameters.get("
+                    << rust_string(field_name) << ").cloned().unwrap_or_else(String::new)),\n";
+            }
+        }
+    }
+    out << "            ],\n";
+    out << "        )?;\n";
+    out << "        self.backend.commit(tx)?;\n";
+    out << "        let mut body = std::collections::BTreeMap::new();\n";
+    for (const auto& field : shape->fields)
+    {
+        if (&field == list_field)
+        {
+            out << "        body.insert(\n";
+            out << "            " << rust_string(field.name) << ".to_string(),\n";
+            out << "            Json::Array(records.into_iter().map(|record| "
+                   "record.document).collect()),\n";
+            out << "        );\n";
+        }
+        else
+        {
+            out << "        body.insert(" << rust_string(field.name)
+                << ".to_string(), path_parameter_json(&path_parameters, " << rust_string(field.name)
+                << "));\n";
+        }
+    }
+    out << "        Ok(ApiResponse { status_code: 200, body: Json::Object(body) })\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_descriptors_rs(
@@ -475,6 +682,16 @@ std::string generate_api_operation_default_handler_methods_rs(const IrSystem& sy
         out << "    fn handle_" << snake_identifier(api.name)
             << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
         if (write_rust_create_handler_body(out, system, api))
+        {
+            out << "    }\n\n";
+            continue;
+        }
+        if (write_rust_get_handler_body(out, system, api))
+        {
+            out << "    }\n\n";
+            continue;
+        }
+        if (write_rust_list_handler_body(out, system, api))
         {
             out << "    }\n\n";
             continue;

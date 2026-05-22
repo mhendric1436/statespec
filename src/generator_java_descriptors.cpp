@@ -71,6 +71,85 @@ const IrEntity* create_entity_for_api_java(
     return find_entity(system, api.name.substr(prefix.size()));
 }
 
+const IrEntity* get_entity_for_api_java(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    constexpr std::string_view prefix = "Get";
+    if (api.method.value_or("") != "GET" || api.name.rfind(prefix, 0) != 0)
+    {
+        return nullptr;
+    }
+    return find_entity(system, api.name.substr(prefix.size()));
+}
+
+bool ends_with_suffix_java(
+    const std::string& value,
+    std::string_view suffix
+)
+{
+    return value.size() >= suffix.size() &&
+           value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+std::string list_item_type_java(const std::string& type)
+{
+    if (ends_with_suffix_java(type, "[]"))
+    {
+        return type.substr(0, type.size() - 2);
+    }
+    return {};
+}
+
+const IrField* list_response_field_java(const IrShape& shape)
+{
+    for (const auto& field : shape.fields)
+    {
+        if (!list_item_type_java(field.type).empty())
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+const IrEntity* list_entity_for_api_java(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    if (api.method.value_or("") != "GET" || api.name.rfind("List", 0) != 0 || !api.output)
+    {
+        return nullptr;
+    }
+    const auto* output = find_shape(system, *api.output);
+    if (output == nullptr)
+    {
+        return nullptr;
+    }
+    const auto* list_field = list_response_field_java(*output);
+    if (list_field == nullptr)
+    {
+        return nullptr;
+    }
+    auto item_type = list_item_type_java(list_field->type);
+    if (ends_with_suffix_java(item_type, "Response"))
+    {
+        item_type = item_type.substr(0, item_type.size() - std::string_view{"Response"}.size());
+    }
+    return find_entity(system, item_type);
+}
+
+const IrIndex* select_list_index_java(const IrEntity& entity)
+{
+    if (!entity.indexes.empty())
+    {
+        return &entity.indexes.front();
+    }
+    return nullptr;
+}
+
 bool create_api_has_required_request_fields_java(
     const IrEntity& entity,
     const IrShape& request
@@ -369,6 +448,169 @@ bool write_java_create_handler_body(
     return true;
 }
 
+bool write_java_get_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = get_entity_for_api_java(system, api);
+    if (entity == nullptr)
+    {
+        return false;
+    }
+    out << "            var pathParameters = extractApiPathParameters("
+        << java_string(api.path.value_or("")) << ", context.path());\n";
+    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
+        << "Repository();\n";
+    out << "            repository.registerDescriptor(backend);\n";
+    out << "            var tx = backend.begin();\n";
+    out << "            try {\n";
+    out << "                var record = repository.getTx(\n";
+    out << "                    tx,\n";
+    out << "                    java.util.List.of(\n";
+    for (std::size_t i = 0; i < entity->key_fields.size(); ++i)
+    {
+        const auto& key_field = entity->key_fields[i];
+        out << "                        new Descriptors.EntityKeyValue(" << java_string(key_field)
+            << ", pathParameterJson(pathParameters, " << java_string(key_field) << "))"
+            << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
+    }
+    out << "                    )\n";
+    out << "                );\n";
+    out << "                backend.commit(tx);\n";
+    out << "                if (record.isEmpty()) {\n";
+    out << "                    return new Descriptors.ApiResponse(404, "
+           "com.statespec.backend.Json.object(java.util.Map.of()));\n";
+    out << "                }\n";
+    if (api.output.has_value())
+    {
+        if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
+        {
+            out << "                var document = record.get().document();\n";
+            out << "                var response = new Descriptors."
+                << pascal_identifier(shape->name) << "(\n";
+            for (std::size_t i = 0; i < shape->fields.size(); ++i)
+            {
+                const auto& field = shape->fields[i];
+                out << "                    ";
+                if (is_optional_type(field.type))
+                {
+                    out << "Optional.of(ApiCodecs." << java_decode_func(field) << "(document.find("
+                        << java_string(field.name) << ").orElseThrow(), " << java_string(field.name)
+                        << "))";
+                }
+                else
+                {
+                    out << "ApiCodecs." << java_decode_func(field) << "(document.find("
+                        << java_string(field.name) << ").orElseThrow(), " << java_string(field.name)
+                        << ")";
+                }
+                out << (i + 1 < shape->fields.size() ? "," : "") << "\n";
+            }
+            out << "                );\n";
+            out << "                return ApiCodecs.encode" << pascal_identifier(api.name)
+                << "Response(response, 200);\n";
+        }
+        else
+        {
+            out << "                return new Descriptors.ApiResponse(200, "
+                   "record.get().document());\n";
+        }
+    }
+    else
+    {
+        out << "                return new Descriptors.ApiResponse(200, "
+               "record.get().document());\n";
+    }
+    out << "            } catch (Exception error) {\n";
+    out << "                if (tx.isOpen()) {\n";
+    out << "                    tx.abort();\n";
+    out << "                }\n";
+    out << "                throw error;\n";
+    out << "            }\n";
+    return true;
+}
+
+bool write_java_list_handler_body(
+    std::ostringstream& out,
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = list_entity_for_api_java(system, api);
+    const auto* shape = api.output ? find_shape(system, *api.output) : nullptr;
+    const auto* list_field = shape == nullptr ? nullptr : list_response_field_java(*shape);
+    if (entity == nullptr || shape == nullptr || list_field == nullptr)
+    {
+        return false;
+    }
+    const auto* index = select_list_index_java(*entity);
+    out << "            var pathParameters = extractApiPathParameters("
+        << java_string(api.path.value_or("")) << ", context.path());\n";
+    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
+        << "Repository();\n";
+    out << "            repository.registerDescriptor(backend);\n";
+    out << "            var tx = backend.begin();\n";
+    out << "            try {\n";
+    out << "                var records = repository.listByIndexTx(\n";
+    out << "                    tx,\n";
+    out << "                    " << java_string(index == nullptr ? "" : index->name) << ",\n";
+    out << "                    java.util.List.of(\n";
+    bool wrote_value = false;
+    if (index != nullptr)
+    {
+        for (const auto& field_name : index->fields)
+        {
+            if (api.path.value_or("").find("{" + field_name + "}") != std::string::npos)
+            {
+                if (wrote_value)
+                {
+                    out << ",\n";
+                }
+                out << "                        new "
+                       "com.statespec.backend.Backend.IndexValue.StringValue("
+                       "pathParameters.getOrDefault("
+                    << java_string(field_name) << ", \"\"))";
+                wrote_value = true;
+            }
+        }
+    }
+    out << "\n";
+    out << "                    )\n";
+    out << "                );\n";
+    out << "                backend.commit(tx);\n";
+    out << "                var body = new java.util.HashMap<String, "
+           "com.statespec.backend.Json>();\n";
+    for (const auto& field : shape->fields)
+    {
+        if (&field == list_field)
+        {
+            out << "                var items = new "
+                   "java.util.ArrayList<com.statespec.backend.Json>();\n";
+            out << "                for (var record : records) {\n";
+            out << "                    items.add(record.document());\n";
+            out << "                }\n";
+            out << "                body.put(" << java_string(field.name)
+                << ", com.statespec.backend.Json.array(items));\n";
+        }
+        else
+        {
+            out << "                body.put(" << java_string(field.name)
+                << ", pathParameterJson(pathParameters, " << java_string(field.name) << "));\n";
+        }
+    }
+    out << "                return new Descriptors.ApiResponse(200, "
+           "com.statespec.backend.Json.object(body));\n";
+    out << "            } catch (Exception error) {\n";
+    out << "                if (tx.isOpen()) {\n";
+    out << "                    tx.abort();\n";
+    out << "                }\n";
+    out << "                throw error;\n";
+    out << "            }\n";
+    return true;
+}
+
 } // namespace
 
 std::string generate_descriptors_java(
@@ -511,6 +753,16 @@ std::string generate_api_operation_default_handler_methods_java(const IrSystem& 
             out << "        }\n\n";
             continue;
         }
+        if (write_java_get_handler_body(out, system, api))
+        {
+            out << "        }\n\n";
+            continue;
+        }
+        if (write_java_list_handler_body(out, system, api))
+        {
+            out << "        }\n\n";
+            continue;
+        }
         if (api.input.has_value())
         {
             out << "            var request = ApiCodecs.decode" << pascal_identifier(api.name)
@@ -568,28 +820,28 @@ std::string generate_api_codecs_java(const IrSystem& system)
            "Json.NullValue)).orElseThrow(() -> new IllegalArgumentException(\"missing required "
            "API field \" + fieldName));\n";
     out << "    }\n\n";
-    out << "    private static String decodeString(Json value, String fieldName) {\n";
+    out << "    static String decodeString(Json value, String fieldName) {\n";
     out << "        if (value instanceof Json.StringValue stringValue) { return "
            "stringValue.value(); }\n";
     out << "        throw new IllegalArgumentException(\"API field \" + fieldName + \" must be a "
            "string\");\n";
     out << "    }\n\n";
-    out << "    private static Boolean decodeBoolean(Json value, String fieldName) {\n";
+    out << "    static Boolean decodeBoolean(Json value, String fieldName) {\n";
     out << "        if (value instanceof Json.BooleanValue booleanValue) { return "
            "booleanValue.value(); }\n";
     out << "        throw new IllegalArgumentException(\"API field \" + fieldName + \" must be a "
            "bool\");\n";
     out << "    }\n\n";
-    out << "    private static Long decodeLong(Json value, String fieldName) {\n";
+    out << "    static Long decodeLong(Json value, String fieldName) {\n";
     out << "        if (value instanceof Json.IntegerValue integerValue) { return "
            "integerValue.value(); }\n";
     out << "        throw new IllegalArgumentException(\"API field \" + fieldName + \" must be an "
            "integer\");\n";
     out << "    }\n\n";
-    out << "    private static Integer decodeInteger(Json value, String fieldName) {\n";
+    out << "    static Integer decodeInteger(Json value, String fieldName) {\n";
     out << "        return Math.toIntExact(decodeLong(value, fieldName));\n";
     out << "    }\n\n";
-    out << "    private static Double decodeDouble(Json value, String fieldName) {\n";
+    out << "    static Double decodeDouble(Json value, String fieldName) {\n";
     out << "        if (value instanceof Json.DecimalValue decimalValue) { return "
            "decimalValue.value().doubleValue(); }\n";
     out << "        if (value instanceof Json.IntegerValue integerValue) { return "
@@ -597,7 +849,7 @@ std::string generate_api_codecs_java(const IrSystem& system)
     out << "        throw new IllegalArgumentException(\"API field \" + fieldName + \" must be a "
            "number\");\n";
     out << "    }\n\n";
-    out << "    private static Json decodeJson(Json value, String fieldName) {\n";
+    out << "    static Json decodeJson(Json value, String fieldName) {\n";
     out << "        return value;\n";
     out << "    }\n\n";
 

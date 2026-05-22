@@ -83,6 +83,11 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_regist
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "\"status\""
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "missing required parent Account"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "missing required parent Project"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "extractAPIPathParameters"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository.GetTx"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository.ListByIndexTx"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "StatusCode: 404"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "common.JSONArray(items)"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"
