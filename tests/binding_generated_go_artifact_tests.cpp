@@ -10,7 +10,7 @@ statespec::GenerationResult generate_go_bindings_for_artifact_tests()
         empty_system_spec(),
         statespec::BindingGeneratorOptions{
             statespec::BindingLanguage::Go,
-            "/tmp/statespec-artifact-tier-test/go",
+            std::filesystem::path{statespec::test::ArtifactTierTestRoot} / "go",
             statespec::BindingGenerationTier::All,
             {},
         },

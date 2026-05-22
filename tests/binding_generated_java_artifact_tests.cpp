@@ -10,7 +10,7 @@ statespec::GenerationResult generate_java_bindings_for_artifact_tests()
         empty_system_spec(),
         statespec::BindingGeneratorOptions{
             statespec::BindingLanguage::Java,
-            "/tmp/statespec-artifact-tier-test/java",
+            std::filesystem::path{statespec::test::ArtifactTierTestRoot} / "java",
             statespec::BindingGenerationTier::All,
             {},
         },

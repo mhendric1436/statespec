@@ -10,7 +10,7 @@ statespec::GenerationResult generate_cpp_bindings_for_artifact_tests()
         empty_system_spec(),
         statespec::BindingGeneratorOptions{
             statespec::BindingLanguage::Cpp,
-            "/tmp/statespec-artifact-tier-test/cpp",
+            std::filesystem::path{statespec::test::ArtifactTierTestRoot} / "cpp",
             statespec::BindingGenerationTier::All,
             {},
         },

@@ -18,7 +18,7 @@ void validator_rejects_unknown_workflow_start_step()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown workflow start step"
     );
 }
@@ -154,7 +154,7 @@ void validator_rejects_unknown_worker_references()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown worker references"
     );
 }
@@ -176,7 +176,8 @@ void validator_rejects_unknown_api_references()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown API references"
+        has_error_code(diagnostics, dc::UnknownReference),
+        "validator should reject unknown API references"
     );
 }
 
@@ -230,7 +231,7 @@ void validator_rejects_api_with_multiple_primary_actions()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4101"),
+        has_error_code(diagnostics, dc::ApiMultiplePrimaryActions),
         "validator should reject APIs with multiple primary actions"
     );
 }
@@ -281,7 +282,7 @@ void validator_rejects_tenant_scoped_api_path_without_tenant_identity()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3406"),
+        has_error_code(diagnostics, dc::TenantApiPathMissingTenantIdentity),
         "validator should reject tenant-scoped API paths without tenant identity"
     );
 }
@@ -310,11 +311,11 @@ void validator_rejects_invalid_api_server_declarations()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown or non-API api_server serves targets"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4002"),
+        has_error_code(diagnostics, dc::PositiveIntegerRequired),
         "validator should reject non-positive api_server concurrency"
     );
 }

@@ -10,7 +10,7 @@ statespec::GenerationResult generate_rust_bindings_for_artifact_tests()
         empty_system_spec(),
         statespec::BindingGeneratorOptions{
             statespec::BindingLanguage::Rust,
-            "/tmp/statespec-artifact-tier-test/rust",
+            std::filesystem::path{statespec::test::ArtifactTierTestRoot} / "rust",
             statespec::BindingGenerationTier::All,
             {},
         },

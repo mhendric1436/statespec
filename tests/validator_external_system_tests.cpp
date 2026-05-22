@@ -18,16 +18,20 @@ void validator_rejects_invalid_shapes()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3201"), "validator should reject non-PascalCase shapes"
+        has_error_code(diagnostics, dc::ShapeInvalidName),
+        "validator should reject non-PascalCase shapes"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown shape field types"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3001"), "validator should reject duplicate shape fields"
+        has_error_code(diagnostics, dc::DuplicateDeclaration),
+        "validator should reject duplicate shape fields"
     );
-    require(has_error_code(diagnostics, "SSPEC4001"), "validator should reject empty shapes");
+    require(
+        has_error_code(diagnostics, dc::RequiredDeclaration), "validator should reject empty shapes"
+    );
 }
 
 void validator_accepts_values_enums_and_events()
@@ -98,25 +102,32 @@ void validator_rejects_invalid_values_enums_and_events()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4501"), "validator should reject invalid value names"
-    );
-    require(has_error_code(diagnostics, "SSPEC4601"), "validator should reject invalid enum names");
-    require(
-        has_error_code(diagnostics, "SSPEC4602"), "validator should reject invalid enum members"
+        has_error_code(diagnostics, dc::ValueInvalidName),
+        "validator should reject invalid value names"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4701"), "validator should reject invalid event names"
+        has_error_code(diagnostics, dc::EnumInvalidName),
+        "validator should reject invalid enum names"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3001"),
+        has_error_code(diagnostics, dc::EnumInvalidMemberName),
+        "validator should reject invalid enum members"
+    );
+    require(
+        has_error_code(diagnostics, dc::EventInvalidName),
+        "validator should reject invalid event names"
+    );
+    require(
+        has_error_code(diagnostics, dc::DuplicateDeclaration),
         "validator should reject duplicate enum members and event fields"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown value and event field types"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4001"), "validator should reject empty enums and events"
+        has_error_code(diagnostics, dc::RequiredDeclaration),
+        "validator should reject empty enums and events"
     );
 }
 
@@ -229,15 +240,15 @@ void validator_rejects_invalid_external_systems()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4901"),
+        has_error_code(diagnostics, dc::ExternalSystemInvalidName),
         "validator should reject invalid external system names"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3001"),
+        has_error_code(diagnostics, dc::DuplicateDeclaration),
         "validator should reject duplicate external system properties"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3001"),
+        has_error_code(diagnostics, dc::DuplicateDeclaration),
         "validator should reject duplicate external system required metadata fields"
     );
 }
@@ -298,43 +309,43 @@ void validator_rejects_invalid_external_system_metadata_model()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown external system metadata entities"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4902"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataProfileFieldMissing),
         "validator should reject metadata profile fields missing from the metadata entity"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4903"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataRequiredFieldMissing),
         "validator should reject metadata required fields missing from the metadata entity"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4904"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataTenantFieldMissing),
         "validator should reject metadata entities missing the tenant field"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4905"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataTenantKeyMissing),
         "validator should reject metadata entity keys missing the tenant field"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4911"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataRequiresSystemOwnership),
         "validator should require authoritative system ownership for metadata entities"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4913"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataProfileFieldKeyRequired),
         "validator should require metadata profile fields to be part of the entity key"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4914"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataUniqueKeyIndexRequired),
         "validator should require a unique metadata entity index on key fields"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4915"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataLifecycleStatesRequired),
         "validator should require canonical metadata entity lifecycle states"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4917"),
+        has_error_code(diagnostics, dc::ExternalSystemMetadataLifecycleTransitionRequired),
         "validator should require metadata entity lifecycle transitions"
     );
 }
@@ -398,23 +409,23 @@ void validator_rejects_invalid_external_system_metadata_mappings()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4906"),
+        has_error_code(diagnostics, dc::ExternalSystemMappingInvalidPath),
         "validator should reject metadata mapping paths without a field segment"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4907"),
+        has_error_code(diagnostics, dc::ExternalSystemMappingUnsupportedRoot),
         "validator should reject unsupported metadata mapping roots"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4908"),
+        has_error_code(diagnostics, dc::ExternalSystemMappingDuplicateTarget),
         "validator should reject duplicate metadata mapping targets"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4909"),
+        has_error_code(diagnostics, dc::ExternalSystemMappingFieldMissing),
         "validator should reject metadata mapping fields missing from the metadata entity"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4910"),
+        has_error_code(diagnostics, dc::ExternalSystemMappingRequiredFieldMissing),
         "validator should require mapped metadata fields to be required metadata fields"
     );
 }

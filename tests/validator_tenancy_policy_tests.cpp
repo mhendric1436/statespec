@@ -90,19 +90,19 @@ void validator_rejects_missing_tenant_field_propagation()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3401"),
+        has_error_code(diagnostics, dc::TenantEntityMissingTenantField),
         "validator should require tenant field on tenant-scoped entities"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3402"),
+        has_error_code(diagnostics, dc::TenantQueueMessageMissingTenantField),
         "validator should require tenant field on tenant-scoped queue messages"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3403"),
+        has_error_code(diagnostics, dc::TenantApiInputMissingTenantField),
         "validator should require tenant field on tenant-scoped API input shapes"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3404"),
+        has_error_code(diagnostics, dc::TenantEntityKeyMissingTenantField),
         "validator should require tenant field in tenant-scoped entity keys"
     );
 }
@@ -137,7 +137,7 @@ void validator_rejects_policy_tenant_scope_mismatch()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3405"),
+        has_error_code(diagnostics, dc::TenantPolicyScopeMismatch),
         "validator should reject policy tenant scopes that differ from the system tenant scope"
     );
 }
@@ -195,7 +195,10 @@ void validator_warns_on_noncanonical_policy_order()
     )sspec");
 
     require(!diagnostics.has_errors(), "noncanonical policy order should remain valid");
-    require(has_warning_code(diagnostics, "SSPEC6103"), "validator should warn on policy order");
+    require(
+        has_warning_code(diagnostics, dc::NoncanonicalPolicyOrder),
+        "validator should warn on policy order"
+    );
 }
 
 } // namespace

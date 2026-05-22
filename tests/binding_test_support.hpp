@@ -1,5 +1,7 @@
 #pragma once
 
+#include "test_constants.hpp"
+
 #include "catch2/catch_amalgamated.hpp"
 #include "statespec/binding_language.hpp"
 #include "statespec/generator_bindings.hpp"
@@ -183,7 +185,7 @@ sorted_expected_app_artifact_paths(const std::vector<ExpectedBindingAppArtifact>
         empty_system_spec(),
         statespec::BindingGeneratorOptions{
             language,
-            std::filesystem::path{"/tmp/statespec-artifact-tier-test"} / language_name,
+            std::filesystem::path{statespec::test::ArtifactTierTestRoot} / language_name,
             statespec::BindingGenerationTier::All,
             {},
         },
@@ -278,7 +280,7 @@ sorted_expected_artifact_paths(const std::vector<ExpectedGeneratedArtifact>& exp
         empty_system_spec(),
         statespec::BindingGeneratorOptions{
             language,
-            std::filesystem::path{"/tmp/statespec-artifact-manifest-test"} / language_name,
+            std::filesystem::path{statespec::test::ArtifactManifestTestRoot} / language_name,
             statespec::BindingGenerationTier::All,
             {},
         },
@@ -337,7 +339,7 @@ sorted_expected_artifact_paths(const std::vector<ExpectedGeneratedArtifact>& exp
         empty_system_spec(),
         statespec::BindingGeneratorOptions{
             language,
-            std::filesystem::path{"/tmp/statespec-tier-selection-test"} / language_name /
+            std::filesystem::path{statespec::test::TierSelectionTestRoot} / language_name /
                 statespec::binding_generation_tier_name(tier),
             tier,
             {},

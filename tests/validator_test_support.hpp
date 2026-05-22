@@ -1,5 +1,7 @@
 #pragma once
 
+#include "test_constants.hpp"
+
 #include "catch2/catch_amalgamated.hpp"
 #include "statespec/diagnostic.hpp"
 #include "statespec/lexer.hpp"
@@ -8,10 +10,13 @@
 #include "statespec/validator.hpp"
 
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace
 {
+
+namespace dc = statespec::test::diagnostic_codes;
 
 [[maybe_unused]] void require(
     bool condition,
@@ -37,7 +42,7 @@ namespace
 
 [[maybe_unused]] bool has_error_code(
     const statespec::DiagnosticBag& diagnostics,
-    const std::string& code
+    std::string_view code
 )
 {
     for (const auto& diagnostic : diagnostics.all())
@@ -68,7 +73,7 @@ namespace
 
 [[maybe_unused]] bool has_warning_code(
     const statespec::DiagnosticBag& diagnostics,
-    const std::string& code
+    std::string_view code
 )
 {
     for (const auto& diagnostic : diagnostics.all())

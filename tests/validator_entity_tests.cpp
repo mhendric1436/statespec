@@ -180,8 +180,14 @@ void validator_warns_on_noncanonical_entity_and_workflow_order()
     require(
         !diagnostics.has_errors(), "noncanonical order should warn without invalidating the spec"
     );
-    require(has_warning_code(diagnostics, "SSPEC6101"), "validator should warn on entity order");
-    require(has_warning_code(diagnostics, "SSPEC6102"), "validator should warn on workflow order");
+    require(
+        has_warning_code(diagnostics, dc::NoncanonicalEntityOrder),
+        "validator should warn on entity order"
+    );
+    require(
+        has_warning_code(diagnostics, dc::NoncanonicalWorkflowOrder),
+        "validator should warn on workflow order"
+    );
 }
 
 void validator_rejects_duplicate_top_level_names()
@@ -200,7 +206,7 @@ void validator_rejects_duplicate_top_level_names()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3001"),
+        has_error_code(diagnostics, dc::DuplicateDeclaration),
         "validator should reject duplicate top-level names"
     );
 }
@@ -217,7 +223,8 @@ void validator_rejects_missing_entity_key_field()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown entity key field"
+        has_error_code(diagnostics, dc::UnknownReference),
+        "validator should reject unknown entity key field"
     );
 }
 
@@ -245,11 +252,11 @@ void validator_rejects_invalid_entity_indexes()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3001"),
+        has_error_code(diagnostics, dc::DuplicateDeclaration),
         "validator should reject duplicate entity index names"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown entity index fields"
     );
 }
@@ -321,7 +328,7 @@ void validator_rejects_invalid_entity_management_field_types()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3102"),
+        has_error_code(diagnostics, dc::EntityInvalidStateType),
         "validator should reject invalid entity management field types"
     );
 }
@@ -347,7 +354,7 @@ void validator_rejects_noncanonical_entity_management_field_order()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3106"),
+        has_error_code(diagnostics, dc::EntityDuplicateFieldName),
         "validator should reject noncanonical entity management field order"
     );
 }
@@ -457,27 +464,27 @@ void validator_rejects_invalid_terminal_garbage_collection()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3103"),
+        has_error_code(diagnostics, dc::EntityTerminalGcRequiresRetention),
         "validator should reject garbage collection on non-terminal states"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4001"),
+        has_error_code(diagnostics, dc::RequiredDeclaration),
         "validator should reject missing garbage collection fields"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4004"),
+        has_error_code(diagnostics, dc::DurationRequired),
         "validator should reject invalid garbage collection durations"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3104"),
+        has_error_code(diagnostics, dc::EntityGcRequiresTerminalState),
         "validator should reject invalid garbage collection modes"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3001"),
+        has_error_code(diagnostics, dc::DuplicateDeclaration),
         "validator should reject duplicate garbage collection policy blocks"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3105"),
+        has_error_code(diagnostics, dc::EntityUnknownTransitionState),
         "validator should reject outgoing transitions from garbage-collected terminal states"
     );
 }
@@ -523,15 +530,15 @@ void validator_rejects_implicit_terminal_retention()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3107"),
+        has_error_code(diagnostics, dc::EntityDuplicateState),
         "validator should require inline terminal states in the terminal list"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3108"),
+        has_error_code(diagnostics, dc::EntityMissingInitialState),
         "validator should require terminal list states to declare terminal: true"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3109"),
+        has_error_code(diagnostics, dc::EntityStateTransitionGcConflict),
         "validator should require terminal states to declare garbage_collection"
     );
 }

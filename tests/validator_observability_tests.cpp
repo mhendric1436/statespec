@@ -65,11 +65,11 @@ void validator_rejects_missing_observability_tenant_fields()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC3407"),
+        has_error_code(diagnostics, dc::TenantLogMissingTenantField),
         "validator should reject tenant-scoped logs without the tenant field"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3408"),
+        has_error_code(diagnostics, dc::TenantMetricMissingTenantLabel),
         "validator should reject tenant-scoped metrics without the tenant label"
     );
 }
@@ -98,19 +98,24 @@ void validator_rejects_invalid_log_declarations()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4301"), "validator should reject non-PascalCase logs"
+        has_error_code(diagnostics, dc::LogInvalidName),
+        "validator should reject non-PascalCase logs"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4302"), "validator should reject unsupported log levels"
+        has_error_code(diagnostics, dc::LogInvalidLevel),
+        "validator should reject unsupported log levels"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4303"), "validator should reject duplicate log events"
+        has_error_code(diagnostics, dc::LogDuplicateEventName),
+        "validator should reject duplicate log events"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4001"), "validator should reject missing log event_name"
+        has_error_code(diagnostics, dc::RequiredDeclaration),
+        "validator should reject missing log event_name"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3002"), "validator should reject unknown log field types"
+        has_error_code(diagnostics, dc::UnknownReference),
+        "validator should reject unknown log field types"
     );
 }
 
@@ -142,24 +147,28 @@ void validator_rejects_invalid_metric_declarations()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4401"), "validator should reject non-PascalCase metrics"
+        has_error_code(diagnostics, dc::MetricInvalidName),
+        "validator should reject non-PascalCase metrics"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4402"), "validator should reject unsupported metric kinds"
+        has_error_code(diagnostics, dc::MetricInvalidKind),
+        "validator should reject unsupported metric kinds"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4403"),
+        has_error_code(diagnostics, dc::MetricDuplicateBackendName),
         "validator should reject duplicate metric backend names"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4404"),
+        has_error_code(diagnostics, dc::MetricInvalidLabelType),
         "validator should reject unsupported metric label types"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4001"), "validator should reject missing metric name/unit"
+        has_error_code(diagnostics, dc::RequiredDeclaration),
+        "validator should reject missing metric name/unit"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3001"), "validator should reject duplicate metric labels"
+        has_error_code(diagnostics, dc::DuplicateDeclaration),
+        "validator should reject duplicate metric labels"
     );
 }
 
@@ -184,7 +193,7 @@ void validator_rejects_high_cardinality_metric_labels()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4405"),
+        has_error_code(diagnostics, dc::MetricHighCardinalityLabel),
         "validator should reject high-cardinality metric labels"
     );
 }
@@ -221,8 +230,14 @@ void validator_warns_on_noncanonical_observability_order()
         !diagnostics.has_errors(),
         "noncanonical observability order should warn without invalidating the spec"
     );
-    require(has_warning_code(diagnostics, "SSPEC6104"), "validator should warn on log order");
-    require(has_warning_code(diagnostics, "SSPEC6105"), "validator should warn on metric order");
+    require(
+        has_warning_code(diagnostics, dc::NoncanonicalLogOrder),
+        "validator should warn on log order"
+    );
+    require(
+        has_warning_code(diagnostics, dc::NoncanonicalMetricOrder),
+        "validator should warn on metric order"
+    );
 }
 
 void validator_warns_on_noncanonical_system_order()
@@ -267,7 +282,10 @@ void validator_warns_on_noncanonical_system_order()
         !diagnostics.has_errors(),
         "noncanonical system order should warn without invalidating the spec"
     );
-    require(has_warning_code(diagnostics, "SSPEC6106"), "validator should warn on system order");
+    require(
+        has_warning_code(diagnostics, dc::NoncanonicalSystemOrder),
+        "validator should warn on system order"
+    );
 }
 
 } // namespace

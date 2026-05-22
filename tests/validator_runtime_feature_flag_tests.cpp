@@ -22,7 +22,7 @@ void validator_rejects_missing_required_declarations()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4001"),
+        has_error_code(diagnostics, dc::RequiredDeclaration),
         "validator should reject missing required declarations"
     );
 }
@@ -56,11 +56,12 @@ void validator_rejects_invalid_positive_and_non_negative_values()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4002"),
+        has_error_code(diagnostics, dc::PositiveIntegerRequired),
         "validator should reject non-positive integer values"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4003"), "validator should reject negative integer values"
+        has_error_code(diagnostics, dc::NonNegativeIntegerRequired),
+        "validator should reject negative integer values"
     );
 }
 
@@ -142,8 +143,13 @@ void validator_rejects_invalid_lease_timing()
         }
     )sspec");
 
-    require(has_error_code(diagnostics, "SSPEC3501"), "validator should reject renew_every >= ttl");
-    require(has_error_code(diagnostics, "SSPEC3502"), "validator should reject ttl > max_ttl");
+    require(
+        has_error_code(diagnostics, dc::LeaseRenewEveryTooLong),
+        "validator should reject renew_every >= ttl"
+    );
+    require(
+        has_error_code(diagnostics, dc::LeaseTtlTooLong), "validator should reject ttl > max_ttl"
+    );
 }
 
 void validator_accepts_feature_flags()
@@ -248,11 +254,11 @@ void validator_rejects_invalid_expressions()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC5201"),
+        has_error_code(diagnostics, dc::InvalidExpression),
         "validator should reject invalid expression syntax"
     );
     require(
-        has_error_code(diagnostics, "SSPEC5202"),
+        has_error_code(diagnostics, dc::ExpressionFunctionNotAllowed),
         "validator should reject unsupported expression functions"
     );
 }
@@ -284,22 +290,23 @@ void validator_rejects_invalid_feature_flag_declarations()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4201"),
+        has_error_code(diagnostics, dc::FeatureFlagInvalidName),
         "validator should reject non-PascalCase feature flags"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4202"),
+        has_error_code(diagnostics, dc::FeatureFlagInvalidType),
         "validator should reject unsupported feature flag types"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4203"), "validator should reject default/type mismatches"
+        has_error_code(diagnostics, dc::FeatureFlagInvalidDefault),
+        "validator should reject default/type mismatches"
     );
     require(
-        has_error_code(diagnostics, "SSPEC4001"),
+        has_error_code(diagnostics, dc::RequiredDeclaration),
         "validator should reject missing feature flag type/default"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown feature flag entity scope"
     );
 }
@@ -325,11 +332,11 @@ void validator_rejects_invalid_feature_flag_expression_references()
     )sspec");
 
     require(
-        has_error_code(diagnostics, "SSPEC4204"),
+        has_error_code(diagnostics, dc::FeatureEnabledRequiresBoolFlag),
         "validator should reject feature_enabled on non-bool flags"
     );
     require(
-        has_error_code(diagnostics, "SSPEC3002"),
+        has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject unknown feature flag expression references"
     );
 }
