@@ -68,6 +68,16 @@ start attempt should return or throw a lifecycle error without launching another
 
 The generated local transport must start successfully and block until shutdown is
 requested. It should unblock when `request_stop()` is called so `join()` can complete.
+The generated transport interface must expose the stop method directly:
+
+- C++: `request_stop()`
+- Go: `RequestStop()`
+- Java: `requestStop()`
+- Rust: `request_stop()`
+
+`ApiProcess.request_stop()` must delegate to that transport stop method. Generated
+process shutdown must not rely on thread interruption, cancellation, or process exit as
+the primary way to unblock the transport.
 
 ## Implementation Notes
 
@@ -80,4 +90,3 @@ Lifecycle state should be protected by the language's normal synchronization pri
 
 Generated process destructors/finalizers should not be the only shutdown mechanism.
 Callers should explicitly request stop and join during normal shutdown.
-

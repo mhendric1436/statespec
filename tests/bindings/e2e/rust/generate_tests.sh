@@ -128,6 +128,8 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn is_runnin
 assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "pub trait ApiTransport"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "server.handle(route_name, context)"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "pub struct LocalBlockingApiTransport"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "fn request_stop(&self)"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "self.transport.request_stop()"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "LocalBlockingApiTransport::new()"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "process.start()"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "process.join()"
