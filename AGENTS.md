@@ -197,6 +197,30 @@ stores, feature flag stores, log sinks, and metric sinks must register the colle
 they need and persist their records through `Backend`/`IBackend` and
 `Transaction`/`ITransaction`.
 
+### Runtime domain dependency rule
+
+Runtime domain dependencies are directional, not forbidden outright. A higher-level
+domain may use a lower-level domain when the dependency does not create a cycle.
+Implementations and generated code must follow this table:
+
+| Domain | May depend on |
+|---|---|
+| Feature flags | OCC only |
+| Queues | OCC, queues for dead-letter routing |
+| Leases | OCC only |
+| Workflows | OCC, feature flags, queues, leases, workflows, logs, metrics |
+| Logs | OCC only |
+| Metrics | OCC only |
+| Entity GC | OCC only |
+
+This means workflows may enqueue messages, acquire leases, evaluate feature flags, emit
+logs, record metrics, and start other workflows. The reverse dependencies are not
+allowed: queue, lease, feature flag, log, metric, and GC implementations must not
+require workflow functionality to work correctly. In particular, entity GC must not use
+leases, queues, workflows, feature flags, logs, or metrics as part of its correctness
+path, because those domains may themselves persist records that require GC. The
+validator must reject declarations that introduce an edge outside this table.
+
 Typed runtime stores and sinks must be backend-neutral clients. They should not depend
 on `InMemoryBackend`, `InMemoryTransaction`, or equivalent memory-specific types. The
 in-memory backend is one concrete adapter behind the same OCC interfaces used by

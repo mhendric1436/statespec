@@ -109,6 +109,12 @@ running. Generated API process and Worker runtime configs include explicit GC en
 flags, defaulting to enabled for standalone generated apps. See
 [entity-gc-runtime.md](entity-gc-runtime.md).
 
+Runtime domain dependencies must follow the acyclic table in
+[runtime-store-contract.md](runtime-store-contract.md). Workflows may use queues,
+leases, feature flags, logs, metrics, and workflows, but queue, lease, feature flag,
+observability, and GC implementations must not depend on workflows. Entity GC must use
+only the generic OCC backend/transaction boundary.
+
 The API application artifact responsibilities are:
 
 | Kind | Responsibility |

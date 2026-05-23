@@ -39,6 +39,7 @@ inline constexpr std::string_view TenantMetricMissingTenantLabel = "SSPEC3408";
 
 inline constexpr std::string_view LeaseRenewEveryTooLong = "SSPEC3501";
 inline constexpr std::string_view LeaseTtlTooLong = "SSPEC3502";
+inline constexpr std::string_view RuntimeDomainDependencyNotAllowed = "SSPEC3601";
 
 inline constexpr std::string_view RequiredDeclaration = "SSPEC4001";
 inline constexpr std::string_view PositiveIntegerRequired = "SSPEC4002";

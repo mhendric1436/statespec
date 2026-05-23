@@ -38,6 +38,7 @@ inline constexpr const char* TenantMetricMissingTenantLabel = "SSPEC3408";
 
 inline constexpr const char* LeaseRenewEveryTooLong = "SSPEC3501";
 inline constexpr const char* LeaseTtlTooLong = "SSPEC3502";
+inline constexpr const char* RuntimeDomainDependencyNotAllowed = "SSPEC3601";
 
 inline constexpr const char* RequiredDeclaration = "SSPEC4001";
 inline constexpr const char* PositiveIntegerRequired = "SSPEC4002";

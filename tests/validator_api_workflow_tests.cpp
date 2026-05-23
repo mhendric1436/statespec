@@ -181,6 +181,127 @@ void validator_rejects_unknown_api_references()
     );
 }
 
+void validator_accepts_allowed_runtime_domain_dependencies()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system RuntimeDependencySystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          feature_flag NewScheduler {
+            type bool
+            default false
+            scope tenant
+          }
+
+          log WorkflowDecision {
+            level info
+            event_name "workflow.decision"
+            fields {
+              tenant_id string
+              order_id string
+            }
+          }
+
+          queue OrderQueue {
+            namespace orders
+            channel order_starts
+            visibility_timeout PT30S
+            max_attempts 3
+            message StartOrder {
+              idempotency_key order_id
+              payload {
+                tenant_id string
+                order_id string
+              }
+            }
+          }
+
+          lease WorkflowLease {
+            resource "workflow"
+            ttl PT30S
+            renew_every PT10S
+            holder worker_id
+            fencing_token true
+            max_ttl PT5M
+          }
+
+          workflow ChildWorkflow {
+            version 1
+            singleton false
+            expected_execution_time PT1M
+            start run_child
+            step run_child {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+
+          workflow ParentWorkflow {
+            version 1
+            singleton false
+            expected_execution_time PT1M
+            start run_parent
+            step run_parent {
+              expected_execution_time PT10S
+              max_retries 1
+              require feature_enabled(NewScheduler);
+              enqueue OrderQueue.StartOrder;
+              acquire lease WorkflowLease;
+              emit WorkflowDecision;
+              start workflow ChildWorkflow;
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        !has_error_code(diagnostics, dc::RuntimeDomainDependencyNotAllowed),
+        "validator should allow workflow dependencies on supporting runtime domains"
+    );
+}
+
+void validator_rejects_disallowed_runtime_domain_dependency()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system RuntimeDependencySystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          workflow WorkflowOnly {
+            version 1
+            singleton false
+            expected_execution_time PT1M
+            start run
+            step run {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+
+          queue BrokenQueue {
+            namespace orders
+            channel order_starts
+            visibility_timeout PT30S
+            max_attempts 3
+            dead_letter WorkflowOnly
+            message StartOrder {
+              idempotency_key order_id
+              payload {
+                tenant_id string
+                order_id string
+              }
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, dc::RuntimeDomainDependencyNotAllowed),
+        "validator should reject queue-to-workflow runtime domain dependencies"
+    );
+}
+
 void validator_rejects_api_with_multiple_primary_actions()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -345,6 +466,16 @@ TEST_CASE("validator rejects unknown worker references")
 TEST_CASE("validator rejects unknown API references")
 {
     validator_rejects_unknown_api_references();
+}
+
+TEST_CASE("validator accepts allowed runtime domain dependencies")
+{
+    validator_accepts_allowed_runtime_domain_dependencies();
+}
+
+TEST_CASE("validator rejects disallowed runtime domain dependencies")
+{
+    validator_rejects_disallowed_runtime_domain_dependency();
 }
 
 TEST_CASE("validator rejects APIs with multiple primary actions")

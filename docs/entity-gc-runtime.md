@@ -97,6 +97,11 @@ Duplicate GC attempts must still be harmless:
 Lease coordination is intentionally not part of the baseline. It can be added later if
 large deployments show measurable GC contention.
 
+Entity GC must not depend on leases, queues, workflows, feature flags, logs, or metrics
+for correctness. It is limited to the generic OCC backend and transaction primitives.
+That constraint prevents circular runtime dependencies, such as GC requiring leases
+while lease records themselves require GC.
+
 ## Artifact Model
 
 The shared artifact model reserves common-tier generated files for all languages:

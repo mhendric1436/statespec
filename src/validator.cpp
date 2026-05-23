@@ -45,6 +45,7 @@ void Validator::validate(
     validate_workers(context.system, context.symbols, context.diagnostics);
     validate_apis(context.system, context.symbols, context.diagnostics);
     validate_api_servers(context.system, context.symbols, context.diagnostics);
+    validate_runtime_domain_dependencies(context.system, context.symbols, context.diagnostics);
     validate_policies(context.system, context.symbols, context.diagnostics);
 }
 

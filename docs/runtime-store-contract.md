@@ -77,6 +77,23 @@ Language-specific generic constraints may vary, but the dependency direction mus
 typed stores depend on backend abstractions, and concrete backends implement those
 abstractions.
 
+Runtime domains can depend on each other only according to the acyclic domain table:
+
+| Domain | Allowed dependencies |
+|---|---|
+| Feature flags | OCC only |
+| Queues | OCC, queues for dead-letter routing |
+| Leases | OCC only |
+| Workflows | OCC, feature flags, queues, leases, workflows, logs, metrics |
+| Logs | OCC only |
+| Metrics | OCC only |
+| Entity GC | OCC only |
+
+Circular domain dependencies are not allowed. For example, workflows may use leases and
+queues, but lease and queue implementations must not require workflows. Entity GC is
+especially constrained: it may use only OCC collection/document primitives and must not
+use leases for coordination, because lease records may themselves need GC.
+
 ## Transaction Rule
 
 Every persisted runtime operation should have both forms:

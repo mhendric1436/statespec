@@ -34,4 +34,10 @@ void validate_api_servers(
     DiagnosticBag& diagnostics
 );
 
+void validate_runtime_domain_dependencies(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    DiagnosticBag& diagnostics
+);
+
 } // namespace statespec::validator_detail
