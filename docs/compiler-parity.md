@@ -39,7 +39,7 @@ Status meanings:
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
 | `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve and generated bindings expose worker descriptors, contexts, and handler skeleton interfaces; executable worker bodies remain future work. |
 | `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve, passive API descriptor metadata is generated, and OpenAPI generation emits declared API operations. Request decoding, auth, framework routing, and concrete server adapters remain runtime-owned. |
-| `api_server` | complete | complete | complete | complete | complete | complete | partial | P1 | API server declarations resolve served APIs and generated bindings expose descriptors, route metadata, request/response contexts, and handler interfaces; concrete HTTP loops remain future work. |
+| `api_server` | complete | complete | complete | complete | complete | complete | partial | P1 | API server declarations resolve served APIs and generated bindings expose descriptors, route metadata, request/response contexts, handler interfaces, process lifecycle types, and local blocking transports; real HTTP adapters remain runtime-owned. |
 | `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
 | `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression syntax and built-ins are validated while policy enforcement generation remains future work. |
 | `annotations` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P4 | Keep low priority; annotations must not become a semantic escape hatch. |
@@ -62,6 +62,7 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 
 - durable backend implementations behind generic collection/document OCC primitives
 - transaction begin/commit/retry orchestration
+- Real network transport selection
 - HTTP framework routing and request decoding
 - authentication and authorization enforcement
 - concrete remote clients, protocol serialization, retry, timeout, and circuit-breaker behavior

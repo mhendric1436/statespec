@@ -43,19 +43,32 @@ Runtime-owned by design:
 
 - Metadata persistence implementations behind generated repository contracts.
 - OCC transaction lifecycle, retry policy, and commit handling.
-- HTTP framework route registration, request decoding, response encoding, and
-  middleware integration.
+- Real network transport selection.
+- HTTP framework route registration, request decoding, response encoding, and middleware
+  integration.
 - Authentication and authorization enforcement for operator APIs.
 - Secret lookup for credential references.
 - Concrete external-system clients, wire serialization, timeout behavior, retry logic,
   circuit breakers, and service mesh integration.
-- Worker loops, event transport, and remote-call execution.
+- Worker event transport and remote-call execution.
+
+Generated-owned today:
+
+- API and Worker composition roots and process entrypoints.
+- API process lifecycle, bootstrap, stop handling, and local/no-op blocking transport.
+- Worker runtime loop and workflow step execution scaffolding.
+
+StateSpec intentionally stops short of choosing an HTTP library. The local API transport
+exists so generated apps start and block like production services, but it does not bind a
+socket. A real HTTP transport remains user/runtime-owned until StateSpec adopts an
+opinionated HTTP backend.
 
 ## Next Priorities
 
 1. Expand OpenAPI output for `value`, `enum`, nested collection, and error schemas.
 2. Add generated policy enforcement hooks once expression type checking is stronger.
-3. Add optional HTTP adapter generation after route, auth, and error contracts stabilize.
+3. Add optional HTTP adapter generation after route, auth, lifecycle, and error contracts
+   stabilize.
 4. Add backend conformance tests for metadata repository implementations.
 5. Continue moving formatter behavior from token-preserving output toward AST-owned
    canonical declaration ordering.

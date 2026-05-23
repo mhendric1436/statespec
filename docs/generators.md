@@ -106,10 +106,20 @@ The API application artifact responsibilities are:
 |---|---|
 | `api_application` | API application composition root |
 | `api_codecs` | Typed request and response body codecs for API input/output shapes |
-| `api_server` | API server lifecycle and request loop |
+| `api_process` | API process config, lifecycle runtime, bootstrap, and shutdown coordination |
+| `api_server` | API server request dispatch boundary |
+| `api_transport` | Transport interface and local/no-op blocking transport |
 | `api_dispatcher` | Route-to-handler dispatch |
 | `api_handler_registry` | User implementation registry for API handlers |
 | `api_main` | API process entrypoint |
+
+Generated API process entrypoints construct backend, handler, process config, transport,
+and process runtime before calling `run()`. The generated local transport starts
+successfully and blocks until shutdown so generated apps have a production-shaped
+lifecycle. It is deliberately not an HTTP implementation. Real network transport
+selection, framework routing, middleware, TLS, auth integration, request parsing, and
+response serialization remain user/runtime-owned until StateSpec adopts an opinionated
+HTTP backend.
 
 The worker application artifact responsibilities are:
 
@@ -126,10 +136,10 @@ Generated API application filenames:
 
 | Language | Files |
 |---|---|
-| `cpp` | `api/api_application.hpp`, `api/api_codecs.hpp`, `api/api_server.hpp`, `api/api_dispatcher.hpp`, `api/api_handler_registry.hpp`, `api/main.cpp` |
-| `go` | `api/backend/api_application.go`, `api/backend/api_codecs.go`, `api/backend/api_server.go`, `api/backend/api_dispatcher.go`, `api/backend/api_handler_registry.go`, `api/cmd/api/main.go` |
-| `java` | `api/com/statespec/generated/ApiApplication.java`, `api/com/statespec/generated/ApiCodecs.java`, `api/com/statespec/generated/ApiServer.java`, `api/com/statespec/generated/ApiDispatcher.java`, `api/com/statespec/generated/ApiHandlerRegistry.java`, `api/com/statespec/generated/ApiMain.java` |
-| `rust` | `api/api_application.rs`, `api/api_codecs.rs`, `api/api_server.rs`, `api/api_dispatcher.rs`, `api/api_handler_registry.rs`, `api/main.rs` |
+| `cpp` | `api/api_application.hpp`, `api/api_codecs.hpp`, `api/api_process.hpp`, `api/api_server.hpp`, `api/api_transport.hpp`, `api/api_dispatcher.hpp`, `api/api_handler_registry.hpp`, `api/main.cpp` |
+| `go` | `api/backend/api_application.go`, `api/backend/api_codecs.go`, `api/backend/api_process.go`, `api/backend/api_server.go`, `api/backend/api_transport.go`, `api/backend/api_dispatcher.go`, `api/backend/api_handler_registry.go`, `api/cmd/api/main.go` |
+| `java` | `api/com/statespec/generated/ApiApplication.java`, `api/com/statespec/generated/ApiCodecs.java`, `api/com/statespec/generated/ApiProcess.java`, `api/com/statespec/generated/ApiServer.java`, `api/com/statespec/generated/ApiTransport.java`, `api/com/statespec/generated/ApiDispatcher.java`, `api/com/statespec/generated/ApiHandlerRegistry.java`, `api/com/statespec/generated/ApiMain.java` |
+| `rust` | `api/api_application.rs`, `api/api_codecs.rs`, `api/api_process.rs`, `api/api_server.rs`, `api/api_transport.rs`, `api/api_dispatcher.rs`, `api/api_handler_registry.rs`, `api/main.rs` |
 
 Generated worker application filenames:
 
@@ -299,10 +309,12 @@ Generated API server metadata includes:
 - concurrency
 
 Generated API server scaffolding also includes framework-neutral route descriptors,
-request/response context records, and handler interfaces. Route descriptors join each
-`api_server serves` target to the corresponding API method, path, input, output, and
-error metadata. Concrete HTTP server loops and framework adapters remain downstream
-runtime work.
+request/response context records, handler interfaces, process lifecycle code, and a
+local blocking transport. Route descriptors join each `api_server serves` target to the
+corresponding API method, path, input, output, and error metadata. The generated
+transport keeps `ApiServer.handle` as the request dispatch boundary. Concrete HTTP
+server loops, framework adapters, and production network transport selection remain
+downstream runtime work.
 
 Generated external-system operator metadata scaffolding includes API handler contracts
 that bridge operator metadata API implementations to the transaction-scoped repository

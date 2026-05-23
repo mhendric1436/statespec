@@ -224,6 +224,8 @@ blocks from declared `api_server` blocks.
 Generated API code owns:
 
 - API server descriptors and lifecycle shell.
+- API process config, process runtime, process entrypoint, and local composition wiring.
+- A local/no-op blocking transport that starts successfully and blocks until shutdown.
 - Route descriptors derived from `api_server serves` and declared API method/path metadata.
 - Route-to-handler dispatch.
 - API handler interfaces.
@@ -234,6 +236,7 @@ Generated API code owns:
 
 User code owns:
 
+- Real network transport selection.
 - HTTP or RPC framework adapter.
 - Authentication, authorization, and tenant resolution.
 - Concrete API handler implementations.
@@ -241,11 +244,18 @@ User code owns:
 - Concrete backend adapter implementing the generated OCC interfaces.
 - External clients and runtime configuration.
 
-The API app should translate a transport request into a generated request context,
-use the generated typed codecs to decode the API body shape, dispatch through the
-generated route table, run a user-owned handler, and translate the generated response
-back to the transport. Local tests may use the generated in-memory backend as the
-concrete backend adapter.
+The generated API process constructs the backend, handler, config, local blocking
+transport, and API app composition roots, then calls the transport-backed `run()` method.
+This gives generated apps a production-shaped lifecycle without choosing an HTTP
+library. The generated local transport is intentionally no-op: it does not bind a port
+or parse network requests.
+
+A production API adapter should implement the generated transport interface for the
+chosen framework. It should translate a network request into a generated request
+context, call the generated `ApiServer.handle` dispatch boundary, and translate the
+generated response back to the transport. Until StateSpec adopts an opinionated HTTP
+backend, real network transport selection remains user/runtime-owned. Local tests may
+use the generated in-memory backend as the concrete backend adapter.
 
 ## Worker App Design
 

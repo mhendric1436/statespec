@@ -288,13 +288,19 @@ statespec generate bindings --lang rust <file.sspec> --tier all
 
 Generated API apps own structural wiring, not business behavior:
 
-- API server shell lifecycle and request context shape.
+- API server shell lifecycle, process lifecycle, local composition, and request context shape.
+- Local/no-op blocking transport for generated app startup and shutdown tests.
 - Route lookup and dispatch.
 - Per-action handler interfaces.
 - Operator metadata API contracts.
 - Descriptor views over APIs, routes, servers, shapes, and external-system metadata mappings.
 
-User-owned code supplies the HTTP/RPC transport adapter, authentication, authorization, tenancy policy, concrete handlers, validation beyond the spec, concrete backend adapter, and outbound clients.
+User-owned code supplies real network transport selection, HTTP/RPC framework adapters,
+authentication, authorization, tenancy policy, concrete handlers, validation beyond the
+spec, concrete backend adapter, and outbound clients. Generated local transports must
+not be treated as an opinionated HTTP backend; they exist to give generated apps
+production-shaped lifecycle until StateSpec intentionally adopts a concrete HTTP
+runtime.
 
 ### Worker app rule
 

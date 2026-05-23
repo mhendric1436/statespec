@@ -7,9 +7,11 @@ tree, or in application-owned packages that import the generated API, worker, an
 modules.
 
 The `.sspec` file owns contracts, topology, descriptors, route metadata, worker metadata,
-workflow step names, and backend catalog definitions. Runtime implementations own HTTP
-framework adapters, authentication, authorization integration, concrete backend
-adapters, remote API clients, and business logic inside API and worker handlers.
+workflow step names, and backend catalog definitions. Generated code owns the local
+composition and lifecycle scaffolding needed to run those contracts. Runtime
+implementations own real network transport selection, HTTP/RPC framework adapters,
+authentication, authorization integration, concrete backend adapters, remote API clients,
+and business logic inside API and worker handlers.
 
 Generated descriptor values are spec-driven. They report declarations from the
 validated `.sspec` input, while unused descriptor domains are empty or absent according
@@ -31,7 +33,7 @@ Generated code owns:
 - DTOs for declared shapes
 - API route descriptors and framework-neutral request/response context types
 - API server shells, route dispatch helpers, handler registries, local composition roots,
-  and process entrypoints
+  process lifecycle types, local blocking transports, and process entrypoints
 - worker descriptors, worker contexts, worker application shells, worker runtimes, worker
   registry helpers, and process entrypoints
 - workflow step handler context types, typed step-specific handler methods, and
@@ -48,7 +50,8 @@ User-owned code owns:
 
 - concrete API handlers
 - concrete workflow step handlers
-- HTTP server framework adapters and request/response serialization
+- real network transports, HTTP/RPC server framework adapters, and request/response
+  serialization
 - worker and queue polling runtime adapters when the generated runtime is not sufficient
 - backend implementations for the OCC interfaces
 - external client construction, protocol selection, auth, retry policy, timeout policy,
@@ -56,9 +59,33 @@ User-owned code owns:
 - production composition adapters that replace generated default handlers or the
   generated in-memory backend
 
-The composition root may use the generated in-memory backend for local tests and
-examples. Production applications should provide a durable backend adapter behind the
-same generated interfaces.
+The generated composition root may use the generated in-memory backend and local
+blocking API transport for local tests and examples. Production applications should
+provide a durable backend adapter behind the same generated interfaces and choose a real
+network transport adapter. StateSpec intentionally does not select an HTTP library yet;
+that remains user/runtime-owned until the project adopts an opinionated HTTP backend.
+
+## API Startup And Transport Ownership
+
+Generated API apps own startup shape:
+
+- construct backend, handler, process config, process runtime, and local transport
+- bootstrap runtime catalogs through the generated app composition roots
+- install process stop handling where the language runtime supports it
+- block in a generated local/no-op transport until shutdown is requested
+- expose framework-neutral request dispatch through the generated `ApiServer.handle`
+  boundary
+
+The generated local transport exists to make generated applications runnable and
+testable with production-shaped lifecycle. It does not open sockets, bind ports, perform
+TLS, parse HTTP, or serialize framework responses. A production adapter should implement
+the generated transport interface, translate the chosen network protocol into the
+generated request context, call `ApiServer.handle`, and translate the generated response
+back to the framework.
+
+StateSpec will keep this boundary until it explicitly adopts an opinionated HTTP
+backend. At that point the HTTP adapter can become another generated/runtime-owned
+artifact without changing API handler contracts.
 
 ## External System Client Extension Point
 
@@ -83,7 +110,9 @@ API handlers receive a framework-neutral request context and return a generated 
 response. The generated dispatcher maps an API server route name such as
 `ProvisionApi.StartProvision` to the declared operation-specific handler method.
 Framework adapters should translate HTTP requests into the generated request context,
-call the typed handler, and translate the response back to the selected HTTP framework.
+call the generated API server dispatch boundary, and translate the response back to the
+selected HTTP framework. The generated local blocking transport is only a lifecycle
+placeholder; real network transport selection is user/runtime-owned.
 
 | Language | Generated API handler surface |
 |---|---|
