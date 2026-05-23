@@ -14,6 +14,7 @@ struct RuntimeDomainUsage
     bool uses_logs = false;
     bool uses_metrics = false;
     bool uses_observability = false;
+    bool uses_entity_gc = false;
     bool uses_any_runtime_domain = false;
 };
 

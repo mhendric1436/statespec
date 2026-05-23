@@ -17,6 +17,7 @@ void runtime_usage_is_empty_for_empty_system()
     statespec::test::require(!usage.uses_workflows, "empty system should not use workflows");
     statespec::test::require(!usage.uses_logs, "empty system should not use logs");
     statespec::test::require(!usage.uses_metrics, "empty system should not use metrics");
+    statespec::test::require(!usage.uses_entity_gc, "empty system should not use entity GC");
     statespec::test::require(
         !usage.uses_observability, "empty system should not use observability"
     );
@@ -102,6 +103,29 @@ void runtime_usage_detects_singleton_worker_lease_requirement()
     statespec::test::require(usage.uses_leases, "singleton workers use lease runtime");
 }
 
+void runtime_usage_detects_entity_garbage_collection()
+{
+    statespec::IrSystem system;
+    statespec::IrEntity entity;
+    entity.name = "Task";
+    entity.states.push_back(
+        statespec::IrState{
+            "Deleted",
+            true,
+            statespec::IrGarbageCollectionPolicy{"P30D", "delete"},
+        }
+    );
+    system.entities.push_back(entity);
+
+    const auto usage = statespec::runtime_domain_usage(system);
+
+    statespec::test::require(usage.uses_entity_gc, "terminal GC policy uses entity GC");
+    statespec::test::require(
+        !usage.uses_any_runtime_domain,
+        "entity GC should not emit store runtime artifacts before GC artifacts exist"
+    );
+}
+
 } // namespace
 
 TEST_CASE("runtime usage is empty for empty system")
@@ -127,4 +151,9 @@ TEST_CASE("runtime usage detects worker transitive domains")
 TEST_CASE("runtime usage detects singleton worker lease requirement")
 {
     runtime_usage_detects_singleton_worker_lease_requirement();
+}
+
+TEST_CASE("runtime usage detects entity garbage collection")
+{
+    runtime_usage_detects_entity_garbage_collection();
 }

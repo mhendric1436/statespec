@@ -265,6 +265,12 @@ flag, log, or metric store is emitted because the spec or generated app referenc
 domain; it must still operate through the generic backend/transaction model and must not
 be treated as a backend feature.
 
+Generated entity garbage collection is a shared common-tier runtime feature, not an
+API-only or Worker-only feature. API and Worker apps may both compose the same generated
+entity GC workers. The baseline is one low-resource stop-aware worker per GC-enabled
+entity, with per-entity polling no faster than one tenth of the GC expiration duration,
+bounded batches, OCC revalidation, and generated lifecycle start/stop/join wiring.
+
 ---
 
 ## Generated Application Architecture

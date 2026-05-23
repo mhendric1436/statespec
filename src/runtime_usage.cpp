@@ -14,6 +14,14 @@ RuntimeDomainUsage runtime_domain_usage(const IrSystem& system)
     usage.uses_logs = !system.logs.empty();
     usage.uses_metrics = !system.metrics.empty();
 
+    for (const auto& entity : system.entities)
+    {
+        for (const auto& state : entity.states)
+        {
+            usage.uses_entity_gc = usage.uses_entity_gc || state.garbage_collection.has_value();
+        }
+    }
+
     for (const auto& api : system.apis)
     {
         usage.uses_workflows = usage.uses_workflows || api.starts_workflow.has_value();

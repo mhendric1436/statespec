@@ -1,0 +1,81 @@
+# Entity Garbage Collection Runtime
+
+Entity garbage collection is a shared generated runtime feature. It is not API-only and
+it is not Worker-only. The common tier owns the descriptors and reusable GC worker model,
+while API and Worker generated applications may both compose the same shared workers.
+
+## Runtime Model
+
+StateSpec generates entity GC runtime artifacts only when at least one entity declares a
+terminal state with `garbage_collection` metadata.
+
+Generated common-tier runtime artifacts own:
+
+- entity GC descriptors derived from terminal state metadata
+- backend-neutral repository helper contracts for eligibility scans and finalization
+- one lightweight GC worker model per GC-enabled entity
+- shared defaults for polling, jitter, batch size, and stack size
+
+Generated API and Worker tiers own lifecycle wiring:
+
+- start GC workers when the process/runtime starts and GC is enabled
+- request stop on GC workers during shutdown
+- join GC workers before process/runtime shutdown completes
+
+## Worker Shape
+
+The baseline generated design is one low-resource background worker per GC-enabled
+entity. Each worker:
+
+- sleeps on a stop-aware timed wait
+- polls no faster than one tenth of that entity's GC expiration duration
+- applies a minimum polling floor
+- adds randomized jitter to reduce synchronized work across replicas
+- scans a bounded number of eligible rows through an indexed backend lookup
+- revalidates terminal state and expiration inside the transaction that finalizes or
+  removes the entity
+
+Default runtime values:
+
+| Setting | Default |
+|---|---:|
+| Minimum poll interval | 60 seconds |
+| Jitter | 0-25% of poll interval |
+| Batch size | 100 records |
+| Java/Rust thread stack size | 256 KiB |
+
+Go uses goroutines, whose stacks start small and grow. C++ keeps the stack-size setting
+for configuration parity, but portable `std::thread` does not expose stack sizing; a
+platform-specific thread builder can apply it later.
+
+## API And Worker Composition
+
+API-only applications can run GC without requiring a Worker deployment. Worker-only
+applications can also run GC. Deployments that run both API and Worker processes should
+configure which tier hosts GC to avoid unnecessary duplicate work.
+
+Duplicate GC attempts must still be harmless:
+
+- candidate records are revalidated transactionally
+- missing or already-collected records are treated as no-op outcomes
+- OCC conflicts cause the current batch item to be skipped or retried later
+- jitter reduces lockstep scans across replicas
+
+Lease coordination is intentionally not part of the baseline. It can be added later if
+large deployments show measurable GC contention.
+
+## Artifact Model
+
+The shared artifact model reserves common-tier generated files for all languages:
+
+| Language | Descriptor artifact | Worker artifact |
+|---|---|---|
+| C++ | `common/runtime/entity_gc_descriptors.hpp` | `common/runtime/entity_gc_workers.hpp` |
+| Go | `common/backend/runtime/entity_gc_descriptors.go` | `common/backend/runtime/entity_gc_workers.go` |
+| Java | `common/com/statespec/backend/runtime/EntityGcDescriptors.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` |
+| Rust | `common/runtime/entity_gc_descriptors.rs` | `common/runtime/entity_gc_workers.rs` |
+
+These artifacts are shared by generated API and Worker apps. Later implementation PRs
+will fill in descriptor emission, repository helper contracts, worker implementation,
+and lifecycle wiring.
+

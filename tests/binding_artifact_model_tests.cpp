@@ -52,6 +52,18 @@ void test_binding_app_artifact_kind_names()
     );
     require_string_equal(
         statespec::binding_app_artifact_kind_name(
+            statespec::BindingAppArtifactKind::RuntimeEntityGcDescriptors
+        ),
+        "runtime_entity_gc_descriptors", "runtime entity GC descriptor artifact kind name"
+    );
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(
+            statespec::BindingAppArtifactKind::RuntimeEntityGcWorkers
+        ),
+        "runtime_entity_gc_workers", "runtime entity GC worker artifact kind name"
+    );
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(
             statespec::BindingAppArtifactKind::ApiApplication
         ),
         "api_application", "API application artifact kind name"
@@ -107,6 +119,8 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/runtime/workflow_store.hpp", common, Kind::RuntimeWorkflowStore},
             {"common/runtime/log_sink.hpp", common, Kind::RuntimeLogSink},
             {"common/runtime/metric_sink.hpp", common, Kind::RuntimeMetricSink},
+            {"common/runtime/entity_gc_descriptors.hpp", common, Kind::RuntimeEntityGcDescriptors},
+            {"common/runtime/entity_gc_workers.hpp", common, Kind::RuntimeEntityGcWorkers},
             {"api/api_application.hpp", api, Kind::ApiApplication},
             {"api/api_process.hpp", api, Kind::ApiProcess, true},
             {"api/api_server.hpp", api, Kind::ApiServer, true},
@@ -142,6 +156,9 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/backend/runtime/workflows.go", common, Kind::RuntimeWorkflowStore},
             {"common/backend/runtime/logs.go", common, Kind::RuntimeLogSink},
             {"common/backend/runtime/metrics.go", common, Kind::RuntimeMetricSink},
+            {"common/backend/runtime/entity_gc_descriptors.go", common,
+             Kind::RuntimeEntityGcDescriptors},
+            {"common/backend/runtime/entity_gc_workers.go", common, Kind::RuntimeEntityGcWorkers},
             {"api/backend/api_application.go", api, Kind::ApiApplication},
             {"api/backend/api_process.go", api, Kind::ApiProcess, true},
             {"api/backend/api_server.go", api, Kind::ApiServer, true},
@@ -186,6 +203,10 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/com/statespec/backend/runtime/LogSink.java", common, Kind::RuntimeLogSink},
             {"common/com/statespec/backend/runtime/MetricSink.java", common,
              Kind::RuntimeMetricSink},
+            {"common/com/statespec/backend/runtime/EntityGcDescriptors.java", common,
+             Kind::RuntimeEntityGcDescriptors},
+            {"common/com/statespec/backend/runtime/EntityGcWorkers.java", common,
+             Kind::RuntimeEntityGcWorkers},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication},
             {"api/com/statespec/generated/ApiProcess.java", api, Kind::ApiProcess, true},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer, true},
@@ -226,6 +247,8 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/runtime/workflows.rs", common, Kind::RuntimeWorkflowStore},
             {"common/runtime/logs.rs", common, Kind::RuntimeLogSink},
             {"common/runtime/metrics.rs", common, Kind::RuntimeMetricSink},
+            {"common/runtime/entity_gc_descriptors.rs", common, Kind::RuntimeEntityGcDescriptors},
+            {"common/runtime/entity_gc_workers.rs", common, Kind::RuntimeEntityGcWorkers},
             {"api/api_application.rs", api, Kind::ApiApplication},
             {"api/api_process.rs", api, Kind::ApiProcess, true},
             {"api/api_server.rs", api, Kind::ApiServer, true},

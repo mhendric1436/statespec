@@ -32,6 +32,7 @@ truth for system behavior.
 | [backend-abstractions.md](backend-abstractions.md) | OCC-centered backend abstraction source artifacts and runtime contracts. |
 | [schema-upgrades.md](schema-upgrades.md) | Backwards-compatible collection descriptor upgrade rules for backend adapters. |
 | [runtime-store-contract.md](runtime-store-contract.md) | Backend-neutral contract for feature flag, queue, lease, workflow, log, and metric stores. |
+| [entity-gc-runtime.md](entity-gc-runtime.md) | Shared generated entity garbage collection runtime model for API and Worker apps. |
 | [in-memory-backend.md](in-memory-backend.md) | Cross-language in-memory backend contract, generated paths, and local API plus Worker app linking guidance. |
 | [style-guide.md](style-guide.md) | Naming, ordering, and maintainability conventions for `.sspec` files. |
 
@@ -46,8 +47,9 @@ truth for system behavior.
 7. Read [api-process-lifecycle.md](api-process-lifecycle.md) before changing generated API startup behavior.
 8. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
 9. Read [schema-upgrades.md](schema-upgrades.md) before implementing collection registration in a backend adapter.
-10. Read [in-memory-backend.md](in-memory-backend.md) before using generated local/test backend adapters.
-11. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
+10. Read [entity-gc-runtime.md](entity-gc-runtime.md) before changing generated entity GC behavior.
+11. Read [in-memory-backend.md](in-memory-backend.md) before using generated local/test backend adapters.
+12. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
 
 ## Source Of Truth
 
