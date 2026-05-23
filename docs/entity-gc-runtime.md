@@ -68,14 +68,12 @@ large deployments show measurable GC contention.
 
 The shared artifact model reserves common-tier generated files for all languages:
 
-| Language | Descriptor artifact | Worker artifact |
-|---|---|---|
-| C++ | `common/runtime/entity_gc_descriptors.hpp` | `common/runtime/entity_gc_workers.hpp` |
-| Go | `common/backend/runtime/entity_gc_descriptors.go` | `common/backend/runtime/entity_gc_workers.go` |
-| Java | `common/com/statespec/backend/runtime/EntityGcDescriptors.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` |
-| Rust | `common/runtime/entity_gc_descriptors.rs` | `common/runtime/entity_gc_workers.rs` |
+| Language | Descriptor artifact | Repository contract | Worker artifact |
+|---|---|---|---|
+| C++ | `common/runtime/entity_gc_descriptors.hpp` | `common/runtime/entity_gc_repository.hpp` | `common/runtime/entity_gc_workers.hpp` |
+| Go | `common/backend/runtime/entity_gc_descriptors.go` | `common/backend/runtime/entity_gc_repository.go` | `common/backend/runtime/entity_gc_workers.go` |
+| Java | `common/com/statespec/backend/runtime/EntityGcDescriptors.java` | `common/com/statespec/backend/runtime/EntityGcRepository.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` |
+| Rust | `common/runtime/entity_gc_descriptors.rs` | `common/runtime/entity_gc_repository.rs` | `common/runtime/entity_gc_workers.rs` |
 
 These artifacts are shared by generated API and Worker apps. Later implementation PRs
-will fill in descriptor emission, repository helper contracts, worker implementation,
-and lifecycle wiring.
-
+will fill in worker implementation and lifecycle wiring.

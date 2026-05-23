@@ -1,0 +1,29 @@
+#pragma once
+
+#include <string>
+#include <vector>
+
+namespace statespec::backend::runtime
+{
+
+struct EntityGcTerminalStateDescriptor
+{
+    std::string state;
+    std::string after;
+    std::string mode;
+};
+
+struct EntityGcDescriptor
+{
+    std::string entity;
+    std::string collection;
+    std::vector<EntityGcTerminalStateDescriptor> terminal_states;
+};
+
+inline std::vector<EntityGcDescriptor> entity_gc_descriptors()
+{
+    return std::vector<EntityGcDescriptor>{
+{{entity_gc_descriptors}}    };
+}
+
+} // namespace statespec::backend::runtime

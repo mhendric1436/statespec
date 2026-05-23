@@ -100,6 +100,7 @@ Typed runtime artifacts are generated only when used by the spec or generated ap
 | `runtime_log_sink` | Transaction-scoped structured log sink with inspect support |
 | `runtime_metric_sink` | Transaction-scoped metric sink with inspect support |
 | `runtime_entity_gc_descriptors` | Shared entity GC descriptors derived from terminal state metadata |
+| `runtime_entity_gc_repository` | Backend-neutral transactional repository contract for GC scans/finalization |
 | `runtime_entity_gc_workers` | Shared low-resource entity GC workers composed by API and Worker apps |
 
 Entity GC runtime artifacts are common-tier artifacts. API and Worker apps may both

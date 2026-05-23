@@ -41,6 +41,7 @@ enum class BindingAppArtifactKind
     RuntimeLogSink,
     RuntimeMetricSink,
     RuntimeEntityGcDescriptors,
+    RuntimeEntityGcRepository,
     RuntimeEntityGcWorkers,
     ApiApplication,
     ApiProcess,

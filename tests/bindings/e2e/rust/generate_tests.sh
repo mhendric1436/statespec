@@ -49,6 +49,8 @@ common/runtime/codec_core.rs
 common/runtime/codec_leases.rs
 common/runtime/codec_queues.rs
 common/runtime/codec_workflows.rs
+common/runtime/entity_gc_descriptors.rs
+common/runtime/entity_gc_repository.rs
 common/runtime/leases.rs
 common/runtime/queues.rs
 common/runtime/workflows.rs

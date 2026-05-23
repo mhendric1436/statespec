@@ -24,10 +24,7 @@ int main()
 
     statespec_generated::api::LocalBlockingApiTransport not_started_transport;
     statespec_generated::api::ApiProcess not_started{
-        config,
-        handler,
-        backend,
-        not_started_transport
+        config, handler, backend, not_started_transport
     };
     not_started.request_stop();
     if (not_started.join() == 0)

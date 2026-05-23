@@ -1,6 +1,7 @@
 #include "generator_cpp_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_cpp_descriptor_support.hpp"
 #include "generator_cpp_descriptors.hpp"
 #include "generator_support.hpp"
 #include "statespec/runtime_usage.hpp"
@@ -46,6 +47,11 @@ TemplateRenderer::Values cpp_common_runtime_values(const IrSystem& system)
     if (usage.uses_metrics)
     {
         add("common/runtime/metric_sink.hpp");
+    }
+    if (usage.uses_entity_gc)
+    {
+        add("common/runtime/entity_gc_descriptors.hpp");
+        add("common/runtime/entity_gc_repository.hpp");
     }
     return TemplateRenderer::Values{{"common_runtime_includes", includes.str()}};
 }
@@ -236,6 +242,37 @@ TemplateRenderer::Values cpp_runtime_codec_values(const IrSystem& system)
     return TemplateRenderer::Values{{"runtime_codec_includes", includes.str()}};
 }
 
+TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
+{
+    std::ostringstream descriptors;
+    for (const auto& entity : system.entities)
+    {
+        std::ostringstream terminal_states;
+        for (const auto& state : entity.states)
+        {
+            if (!state.garbage_collection.has_value())
+            {
+                continue;
+            }
+            terminal_states << "                EntityGcTerminalStateDescriptor{"
+                            << cpp_string(state.name) << ", "
+                            << cpp_string(state.garbage_collection->after) << ", "
+                            << cpp_string(state.garbage_collection->mode) << "},\n";
+        }
+        if (terminal_states.str().empty())
+        {
+            continue;
+        }
+        descriptors << "        EntityGcDescriptor{\n"
+                    << "            " << cpp_string(entity.name) << ",\n"
+                    << "            " << cpp_string(entity.name) << ",\n"
+                    << "            std::vector<EntityGcTerminalStateDescriptor>{\n"
+                    << terminal_states.str() << "            }\n"
+                    << "        },\n";
+    }
+    return TemplateRenderer::Values{{"entity_gc_descriptors", descriptors.str()}};
+}
+
 TemplateRenderer::Values cpp_api_runtime_values(const IrSystem& system)
 {
     auto values = cpp_runtime_bootstrap_values(system);
@@ -401,6 +438,17 @@ void add_cpp_common_runtime_artifacts(
         add_template_file(
             result, options.output_dir, templates, "runtime/metric_sink.hpp",
             "runtime/metric_sink.hpp", diagnostics
+        );
+    }
+    if (usage.uses_entity_gc)
+    {
+        add_cpp_common_generated_template_file(
+            result, options, templates, "runtime/entity_gc_descriptors.hpp", diagnostics,
+            cpp_entity_gc_descriptor_values(system)
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/entity_gc_repository.hpp",
+            "runtime/entity_gc_repository.hpp", diagnostics
         );
     }
 

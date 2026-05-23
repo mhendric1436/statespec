@@ -1,6 +1,7 @@
 #include "generator_rust_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_rust_descriptor_support.hpp"
 #include "generator_rust_descriptors.hpp"
 #include "generator_support.hpp"
 #include "statespec/runtime_usage.hpp"
@@ -111,6 +112,13 @@ TemplateRenderer::Values rust_lib_values(
     {
         runtime_modules << "#[path = \"common/runtime/workflows.rs\"]\n";
         runtime_modules << "pub mod runtime_workflows;\n";
+    }
+    if (usage.uses_entity_gc)
+    {
+        runtime_modules << "#[path = \"common/runtime/entity_gc_descriptors.rs\"]\n";
+        runtime_modules << "pub mod runtime_entity_gc_descriptors;\n";
+        runtime_modules << "#[path = \"common/runtime/entity_gc_repository.rs\"]\n";
+        runtime_modules << "pub mod runtime_entity_gc_repository;\n";
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
     {
@@ -298,6 +306,41 @@ TemplateRenderer::Values rust_api_runtime_bootstrap_values(const IrSystem& syste
     return values;
 }
 
+TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system)
+{
+    std::ostringstream descriptors;
+    for (const auto& entity : system.entities)
+    {
+        std::ostringstream terminal_states;
+        for (const auto& state : entity.states)
+        {
+            if (!state.garbage_collection.has_value())
+            {
+                continue;
+            }
+            terminal_states << "            EntityGcTerminalStateDescriptor {\n"
+                            << "                state: " << rust_string(state.name)
+                            << ".to_string(),\n"
+                            << "                after: "
+                            << rust_string(state.garbage_collection->after) << ".to_string(),\n"
+                            << "                mode: "
+                            << rust_string(state.garbage_collection->mode) << ".to_string(),\n"
+                            << "            },\n";
+        }
+        if (terminal_states.str().empty())
+        {
+            continue;
+        }
+        descriptors << "        EntityGcDescriptor {\n"
+                    << "            entity: " << rust_string(entity.name) << ".to_string(),\n"
+                    << "            collection: " << rust_string(entity.name) << ".to_string(),\n"
+                    << "            terminal_states: vec![\n"
+                    << terminal_states.str() << "            ],\n"
+                    << "        },\n";
+    }
+    return TemplateRenderer::Values{{"entity_gc_descriptors", descriptors.str()}};
+}
+
 void add_rust_common_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -455,6 +498,17 @@ void add_rust_common_runtime_artifacts(
         add_template_file(
             result, options.output_dir, templates, "runtime/metrics.rs", "runtime/metrics.rs",
             diagnostics
+        );
+    }
+    if (usage.uses_entity_gc)
+    {
+        add_rust_common_generated_template_file(
+            result, options, templates, "runtime/entity_gc_descriptors.rs", diagnostics,
+            rust_entity_gc_descriptor_values(system)
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/entity_gc_repository.rs",
+            "runtime/entity_gc_repository.rs", diagnostics
         );
     }
 

@@ -1,0 +1,24 @@
+package runtime
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type EntityGCEligibilityRequest struct {
+	Descriptor EntityGCDescriptor
+	Now        string
+	Limit      int
+}
+
+type EntityGCFinalizeRequest struct {
+	Descriptor EntityGCDescriptor
+	Key        common.Key
+	Now        string
+}
+
+type EntityGCRepository interface {
+	ListGCEligibleTx(ctx context.Context, tx common.Transaction, request EntityGCEligibilityRequest) ([]common.VersionedRecord, error)
+	FinalizeGCTx(ctx context.Context, tx common.Transaction, request EntityGCFinalizeRequest) error
+}

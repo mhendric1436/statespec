@@ -1,0 +1,18 @@
+package runtime
+
+type EntityGCTerminalStateDescriptor struct {
+	State string
+	After string
+	Mode  string
+}
+
+type EntityGCDescriptor struct {
+	Entity         string
+	Collection     string
+	TerminalStates []EntityGCTerminalStateDescriptor
+}
+
+func EntityGCDescriptors() []EntityGCDescriptor {
+	return []EntityGCDescriptor{
+		{{entity_gc_descriptors}}}
+}

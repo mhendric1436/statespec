@@ -1,6 +1,7 @@
 #include "generator_java_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_java_descriptor_support.hpp"
 #include "generator_java_descriptors.hpp"
 #include "generator_support.hpp"
 #include "statespec/runtime_usage.hpp"
@@ -88,6 +89,12 @@ TemplateRenderer::Values java_makefile_values(
     add_common(usage.uses_logs, "common/com/statespec/backend/runtime/LogSink.java");
     add_common(usage.uses_metrics, "common/com/statespec/backend/runtime/MetricCodec.java");
     add_common(usage.uses_metrics, "common/com/statespec/backend/runtime/MetricSink.java");
+    add_common(
+        usage.uses_entity_gc, "common/com/statespec/backend/runtime/EntityGcDescriptors.java"
+    );
+    add_common(
+        usage.uses_entity_gc, "common/com/statespec/backend/runtime/EntityGcRepository.java"
+    );
 
     std::vector<std::string> api_sources;
     if (include_api)
@@ -252,6 +259,55 @@ TemplateRenderer::Values java_api_runtime_bootstrap_values(const IrSystem& syste
     values.erase("worker_runtime_imports");
     values.erase("worker_runtime_run_once");
     return values;
+}
+
+TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system)
+{
+    std::vector<std::string> descriptor_entries;
+    std::ostringstream descriptors;
+    for (const auto& entity : system.entities)
+    {
+        std::ostringstream terminal_states;
+        bool first_terminal_state = true;
+        for (const auto& state : entity.states)
+        {
+            if (!state.garbage_collection.has_value())
+            {
+                continue;
+            }
+            if (!first_terminal_state)
+            {
+                terminal_states << ",\n";
+            }
+            terminal_states << "                new TerminalState(" << java_string(state.name)
+                            << ", " << java_string(state.garbage_collection->after) << ", "
+                            << java_string(state.garbage_collection->mode) << ")";
+            first_terminal_state = false;
+        }
+        if (terminal_states.str().empty())
+        {
+            continue;
+        }
+        std::ostringstream descriptor;
+        descriptor << "            new Descriptor(\n"
+                   << "                " << java_string(entity.name) << ",\n"
+                   << "                " << java_string(entity.name) << ",\n"
+                   << "                List.of(\n"
+                   << terminal_states.str() << "\n"
+                   << "                )\n"
+                   << "            )";
+        descriptor_entries.push_back(descriptor.str());
+    }
+    for (std::size_t i = 0; i < descriptor_entries.size(); ++i)
+    {
+        descriptors << descriptor_entries[i];
+        if (i + 1 < descriptor_entries.size())
+        {
+            descriptors << ",";
+        }
+        descriptors << "\n";
+    }
+    return TemplateRenderer::Values{{"entity_gc_descriptors", descriptors.str()}};
 }
 
 std::filesystem::path java_api_generated_path(std::string_view filename)
@@ -432,6 +488,22 @@ void add_java_common_runtime_artifacts(
         add_template_file(
             result, options.output_dir, templates, output_root / "runtime" / "MetricSink.java",
             output_root / "runtime" / "MetricSink.java", diagnostics
+        );
+    }
+    if (usage.uses_entity_gc)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            template_path_for_output(output_root / "runtime" / "EntityGcDescriptors.java"),
+            common_artifact_path(
+                (output_root / "runtime" / "EntityGcDescriptors.java").generic_string()
+            ),
+            diagnostics, GeneratedArtifactTier::Common, java_entity_gc_descriptor_values(system)
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "runtime" / "EntityGcRepository.java",
+            output_root / "runtime" / "EntityGcRepository.java", diagnostics
         );
     }
     add_generated_template_file(

@@ -27,6 +27,8 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "runtime_metric_sink";
     case BindingAppArtifactKind::RuntimeEntityGcDescriptors:
         return "runtime_entity_gc_descriptors";
+    case BindingAppArtifactKind::RuntimeEntityGcRepository:
+        return "runtime_entity_gc_repository";
     case BindingAppArtifactKind::RuntimeEntityGcWorkers:
         return "runtime_entity_gc_workers";
     case BindingAppArtifactKind::ApiApplication:
@@ -104,6 +106,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral metric sink"},
             {"common/runtime/entity_gc_descriptors.hpp", common, Kind::RuntimeEntityGcDescriptors,
              "Shared entity garbage collection descriptors"},
+            {"common/runtime/entity_gc_repository.hpp", common, Kind::RuntimeEntityGcRepository,
+             "Backend-neutral entity garbage collection repository contract"},
             {"common/runtime/entity_gc_workers.hpp", common, Kind::RuntimeEntityGcWorkers,
              "Shared entity garbage collection workers"},
             {"api/api_application.hpp", api, Kind::ApiApplication,
@@ -166,6 +170,9 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral metric sink"},
             {"common/backend/runtime/entity_gc_descriptors.go", common,
              Kind::RuntimeEntityGcDescriptors, "Shared entity garbage collection descriptors"},
+            {"common/backend/runtime/entity_gc_repository.go", common,
+             Kind::RuntimeEntityGcRepository,
+             "Backend-neutral entity garbage collection repository contract"},
             {"common/backend/runtime/entity_gc_workers.go", common, Kind::RuntimeEntityGcWorkers,
              "Shared entity garbage collection workers"},
             {"api/backend/api_application.go", api, Kind::ApiApplication,
@@ -230,6 +237,9 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              Kind::RuntimeMetricSink, "Backend-neutral metric sink"},
             {"common/com/statespec/backend/runtime/EntityGcDescriptors.java", common,
              Kind::RuntimeEntityGcDescriptors, "Shared entity garbage collection descriptors"},
+            {"common/com/statespec/backend/runtime/EntityGcRepository.java", common,
+             Kind::RuntimeEntityGcRepository,
+             "Backend-neutral entity garbage collection repository contract"},
             {"common/com/statespec/backend/runtime/EntityGcWorkers.java", common,
              Kind::RuntimeEntityGcWorkers, "Shared entity garbage collection workers"},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication,
@@ -294,6 +304,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral metric sink"},
             {"common/runtime/entity_gc_descriptors.rs", common, Kind::RuntimeEntityGcDescriptors,
              "Shared entity garbage collection descriptors"},
+            {"common/runtime/entity_gc_repository.rs", common, Kind::RuntimeEntityGcRepository,
+             "Backend-neutral entity garbage collection repository contract"},
             {"common/runtime/entity_gc_workers.rs", common, Kind::RuntimeEntityGcWorkers,
              "Shared entity garbage collection workers"},
             {"api/api_application.rs", api, Kind::ApiApplication,

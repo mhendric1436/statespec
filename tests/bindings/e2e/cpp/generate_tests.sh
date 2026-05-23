@@ -48,6 +48,8 @@ common/runtime/codec_core.hpp
 common/runtime/codec_leases.hpp
 common/runtime/codec_queues.hpp
 common/runtime/codec_workflows.hpp
+common/runtime/entity_gc_descriptors.hpp
+common/runtime/entity_gc_repository.hpp
 common/runtime/lease_store.hpp
 common/runtime/queue_store.hpp
 common/runtime/workflow_store.hpp

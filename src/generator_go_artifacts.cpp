@@ -1,6 +1,7 @@
 #include "generator_go_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_go_descriptor_support.hpp"
 #include "generator_go_descriptors.hpp"
 #include "generator_support.hpp"
 #include "statespec/runtime_usage.hpp"
@@ -157,6 +158,36 @@ TemplateRenderer::Values go_api_runtime_bootstrap_values(const IrSystem& system)
     values.erase("worker_runtime_time_import");
     values.erase("worker_runtime_run_once");
     return values;
+}
+
+TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
+{
+    std::ostringstream descriptors;
+    for (const auto& entity : system.entities)
+    {
+        std::ostringstream terminal_states;
+        for (const auto& state : entity.states)
+        {
+            if (!state.garbage_collection.has_value())
+            {
+                continue;
+            }
+            terminal_states << "\t\t\t{State: " << go_string(state.name)
+                            << ", After: " << go_string(state.garbage_collection->after)
+                            << ", Mode: " << go_string(state.garbage_collection->mode) << "},\n";
+        }
+        if (terminal_states.str().empty())
+        {
+            continue;
+        }
+        descriptors << "\t\t{\n"
+                    << "\t\t\tEntity: " << go_string(entity.name) << ",\n"
+                    << "\t\t\tCollection: " << go_string(entity.name) << ",\n"
+                    << "\t\t\tTerminalStates: []EntityGCTerminalStateDescriptor{\n"
+                    << terminal_states.str() << "\t\t\t},\n"
+                    << "\t\t},\n";
+    }
+    return TemplateRenderer::Values{{"entity_gc_descriptors", descriptors.str()}};
 }
 
 void add_go_common_generated_template_file(
@@ -318,6 +349,16 @@ void add_go_common_runtime_artifacts(
         );
         add_go_common_generated_template_file(
             result, options, templates, "backend/runtime/metrics.go", diagnostics
+        );
+    }
+    if (usage.uses_entity_gc)
+    {
+        add_go_common_generated_template_file(
+            result, options, templates, "backend/runtime/entity_gc_descriptors.go", diagnostics,
+            go_entity_gc_descriptor_values(system)
+        );
+        add_go_common_generated_template_file(
+            result, options, templates, "backend/runtime/entity_gc_repository.go", diagnostics
         );
     }
     add_generated_template_file(

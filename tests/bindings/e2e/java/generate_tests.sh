@@ -45,6 +45,8 @@ common/com/statespec/backend/Workflow.java
 common/com/statespec/backend/memory/InMemoryBackend.java
 common/com/statespec/backend/memory/InMemoryTransaction.java
 common/com/statespec/backend/runtime/Codec.java
+common/com/statespec/backend/runtime/EntityGcDescriptors.java
+common/com/statespec/backend/runtime/EntityGcRepository.java
 common/com/statespec/backend/runtime/LeaseCodec.java
 common/com/statespec/backend/runtime/LeaseStore.java
 common/com/statespec/backend/runtime/QueueCodec.java
