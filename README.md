@@ -442,6 +442,25 @@ and stores its records through the same OCC `Backend` and `Transaction` interfac
 Those typed runtime stores are backend-neutral clients, not in-memory backend features;
 they should work with any backend adapter that implements the OCC interfaces.
 
+Runtime domain dependencies are intentionally opinionated and acyclic. Domains may use
+supporting domains only in the directions below:
+
+| Domain | May Depend On |
+|---|---|
+| Feature flags | OCC only |
+| Queues | OCC, queues for dead-letter routing |
+| Leases | OCC only |
+| Workflows | OCC, feature flags, queues, leases, workflows, logs, metrics |
+| Logs | OCC only |
+| Metrics | OCC only |
+| Entity GC | OCC only |
+
+For example, workflows may use queues and leases, but queue and lease implementations
+must not require workflow functionality. Entity GC is limited to OCC because the records
+owned by queues, leases, workflows, feature flags, logs, and metrics may themselves need
+GC. This keeps runtime components independently understandable and prevents circular
+correctness dependencies.
+
 Generated descriptor values are driven by the `.sspec` declarations. Generated runtime
 artifacts are usage-pruned: backend and transaction contracts remain generic and always
 available, while typed stores, sinks, codecs, module declarations, imports, and app
