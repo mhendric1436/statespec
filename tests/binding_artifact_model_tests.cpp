@@ -65,6 +65,10 @@ void test_binding_app_artifact_kind_names()
         "api_server", "API server artifact kind name"
     );
     require_string_equal(
+        statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::ApiTransport),
+        "api_transport", "API transport artifact kind name"
+    );
+    require_string_equal(
         statespec::binding_app_artifact_kind_name(
             statespec::BindingAppArtifactKind::WorkerApplication
         ),
@@ -106,6 +110,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/api_application.hpp", api, Kind::ApiApplication},
             {"api/api_process.hpp", api, Kind::ApiProcess, true},
             {"api/api_server.hpp", api, Kind::ApiServer, true},
+            {"api/api_transport.hpp", api, Kind::ApiTransport, true},
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry},
             {"api/main.cpp", api, Kind::ApiMain},
@@ -140,6 +145,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/backend/api_application.go", api, Kind::ApiApplication},
             {"api/backend/api_process.go", api, Kind::ApiProcess, true},
             {"api/backend/api_server.go", api, Kind::ApiServer, true},
+            {"api/backend/api_transport.go", api, Kind::ApiTransport, true},
             {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher, true},
             {"api/backend/api_handler_registry.go", api, Kind::ApiHandlerRegistry},
             {"api/cmd/api/main.go", api, Kind::ApiMain},
@@ -183,6 +189,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication},
             {"api/com/statespec/generated/ApiProcess.java", api, Kind::ApiProcess, true},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer, true},
+            {"api/com/statespec/generated/ApiTransport.java", api, Kind::ApiTransport, true},
             {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher, true},
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api, Kind::ApiHandlerRegistry},
             {"api/com/statespec/generated/ApiMain.java", api, Kind::ApiMain},
@@ -222,6 +229,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/api_application.rs", api, Kind::ApiApplication},
             {"api/api_process.rs", api, Kind::ApiProcess, true},
             {"api/api_server.rs", api, Kind::ApiServer, true},
+            {"api/api_transport.rs", api, Kind::ApiTransport, true},
             {"api/api_dispatcher.rs", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.rs", api, Kind::ApiHandlerRegistry},
             {"api/main.rs", api, Kind::ApiMain},

@@ -88,6 +88,7 @@ TemplateRenderer::Values cpp_makefile_values(
                          "#include \"api/api_process.hpp\"\\n"
                          "#include \"api/api_routes.hpp\"\\n"
                          "#include \"api/api_server.hpp\"\\n";
+            api_rules << "#include \"api/api_transport.hpp\"\\n";
         }
         api_rules << "int main() { return 0; }\\n' | "
                      "$(CXX) $(CXXFLAGS) -x c++ - -o $(BUILD_DIR)/check-api\n\n";
@@ -477,6 +478,10 @@ void add_cpp_api_artifacts(
         );
         add_cpp_generated_template_file(
             result, options, templates, "api/api_server.hpp", GeneratedArtifactTier::Api,
+            diagnostics
+        );
+        add_cpp_generated_template_file(
+            result, options, templates, "api/api_transport.hpp", GeneratedArtifactTier::Api,
             diagnostics
         );
         add_cpp_generated_template_file(

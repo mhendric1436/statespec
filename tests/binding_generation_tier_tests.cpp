@@ -119,6 +119,10 @@ void test_rust_lib_rs_matches_selected_tier()
         "API lib excludes API server module when no api_server is declared"
     );
     require(
+        api_lib.find("pub mod api_transport;") == std::string::npos,
+        "API lib excludes API transport module when no api_server is declared"
+    );
+    require(
         api_lib.find("pub mod external_system_operator_metadata_api;") != std::string::npos,
         "API lib declares external-system operator metadata API module"
     );
@@ -221,6 +225,10 @@ void test_cpp_makefile_matches_selected_tier()
     require(
         api_makefile.find("api/api_server.hpp") == std::string::npos,
         "API Makefile excludes API server header when no api_server is declared"
+    );
+    require(
+        api_makefile.find("api/api_transport.hpp") == std::string::npos,
+        "API Makefile excludes API transport header when no api_server is declared"
     );
     require(
         api_makefile.find("build-api") != std::string::npos,

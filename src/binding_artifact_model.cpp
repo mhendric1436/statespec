@@ -31,6 +31,8 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "api_process";
     case BindingAppArtifactKind::ApiServer:
         return "api_server";
+    case BindingAppArtifactKind::ApiTransport:
+        return "api_transport";
     case BindingAppArtifactKind::ApiDispatcher:
         return "api_dispatcher";
     case BindingAppArtifactKind::ApiHandlerRegistry:
@@ -101,6 +103,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"api/api_process.hpp", api, Kind::ApiProcess, "API process lifecycle runtime", true},
             {"api/api_server.hpp", api, Kind::ApiServer, "API server lifecycle and request loop",
              true},
+            {"api/api_transport.hpp", api, Kind::ApiTransport,
+             "API transport interface bound to ApiServer request dispatch", true},
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, "API route-to-handler dispatcher",
              true},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry,
@@ -158,6 +162,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              true},
             {"api/backend/api_server.go", api, Kind::ApiServer,
              "API server lifecycle and request loop", true},
+            {"api/backend/api_transport.go", api, Kind::ApiTransport,
+             "API transport interface bound to APITierServer request dispatch", true},
             {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher,
              "API route-to-handler dispatcher", true},
             {"api/backend/api_handler_registry.go", api, Kind::ApiHandlerRegistry,
@@ -216,6 +222,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "API process lifecycle runtime", true},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer,
              "API server lifecycle and request loop", true},
+            {"api/com/statespec/generated/ApiTransport.java", api, Kind::ApiTransport,
+             "API transport interface bound to ApiServer request dispatch", true},
             {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher,
              "API route-to-handler dispatcher", true},
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api, Kind::ApiHandlerRegistry,
@@ -273,6 +281,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"api/api_process.rs", api, Kind::ApiProcess, "API process lifecycle runtime", true},
             {"api/api_server.rs", api, Kind::ApiServer, "API server lifecycle and request loop",
              true},
+            {"api/api_transport.rs", api, Kind::ApiTransport,
+             "API transport interface bound to ApiServer request dispatch", true},
             {"api/api_dispatcher.rs", api, Kind::ApiDispatcher, "API route-to-handler dispatcher",
              true},
             {"api/api_handler_registry.rs", api, Kind::ApiHandlerRegistry,

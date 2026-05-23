@@ -1,0 +1,22 @@
+package com.statespec.generated;
+
+import java.util.Optional;
+
+public interface ApiTransport {
+    Optional<Descriptors.ApiResponse> handle(
+        ApiServer server,
+        String routeName,
+        Descriptors.ApiRequestContext context
+    ) throws Exception;
+
+    final class ServerBoundary implements ApiTransport {
+        @Override
+        public Optional<Descriptors.ApiResponse> handle(
+            ApiServer server,
+            String routeName,
+            Descriptors.ApiRequestContext context
+        ) throws Exception {
+            return server.handle(routeName, context);
+        }
+    }
+}

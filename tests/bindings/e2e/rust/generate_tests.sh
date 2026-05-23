@@ -30,6 +30,7 @@ api/api_handlers.rs
 api/api_process.rs
 api/api_routes.rs
 api/api_server.rs
+api/api_transport.rs
 api/external_system_operator_metadata_api.rs
 api/main.rs
 common/backend.rs
@@ -118,6 +119,8 @@ assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "install_signal_handling
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub struct ApiProcess"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn request_stop(&self)"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn run(&self)"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "pub trait ApiTransport"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "server.handle(route_name, context)"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_server.rs" "pub struct ApiServer"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_route"
 assert_file_not_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_operation_route"

@@ -43,6 +43,7 @@ enum class BindingAppArtifactKind
     ApiApplication,
     ApiProcess,
     ApiServer,
+    ApiTransport,
     ApiDispatcher,
     ApiHandlerRegistry,
     ApiMain,

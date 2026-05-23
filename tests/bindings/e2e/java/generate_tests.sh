@@ -30,6 +30,7 @@ api/com/statespec/generated/ApiMain.java
 api/com/statespec/generated/ApiProcess.java
 api/com/statespec/generated/ApiRoutes.java
 api/com/statespec/generated/ApiServer.java
+api/com/statespec/generated/ApiTransport.java
 api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java
 common/com/statespec/backend/Backend.java
 common/com/statespec/backend/ExternalSystem.java
@@ -115,6 +116,8 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.j
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public final class ApiProcess"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public void requestStop()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public int run()"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "interface ApiTransport"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "return server.handle(routeName, context)"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiServer.java" "class ApiServer"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiRoute"
 assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiOperationRoute"

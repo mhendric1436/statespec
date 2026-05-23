@@ -29,6 +29,7 @@ api/backend/api_handlers.go
 api/backend/api_process.go
 api/backend/api_routes.go
 api/backend/api_server.go
+api/backend/api_transport.go
 api/backend/external_system_operator_metadata_api.go
 api/cmd/api/main.go
 common/backend/backend.go
@@ -110,6 +111,8 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_application.go" "type A
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "type APIProcess struct"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) RequestStop()"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) Run(ctx context.Context) error"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "type APITierTransport interface"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "return server.Handle(ctx, routeName, request)"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func DecodeStartProvisionRequest"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func EncodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "type DefaultAPITierHandler struct"

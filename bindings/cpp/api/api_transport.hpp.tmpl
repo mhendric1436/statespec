@@ -1,0 +1,36 @@
+#pragma once
+
+#include "api_server.hpp"
+
+#include <optional>
+#include <string_view>
+
+namespace statespec_generated::api
+{
+
+class IApiTransport
+{
+  public:
+    virtual ~IApiTransport() = default;
+
+    virtual std::optional<ApiResponse> handle(
+        ApiServer& server,
+        std::string_view route_name,
+        const ApiRequestContext& context
+    ) = 0;
+};
+
+class ApiServerTransport final : public IApiTransport
+{
+  public:
+    std::optional<ApiResponse> handle(
+        ApiServer& server,
+        std::string_view route_name,
+        const ApiRequestContext& context
+    ) override
+    {
+        return server.handle(route_name, context);
+    }
+};
+
+} // namespace statespec_generated::api

@@ -1,0 +1,17 @@
+package backend
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type APITierTransport interface {
+	Handle(ctx context.Context, server APITierServer, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error)
+}
+
+type APITierServerTransport struct{}
+
+func (transport APITierServerTransport) Handle(ctx context.Context, server APITierServer, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
+	return server.Handle(ctx, routeName, request)
+}

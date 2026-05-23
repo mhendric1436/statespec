@@ -1,0 +1,27 @@
+use crate::api_handlers::ApiHandler;
+use crate::api_server::ApiServer;
+use crate::backend::BackendResult;
+use crate::descriptors::{ApiRequestContext, ApiResponse};
+
+pub trait ApiTransport<H: ApiHandler> {
+    fn handle(
+        &self,
+        server: &ApiServer<H>,
+        route_name: &str,
+        context: &ApiRequestContext,
+    ) -> BackendResult<Option<ApiResponse>>;
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ApiServerTransport;
+
+impl<H: ApiHandler> ApiTransport<H> for ApiServerTransport {
+    fn handle(
+        &self,
+        server: &ApiServer<H>,
+        route_name: &str,
+        context: &ApiRequestContext,
+    ) -> BackendResult<Option<ApiResponse>> {
+        server.handle(route_name, context)
+    }
+}

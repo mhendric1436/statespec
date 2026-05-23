@@ -136,6 +136,8 @@ TemplateRenderer::Values rust_lib_values(
             api_modules << "pub mod api_routes;\n";
             api_modules << "#[path = \"api/api_server.rs\"]\n";
             api_modules << "pub mod api_server;\n";
+            api_modules << "#[path = \"api/api_transport.rs\"]\n";
+            api_modules << "pub mod api_transport;\n";
             api_modules << "#[path = \"api/main.rs\"]\n";
             api_modules << "pub mod api_main;\n";
         }
@@ -538,6 +540,10 @@ void add_rust_api_artifacts(
         );
         add_rust_generated_template_file(
             result, options, templates, "api/api_server.rs", GeneratedArtifactTier::Api, diagnostics
+        );
+        add_rust_generated_template_file(
+            result, options, templates, "api/api_transport.rs", GeneratedArtifactTier::Api,
+            diagnostics
         );
         add_rust_generated_template_file(
             result, options, templates, "api/api_routes.rs", GeneratedArtifactTier::Api, diagnostics
