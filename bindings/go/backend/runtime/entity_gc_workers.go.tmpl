@@ -1,0 +1,66 @@
+package runtime
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type EntityGCWorkerConfig struct {
+	BatchLimit int
+}
+
+type EntityGCRunResult struct {
+	Scanned   int
+	Finalized int
+}
+
+type EntityGCWorker struct {
+	Descriptor EntityGCDescriptor
+	Repository EntityGCRepository
+	Config     EntityGCWorkerConfig
+}
+
+func NewEntityGCWorker(descriptor EntityGCDescriptor, repository EntityGCRepository, config EntityGCWorkerConfig) EntityGCWorker {
+	return EntityGCWorker{Descriptor: descriptor, Repository: repository, Config: config}
+}
+
+func (w EntityGCWorker) RunOnce(ctx context.Context, backend common.Backend, now string) (EntityGCRunResult, error) {
+	tx, err := backend.Begin(ctx)
+	if err != nil {
+		return EntityGCRunResult{}, err
+	}
+	result, err := w.RunOnceTx(ctx, tx, now)
+	if err != nil {
+		_ = tx.Abort(ctx)
+		return EntityGCRunResult{}, err
+	}
+	return result, backend.Commit(ctx, tx)
+}
+
+func (w EntityGCWorker) RunOnceTx(ctx context.Context, tx common.Transaction, now string) (EntityGCRunResult, error) {
+	limit := w.Config.BatchLimit
+	if limit <= 0 {
+		limit = 100
+	}
+	records, err := w.Repository.ListGCEligibleTx(ctx, tx, EntityGCEligibilityRequest{
+		Descriptor: w.Descriptor,
+		Now:        now,
+		Limit:      limit,
+	})
+	if err != nil {
+		return EntityGCRunResult{}, err
+	}
+	result := EntityGCRunResult{Scanned: len(records)}
+	for _, record := range records {
+		if err := w.Repository.FinalizeGCTx(ctx, tx, EntityGCFinalizeRequest{
+			Descriptor: w.Descriptor,
+			Key:        record.Key,
+			Now:        now,
+		}); err != nil {
+			return EntityGCRunResult{}, err
+		}
+		result.Finalized++
+	}
+	return result, nil
+}

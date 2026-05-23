@@ -119,6 +119,8 @@ TemplateRenderer::Values rust_lib_values(
         runtime_modules << "pub mod runtime_entity_gc_descriptors;\n";
         runtime_modules << "#[path = \"common/runtime/entity_gc_repository.rs\"]\n";
         runtime_modules << "pub mod runtime_entity_gc_repository;\n";
+        runtime_modules << "#[path = \"common/runtime/entity_gc_workers.rs\"]\n";
+        runtime_modules << "pub mod runtime_entity_gc_workers;\n";
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
     {
@@ -509,6 +511,10 @@ void add_rust_common_runtime_artifacts(
         add_template_file(
             result, options.output_dir, templates, "runtime/entity_gc_repository.rs",
             "runtime/entity_gc_repository.rs", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/entity_gc_workers.rs",
+            "runtime/entity_gc_workers.rs", diagnostics
         );
     }
 

@@ -95,6 +95,7 @@ TemplateRenderer::Values java_makefile_values(
     add_common(
         usage.uses_entity_gc, "common/com/statespec/backend/runtime/EntityGcRepository.java"
     );
+    add_common(usage.uses_entity_gc, "common/com/statespec/backend/runtime/EntityGcWorkers.java");
 
     std::vector<std::string> api_sources;
     if (include_api)
@@ -504,6 +505,10 @@ void add_java_common_runtime_artifacts(
             result, options.output_dir, templates,
             output_root / "runtime" / "EntityGcRepository.java",
             output_root / "runtime" / "EntityGcRepository.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, output_root / "runtime" / "EntityGcWorkers.java",
+            output_root / "runtime" / "EntityGcWorkers.java", diagnostics
         );
     }
     add_generated_template_file(

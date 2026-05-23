@@ -49,6 +49,7 @@ common/backend/runtime/codec_queues.go
 common/backend/runtime/codec_workflows.go
 common/backend/runtime/entity_gc_descriptors.go
 common/backend/runtime/entity_gc_repository.go
+common/backend/runtime/entity_gc_workers.go
 common/backend/runtime/leases.go
 common/backend/runtime/queues.go
 common/backend/runtime/workflows.go

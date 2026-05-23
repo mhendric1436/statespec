@@ -52,6 +52,7 @@ TemplateRenderer::Values cpp_common_runtime_values(const IrSystem& system)
     {
         add("common/runtime/entity_gc_descriptors.hpp");
         add("common/runtime/entity_gc_repository.hpp");
+        add("common/runtime/entity_gc_workers.hpp");
     }
     return TemplateRenderer::Values{{"common_runtime_includes", includes.str()}};
 }
@@ -449,6 +450,10 @@ void add_cpp_common_runtime_artifacts(
         add_template_file(
             result, options.output_dir, templates, "runtime/entity_gc_repository.hpp",
             "runtime/entity_gc_repository.hpp", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/entity_gc_workers.hpp",
+            "runtime/entity_gc_workers.hpp", diagnostics
         );
     }
 

@@ -75,5 +75,6 @@ The shared artifact model reserves common-tier generated files for all languages
 | Java | `common/com/statespec/backend/runtime/EntityGcDescriptors.java` | `common/com/statespec/backend/runtime/EntityGcRepository.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` |
 | Rust | `common/runtime/entity_gc_descriptors.rs` | `common/runtime/entity_gc_repository.rs` | `common/runtime/entity_gc_workers.rs` |
 
-These artifacts are shared by generated API and Worker apps. Later implementation PRs
-will fill in worker implementation and lifecycle wiring.
+These artifacts are shared by generated API and Worker apps. The common worker exposes
+a small `runOnce`/`run_once` surface for one entity descriptor and leaves lifecycle
+thread ownership to the generated API or Worker app composition layer.

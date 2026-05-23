@@ -360,6 +360,9 @@ void add_go_common_runtime_artifacts(
         add_go_common_generated_template_file(
             result, options, templates, "backend/runtime/entity_gc_repository.go", diagnostics
         );
+        add_go_common_generated_template_file(
+            result, options, templates, "backend/runtime/entity_gc_workers.go", diagnostics
+        );
     }
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("descriptors.go.tmpl"),
