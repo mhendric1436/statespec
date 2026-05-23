@@ -9,6 +9,9 @@ actor "API client" as Client
 
 package "Generated API tier" {
   rectangle "api/cmd/api/main\nprocess entrypoint" as ApiMain
+  rectangle "ApiProcess\nthreaded lifecycle\nstart / stop / join" as ApiProcess
+  rectangle "LocalBlockingApiTransport\nlocal lifecycle blocker" as LocalTransport
+  node "owned background\nthread / goroutine / task" as ApiWorker
   rectangle "ApiApplication\ncomposition root" as ApiApplication
   rectangle "ApiServer\nserver descriptor + request shell" as ApiServer
   rectangle "ApiDispatcher\nroute lookup + typed dispatch" as ApiDispatcher
@@ -35,7 +38,7 @@ package "Generated common tier" {
 }
 
 package "User-owned API implementation" {
-  component "Transport adapter\nHTTP / RPC framework" as Transport
+  component "Network transport adapter\nHTTP / RPC framework" as Transport
   component "AuthN / AuthZ / tenancy policy" as Auth
   component "Concrete operation handler" as ConcreteHandler
   component "External system client implementation" as ExternalClientImpl
@@ -57,8 +60,17 @@ package "Runtime effects" {
 
 Client --> Transport : request
 Transport --> Auth : authenticate tenant and caller
-Auth --> ApiApplication : selected server + context
-ApiMain --> ApiApplication : wires backend + handler
+Auth --> ApiServer : generated request context
+ApiMain --> ApiProcess : construct + start()
+ApiMain --> ApiProcess : install stop handling
+ApiMain --> ApiProcess : join()
+
+ApiProcess --> ApiWorker : owns execution
+ApiProcess --> ApiApplication : constructs per server
+ApiProcess --> LocalTransport : request_stop()
+ApiWorker --> ApiProcess : run()
+ApiWorker --> ApiApplication : bootstrap()
+ApiWorker --> LocalTransport : run() blocks until stop
 
 ApiApplication --> ApiServer : owns
 ApiApplication --> Backend : backend reference
@@ -117,8 +129,23 @@ QueueStore --> DurableQueues : persisted messages
 LogSink --> LogsBackend : structured records
 MetricSink --> MetricsBackend : samples
 
-ApiServer --> Transport : response
+ApiServer --> Transport : generated response
 Transport --> Client : status + body
+
+note right of ApiProcess
+Generated main does not call bootstrap()
+directly. start() owns the background
+execution path, which runs bootstrap()
+when bootstrap_on_start is enabled,
+then enters the transport run loop.
+end note
+
+note right of LocalTransport
+The generated local transport is not HTTP.
+It only blocks and unblocks lifecycle tests.
+Production HTTP/RPC adapters remain
+user/runtime-owned and call ApiServer.handle().
+end note
 
 note right of ApiApplication
 The generated composition root owns
