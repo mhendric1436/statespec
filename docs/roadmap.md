@@ -55,7 +55,8 @@ Runtime-owned by design:
 Generated-owned today:
 
 - API and Worker composition roots and process entrypoints.
-- API process lifecycle, bootstrap, stop handling, and local/no-op blocking transport.
+- API process lifecycle contract, bootstrap, owned background execution, stop handling,
+  join semantics, and local/no-op blocking transport.
 - Worker runtime loop and workflow step execution scaffolding.
 
 StateSpec intentionally stops short of choosing an HTTP library. The local API transport

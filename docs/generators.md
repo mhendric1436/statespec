@@ -114,12 +114,15 @@ The API application artifact responsibilities are:
 | `api_main` | API process entrypoint |
 
 Generated API process entrypoints construct backend, handler, process config, transport,
-and process runtime before calling `run()`. The generated local transport starts
-successfully and blocks until shutdown so generated apps have a production-shaped
-lifecycle. It is deliberately not an HTTP implementation. Real network transport
-selection, framework routing, middleware, TLS, auth integration, request parsing, and
-response serialization remain user/runtime-owned until StateSpec adopts an opinionated
-HTTP backend.
+and process runtime before calling `start()`, installing stop handling, and waiting with
+`join()`. `ApiProcess` owns the background thread, goroutine, or task; generated `main`
+functions and user fixtures should not wrap `run()` in their own threads. The generated
+local transport starts successfully and blocks until shutdown so generated apps have a
+production-shaped lifecycle. It is deliberately not an HTTP implementation. Real network
+transport selection, framework routing, middleware, TLS, auth integration, request
+parsing, and response serialization remain user/runtime-owned until StateSpec adopts an
+opinionated HTTP backend. See [api-process-lifecycle.md](api-process-lifecycle.md) for
+the cross-language lifecycle contract.
 
 The worker application artifact responsibilities are:
 

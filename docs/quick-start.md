@@ -245,10 +245,12 @@ User code owns:
 - External clients and runtime configuration.
 
 The generated API process constructs the backend, handler, config, local blocking
-transport, and API app composition roots, then calls the transport-backed `run()` method.
-This gives generated apps a production-shaped lifecycle without choosing an HTTP
-library. The generated local transport is intentionally no-op: it does not bind a port
-or parse network requests.
+transport, and API app composition roots. The generated `ApiProcess` owns the background
+thread, goroutine, or task: generated `main` starts the process, installs stop handling,
+then joins it for completion. This gives generated apps a production-shaped lifecycle
+without choosing an HTTP library. The generated local transport is intentionally no-op:
+it does not bind a port or parse network requests. The cross-language lifecycle contract
+is documented in [api-process-lifecycle.md](api-process-lifecycle.md).
 
 A production API adapter should implement the generated transport interface for the
 chosen framework. It should translate a network request into a generated request

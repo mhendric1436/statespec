@@ -71,7 +71,9 @@ Generated API apps own startup shape:
 
 - construct backend, handler, process config, process runtime, and local transport
 - bootstrap runtime catalogs through the generated app composition roots
+- start the API process on an owned background thread, goroutine, or task
 - install process stop handling where the language runtime supports it
+- request stop and join the owned background execution during shutdown
 - block in a generated local/no-op transport until shutdown is requested
 - expose framework-neutral request dispatch through the generated `ApiServer.handle`
   boundary
@@ -86,6 +88,12 @@ back to the framework.
 StateSpec will keep this boundary until it explicitly adopts an opinionated HTTP
 backend. At that point the HTTP adapter can become another generated/runtime-owned
 artifact without changing API handler contracts.
+
+The generated `ApiProcess` lifecycle contract is documented in
+[api-process-lifecycle.md](api-process-lifecycle.md). In short: `start()` owns
+background execution, `request_stop()` is idempotent and safe before start, `join()`
+waits for completion, and starting the same process twice must be rejected
+deterministically.
 
 ## External System Client Extension Point
 
