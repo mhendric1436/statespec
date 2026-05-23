@@ -19,8 +19,9 @@ pub fn run() -> BackendResult<()> {
     let transport = LocalBlockingApiTransport::new();
     let config = ApiProcessConfig::all_servers();
     let process = std::sync::Arc::new(ApiProcess::new(config, backend, handler, transport)?);
+    process.start()?;
     install_signal_handling(process.clone());
-    process.run()
+    process.join()
 }
 
 #[cfg(unix)]

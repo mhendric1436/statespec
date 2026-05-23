@@ -5,7 +5,8 @@ use crate::api_handlers::ApiHandler;
 use crate::api_transport::{ApiTransport, LocalBlockingApiTransport};
 use crate::backend::{Backend, BackendError, BackendResult};
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 
 #[derive(Debug, Clone)]
 pub struct ApiProcessConfig {
@@ -34,6 +35,13 @@ pub struct ApiProcess<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport
     pub transport: T,
     pub applications: Vec<ApiApplication<B, H>>,
     bootstrapped: Mutex<bool>,
+    lifecycle: Arc<Mutex<ApiProcessLifecycle>>,
+}
+
+struct ApiProcessLifecycle {
+    started: bool,
+    running: bool,
+    handle: Option<JoinHandle<BackendResult<()>>>,
 }
 
 impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B, H, T> {
@@ -63,6 +71,11 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
             transport,
             applications,
             bootstrapped: Mutex::new(false),
+            lifecycle: Arc::new(Mutex::new(ApiProcessLifecycle {
+                started: false,
+                running: false,
+                handle: None,
+            })),
         })
     }
 
@@ -89,6 +102,62 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
         }
 
         self.transport.run()
+    }
+
+    pub fn start(self: &Arc<Self>) -> BackendResult<()>
+    where
+        B: Send + Sync + 'static,
+        H: Send + Sync + 'static,
+        T: Send + Sync + 'static,
+    {
+        let mut lifecycle = self.lifecycle.lock().map_err(|_| BackendError::Internal {
+            message: "API process lifecycle lock poisoned".to_string(),
+        })?;
+        if lifecycle.started {
+            return Err(BackendError::Internal {
+                message: "generated API process already started".to_string(),
+            });
+        }
+
+        lifecycle.started = true;
+        lifecycle.running = true;
+        let process = Arc::clone(self);
+        lifecycle.handle = Some(std::thread::spawn(move || {
+            let result = process.run();
+            if let Ok(mut lifecycle) = process.lifecycle.lock() {
+                lifecycle.running = false;
+            }
+            result
+        }));
+        Ok(())
+    }
+
+    pub fn join(&self) -> BackendResult<()> {
+        let handle = {
+            let mut lifecycle = self.lifecycle.lock().map_err(|_| BackendError::Internal {
+                message: "API process lifecycle lock poisoned".to_string(),
+            })?;
+            if !lifecycle.started {
+                return Err(BackendError::Internal {
+                    message: "generated API process not started".to_string(),
+                });
+            }
+            lifecycle.handle.take()
+        };
+
+        match handle {
+            Some(handle) => handle.join().map_err(|_| BackendError::Internal {
+                message: "generated API process thread panicked".to_string(),
+            })?,
+            None => Ok(()),
+        }
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.lifecycle
+            .lock()
+            .map(|lifecycle| lifecycle.running)
+            .unwrap_or(false)
     }
 
     pub fn request_stop(&self) {
