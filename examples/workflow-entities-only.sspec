@@ -1,0 +1,245 @@
+statespec 0.1;
+system WorkflowEntitiesOnly {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  entity Account {
+    key tenant_id, account_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      account_id string
+      display_name string
+    }
+    state_machine {
+      state Active
+      state Suspended
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: tombstone
+        }
+      }
+      initial Active
+      terminal[Deleted]
+      Active -> Suspended
+      Suspended -> Active
+      Active -> Deleted
+      Suspended -> Deleted
+    }
+    children {
+      projects: Project by account_id
+    }
+    indexes {
+      unique by_tenant_account on tenant_id, account_id
+      index by_tenant_status on tenant_id, status
+    }
+  }
+
+  entity Project {
+    key tenant_id, project_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      account_id string
+      project_id string
+      name string
+    }
+    state_machine {
+      state Planned
+      state Active
+      state Archived {
+        terminal: true
+        garbage_collection {
+          after: P180D
+          mode: archive
+        }
+      }
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: tombstone
+        }
+      }
+      initial Planned
+      terminal[Archived, Deleted]
+      Planned -> Active
+      Active -> Archived
+      Planned -> Deleted
+      Active -> Deleted
+    }
+    relations {
+      parent account_id: ref<Account> {
+        kind: composition
+        on_parent_delete: cascade
+        parent_must_be_in:[Active]
+        unique_within_parent:[project_id]
+      }
+    }
+    children {
+      tasks: Task by project_id
+    }
+    indexes {
+      unique by_tenant_project on tenant_id, project_id
+      index by_account_status on tenant_id, account_id, status
+    }
+  }
+
+  entity Task {
+    key tenant_id, task_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      account_id string
+      project_id string
+      task_id string
+      title string
+      priority int
+    }
+    state_machine {
+      state Open
+      state InProgress
+      state Done {
+        terminal: true
+        garbage_collection {
+          after: P365D
+          mode: archive
+        }
+      }
+      state Cancelled {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: tombstone
+        }
+      }
+      initial Open
+      terminal[Done, Cancelled]
+      Open -> InProgress
+      InProgress -> Done
+      Open -> Cancelled
+      InProgress -> Cancelled
+    }
+    relations {
+      parent project_id: ref<Project> {
+        kind: composition
+        on_parent_delete: cascade
+        parent_must_be_in:[Active]
+        unique_within_parent:[task_id]
+      }
+      ref account_id: ref<Account> {
+        kind: reference
+        parent_must_be_in:[Active]
+      }
+    }
+    indexes {
+      unique by_tenant_task on tenant_id, task_id
+      index by_project_status on tenant_id, project_id, status
+      index by_account_priority on tenant_id, account_id, priority
+    }
+  }
+
+  workflow AccountLifecycle {
+    version 1
+    singleton false
+    expected_execution_time PT2M
+    start inspect_account
+
+    load Account by account_id as account;
+
+    step inspect_account {
+      expected_execution_time PT10S
+      max_retries 2
+      transition_to reconcile_account;
+    }
+
+    step reconcile_account {
+      expected_execution_time PT30S
+      max_retries 3
+      transition_to finalize_account;
+    }
+
+    step finalize_account {
+      expected_execution_time PT10S
+      max_retries 2
+      complete
+    }
+  }
+
+  workflow ProjectLifecycle {
+    version 1
+    singleton false
+    expected_execution_time PT3M
+    start inspect_project
+
+    load Project by project_id as project;
+
+    step inspect_project {
+      expected_execution_time PT10S
+      max_retries 2
+      transition_to reconcile_project;
+    }
+
+    step reconcile_project {
+      expected_execution_time PT30S
+      max_retries 3
+      transition_to finalize_project;
+    }
+
+    step finalize_project {
+      expected_execution_time PT10S
+      max_retries 2
+      complete
+    }
+  }
+
+  workflow TaskLifecycle {
+    version 1
+    singleton false
+    expected_execution_time PT2M
+    start inspect_task
+
+    load Task by task_id as task;
+
+    step inspect_task {
+      expected_execution_time PT10S
+      max_retries 2
+      transition_to reconcile_task;
+    }
+
+    step reconcile_task {
+      expected_execution_time PT30S
+      max_retries 3
+      transition_to finalize_task;
+    }
+
+    step finalize_task {
+      expected_execution_time PT10S
+      max_retries 2
+      complete
+    }
+  }
+}
