@@ -154,6 +154,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral metric sink"},
             {"api/backend/api_application.go", api, Kind::ApiApplication,
              "API application composition root"},
+            {"api/backend/api_process.go", api, Kind::ApiProcess, "API process lifecycle runtime",
+             true},
             {"api/backend/api_server.go", api, Kind::ApiServer,
              "API server lifecycle and request loop", true},
             {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher,

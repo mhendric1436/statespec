@@ -138,6 +138,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/backend/runtime/logs.go", common, Kind::RuntimeLogSink},
             {"common/backend/runtime/metrics.go", common, Kind::RuntimeMetricSink},
             {"api/backend/api_application.go", api, Kind::ApiApplication},
+            {"api/backend/api_process.go", api, Kind::ApiProcess, true},
             {"api/backend/api_server.go", api, Kind::ApiServer, true},
             {"api/backend/api_dispatcher.go", api, Kind::ApiDispatcher, true},
             {"api/backend/api_handler_registry.go", api, Kind::ApiHandlerRegistry},

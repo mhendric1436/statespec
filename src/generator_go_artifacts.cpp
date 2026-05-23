@@ -381,6 +381,10 @@ void add_go_api_artifacts(
             GeneratedArtifactTier::Api, diagnostics, go_api_runtime_bootstrap_values(system)
         );
         add_go_generated_template_file(
+            result, options, templates, "api/backend/api_process.go", GeneratedArtifactTier::Api,
+            diagnostics
+        );
+        add_go_generated_template_file(
             result, options, templates, "api/backend/api_dispatcher.go", GeneratedArtifactTier::Api,
             diagnostics,
             TemplateRenderer::Values{
