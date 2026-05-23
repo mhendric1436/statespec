@@ -20,13 +20,23 @@
 namespace statespec_generated::worker
 {
 
+struct WorkerRuntimeConfig
+{
+    bool entity_gc_enabled = true;
+    int entity_gc_poll_interval_ms = 60000;
+};
+
 class WorkerRuntime
 {
   public:
     using EntityGcWorkerTask = std::function<void(const std::string& now)>;
 
-    explicit WorkerRuntime(statespec::backend::IBackend& backend)
-        : backend_(backend){{runtime_store_initializers}}
+    explicit WorkerRuntime(
+        statespec::backend::IBackend& backend,
+        WorkerRuntimeConfig config = {}
+    )
+        : backend_(backend),
+          config_(config){{runtime_store_initializers}}
     {
     }
 
@@ -77,6 +87,15 @@ class WorkerRuntime
         if (entity_gc_started_)
         {
             throw std::runtime_error("Worker runtime entity GC workers already started");
+        }
+        if (!config_.entity_gc_enabled)
+        {
+            entity_gc_started_ = true;
+            return;
+        }
+        if (poll_interval == std::chrono::minutes{1})
+        {
+            poll_interval = std::chrono::milliseconds(config_.entity_gc_poll_interval_ms);
         }
         entity_gc_started_ = true;
         entity_gc_stop_requested_ = false;
@@ -138,6 +157,7 @@ class WorkerRuntime
     }
 
     statespec::backend::IBackend& backend_;
+    WorkerRuntimeConfig config_;
 {{runtime_store_members}}
     std::vector<EntityGcWorkerTask> entity_gc_tasks_;
     std::vector<std::thread> entity_gc_threads_;

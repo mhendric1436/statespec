@@ -9,9 +9,25 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub type WorkerEntityGcTask = Arc<dyn Fn(String) -> crate::backend::BackendResult<()> + Send + Sync>;
 
+#[derive(Clone, Debug)]
+pub struct WorkerRuntimeConfig {
+    pub entity_gc_enabled: bool,
+    pub entity_gc_poll_interval_ms: u64,
+}
+
+impl Default for WorkerRuntimeConfig {
+    fn default() -> Self {
+        Self {
+            entity_gc_enabled: true,
+            entity_gc_poll_interval_ms: 60000,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct WorkerRuntime<B: Backend> {
     pub backend: B,
+    pub config: WorkerRuntimeConfig,
 {{runtime_store_fields}}
     entity_gc_workers: Arc<Mutex<Vec<WorkerEntityGcTask>>>,
     entity_gc_stop: Arc<AtomicBool>,
@@ -21,8 +37,13 @@ pub struct WorkerRuntime<B: Backend> {
 
 impl<B: Backend> WorkerRuntime<B> {
     pub fn new(backend: B) -> Self {
+        Self::with_config(backend, WorkerRuntimeConfig::default())
+    }
+
+    pub fn with_config(backend: B, config: WorkerRuntimeConfig) -> Self {
         Self {
             backend,
+            config,
 {{runtime_store_initializers}}
             entity_gc_workers: Arc::new(Mutex::new(Vec::new())),
             entity_gc_stop: Arc::new(AtomicBool::new(false)),
@@ -65,6 +86,9 @@ impl<B: Backend> WorkerRuntime<B> {
                 message: "Worker runtime entity GC workers already started".to_string(),
             });
         }
+        if !self.config.entity_gc_enabled {
+            return Ok(());
+        }
         self.entity_gc_stop.store(false, Ordering::SeqCst);
         let workers = self
             .entity_gc_workers
@@ -73,7 +97,11 @@ impl<B: Backend> WorkerRuntime<B> {
                 message: "Worker runtime entity GC worker lock poisoned".to_string(),
             })?
             .clone();
-        let interval = poll_interval.max(Duration::from_millis(1));
+        let interval = if poll_interval.is_zero() {
+            Duration::from_millis(self.config.entity_gc_poll_interval_ms.max(1))
+        } else {
+            poll_interval.max(Duration::from_millis(1))
+        };
         let mut handles =
             self.entity_gc_handles
                 .lock()

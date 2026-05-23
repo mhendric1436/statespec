@@ -211,6 +211,12 @@ Generated artifact layout must preserve that boundary:
 Language packaging may add language-specific path prefixes, but it must not collapse
 backend-neutral stores back into memory-specific packages.
 
+Generated entity GC descriptors and workers are shared common-tier runtime artifacts.
+API process and Worker runtime code may both compose those workers, but each tier must
+expose explicit config flags for enabling or disabling GC. Defaults should keep
+standalone generated apps working, while production deployments can disable GC on the
+tier that should not host background collection.
+
 Do not add domain-specific transaction staging fields such as queue message maps,
 workflow execution maps, lease maps, feature flag maps, log append buffers, or metric
 append buffers to backend or transaction implementations. Those records belong in

@@ -17,21 +17,24 @@ public final class ApiProcess {
     public static final class Config {
         private final List<String> serverNames;
         private final boolean bootstrapOnStart;
+        private final boolean entityGcEnabled;
         private final int shutdownTimeoutMs;
         private final int entityGcPollIntervalMs;
 
         public Config(List<String> serverNames, boolean bootstrapOnStart, int shutdownTimeoutMs) {
-            this(serverNames, bootstrapOnStart, shutdownTimeoutMs, 60000);
+            this(serverNames, bootstrapOnStart, true, shutdownTimeoutMs, 60000);
         }
 
         public Config(
             List<String> serverNames,
             boolean bootstrapOnStart,
+            boolean entityGcEnabled,
             int shutdownTimeoutMs,
             int entityGcPollIntervalMs
         ) {
             this.serverNames = List.copyOf(serverNames);
             this.bootstrapOnStart = bootstrapOnStart;
+            this.entityGcEnabled = entityGcEnabled;
             this.shutdownTimeoutMs = shutdownTimeoutMs;
             this.entityGcPollIntervalMs = entityGcPollIntervalMs;
         }
@@ -50,6 +53,10 @@ public final class ApiProcess {
 
         public boolean bootstrapOnStart() {
             return bootstrapOnStart;
+        }
+
+        public boolean entityGcEnabled() {
+            return entityGcEnabled;
         }
 
         public int shutdownTimeoutMs() {
@@ -186,6 +193,9 @@ public final class ApiProcess {
     }
 
     private synchronized void startEntityGcWorkers() {
+        if (!config.entityGcEnabled()) {
+            return;
+        }
         entityGcStopRequested.set(false);
         for (EntityGcWorkerTask worker : entityGcWorkers) {
             Thread gcThread = new Thread(

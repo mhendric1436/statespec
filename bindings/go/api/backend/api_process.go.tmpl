@@ -14,6 +14,7 @@ type EntityGCWorkerFunc func(ctx context.Context, now string) error
 type APIProcessConfig struct {
 	ServerNames       []string
 	BootstrapOnStart  bool
+	EntityGCEnabled   bool
 	ShutdownTimeoutMS int
 	EntityGCPollInterval time.Duration
 }
@@ -21,6 +22,7 @@ type APIProcessConfig struct {
 func DefaultAPIProcessConfig() APIProcessConfig {
 	config := APIProcessConfig{
 		BootstrapOnStart:  true,
+		EntityGCEnabled:   true,
 		ShutdownTimeoutMS: 30000,
 		EntityGCPollInterval: time.Minute,
 	}
@@ -143,6 +145,9 @@ func (process *APIProcess) Start(ctx context.Context) error {
 }
 
 func (process *APIProcess) startEntityGCWorkersLocked() {
+	if !process.Config.EntityGCEnabled {
+		return
+	}
 	interval := process.Config.EntityGCPollInterval
 	if interval <= 0 {
 		interval = time.Minute

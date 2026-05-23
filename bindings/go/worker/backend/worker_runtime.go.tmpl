@@ -12,8 +12,21 @@ import (
 
 type WorkerEntityGCWorkerFunc func(ctx context.Context, now string) error
 
+type WorkerTierRuntimeConfig struct {
+	EntityGCEnabled      bool
+	EntityGCPollInterval time.Duration
+}
+
+func DefaultWorkerTierRuntimeConfig() WorkerTierRuntimeConfig {
+	return WorkerTierRuntimeConfig{
+		EntityGCEnabled:      true,
+		EntityGCPollInterval: time.Minute,
+	}
+}
+
 type WorkerTierRuntime struct {
 	Backend      common.Backend
+	Config       WorkerTierRuntimeConfig
 {{runtime_store_fields}}
 	EntityGCWorkers []WorkerEntityGCWorkerFunc
 	gcMu            sync.Mutex
@@ -24,8 +37,13 @@ type WorkerTierRuntime struct {
 }
 
 func NewWorkerTierRuntime(backend common.Backend) *WorkerTierRuntime {
+	return NewWorkerTierRuntimeWithConfig(backend, DefaultWorkerTierRuntimeConfig())
+}
+
+func NewWorkerTierRuntimeWithConfig(backend common.Backend, config WorkerTierRuntimeConfig) *WorkerTierRuntime {
 	return &WorkerTierRuntime{
 		Backend:      backend,
+		Config:       config,
 {{runtime_store_initializers}}
 	}
 }
@@ -45,6 +63,13 @@ func (runtime *WorkerTierRuntime) StartEntityGCWorkers(ctx context.Context, poll
 	defer runtime.gcMu.Unlock()
 	if runtime.gcStarted {
 		return fmt.Errorf("Worker runtime entity GC workers already started")
+	}
+	if !runtime.Config.EntityGCEnabled {
+		runtime.gcStarted = true
+		return nil
+	}
+	if pollInterval <= 0 {
+		pollInterval = runtime.Config.EntityGCPollInterval
 	}
 	if pollInterval <= 0 {
 		pollInterval = time.Minute

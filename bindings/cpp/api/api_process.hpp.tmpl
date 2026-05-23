@@ -24,6 +24,7 @@ struct ApiProcessConfig
 {
     std::vector<std::string> server_names;
     bool bootstrap_on_start = true;
+    bool entity_gc_enabled = true;
     int shutdown_timeout_ms = 30000;
     int entity_gc_poll_interval_ms = 60000;
 
@@ -214,6 +215,10 @@ class ApiProcess
 
     void start_entity_gc_workers()
     {
+        if (!config_.entity_gc_enabled)
+        {
+            return;
+        }
         std::lock_guard<std::mutex> lock(entity_gc_mutex_);
         entity_gc_stop_requested_ = false;
         for (const auto& task : entity_gc_tasks_)

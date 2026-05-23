@@ -16,6 +16,7 @@ pub type EntityGcWorkerTask = Arc<dyn Fn(String) -> BackendResult<()> + Send + S
 pub struct ApiProcessConfig {
     pub server_names: Vec<String>,
     pub bootstrap_on_start: bool,
+    pub entity_gc_enabled: bool,
     pub shutdown_timeout_ms: u64,
     pub entity_gc_poll_interval_ms: u64,
 }
@@ -28,6 +29,7 @@ impl ApiProcessConfig {
                 .map(|descriptor| descriptor.name)
                 .collect(),
             bootstrap_on_start: true,
+            entity_gc_enabled: true,
             shutdown_timeout_ms: 30000,
             entity_gc_poll_interval_ms: 60000,
         }
@@ -170,6 +172,9 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
     }
 
     fn start_entity_gc_workers(&self) -> BackendResult<()> {
+        if !self.config.entity_gc_enabled {
+            return Ok(());
+        }
         self.entity_gc_stop.store(false, Ordering::SeqCst);
         let workers = self
             .entity_gc_workers

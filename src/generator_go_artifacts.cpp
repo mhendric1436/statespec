@@ -108,10 +108,7 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     add(usage.uses_workflows, "Workflows", "WorkflowStore", "NewWorkflowStore");
     add(usage.uses_logs, "Logs", "LogSink", "NewLogSink");
     add(usage.uses_metrics, "Metrics", "MetricSink", "NewMetricSink");
-    if (usage.uses_workflows || usage.uses_entity_gc)
-    {
-        worker_time_import << "\t\"time\"\n";
-    }
+    worker_time_import << "\t\"time\"\n";
     if (usage.uses_workflows)
     {
         worker_run_once

@@ -22,6 +22,24 @@ Generated API and Worker tiers own lifecycle wiring:
 - request stop on GC workers during shutdown
 - join GC workers before process/runtime shutdown completes
 
+GC is enabled by default in generated process/runtime config, but it is an explicit
+deployment choice:
+
+| Tier | Config |
+|---|---|
+| C++ API | `ApiProcessConfig::entity_gc_enabled` |
+| C++ Worker | `WorkerRuntimeConfig::entity_gc_enabled` |
+| Go API | `APIProcessConfig.EntityGCEnabled` |
+| Go Worker | `WorkerTierRuntimeConfig.EntityGCEnabled` |
+| Java API | `ApiProcess.Config.entityGcEnabled()` |
+| Java Worker | `WorkerRuntime.Config.entityGcEnabled()` |
+| Rust API | `ApiProcessConfig::entity_gc_enabled` |
+| Rust Worker | `WorkerRuntimeConfig::entity_gc_enabled` |
+
+Set the flag to `false` on the tier that should not host entity GC. This is the
+recommended way to run API and Worker deployments side by side without duplicate
+background GC scans.
+
 ## Worker Shape
 
 The baseline generated design is one low-resource background worker per GC-enabled

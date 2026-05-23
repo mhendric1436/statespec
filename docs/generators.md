@@ -105,7 +105,9 @@ Typed runtime artifacts are generated only when used by the spec or generated ap
 
 Entity GC runtime artifacts are common-tier artifacts. API and Worker apps may both
 compose them, and deployments should configure which tier hosts GC when both are
-running. See [entity-gc-runtime.md](entity-gc-runtime.md).
+running. Generated API process and Worker runtime configs include explicit GC enablement
+flags, defaulting to enabled for standalone generated apps. See
+[entity-gc-runtime.md](entity-gc-runtime.md).
 
 The API application artifact responsibilities are:
 

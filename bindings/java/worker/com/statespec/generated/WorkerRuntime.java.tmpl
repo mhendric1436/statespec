@@ -14,7 +14,14 @@ public final class WorkerRuntime {
         void run(String now) throws Backend.BackendException;
     }
 
+    public record Config(boolean entityGcEnabled, int entityGcPollIntervalMs) {
+        public static Config defaults() {
+            return new Config(true, 60000);
+        }
+    }
+
     private final Backend backend;
+    private final Config config;
 {{runtime_store_fields}}
     private final List<EntityGcWorkerTask> entityGcWorkers = new ArrayList<>();
     private final List<Thread> entityGcThreads = new ArrayList<>();
@@ -22,7 +29,12 @@ public final class WorkerRuntime {
     private boolean entityGcStarted = false;
 
     public WorkerRuntime(Backend backend) {
+        this(backend, Config.defaults());
+    }
+
+    public WorkerRuntime(Backend backend, Config config) {
         this.backend = backend;
+        this.config = config;
 {{runtime_store_initializers}}
     }
 
@@ -49,9 +61,14 @@ public final class WorkerRuntime {
         if (entityGcStarted) {
             throw new IllegalStateException("Worker runtime entity GC workers already started");
         }
+        if (!config.entityGcEnabled()) {
+            entityGcStarted = true;
+            return;
+        }
         entityGcStarted = true;
         entityGcStopRequested.set(false);
-        int interval = Math.max(1, pollIntervalMs);
+        int configuredInterval = pollIntervalMs > 0 ? pollIntervalMs : config.entityGcPollIntervalMs();
+        int interval = Math.max(1, configuredInterval);
         for (EntityGcWorkerTask worker : entityGcWorkers) {
             Thread gcThread = new Thread(
                 () -> {
