@@ -2,6 +2,8 @@
 
 #include "api_server.hpp"
 
+#include <condition_variable>
+#include <mutex>
 #include <optional>
 #include <string_view>
 
@@ -18,9 +20,13 @@ class IApiTransport
         std::string_view route_name,
         const ApiRequestContext& context
     ) = 0;
+
+    virtual int run() = 0;
+
+    virtual void request_stop() = 0;
 };
 
-class ApiServerTransport final : public IApiTransport
+class LocalBlockingApiTransport final : public IApiTransport
 {
   public:
     std::optional<ApiResponse> handle(
@@ -31,6 +37,27 @@ class ApiServerTransport final : public IApiTransport
     {
         return server.handle(route_name, context);
     }
+
+    int run() override
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        stop_requested_.wait(lock, [&] { return stopping_; });
+        return 0;
+    }
+
+    void request_stop() override
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            stopping_ = true;
+        }
+        stop_requested_.notify_all();
+    }
+
+  private:
+    std::mutex mutex_;
+    std::condition_variable stop_requested_;
+    bool stopping_ = false;
 };
 
 } // namespace statespec_generated::api

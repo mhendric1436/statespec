@@ -2,16 +2,43 @@ package backend
 
 import (
 	"context"
+	"sync"
 
 	common "statespec-generated/common/backend"
 )
 
 type APITierTransport interface {
 	Handle(ctx context.Context, server APITierServer, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error)
+	Run(ctx context.Context) error
+	RequestStop()
 }
 
-type APITierServerTransport struct{}
+type LocalBlockingAPITierTransport struct {
+	stopOnce sync.Once
+	stopCh   chan struct{}
+}
 
-func (transport APITierServerTransport) Handle(ctx context.Context, server APITierServer, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
+func NewLocalBlockingAPITierTransport() *LocalBlockingAPITierTransport {
+	return &LocalBlockingAPITierTransport{
+		stopCh: make(chan struct{}),
+	}
+}
+
+func (transport *LocalBlockingAPITierTransport) Handle(ctx context.Context, server APITierServer, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
 	return server.Handle(ctx, routeName, request)
+}
+
+func (transport *LocalBlockingAPITierTransport) Run(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-transport.stopCh:
+		return nil
+	}
+}
+
+func (transport *LocalBlockingAPITierTransport) RequestStop() {
+	transport.stopOnce.Do(func() {
+		close(transport.stopCh)
+	})
 }

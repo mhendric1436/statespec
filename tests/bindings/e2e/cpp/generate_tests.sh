@@ -114,6 +114,8 @@ assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "void request_sto
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "int run()"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "class IApiTransport"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "server.handle(route_name, context)"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "class LocalBlockingApiTransport"
+assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "LocalBlockingApiTransport transport"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "decode_start_provision_request"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "class DefaultApiHandler"

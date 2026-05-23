@@ -2,9 +2,10 @@ use crate::api_application::ApiApplication;
 use crate::api_descriptors;
 use crate::api_handler_registry::DefaultApiHandler;
 use crate::api_handlers::ApiHandler;
+use crate::api_transport::{ApiTransport, LocalBlockingApiTransport};
 use crate::backend::{Backend, BackendError, BackendResult};
 
-use std::sync::{Condvar, Mutex};
+use std::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct ApiProcessConfig {
@@ -26,18 +27,22 @@ impl ApiProcessConfig {
     }
 }
 
-pub struct ApiProcess<B: Backend + Clone, H: ApiHandler + Clone> {
+pub struct ApiProcess<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> {
     pub config: ApiProcessConfig,
     pub backend: B,
     pub handler: H,
+    pub transport: T,
     pub applications: Vec<ApiApplication<B, H>>,
     bootstrapped: Mutex<bool>,
-    stopping: Mutex<bool>,
-    stop_requested: Condvar,
 }
 
-impl<B: Backend + Clone, H: ApiHandler + Clone> ApiProcess<B, H> {
-    pub fn new(config: ApiProcessConfig, backend: B, handler: H) -> BackendResult<Self> {
+impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B, H, T> {
+    pub fn new(
+        config: ApiProcessConfig,
+        backend: B,
+        handler: H,
+        transport: T,
+    ) -> BackendResult<Self> {
         let config = if config.server_names.is_empty() {
             ApiProcessConfig::all_servers()
         } else {
@@ -55,10 +60,9 @@ impl<B: Backend + Clone, H: ApiHandler + Clone> ApiProcess<B, H> {
             config,
             backend,
             handler,
+            transport,
             applications,
             bootstrapped: Mutex::new(false),
-            stopping: Mutex::new(false),
-            stop_requested: Condvar::new(),
         })
     }
 
@@ -84,34 +88,21 @@ impl<B: Backend + Clone, H: ApiHandler + Clone> ApiProcess<B, H> {
             self.bootstrap()?;
         }
 
-        let mut stopping = self.stopping.lock().map_err(|_| BackendError::Internal {
-            message: "API process stop lock poisoned".to_string(),
-        })?;
-        while !*stopping {
-            stopping = self
-                .stop_requested
-                .wait(stopping)
-                .map_err(|_| BackendError::Internal {
-                    message: "API process stop wait poisoned".to_string(),
-                })?;
-        }
-        Ok(())
+        self.transport.run()
     }
 
     pub fn request_stop(&self) {
-        if let Ok(mut stopping) = self.stopping.lock() {
-            *stopping = true;
-            self.stop_requested.notify_all();
-        }
+        self.transport.request_stop();
     }
 }
 
-impl<B: Backend + Clone> ApiProcess<B, DefaultApiHandler<B>> {
+impl<B: Backend + Clone> ApiProcess<B, DefaultApiHandler<B>, LocalBlockingApiTransport> {
     pub fn new_default(backend: B) -> BackendResult<Self> {
         Self::new(
             ApiProcessConfig::all_servers(),
             backend.clone(),
             DefaultApiHandler { backend },
+            LocalBlockingApiTransport::new(),
         )
     }
 }

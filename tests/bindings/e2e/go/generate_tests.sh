@@ -113,6 +113,8 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (proc
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) Run(ctx context.Context) error"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "type APITierTransport interface"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "return server.Handle(ctx, routeName, request)"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "type LocalBlockingAPITierTransport struct"
+assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewLocalBlockingAPITierTransport()"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func DecodeStartProvisionRequest"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func EncodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "type DefaultAPITierHandler struct"

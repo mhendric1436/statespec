@@ -118,6 +118,8 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProces
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public int run()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "interface ApiTransport"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "return server.handle(routeName, context)"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "final class LocalBlocking"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "new ApiTransport.LocalBlocking()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiServer.java" "class ApiServer"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiRoute"
 assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiOperationRoute"

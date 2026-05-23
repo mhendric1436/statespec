@@ -1,10 +1,9 @@
 #pragma once
 
 #include "api_application.hpp"
+#include "api_transport.hpp"
 
-#include <condition_variable>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -38,11 +37,13 @@ class ApiProcess
     ApiProcess(
         ApiProcessConfig config,
         IApiOperationHandler& handler,
-        statespec::backend::IBackend& backend
+        statespec::backend::IBackend& backend,
+        IApiTransport& transport
     )
         : config_(std::move(config)),
           handler_(handler),
-          backend_(backend)
+          backend_(backend),
+          transport_(transport)
     {
         if (config_.server_names.empty())
         {
@@ -61,12 +62,14 @@ class ApiProcess
 
     ApiProcess(
         IApiOperationHandler& handler,
-        statespec::backend::IBackend& backend
+        statespec::backend::IBackend& backend,
+        IApiTransport& transport
     )
         : ApiProcess(
               ApiProcessConfig::all_servers(),
               handler,
-              backend
+              backend,
+              transport
           )
     {
     }
@@ -106,29 +109,20 @@ class ApiProcess
         {
             bootstrap();
         }
-
-        std::unique_lock<std::mutex> lock(mutex_);
-        stop_requested_.wait(lock, [&] { return stopping_; });
-        return 0;
+        return transport_.run();
     }
 
     void request_stop()
     {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            stopping_ = true;
-        }
-        stop_requested_.notify_all();
+        transport_.request_stop();
     }
 
   private:
     ApiProcessConfig config_;
     IApiOperationHandler& handler_;
     statespec::backend::IBackend& backend_;
+    IApiTransport& transport_;
     std::vector<std::unique_ptr<ApiApplication>> applications_;
-    std::mutex mutex_;
-    std::condition_variable stop_requested_;
-    bool stopping_ = false;
     bool bootstrapped_ = false;
 };
 

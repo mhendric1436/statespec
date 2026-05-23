@@ -1,5 +1,6 @@
 use crate::api_handler_registry::DefaultApiHandler;
 use crate::api_process::{ApiProcess, ApiProcessConfig};
+use crate::api_transport::LocalBlockingApiTransport;
 use crate::backend::{Backend, BackendResult};
 use crate::memory_backend::InMemoryBackend;
 
@@ -15,17 +16,19 @@ pub fn run() -> BackendResult<()> {
     let handler = DefaultApiHandler {
         backend: backend.clone(),
     };
+    let transport = LocalBlockingApiTransport::new();
     let config = ApiProcessConfig::all_servers();
-    let process = std::sync::Arc::new(ApiProcess::new(config, backend, handler)?);
+    let process = std::sync::Arc::new(ApiProcess::new(config, backend, handler, transport)?);
     install_signal_handling(process.clone());
     process.run()
 }
 
 #[cfg(unix)]
-fn install_signal_handling<B, H>(process: std::sync::Arc<ApiProcess<B, H>>)
+fn install_signal_handling<B, H, T>(process: std::sync::Arc<ApiProcess<B, H, T>>)
 where
     B: Backend + Clone + Send + Sync + 'static,
     H: crate::api_handlers::ApiHandler + Clone + Send + Sync + 'static,
+    T: crate::api_transport::ApiTransport<H> + Send + Sync + 'static,
 {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::time::Duration;
@@ -57,9 +60,10 @@ where
 }
 
 #[cfg(not(unix))]
-fn install_signal_handling<B, H>(_process: std::sync::Arc<ApiProcess<B, H>>)
+fn install_signal_handling<B, H, T>(_process: std::sync::Arc<ApiProcess<B, H, T>>)
 where
     B: Backend + Clone + Send + Sync + 'static,
     H: crate::api_handlers::ApiHandler + Clone + Send + Sync + 'static,
+    T: crate::api_transport::ApiTransport<H> + Send + Sync + 'static,
 {
 }

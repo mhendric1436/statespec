@@ -5,7 +5,6 @@ import com.statespec.backend.Backend;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 public final class ApiProcess {
     public static final class Config {
@@ -43,25 +42,36 @@ public final class ApiProcess {
     private final Config config;
     private final Backend backend;
     private final ApiHandlers.Handler handler;
+    private final ApiTransport transport;
     private final List<ApiApplication> applications = new ArrayList<>();
-    private final CountDownLatch stopRequested = new CountDownLatch(1);
     private boolean bootstrapped = false;
 
-    public ApiProcess(Config config, Backend backend, ApiHandlers.Handler handler) {
+    public ApiProcess(
+        Config config,
+        Backend backend,
+        ApiHandlers.Handler handler,
+        ApiTransport transport
+    ) {
         this.config = config.serverNames().isEmpty() ? Config.allServers() : config;
         this.backend = backend;
         this.handler = handler;
+        this.transport = transport;
         for (String serverName : this.config.serverNames()) {
             applications.add(new ApiApplication(backend, serverName, handler));
         }
     }
 
-    public ApiProcess(Backend backend, ApiHandlers.Handler handler) {
-        this(Config.allServers(), backend, handler);
+    public ApiProcess(Backend backend, ApiHandlers.Handler handler, ApiTransport transport) {
+        this(Config.allServers(), backend, handler, transport);
     }
 
     public static ApiProcess createDefault(Backend backend) {
-        return new ApiProcess(Config.allServers(), backend, ApiHandlerRegistry.defaultHandler(backend));
+        return new ApiProcess(
+            Config.allServers(),
+            backend,
+            ApiHandlerRegistry.defaultHandler(backend),
+            new ApiTransport.LocalBlocking()
+        );
     }
 
     public Config config() {
@@ -74,6 +84,10 @@ public final class ApiProcess {
 
     public ApiHandlers.Handler handler() {
         return handler;
+    }
+
+    public ApiTransport transport() {
+        return transport;
     }
 
     public List<ApiApplication> applications() {
@@ -94,11 +108,10 @@ public final class ApiProcess {
         if (config.bootstrapOnStart()) {
             bootstrap();
         }
-        stopRequested.await();
-        return 0;
+        return transport.run();
     }
 
     public void requestStop() {
-        stopRequested.countDown();
+        transport.requestStop();
     }
 }

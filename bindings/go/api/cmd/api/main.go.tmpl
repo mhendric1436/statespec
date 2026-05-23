@@ -17,8 +17,9 @@ func main() {
 
 	backend := memory.NewBackend()
 	handler := api.DefaultAPITierHandler{Backend: backend}
+	transport := api.NewLocalBlockingAPITierTransport()
 	config := api.DefaultAPIProcessConfig()
-	process, err := api.NewAPIProcess(config, backend, handler)
+	process, err := api.NewAPIProcess(config, backend, handler, transport)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "statespec generated API process failed: %v\n", err)
 		os.Exit(1)

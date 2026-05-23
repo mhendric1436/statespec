@@ -1,7 +1,9 @@
 use crate::api_handlers::ApiHandler;
 use crate::api_server::ApiServer;
-use crate::backend::BackendResult;
+use crate::backend::{BackendError, BackendResult};
 use crate::descriptors::{ApiRequestContext, ApiResponse};
+
+use std::sync::{Condvar, Mutex};
 
 pub trait ApiTransport<H: ApiHandler> {
     fn handle(
@@ -10,12 +12,25 @@ pub trait ApiTransport<H: ApiHandler> {
         route_name: &str,
         context: &ApiRequestContext,
     ) -> BackendResult<Option<ApiResponse>>;
+
+    fn run(&self) -> BackendResult<()>;
+
+    fn request_stop(&self);
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ApiServerTransport;
+#[derive(Debug, Default)]
+pub struct LocalBlockingApiTransport {
+    stopping: Mutex<bool>,
+    stop_requested: Condvar,
+}
 
-impl<H: ApiHandler> ApiTransport<H> for ApiServerTransport {
+impl LocalBlockingApiTransport {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<H: ApiHandler> ApiTransport<H> for LocalBlockingApiTransport {
     fn handle(
         &self,
         server: &ApiServer<H>,
@@ -23,5 +38,27 @@ impl<H: ApiHandler> ApiTransport<H> for ApiServerTransport {
         context: &ApiRequestContext,
     ) -> BackendResult<Option<ApiResponse>> {
         server.handle(route_name, context)
+    }
+
+    fn run(&self) -> BackendResult<()> {
+        let mut stopping = self.stopping.lock().map_err(|_| BackendError::Internal {
+            message: "API transport stop lock poisoned".to_string(),
+        })?;
+        while !*stopping {
+            stopping = self
+                .stop_requested
+                .wait(stopping)
+                .map_err(|_| BackendError::Internal {
+                    message: "API transport stop wait poisoned".to_string(),
+                })?;
+        }
+        Ok(())
+    }
+
+    fn request_stop(&self) {
+        if let Ok(mut stopping) = self.stopping.lock() {
+            *stopping = true;
+            self.stop_requested.notify_all();
+        }
     }
 }

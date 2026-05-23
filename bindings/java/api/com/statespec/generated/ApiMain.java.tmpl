@@ -16,8 +16,9 @@ public final class ApiMain {
     private static int run() {
         var backend = new InMemoryBackend();
         var handler = ApiHandlerRegistry.defaultHandler(backend);
+        var transport = new ApiTransport.LocalBlocking();
         var config = ApiProcess.Config.allServers();
-        var process = new ApiProcess(config, backend, handler);
+        var process = new ApiProcess(config, backend, handler, transport);
 
         Runtime.getRuntime().addShutdownHook(new Thread(process::requestStop, "statespec-api-shutdown"));
 

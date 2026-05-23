@@ -29,26 +29,28 @@ type APIProcess struct {
 	Config       APIProcessConfig
 	Backend      common.Backend
 	Handler      APITierHandler
+	Transport    APITierTransport
 	Applications []*APITierApplication
 
-	stopOnce     sync.Once
-	stopCh       chan struct{}
 	bootstrapMu  sync.Mutex
 	bootstrapped bool
 }
 
-func NewAPIProcess(config APIProcessConfig, backend common.Backend, handler APITierHandler) (*APIProcess, error) {
+func NewAPIProcess(config APIProcessConfig, backend common.Backend, handler APITierHandler, transport APITierTransport) (*APIProcess, error) {
 	if len(config.ServerNames) == 0 {
 		for _, descriptor := range APITierServerDescriptors() {
 			config.ServerNames = append(config.ServerNames, descriptor.Name)
 		}
 	}
+	if transport == nil {
+		transport = NewLocalBlockingAPITierTransport()
+	}
 
 	process := &APIProcess{
-		Config:  config,
-		Backend: backend,
-		Handler: handler,
-		stopCh:  make(chan struct{}),
+		Config:    config,
+		Backend:   backend,
+		Handler:   handler,
+		Transport: transport,
 	}
 	for _, serverName := range config.ServerNames {
 		application, ok := NewAPITierApplication(backend, serverName, handler)
@@ -61,7 +63,10 @@ func NewAPIProcess(config APIProcessConfig, backend common.Backend, handler APIT
 }
 
 func NewDefaultAPIProcess(backend common.Backend) (*APIProcess, error) {
-	return NewAPIProcess(DefaultAPIProcessConfig(), backend, DefaultAPITierHandler{Backend: backend})
+	return NewAPIProcess(
+		DefaultAPIProcessConfig(), backend, DefaultAPITierHandler{Backend: backend},
+		NewLocalBlockingAPITierTransport(),
+	)
 }
 
 func (process *APIProcess) Bootstrap(ctx context.Context) error {
@@ -86,16 +91,9 @@ func (process *APIProcess) Run(ctx context.Context) error {
 		}
 	}
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-process.stopCh:
-		return nil
-	}
+	return process.Transport.Run(ctx)
 }
 
 func (process *APIProcess) RequestStop() {
-	process.stopOnce.Do(func() {
-		close(process.stopCh)
-	})
+	process.Transport.RequestStop()
 }

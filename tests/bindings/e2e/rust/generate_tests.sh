@@ -121,6 +121,8 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn request_s
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn run(&self)"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "pub trait ApiTransport"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "server.handle(route_name, context)"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "pub struct LocalBlockingApiTransport"
+assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "LocalBlockingApiTransport::new()"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_server.rs" "pub struct ApiServer"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_route"
 assert_file_not_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_operation_route"
