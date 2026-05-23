@@ -4,10 +4,12 @@
 #include "api_transport.hpp"
 
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -74,6 +76,20 @@ class ApiProcess
     {
     }
 
+    ~ApiProcess()
+    {
+        request_stop();
+        if (worker_.joinable() && worker_.get_id() != std::this_thread::get_id())
+        {
+            worker_.join();
+        }
+    }
+
+    ApiProcess(const ApiProcess&) = delete;
+    ApiProcess& operator=(const ApiProcess&) = delete;
+    ApiProcess(ApiProcess&&) = delete;
+    ApiProcess& operator=(ApiProcess&&) = delete;
+
     const ApiProcessConfig& config() const
     {
         return config_;
@@ -92,6 +108,7 @@ class ApiProcess
 
     void bootstrap()
     {
+        std::lock_guard<std::mutex> lock(bootstrap_mutex_);
         if (bootstrapped_)
         {
             return;
@@ -103,6 +120,69 @@ class ApiProcess
         bootstrapped_ = true;
     }
 
+    int start()
+    {
+        std::lock_guard<std::mutex> lock(lifecycle_mutex_);
+        if (started_)
+        {
+            return 1;
+        }
+
+        started_ = true;
+        running_ = true;
+        status_.reset();
+        worker_ = std::thread(
+            [this]
+            {
+                int status = 1;
+                try
+                {
+                    status = run();
+                }
+                catch (...)
+                {
+                    status = 1;
+                }
+
+                std::lock_guard<std::mutex> status_lock(lifecycle_mutex_);
+                status_ = status;
+                running_ = false;
+            }
+        );
+        return 0;
+    }
+
+    int join()
+    {
+        {
+            std::lock_guard<std::mutex> lock(lifecycle_mutex_);
+            if (!started_)
+            {
+                return 1;
+            }
+        }
+
+        if (worker_.joinable())
+        {
+            worker_.join();
+        }
+
+        std::lock_guard<std::mutex> lock(lifecycle_mutex_);
+        return status_.value_or(1);
+    }
+
+    bool running() const
+    {
+        std::lock_guard<std::mutex> lock(lifecycle_mutex_);
+        return running_;
+    }
+
+    void request_stop()
+    {
+        transport_.request_stop();
+    }
+
+  private:
     int run()
     {
         if (config_.bootstrap_on_start)
@@ -112,17 +192,17 @@ class ApiProcess
         return transport_.run();
     }
 
-    void request_stop()
-    {
-        transport_.request_stop();
-    }
-
-  private:
     ApiProcessConfig config_;
     IApiOperationHandler& handler_;
     statespec::backend::IBackend& backend_;
     IApiTransport& transport_;
     std::vector<std::unique_ptr<ApiApplication>> applications_;
+    mutable std::mutex lifecycle_mutex_;
+    std::mutex bootstrap_mutex_;
+    std::thread worker_;
+    std::optional<int> status_;
+    bool started_ = false;
+    bool running_ = false;
     bool bootstrapped_ = false;
 };
 

@@ -6,6 +6,7 @@
 #include <csignal>
 #include <exception>
 #include <iostream>
+#include <stdexcept>
 
 namespace
 {
@@ -36,7 +37,12 @@ int main()
         std::signal(SIGINT, request_api_stop);
         std::signal(SIGTERM, request_api_stop);
 
-        const auto status = process.run();
+        const auto start_status = process.start();
+        if (start_status != 0)
+        {
+            throw std::runtime_error("statespec generated API process already started");
+        }
+        const auto status = process.join();
         g_api_process = nullptr;
         return status;
     }

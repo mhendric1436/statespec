@@ -4,7 +4,6 @@
 #include "common/memory/backend.hpp"
 
 #include <stdexcept>
-#include <thread>
 
 int main()
 {
@@ -23,13 +22,40 @@ int main()
         throw std::runtime_error("expected two generated API applications");
     }
 
-    int status = 1;
-    std::thread runner{[&] { status = process.run(); }};
+    statespec_generated::api::LocalBlockingApiTransport not_started_transport;
+    statespec_generated::api::ApiProcess not_started{
+        config,
+        handler,
+        backend,
+        not_started_transport
+    };
+    not_started.request_stop();
+    if (not_started.join() == 0)
+    {
+        throw std::runtime_error("join before start should fail");
+    }
+
+    if (process.start() != 0)
+    {
+        throw std::runtime_error("API process did not start cleanly");
+    }
+    if (!process.running())
+    {
+        throw std::runtime_error("API process did not report running");
+    }
+    if (process.start() == 0)
+    {
+        throw std::runtime_error("API process allowed double start");
+    }
     process.request_stop();
-    runner.join();
+    const auto status = process.join();
 
     if (status != 0)
     {
         throw std::runtime_error("API process did not stop cleanly");
+    }
+    if (process.running())
+    {
+        throw std::runtime_error("API process still reports running after join");
     }
 }
