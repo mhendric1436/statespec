@@ -102,6 +102,7 @@ TemplateRenderer::Values java_makefile_values(
         if (include_api_composition)
         {
             api_sources.push_back("api/com/statespec/generated/ApiApplication.java");
+            api_sources.push_back("api/com/statespec/generated/ApiProcess.java");
             api_sources.push_back("api/com/statespec/generated/ApiDispatcher.java");
             api_sources.push_back("api/com/statespec/generated/ApiServer.java");
             api_sources.push_back("api/com/statespec/generated/ApiRoutes.java");
@@ -491,6 +492,10 @@ void add_java_api_artifacts(
         add_java_generated_template_file(
             result, options, templates, java_api_generated_path("ApiApplication.java"),
             GeneratedArtifactTier::Api, diagnostics, java_api_runtime_bootstrap_values(system)
+        );
+        add_java_generated_template_file(
+            result, options, templates, java_api_generated_path("ApiProcess.java"),
+            GeneratedArtifactTier::Api, diagnostics
         );
         add_java_generated_template_file(
             result, options, templates, java_api_generated_path("ApiDispatcher.java"),

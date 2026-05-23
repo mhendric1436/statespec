@@ -27,6 +27,7 @@ api/com/statespec/generated/ApiDispatcher.java
 api/com/statespec/generated/ApiHandlerRegistry.java
 api/com/statespec/generated/ApiHandlers.java
 api/com/statespec/generated/ApiMain.java
+api/com/statespec/generated/ApiProcess.java
 api/com/statespec/generated/ApiRoutes.java
 api/com/statespec/generated/ApiServer.java
 api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java
@@ -110,6 +111,9 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiCodecs
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiCodecs.java" "encodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistry.java" "class DefaultHandler"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiApplication"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public final class ApiProcess"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public void requestStop()"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public int run()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiServer.java" "class ApiServer"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiRoute"
 assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiOperationRoute"

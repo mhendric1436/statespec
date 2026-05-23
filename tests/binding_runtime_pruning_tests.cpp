@@ -385,6 +385,7 @@ language_runtime_paths()
             {"worker/com/statespec/generated/WorkflowRunner.java",
              "worker/com/statespec/generated/WorkflowStepHandlers.java"},
             {"api/com/statespec/generated/ApiApplication.java",
+             "api/com/statespec/generated/ApiProcess.java",
              "api/com/statespec/generated/ApiDispatcher.java",
              "api/com/statespec/generated/ApiRoutes.java",
              "api/com/statespec/generated/ApiServer.java",

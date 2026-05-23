@@ -1,0 +1,104 @@
+package com.statespec.generated;
+
+import com.statespec.backend.Backend;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+
+public final class ApiProcess {
+    public static final class Config {
+        private final List<String> serverNames;
+        private final boolean bootstrapOnStart;
+        private final int shutdownTimeoutMs;
+
+        public Config(List<String> serverNames, boolean bootstrapOnStart, int shutdownTimeoutMs) {
+            this.serverNames = List.copyOf(serverNames);
+            this.bootstrapOnStart = bootstrapOnStart;
+            this.shutdownTimeoutMs = shutdownTimeoutMs;
+        }
+
+        public static Config allServers() {
+            var names = new ArrayList<String>();
+            for (Descriptors.ApiServerDescriptor descriptor : ApiDescriptors.apiServerDescriptors()) {
+                names.add(descriptor.name());
+            }
+            return new Config(names, true, 30000);
+        }
+
+        public List<String> serverNames() {
+            return serverNames;
+        }
+
+        public boolean bootstrapOnStart() {
+            return bootstrapOnStart;
+        }
+
+        public int shutdownTimeoutMs() {
+            return shutdownTimeoutMs;
+        }
+    }
+
+    private final Config config;
+    private final Backend backend;
+    private final ApiHandlers.Handler handler;
+    private final List<ApiApplication> applications = new ArrayList<>();
+    private final CountDownLatch stopRequested = new CountDownLatch(1);
+    private boolean bootstrapped = false;
+
+    public ApiProcess(Config config, Backend backend, ApiHandlers.Handler handler) {
+        this.config = config.serverNames().isEmpty() ? Config.allServers() : config;
+        this.backend = backend;
+        this.handler = handler;
+        for (String serverName : this.config.serverNames()) {
+            applications.add(new ApiApplication(backend, serverName, handler));
+        }
+    }
+
+    public ApiProcess(Backend backend, ApiHandlers.Handler handler) {
+        this(Config.allServers(), backend, handler);
+    }
+
+    public static ApiProcess createDefault(Backend backend) {
+        return new ApiProcess(Config.allServers(), backend, ApiHandlerRegistry.defaultHandler(backend));
+    }
+
+    public Config config() {
+        return config;
+    }
+
+    public Backend backend() {
+        return backend;
+    }
+
+    public ApiHandlers.Handler handler() {
+        return handler;
+    }
+
+    public List<ApiApplication> applications() {
+        return Collections.unmodifiableList(applications);
+    }
+
+    public synchronized void bootstrap() throws Backend.BackendException {
+        if (bootstrapped) {
+            return;
+        }
+        for (ApiApplication application : applications) {
+            application.bootstrap();
+        }
+        bootstrapped = true;
+    }
+
+    public int run() throws Backend.BackendException, InterruptedException {
+        if (config.bootstrapOnStart()) {
+            bootstrap();
+        }
+        stopRequested.await();
+        return 0;
+    }
+
+    public void requestStop() {
+        stopRequested.countDown();
+    }
+}

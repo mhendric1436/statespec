@@ -181,6 +181,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/com/statespec/backend/runtime/MetricSink.java", common,
              Kind::RuntimeMetricSink},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication},
+            {"api/com/statespec/generated/ApiProcess.java", api, Kind::ApiProcess, true},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer, true},
             {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher, true},
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api, Kind::ApiHandlerRegistry},

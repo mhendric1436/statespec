@@ -212,6 +212,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              Kind::RuntimeMetricSink, "Backend-neutral metric sink"},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication,
              "API application composition root"},
+            {"api/com/statespec/generated/ApiProcess.java", api, Kind::ApiProcess,
+             "API process lifecycle runtime", true},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer,
              "API server lifecycle and request loop", true},
             {"api/com/statespec/generated/ApiDispatcher.java", api, Kind::ApiDispatcher,
