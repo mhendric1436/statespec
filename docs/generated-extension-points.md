@@ -93,8 +93,9 @@ artifact without changing API handler contracts.
 
 The generated `ApiProcess` lifecycle contract is documented in
 [api-process-lifecycle.md](api-process-lifecycle.md). In short: `start()` owns
-background execution, `request_stop()` is idempotent and safe before start, `join()`
-waits for completion, and starting the same process twice must be rejected
+background execution, bootstrap runs inside the generated process execution path when
+bootstrap-on-start is enabled, `request_stop()` is idempotent and safe before start,
+`join()` waits for completion, and starting the same process twice must be rejected
 deterministically.
 
 ## External System Client Extension Point

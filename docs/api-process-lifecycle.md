@@ -55,6 +55,35 @@ the primary generated application lifecycle entrypoint. Generated `main` should 
 must bootstrap the generated application before entering the transport run loop, or
 otherwise fail before reporting the process as started.
 
+## Startup And Bootstrap
+
+Generated `main` functions do not call `bootstrap()` directly. They construct the
+backend, handler, local transport, config, and `ApiProcess`, then call `start()` and
+`join()`. Bootstrap runs inside the generated process execution path when
+`bootstrap_on_start` / `BootstrapOnStart` is enabled, which is the default generated
+configuration.
+
+The cross-language startup flow is:
+
+| Language | Startup path |
+|---|---|
+| C++ | `main()` -> `process.start()` -> owned `std::thread` -> private `run()` -> `bootstrap()` -> `transport.run()` |
+| Go | `main()` -> `process.Start(ctx)` -> owned goroutine -> `Run(ctx)` -> `Bootstrap(ctx)` -> `Transport.Run(ctx)` |
+| Java | `ApiMain.run()` -> `process.start()` -> owned `Thread` -> `run()` -> `bootstrap()` -> `transport.run()` |
+| Rust | `main::run()` -> `Arc<ApiProcess>::start()` -> owned `std::thread` -> `run()` -> `bootstrap()` -> `transport.run()` |
+
+`bootstrap()` registers generated runtime catalogs through each generated API
+application before the transport begins blocking or serving work. It is not business
+initialization and it is not concrete HTTP/RPC startup. In generated local runs it
+registers the spec-driven runtime definitions needed by the generated app, then the
+local/no-op transport blocks until a stop request is received.
+
+The generated bootstrap methods are idempotent. Calling `bootstrap()` manually before
+`start()` is allowed for advanced composition, but normal generated entrypoints should
+rely on the default `bootstrap_on_start` behavior. If a user/runtime disables
+`bootstrap_on_start`, that runtime becomes responsible for calling `bootstrap()` before
+starting a real transport.
+
 `request_stop()` is idempotent and harmless before `start()`. It records a stop request
 and asks the configured transport to unblock if the transport has started.
 
