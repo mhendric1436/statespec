@@ -26,6 +26,7 @@ api/api_descriptors.hpp
 api/api_dispatcher.hpp
 api/api_handler_registry.hpp
 api/api_handlers.hpp
+api/api_process.hpp
 api/api_routes.hpp
 api/api_server.hpp
 api/external_system_operator_metadata_api.hpp
@@ -107,6 +108,9 @@ assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionAp
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_application.hpp" "class ApiApplication"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "class ApiProcess"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "void request_stop()"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "int run()"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "decode_start_provision_request"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "class DefaultApiHandler"

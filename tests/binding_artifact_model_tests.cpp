@@ -57,6 +57,10 @@ void test_binding_app_artifact_kind_names()
         "api_application", "API application artifact kind name"
     );
     require_string_equal(
+        statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::ApiProcess),
+        "api_process", "API process artifact kind name"
+    );
+    require_string_equal(
         statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::ApiServer),
         "api_server", "API server artifact kind name"
     );
@@ -100,6 +104,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/runtime/log_sink.hpp", common, Kind::RuntimeLogSink},
             {"common/runtime/metric_sink.hpp", common, Kind::RuntimeMetricSink},
             {"api/api_application.hpp", api, Kind::ApiApplication},
+            {"api/api_process.hpp", api, Kind::ApiProcess, true},
             {"api/api_server.hpp", api, Kind::ApiServer, true},
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry},

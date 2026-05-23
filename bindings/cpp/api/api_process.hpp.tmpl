@@ -1,0 +1,135 @@
+#pragma once
+
+#include "api_application.hpp"
+
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+namespace statespec_generated::api
+{
+
+struct ApiProcessConfig
+{
+    std::vector<std::string> server_names;
+    bool bootstrap_on_start = true;
+    int shutdown_timeout_ms = 30000;
+
+    static ApiProcessConfig all_servers()
+    {
+        ApiProcessConfig config;
+        for (const auto& descriptor : api_server_descriptors())
+        {
+            config.server_names.push_back(descriptor.name);
+        }
+        return config;
+    }
+};
+
+class ApiProcess
+{
+  public:
+    ApiProcess(
+        ApiProcessConfig config,
+        IApiOperationHandler& handler,
+        statespec::backend::IBackend& backend
+    )
+        : config_(std::move(config)),
+          handler_(handler),
+          backend_(backend)
+    {
+        if (config_.server_names.empty())
+        {
+            for (const auto& descriptor : api_server_descriptors())
+            {
+                config_.server_names.push_back(descriptor.name);
+            }
+        }
+        for (const auto& server_name : config_.server_names)
+        {
+            applications_.push_back(
+                std::make_unique<ApiApplication>(server_name, handler_, backend_)
+            );
+        }
+    }
+
+    ApiProcess(
+        IApiOperationHandler& handler,
+        statespec::backend::IBackend& backend
+    )
+        : ApiProcess(
+              ApiProcessConfig::all_servers(),
+              handler,
+              backend
+          )
+    {
+    }
+
+    const ApiProcessConfig& config() const
+    {
+        return config_;
+    }
+
+    std::vector<ApiApplication*> applications()
+    {
+        std::vector<ApiApplication*> result;
+        result.reserve(applications_.size());
+        for (const auto& application : applications_)
+        {
+            result.push_back(application.get());
+        }
+        return result;
+    }
+
+    void bootstrap()
+    {
+        if (bootstrapped_)
+        {
+            return;
+        }
+        for (const auto& application : applications_)
+        {
+            application->bootstrap();
+        }
+        bootstrapped_ = true;
+    }
+
+    int run()
+    {
+        if (config_.bootstrap_on_start)
+        {
+            bootstrap();
+        }
+
+        std::unique_lock<std::mutex> lock(mutex_);
+        stop_requested_.wait(lock, [&] { return stopping_; });
+        return 0;
+    }
+
+    void request_stop()
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            stopping_ = true;
+        }
+        stop_requested_.notify_all();
+    }
+
+  private:
+    ApiProcessConfig config_;
+    IApiOperationHandler& handler_;
+    statespec::backend::IBackend& backend_;
+    std::vector<std::unique_ptr<ApiApplication>> applications_;
+    std::mutex mutex_;
+    std::condition_variable stop_requested_;
+    bool stopping_ = false;
+    bool bootstrapped_ = false;
+};
+
+} // namespace statespec_generated::api

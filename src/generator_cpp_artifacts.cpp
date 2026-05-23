@@ -85,6 +85,7 @@ TemplateRenderer::Values cpp_makefile_values(
         {
             api_rules << "#include \"api/api_application.hpp\"\\n"
                          "#include \"api/api_dispatcher.hpp\"\\n"
+                         "#include \"api/api_process.hpp\"\\n"
                          "#include \"api/api_routes.hpp\"\\n"
                          "#include \"api/api_server.hpp\"\\n";
         }
@@ -462,6 +463,10 @@ void add_cpp_api_artifacts(
         add_cpp_generated_template_file(
             result, options, templates, "api/api_application.hpp", GeneratedArtifactTier::Api,
             diagnostics, cpp_api_runtime_values(system)
+        );
+        add_cpp_generated_template_file(
+            result, options, templates, "api/api_process.hpp", GeneratedArtifactTier::Api,
+            diagnostics
         );
         add_cpp_generated_template_file(
             result, options, templates, "api/api_dispatcher.hpp", GeneratedArtifactTier::Api,

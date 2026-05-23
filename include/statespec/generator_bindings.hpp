@@ -41,6 +41,7 @@ enum class BindingAppArtifactKind
     RuntimeLogSink,
     RuntimeMetricSink,
     ApiApplication,
+    ApiProcess,
     ApiServer,
     ApiDispatcher,
     ApiHandlerRegistry,

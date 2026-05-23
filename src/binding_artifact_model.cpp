@@ -27,6 +27,8 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "runtime_metric_sink";
     case BindingAppArtifactKind::ApiApplication:
         return "api_application";
+    case BindingAppArtifactKind::ApiProcess:
+        return "api_process";
     case BindingAppArtifactKind::ApiServer:
         return "api_server";
     case BindingAppArtifactKind::ApiDispatcher:
@@ -96,6 +98,7 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral metric sink"},
             {"api/api_application.hpp", api, Kind::ApiApplication,
              "API application composition root"},
+            {"api/api_process.hpp", api, Kind::ApiProcess, "API process lifecycle runtime", true},
             {"api/api_server.hpp", api, Kind::ApiServer, "API server lifecycle and request loop",
              true},
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, "API route-to-handler dispatcher",
