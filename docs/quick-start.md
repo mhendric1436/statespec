@@ -224,8 +224,10 @@ blocks from declared `api_server` blocks.
 Generated API code owns:
 
 - API server descriptors and lifecycle shell.
-- API process config, process runtime, process entrypoint, and local composition wiring.
-- A local/no-op blocking transport that starts successfully and blocks until shutdown.
+- API process config, threading, lifecycle, bootstrap, stop, join, process entrypoint,
+  and local composition wiring.
+- A local/no-op blocking transport that starts successfully, blocks until shutdown, and
+  unblocks when the generated process requests stop.
 - Route descriptors derived from `api_server serves` and declared API method/path metadata.
 - Route-to-handler dispatch.
 - API handler interfaces.
@@ -249,8 +251,9 @@ transport, and API app composition roots. The generated `ApiProcess` owns the ba
 thread, goroutine, or task: generated `main` starts the process, installs stop handling,
 then joins it for completion. This gives generated apps a production-shaped lifecycle
 without choosing an HTTP library. The generated local transport is intentionally no-op:
-it does not bind a port or parse network requests. The cross-language lifecycle contract
-is documented in [api-process-lifecycle.md](api-process-lifecycle.md).
+it owns only lifecycle blocking and unblocking, and it does not bind a port or parse
+network requests. The cross-language lifecycle contract is documented in
+[api-process-lifecycle.md](api-process-lifecycle.md).
 
 A production API adapter should implement the generated transport interface for the
 chosen framework. It should translate a network request into a generated request

@@ -289,8 +289,10 @@ statespec generate bindings --lang rust <file.sspec> --tier all
 Generated API apps own structural wiring, not business behavior:
 
 - API server shell lifecycle, process lifecycle, local composition, and request context shape.
-- API process background execution through generated `start`, `request_stop`, and `join` lifecycle APIs.
-- Local/no-op blocking transport for generated app startup and shutdown tests.
+- API process background execution, bootstrap, stop, and join semantics through generated
+  lifecycle APIs.
+- Local/no-op blocking transport behavior for generated app startup and shutdown tests,
+  including unblocking when the generated process requests stop.
 - Route lookup and dispatch.
 - Per-action handler interfaces.
 - Operator metadata API contracts.
@@ -299,9 +301,8 @@ Generated API apps own structural wiring, not business behavior:
 User-owned code supplies real network transport selection, HTTP/RPC framework adapters,
 authentication, authorization, tenancy policy, concrete handlers, validation beyond the
 spec, concrete backend adapter, and outbound clients. Generated local transports must
-not be treated as an opinionated HTTP backend; they exist to give generated apps
-production-shaped lifecycle until StateSpec intentionally adopts a concrete HTTP
-runtime.
+not be treated as an opinionated HTTP backend; they own only local lifecycle
+blocking/unblocking until StateSpec intentionally adopts a concrete HTTP runtime.
 
 Generated `main` functions and tests should not wrap `ApiProcess.run` in ad hoc
 threads. `ApiProcess` owns the background thread, goroutine, or task; callers start it,

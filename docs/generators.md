@@ -106,9 +106,9 @@ The API application artifact responsibilities are:
 |---|---|
 | `api_application` | API application composition root |
 | `api_codecs` | Typed request and response body codecs for API input/output shapes |
-| `api_process` | API process config, lifecycle runtime, bootstrap, and shutdown coordination |
+| `api_process` | API process config, owned thread/task lifecycle, bootstrap, stop, and join coordination |
 | `api_server` | API server request dispatch boundary |
-| `api_transport` | Transport interface and local/no-op blocking transport |
+| `api_transport` | Transport interface and local/no-op blocking/unblocking transport |
 | `api_dispatcher` | Route-to-handler dispatch |
 | `api_handler_registry` | User implementation registry for API handlers |
 | `api_main` | API process entrypoint |
@@ -118,11 +118,12 @@ and process runtime before calling `start()`, installing stop handling, and wait
 `join()`. `ApiProcess` owns the background thread, goroutine, or task; generated `main`
 functions and user fixtures should not wrap `run()` in their own threads. The generated
 local transport starts successfully and blocks until shutdown so generated apps have a
-production-shaped lifecycle. It is deliberately not an HTTP implementation. Real network
-transport selection, framework routing, middleware, TLS, auth integration, request
-parsing, and response serialization remain user/runtime-owned until StateSpec adopts an
-opinionated HTTP backend. See [api-process-lifecycle.md](api-process-lifecycle.md) for
-the cross-language lifecycle contract.
+production-shaped lifecycle; it also owns the stop signal used to unblock local
+lifecycle tests. It is deliberately not an HTTP implementation. Real network transport
+selection, framework routing, middleware, TLS, auth integration, request parsing, and
+response serialization remain user/runtime-owned until StateSpec adopts an opinionated
+HTTP backend. See [api-process-lifecycle.md](api-process-lifecycle.md) for the
+cross-language lifecycle contract.
 
 The worker application artifact responsibilities are:
 

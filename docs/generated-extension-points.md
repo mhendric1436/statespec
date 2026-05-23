@@ -74,16 +74,18 @@ Generated API apps own startup shape:
 - start the API process on an owned background thread, goroutine, or task
 - install process stop handling where the language runtime supports it
 - request stop and join the owned background execution during shutdown
-- block in a generated local/no-op transport until shutdown is requested
+- use the generated local/no-op transport to block and unblock lifecycle tests
 - expose framework-neutral request dispatch through the generated `ApiServer.handle`
   boundary
 
 The generated local transport exists to make generated applications runnable and
-testable with production-shaped lifecycle. It does not open sockets, bind ports, perform
-TLS, parse HTTP, or serialize framework responses. A production adapter should implement
-the generated transport interface, translate the chosen network protocol into the
-generated request context, call `ApiServer.handle`, and translate the generated response
-back to the framework.
+testable with production-shaped lifecycle. It owns only local blocking and unblocking:
+`run()` waits until its stop signal is received, and the generated process stop method
+delegates to the transport stop method so `join()` can complete. It does not open
+sockets, bind ports, perform TLS, parse HTTP, or serialize framework responses. A
+production adapter should implement the generated transport interface, translate the
+chosen network protocol into the generated request context, call `ApiServer.handle`, and
+translate the generated response back to the framework.
 
 StateSpec will keep this boundary until it explicitly adopts an opinionated HTTP
 backend. At that point the HTTP adapter can become another generated/runtime-owned
