@@ -73,6 +73,8 @@ assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"UpsertExter
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "IExternalSystemOperatorMetadataApiHandler"
+run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-e2e-cpp" -I"$TMPDIR/out-e2e-cpp/common" "$SCRIPT_DIR/api_process_fixture.cpp" -o "$TMPDIR/api-process-fixture-cpp"
+run_expect_status 0 "$TMPDIR/api-process-fixture-cpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-cpp"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "DefaultAccountRepository repository"
@@ -121,6 +123,7 @@ assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "encode_start_prov
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "class DefaultApiHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "ApiProcess"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "std::signal(SIGTERM"
+assert_file_not_contains "$TMPDIR/out-app-cpp/api/main.cpp" "ApiApplication app"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_server.hpp" "class ApiServer"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_dispatcher.hpp" "dispatch_api_route"
 assert_file_not_contains "$TMPDIR/out-app-cpp/api/api_dispatcher.hpp" "dispatch_api_operation_route"

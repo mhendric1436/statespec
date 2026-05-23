@@ -103,6 +103,7 @@ assert_file_contains "$TMPDIR/out-cpp/api/main.cpp" "../common/memory/backend.hp
 assert_file_contains "$TMPDIR/out-cpp/api/main.cpp" "ApiProcessConfig::all_servers"
 assert_file_contains "$TMPDIR/out-cpp/api/main.cpp" "std::signal(SIGINT"
 assert_file_contains "$TMPDIR/out-cpp/api/main.cpp" "process.run()"
+assert_file_not_contains "$TMPDIR/out-cpp/api/main.cpp" "ApiApplication app"
 assert_file_contains "$TMPDIR/out-cpp/worker/worker_descriptors.hpp" "worker_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/worker/worker_contexts.hpp" "worker_contexts"
 assert_file_contains "$TMPDIR/out-cpp/worker/worker_registry.hpp" "find_worker_descriptor"

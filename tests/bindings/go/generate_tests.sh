@@ -104,6 +104,7 @@ assert_file_contains "$TMPDIR/out-go/api/cmd/api/main.go" "common/backend/memory
 assert_file_contains "$TMPDIR/out-go/api/cmd/api/main.go" "signal.NotifyContext"
 assert_file_contains "$TMPDIR/out-go/api/cmd/api/main.go" "api.NewAPIProcess"
 assert_file_contains "$TMPDIR/out-go/api/cmd/api/main.go" "process.Run(ctx)"
+assert_file_not_contains "$TMPDIR/out-go/api/cmd/api/main.go" "NewDefaultAPITierApplication"
 assert_file_contains "$TMPDIR/out-go/worker/backend/worker_descriptors.go" "type WorkerTierDescriptor = common.WorkerDescriptor"
 assert_file_contains "$TMPDIR/out-go/worker/backend/worker_contexts.go" "func WorkerTierContexts"
 assert_file_contains "$TMPDIR/out-go/worker/backend/worker_registry.go" "func FindWorkerTierDescriptor"

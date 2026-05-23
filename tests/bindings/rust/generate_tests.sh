@@ -119,6 +119,7 @@ assert_file_contains "$TMPDIR/out-rust/api/main.rs" "LocalBlockingApiTransport::
 assert_file_contains "$TMPDIR/out-rust/api/main.rs" "ApiProcessConfig::all_servers"
 assert_file_contains "$TMPDIR/out-rust/api/main.rs" "install_signal_handling"
 assert_file_contains "$TMPDIR/out-rust/api/main.rs" "process.run()"
+assert_file_not_contains "$TMPDIR/out-rust/api/main.rs" "ApiApplication::new_default"
 assert_file_contains "$TMPDIR/out-rust/worker/worker_descriptors.rs" "pub fn worker_descriptors"
 assert_file_contains "$TMPDIR/out-rust/worker/worker_contexts.rs" "pub fn worker_contexts"
 assert_file_contains "$TMPDIR/out-rust/worker/worker_registry.rs" "pub fn find_worker_descriptor"

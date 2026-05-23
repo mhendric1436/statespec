@@ -72,6 +72,9 @@ assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descri
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "ExternalSystemOperatorMetadataApiHandler"
+cp "$SCRIPT_DIR/ApiProcessFixture.java" "$TMPDIR/out-e2e-java/api/com/statespec/generated/ApiProcessFixture.java"
+run_expect_status 0 make -C "$TMPDIR/out-e2e-java" build-api
+run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-e2e-java/build/classes" com.statespec.generated.ApiProcessFixture
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-java"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java" "new Descriptors.DefaultAccountRepository()"
@@ -113,6 +116,7 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiCodecs
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistry.java" "class DefaultHandler"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiProcess.Config.allServers"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "addShutdownHook"
+assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiApplication.createDefault"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public final class ApiProcess"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public void requestStop()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public int run()"

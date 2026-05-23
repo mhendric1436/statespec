@@ -75,6 +75,9 @@ assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"UpsertExter
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "ExternalSystemOperatorMetadataApiHandler"
+mkdir -p "$TMPDIR/out-e2e-rust/tests"
+cp "$SCRIPT_DIR/api_process_fixture.rs" "$TMPDIR/out-e2e-rust/tests/api_process_fixture.rs"
+run_expect_status 0 make -C "$TMPDIR/out-e2e-rust" check-api
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-rust"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "let repository = DefaultAccountRepository;"
@@ -116,6 +119,7 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_codecs.rs" "encode_start_prov
 assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "pub struct DefaultApiHandler"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiProcessConfig::all_servers"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "install_signal_handling"
+assert_file_not_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiApplication::new_default"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub struct ApiProcess"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn request_stop(&self)"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn run(&self)"

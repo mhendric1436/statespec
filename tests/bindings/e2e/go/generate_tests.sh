@@ -73,6 +73,8 @@ assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"Upser
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "ExternalSystemOperatorMetadataAPIHandler"
+cp "$SCRIPT_DIR/api_process_fixture_test.go" "$TMPDIR/out-e2e-go/api/backend/api_process_fixture_test.go"
+run_expect_status 0 make -C "$TMPDIR/out-e2e-go" check-api
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-go"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository := common.DefaultAccountRepository{}"
@@ -120,6 +122,7 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func Encode
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "type DefaultAPITierHandler struct"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "signal.NotifyContext"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewAPIProcess"
+assert_file_not_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "NewDefaultAPITierApplication"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_server.go" "type APITierServer struct"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_dispatcher.go" "func DispatchAPITierRoute"
 assert_file_not_contains "$TMPDIR/out-app-go/api/backend/api_dispatcher.go" "func DispatchAPITierOperationRoute"
