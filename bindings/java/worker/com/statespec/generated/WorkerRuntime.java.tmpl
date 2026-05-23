@@ -1,12 +1,25 @@
 package com.statespec.generated;
 
 import com.statespec.backend.Backend;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 {{runtime_store_imports}}
 {{worker_runtime_imports}}
 
 public final class WorkerRuntime {
+    @FunctionalInterface
+    public interface EntityGcWorkerTask {
+        void run(String now) throws Backend.BackendException;
+    }
+
     private final Backend backend;
 {{runtime_store_fields}}
+    private final List<EntityGcWorkerTask> entityGcWorkers = new ArrayList<>();
+    private final List<Thread> entityGcThreads = new ArrayList<>();
+    private final AtomicBoolean entityGcStopRequested = new AtomicBoolean(false);
+    private boolean entityGcStarted = false;
 
     public WorkerRuntime(Backend backend) {
         this.backend = backend;
@@ -23,6 +36,63 @@ public final class WorkerRuntime {
 
     public void bootstrap() throws Backend.BackendException {
         Descriptors.bootstrapRuntimeCatalog(backend{{runtime_bootstrap_arguments}});
+    }
+
+    public synchronized void addEntityGcWorker(EntityGcWorkerTask worker) {
+        if (entityGcStarted) {
+            throw new IllegalStateException("cannot add entity GC worker after Worker runtime start");
+        }
+        entityGcWorkers.add(worker);
+    }
+
+    public synchronized void startEntityGcWorkers(int pollIntervalMs) {
+        if (entityGcStarted) {
+            throw new IllegalStateException("Worker runtime entity GC workers already started");
+        }
+        entityGcStarted = true;
+        entityGcStopRequested.set(false);
+        int interval = Math.max(1, pollIntervalMs);
+        for (EntityGcWorkerTask worker : entityGcWorkers) {
+            Thread gcThread = new Thread(
+                () -> {
+                    while (!entityGcStopRequested.get()) {
+                        try {
+                            worker.run(Instant.now().toString());
+                        } catch (Backend.BackendException error) {
+                        }
+                        try {
+                            Thread.sleep(interval);
+                        } catch (InterruptedException error) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                    }
+                },
+                "statespec-worker-entity-gc"
+            );
+            gcThread.start();
+            entityGcThreads.add(gcThread);
+        }
+    }
+
+    public void requestStop() {
+        entityGcStopRequested.set(true);
+        synchronized (this) {
+            for (Thread gcThread : entityGcThreads) {
+                gcThread.interrupt();
+            }
+        }
+    }
+
+    public void joinEntityGcWorkers() throws InterruptedException {
+        List<Thread> threads;
+        synchronized (this) {
+            threads = new ArrayList<>(entityGcThreads);
+            entityGcThreads.clear();
+        }
+        for (Thread gcThread : threads) {
+            gcThread.join();
+        }
     }
 
 {{worker_runtime_run_once}}

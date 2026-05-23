@@ -2,10 +2,21 @@ use crate::backend::Backend;
 {{runtime_store_imports}}
 {{worker_runtime_imports}}
 
-#[derive(Debug, Clone)]
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+pub type WorkerEntityGcTask = Arc<dyn Fn(String) -> crate::backend::BackendResult<()> + Send + Sync>;
+
+#[derive(Clone)]
 pub struct WorkerRuntime<B: Backend> {
     pub backend: B,
 {{runtime_store_fields}}
+    entity_gc_workers: Arc<Mutex<Vec<WorkerEntityGcTask>>>,
+    entity_gc_stop: Arc<AtomicBool>,
+    entity_gc_handles: Arc<Mutex<Vec<JoinHandle<()>>>>,
+    entity_gc_started: Arc<AtomicBool>,
 }
 
 impl<B: Backend> WorkerRuntime<B> {
@@ -13,6 +24,10 @@ impl<B: Backend> WorkerRuntime<B> {
         Self {
             backend,
 {{runtime_store_initializers}}
+            entity_gc_workers: Arc::new(Mutex::new(Vec::new())),
+            entity_gc_stop: Arc::new(AtomicBool::new(false)),
+            entity_gc_handles: Arc::new(Mutex::new(Vec::new())),
+            entity_gc_started: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -26,5 +41,90 @@ impl<B: Backend> WorkerRuntime<B> {
         )
     }
 
+    pub fn add_entity_gc_worker(&self, task: WorkerEntityGcTask) -> crate::backend::BackendResult<()> {
+        if self.entity_gc_started.load(Ordering::SeqCst) {
+            return Err(crate::backend::BackendError::Internal {
+                message: "cannot add entity GC worker after Worker runtime start".to_string(),
+            });
+        }
+        self.entity_gc_workers
+            .lock()
+            .map_err(|_| crate::backend::BackendError::Internal {
+                message: "Worker runtime entity GC worker lock poisoned".to_string(),
+            })?
+            .push(task);
+        Ok(())
+    }
+
+    pub fn start_entity_gc_workers(
+        &self,
+        poll_interval: Duration,
+    ) -> crate::backend::BackendResult<()> {
+        if self.entity_gc_started.swap(true, Ordering::SeqCst) {
+            return Err(crate::backend::BackendError::Internal {
+                message: "Worker runtime entity GC workers already started".to_string(),
+            });
+        }
+        self.entity_gc_stop.store(false, Ordering::SeqCst);
+        let workers = self
+            .entity_gc_workers
+            .lock()
+            .map_err(|_| crate::backend::BackendError::Internal {
+                message: "Worker runtime entity GC worker lock poisoned".to_string(),
+            })?
+            .clone();
+        let interval = poll_interval.max(Duration::from_millis(1));
+        let mut handles =
+            self.entity_gc_handles
+                .lock()
+                .map_err(|_| crate::backend::BackendError::Internal {
+                    message: "Worker runtime entity GC handle lock poisoned".to_string(),
+                })?;
+        for worker in workers {
+            let stop = Arc::clone(&self.entity_gc_stop);
+            handles.push(std::thread::spawn(move || {
+                while !stop.load(Ordering::SeqCst) {
+                    let _ = worker(current_time_string());
+                    let mut slept = Duration::from_millis(0);
+                    while slept < interval && !stop.load(Ordering::SeqCst) {
+                        let step = Duration::from_millis(100).min(interval - slept);
+                        std::thread::sleep(step);
+                        slept += step;
+                    }
+                }
+            }));
+        }
+        Ok(())
+    }
+
+    pub fn request_stop(&self) {
+        self.entity_gc_stop.store(true, Ordering::SeqCst);
+    }
+
+    pub fn join_entity_gc_workers(&self) -> crate::backend::BackendResult<()> {
+        let handles = {
+            let mut handles =
+                self.entity_gc_handles
+                    .lock()
+                    .map_err(|_| crate::backend::BackendError::Internal {
+                        message: "Worker runtime entity GC handle lock poisoned".to_string(),
+                    })?;
+            std::mem::take(&mut *handles)
+        };
+        for handle in handles {
+            handle.join().map_err(|_| crate::backend::BackendError::Internal {
+                message: "generated Worker entity GC thread panicked".to_string(),
+            })?;
+        }
+        Ok(())
+    }
+
 {{worker_runtime_run_once}}
+}
+
+fn current_time_string() -> String {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs().to_string())
+        .unwrap_or_else(|_| "0".to_string())
 }

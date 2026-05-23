@@ -141,6 +141,8 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispat
 assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiOperationRoute"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRegistry.java" "findWorkerDescriptor"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRuntime.java" "class WorkerRuntime"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRuntime.java" "startEntityGcWorkers"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRuntime.java" "public void requestStop()"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkerRuntime"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "keepAliveStep"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.validate_request\""

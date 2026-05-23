@@ -2,15 +2,25 @@ package backend
 
 import (
 	"context"
+	"fmt"
+	"sync"
 {{worker_runtime_time_import}}
 
 	common "statespec-generated/common/backend"
 {{runtime_store_import}}
 )
 
+type WorkerEntityGCWorkerFunc func(ctx context.Context, now string) error
+
 type WorkerTierRuntime struct {
 	Backend      common.Backend
 {{runtime_store_fields}}
+	EntityGCWorkers []WorkerEntityGCWorkerFunc
+	gcMu            sync.Mutex
+	gcCtx           context.Context
+	gcCancel        context.CancelFunc
+	gcStarted       bool
+	gcWait          sync.WaitGroup
 }
 
 func NewWorkerTierRuntime(backend common.Backend) *WorkerTierRuntime {
@@ -18,6 +28,60 @@ func NewWorkerTierRuntime(backend common.Backend) *WorkerTierRuntime {
 		Backend:      backend,
 {{runtime_store_initializers}}
 	}
+}
+
+func (runtime *WorkerTierRuntime) AddEntityGCWorker(worker WorkerEntityGCWorkerFunc) error {
+	runtime.gcMu.Lock()
+	defer runtime.gcMu.Unlock()
+	if runtime.gcStarted {
+		return fmt.Errorf("cannot add entity GC worker after Worker runtime start")
+	}
+	runtime.EntityGCWorkers = append(runtime.EntityGCWorkers, worker)
+	return nil
+}
+
+func (runtime *WorkerTierRuntime) StartEntityGCWorkers(ctx context.Context, pollInterval time.Duration) error {
+	runtime.gcMu.Lock()
+	defer runtime.gcMu.Unlock()
+	if runtime.gcStarted {
+		return fmt.Errorf("Worker runtime entity GC workers already started")
+	}
+	if pollInterval <= 0 {
+		pollInterval = time.Minute
+	}
+	runtime.gcCtx, runtime.gcCancel = context.WithCancel(ctx)
+	runtime.gcStarted = true
+	for _, worker := range runtime.EntityGCWorkers {
+		runtime.gcWait.Add(1)
+		go func(worker WorkerEntityGCWorkerFunc) {
+			defer runtime.gcWait.Done()
+			ticker := time.NewTicker(pollInterval)
+			defer ticker.Stop()
+			for {
+				now := time.Now().UTC().Format(time.RFC3339)
+				_ = worker(runtime.gcCtx, now)
+				select {
+				case <-runtime.gcCtx.Done():
+					return
+				case <-ticker.C:
+				}
+			}
+		}(worker)
+	}
+	return nil
+}
+
+func (runtime *WorkerTierRuntime) RequestStop() {
+	runtime.gcMu.Lock()
+	cancel := runtime.gcCancel
+	runtime.gcMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+}
+
+func (runtime *WorkerTierRuntime) JoinEntityGCWorkers() {
+	runtime.gcWait.Wait()
 }
 
 func (runtime *WorkerTierRuntime) RegisterDefinitions(ctx context.Context) error {

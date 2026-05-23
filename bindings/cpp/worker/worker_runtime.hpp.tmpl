@@ -8,9 +8,14 @@
 
 {{runtime_store_includes}}
 
+#include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <functional>
 #include <optional>
 #include <string>
+#include <thread>
+#include <vector>
 
 namespace statespec_generated::worker
 {
@@ -18,9 +23,17 @@ namespace statespec_generated::worker
 class WorkerRuntime
 {
   public:
+    using EntityGcWorkerTask = std::function<void(const std::string& now)>;
+
     explicit WorkerRuntime(statespec::backend::IBackend& backend)
         : backend_(backend){{runtime_store_initializers}}
     {
+    }
+
+    ~WorkerRuntime()
+    {
+        request_stop();
+        join_entity_gc_workers();
     }
 
     statespec::backend::IBackend& backend()
@@ -48,11 +61,90 @@ class WorkerRuntime
         }
     }
 
+    void add_entity_gc_worker(EntityGcWorkerTask task)
+    {
+        if (entity_gc_started_)
+        {
+            throw std::runtime_error("cannot add entity GC worker after Worker runtime start");
+        }
+        entity_gc_tasks_.push_back(std::move(task));
+    }
+
+    void start_entity_gc_workers(
+        std::chrono::milliseconds poll_interval = std::chrono::minutes{1}
+    )
+    {
+        if (entity_gc_started_)
+        {
+            throw std::runtime_error("Worker runtime entity GC workers already started");
+        }
+        entity_gc_started_ = true;
+        entity_gc_stop_requested_ = false;
+        for (const auto& task : entity_gc_tasks_)
+        {
+            entity_gc_threads_.emplace_back(
+                [this, task, poll_interval]
+                {
+                    while (!entity_gc_stop_requested_.load())
+                    {
+                        try
+                        {
+                            task(current_time_string());
+                        }
+                        catch (...)
+                        {
+                        }
+                        std::unique_lock<std::mutex> lock(entity_gc_mutex_);
+                        entity_gc_cv_.wait_for(
+                            lock, poll_interval,
+                            [this] { return entity_gc_stop_requested_.load(); }
+                        );
+                    }
+                }
+            );
+        }
+    }
+
+    void request_stop()
+    {
+        entity_gc_stop_requested_ = true;
+        entity_gc_cv_.notify_all();
+    }
+
+    void join_entity_gc_workers()
+    {
+        std::vector<std::thread> threads;
+        {
+            std::lock_guard<std::mutex> lock(entity_gc_mutex_);
+            threads.swap(entity_gc_threads_);
+        }
+        for (auto& thread : threads)
+        {
+            if (thread.joinable() && thread.get_id() != std::this_thread::get_id())
+            {
+                thread.join();
+            }
+        }
+    }
+
 {{worker_runtime_run_once}}
 
   private:
+    static std::string current_time_string()
+    {
+        const auto now = std::chrono::system_clock::now().time_since_epoch();
+        const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now).count();
+        return std::to_string(seconds);
+    }
+
     statespec::backend::IBackend& backend_;
 {{runtime_store_members}}
+    std::vector<EntityGcWorkerTask> entity_gc_tasks_;
+    std::vector<std::thread> entity_gc_threads_;
+    std::mutex entity_gc_mutex_;
+    std::condition_variable entity_gc_cv_;
+    std::atomic_bool entity_gc_stop_requested_ = false;
+    bool entity_gc_started_ = false;
 };
 
 } // namespace statespec_generated::worker

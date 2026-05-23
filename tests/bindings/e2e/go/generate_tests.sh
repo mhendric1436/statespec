@@ -140,6 +140,8 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_dispatcher.go" "func Di
 assert_file_not_contains "$TMPDIR/out-app-go/api/backend/api_dispatcher.go" "func DispatchAPITierOperationRoute"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_registry.go" "func FindWorkerTierDescriptor"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_runtime.go" "type WorkerTierRuntime struct"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_runtime.go" "func (runtime *WorkerTierRuntime) StartEntityGCWorkers"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_runtime.go" "func (runtime *WorkerTierRuntime) RequestStop()"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "NewWorkerTierRuntime"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "KeepAliveStep"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.validate_request\""

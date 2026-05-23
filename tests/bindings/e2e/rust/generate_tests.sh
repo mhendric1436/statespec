@@ -143,6 +143,8 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispat
 assert_file_not_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_operation_route"
 assert_file_contains "$TMPDIR/out-app-rust/worker/worker_registry.rs" "pub fn find_worker_descriptor"
 assert_file_contains "$TMPDIR/out-app-rust/worker/worker_runtime.rs" "pub struct WorkerRuntime"
+assert_file_contains "$TMPDIR/out-app-rust/worker/worker_runtime.rs" "pub fn start_entity_gc_workers"
+assert_file_contains "$TMPDIR/out-app-rust/worker/worker_runtime.rs" "pub fn request_stop"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "WorkerRuntime"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "keep_alive_step"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.validate_request\""
