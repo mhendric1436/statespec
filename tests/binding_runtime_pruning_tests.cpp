@@ -21,6 +21,7 @@ struct LanguageRuntimePaths
     std::vector<std::string> lease_paths;
     std::vector<std::string> workflow_paths;
     std::vector<std::string> observability_paths;
+    std::vector<std::string> entity_gc_paths;
     std::vector<std::string> worker_queue_paths;
     std::vector<std::string> worker_lease_paths;
     std::vector<std::string> worker_workflow_paths;
@@ -28,6 +29,7 @@ struct LanguageRuntimePaths
     std::vector<std::string> api_app_paths;
     std::vector<std::string> worker_app_paths;
     std::string api_runtime_path;
+    std::string api_process_path;
     std::string worker_runtime_path;
 };
 
@@ -189,6 +191,82 @@ statespec::Spec mixed_api_worker_spec()
     return spec;
 }
 
+statespec::EntityDecl gc_entity_decl()
+{
+    statespec::EntityDecl entity;
+    entity.name = "GcTask";
+    entity.key_fields = {"task_id"};
+    entity.ownership = statespec::OwnershipDecl{"system", "self", "authoritative", {}};
+    entity.fields.push_back(statespec::FieldDecl{"created_at", "timestamp", {}});
+    entity.fields.push_back(statespec::FieldDecl{"updated_at", "timestamp", {}});
+    entity.fields.push_back(statespec::FieldDecl{"status", "string", {}});
+    entity.fields.push_back(statespec::FieldDecl{"task_id", "string", {}});
+
+    statespec::StateMachineDecl state_machine;
+    state_machine.states.push_back(statespec::StateDecl{"Active", false, std::nullopt, {}, {}});
+    state_machine.states.push_back(
+        statespec::StateDecl{
+            "Deleted",
+            true,
+            statespec::GarbageCollectionPolicyDecl{"P30D", "tombstone", {}},
+            {},
+            {},
+        }
+    );
+    state_machine.initial_state = "Active";
+    state_machine.terminal_states.push_back("Deleted");
+    state_machine.transitions.push_back(statespec::TransitionDecl{"Active", "Deleted", {}});
+    entity.state_machine = std::move(state_machine);
+    return entity;
+}
+
+statespec::ApiDecl gc_api_decl()
+{
+    statespec::ApiDecl api;
+    api.name = "TouchGcTask";
+    api.method = "POST";
+    api.path = "/gc-tasks/{task_id}/touch";
+    return api;
+}
+
+statespec::ApiServerDecl gc_api_server_decl()
+{
+    statespec::ApiServerDecl server;
+    server.name = "GcApi";
+    server.serves.push_back("TouchGcTask");
+    server.concurrency = 2;
+    return server;
+}
+
+statespec::Spec api_only_gc_deployment_spec()
+{
+    auto spec = runtime_pruning_spec("ApiOnlyGcDeployment");
+    spec.system->entities.push_back(gc_entity_decl());
+    spec.system->apis.push_back(gc_api_decl());
+    spec.system->api_servers.push_back(gc_api_server_decl());
+    return spec;
+}
+
+statespec::Spec worker_only_gc_deployment_spec()
+{
+    auto spec = runtime_pruning_spec("WorkerOnlyGcDeployment");
+    spec.system->entities.push_back(gc_entity_decl());
+    spec.system->queues.push_back(queue_decl());
+    spec.system->leases.push_back(lease_decl());
+    spec.system->workflows.push_back(workflow_decl());
+    spec.system->workers.push_back(worker_decl());
+    return spec;
+}
+
+statespec::Spec mixed_gc_deployment_spec()
+{
+    auto spec = worker_only_gc_deployment_spec();
+    spec.system->name = "MixedGcDeployment";
+    spec.system->apis.push_back(gc_api_decl());
+    spec.system->api_servers.push_back(gc_api_server_decl());
+    return spec;
+}
+
 statespec::GenerationResult generate_runtime_fixture(
     const statespec::Spec& spec,
     const LanguageRuntimePaths& paths,
@@ -301,7 +379,8 @@ std::vector<std::string> all_runtime_paths(const LanguageRuntimePaths& paths)
     return concat(
         {paths.common_codec_paths, paths.feature_flag_paths, paths.queue_paths, paths.lease_paths,
          paths.workflow_paths, paths.observability_paths, paths.worker_queue_paths,
-         paths.worker_lease_paths, paths.worker_workflow_paths, paths.worker_execution_paths}
+         paths.entity_gc_paths, paths.worker_lease_paths, paths.worker_workflow_paths,
+         paths.worker_execution_paths}
     );
 }
 
@@ -324,6 +403,8 @@ language_runtime_paths()
             {"common/runtime/codec_observability.hpp", "common/runtime/codec_logs.hpp",
              "common/runtime/log_sink.hpp", "common/runtime/codec_metrics.hpp",
              "common/runtime/metric_sink.hpp"},
+            {"common/runtime/entity_gc_descriptors.hpp", "common/runtime/entity_gc_repository.hpp",
+             "common/runtime/entity_gc_workers.hpp"},
             {"worker/worker_queues.hpp"},
             {"worker/worker_leases.hpp"},
             {"worker/worker_workflows.hpp"},
@@ -332,6 +413,7 @@ language_runtime_paths()
              "api/api_routes.hpp", "api/api_server.hpp", "api/api_transport.hpp", "api/main.cpp"},
             {"worker/worker_application.hpp", "worker/worker_runtime.hpp", "worker/main.cpp"},
             "api/api_application.hpp",
+            "api/api_process.hpp",
             "worker/worker_runtime.hpp",
         },
         {
@@ -348,6 +430,9 @@ language_runtime_paths()
             {"common/backend/runtime/codec_observability.go",
              "common/backend/runtime/codec_logs.go", "common/backend/runtime/logs.go",
              "common/backend/runtime/codec_metrics.go", "common/backend/runtime/metrics.go"},
+            {"common/backend/runtime/entity_gc_descriptors.go",
+             "common/backend/runtime/entity_gc_repository.go",
+             "common/backend/runtime/entity_gc_workers.go"},
             {"worker/backend/worker_queues.go"},
             {"worker/backend/worker_leases.go"},
             {"worker/backend/worker_workflows.go"},
@@ -358,6 +443,7 @@ language_runtime_paths()
             {"worker/backend/worker_application.go", "worker/backend/worker_runtime.go",
              "worker/cmd/worker/main.go"},
             "api/backend/api_application.go",
+            "api/backend/api_process.go",
             "worker/backend/worker_runtime.go",
         },
         {
@@ -379,6 +465,9 @@ language_runtime_paths()
              "common/com/statespec/backend/runtime/LogSink.java",
              "common/com/statespec/backend/runtime/MetricCodec.java",
              "common/com/statespec/backend/runtime/MetricSink.java"},
+            {"common/com/statespec/backend/runtime/EntityGcDescriptors.java",
+             "common/com/statespec/backend/runtime/EntityGcRepository.java",
+             "common/com/statespec/backend/runtime/EntityGcWorkers.java"},
             {"worker/com/statespec/generated/WorkerQueues.java"},
             {"worker/com/statespec/generated/WorkerLeases.java"},
             {"worker/com/statespec/generated/WorkerWorkflows.java"},
@@ -395,6 +484,7 @@ language_runtime_paths()
              "worker/com/statespec/generated/WorkerRuntime.java",
              "worker/com/statespec/generated/WorkerMain.java"},
             "api/com/statespec/generated/ApiApplication.java",
+            "api/com/statespec/generated/ApiProcess.java",
             "worker/com/statespec/generated/WorkerRuntime.java",
         },
         {
@@ -410,6 +500,8 @@ language_runtime_paths()
             {"common/runtime/codec_observability.rs", "common/runtime/codec_logs.rs",
              "common/runtime/logs.rs", "common/runtime/codec_metrics.rs",
              "common/runtime/metrics.rs"},
+            {"common/runtime/entity_gc_descriptors.rs", "common/runtime/entity_gc_repository.rs",
+             "common/runtime/entity_gc_workers.rs"},
             {"worker/worker_queues.rs"},
             {"worker/worker_leases.rs"},
             {"worker/worker_workflows.rs"},
@@ -418,6 +510,7 @@ language_runtime_paths()
              "api/api_routes.rs", "api/api_server.rs", "api/api_transport.rs", "api/main.rs"},
             {"worker/worker_application.rs", "worker/worker_runtime.rs", "worker/main.rs"},
             "api/api_application.rs",
+            "api/api_process.rs",
             "worker/worker_runtime.rs",
         },
     }};
@@ -458,6 +551,63 @@ void require_rust_manifest_matches_runtime_usage(
     for (const auto& module : absent_modules)
     {
         require_not_contains(lib, "pub mod " + module + ";", context + " rust lib.rs");
+    }
+}
+
+void require_api_gc_config(
+    const std::string& content,
+    statespec::BindingLanguage language,
+    const std::string& context
+)
+{
+    switch (language)
+    {
+    case statespec::BindingLanguage::Cpp:
+        require_contains(content, "bool entity_gc_enabled = true", context);
+        require_contains(content, "if (!config_.entity_gc_enabled)", context);
+        break;
+    case statespec::BindingLanguage::Go:
+        require_contains(content, "EntityGCEnabled", context);
+        require_contains(content, "if !process.Config.EntityGCEnabled", context);
+        break;
+    case statespec::BindingLanguage::Java:
+        require_contains(content, "boolean entityGcEnabled", context);
+        require_contains(content, "if (!config.entityGcEnabled())", context);
+        break;
+    case statespec::BindingLanguage::Rust:
+        require_contains(content, "pub entity_gc_enabled: bool", context);
+        require_contains(content, "if !self.config.entity_gc_enabled", context);
+        break;
+    }
+}
+
+void require_worker_gc_config(
+    const std::string& content,
+    statespec::BindingLanguage language,
+    const std::string& context
+)
+{
+    switch (language)
+    {
+    case statespec::BindingLanguage::Cpp:
+        require_contains(content, "struct WorkerRuntimeConfig", context);
+        require_contains(content, "bool entity_gc_enabled = true", context);
+        require_contains(content, "if (!config_.entity_gc_enabled)", context);
+        break;
+    case statespec::BindingLanguage::Go:
+        require_contains(content, "type WorkerTierRuntimeConfig struct", context);
+        require_contains(content, "EntityGCEnabled", context);
+        require_contains(content, "if !runtime.Config.EntityGCEnabled", context);
+        break;
+    case statespec::BindingLanguage::Java:
+        require_contains(content, "record Config(boolean entityGcEnabled", context);
+        require_contains(content, "if (!config.entityGcEnabled())", context);
+        break;
+    case statespec::BindingLanguage::Rust:
+        require_contains(content, "pub struct WorkerRuntimeConfig", context);
+        require_contains(content, "pub entity_gc_enabled: bool", context);
+        require_contains(content, "if !self.config.entity_gc_enabled", context);
+        break;
     }
 }
 
@@ -505,8 +655,8 @@ void runtime_pruning_covers_only_workflows()
             result,
             concat(
                 {paths.feature_flag_paths, paths.queue_paths, paths.lease_paths,
-                 paths.observability_paths, paths.worker_queue_paths, paths.worker_lease_paths,
-                 paths.api_app_paths, paths.worker_app_paths}
+                 paths.observability_paths, paths.entity_gc_paths, paths.worker_queue_paths,
+                 paths.worker_lease_paths, paths.api_app_paths, paths.worker_app_paths}
             ),
             paths.name + " workflow-only"
         );
@@ -540,8 +690,9 @@ void runtime_pruning_covers_only_queues()
             result,
             concat(
                 {paths.feature_flag_paths, paths.lease_paths, paths.workflow_paths,
-                 paths.observability_paths, paths.worker_lease_paths, paths.worker_workflow_paths,
-                 paths.worker_execution_paths, paths.api_app_paths, paths.worker_app_paths}
+                 paths.observability_paths, paths.entity_gc_paths, paths.worker_lease_paths,
+                 paths.worker_workflow_paths, paths.worker_execution_paths, paths.api_app_paths,
+                 paths.worker_app_paths}
             ),
             paths.name + " queue-only"
         );
@@ -576,9 +727,9 @@ void runtime_pruning_covers_only_feature_flags()
             result,
             concat(
                 {paths.queue_paths, paths.lease_paths, paths.workflow_paths,
-                 paths.observability_paths, paths.worker_queue_paths, paths.worker_lease_paths,
-                 paths.worker_workflow_paths, paths.worker_execution_paths, paths.api_app_paths,
-                 paths.worker_app_paths}
+                 paths.observability_paths, paths.entity_gc_paths, paths.worker_queue_paths,
+                 paths.worker_lease_paths, paths.worker_workflow_paths,
+                 paths.worker_execution_paths, paths.api_app_paths, paths.worker_app_paths}
             ),
             paths.name + " feature-flag-only"
         );
@@ -613,9 +764,9 @@ void runtime_pruning_covers_only_observability()
             result,
             concat(
                 {paths.feature_flag_paths, paths.queue_paths, paths.lease_paths,
-                 paths.workflow_paths, paths.worker_queue_paths, paths.worker_lease_paths,
-                 paths.worker_workflow_paths, paths.worker_execution_paths, paths.api_app_paths,
-                 paths.worker_app_paths}
+                 paths.workflow_paths, paths.entity_gc_paths, paths.worker_queue_paths,
+                 paths.worker_lease_paths, paths.worker_workflow_paths,
+                 paths.worker_execution_paths, paths.api_app_paths, paths.worker_app_paths}
             ),
             paths.name + " observability-only"
         );
@@ -652,7 +803,8 @@ void runtime_pruning_covers_mixed_api_worker_app()
             paths.name + " mixed"
         );
         require_artifacts_absent(
-            result, concat({paths.feature_flag_paths, paths.observability_paths}),
+            result,
+            concat({paths.feature_flag_paths, paths.observability_paths, paths.entity_gc_paths}),
             paths.name + " mixed"
         );
         require_descriptor_names(
@@ -679,6 +831,110 @@ void runtime_pruning_covers_mixed_api_worker_app()
                 {"runtime_queues", "runtime_leases", "runtime_workflows", "worker_queues",
                  "worker_leases", "worker_workflows", "worker_application", "workflow_runner"},
                 {"runtime_feature_flags", "runtime_logs", "runtime_metrics"}, "mixed"
+            );
+        }
+    }
+}
+
+void gc_deployment_covers_api_only_app()
+{
+    for (const auto& paths : language_runtime_paths())
+    {
+        const auto result =
+            generate_runtime_fixture(api_only_gc_deployment_spec(), paths, "api-gc");
+        require_artifacts_present(
+            result, concat({paths.entity_gc_paths, paths.api_app_paths}), paths.name + " api-gc"
+        );
+        require_artifacts_absent(result, paths.worker_app_paths, paths.name + " api-gc");
+        require_descriptor_names(
+            result, paths, {"GcTask", "TouchGcTask", "GcApi"}, {}, paths.name + " api-gc"
+        );
+        require_api_gc_config(
+            artifact_content(result, paths.api_process_path), paths.language, paths.name + " api-gc"
+        );
+        if (paths.language == statespec::BindingLanguage::Rust)
+        {
+            require_rust_manifest_matches_runtime_usage(
+                result,
+                {"runtime_entity_gc_descriptors", "runtime_entity_gc_repository",
+                 "runtime_entity_gc_workers"},
+                {"worker_runtime"}, "api-gc"
+            );
+        }
+    }
+}
+
+void gc_deployment_covers_worker_only_app()
+{
+    for (const auto& paths : language_runtime_paths())
+    {
+        const auto result =
+            generate_runtime_fixture(worker_only_gc_deployment_spec(), paths, "worker-gc");
+        require_artifacts_present(
+            result,
+            concat(
+                {paths.entity_gc_paths, paths.queue_paths, paths.lease_paths, paths.workflow_paths,
+                 paths.worker_queue_paths, paths.worker_lease_paths, paths.worker_workflow_paths,
+                 paths.worker_execution_paths, paths.worker_app_paths}
+            ),
+            paths.name + " worker-gc"
+        );
+        require_artifacts_absent(result, paths.api_app_paths, paths.name + " worker-gc");
+        require_descriptor_names(
+            result, paths, {"GcTask", "QueueOnly", "LeaseOnly", "WorkflowOnly", "RuntimeWorker"},
+            {"TouchGcTask", "GcApi"}, paths.name + " worker-gc"
+        );
+        require_worker_gc_config(
+            artifact_content(result, paths.worker_runtime_path), paths.language,
+            paths.name + " worker-gc"
+        );
+        if (paths.language == statespec::BindingLanguage::Rust)
+        {
+            require_rust_manifest_matches_runtime_usage(
+                result,
+                {"runtime_entity_gc_descriptors", "runtime_entity_gc_repository",
+                 "runtime_entity_gc_workers", "worker_runtime"},
+                {}, "worker-gc"
+            );
+        }
+    }
+}
+
+void gc_deployment_covers_mixed_app()
+{
+    for (const auto& paths : language_runtime_paths())
+    {
+        const auto result = generate_runtime_fixture(mixed_gc_deployment_spec(), paths, "mixed-gc");
+        require_artifacts_present(
+            result,
+            concat(
+                {paths.entity_gc_paths, paths.queue_paths, paths.lease_paths, paths.workflow_paths,
+                 paths.worker_queue_paths, paths.worker_lease_paths, paths.worker_workflow_paths,
+                 paths.worker_execution_paths, paths.api_app_paths, paths.worker_app_paths}
+            ),
+            paths.name + " mixed-gc"
+        );
+        require_descriptor_names(
+            result, paths,
+            {"GcTask", "TouchGcTask", "GcApi", "QueueOnly", "LeaseOnly", "WorkflowOnly",
+             "RuntimeWorker"},
+            {}, paths.name + " mixed-gc"
+        );
+        require_api_gc_config(
+            artifact_content(result, paths.api_process_path), paths.language,
+            paths.name + " mixed-gc"
+        );
+        require_worker_gc_config(
+            artifact_content(result, paths.worker_runtime_path), paths.language,
+            paths.name + " mixed-gc"
+        );
+        if (paths.language == statespec::BindingLanguage::Rust)
+        {
+            require_rust_manifest_matches_runtime_usage(
+                result,
+                {"runtime_entity_gc_descriptors", "runtime_entity_gc_repository",
+                 "runtime_entity_gc_workers", "worker_runtime"},
+                {}, "mixed-gc"
             );
         }
     }
@@ -714,4 +970,19 @@ TEST_CASE("binding runtime pruning covers only observability")
 TEST_CASE("binding runtime pruning covers mixed API and worker app")
 {
     runtime_pruning_covers_mixed_api_worker_app();
+}
+
+TEST_CASE("binding GC deployment covers API-only app")
+{
+    gc_deployment_covers_api_only_app();
+}
+
+TEST_CASE("binding GC deployment covers worker-only app")
+{
+    gc_deployment_covers_worker_only_app();
+}
+
+TEST_CASE("binding GC deployment covers mixed app")
+{
+    gc_deployment_covers_mixed_app();
 }
