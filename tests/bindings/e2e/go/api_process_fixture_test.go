@@ -26,11 +26,30 @@ func TestGeneratedAPIProcessConstructsMultipleServersAndStops(t *testing.T) {
 		t.Fatalf("expected two API applications, got %d", len(process.Applications))
 	}
 
+	notStarted, err := api.NewAPIProcess(config, backend, handler, api.NewLocalBlockingAPITierTransport())
+	if err != nil {
+		t.Fatal(err)
+	}
+	notStarted.RequestStop()
+	if err := notStarted.Join(); err == nil {
+		t.Fatal("join before start should fail")
+	}
+
+	if err := process.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if !process.Running() {
+		t.Fatal("API process did not report running")
+	}
+	if err := process.Start(context.Background()); err == nil {
+		t.Fatal("API process allowed double start")
+	}
+	process.RequestStop()
+
 	done := make(chan error, 1)
 	go func() {
-		done <- process.Run(context.Background())
+		done <- process.Join()
 	}()
-	process.RequestStop()
 
 	select {
 	case err := <-done:
@@ -39,5 +58,8 @@ func TestGeneratedAPIProcessConstructsMultipleServersAndStops(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("API process did not stop")
+	}
+	if process.Running() {
+		t.Fatal("API process still reports running after join")
 	}
 }

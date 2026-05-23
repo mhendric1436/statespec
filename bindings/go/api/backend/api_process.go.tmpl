@@ -34,6 +34,13 @@ type APIProcess struct {
 
 	bootstrapMu  sync.Mutex
 	bootstrapped bool
+	lifecycleMu  sync.Mutex
+	ctx          context.Context
+	cancel       context.CancelFunc
+	done         chan struct{}
+	runErr       error
+	started      bool
+	running      bool
 }
 
 func NewAPIProcess(config APIProcessConfig, backend common.Backend, handler APITierHandler, transport APITierTransport) (*APIProcess, error) {
@@ -94,6 +101,56 @@ func (process *APIProcess) Run(ctx context.Context) error {
 	return process.Transport.Run(ctx)
 }
 
+func (process *APIProcess) Start(ctx context.Context) error {
+	process.lifecycleMu.Lock()
+	defer process.lifecycleMu.Unlock()
+	if process.started {
+		return fmt.Errorf("generated API process already started")
+	}
+
+	process.ctx, process.cancel = context.WithCancel(ctx)
+	process.done = make(chan struct{})
+	process.started = true
+	process.running = true
+	go func() {
+		err := process.Run(process.ctx)
+		process.lifecycleMu.Lock()
+		process.runErr = err
+		process.running = false
+		close(process.done)
+		process.lifecycleMu.Unlock()
+	}()
+	return nil
+}
+
+func (process *APIProcess) Join() error {
+	process.lifecycleMu.Lock()
+	if !process.started {
+		process.lifecycleMu.Unlock()
+		return fmt.Errorf("generated API process not started")
+	}
+	done := process.done
+	process.lifecycleMu.Unlock()
+
+	<-done
+
+	process.lifecycleMu.Lock()
+	defer process.lifecycleMu.Unlock()
+	return process.runErr
+}
+
+func (process *APIProcess) Running() bool {
+	process.lifecycleMu.Lock()
+	defer process.lifecycleMu.Unlock()
+	return process.running
+}
+
 func (process *APIProcess) RequestStop() {
+	process.lifecycleMu.Lock()
+	cancel := process.cancel
+	process.lifecycleMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 	process.Transport.RequestStop()
 }

@@ -25,12 +25,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	go func() {
-		<-ctx.Done()
-		process.RequestStop()
-	}()
+	if err := process.Start(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "statespec generated API process failed: %v\n", err)
+		os.Exit(1)
+	}
 
-	if err := process.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	<-ctx.Done()
+	process.RequestStop()
+	if err := process.Join(); err != nil && !errors.Is(err, context.Canceled) {
 		fmt.Fprintf(os.Stderr, "statespec generated API process failed: %v\n", err)
 		os.Exit(1)
 	}

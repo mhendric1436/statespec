@@ -30,10 +30,21 @@ func (transport *LocalBlockingAPITierTransport) Handle(ctx context.Context, serv
 
 func (transport *LocalBlockingAPITierTransport) Run(ctx context.Context) error {
 	select {
-	case <-ctx.Done():
-		return ctx.Err()
 	case <-transport.stopCh:
 		return nil
+	default:
+	}
+
+	select {
+	case <-transport.stopCh:
+		return nil
+	case <-ctx.Done():
+		select {
+		case <-transport.stopCh:
+			return nil
+		default:
+			return ctx.Err()
+		}
 	}
 }
 
