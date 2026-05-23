@@ -27,6 +27,7 @@ api/api_descriptors.rs
 api/api_dispatcher.rs
 api/api_handler_registry.rs
 api/api_handlers.rs
+api/api_process.rs
 api/api_routes.rs
 api/api_server.rs
 api/external_system_operator_metadata_api.rs
@@ -113,6 +114,9 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_codecs.rs" "decode_start_prov
 assert_file_contains "$TMPDIR/out-app-rust/api/api_codecs.rs" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "pub struct DefaultApiHandler"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiApplication"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub struct ApiProcess"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn request_stop(&self)"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub fn run(&self)"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_server.rs" "pub struct ApiServer"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_route"
 assert_file_not_contains "$TMPDIR/out-app-rust/api/api_dispatcher.rs" "pub fn dispatch_api_operation_route"

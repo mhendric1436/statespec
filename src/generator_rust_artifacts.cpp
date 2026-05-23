@@ -128,6 +128,8 @@ TemplateRenderer::Values rust_lib_values(
         {
             api_modules << "#[path = \"api/api_application.rs\"]\n";
             api_modules << "pub mod api_application;\n";
+            api_modules << "#[path = \"api/api_process.rs\"]\n";
+            api_modules << "pub mod api_process;\n";
             api_modules << "#[path = \"api/api_dispatcher.rs\"]\n";
             api_modules << "pub mod api_dispatcher;\n";
             api_modules << "#[path = \"api/api_routes.rs\"]\n";
@@ -522,6 +524,10 @@ void add_rust_api_artifacts(
         add_rust_generated_template_file(
             result, options, templates, "api/api_application.rs", GeneratedArtifactTier::Api,
             diagnostics, rust_api_runtime_bootstrap_values(system)
+        );
+        add_rust_generated_template_file(
+            result, options, templates, "api/api_process.rs", GeneratedArtifactTier::Api,
+            diagnostics
         );
         add_rust_generated_template_file(
             result, options, templates, "api/api_dispatcher.rs", GeneratedArtifactTier::Api,

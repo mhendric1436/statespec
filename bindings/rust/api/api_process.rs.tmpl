@@ -1,0 +1,114 @@
+use crate::api_application::ApiApplication;
+use crate::api_descriptors;
+use crate::api_handler_registry::DefaultApiHandler;
+use crate::api_handlers::ApiHandler;
+use crate::backend::{Backend, BackendError, BackendResult};
+
+use std::sync::{Condvar, Mutex};
+
+#[derive(Debug, Clone)]
+pub struct ApiProcessConfig {
+    pub server_names: Vec<String>,
+    pub bootstrap_on_start: bool,
+    pub shutdown_timeout_ms: u64,
+}
+
+impl ApiProcessConfig {
+    pub fn all_servers() -> Self {
+        Self {
+            server_names: api_descriptors::api_server_descriptors()
+                .into_iter()
+                .map(|descriptor| descriptor.name)
+                .collect(),
+            bootstrap_on_start: true,
+            shutdown_timeout_ms: 30000,
+        }
+    }
+}
+
+pub struct ApiProcess<B: Backend + Clone, H: ApiHandler + Clone> {
+    pub config: ApiProcessConfig,
+    pub backend: B,
+    pub handler: H,
+    pub applications: Vec<ApiApplication<B, H>>,
+    bootstrapped: Mutex<bool>,
+    stopping: Mutex<bool>,
+    stop_requested: Condvar,
+}
+
+impl<B: Backend + Clone, H: ApiHandler + Clone> ApiProcess<B, H> {
+    pub fn new(config: ApiProcessConfig, backend: B, handler: H) -> BackendResult<Self> {
+        let config = if config.server_names.is_empty() {
+            ApiProcessConfig::all_servers()
+        } else {
+            config
+        };
+        let mut applications = Vec::new();
+        for server_name in &config.server_names {
+            let application = ApiApplication::new(server_name, handler.clone(), backend.clone())
+                .ok_or_else(|| BackendError::Internal {
+                    message: format!("unknown generated API server {server_name}"),
+                })?;
+            applications.push(application);
+        }
+        Ok(Self {
+            config,
+            backend,
+            handler,
+            applications,
+            bootstrapped: Mutex::new(false),
+            stopping: Mutex::new(false),
+            stop_requested: Condvar::new(),
+        })
+    }
+
+    pub fn bootstrap(&self) -> BackendResult<()> {
+        let mut bootstrapped = self.bootstrapped.lock().map_err(|_| BackendError::Internal {
+            message: "API process bootstrap lock poisoned".to_string(),
+        })?;
+        if *bootstrapped {
+            return Ok(());
+        }
+        for application in &self.applications {
+            application.bootstrap()?;
+        }
+        *bootstrapped = true;
+        Ok(())
+    }
+
+    pub fn run(&self) -> BackendResult<()> {
+        if self.config.bootstrap_on_start {
+            self.bootstrap()?;
+        }
+
+        let mut stopping = self.stopping.lock().map_err(|_| BackendError::Internal {
+            message: "API process stop lock poisoned".to_string(),
+        })?;
+        while !*stopping {
+            stopping = self
+                .stop_requested
+                .wait(stopping)
+                .map_err(|_| BackendError::Internal {
+                    message: "API process stop wait poisoned".to_string(),
+                })?;
+        }
+        Ok(())
+    }
+
+    pub fn request_stop(&self) {
+        if let Ok(mut stopping) = self.stopping.lock() {
+            *stopping = true;
+            self.stop_requested.notify_all();
+        }
+    }
+}
+
+impl<B: Backend + Clone> ApiProcess<B, DefaultApiHandler<B>> {
+    pub fn new_default(backend: B) -> BackendResult<Self> {
+        Self::new(
+            ApiProcessConfig::all_servers(),
+            backend.clone(),
+            DefaultApiHandler { backend },
+        )
+    }
+}

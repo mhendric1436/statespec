@@ -220,6 +220,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/runtime/logs.rs", common, Kind::RuntimeLogSink},
             {"common/runtime/metrics.rs", common, Kind::RuntimeMetricSink},
             {"api/api_application.rs", api, Kind::ApiApplication},
+            {"api/api_process.rs", api, Kind::ApiProcess, true},
             {"api/api_server.rs", api, Kind::ApiServer, true},
             {"api/api_dispatcher.rs", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.rs", api, Kind::ApiHandlerRegistry},
