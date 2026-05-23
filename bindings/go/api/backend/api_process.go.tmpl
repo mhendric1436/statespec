@@ -4,20 +4,25 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	common "statespec-generated/common/backend"
 )
+
+type EntityGCWorkerFunc func(ctx context.Context, now string) error
 
 type APIProcessConfig struct {
 	ServerNames       []string
 	BootstrapOnStart  bool
 	ShutdownTimeoutMS int
+	EntityGCPollInterval time.Duration
 }
 
 func DefaultAPIProcessConfig() APIProcessConfig {
 	config := APIProcessConfig{
 		BootstrapOnStart:  true,
 		ShutdownTimeoutMS: 30000,
+		EntityGCPollInterval: time.Minute,
 	}
 	for _, descriptor := range APITierServerDescriptors() {
 		config.ServerNames = append(config.ServerNames, descriptor.Name)
@@ -31,6 +36,7 @@ type APIProcess struct {
 	Handler      APITierHandler
 	Transport    APITierTransport
 	Applications []*APITierApplication
+	EntityGCWorkers []EntityGCWorkerFunc
 
 	bootstrapMu  sync.Mutex
 	bootstrapped bool
@@ -41,6 +47,7 @@ type APIProcess struct {
 	runErr       error
 	started      bool
 	running      bool
+	gcWait       sync.WaitGroup
 }
 
 func NewAPIProcess(config APIProcessConfig, backend common.Backend, handler APITierHandler, transport APITierTransport) (*APIProcess, error) {
@@ -67,6 +74,16 @@ func NewAPIProcess(config APIProcessConfig, backend common.Backend, handler APIT
 		process.Applications = append(process.Applications, application)
 	}
 	return process, nil
+}
+
+func (process *APIProcess) AddEntityGCWorker(worker EntityGCWorkerFunc) error {
+	process.lifecycleMu.Lock()
+	defer process.lifecycleMu.Unlock()
+	if process.started {
+		return fmt.Errorf("cannot add entity GC worker after generated API process start")
+	}
+	process.EntityGCWorkers = append(process.EntityGCWorkers, worker)
+	return nil
 }
 
 func NewDefaultAPIProcess(backend common.Backend) (*APIProcess, error) {
@@ -112,8 +129,10 @@ func (process *APIProcess) Start(ctx context.Context) error {
 	process.done = make(chan struct{})
 	process.started = true
 	process.running = true
+	process.startEntityGCWorkersLocked()
 	go func() {
 		err := process.Run(process.ctx)
+		process.RequestStop()
 		process.lifecycleMu.Lock()
 		process.runErr = err
 		process.running = false
@@ -121,6 +140,30 @@ func (process *APIProcess) Start(ctx context.Context) error {
 		process.lifecycleMu.Unlock()
 	}()
 	return nil
+}
+
+func (process *APIProcess) startEntityGCWorkersLocked() {
+	interval := process.Config.EntityGCPollInterval
+	if interval <= 0 {
+		interval = time.Minute
+	}
+	for _, worker := range process.EntityGCWorkers {
+		process.gcWait.Add(1)
+		go func(worker EntityGCWorkerFunc) {
+			defer process.gcWait.Done()
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+			for {
+				now := time.Now().UTC().Format(time.RFC3339)
+				_ = worker(process.ctx, now)
+				select {
+				case <-process.ctx.Done():
+					return
+				case <-ticker.C:
+				}
+			}
+		}(worker)
+	}
 }
 
 func (process *APIProcess) Join() error {
@@ -133,6 +176,7 @@ func (process *APIProcess) Join() error {
 	process.lifecycleMu.Unlock()
 
 	<-done
+	process.gcWait.Wait()
 
 	process.lifecycleMu.Lock()
 	defer process.lifecycleMu.Unlock()

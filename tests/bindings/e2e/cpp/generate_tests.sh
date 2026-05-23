@@ -119,6 +119,8 @@ assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "void request_sto
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "int start()"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "int join()"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "bool running() const"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "void add_entity_gc_worker"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "start_entity_gc_workers()"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "class IApiTransport"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "server.handle(route_name, context)"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "class LocalBlockingApiTransport"

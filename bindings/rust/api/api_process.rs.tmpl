@@ -5,14 +5,19 @@ use crate::api_handlers::ApiHandler;
 use crate::api_transport::{ApiTransport, LocalBlockingApiTransport};
 use crate::backend::{Backend, BackendError, BackendResult};
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+pub type EntityGcWorkerTask = Arc<dyn Fn(String) -> BackendResult<()> + Send + Sync>;
 
 #[derive(Debug, Clone)]
 pub struct ApiProcessConfig {
     pub server_names: Vec<String>,
     pub bootstrap_on_start: bool,
     pub shutdown_timeout_ms: u64,
+    pub entity_gc_poll_interval_ms: u64,
 }
 
 impl ApiProcessConfig {
@@ -24,6 +29,7 @@ impl ApiProcessConfig {
                 .collect(),
             bootstrap_on_start: true,
             shutdown_timeout_ms: 30000,
+            entity_gc_poll_interval_ms: 60000,
         }
     }
 }
@@ -34,6 +40,9 @@ pub struct ApiProcess<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport
     pub handler: H,
     pub transport: T,
     pub applications: Vec<ApiApplication<B, H>>,
+    entity_gc_workers: Mutex<Vec<EntityGcWorkerTask>>,
+    entity_gc_stop: Arc<AtomicBool>,
+    entity_gc_handles: Mutex<Vec<JoinHandle<()>>>,
     bootstrapped: Mutex<bool>,
     lifecycle: Arc<Mutex<ApiProcessLifecycle>>,
 }
@@ -70,6 +79,9 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
             handler,
             transport,
             applications,
+            entity_gc_workers: Mutex::new(Vec::new()),
+            entity_gc_stop: Arc::new(AtomicBool::new(false)),
+            entity_gc_handles: Mutex::new(Vec::new()),
             bootstrapped: Mutex::new(false),
             lifecycle: Arc::new(Mutex::new(ApiProcessLifecycle {
                 started: false,
@@ -77,6 +89,25 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
                 handle: None,
             })),
         })
+    }
+
+    pub fn add_entity_gc_worker(&self, task: EntityGcWorkerTask) -> BackendResult<()> {
+        let lifecycle = self.lifecycle.lock().map_err(|_| BackendError::Internal {
+            message: "API process lifecycle lock poisoned".to_string(),
+        })?;
+        if lifecycle.started {
+            return Err(BackendError::Internal {
+                message: "cannot add entity GC worker after generated API process start".to_string(),
+            });
+        }
+        drop(lifecycle);
+        self.entity_gc_workers
+            .lock()
+            .map_err(|_| BackendError::Internal {
+                message: "API process entity GC worker lock poisoned".to_string(),
+            })?
+            .push(task);
+        Ok(())
     }
 
     pub fn bootstrap(&self) -> BackendResult<()> {
@@ -121,14 +152,53 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
 
         lifecycle.started = true;
         lifecycle.running = true;
+        drop(lifecycle);
+        self.start_entity_gc_workers()?;
+        let mut lifecycle = self.lifecycle.lock().map_err(|_| BackendError::Internal {
+            message: "API process lifecycle lock poisoned".to_string(),
+        })?;
         let process = Arc::clone(self);
         lifecycle.handle = Some(std::thread::spawn(move || {
             let result = process.run();
+            process.request_stop();
             if let Ok(mut lifecycle) = process.lifecycle.lock() {
                 lifecycle.running = false;
             }
             result
         }));
+        Ok(())
+    }
+
+    fn start_entity_gc_workers(&self) -> BackendResult<()> {
+        self.entity_gc_stop.store(false, Ordering::SeqCst);
+        let workers = self
+            .entity_gc_workers
+            .lock()
+            .map_err(|_| BackendError::Internal {
+                message: "API process entity GC worker lock poisoned".to_string(),
+            })?
+            .clone();
+        let interval = Duration::from_millis(self.config.entity_gc_poll_interval_ms.max(1));
+        let mut handles = self
+            .entity_gc_handles
+            .lock()
+            .map_err(|_| BackendError::Internal {
+                message: "API process entity GC handle lock poisoned".to_string(),
+            })?;
+        for worker in workers {
+            let stop = Arc::clone(&self.entity_gc_stop);
+            handles.push(std::thread::spawn(move || {
+                while !stop.load(Ordering::SeqCst) {
+                    let _ = worker(current_time_string());
+                    let mut slept = Duration::from_millis(0);
+                    while slept < interval && !stop.load(Ordering::SeqCst) {
+                        let step = Duration::from_millis(100).min(interval - slept);
+                        std::thread::sleep(step);
+                        slept += step;
+                    }
+                }
+            }));
+        }
         Ok(())
     }
 
@@ -150,7 +220,26 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
                 message: "generated API process thread panicked".to_string(),
             })?,
             None => Ok(()),
+        }?;
+        self.join_entity_gc_workers()
+    }
+
+    fn join_entity_gc_workers(&self) -> BackendResult<()> {
+        let handles = {
+            let mut handles =
+                self.entity_gc_handles
+                    .lock()
+                    .map_err(|_| BackendError::Internal {
+                        message: "API process entity GC handle lock poisoned".to_string(),
+                    })?;
+            std::mem::take(&mut *handles)
+        };
+        for handle in handles {
+            handle.join().map_err(|_| BackendError::Internal {
+                message: "generated API entity GC thread panicked".to_string(),
+            })?;
         }
+        Ok(())
     }
 
     pub fn is_running(&self) -> bool {
@@ -161,8 +250,16 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
     }
 
     pub fn request_stop(&self) {
+        self.entity_gc_stop.store(true, Ordering::SeqCst);
         self.transport.request_stop();
     }
+}
+
+fn current_time_string() -> String {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs().to_string())
+        .unwrap_or_else(|_| "0".to_string())
 }
 
 impl<B: Backend + Clone> ApiProcess<B, DefaultApiHandler<B>, LocalBlockingApiTransport> {

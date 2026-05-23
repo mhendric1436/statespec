@@ -2,21 +2,38 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ApiProcess {
+    @FunctionalInterface
+    public interface EntityGcWorkerTask {
+        void run(String now) throws Backend.BackendException;
+    }
+
     public static final class Config {
         private final List<String> serverNames;
         private final boolean bootstrapOnStart;
         private final int shutdownTimeoutMs;
+        private final int entityGcPollIntervalMs;
 
         public Config(List<String> serverNames, boolean bootstrapOnStart, int shutdownTimeoutMs) {
+            this(serverNames, bootstrapOnStart, shutdownTimeoutMs, 60000);
+        }
+
+        public Config(
+            List<String> serverNames,
+            boolean bootstrapOnStart,
+            int shutdownTimeoutMs,
+            int entityGcPollIntervalMs
+        ) {
             this.serverNames = List.copyOf(serverNames);
             this.bootstrapOnStart = bootstrapOnStart;
             this.shutdownTimeoutMs = shutdownTimeoutMs;
+            this.entityGcPollIntervalMs = entityGcPollIntervalMs;
         }
 
         public static Config allServers() {
@@ -38,6 +55,10 @@ public final class ApiProcess {
         public int shutdownTimeoutMs() {
             return shutdownTimeoutMs;
         }
+
+        public int entityGcPollIntervalMs() {
+            return entityGcPollIntervalMs;
+        }
     }
 
     private final Config config;
@@ -45,7 +66,10 @@ public final class ApiProcess {
     private final ApiHandlers.Handler handler;
     private final ApiTransport transport;
     private final List<ApiApplication> applications = new ArrayList<>();
+    private final List<EntityGcWorkerTask> entityGcWorkers = new ArrayList<>();
+    private final List<Thread> entityGcThreads = new ArrayList<>();
     private final AtomicBoolean stopRequested = new AtomicBoolean(false);
+    private final AtomicBoolean entityGcStopRequested = new AtomicBoolean(false);
     private Thread thread;
     private int exitStatus = 1;
     private Exception exitException;
@@ -101,6 +125,13 @@ public final class ApiProcess {
         return Collections.unmodifiableList(applications);
     }
 
+    public synchronized void addEntityGcWorker(EntityGcWorkerTask worker) {
+        if (started) {
+            throw new IllegalStateException("cannot add entity GC worker after API process start");
+        }
+        entityGcWorkers.add(worker);
+    }
+
     public synchronized void bootstrap() throws Backend.BackendException {
         if (bootstrapped) {
             return;
@@ -126,6 +157,7 @@ public final class ApiProcess {
         running = true;
         exitStatus = 1;
         exitException = null;
+        startEntityGcWorkers();
         thread = new Thread(
             () -> {
                 int status = 1;
@@ -140,6 +172,7 @@ public final class ApiProcess {
                     status = 1;
                     exception = error;
                 }
+                requestStop();
                 synchronized (ApiProcess.this) {
                     exitStatus = status;
                     exitException = exception;
@@ -152,6 +185,42 @@ public final class ApiProcess {
         thread.start();
     }
 
+    private synchronized void startEntityGcWorkers() {
+        entityGcStopRequested.set(false);
+        for (EntityGcWorkerTask worker : entityGcWorkers) {
+            Thread gcThread = new Thread(
+                () -> {
+                    while (!entityGcStopRequested.get()) {
+                        try {
+                            worker.run(Instant.now().toString());
+                        } catch (Backend.BackendException error) {
+                        }
+                        try {
+                            Thread.sleep(Math.max(1, config.entityGcPollIntervalMs()));
+                        } catch (InterruptedException error) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                    }
+                },
+                "statespec-api-entity-gc"
+            );
+            gcThread.start();
+            entityGcThreads.add(gcThread);
+        }
+    }
+
+    private void joinEntityGcWorkers() throws InterruptedException {
+        List<Thread> threads;
+        synchronized (this) {
+            threads = new ArrayList<>(entityGcThreads);
+            entityGcThreads.clear();
+        }
+        for (Thread gcThread : threads) {
+            gcThread.join();
+        }
+    }
+
     public int join() throws Backend.BackendException, InterruptedException {
         Thread processThread;
         synchronized (this) {
@@ -161,6 +230,7 @@ public final class ApiProcess {
             processThread = thread;
         }
         processThread.join();
+        joinEntityGcWorkers();
 
         synchronized (this) {
             if (exitException instanceof Backend.BackendException) {
@@ -176,6 +246,12 @@ public final class ApiProcess {
 
     public void requestStop() {
         stopRequested.set(true);
+        entityGcStopRequested.set(true);
+        synchronized (this) {
+            for (Thread gcThread : entityGcThreads) {
+                gcThread.interrupt();
+            }
+        }
         transport.requestStop();
     }
 

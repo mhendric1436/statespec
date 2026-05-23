@@ -125,6 +125,8 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProces
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public synchronized void start()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public int join()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public synchronized boolean isRunning()"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public synchronized void addEntityGcWorker"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "startEntityGcWorkers()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "interface ApiTransport"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "return server.handle(routeName, context)"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "final class LocalBlocking"

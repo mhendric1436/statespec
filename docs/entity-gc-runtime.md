@@ -78,3 +78,9 @@ The shared artifact model reserves common-tier generated files for all languages
 These artifacts are shared by generated API and Worker apps. The common worker exposes
 a small `runOnce`/`run_once` surface for one entity descriptor and leaves lifecycle
 thread ownership to the generated API or Worker app composition layer.
+
+Generated API processes expose an entity GC worker registration hook and own the
+background lifecycle after `start()` is called. Registered GC workers run on generated
+background threads or goroutines, receive stop requests through the same process shutdown
+path as the API transport, and are joined before `join()` completes. The concrete
+repository implementation that supplies eligible rows remains backend/runtime-owned.

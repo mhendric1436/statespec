@@ -118,6 +118,8 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (proc
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) Start(ctx context.Context) error"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) Join() error"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) Running() bool"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) AddEntityGCWorker"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "startEntityGCWorkersLocked"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "type APITierTransport interface"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "return server.Handle(ctx, routeName, request)"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "type LocalBlockingAPITierTransport struct"
