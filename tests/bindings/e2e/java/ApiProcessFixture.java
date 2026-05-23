@@ -23,28 +23,61 @@ public final class ApiProcessFixture
             throw new IllegalStateException("expected two generated API applications");
         }
 
+        var notStarted = new ApiProcess(config, backend, handler, new ApiTransport.LocalBlocking());
+        notStarted.requestStop();
+        try
+        {
+            notStarted.join();
+            throw new IllegalStateException("join before start should fail");
+        }
+        catch (IllegalStateException expected)
+        {
+        }
+
+        process.start();
+        if (!process.isRunning())
+        {
+            throw new IllegalStateException("API process did not report running");
+        }
+        try
+        {
+            process.start();
+            throw new IllegalStateException("API process allowed double start");
+        }
+        catch (IllegalStateException expected)
+        {
+        }
+        process.requestStop();
         final int[] status = {1};
-        var runner = new Thread(() -> {
+        final Throwable[] failure = {null};
+        var joiner = new Thread(() -> {
             try
             {
-                status[0] = process.run();
+                status[0] = process.join();
             }
             catch (Exception error)
             {
-                throw new RuntimeException(error);
+                failure[0] = error;
             }
-        }, "statespec-api-process-fixture");
-        runner.start();
-        process.requestStop();
-        runner.join(2000);
+        }, "statespec-api-process-joiner");
+        joiner.start();
+        joiner.join(2000);
 
-        if (runner.isAlive())
+        if (joiner.isAlive())
         {
             throw new IllegalStateException("API process did not stop");
+        }
+        if (failure[0] != null)
+        {
+            throw new RuntimeException(failure[0]);
         }
         if (status[0] != 0)
         {
             throw new IllegalStateException("API process did not stop cleanly");
+        }
+        if (process.isRunning())
+        {
+            throw new IllegalStateException("API process still reports running after join");
         }
     }
 }

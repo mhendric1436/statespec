@@ -23,7 +23,8 @@ public final class ApiMain {
         Runtime.getRuntime().addShutdownHook(new Thread(process::requestStop, "statespec-api-shutdown"));
 
         try {
-            return process.run();
+            process.start();
+            return process.join();
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt();
             return 130;

@@ -5,6 +5,7 @@ import com.statespec.backend.Backend;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ApiProcess {
     public static final class Config {
@@ -44,6 +45,12 @@ public final class ApiProcess {
     private final ApiHandlers.Handler handler;
     private final ApiTransport transport;
     private final List<ApiApplication> applications = new ArrayList<>();
+    private final AtomicBoolean stopRequested = new AtomicBoolean(false);
+    private Thread thread;
+    private int exitStatus = 1;
+    private Exception exitException;
+    private boolean started = false;
+    private boolean running = false;
     private boolean bootstrapped = false;
 
     public ApiProcess(
@@ -111,7 +118,68 @@ public final class ApiProcess {
         return transport.run();
     }
 
+    public synchronized void start() {
+        if (started) {
+            throw new IllegalStateException("generated API process already started");
+        }
+        started = true;
+        running = true;
+        exitStatus = 1;
+        exitException = null;
+        thread = new Thread(
+            () -> {
+                int status = 1;
+                Exception exception = null;
+                try {
+                    status = run();
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt();
+                    status = 130;
+                    exception = error;
+                } catch (Backend.BackendException error) {
+                    status = 1;
+                    exception = error;
+                }
+                synchronized (ApiProcess.this) {
+                    exitStatus = status;
+                    exitException = exception;
+                    running = false;
+                    ApiProcess.this.notifyAll();
+                }
+            },
+            "statespec-api-process"
+        );
+        thread.start();
+    }
+
+    public int join() throws Backend.BackendException, InterruptedException {
+        Thread processThread;
+        synchronized (this) {
+            if (!started) {
+                throw new IllegalStateException("generated API process not started");
+            }
+            processThread = thread;
+        }
+        processThread.join();
+
+        synchronized (this) {
+            if (exitException instanceof Backend.BackendException) {
+                throw (Backend.BackendException) exitException;
+            }
+            return exitStatus;
+        }
+    }
+
+    public synchronized boolean isRunning() {
+        return running;
+    }
+
     public void requestStop() {
+        stopRequested.set(true);
         transport.requestStop();
+    }
+
+    public boolean stopRequested() {
+        return stopRequested.get();
     }
 }
