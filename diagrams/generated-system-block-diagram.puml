@@ -13,6 +13,7 @@ package "Generated common artifacts" {
   rectangle "common/descriptors\nall descriptors + runtime registration" as Descriptors
   rectangle "common/backend\nBackend + Transaction contracts" as BackendContracts
   rectangle "common/backend/runtime\ntyped stores and codecs" as RuntimeStores
+  rectangle "common/runtime/entity_gc_*\nshared GC descriptors + workers" as EntityGcRuntime
   rectangle "common/backend/memory\nin-memory backend implementation" as MemoryBackend
   rectangle "EntityRepository" as EntityRepository
   rectangle "ExternalSystemRuntime\nclient interfaces" as ExternalSystemRuntime
@@ -22,6 +23,7 @@ package "Generated common artifacts" {
 
 package "Generated API artifacts" {
   rectangle "api/cmd/api/main\nAPI process entrypoint" as ApiMain
+  rectangle "ApiProcessConfig\nAPI GC enablement" as ApiProcessConfig
   rectangle "ApiApplication\nAPI composition root" as ApiApplication
   rectangle "ApiServer" as ApiServer
   rectangle "ApiDispatcher" as ApiDispatcher
@@ -33,6 +35,7 @@ package "Generated API artifacts" {
 
 package "Generated worker artifacts" {
   rectangle "worker/main\nworker process entrypoint" as WorkerMain
+  rectangle "WorkerRuntimeConfig\nWorker GC enablement" as WorkerRuntimeConfig
   rectangle "WorkerRuntime\nworker composition root" as WorkerRuntime
   rectangle "WorkerApplication" as WorkerApplication
   rectangle "WorkerRegistry / Contexts / Descriptors" as WorkerCatalog
@@ -64,12 +67,14 @@ Compiler --> IR
 IR --> Descriptors
 IR --> BackendContracts
 IR --> RuntimeStores
+IR --> EntityGcRuntime
 IR --> MemoryBackend
 IR --> EntityRepository
 IR --> ExternalSystemRuntime
 IR --> MetadataRuntime
 IR --> CallAdapters
 IR --> ApiMain
+IR --> ApiProcessConfig
 IR --> ApiApplication
 IR --> ApiServer
 IR --> ApiDispatcher
@@ -78,6 +83,7 @@ IR --> ApiCodecs
 IR --> ApiHandler
 IR --> OperatorMetadataApi
 IR --> WorkerMain
+IR --> WorkerRuntimeConfig
 IR --> WorkerRuntime
 IR --> WorkerApplication
 IR --> WorkerCatalog
@@ -86,6 +92,7 @@ IR --> StepHandler
 IR --> WorkerDefinitions
 
 ApiMain --> ProductionBackend : choose backend implementation
+ApiMain --> ApiProcessConfig : choose API GC host setting
 ApiMain --> ApiApplication : wire backend + handler
 ApiApplication --> Descriptors : bootstrap_runtime_catalog()
 ApiApplication --> RuntimeStores : owns typed stores
@@ -98,6 +105,7 @@ ConcreteApiHandlers ..|> ApiHandler
 Transport --> ApiServer : normalized request
 
 WorkerMain --> ProductionBackend : choose backend implementation
+WorkerMain --> WorkerRuntimeConfig : choose Worker GC host setting
 WorkerMain --> WorkerRuntime : wire backend
 WorkerMain --> WorkerApplication : wire context + handler
 WorkerRuntime --> Descriptors : bootstrap / register_runtime_catalogTx()
@@ -123,6 +131,7 @@ CallAdapters --> ExternalSystemRuntime
 ExternalSystemRuntime --> ExternalSystems
 
 RuntimeStores --> BackendContracts
+EntityGcRuntime --> BackendContracts
 EntityRepository --> BackendContracts
 MetadataRuntime --> BackendContracts
 ProductionBackend ..|> BackendContracts
@@ -133,6 +142,7 @@ RuntimeStores --> WorkflowRecords : workflow definitions + executions
 RuntimeStores --> QueueRecords : queue definitions + messages
 RuntimeStores --> LogBackend : log definitions + records
 RuntimeStores --> MetricBackend : metric definitions + samples
+EntityGcRuntime --> PersistedState : indexed terminal scans
 
 note right of Descriptors
 Common descriptors now include
@@ -141,6 +151,13 @@ register_runtime_catalogTx, and
 bootstrap_runtime_catalog helpers.
 API and worker composition roots call
 these during startup.
+end note
+
+note right of EntityGcRuntime
+Entity GC artifacts are common-tier and
+usage-pruned. API-only, Worker-only, and
+mixed deployments choose the active GC
+host with generated config flags.
 end note
 
 note bottom of BackendContracts

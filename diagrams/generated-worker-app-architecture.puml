@@ -12,7 +12,7 @@ package "Durable work sources" {
 
 package "Generated worker tier" {
   rectangle "worker/main\nprocess entrypoint" as WorkerMain
-  rectangle "WorkerRuntime\nbackend + runtime stores" as WorkerRuntime
+  rectangle "WorkerRuntime\nbackend + runtime stores\nGC enablement flag" as WorkerRuntime
   rectangle "WorkerApplication\ncontext + handler composition" as WorkerApplication
   rectangle "WorkerRegistry\nworker lookup" as WorkerRegistry
   rectangle "WorkerDescriptors\nworker catalog view" as WorkerDescriptors
@@ -37,6 +37,9 @@ package "Generated common tier" {
   component "RuntimeWorkflowStore" as WorkflowStore
   component "RuntimeLogSink" as LogSink
   component "RuntimeMetricSink" as MetricSink
+  rectangle "EntityGcDescriptors\nterminal GC metadata" as EntityGcDescriptors
+  rectangle "EntityGcRepository\nindexed eligibility + finalize" as EntityGcRepository
+  rectangle "EntityGcWorkers\nper-entity run_once workers" as EntityGcWorkers
 }
 
 package "User-owned worker implementation" {
@@ -69,6 +72,8 @@ WorkerRuntime --> LeaseStore : owns
 WorkerRuntime --> WorkflowStore : owns
 WorkerRuntime --> LogSink : owns
 WorkerRuntime --> MetricSink : owns
+WorkerRuntime --> EntityGcWorkers : start if enabled
+WorkerRuntime --> EntityGcWorkers : request stop + join
 
 CommonDescriptors --> Transaction : register_runtime_catalogTx()
 CommonDescriptors --> FeatureFlagStore : register definitions
@@ -121,6 +126,8 @@ LeaseStore --> Backend
 WorkflowStore --> Backend
 LogSink --> Backend
 MetricSink --> Backend
+EntityGcWorkers --> EntityGcRepository : scan + finalize
+EntityGcRepository --> Backend
 
 Backend --> Transaction : begin()
 Transaction --> Store : OCC read/write set
@@ -135,6 +142,12 @@ step execution mechanics: claim,
 keep alive, typed handler dispatch,
 completion, failure, and retry-visible
 workflow records.
+end note
+
+note right of WorkerRuntime
+Entity GC is enabled by default but can
+be disabled in WorkerRuntimeConfig when
+the API tier should host GC.
 end note
 
 note bottom of Transaction

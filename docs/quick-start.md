@@ -262,6 +262,12 @@ generated response back to the transport. Until StateSpec adopts an opinionated 
 backend, real network transport selection remains user/runtime-owned. Local tests may
 use the generated in-memory backend as the concrete backend adapter.
 
+When an entity declares terminal garbage collection metadata, generated common-tier GC
+workers can be composed by API-only apps, Worker-only apps, or mixed API + Worker apps.
+GC is enabled by default for standalone generated processes. In production mixed
+deployments, disable GC on one tier using the generated API process or Worker runtime
+config so only one tier performs background collection scans.
+
 ## Worker App Design
 
 The generated Worker app is framework-neutral scaffolding for running declared workers,

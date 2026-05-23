@@ -13,6 +13,7 @@ Generated code owns:
 - API process configuration
 - backend, handler, API server, and transport composition
 - bootstrap of generated runtime catalogs
+- optional entity GC background worker lifecycle when API GC is enabled
 - the background thread, goroutine, or task that runs the API process
 - stop signaling and join semantics
 - deterministic lifecycle errors such as double start
@@ -62,6 +63,11 @@ backend, handler, local transport, config, and `ApiProcess`, then call `start()`
 `join()`. Bootstrap runs inside the generated process execution path when
 `bootstrap_on_start` / `BootstrapOnStart` is enabled, which is the default generated
 configuration.
+
+If entity GC artifacts are generated and API GC is enabled in process config, `start()`
+also starts the registered GC workers. `request_stop()` stops both the transport and GC
+workers, and `join()` waits for both to finish. In mixed API + Worker deployments, the
+runtime should disable API GC when the Worker tier is selected as the GC host.
 
 The cross-language startup flow is:
 

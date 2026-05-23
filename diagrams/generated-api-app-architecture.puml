@@ -9,7 +9,7 @@ actor "API client" as Client
 
 package "Generated API tier" {
   rectangle "api/cmd/api/main\nprocess entrypoint" as ApiMain
-  rectangle "ApiProcess\nthreaded lifecycle\nstart / stop / join" as ApiProcess
+  rectangle "ApiProcess\nthreaded lifecycle\nGC enablement flag\nstart / stop / join" as ApiProcess
   rectangle "LocalBlockingApiTransport\nlocal lifecycle blocker" as LocalTransport
   node "owned background\nthread / goroutine / task" as ApiWorker
   rectangle "ApiApplication\ncomposition root" as ApiApplication
@@ -35,6 +35,9 @@ package "Generated common tier" {
   component "RuntimeWorkflowStore" as WorkflowStore
   component "RuntimeLogSink" as LogSink
   component "RuntimeMetricSink" as MetricSink
+  rectangle "EntityGcDescriptors\nterminal GC metadata" as EntityGcDescriptors
+  rectangle "EntityGcRepository\nindexed eligibility + finalize" as EntityGcRepository
+  rectangle "EntityGcWorkers\nper-entity run_once workers" as EntityGcWorkers
 }
 
 package "User-owned API implementation" {
@@ -68,6 +71,8 @@ ApiMain --> ApiProcess : join()
 ApiProcess --> ApiWorker : owns execution
 ApiProcess --> ApiApplication : constructs per server
 ApiProcess --> LocalTransport : request_stop()
+ApiProcess --> EntityGcWorkers : start if entity_gc_enabled
+ApiProcess --> EntityGcWorkers : request stop + join
 ApiWorker --> ApiProcess : run()
 ApiWorker --> ApiApplication : bootstrap()
 ApiWorker --> LocalTransport : run() blocks until stop
@@ -121,6 +126,8 @@ LeaseStore --> Backend
 WorkflowStore --> Backend
 LogSink --> Backend
 MetricSink --> Backend
+EntityGcWorkers --> EntityGcRepository : scan + finalize
+EntityGcRepository --> Backend
 
 Backend --> Transaction : begin()
 Transaction --> Store : OCC read/write set
@@ -138,6 +145,10 @@ directly. start() owns the background
 execution path, which runs bootstrap()
 when bootstrap_on_start is enabled,
 then enters the transport run loop.
+
+Entity GC is enabled by default but can
+be disabled in ApiProcessConfig when
+the Worker tier should host GC.
 end note
 
 note right of LocalTransport

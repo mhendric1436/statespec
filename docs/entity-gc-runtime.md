@@ -72,6 +72,21 @@ API-only applications can run GC without requiring a Worker deployment. Worker-o
 applications can also run GC. Deployments that run both API and Worker processes should
 configure which tier hosts GC to avoid unnecessary duplicate work.
 
+Recommended deployment shapes:
+
+| Deployment | Recommended GC host | Config shape |
+|---|---|---|
+| API-only app | API tier | leave API GC enabled |
+| Worker-only app | Worker tier | leave Worker GC enabled |
+| Mixed API + Worker app | one tier only | disable GC on the non-host tier |
+
+For mixed deployments, choose the tier that is already closest to lifecycle maintenance
+work. If the API tier handles most entity lifecycle changes and must work without
+workers, host GC in API. If workers already perform background reconciliation, host GC in
+Worker. The generated workers are OCC-safe, so duplicate attempts are tolerated, but
+running both tiers as GC hosts wastes backend scans and should not be the default
+production posture.
+
 Duplicate GC attempts must still be harmless:
 
 - candidate records are revalidated transactionally
@@ -102,3 +117,9 @@ background lifecycle after `start()` is called. Registered GC workers run on gen
 background threads or goroutines, receive stop requests through the same process shutdown
 path as the API transport, and are joined before `join()` completes. The concrete
 repository implementation that supplies eligible rows remains backend/runtime-owned.
+
+The generated architecture diagrams show this composition:
+
+- [Generated API app architecture](../diagrams/generated-api-app-architecture.puml)
+- [Generated Worker app architecture](../diagrams/generated-worker-app-architecture.puml)
+- [Generated system block diagram](../diagrams/generated-system-block-diagram.puml)

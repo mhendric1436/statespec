@@ -98,6 +98,11 @@ bootstrap-on-start is enabled, `request_stop()` is idempotent and safe before st
 `join()` waits for completion, and starting the same process twice must be rejected
 deterministically.
 
+If entity garbage collection metadata is present, generated API process config also
+controls whether API-hosted GC workers are started. API-only deployments can leave this
+enabled; mixed API + Worker deployments should disable it when Worker is the selected GC
+host.
+
 ## External System Client Extension Point
 
 External-system call adapters are generated as framework-neutral helpers. They apply the
@@ -201,6 +206,10 @@ worker handler interface.
 Use workflow step handlers for business logic. Production adapters may wrap or replace
 the generated runtime loop, but persisted StateSpec resources must still be accessed
 through generated backend transaction interfaces.
+
+Worker runtime config controls whether Worker-hosted entity GC workers are started.
+Worker-only deployments can leave this enabled; mixed deployments should enable GC on
+only one tier.
 
 ## Workflow Step Handler Extension Point
 

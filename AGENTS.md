@@ -276,6 +276,8 @@ API-only or Worker-only feature. API and Worker apps may both compose the same g
 entity GC workers. The baseline is one low-resource stop-aware worker per GC-enabled
 entity, with per-entity polling no faster than one tenth of the GC expiration duration,
 bounded batches, OCC revalidation, and generated lifecycle start/stop/join wiring.
+Generated API process and Worker runtime configs must include explicit GC enablement
+flags so mixed deployments can choose exactly one active GC host.
 
 ---
 
