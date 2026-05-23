@@ -63,9 +63,12 @@ impl<B: Backend + Clone, H: ApiHandler + Clone> ApiProcess<B, H> {
     }
 
     pub fn bootstrap(&self) -> BackendResult<()> {
-        let mut bootstrapped = self.bootstrapped.lock().map_err(|_| BackendError::Internal {
-            message: "API process bootstrap lock poisoned".to_string(),
-        })?;
+        let mut bootstrapped = self
+            .bootstrapped
+            .lock()
+            .map_err(|_| BackendError::Internal {
+                message: "API process bootstrap lock poisoned".to_string(),
+            })?;
         if *bootstrapped {
             return Ok(());
         }

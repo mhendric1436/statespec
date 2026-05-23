@@ -1,13 +1,34 @@
 package com.statespec.generated;
 
+import com.statespec.backend.Backend;
 import com.statespec.backend.memory.InMemoryBackend;
 
 public final class ApiMain {
     private ApiMain() {}
 
     public static void main(String[] args) {
-        for (Descriptors.ApiServerDescriptor descriptor : ApiDescriptors.apiServerDescriptors()) {
-            ApiApplication.createDefault(new InMemoryBackend(), descriptor.name());
+        var status = run();
+        if (status != 0) {
+            System.exit(status);
+        }
+    }
+
+    private static int run() {
+        var backend = new InMemoryBackend();
+        var handler = ApiHandlerRegistry.defaultHandler(backend);
+        var config = ApiProcess.Config.allServers();
+        var process = new ApiProcess(config, backend, handler);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(process::requestStop, "statespec-api-shutdown"));
+
+        try {
+            return process.run();
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            return 130;
+        } catch (Backend.BackendException error) {
+            System.err.println("statespec generated API process failed: " + error.getMessage());
+            return 1;
         }
     }
 }

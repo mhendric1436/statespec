@@ -1,14 +1,46 @@
 #include "../common/memory/backend.hpp"
-#include "api_application.hpp"
+#include "api_handler_registry.hpp"
+#include "api_process.hpp"
+
+#include <csignal>
+#include <exception>
+#include <iostream>
+
+namespace
+{
+
+statespec_generated::api::ApiProcess* g_api_process = nullptr;
+
+void request_api_stop(int)
+{
+    if (g_api_process != nullptr)
+    {
+        g_api_process->request_stop();
+    }
+}
+
+} // namespace
 
 int main()
 {
-    statespec::backend::memory::InMemoryBackend backend;
-    statespec_generated::api::DefaultApiHandler handler{backend};
-    for (const auto& descriptor : statespec_generated::api::api_server_descriptors())
+    try
     {
-        statespec_generated::api::ApiApplication app{descriptor.name, handler, backend};
-        (void)app;
+        statespec::backend::memory::InMemoryBackend backend;
+        statespec_generated::api::DefaultApiHandler handler{backend};
+        auto config = statespec_generated::api::ApiProcessConfig::all_servers();
+        statespec_generated::api::ApiProcess process{config, handler, backend};
+
+        g_api_process = &process;
+        std::signal(SIGINT, request_api_stop);
+        std::signal(SIGTERM, request_api_stop);
+
+        const auto status = process.run();
+        g_api_process = nullptr;
+        return status;
     }
-    return 0;
+    catch (const std::exception& error)
+    {
+        std::cerr << "statespec generated API process failed: " << error.what() << '\n';
+        return 1;
+    }
 }

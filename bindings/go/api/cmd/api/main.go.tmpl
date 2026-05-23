@@ -1,12 +1,36 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"os/signal"
 	api "statespec-generated/api/backend"
 	"statespec-generated/common/backend/memory"
+	"syscall"
 )
 
 func main() {
-	for _, descriptor := range api.APITierServerDescriptors() {
-		_, _ = api.NewDefaultAPITierApplication(memory.NewBackend(), descriptor.Name)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	backend := memory.NewBackend()
+	handler := api.DefaultAPITierHandler{Backend: backend}
+	config := api.DefaultAPIProcessConfig()
+	process, err := api.NewAPIProcess(config, backend, handler)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "statespec generated API process failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	go func() {
+		<-ctx.Done()
+		process.RequestStop()
+	}()
+
+	if err := process.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		fmt.Fprintf(os.Stderr, "statespec generated API process failed: %v\n", err)
+		os.Exit(1)
 	}
 }
