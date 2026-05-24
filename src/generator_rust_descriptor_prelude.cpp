@@ -8,6 +8,32 @@
 namespace statespec
 {
 
+namespace
+{
+
+std::string rust_descriptor_module_declarations(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "#[path = \"descriptors/core.rs\"]\n";
+    out << "mod descriptor_core;\n";
+    out << "#[path = \"descriptors/shapes.rs\"]\n";
+    out << "mod descriptor_shapes;\n";
+    out << "#[path = \"descriptors/apis.rs\"]\n";
+    out << "mod descriptor_apis;\n";
+    out << "#[path = \"descriptors/workers.rs\"]\n";
+    out << "mod descriptor_workers;\n";
+    out << "#[path = \"descriptors/runtime.rs\"]\n";
+    out << "mod descriptor_runtime;\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "#[path = \"descriptors/entities/" << snake_identifier(entity.name) << ".rs\"]\n";
+        out << "mod descriptor_entity_" << snake_identifier(entity.name) << ";\n";
+    }
+    return out.str();
+}
+
+} // namespace
+
 std::string generate_rust_descriptor_prelude(
     const IrSystem& system,
     const std::string& external_system_runtime,
@@ -16,6 +42,7 @@ std::string generate_rust_descriptor_prelude(
 )
 {
     std::ostringstream out;
+    out << rust_descriptor_module_declarations(system) << "\n";
     out << "use std::collections::BTreeMap;\n";
     out << "use std::time::Duration;\n\n";
     out << "use crate::backend::{Backend, BackendError, BackendResult, CollectionDescriptor, "

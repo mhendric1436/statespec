@@ -42,6 +42,11 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/memory/backend.rs", common},
             {"common/memory/transaction.rs", common},
             {"common/descriptors.rs", common},
+            {"common/descriptors/apis.rs", common},
+            {"common/descriptors/core.rs", common},
+            {"common/descriptors/runtime.rs", common},
+            {"common/descriptors/shapes.rs", common},
+            {"common/descriptors/workers.rs", common},
             {"common/Cargo.toml", common},
             {"common/lib.rs", common},
             {"common/Makefile", common},
@@ -62,6 +67,26 @@ void test_rust_binding_generator_models_artifact_paths()
     const auto result = generate_rust_bindings_for_artifact_tests();
     require_generated_file_artifact_path(
         result, "descriptors.rs", "common/descriptors.rs", statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/apis.rs", "common/descriptors/apis.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/core.rs", "common/descriptors/core.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/runtime.rs", "common/descriptors/runtime.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/shapes.rs", "common/descriptors/shapes.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/workers.rs", "common/descriptors/workers.rs",
+        statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "Cargo.toml", "common/Cargo.toml", statespec::GeneratedArtifactTier::Common

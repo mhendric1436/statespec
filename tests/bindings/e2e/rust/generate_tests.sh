@@ -35,6 +35,12 @@ api/external_system_operator_metadata_api.rs
 api/main.rs
 common/backend.rs
 common/descriptors.rs
+common/descriptors/apis.rs
+common/descriptors/core.rs
+common/descriptors/entities/service_instance.rs
+common/descriptors/runtime.rs
+common/descriptors/shapes.rs
+common/descriptors/workers.rs
 common/external_system.rs
 common/feature_flag.rs
 common/json.rs

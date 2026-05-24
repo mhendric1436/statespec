@@ -4,6 +4,7 @@
 #include "generator_rust_descriptor_support.hpp"
 #include "generator_rust_descriptors.hpp"
 #include "generator_support.hpp"
+#include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
@@ -383,6 +384,60 @@ void add_rust_common_generated_template_file(
     );
 }
 
+TemplateRenderer::Values rust_descriptor_module_values(std::string_view module_name)
+{
+    return TemplateRenderer::Values{{"descriptor_module_name", std::string{module_name}}};
+}
+
+void add_rust_descriptor_module_artifact(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    std::string_view relative_output_path,
+    std::string_view module_name,
+    DiagnosticBag& diagnostics
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates, generated_template_path("descriptor_module.rs.tmpl"),
+        common_artifact_path(relative_output_path), diagnostics, GeneratedArtifactTier::Common,
+        rust_descriptor_module_values(module_name)
+    );
+}
+
+void add_rust_descriptor_module_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    const IrSystem& system,
+    DiagnosticBag& diagnostics
+)
+{
+    add_rust_descriptor_module_artifact(
+        result, options, templates, "descriptors/core.rs", "core descriptors", diagnostics
+    );
+    add_rust_descriptor_module_artifact(
+        result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics
+    );
+    add_rust_descriptor_module_artifact(
+        result, options, templates, "descriptors/apis.rs", "API descriptors", diagnostics
+    );
+    add_rust_descriptor_module_artifact(
+        result, options, templates, "descriptors/workers.rs", "worker descriptors", diagnostics
+    );
+    add_rust_descriptor_module_artifact(
+        result, options, templates, "descriptors/runtime.rs", "runtime descriptors", diagnostics
+    );
+    for (const auto& entity : system.entities)
+    {
+        add_rust_descriptor_module_artifact(
+            result, options, templates,
+            "descriptors/entities/" + snake_identifier(entity.name) + ".rs",
+            "entity descriptor " + entity.name, diagnostics
+        );
+    }
+}
+
 void add_rust_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -539,6 +594,12 @@ void add_rust_common_runtime_artifacts(
         );
     }
 
+    if (diagnostics.has_errors())
+    {
+        return;
+    }
+
+    add_rust_descriptor_module_artifacts(result, options, templates, system, diagnostics);
     if (diagnostics.has_errors())
     {
         return;
