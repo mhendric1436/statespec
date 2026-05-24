@@ -23,6 +23,10 @@ std::string go_entity_state_constant_name(
     const std::string& state_name
 );
 std::string go_field_descriptor_expr(const IrField& field);
+std::string go_entity_field_descriptor_expr(
+    const std::string& entity_name,
+    const IrField& field
+);
 std::string go_shape_type(const std::string& type);
 long long parse_go_duration_seconds(const std::optional<std::string>& value);
 std::string string_ptr_expr(const std::optional<std::string>& value);

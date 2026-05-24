@@ -132,6 +132,17 @@ std::string java_field_descriptor_expr(const IrField& field)
            (is_required_descriptor_field(field.type) ? "true" : "false") + ")";
 }
 
+std::string java_entity_field_descriptor_expr(
+    const std::string& entity_name,
+    const IrField& field
+)
+{
+    return "new FieldDescriptor(" + java_entity_field_constant_name(entity_name, field.name) +
+           ", " + java_field_type_expr(classify_field_descriptor_type(field.type)) + ", " +
+           java_string(field.type) + ", " +
+           (is_required_descriptor_field(field.type) ? "true" : "false") + ")";
+}
+
 std::string java_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);

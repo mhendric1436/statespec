@@ -132,6 +132,18 @@ std::string rust_field_descriptor_expr(const IrField& field)
            (is_required_descriptor_field(field.type) ? "true" : "false") + " }";
 }
 
+std::string rust_entity_field_descriptor_expr(
+    const std::string& entity_name,
+    const IrField& field
+)
+{
+    return "FieldDescriptor { name: " + rust_entity_field_constant_name(entity_name, field.name) +
+           ".to_string(), field_type: " +
+           rust_field_type_expr(classify_field_descriptor_type(field.type)) +
+           ", type_name: " + rust_string(field.type) + ".to_string(), required: " +
+           (is_required_descriptor_field(field.type) ? "true" : "false") + " }";
+}
+
 std::string rust_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);

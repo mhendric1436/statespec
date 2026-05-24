@@ -46,7 +46,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
     {
         const auto& entity = system.entities[entity_index];
         out << "            new EntityDescriptor(\n";
-        out << "                " << java_string(entity.name) << ",\n";
+        out << "                " << java_entity_name_constant_name(entity.name) << ",\n";
         out << "                List.of(";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -54,7 +54,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << java_string(entity.key_fields[i]);
+            out << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "),\n";
         if (entity.ownership.has_value())
@@ -132,7 +132,8 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         {
             const auto& state = entity.states[i];
             out << "                    new EntityStateDescriptor(\n";
-            out << "                        " << java_string(state.name) << ",\n";
+            out << "                        "
+                << java_entity_state_constant_name(entity.name, state.name) << ",\n";
             out << "                        " << (state.terminal ? "true" : "false") << ",\n";
             if (state.garbage_collection.has_value())
             {
@@ -147,7 +148,15 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             out << "                    )" << (i + 1 < entity.states.size() ? "," : "") << "\n";
         }
         out << "                ),\n";
-        out << "                " << java_optional_string_expr(entity.initial_state) << ",\n";
+        if (entity.initial_state.has_value())
+        {
+            out << "                Optional.of("
+                << java_entity_state_constant_name(entity.name, *entity.initial_state) << "),\n";
+        }
+        else
+        {
+            out << "                Optional.empty(),\n";
+        }
         out << "                List.of(";
         for (std::size_t i = 0; i < entity.terminal_states.size(); ++i)
         {
@@ -155,7 +164,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << java_string(entity.terminal_states[i]);
+            out << java_entity_state_constant_name(entity.name, entity.terminal_states[i]);
         }
         out << ")\n";
         out << "            )" << (entity_index + 1 < system.entities.size() ? "," : "") << "\n";
@@ -169,7 +178,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         out << "    public static EntityLookup build" << type_name
             << "Lookup(List<EntityKeyValue> keyValues) {\n";
         out << "        return new EntityLookup(\n";
-        out << "            " << java_string(entity.name) << ",\n";
+        out << "            " << java_entity_name_constant_name(entity.name) << ",\n";
         out << "            List.of(";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -177,7 +186,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << java_string(entity.key_fields[i]);
+            out << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "),\n";
         out << "            List.copyOf(keyValues)\n";
@@ -256,8 +265,8 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         out << "        {\n";
         out << "            return entities.listEntitiesByIndexTx(\n";
         out << "                tx,\n";
-        out << "                new EntityListByIndexRequest(" << java_string(entity.name)
-            << ", indexName, values)\n";
+        out << "                new EntityListByIndexRequest("
+            << java_entity_name_constant_name(entity.name) << ", indexName, values)\n";
         out << "            );\n";
         out << "        }\n";
         out << "\n";
@@ -269,8 +278,8 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             out << "            List<Backend.IndexValue> values\n";
             out << "        ) throws Backend.BackendException\n";
             out << "        {\n";
-            out << "            return listByIndexTx(tx, " << java_string(index.name)
-                << ", values);\n";
+            out << "            return listByIndexTx(tx, "
+                << java_entity_index_constant_name(entity.name, index.name) << ", values);\n";
             out << "        }\n";
             out << "\n";
         }
@@ -294,11 +303,12 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         out << "    public static CollectionDescriptor " << lower_camel_identifier(entity.name)
             << "CollectionDescriptor() {\n";
         out << "        return new CollectionDescriptor(\n";
-        out << "            " << java_string(entity.name) << ",\n";
+        out << "            " << java_entity_name_constant_name(entity.name) << ",\n";
         out << "            List.of(\n";
         for (std::size_t i = 0; i < entity.fields.size(); ++i)
         {
-            out << "                " << java_field_descriptor_expr(entity.fields[i]);
+            out << "                "
+                << java_entity_field_descriptor_expr(entity.name, entity.fields[i]);
             out << (i + 1 < entity.fields.size() ? "," : "") << "\n";
         }
         out << "            ),\n";
@@ -309,7 +319,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << java_string(entity.key_fields[i]);
+            out << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "),\n";
         out << "            List.of(\n";
@@ -317,7 +327,8 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         {
             const auto& index = entity.indexes[i];
             out << "                new IndexDescriptor(\n";
-            out << "                    " << java_string(index.name) << ",\n";
+            out << "                    "
+                << java_entity_index_constant_name(entity.name, index.name) << ",\n";
             out << "                    List.of(";
             for (std::size_t field_index = 0; field_index < index.fields.size(); ++field_index)
             {
@@ -325,7 +336,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
                 {
                     out << ", ";
                 }
-                out << java_string(index.fields[field_index]);
+                out << java_entity_field_constant_name(entity.name, index.fields[field_index]);
             }
             out << "),\n";
             out << "                    " << (index.unique ? "true" : "false") << "\n";
@@ -339,11 +350,11 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             << "EntityDescriptor() {\n";
         out << "        return entityDescriptors().stream()\n";
         out << "            .filter(descriptor -> descriptor.name().equals("
-            << java_string(entity.name) << "))\n";
+            << java_entity_name_constant_name(entity.name) << "))\n";
         out << "            .findFirst()\n";
         out << "            .orElseThrow(() -> new IllegalStateException(\"entity descriptor not "
                "found: "
-            << entity.name << "\"));\n";
+            << "\" + " << java_entity_name_constant_name(entity.name) << "));\n";
         out << "    }\n\n";
     }
 

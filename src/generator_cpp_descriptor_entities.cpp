@@ -46,7 +46,7 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
     for (const auto& entity : system.entities)
     {
         out << "        EntityDescriptor{\n";
-        out << "            " << cpp_string(entity.name) << ",\n";
+        out << "            " << cpp_entity_name_constant_name(entity.name) << ",\n";
         out << "            {";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -54,7 +54,7 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << cpp_string(entity.key_fields[i]);
+            out << cpp_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "},\n";
         if (entity.ownership.has_value())
@@ -120,7 +120,8 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
         for (const auto& state : entity.states)
         {
             out << "                EntityStateDescriptor{\n";
-            out << "                    " << cpp_string(state.name) << ",\n";
+            out << "                    " << cpp_entity_state_constant_name(entity.name, state.name)
+                << ",\n";
             out << "                    " << (state.terminal ? "true" : "false") << ",\n";
             if (state.garbage_collection.has_value())
             {
@@ -135,7 +136,15 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             out << "                },\n";
         }
         out << "            },\n";
-        out << "            " << optional_string_expr(entity.initial_state) << ",\n";
+        if (entity.initial_state.has_value())
+        {
+            out << "            std::optional<std::string>{"
+                << cpp_entity_state_constant_name(entity.name, *entity.initial_state) << "},\n";
+        }
+        else
+        {
+            out << "            std::nullopt,\n";
+        }
         out << "            {";
         for (std::size_t i = 0; i < entity.terminal_states.size(); ++i)
         {
@@ -143,7 +152,7 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << cpp_string(entity.terminal_states[i]);
+            out << cpp_entity_state_constant_name(entity.name, entity.terminal_states[i]);
         }
         out << "},\n";
         out << "        },\n";
@@ -159,11 +168,12 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
     for (const auto& entity : system.entities)
     {
         out << "        statespec::backend::CollectionDescriptor{\n";
-        out << "            " << cpp_string(entity.name) << ",\n";
+        out << "            " << cpp_entity_name_constant_name(entity.name) << ",\n";
         out << "            {\n";
         for (const auto& field : entity.fields)
         {
-            out << "                " << cpp_field_descriptor_expr(field) << ",\n";
+            out << "                " << cpp_entity_field_descriptor_expr(entity.name, field)
+                << ",\n";
         }
         out << "            },\n";
         out << "            {";
@@ -173,14 +183,15 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << cpp_string(entity.key_fields[i]);
+            out << cpp_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "},\n";
         out << "            {\n";
         for (const auto& index : entity.indexes)
         {
             out << "                statespec::backend::IndexDescriptor{\n";
-            out << "                    " << cpp_string(index.name) << ",\n";
+            out << "                    " << cpp_entity_index_constant_name(entity.name, index.name)
+                << ",\n";
             out << "                    {";
             for (std::size_t i = 0; i < index.fields.size(); ++i)
             {
@@ -188,7 +199,7 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
                 {
                     out << ", ";
                 }
-                out << cpp_string(index.fields[i]);
+                out << cpp_entity_field_constant_name(entity.name, index.fields[i]);
             }
             out << "},\n";
             out << "                    " << (index.unique ? "true" : "false") << ",\n";
@@ -210,7 +221,7 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             << "_lookup(std::vector<EntityKeyValue> key_values)\n";
         out << "{\n";
         out << "    return EntityLookup{\n";
-        out << "        " << cpp_string(entity.name) << ",\n";
+        out << "        " << cpp_entity_name_constant_name(entity.name) << ",\n";
         out << "        {";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -218,7 +229,7 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << cpp_string(entity.key_fields[i]);
+            out << cpp_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "},\n";
         out << "        std::move(key_values),\n";
@@ -297,7 +308,7 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
         out << "        return entities_.list_entities_by_indexTx(\n";
         out << "            tx,\n";
         out << "            EntityListByIndexRequest{\n";
-        out << "                " << cpp_string(entity.name) << ",\n";
+        out << "                " << cpp_entity_name_constant_name(entity.name) << ",\n";
         out << "                std::move(index_name),\n";
         out << "                std::move(values),\n";
         out << "            }\n";
@@ -311,7 +322,8 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             out << "        std::vector<statespec::backend::IndexValue> values\n";
             out << "    ) override\n";
             out << "    {\n";
-            out << "        return listByIndexTx(tx, " << cpp_string(index.name)
+            out << "        return listByIndexTx(tx, "
+                << cpp_entity_index_constant_name(entity.name, index.name)
                 << ", std::move(values));\n";
             out << "    }\n\n";
         }
@@ -334,11 +346,12 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
         out << "    static statespec::backend::CollectionDescriptor collection_descriptor()\n";
         out << "    {\n";
         out << "        return statespec::backend::CollectionDescriptor{\n";
-        out << "            " << cpp_string(entity.name) << ",\n";
+        out << "            " << cpp_entity_name_constant_name(entity.name) << ",\n";
         out << "            {\n";
         for (const auto& field : entity.fields)
         {
-            out << "                " << cpp_field_descriptor_expr(field) << ",\n";
+            out << "                " << cpp_entity_field_descriptor_expr(entity.name, field)
+                << ",\n";
         }
         out << "            },\n";
         out << "            {";
@@ -348,14 +361,15 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << cpp_string(entity.key_fields[i]);
+            out << cpp_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "},\n";
         out << "            {\n";
         for (const auto& index : entity.indexes)
         {
             out << "                statespec::backend::IndexDescriptor{\n";
-            out << "                    " << cpp_string(index.name) << ",\n";
+            out << "                    " << cpp_entity_index_constant_name(entity.name, index.name)
+                << ",\n";
             out << "                    {";
             for (std::size_t i = 0; i < index.fields.size(); ++i)
             {
@@ -363,7 +377,7 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
                 {
                     out << ", ";
                 }
-                out << cpp_string(index.fields[i]);
+                out << cpp_entity_field_constant_name(entity.name, index.fields[i]);
             }
             out << "},\n";
             out << "                    " << (index.unique ? "true" : "false") << ",\n";
@@ -377,13 +391,15 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
         out << "    {\n";
         out << "        for (const auto& descriptor : entity_descriptors())\n";
         out << "        {\n";
-        out << "            if (descriptor.name == " << cpp_string(entity.name) << ")\n";
+        out << "            if (descriptor.name == " << cpp_entity_name_constant_name(entity.name)
+            << ")\n";
         out << "            {\n";
         out << "                return descriptor;\n";
         out << "            }\n";
         out << "        }\n";
-        out << "        throw statespec::backend::BackendError(\"entity descriptor not found: "
-            << entity.name << "\");\n";
+        out << "        throw statespec::backend::BackendError(std::string{\"entity descriptor "
+               "not found: \"} + "
+            << cpp_entity_name_constant_name(entity.name) << ");\n";
         out << "    }\n\n";
         out << "  private:\n";
         out << "    DefaultEntityRepository entities_;\n";

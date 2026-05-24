@@ -132,6 +132,17 @@ std::string go_field_descriptor_expr(const IrField& field)
            ", Required: " + (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
 }
 
+std::string go_entity_field_descriptor_expr(
+    const std::string& entity_name,
+    const IrField& field
+)
+{
+    return "{Name: " + go_entity_field_constant_name(entity_name, field.name) +
+           ", Type: " + go_field_type_expr(classify_field_descriptor_type(field.type)) +
+           ", TypeName: " + go_string(field.type) +
+           ", Required: " + (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
+}
+
 std::string go_shape_type(const std::string& type)
 {
     const auto optional = is_optional_type(type);
