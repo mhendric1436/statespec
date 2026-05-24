@@ -383,6 +383,155 @@ std::string go_api_handler_domain_file(
     return out.str();
 }
 
+std::vector<IrShape> api_codec_shapes(const IrSystem& system)
+{
+    std::vector<IrShape> shapes;
+    for (const auto& shape : system.shapes)
+    {
+        const auto used = std::any_of(
+            system.apis.begin(), system.apis.end(),
+            [&](const auto& api)
+            {
+                return (api.input.has_value() && *api.input == shape.name) ||
+                       (api.output.has_value() && *api.output == shape.name);
+            }
+        );
+        if (used)
+        {
+            shapes.push_back(shape);
+        }
+    }
+    return shapes;
+}
+
+IrSystem with_codec_shape_apis(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    auto filtered = system;
+    filtered.apis.clear();
+    for (const auto& api : system.apis)
+    {
+        IrApi scoped = api;
+        if (!scoped.input.has_value() || *scoped.input != shape_name)
+        {
+            scoped.input.reset();
+        }
+        if (!scoped.output.has_value() || *scoped.output != shape_name)
+        {
+            scoped.output.reset();
+        }
+        if (scoped.input.has_value() || scoped.output.has_value())
+        {
+            filtered.apis.push_back(std::move(scoped));
+        }
+    }
+    return filtered;
+}
+
+std::string go_api_codec_shape_path(std::string_view shape_name)
+{
+    return "api/backend/codecs/" + snake_identifier(std::string{shape_name}) + ".go";
+}
+
+std::string go_api_codec_support_path()
+{
+    return "api/backend/codecs/api_codecs.go";
+}
+
+std::string go_api_codec_shape_file(
+    const IrSystem& system,
+    const IrShape& shape
+)
+{
+    const auto filtered = with_codec_shape_apis(system, shape.name);
+    std::ostringstream out;
+    out << "package codecs\n\n";
+    out << "import (\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << go_api_shape_import(filtered);
+    out << ")\n\n";
+    out << generate_api_codec_operations_go(filtered);
+    return out.str();
+}
+
+std::string go_api_codec_support_file()
+{
+    std::ostringstream out;
+    out << "package codecs\n\n";
+    out << "import (\n";
+    out << "\t\"fmt\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << ")\n\n";
+    out << generate_api_codec_helpers_go();
+    return out.str();
+}
+
+const IrShape* find_api_codec_shape(
+    const IrSystem& system,
+    std::string_view name
+)
+{
+    const auto it = std::find_if(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape) { return shape.name == name; }
+    );
+    return it == system.shapes.end() ? nullptr : &*it;
+}
+
+std::string go_api_codec_delegates(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        if (api.input.has_value())
+        {
+            const auto* shape = find_api_codec_shape(system, *api.input);
+            if (shape != nullptr)
+            {
+                out << "func Decode" << pascal_identifier(api.name)
+                    << "Request(request common.APIRequestContext) (shapes."
+                    << pascal_identifier(shape->name) << ", error) {\n";
+                out << "\treturn codecs.Decode" << pascal_identifier(api.name)
+                    << "Request(request)\n";
+                out << "}\n\n";
+            }
+        }
+        if (api.output.has_value())
+        {
+            const auto* shape = find_api_codec_shape(system, *api.output);
+            if (shape != nullptr)
+            {
+                out << "func Decode" << pascal_identifier(api.name)
+                    << "Response(response common.APIResponse) (shapes."
+                    << pascal_identifier(shape->name) << ", error) {\n";
+                out << "\treturn codecs.Decode" << pascal_identifier(api.name)
+                    << "Response(response)\n";
+                out << "}\n\n";
+                out << "func Decode" << pascal_identifier(api.name)
+                    << "ResponseBody(request common.APIRequestContext) (shapes."
+                    << pascal_identifier(shape->name) << ", error) {\n";
+                out << "\treturn codecs.Decode" << pascal_identifier(api.name)
+                    << "ResponseBody(request)\n";
+                out << "}\n\n";
+                out << "func Encode" << pascal_identifier(api.name) << "Response(response shapes."
+                    << pascal_identifier(shape->name) << ") common.APIResponse {\n";
+                out << "\treturn codecs.Encode" << pascal_identifier(api.name)
+                    << "Response(response)\n";
+                out << "}\n\n";
+                out << "func Encode" << pascal_identifier(api.name)
+                    << "ResponseWithStatus(response shapes." << pascal_identifier(shape->name)
+                    << ", statusCode int) common.APIResponse {\n";
+                out << "\treturn codecs.Encode" << pascal_identifier(api.name)
+                    << "ResponseWithStatus(response, statusCode)\n";
+                out << "}\n\n";
+            }
+        }
+    }
+    return out.str();
+}
+
 TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
 {
     std::ostringstream descriptors;
@@ -1001,10 +1150,18 @@ void add_go_api_artifacts(
         result, options, templates, "api/backend/api_codecs.go", GeneratedArtifactTier::Api,
         diagnostics,
         TemplateRenderer::Values{
-            {"api_shape_import", go_api_shape_import(system)},
-            {"api_codecs", generate_api_codecs_go(system)}
+            {"api_codec_helpers", generate_api_codec_helpers_go()},
+            {"api_codec_delegates", go_api_codec_delegates(system)}
         }
     );
+    add_go_raw_api_file(result, options, go_api_codec_support_path(), go_api_codec_support_file());
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        add_go_raw_api_file(
+            result, options, go_api_codec_shape_path(shape.name),
+            go_api_codec_shape_file(system, shape)
+        );
+    }
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_handlers.go", GeneratedArtifactTier::Api,
         diagnostics,

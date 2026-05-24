@@ -1131,7 +1131,7 @@ std::string generate_api_operation_default_handler_domain_methods_rs(const IrSys
     return generate_api_operation_default_handler_methods_rs_impl(system, "pub(super) ");
 }
 
-std::string generate_api_codecs_rs(const IrSystem& system)
+std::string generate_api_codec_helpers_rs()
 {
     std::ostringstream out;
     out << "fn codec_error(message: impl Into<String>) -> BackendError {\n";
@@ -1169,7 +1169,12 @@ std::string generate_api_codecs_rs(const IrSystem& system)
     out << "fn decode_json(value: &Json, _field_name: &str) -> BackendResult<Json> {\n";
     out << "    Ok(value.clone())\n";
     out << "}\n\n";
+    return out.str();
+}
 
+std::string generate_api_codec_operations_rs(const IrSystem& system)
+{
+    std::ostringstream out;
     for (const auto& api : system.apis)
     {
         if (api.input.has_value())
@@ -1270,6 +1275,11 @@ std::string generate_api_codecs_rs(const IrSystem& system)
         }
     }
     return out.str();
+}
+
+std::string generate_api_codecs_rs(const IrSystem& system)
+{
+    return generate_api_codec_helpers_rs() + generate_api_codec_operations_rs(system);
 }
 
 } // namespace statespec

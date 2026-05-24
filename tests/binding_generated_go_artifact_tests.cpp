@@ -54,6 +54,7 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"api/backend/api_descriptors.go", api},
             {"api/backend/api_handlers.go", api},
             {"api/backend/api_handler_registry.go", api},
+            {"api/backend/codecs/api_codecs.go", api},
             {"api/backend/external_system_operator_metadata_api.go", api},
             {"worker/backend/worker_contexts.go", worker},
             {"worker/backend/worker_descriptors.go", worker},
@@ -105,6 +106,10 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "api/backend/api_codecs.go", "api/backend/api_codecs.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/backend/codecs/api_codecs.go", "api/backend/codecs/api_codecs.go",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(

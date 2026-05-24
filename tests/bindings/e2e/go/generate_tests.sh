@@ -31,6 +31,11 @@ api/backend/api_process.go
 api/backend/api_routes.go
 api/backend/api_server.go
 api/backend/api_transport.go
+api/backend/codecs/api_codecs.go
+api/backend/codecs/provision_callback_request.go
+api/backend/codecs/provision_callback_response.go
+api/backend/codecs/start_provision_request.go
+api/backend/codecs/start_provision_response.go
 api/backend/descriptors/report_provision_ready.go
 api/backend/descriptors/start_provision.go
 api/backend/external_system_operator_metadata_api.go
@@ -167,8 +172,8 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "RequestS
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "func (transport *LocalBlockingAPITierTransport) RequestStop()"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "process.Transport.RequestStop()"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewLocalBlockingAPITierTransport()"
-assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func DecodeStartProvisionRequest"
-assert_file_contains "$TMPDIR/out-app-go/api/backend/api_codecs.go" "func EncodeStartProvisionResponse"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/codecs/start_provision_request.go" "func DecodeStartProvisionRequest"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/codecs/start_provision_response.go" "func EncodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "type DefaultAPITierHandler struct"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "signal.NotifyContext"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewAPIProcess"

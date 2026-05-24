@@ -41,6 +41,8 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "api_transport";
     case BindingAppArtifactKind::ApiDispatcher:
         return "api_dispatcher";
+    case BindingAppArtifactKind::ApiCodecs:
+        return "api_codecs";
     case BindingAppArtifactKind::ApiHandlerRegistry:
         return "api_handler_registry";
     case BindingAppArtifactKind::ApiMain:
@@ -121,6 +123,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "API transport interface bound to ApiServer request dispatch", true},
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, "API route-to-handler dispatcher",
              true},
+            {"api/api_codec_support.hpp", api, Kind::ApiCodecs,
+             "Shared API codec helper functions"},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry,
              "API handler registry extension point"},
             {"api/api_handler_registry_support.hpp", api, Kind::ApiHandlerRegistry,

@@ -21,6 +21,7 @@ namespace
 {
 
 std::string java_api_default_handler_shape_import(const IrSystem& system);
+std::string java_api_shape_import(const IrSystem& system);
 
 std::string java_makefile_source_list(const std::vector<std::string>& sources)
 {
@@ -250,6 +251,140 @@ std::string java_api_handler_domain_file(
     return out.str();
 }
 
+std::vector<IrShape> api_codec_shapes(const IrSystem& system)
+{
+    std::vector<IrShape> shapes;
+    for (const auto& shape : system.shapes)
+    {
+        const auto used = std::any_of(
+            system.apis.begin(), system.apis.end(),
+            [&](const auto& api)
+            {
+                return (api.input.has_value() && *api.input == shape.name) ||
+                       (api.output.has_value() && *api.output == shape.name);
+            }
+        );
+        if (used)
+        {
+            shapes.push_back(shape);
+        }
+    }
+    return shapes;
+}
+
+IrSystem with_codec_shape_apis(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    auto filtered = system;
+    filtered.apis.clear();
+    for (const auto& api : system.apis)
+    {
+        IrApi scoped = api;
+        if (!scoped.input.has_value() || *scoped.input != shape_name)
+        {
+            scoped.input.reset();
+        }
+        if (!scoped.output.has_value() || *scoped.output != shape_name)
+        {
+            scoped.output.reset();
+        }
+        if (scoped.input.has_value() || scoped.output.has_value())
+        {
+            filtered.apis.push_back(std::move(scoped));
+        }
+    }
+    return filtered;
+}
+
+std::string java_api_codec_shape_class_name(std::string_view shape_name)
+{
+    return "ApiCodecs" + pascal_identifier(std::string{shape_name});
+}
+
+std::filesystem::path java_api_codec_shape_path(std::string_view shape_name)
+{
+    return std::filesystem::path{"api/com/statespec/generated/codecs"} /
+           (java_api_codec_shape_class_name(shape_name) + ".java");
+}
+
+std::vector<std::string> java_api_codec_shape_sources(const IrSystem& system)
+{
+    std::vector<std::string> sources;
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        sources.push_back(java_api_codec_shape_path(shape.name).generic_string());
+    }
+    return sources;
+}
+
+std::string java_api_codec_shape_file(
+    const IrSystem& system,
+    const IrShape& shape
+)
+{
+    const auto filtered = with_codec_shape_apis(system, shape.name);
+    std::ostringstream out;
+    out << "package com.statespec.generated.codecs;\n\n";
+    out << "import static com.statespec.generated.ApiCodecs.*;\n";
+    out << "import com.statespec.backend.Json;\n";
+    out << "import com.statespec.generated.Descriptors;\n";
+    out << java_api_shape_import(filtered);
+    out << "import java.util.Map;\n";
+    out << "import java.util.Optional;\n";
+    out << "import java.util.TreeMap;\n\n";
+    out << "public final class " << java_api_codec_shape_class_name(shape.name) << " {\n";
+    out << "    private " << java_api_codec_shape_class_name(shape.name) << "() {}\n\n";
+    out << generate_api_codec_operations_java(filtered);
+    out << "}\n";
+    return out.str();
+}
+
+std::string java_api_codec_delegates(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        const auto filtered = with_codec_shape_apis(system, shape.name);
+        const auto class_name = java_api_codec_shape_class_name(shape.name);
+        for (const auto& api : filtered.apis)
+        {
+            if (api.input.has_value())
+            {
+                out << "    public static " << pascal_identifier(*api.input) << " decode"
+                    << pascal_identifier(api.name)
+                    << "Request(Descriptors.ApiRequestContext request) {\n";
+                out << "        return " << class_name << ".decode" << pascal_identifier(api.name)
+                    << "Request(request);\n";
+                out << "    }\n\n";
+            }
+            if (api.output.has_value())
+            {
+                out << "    public static " << pascal_identifier(*api.output) << " decode"
+                    << pascal_identifier(api.name)
+                    << "Response(Descriptors.ApiResponse response) {\n";
+                out << "        return " << class_name << ".decode" << pascal_identifier(api.name)
+                    << "Response(response);\n";
+                out << "    }\n\n";
+                out << "    public static Descriptors.ApiResponse encode"
+                    << pascal_identifier(api.name) << "Response(" << pascal_identifier(*api.output)
+                    << " response) {\n";
+                out << "        return " << class_name << ".encode" << pascal_identifier(api.name)
+                    << "Response(response);\n";
+                out << "    }\n\n";
+                out << "    public static Descriptors.ApiResponse encode"
+                    << pascal_identifier(api.name) << "Response(" << pascal_identifier(*api.output)
+                    << " response, int statusCode) {\n";
+                out << "        return " << class_name << ".encode" << pascal_identifier(api.name)
+                    << "Response(response, statusCode);\n";
+                out << "    }\n\n";
+            }
+        }
+    }
+    return out.str();
+}
+
 TemplateRenderer::Values java_makefile_values(
     BindingGenerationTier tier,
     const IrSystem& system
@@ -334,6 +469,10 @@ TemplateRenderer::Values java_makefile_values(
             "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
         };
         for (const auto& source : java_api_descriptor_sources(system))
+        {
+            api_sources.push_back(source);
+        }
+        for (const auto& source : java_api_codec_shape_sources(system))
         {
             api_sources.push_back(source);
         }
@@ -1137,9 +1276,17 @@ void add_java_api_artifacts(
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_shape_import", java_api_shape_import(system)},
-            {"api_codecs", generate_api_codecs_java(system)}
+            {"api_codec_helpers", generate_api_codec_helpers_java()},
+            {"api_codec_delegates", java_api_codec_delegates(system)}
         }
     );
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        add_java_raw_api_file(
+            result, options, java_api_codec_shape_path(shape.name),
+            java_api_codec_shape_file(system, shape)
+        );
+    }
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiHandlers.java"),
         GeneratedArtifactTier::Api, diagnostics,

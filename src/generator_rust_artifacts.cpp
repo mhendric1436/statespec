@@ -449,6 +449,87 @@ std::string rust_api_handler_domain_file(
     return out.str();
 }
 
+std::vector<IrShape> api_codec_shapes(const IrSystem& system)
+{
+    std::vector<IrShape> shapes;
+    for (const auto& shape : system.shapes)
+    {
+        const auto used = std::any_of(
+            system.apis.begin(), system.apis.end(),
+            [&](const auto& api)
+            {
+                return (api.input.has_value() && *api.input == shape.name) ||
+                       (api.output.has_value() && *api.output == shape.name);
+            }
+        );
+        if (used)
+        {
+            shapes.push_back(shape);
+        }
+    }
+    return shapes;
+}
+
+IrSystem with_codec_shape_apis(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    auto filtered = system;
+    filtered.apis.clear();
+    for (const auto& api : system.apis)
+    {
+        IrApi scoped = api;
+        if (!scoped.input.has_value() || *scoped.input != shape_name)
+        {
+            scoped.input.reset();
+        }
+        if (!scoped.output.has_value() || *scoped.output != shape_name)
+        {
+            scoped.output.reset();
+        }
+        if (scoped.input.has_value() || scoped.output.has_value())
+        {
+            filtered.apis.push_back(std::move(scoped));
+        }
+    }
+    return filtered;
+}
+
+std::string rust_api_codec_shape_module_name(std::string_view shape_name)
+{
+    return "api_codecs_" + snake_identifier(std::string{shape_name});
+}
+
+std::string rust_api_codec_shape_path(std::string_view shape_name)
+{
+    return "api/codecs/" + snake_identifier(std::string{shape_name}) + ".rs";
+}
+
+std::string rust_api_codec_modules(const std::vector<IrShape>& shapes)
+{
+    std::ostringstream out;
+    for (const auto& shape : shapes)
+    {
+        out << "#[path = \"codecs/" << snake_identifier(shape.name) << ".rs\"]\n";
+        out << "mod " << rust_api_codec_shape_module_name(shape.name) << ";\n";
+        out << "pub use " << rust_api_codec_shape_module_name(shape.name) << "::*;\n";
+    }
+    return out.str();
+}
+
+std::string rust_api_codec_shape_file(
+    const IrSystem& system,
+    const IrShape& shape
+)
+{
+    const auto filtered = with_codec_shape_apis(system, shape.name);
+    std::ostringstream out;
+    out << "use super::*;\n\n";
+    out << generate_api_codec_operations_rs(filtered);
+    return out.str();
+}
+
 TemplateRenderer::Values rust_runtime_codec_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
@@ -1073,8 +1154,18 @@ void add_rust_api_artifacts(
     );
     add_rust_generated_template_file(
         result, options, templates, "api/api_codecs.rs", GeneratedArtifactTier::Api, diagnostics,
-        TemplateRenderer::Values{{"api_codecs", generate_api_codecs_rs(system)}}
+        TemplateRenderer::Values{
+            {"api_codec_modules", rust_api_codec_modules(api_codec_shapes(system))},
+            {"api_codec_helpers", generate_api_codec_helpers_rs()}
+        }
     );
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        add_rust_raw_api_file(
+            result, options, rust_api_codec_shape_path(shape.name),
+            rust_api_codec_shape_file(system, shape)
+        );
+    }
     add_rust_generated_template_file(
         result, options, templates, "api/api_handlers.rs", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{

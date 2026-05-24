@@ -1,20 +1,5 @@
 #pragma once
 
-#include "../common/descriptors.hpp"
-
-#include <cstdint>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-
-namespace statespec_generated::api
-{
-
-using ApiRequestContext = ::statespec_generated::ApiRequestContext;
-using ApiResponse = ::statespec_generated::ApiResponse;
-
 // clang-format off
-{{api_codecs}}
+{{api_codec_includes}}
 // clang-format on
-
-} // namespace statespec_generated::api

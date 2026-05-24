@@ -39,4 +39,8 @@ std::string generate_api_operation_default_handler_methods_go_for_receiver(
 
 std::string generate_api_codecs_go(const IrSystem& system);
 
+std::string generate_api_codec_helpers_go();
+
+std::string generate_api_codec_operations_go(const IrSystem& system);
+
 } // namespace statespec

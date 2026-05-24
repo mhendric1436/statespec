@@ -87,6 +87,10 @@ void test_binding_app_artifact_kind_names()
         "api_transport", "API transport artifact kind name"
     );
     require_string_equal(
+        statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::ApiCodecs),
+        "api_codecs", "API codecs artifact kind name"
+    );
+    require_string_equal(
         statespec::binding_app_artifact_kind_name(
             statespec::BindingAppArtifactKind::WorkerApplication
         ),
@@ -137,6 +141,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/api_server.hpp", api, Kind::ApiServer, true},
             {"api/api_transport.hpp", api, Kind::ApiTransport, true},
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, true},
+            {"api/api_codec_support.hpp", api, Kind::ApiCodecs},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry},
             {"api/api_handler_registry_support.hpp", api, Kind::ApiHandlerRegistry},
             {"api/main.cpp", api, Kind::ApiMain},

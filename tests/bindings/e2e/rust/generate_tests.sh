@@ -31,6 +31,10 @@ api/api_process.rs
 api/api_routes.rs
 api/api_server.rs
 api/api_transport.rs
+api/codecs/provision_callback_request.rs
+api/codecs/provision_callback_response.rs
+api/codecs/start_provision_request.rs
+api/codecs/start_provision_response.rs
 api/descriptors/report_provision_ready.rs
 api/descriptors/start_provision.rs
 api/external_system_operator_metadata_api.rs
@@ -154,8 +158,8 @@ assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionAp
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-rust/api/api_application.rs" "pub struct ApiApplication"
-assert_file_contains "$TMPDIR/out-app-rust/api/api_codecs.rs" "decode_start_provision_request"
-assert_file_contains "$TMPDIR/out-app-rust/api/api_codecs.rs" "encode_start_provision_response"
+assert_file_contains "$TMPDIR/out-app-rust/api/codecs/start_provision_request.rs" "decode_start_provision_request"
+assert_file_contains "$TMPDIR/out-app-rust/api/codecs/start_provision_response.rs" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "pub struct DefaultApiHandler"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiProcessConfig::all_servers"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "install_signal_handling"

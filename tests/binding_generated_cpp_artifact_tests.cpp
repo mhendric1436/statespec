@@ -50,6 +50,7 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/shapes.hpp", common},
             {"common/Makefile", common},
             {"api/api_codecs.hpp", api},
+            {"api/api_codec_support.hpp", api},
             {"api/api_descriptors.hpp", api},
             {"api/api_handlers.hpp", api},
             {"api/api_handler_registry.hpp", api},
@@ -101,6 +102,10 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "api/api_codecs.hpp", "api/api_codecs.hpp", statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/api_codec_support.hpp", "api/api_codec_support.hpp",
+        statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
         result, "api/api_handlers.hpp", "api/api_handlers.hpp",

@@ -3,8 +3,10 @@ package backend
 import (
 	"fmt"
 
+	codecs "statespec-generated/api/backend/codecs"
 	common "statespec-generated/common/backend"
-{{api_shape_import}}
+	shapes "statespec-generated/common/backend/shapes"
 )
 
-{{api_codecs}}
+{{api_codec_helpers}}
+{{api_codec_delegates}}

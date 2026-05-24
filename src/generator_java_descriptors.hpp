@@ -33,4 +33,8 @@ std::string generate_api_operation_default_handler_domain_methods_java(const IrS
 
 std::string generate_api_codecs_java(const IrSystem& system);
 
+std::string generate_api_codec_helpers_java();
+
+std::string generate_api_codec_operations_java(const IrSystem& system);
+
 } // namespace statespec

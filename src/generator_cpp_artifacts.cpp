@@ -438,6 +438,85 @@ std::string cpp_api_handler_domain_file(
     return out.str();
 }
 
+std::vector<IrShape> api_codec_shapes(const IrSystem& system)
+{
+    std::vector<IrShape> shapes;
+    for (const auto& shape : system.shapes)
+    {
+        const auto used = std::any_of(
+            system.apis.begin(), system.apis.end(),
+            [&](const auto& api)
+            {
+                return (api.input.has_value() && *api.input == shape.name) ||
+                       (api.output.has_value() && *api.output == shape.name);
+            }
+        );
+        if (used)
+        {
+            shapes.push_back(shape);
+        }
+    }
+    return shapes;
+}
+
+IrSystem with_codec_shape_apis(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    auto filtered = system;
+    filtered.apis.clear();
+    for (const auto& api : system.apis)
+    {
+        IrApi scoped = api;
+        if (!scoped.input.has_value() || *scoped.input != shape_name)
+        {
+            scoped.input.reset();
+        }
+        if (!scoped.output.has_value() || *scoped.output != shape_name)
+        {
+            scoped.output.reset();
+        }
+        if (scoped.input.has_value() || scoped.output.has_value())
+        {
+            filtered.apis.push_back(std::move(scoped));
+        }
+    }
+    return filtered;
+}
+
+std::string cpp_api_codec_shape_path(std::string_view shape_name)
+{
+    return "api/codecs/" + snake_identifier(std::string{shape_name}) + ".hpp";
+}
+
+std::string cpp_api_codec_includes(const std::vector<IrShape>& shapes)
+{
+    std::ostringstream out;
+    out << "#include \"api_codec_support.hpp\"\n";
+    for (const auto& shape : shapes)
+    {
+        out << "#include \"codecs/" << snake_identifier(shape.name) << ".hpp\"\n";
+    }
+    return out.str();
+}
+
+std::string cpp_api_codec_shape_file(
+    const IrSystem& system,
+    const IrShape& shape
+)
+{
+    const auto filtered = with_codec_shape_apis(system, shape.name);
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../api_codec_support.hpp\"\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << generate_api_codec_operations(filtered);
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
 TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
 {
     std::ostringstream descriptors;
@@ -1025,8 +1104,21 @@ void add_cpp_api_artifacts(
     );
     add_cpp_generated_template_file(
         result, options, templates, "api/api_codecs.hpp", GeneratedArtifactTier::Api, diagnostics,
-        TemplateRenderer::Values{{"api_codecs", generate_api_codecs(system)}}
+        TemplateRenderer::Values{
+            {"api_codec_includes", cpp_api_codec_includes(api_codec_shapes(system))}
+        }
     );
+    add_cpp_generated_template_file(
+        result, options, templates, "api/api_codec_support.hpp", GeneratedArtifactTier::Api,
+        diagnostics, TemplateRenderer::Values{{"api_codec_helpers", generate_api_codec_helpers()}}
+    );
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        add_cpp_raw_api_file(
+            result, options, cpp_api_codec_shape_path(shape.name),
+            cpp_api_codec_shape_file(system, shape)
+        );
+    }
     add_cpp_generated_template_file(
         result, options, templates, "api/api_handlers.hpp", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{

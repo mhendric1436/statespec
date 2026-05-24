@@ -1096,7 +1096,7 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
     );
 }
 
-std::string generate_api_codecs_go(const IrSystem& system)
+std::string generate_api_codec_helpers_go()
 {
     std::ostringstream out;
     out << "func requireMember(value common.JSON, fieldName string) (common.JSON, error) {\n";
@@ -1139,7 +1139,12 @@ std::string generate_api_codecs_go(const IrSystem& system)
     out << "\tif err != nil { panic(err) }\n";
     out << "\treturn encoded\n";
     out << "}\n\n";
+    return out.str();
+}
 
+std::string generate_api_codec_operations_go(const IrSystem& system)
+{
+    std::ostringstream out;
     for (const auto& api : system.apis)
     {
         if (api.input.has_value())
@@ -1266,6 +1271,11 @@ std::string generate_api_codecs_go(const IrSystem& system)
         }
     }
     return out.str();
+}
+
+std::string generate_api_codecs_go(const IrSystem& system)
+{
+    return generate_api_codec_helpers_go() + generate_api_codec_operations_go(system);
 }
 
 } // namespace statespec

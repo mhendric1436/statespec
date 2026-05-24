@@ -33,6 +33,10 @@ api/com/statespec/generated/ApiRoutes.java
 api/com/statespec/generated/ApiServer.java
 api/com/statespec/generated/ApiTransport.java
 api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java
+api/com/statespec/generated/codecs/ApiCodecsProvisionCallbackRequest.java
+api/com/statespec/generated/codecs/ApiCodecsProvisionCallbackResponse.java
+api/com/statespec/generated/codecs/ApiCodecsStartProvisionRequest.java
+api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java
 api/com/statespec/generated/descriptors/ReportProvisionReadyDescriptorModule.java
 api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java
 common/com/statespec/backend/Backend.java
@@ -149,8 +153,8 @@ assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descri
 assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiApplication.java" "class ApiApplication"
-assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiCodecs.java" "decodeStartProvisionRequest"
-assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiCodecs.java" "encodeStartProvisionResponse"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/codecs/ApiCodecsStartProvisionRequest.java" "decodeStartProvisionRequest"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java" "encodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistry.java" "class DefaultHandler"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiProcess.Config.allServers"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "addShutdownHook"

@@ -1152,7 +1152,7 @@ std::string generate_api_operation_default_handler_domain_methods(const IrSystem
     return generate_api_operation_default_handler_methods_impl(system, false);
 }
 
-std::string generate_api_codecs(const IrSystem& system)
+std::string generate_api_codec_helpers()
 {
     std::ostringstream out;
     out << "inline const statespec::backend::Json& require_member(\n";
@@ -1186,6 +1186,12 @@ std::string generate_api_codecs(const IrSystem& system)
     out << "{\n";
     out << "    return value.as_double();\n";
     out << "}\n\n";
+    return out.str();
+}
+
+std::string generate_api_codec_operations(const IrSystem& system)
+{
+    std::ostringstream out;
     for (const auto& api : system.apis)
     {
         if (api.input.has_value())
@@ -1289,6 +1295,11 @@ std::string generate_api_codecs(const IrSystem& system)
         }
     }
     return out.str();
+}
+
+std::string generate_api_codecs(const IrSystem& system)
+{
+    return generate_api_codec_helpers() + generate_api_codec_operations(system);
 }
 
 } // namespace statespec

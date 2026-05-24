@@ -1238,36 +1238,36 @@ std::string generate_api_operation_default_handler_domain_methods_java(const IrS
     return generate_api_operation_default_handler_methods_java_impl(system, false);
 }
 
-std::string generate_api_codecs_java(const IrSystem& system)
+std::string generate_api_codec_helpers_java()
 {
     std::ostringstream out;
-    out << "    private static Json requireMember(Json value, String fieldName) {\n";
+    out << "    public static Json requireMember(Json value, String fieldName) {\n";
     out << "        return value.find(fieldName).filter(member -> !(member instanceof "
            "Json.NullValue)).orElseThrow(() -> new IllegalArgumentException(\"missing required "
            "API field \" + fieldName));\n";
     out << "    }\n\n";
-    out << "    static String decodeString(Json value, String fieldName) {\n";
+    out << "    public static String decodeString(Json value, String fieldName) {\n";
     out << "        if (value instanceof Json.StringValue stringValue) { return "
            "stringValue.value(); }\n";
     out << "        throw new IllegalArgumentException(\"API field \" + fieldName + \" must be a "
            "string\");\n";
     out << "    }\n\n";
-    out << "    static Boolean decodeBoolean(Json value, String fieldName) {\n";
+    out << "    public static Boolean decodeBoolean(Json value, String fieldName) {\n";
     out << "        if (value instanceof Json.BooleanValue booleanValue) { return "
            "booleanValue.value(); }\n";
     out << "        throw new IllegalArgumentException(\"API field \" + fieldName + \" must be a "
            "bool\");\n";
     out << "    }\n\n";
-    out << "    static Long decodeLong(Json value, String fieldName) {\n";
+    out << "    public static Long decodeLong(Json value, String fieldName) {\n";
     out << "        if (value instanceof Json.IntegerValue integerValue) { return "
            "integerValue.value(); }\n";
     out << "        throw new IllegalArgumentException(\"API field \" + fieldName + \" must be an "
            "integer\");\n";
     out << "    }\n\n";
-    out << "    static Integer decodeInteger(Json value, String fieldName) {\n";
+    out << "    public static Integer decodeInteger(Json value, String fieldName) {\n";
     out << "        return Math.toIntExact(decodeLong(value, fieldName));\n";
     out << "    }\n\n";
-    out << "    static Double decodeDouble(Json value, String fieldName) {\n";
+    out << "    public static Double decodeDouble(Json value, String fieldName) {\n";
     out << "        if (value instanceof Json.DecimalValue decimalValue) { return "
            "decimalValue.value().doubleValue(); }\n";
     out << "        if (value instanceof Json.IntegerValue integerValue) { return "
@@ -1275,10 +1275,15 @@ std::string generate_api_codecs_java(const IrSystem& system)
     out << "        throw new IllegalArgumentException(\"API field \" + fieldName + \" must be a "
            "number\");\n";
     out << "    }\n\n";
-    out << "    static Json decodeJson(Json value, String fieldName) {\n";
+    out << "    public static Json decodeJson(Json value, String fieldName) {\n";
     out << "        return value;\n";
     out << "    }\n\n";
+    return out.str();
+}
 
+std::string generate_api_codec_operations_java(const IrSystem& system)
+{
+    std::ostringstream out;
     for (const auto& api : system.apis)
     {
         if (api.input.has_value())
@@ -1376,6 +1381,11 @@ std::string generate_api_codecs_java(const IrSystem& system)
         }
     }
     return out.str();
+}
+
+std::string generate_api_codecs_java(const IrSystem& system)
+{
+    return generate_api_codec_helpers_java() + generate_api_codec_operations_java(system);
 }
 
 } // namespace statespec

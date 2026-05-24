@@ -48,6 +48,7 @@ enum class BindingAppArtifactKind
     ApiServer,
     ApiTransport,
     ApiDispatcher,
+    ApiCodecs,
     ApiHandlerRegistry,
     ApiMain,
     WorkerApplication,

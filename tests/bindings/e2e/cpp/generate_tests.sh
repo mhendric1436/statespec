@@ -21,6 +21,7 @@ APP_MANIFEST="$TMPDIR/expected-cpp-manifest.txt"
 cat > "$APP_MANIFEST" <<'EOF'
 Makefile
 api/api_application.hpp
+api/api_codec_support.hpp
 api/api_codecs.hpp
 api/api_descriptors.hpp
 api/api_dispatcher.hpp
@@ -31,6 +32,10 @@ api/api_process.hpp
 api/api_routes.hpp
 api/api_server.hpp
 api/api_transport.hpp
+api/codecs/provision_callback_request.hpp
+api/codecs/provision_callback_response.hpp
+api/codecs/start_provision_request.hpp
+api/codecs/start_provision_response.hpp
 api/descriptors/report_provision_ready.hpp
 api/descriptors/start_provision.hpp
 api/external_system_operator_metadata_api.hpp
@@ -166,8 +171,8 @@ assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "virtual void r
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "void request_stop() override"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "transport_.request_stop()"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "LocalBlockingApiTransport transport"
-assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "decode_start_provision_request"
-assert_file_contains "$TMPDIR/out-app-cpp/api/api_codecs.hpp" "encode_start_provision_response"
+assert_file_contains "$TMPDIR/out-app-cpp/api/codecs/start_provision_request.hpp" "decode_start_provision_request"
+assert_file_contains "$TMPDIR/out-app-cpp/api/codecs/start_provision_response.hpp" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "class DefaultApiHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "ApiProcess"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "std::signal(SIGTERM"
