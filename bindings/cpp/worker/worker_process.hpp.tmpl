@@ -2,6 +2,12 @@
 
 #include "worker_runtime.hpp"
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <optional>
+#include <thread>
+
 namespace statespec_generated::worker
 {
 
@@ -32,9 +38,114 @@ class WorkerProcess
         return config_;
     }
 
+    ~WorkerProcess()
+    {
+        request_stop();
+        if (worker_.joinable() && worker_.get_id() != std::this_thread::get_id())
+        {
+            worker_.join();
+        }
+    }
+
+    WorkerProcess(const WorkerProcess&) = delete;
+    WorkerProcess& operator=(const WorkerProcess&) = delete;
+    WorkerProcess(WorkerProcess&&) = delete;
+    WorkerProcess& operator=(WorkerProcess&&) = delete;
+
+    int start()
+    {
+        std::lock_guard<std::mutex> lock(lifecycle_mutex_);
+        if (started_)
+        {
+            return 1;
+        }
+
+        started_ = true;
+        running_ = true;
+        stop_requested_ = false;
+        status_.reset();
+        worker_ = std::thread(
+            [this]
+            {
+                int status = 1;
+                try
+                {
+                    status = run();
+                }
+                catch (...)
+                {
+                    runtime_.request_stop();
+                    runtime_.join_entity_gc_workers();
+                    status = 1;
+                }
+
+                std::lock_guard<std::mutex> status_lock(lifecycle_mutex_);
+                status_ = status;
+                running_ = false;
+            }
+        );
+        return 0;
+    }
+
+    int join()
+    {
+        {
+            std::lock_guard<std::mutex> lock(lifecycle_mutex_);
+            if (!started_)
+            {
+                return 1;
+            }
+        }
+
+        if (worker_.joinable())
+        {
+            worker_.join();
+        }
+
+        std::lock_guard<std::mutex> lock(lifecycle_mutex_);
+        return status_.value_or(1);
+    }
+
+    bool running() const
+    {
+        std::lock_guard<std::mutex> lock(lifecycle_mutex_);
+        return running_;
+    }
+
+    void request_stop()
+    {
+        stop_requested_ = true;
+        runtime_.request_stop();
+        stop_cv_.notify_all();
+    }
+
   private:
+    int run()
+    {
+        if (config_.bootstrap_on_start)
+        {
+            runtime_.bootstrap();
+        }
+        runtime_.start_entity_gc_workers();
+        {
+            std::unique_lock<std::mutex> lock(stop_mutex_);
+            stop_cv_.wait(lock, [this] { return stop_requested_.load(); });
+        }
+        runtime_.request_stop();
+        runtime_.join_entity_gc_workers();
+        return 0;
+    }
+
     WorkerRuntime& runtime_;
     WorkerProcessConfig config_;
+    mutable std::mutex lifecycle_mutex_;
+    std::mutex stop_mutex_;
+    std::condition_variable stop_cv_;
+    std::thread worker_;
+    std::optional<int> status_;
+    std::atomic_bool stop_requested_ = false;
+    bool started_ = false;
+    bool running_ = false;
 };
 
 } // namespace statespec_generated::worker

@@ -1,10 +1,51 @@
 #include "../common/memory/backend.hpp"
+#include "worker_process.hpp"
 #include "worker_runtime.hpp"
+
+#include <csignal>
+#include <exception>
+#include <iostream>
+#include <stdexcept>
+
+namespace
+{
+
+statespec_generated::worker::WorkerProcess* g_worker_process = nullptr;
+
+void request_worker_stop(int)
+{
+    if (g_worker_process != nullptr)
+    {
+        g_worker_process->request_stop();
+    }
+}
+
+} // namespace
 
 int main()
 {
-    statespec::backend::memory::InMemoryBackend backend;
-    statespec_generated::worker::WorkerRuntime runtime{backend};
-    (void)runtime;
-    return 0;
+    try
+    {
+        statespec::backend::memory::InMemoryBackend backend;
+        statespec_generated::worker::WorkerRuntime runtime{backend};
+        statespec_generated::worker::WorkerProcess process{runtime};
+
+        g_worker_process = &process;
+        std::signal(SIGINT, request_worker_stop);
+        std::signal(SIGTERM, request_worker_stop);
+
+        const auto start_status = process.start();
+        if (start_status != 0)
+        {
+            throw std::runtime_error("statespec generated Worker process already started");
+        }
+        const auto status = process.join();
+        g_worker_process = nullptr;
+        return status;
+    }
+    catch (const std::exception& error)
+    {
+        std::cerr << "statespec generated Worker process failed: " << error.what() << '\n';
+        return 1;
+    }
 }
