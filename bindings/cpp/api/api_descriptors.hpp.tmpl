@@ -14,17 +14,17 @@ using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;
 inline std::vector<ApiDescriptor> api_descriptors()
 {
     std::vector<ApiDescriptor> descriptors;
-// clang-format off
+    // clang-format off
 {{api_descriptor_aggregation}}
-// clang-format on
+    // clang-format on
     return descriptors;
 }
 
 inline std::vector<ApiServerDescriptor> api_server_descriptors()
 {
-// clang-format off
+    // clang-format off
 {{api_server_descriptors}}
-// clang-format on
+    // clang-format on
 }
 
 } // namespace statespec_generated::api

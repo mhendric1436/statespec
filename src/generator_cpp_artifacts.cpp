@@ -9,8 +9,10 @@
 #include "statespec/runtime_usage.hpp"
 
 #include <algorithm>
+#include <map>
 #include <sstream>
 #include <utility>
+#include <vector>
 
 namespace statespec
 {
@@ -272,6 +274,168 @@ TemplateRenderer::Values cpp_runtime_codec_values(const IrSystem& system)
     add(usage.uses_workflows, "codec_workflows.hpp");
     add(usage.uses_observability, "codec_observability.hpp");
     return TemplateRenderer::Values{{"runtime_codec_includes", includes.str()}};
+}
+
+struct ApiHandlerDomain
+{
+    std::string name;
+    std::vector<IrApi> apis;
+};
+
+bool api_output_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.output.has_value() && api.output->find(entity.name) != std::string::npos;
+}
+
+bool api_input_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.input.has_value() && api.input->find(entity.name) != std::string::npos;
+}
+
+bool api_name_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.name.find(entity.name) != std::string::npos;
+}
+
+std::vector<ApiHandlerDomain> api_handler_domains(const IrSystem& system)
+{
+    std::vector<ApiHandlerDomain> domains;
+    for (const auto& entity : system.entities)
+    {
+        domains.push_back(ApiHandlerDomain{entity.name, {}});
+    }
+    ApiHandlerDomain operations{"Operations", {}};
+    for (const auto& api : system.apis)
+    {
+        bool assigned = false;
+        auto assign_matching_entity = [&](auto matches)
+        {
+            for (std::size_t i = 0; i < system.entities.size(); ++i)
+            {
+                if (matches(api, system.entities[i]))
+                {
+                    domains[i].apis.push_back(api);
+                    assigned = true;
+                    return;
+                }
+            }
+        };
+        assign_matching_entity(api_output_mentions_entity);
+        if (!assigned)
+        {
+            assign_matching_entity(api_input_mentions_entity);
+        }
+        if (!assigned)
+        {
+            assign_matching_entity(api_name_mentions_entity);
+        }
+        if (!assigned)
+        {
+            operations.apis.push_back(api);
+        }
+    }
+    domains.erase(
+        std::remove_if(
+            domains.begin(), domains.end(), [](const auto& domain) { return domain.apis.empty(); }
+        ),
+        domains.end()
+    );
+    if (!operations.apis.empty())
+    {
+        domains.push_back(std::move(operations));
+    }
+    return domains;
+}
+
+IrSystem with_domain_apis(
+    const IrSystem& system,
+    const std::vector<IrApi>& apis
+)
+{
+    auto filtered = system;
+    filtered.apis = apis;
+    return filtered;
+}
+
+std::string cpp_api_handler_domain_class_name(std::string_view domain_name)
+{
+    return "Default" + pascal_identifier(std::string{domain_name}) + "ApiHandlerRegistry";
+}
+
+std::string cpp_api_handler_domain_path(std::string_view domain_name)
+{
+    return "api/handlers/" + snake_identifier(std::string{domain_name}) + ".hpp";
+}
+
+std::string cpp_api_handler_domain_include_path(std::string_view domain_name)
+{
+    return "handlers/" + snake_identifier(std::string{domain_name}) + ".hpp";
+}
+
+std::string cpp_api_handler_registry_domain_includes(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        out << "#include \"" << cpp_api_handler_domain_include_path(domain.name) << "\"\n";
+    }
+    return out.str();
+}
+
+std::string cpp_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        const auto class_name = cpp_api_handler_domain_class_name(domain.name);
+        for (const auto& api : domain.apis)
+        {
+            out << "    ApiResponse handle_" << snake_identifier(api.name)
+                << "(const ApiRequestContext& context) override\n";
+            out << "    {\n";
+            out << "        " << class_name << " handler{backend_};\n";
+            out << "        return handler.handle_" << snake_identifier(api.name) << "(context);\n";
+            out << "    }\n\n";
+        }
+    }
+    return out.str();
+}
+
+std::string cpp_api_handler_domain_file(
+    const IrSystem& system,
+    const ApiHandlerDomain& domain
+)
+{
+    const auto filtered = with_domain_apis(system, domain.apis);
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../api_codecs.hpp\"\n";
+    out << "#include \"../api_handler_registry_support.hpp\"\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "class " << cpp_api_handler_domain_class_name(domain.name) << " final\n";
+    out << "{\n";
+    out << "  public:\n";
+    out << "    explicit " << cpp_api_handler_domain_class_name(domain.name)
+        << "(statespec::backend::IBackend& backend)\n";
+    out << "        : backend_(backend)\n";
+    out << "    {\n";
+    out << "    }\n\n";
+    out << generate_api_operation_default_handler_domain_methods(filtered);
+    out << "  private:\n";
+    out << "    [[maybe_unused]] statespec::backend::IBackend& backend_;\n";
+    out << "};\n\n";
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
 }
 
 TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
@@ -870,11 +1034,25 @@ void add_cpp_api_artifacts(
         }
     );
     add_cpp_generated_template_file(
+        result, options, templates, "api/api_handler_registry_support.hpp",
+        GeneratedArtifactTier::Api, diagnostics
+    );
+    const auto handler_domains = api_handler_domains(system);
+    for (const auto& domain : handler_domains)
+    {
+        add_cpp_raw_api_file(
+            result, options, cpp_api_handler_domain_path(domain.name),
+            cpp_api_handler_domain_file(system, domain)
+        );
+    }
+    add_cpp_generated_template_file(
         result, options, templates, "api/api_handler_registry.hpp", GeneratedArtifactTier::Api,
         diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             generate_api_operation_default_handler_methods(system)}
+             cpp_api_handler_registry_delegates(handler_domains)},
+            {"api_handler_registry_domain_includes",
+             cpp_api_handler_registry_domain_includes(handler_domains)}
         }
     );
     add_cpp_generated_template_file(

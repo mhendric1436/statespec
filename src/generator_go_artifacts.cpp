@@ -9,8 +9,10 @@
 #include "statespec/runtime_usage.hpp"
 #include "type_syntax.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <utility>
+#include <vector>
 
 namespace statespec
 {
@@ -234,6 +236,151 @@ std::string go_api_default_handler_shape_import(const IrSystem& system)
         return {};
     }
     return "\tshapes \"statespec-generated/common/backend/shapes\"\n";
+}
+
+struct ApiHandlerDomain
+{
+    std::string name;
+    std::vector<IrApi> apis;
+};
+
+bool api_output_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.output.has_value() && api.output->find(entity.name) != std::string::npos;
+}
+
+bool api_input_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.input.has_value() && api.input->find(entity.name) != std::string::npos;
+}
+
+bool api_name_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.name.find(entity.name) != std::string::npos;
+}
+
+std::vector<ApiHandlerDomain> api_handler_domains(const IrSystem& system)
+{
+    std::vector<ApiHandlerDomain> domains;
+    for (const auto& entity : system.entities)
+    {
+        domains.push_back(ApiHandlerDomain{entity.name, {}});
+    }
+    ApiHandlerDomain operations{"Operations", {}};
+    for (const auto& api : system.apis)
+    {
+        bool assigned = false;
+        auto assign_matching_entity = [&](auto matches)
+        {
+            for (std::size_t i = 0; i < system.entities.size(); ++i)
+            {
+                if (matches(api, system.entities[i]))
+                {
+                    domains[i].apis.push_back(api);
+                    assigned = true;
+                    return;
+                }
+            }
+        };
+        assign_matching_entity(api_output_mentions_entity);
+        if (!assigned)
+        {
+            assign_matching_entity(api_input_mentions_entity);
+        }
+        if (!assigned)
+        {
+            assign_matching_entity(api_name_mentions_entity);
+        }
+        if (!assigned)
+        {
+            operations.apis.push_back(api);
+        }
+    }
+    domains.erase(
+        std::remove_if(
+            domains.begin(), domains.end(), [](const auto& domain) { return domain.apis.empty(); }
+        ),
+        domains.end()
+    );
+    if (!operations.apis.empty())
+    {
+        domains.push_back(std::move(operations));
+    }
+    return domains;
+}
+
+IrSystem with_domain_apis(
+    const IrSystem& system,
+    const std::vector<IrApi>& apis
+)
+{
+    auto filtered = system;
+    filtered.apis = apis;
+    return filtered;
+}
+
+std::string go_api_handler_domain_type_name(std::string_view domain_name)
+{
+    return "Default" + pascal_identifier(std::string{domain_name}) + "APIHandlerRegistry";
+}
+
+std::string go_api_handler_domain_path(std::string_view domain_name)
+{
+    return "api/backend/api_handler_registry_" + snake_identifier(std::string{domain_name}) + ".go";
+}
+
+std::string go_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        const auto type_name = go_api_handler_domain_type_name(domain.name);
+        for (const auto& api : domain.apis)
+        {
+            out << "func (handler DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
+                << "(ctx context.Context, request common.APIRequestContext) "
+                   "(common.APIResponse, error) {\n";
+            out << "\treturn " << type_name << "{Backend: handler.Backend}.Handle"
+                << pascal_identifier(api.name) << "(ctx, request)\n";
+            out << "}\n\n";
+        }
+    }
+    return out.str();
+}
+
+std::string go_api_handler_domain_file(
+    const IrSystem& system,
+    const ApiHandlerDomain& domain
+)
+{
+    const auto filtered = with_domain_apis(system, domain.apis);
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n";
+    out << "\t\"fmt\"\n";
+    out << "\t\"time\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << go_api_default_handler_shape_import(filtered);
+    out << ")\n\n";
+    out << "var _ = fmt.Errorf\n";
+    out << "var _ = time.Now\n\n";
+    out << "type " << go_api_handler_domain_type_name(domain.name) << " struct {\n";
+    out << "\tBackend common.Backend\n";
+    out << "}\n\n";
+    out << generate_api_operation_default_handler_methods_go_for_receiver(
+        filtered, go_api_handler_domain_type_name(domain.name)
+    );
+    return out.str();
 }
 
 TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
@@ -865,13 +1012,21 @@ void add_go_api_artifacts(
             {"api_operation_handler_methods", generate_api_operation_handler_methods_go(system)}
         }
     );
+    const auto handler_domains = api_handler_domains(system);
+    for (const auto& domain : handler_domains)
+    {
+        add_go_raw_api_file(
+            result, options, go_api_handler_domain_path(domain.name),
+            go_api_handler_domain_file(system, domain)
+        );
+    }
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_handler_registry.go",
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             generate_api_operation_default_handler_methods_go(system)},
-            {"api_shape_import", go_api_default_handler_shape_import(system)}
+             go_api_handler_registry_delegates(handler_domains)},
+            {"api_shape_import", {}}
         }
     );
     add_go_generated_template_file(

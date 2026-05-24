@@ -7,7 +7,7 @@ import java.util.Optional;
 public final class ApiHandlerRegistry {
     private ApiHandlerRegistry() {}
 
-    private static java.util.Map<String, String> extractApiPathParameters(
+    static java.util.Map<String, String> extractApiPathParameters(
         String routeTemplate,
         Optional<String> actualPath
     ) {
@@ -27,7 +27,7 @@ public final class ApiHandlerRegistry {
         return parameters;
     }
 
-    private static java.util.List<String> splitApiPath(String path) {
+    static java.util.List<String> splitApiPath(String path) {
         var parts = new java.util.ArrayList<String>();
         for (var part : path.split("/")) {
             if (!part.isEmpty()) {
@@ -37,7 +37,7 @@ public final class ApiHandlerRegistry {
         return parts;
     }
 
-    private static com.statespec.backend.Json pathParameterJson(
+    static com.statespec.backend.Json pathParameterJson(
         java.util.Map<String, String> parameters,
         String name
     ) {

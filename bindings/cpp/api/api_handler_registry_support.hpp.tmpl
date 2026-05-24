@@ -1,0 +1,71 @@
+#pragma once
+
+#include "../common/backend.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <map>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace statespec_generated::api
+{
+
+inline std::vector<std::string> split_api_path(std::string_view path)
+{
+    std::vector<std::string> parts;
+    std::size_t begin = 0;
+    while (begin <= path.size())
+    {
+        const auto end = path.find('/', begin);
+        const auto part = path.substr(begin, end == std::string_view::npos ? end : end - begin);
+        if (!part.empty())
+        {
+            parts.emplace_back(part);
+        }
+        if (end == std::string_view::npos)
+        {
+            break;
+        }
+        begin = end + 1;
+    }
+    return parts;
+}
+
+inline std::map<
+    std::string,
+    std::string>
+extract_api_path_parameters(
+    std::string_view route_template,
+    std::string_view actual_path
+)
+{
+    std::map<std::string, std::string> parameters;
+    const auto template_parts = split_api_path(route_template);
+    const auto actual_parts = split_api_path(actual_path);
+    const auto count = std::min(template_parts.size(), actual_parts.size());
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        const auto& part = template_parts[i];
+        if (part.size() > 2 && part.front() == '{' && part.back() == '}')
+        {
+            parameters.emplace(part.substr(1, part.size() - 2), actual_parts[i]);
+        }
+    }
+    return parameters;
+}
+
+inline statespec::backend::Json path_parameter_json(
+    const std::map<
+        std::string,
+        std::string>& parameters,
+    std::string_view name
+)
+{
+    const auto iter = parameters.find(std::string{name});
+    return iter == parameters.end() ? statespec::backend::Json::null()
+                                    : statespec::backend::Json{iter->second};
+}
+
+} // namespace statespec_generated::api

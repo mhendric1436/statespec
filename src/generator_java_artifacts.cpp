@@ -8,6 +8,7 @@
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <sstream>
 #include <string>
@@ -18,6 +19,8 @@ namespace statespec
 {
 namespace
 {
+
+std::string java_api_default_handler_shape_import(const IrSystem& system);
 
 std::string java_makefile_source_list(const std::vector<std::string>& sources)
 {
@@ -92,6 +95,159 @@ std::vector<std::string> java_api_descriptor_sources(const IrSystem& system)
         );
     }
     return sources;
+}
+
+struct ApiHandlerDomain
+{
+    std::string name;
+    std::vector<IrApi> apis;
+};
+
+bool api_output_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.output.has_value() && api.output->find(entity.name) != std::string::npos;
+}
+
+bool api_input_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.input.has_value() && api.input->find(entity.name) != std::string::npos;
+}
+
+bool api_name_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.name.find(entity.name) != std::string::npos;
+}
+
+std::vector<ApiHandlerDomain> api_handler_domains(const IrSystem& system)
+{
+    std::vector<ApiHandlerDomain> domains;
+    for (const auto& entity : system.entities)
+    {
+        domains.push_back(ApiHandlerDomain{entity.name, {}});
+    }
+    ApiHandlerDomain operations{"Operations", {}};
+    for (const auto& api : system.apis)
+    {
+        bool assigned = false;
+        auto assign_matching_entity = [&](auto matches)
+        {
+            for (std::size_t i = 0; i < system.entities.size(); ++i)
+            {
+                if (matches(api, system.entities[i]))
+                {
+                    domains[i].apis.push_back(api);
+                    assigned = true;
+                    return;
+                }
+            }
+        };
+        assign_matching_entity(api_output_mentions_entity);
+        if (!assigned)
+        {
+            assign_matching_entity(api_input_mentions_entity);
+        }
+        if (!assigned)
+        {
+            assign_matching_entity(api_name_mentions_entity);
+        }
+        if (!assigned)
+        {
+            operations.apis.push_back(api);
+        }
+    }
+    domains.erase(
+        std::remove_if(
+            domains.begin(), domains.end(), [](const auto& domain) { return domain.apis.empty(); }
+        ),
+        domains.end()
+    );
+    if (!operations.apis.empty())
+    {
+        domains.push_back(std::move(operations));
+    }
+    return domains;
+}
+
+IrSystem with_domain_apis(
+    const IrSystem& system,
+    const std::vector<IrApi>& apis
+)
+{
+    auto filtered = system;
+    filtered.apis = apis;
+    return filtered;
+}
+
+std::string java_api_handler_domain_class_name(std::string_view domain_name)
+{
+    return "ApiHandlerRegistry" + pascal_identifier(std::string{domain_name});
+}
+
+std::filesystem::path java_api_handler_domain_path(std::string_view domain_name)
+{
+    return std::filesystem::path{"api/com/statespec/generated"} /
+           (java_api_handler_domain_class_name(domain_name) + ".java");
+}
+
+std::vector<std::string> java_api_handler_domain_sources(const IrSystem& system)
+{
+    std::vector<std::string> sources;
+    for (const auto& domain : api_handler_domains(system))
+    {
+        sources.push_back(java_api_handler_domain_path(domain.name).generic_string());
+    }
+    return sources;
+}
+
+std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        const auto class_name = java_api_handler_domain_class_name(domain.name);
+        for (const auto& api : domain.apis)
+        {
+            out << "        @Override\n";
+            out << "        public Descriptors.ApiResponse handle" << pascal_identifier(api.name)
+                << "(Descriptors.ApiRequestContext context) throws Exception {\n";
+            out << "            return new " << class_name << "(backend).handle"
+                << pascal_identifier(api.name) << "(context);\n";
+            out << "        }\n\n";
+        }
+    }
+    return out.str();
+}
+
+std::string java_api_handler_domain_file(
+    const IrSystem& system,
+    const ApiHandlerDomain& domain
+)
+{
+    const auto filtered = with_domain_apis(system, domain.apis);
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import static com.statespec.generated.ApiHandlerRegistry.*;\n";
+    out << "import com.statespec.generated.descriptors.entities.*;\n";
+    out << java_api_default_handler_shape_import(filtered);
+    out << "import java.util.Optional;\n\n";
+    out << "final class " << java_api_handler_domain_class_name(domain.name) << " {\n";
+    out << "    private final com.statespec.backend.Backend backend;\n\n";
+    out << "    " << java_api_handler_domain_class_name(domain.name)
+        << "(com.statespec.backend.Backend backend) {\n";
+    out << "        this.backend = backend;\n";
+    out << "    }\n\n";
+    out << generate_api_operation_default_handler_domain_methods_java(filtered);
+    out << "}\n";
+    return out.str();
 }
 
 TemplateRenderer::Values java_makefile_values(
@@ -178,6 +334,10 @@ TemplateRenderer::Values java_makefile_values(
             "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
         };
         for (const auto& source : java_api_descriptor_sources(system))
+        {
+            api_sources.push_back(source);
+        }
+        for (const auto& source : java_api_handler_domain_sources(system))
         {
             api_sources.push_back(source);
         }
@@ -987,13 +1147,21 @@ void add_java_api_artifacts(
             {"api_operation_handler_methods", generate_api_operation_handler_methods_java(system)}
         }
     );
+    const auto handler_domains = api_handler_domains(system);
+    for (const auto& domain : handler_domains)
+    {
+        add_java_raw_api_file(
+            result, options, java_api_handler_domain_path(domain.name),
+            java_api_handler_domain_file(system, domain)
+        );
+    }
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiHandlerRegistry.java"),
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             generate_api_operation_default_handler_methods_java(system)},
-            {"api_shape_import", java_api_default_handler_shape_import(system)}
+             java_api_handler_registry_delegates(handler_domains)},
+            {"api_shape_import", {}}
         }
     );
     add_java_generated_template_file(

@@ -25,6 +25,7 @@ api/api_codecs.hpp
 api/api_descriptors.hpp
 api/api_dispatcher.hpp
 api/api_handler_registry.hpp
+api/api_handler_registry_support.hpp
 api/api_handlers.hpp
 api/api_process.hpp
 api/api_routes.hpp
@@ -33,6 +34,7 @@ api/api_transport.hpp
 api/descriptors/report_provision_ready.hpp
 api/descriptors/start_provision.hpp
 api/external_system_operator_metadata_api.hpp
+api/handlers/operations.hpp
 api/main.cpp
 common/backend.hpp
 common/descriptors.hpp
@@ -94,23 +96,23 @@ run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TM
 run_expect_status 0 "$TMPDIR/api-process-fixture-cpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-cpp"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "DefaultAccountRepository repository"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "DefaultProjectRepository repository"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "DefaultTaskRepository repository"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "backend_.begin()"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "repository.createTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "kAccountFieldCreatedAt"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "kAccountFieldUpdatedAt"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "kAccountFieldStatus"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "document[kAccountFieldCreatedAt] = statespec::backend::Json{generated_api_timestamp()}"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "document[kAccountFieldStatus] = statespec::backend::Json{kAccountStatusActive}"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "missing required parent Account"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "missing required parent Project"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "extract_api_path_parameters"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "repository.getTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "repository.listByTenantAccountTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "repository.listByAccountStatusTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "repository.listByProjectStatusTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "DefaultAccountRepository repository"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "DefaultProjectRepository repository"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/task.hpp" "DefaultTaskRepository repository"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "backend_.begin()"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "repository.createTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "kAccountFieldCreatedAt"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "kAccountFieldUpdatedAt"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "kAccountFieldStatus"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "document[kAccountFieldCreatedAt] = statespec::backend::Json{generated_api_timestamp()}"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "document[kAccountFieldStatus] = statespec::backend::Json{kAccountStatusActive}"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "missing required parent Account"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/task.hpp" "missing required parent Project"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "extract_api_path_parameters"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "repository.getTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "repository.listByTenantAccountTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "repository.listByAccountStatusTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/task.hpp" "repository.listByProjectStatusTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/project.hpp" "listByTenantProjectTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/task.hpp" "listByTenantTaskTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/task.hpp" "listByAccountPriorityTx"
@@ -128,14 +130,14 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes.hpp
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "{kAccountFieldTenantId, kAccountFieldAccountId}"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "key += value->canonical_string()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "object[key_value.field] = key_value.value"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "return ApiResponse{404"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "statespec::backend::Json::array(std::move(items))"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "repository.updateTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "invalid entity status transition"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "document[kProjectFieldUpdatedAt]"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "const auto requested_status = std::string{kProjectStatusDeleted}"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "invalid entity delete transition"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_handler_registry.hpp" "return ApiResponse{204"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "return ApiResponse{404"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "statespec::backend::Json::array(std::move(items))"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "repository.updateTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "invalid entity status transition"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "document[kProjectFieldUpdatedAt]"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "const auto requested_status = std::string{kProjectStatusDeleted}"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "invalid entity delete transition"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "return ApiResponse{204"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/project.hpp" "updateTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/project.hpp" "kProjectStatusDeleted"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-cpp" check-api

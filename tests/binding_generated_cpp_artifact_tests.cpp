@@ -53,6 +53,7 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"api/api_descriptors.hpp", api},
             {"api/api_handlers.hpp", api},
             {"api/api_handler_registry.hpp", api},
+            {"api/api_handler_registry_support.hpp", api},
             {"api/external_system_operator_metadata_api.hpp", api},
             {"worker/worker_contexts.hpp", worker},
             {"worker/worker_descriptors.hpp", worker},
@@ -107,6 +108,10 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "api/api_handler_registry.hpp", "api/api_handler_registry.hpp",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/api_handler_registry_support.hpp", "api/api_handler_registry_support.hpp",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(

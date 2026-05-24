@@ -1003,12 +1003,15 @@ std::string generate_api_operation_dispatch_cases_go(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_operation_default_handler_methods_go(const IrSystem& system)
+std::string generate_api_operation_default_handler_methods_go_for_receiver(
+    const IrSystem& system,
+    std::string_view receiver_type
+)
 {
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
-        out << "func (handler DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
+        out << "func (handler " << receiver_type << ") Handle" << pascal_identifier(api.name)
             << "(ctx context.Context, request common.APIRequestContext) (common.APIResponse, "
                "error) {\n";
         if (write_go_create_handler_body(out, system, api))
@@ -1084,6 +1087,13 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
         out << "}\n\n";
     }
     return out.str();
+}
+
+std::string generate_api_operation_default_handler_methods_go(const IrSystem& system)
+{
+    return generate_api_operation_default_handler_methods_go_for_receiver(
+        system, "DefaultAPITierHandler"
+    );
 }
 
 std::string generate_api_codecs_go(const IrSystem& system)

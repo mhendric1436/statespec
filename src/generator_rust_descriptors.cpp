@@ -1039,12 +1039,15 @@ std::string generate_api_operation_dispatch_cases_rs(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_operation_default_handler_methods_rs(const IrSystem& system)
+std::string generate_api_operation_default_handler_methods_rs_impl(
+    const IrSystem& system,
+    std::string_view method_visibility
+)
 {
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
-        out << "    fn handle_" << snake_identifier(api.name)
+        out << "    " << method_visibility << "fn handle_" << snake_identifier(api.name)
             << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
         if (write_rust_create_handler_body(out, system, api))
         {
@@ -1116,6 +1119,16 @@ std::string generate_api_operation_default_handler_methods_rs(const IrSystem& sy
         out << "    }\n\n";
     }
     return out.str();
+}
+
+std::string generate_api_operation_default_handler_methods_rs(const IrSystem& system)
+{
+    return generate_api_operation_default_handler_methods_rs_impl(system, {});
+}
+
+std::string generate_api_operation_default_handler_domain_methods_rs(const IrSystem& system)
+{
+    return generate_api_operation_default_handler_methods_rs_impl(system, "pub(super) ");
 }
 
 std::string generate_api_codecs_rs(const IrSystem& system)

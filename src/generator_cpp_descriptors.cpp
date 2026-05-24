@@ -1056,7 +1056,10 @@ std::string generate_api_operation_dispatch_cases(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_operation_default_handler_methods(const IrSystem& system)
+std::string generate_api_operation_default_handler_methods_impl(
+    const IrSystem& system,
+    bool include_override
+)
 {
     std::ostringstream out;
     out << "    static std::string generated_api_timestamp()\n";
@@ -1067,7 +1070,12 @@ std::string generate_api_operation_default_handler_methods(const IrSystem& syste
     for (const auto& api : system.apis)
     {
         out << "    ApiResponse handle_" << snake_identifier(api.name)
-            << "(const ApiRequestContext& context) override\n";
+            << "(const ApiRequestContext& context)";
+        if (include_override)
+        {
+            out << " override";
+        }
+        out << "\n";
         out << "    {\n";
         if (write_cpp_create_handler_body(out, system, api))
         {
@@ -1132,6 +1140,16 @@ std::string generate_api_operation_default_handler_methods(const IrSystem& syste
         out << "    }\n\n";
     }
     return out.str();
+}
+
+std::string generate_api_operation_default_handler_methods(const IrSystem& system)
+{
+    return generate_api_operation_default_handler_methods_impl(system, true);
+}
+
+std::string generate_api_operation_default_handler_domain_methods(const IrSystem& system)
+{
+    return generate_api_operation_default_handler_methods_impl(system, false);
 }
 
 std::string generate_api_codecs(const IrSystem& system)

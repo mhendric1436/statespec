@@ -123,6 +123,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              true},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry,
              "API handler registry extension point"},
+            {"api/api_handler_registry_support.hpp", api, Kind::ApiHandlerRegistry,
+             "Shared API handler registry helper functions"},
             {"api/main.cpp", api, Kind::ApiMain, "API process entrypoint"},
             {"worker/worker_application.hpp", worker, Kind::WorkerApplication,
              "Worker application composition root", true},

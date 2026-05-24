@@ -4,6 +4,7 @@
 #include "statespec/template_renderer.hpp"
 
 #include <string>
+#include <string_view>
 
 namespace statespec
 {
@@ -30,6 +31,11 @@ std::string generate_api_operation_handler_methods_go(const IrSystem& system);
 std::string generate_api_operation_dispatch_cases_go(const IrSystem& system);
 
 std::string generate_api_operation_default_handler_methods_go(const IrSystem& system);
+
+std::string generate_api_operation_default_handler_methods_go_for_receiver(
+    const IrSystem& system,
+    std::string_view receiver_type
+);
 
 std::string generate_api_codecs_go(const IrSystem& system);
 

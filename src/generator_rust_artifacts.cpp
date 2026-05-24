@@ -8,8 +8,10 @@
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <utility>
+#include <vector>
 
 namespace statespec
 {
@@ -289,6 +291,162 @@ TemplateRenderer::Values rust_runtime_bootstrap_values(const IrSystem& system)
         {"runtime_bootstrap_arguments", arguments.str()},
         {"worker_runtime_run_once", worker_run_once.str()},
     };
+}
+
+struct ApiHandlerDomain
+{
+    std::string name;
+    std::vector<IrApi> apis;
+};
+
+bool api_output_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.output.has_value() && api.output->find(entity.name) != std::string::npos;
+}
+
+bool api_input_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.input.has_value() && api.input->find(entity.name) != std::string::npos;
+}
+
+bool api_name_mentions_entity(
+    const IrApi& api,
+    const IrEntity& entity
+)
+{
+    return api.name.find(entity.name) != std::string::npos;
+}
+
+std::vector<ApiHandlerDomain> api_handler_domains(const IrSystem& system)
+{
+    std::vector<ApiHandlerDomain> domains;
+    for (const auto& entity : system.entities)
+    {
+        domains.push_back(ApiHandlerDomain{entity.name, {}});
+    }
+    ApiHandlerDomain operations{"Operations", {}};
+    for (const auto& api : system.apis)
+    {
+        bool assigned = false;
+        auto assign_matching_entity = [&](auto matches)
+        {
+            for (std::size_t i = 0; i < system.entities.size(); ++i)
+            {
+                if (matches(api, system.entities[i]))
+                {
+                    domains[i].apis.push_back(api);
+                    assigned = true;
+                    return;
+                }
+            }
+        };
+        assign_matching_entity(api_output_mentions_entity);
+        if (!assigned)
+        {
+            assign_matching_entity(api_input_mentions_entity);
+        }
+        if (!assigned)
+        {
+            assign_matching_entity(api_name_mentions_entity);
+        }
+        if (!assigned)
+        {
+            operations.apis.push_back(api);
+        }
+    }
+    domains.erase(
+        std::remove_if(
+            domains.begin(), domains.end(), [](const auto& domain) { return domain.apis.empty(); }
+        ),
+        domains.end()
+    );
+    if (!operations.apis.empty())
+    {
+        domains.push_back(std::move(operations));
+    }
+    return domains;
+}
+
+IrSystem with_domain_apis(
+    const IrSystem& system,
+    const std::vector<IrApi>& apis
+)
+{
+    auto filtered = system;
+    filtered.apis = apis;
+    return filtered;
+}
+
+std::string rust_api_handler_domain_module_name(std::string_view domain_name)
+{
+    return "api_handler_registry_" + snake_identifier(std::string{domain_name});
+}
+
+std::string rust_api_handler_domain_type_name(std::string_view domain_name)
+{
+    return "Default" + pascal_identifier(std::string{domain_name}) + "ApiHandler";
+}
+
+std::string rust_api_handler_domain_path(std::string_view domain_name)
+{
+    return "api/handlers/" + snake_identifier(std::string{domain_name}) + ".rs";
+}
+
+std::string rust_api_handler_registry_domain_modules(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        out << "#[path = \"handlers/" << snake_identifier(domain.name) << ".rs\"]\n";
+        out << "mod " << rust_api_handler_domain_module_name(domain.name) << ";\n";
+    }
+    return out.str();
+}
+
+std::string rust_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        const auto module_name = rust_api_handler_domain_module_name(domain.name);
+        const auto type_name = rust_api_handler_domain_type_name(domain.name);
+        for (const auto& api : domain.apis)
+        {
+            out << "    fn handle_" << snake_identifier(api.name)
+                << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
+            out << "        " << module_name << "::" << type_name
+                << " { backend: &self.backend }.handle_" << snake_identifier(api.name)
+                << "(context)\n";
+            out << "    }\n\n";
+        }
+    }
+    return out.str();
+}
+
+std::string rust_api_handler_domain_file(
+    const IrSystem& system,
+    const ApiHandlerDomain& domain
+)
+{
+    const auto filtered = with_domain_apis(system, domain.apis);
+    std::ostringstream out;
+    out << "use super::*;\n\n";
+    out << "#[allow(dead_code)]\n";
+    out << "pub(super) struct " << rust_api_handler_domain_type_name(domain.name)
+        << "<'a, B: Backend> {\n";
+    out << "    pub(super) backend: &'a B,\n";
+    out << "}\n\n";
+    out << "impl<'a, B: Backend> " << rust_api_handler_domain_type_name(domain.name)
+        << "<'a, B> {\n";
+    out << generate_api_operation_default_handler_domain_methods_rs(filtered);
+    out << "}\n";
+    return out.str();
 }
 
 TemplateRenderer::Values rust_runtime_codec_values(const IrSystem& system)
@@ -923,12 +1081,22 @@ void add_rust_api_artifacts(
             {"api_operation_handler_methods", generate_api_operation_handler_methods_rs(system)}
         }
     );
+    const auto handler_domains = api_handler_domains(system);
+    for (const auto& domain : handler_domains)
+    {
+        add_rust_raw_api_file(
+            result, options, rust_api_handler_domain_path(domain.name),
+            rust_api_handler_domain_file(system, domain)
+        );
+    }
     add_rust_generated_template_file(
         result, options, templates, "api/api_handler_registry.rs", GeneratedArtifactTier::Api,
         diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             generate_api_operation_default_handler_methods_rs(system)}
+             rust_api_handler_registry_delegates(handler_domains)},
+            {"api_handler_registry_domain_modules",
+             rust_api_handler_registry_domain_modules(handler_domains)}
         }
     );
     add_rust_generated_template_file(

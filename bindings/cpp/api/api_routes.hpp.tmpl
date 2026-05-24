@@ -13,9 +13,9 @@ using ApiRouteDescriptor = ::statespec_generated::ApiRouteDescriptor;
 inline std::vector<ApiRouteDescriptor> api_route_descriptors()
 {
     std::vector<ApiRouteDescriptor> descriptors;
-// clang-format off
+    // clang-format off
 {{api_route_descriptor_aggregation}}
-// clang-format on
+    // clang-format on
     return descriptors;
 }
 

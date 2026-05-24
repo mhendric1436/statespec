@@ -1141,12 +1141,18 @@ std::string generate_api_operation_dispatch_cases_java(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_operation_default_handler_methods_java(const IrSystem& system)
+std::string generate_api_operation_default_handler_methods_java_impl(
+    const IrSystem& system,
+    bool include_override
+)
 {
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
-        out << "        @Override\n";
+        if (include_override)
+        {
+            out << "        @Override\n";
+        }
         out << "        public Descriptors.ApiResponse handle" << pascal_identifier(api.name)
             << "(Descriptors.ApiRequestContext context) throws Exception {\n";
         if (write_java_create_handler_body(out, system, api))
@@ -1220,6 +1226,16 @@ std::string generate_api_operation_default_handler_methods_java(const IrSystem& 
         out << "        }\n\n";
     }
     return out.str();
+}
+
+std::string generate_api_operation_default_handler_methods_java(const IrSystem& system)
+{
+    return generate_api_operation_default_handler_methods_java_impl(system, true);
+}
+
+std::string generate_api_operation_default_handler_domain_methods_java(const IrSystem& system)
+{
+    return generate_api_operation_default_handler_methods_java_impl(system, false);
 }
 
 std::string generate_api_codecs_java(const IrSystem& system)

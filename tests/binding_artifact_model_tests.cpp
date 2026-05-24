@@ -138,6 +138,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/api_transport.hpp", api, Kind::ApiTransport, true},
             {"api/api_dispatcher.hpp", api, Kind::ApiDispatcher, true},
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry},
+            {"api/api_handler_registry_support.hpp", api, Kind::ApiHandlerRegistry},
             {"api/main.cpp", api, Kind::ApiMain},
             {"worker/worker_application.hpp", worker, Kind::WorkerApplication, true},
             {"worker/worker_process.hpp", worker, Kind::WorkerProcess, true},
