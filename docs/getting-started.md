@@ -55,7 +55,7 @@ system OrderSystem {
 Build the CLI and validate the spec:
 
 ```sh
-make cli
+make cli-fast
 ./build/bin/statespec validate examples/order-system.sspec
 ```
 
@@ -93,11 +93,12 @@ Supported languages are `cpp`, `go`, `java`, and `rust`.
 A practical authoring loop is:
 
 ```sh
-make cli
+make cli-fast
 ./build/bin/statespec validate system.sspec
 ./build/bin/statespec ast system.sspec
 ./build/bin/statespec generate bindings --lang cpp system.sspec --out build/generated/cpp
 ```
 
-Run this loop whenever you add a new entity, state machine, workflow, queue, lease, API,
-or policy declaration.
+Use `make cli` instead when you need the portable single-job build. Run this loop
+whenever you add a new entity, state machine, workflow, queue, lease, API, or
+policy declaration.

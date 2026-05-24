@@ -541,9 +541,14 @@ build/bin/statespec_tests  regression test binary
 ```sh
 make all
 make test
+make cli-fast
 make cli
 make help
 ```
+
+For first-time local builds on macOS, prefer `make cli-fast`. It builds the
+StateSpec CLI with parallel jobs based on the host logical CPU count. Use
+`make cli` as the portable single-command fallback.
 
 Useful maintenance targets:
 

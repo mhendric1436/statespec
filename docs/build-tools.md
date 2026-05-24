@@ -12,7 +12,10 @@ The bindings intentionally follow language-native build and test patterns:
 | Java | javac + java |
 | Rust | cargo |
 
-The top-level `Makefile` orchestrates binding-local builds and tests.
+The top-level `Makefile` orchestrates binding-local builds and tests. For a
+first-time local CLI build on macOS, use `make cli-fast`; it delegates to
+`make -j$(sysctl -n hw.logicalcpu) cli` with a fallback job count. Use
+`make cli` as the portable single-job fallback.
 
 ---
 

@@ -836,6 +836,8 @@ The top-level `Makefile` is the canonical developer entrypoint.
 
 Important targets:
 
+- `make cli-fast` builds the CLI with parallel jobs based on the host logical CPU count and is the preferred local first-build command on macOS.
+- `make cli` builds the CLI with normal make job settings and remains the portable fallback.
 - `make test` builds the compiler/tests and runs CLI tests.
 - `make test-generated-apps` runs complete generated API/worker app E2E fixtures.
 - `make test-bindings` runs C++, Go, Java, and Rust binding-local tests.

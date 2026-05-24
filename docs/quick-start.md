@@ -9,8 +9,12 @@ layout.
 From the repository root:
 
 ```sh
-make cli
+make cli-fast
 ```
+
+`make cli-fast` builds the CLI with parallel jobs based on the host logical CPU
+count. Use `make cli` as the portable fallback if the fast target is unavailable
+or if you want a single-job build.
 
 The CLI is written to:
 
