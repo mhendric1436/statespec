@@ -16,6 +16,10 @@ std::string go_descriptor_module_imports(const IrSystem& system)
 {
     std::ostringstream out;
     out << "\t_ \"statespec-generated/common/backend/descriptors\"\n";
+    if (!system.workflows.empty())
+    {
+        out << "\tworkflows \"statespec-generated/common/backend/workflows\"\n";
+    }
     if (!system.entities.empty())
     {
         out << "\t_ \"statespec-generated/common/backend/descriptors/entities\"\n";

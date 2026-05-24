@@ -75,6 +75,8 @@ common/backend/shapes/provision_callback_response.go
 common/backend/shapes/start_provision_request.go
 common/backend/shapes/start_provision_response.go
 common/backend/workflow.go
+common/backend/workflows/provision_service.go
+common/backend/workflows/workflows.go
 go.mod
 worker/backend/worker_application.go
 worker/backend/worker_contexts.go

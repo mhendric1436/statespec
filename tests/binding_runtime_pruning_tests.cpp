@@ -423,7 +423,8 @@ language_runtime_paths()
             {"common/runtime/codec_feature_flags.hpp", "common/runtime/feature_flag_store.hpp"},
             {"common/runtime/codec_queues.hpp", "common/runtime/queue_store.hpp"},
             {"common/runtime/codec_leases.hpp", "common/runtime/lease_store.hpp"},
-            {"common/runtime/codec_workflows.hpp", "common/runtime/workflow_store.hpp"},
+            {"common/runtime/codec_workflows.hpp", "common/runtime/workflow_store.hpp",
+             "common/workflows/workflow_only.hpp"},
             {"common/runtime/codec_observability.hpp", "common/runtime/codec_logs.hpp",
              "common/runtime/log_sink.hpp", "common/runtime/codec_metrics.hpp",
              "common/runtime/metric_sink.hpp"},
@@ -451,7 +452,8 @@ language_runtime_paths()
              "common/backend/runtime/feature_flags.go"},
             {"common/backend/runtime/codec_queues.go", "common/backend/runtime/queues.go"},
             {"common/backend/runtime/codec_leases.go", "common/backend/runtime/leases.go"},
-            {"common/backend/runtime/codec_workflows.go", "common/backend/runtime/workflows.go"},
+            {"common/backend/runtime/codec_workflows.go", "common/backend/runtime/workflows.go",
+             "common/backend/workflows/workflow_only.go", "common/backend/workflows/workflows.go"},
             {"common/backend/runtime/codec_observability.go",
              "common/backend/runtime/codec_logs.go", "common/backend/runtime/logs.go",
              "common/backend/runtime/codec_metrics.go", "common/backend/runtime/metrics.go"},
@@ -484,7 +486,8 @@ language_runtime_paths()
             {"common/com/statespec/backend/runtime/LeaseCodec.java",
              "common/com/statespec/backend/runtime/LeaseStore.java"},
             {"common/com/statespec/backend/runtime/WorkflowCodec.java",
-             "common/com/statespec/backend/runtime/WorkflowStore.java"},
+             "common/com/statespec/backend/runtime/WorkflowStore.java",
+             "common/com/statespec/generated/workflows/WorkflowOnlyDescriptorModule.java"},
             {"common/com/statespec/backend/runtime/ObservabilityCodec.java",
              "common/com/statespec/backend/runtime/LogCodec.java",
              "common/com/statespec/backend/runtime/LogSink.java",
@@ -522,7 +525,8 @@ language_runtime_paths()
             {"common/runtime/codec_feature_flags.rs", "common/runtime/feature_flags.rs"},
             {"common/runtime/codec_queues.rs", "common/runtime/queues.rs"},
             {"common/runtime/codec_leases.rs", "common/runtime/leases.rs"},
-            {"common/runtime/codec_workflows.rs", "common/runtime/workflows.rs"},
+            {"common/runtime/codec_workflows.rs", "common/runtime/workflows.rs",
+             "common/workflows/workflow_only.rs"},
             {"common/runtime/codec_observability.rs", "common/runtime/codec_logs.rs",
              "common/runtime/logs.rs", "common/runtime/codec_metrics.rs",
              "common/runtime/metrics.rs"},
@@ -552,7 +556,15 @@ void require_descriptor_names(
     const std::string& context
 )
 {
-    const auto descriptors = descriptor_content(result, paths);
+    std::string descriptors = descriptor_content(result, paths);
+    for (const auto& path : paths.workflow_paths)
+    {
+        if (has_artifact(result, path))
+        {
+            descriptors += "\n";
+            descriptors += artifact_content(result, path);
+        }
+    }
     for (const auto& name : present_names)
     {
         require_contains(descriptors, name, context + " descriptors");

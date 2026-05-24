@@ -736,6 +736,49 @@ void add_go_entity_descriptor_artifacts(
     }
 }
 
+std::string go_workflow_descriptor_support_file()
+{
+    std::ostringstream out;
+    out << "package workflows\n\n";
+    out << "import \"time\"\n\n";
+    out << "type WorkflowStepDefinition struct {\n";
+    out << "\tName string\n";
+    out << "\tExpectedExecutionTime time.Duration\n";
+    out << "\tMaxRetries uint32\n";
+    out << "}\n\n";
+    out << "type WorkflowDefinition struct {\n";
+    out << "\tWorkflowName string\n";
+    out << "\tWorkflowVersion int64\n";
+    out << "\tStartStep string\n";
+    out << "\tExpectedExecutionTime time.Duration\n";
+    out << "\tSingleton bool\n";
+    out << "\tSteps []WorkflowStepDefinition\n";
+    out << "}\n";
+    return out.str();
+}
+
+void add_go_workflow_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    if (system.workflows.empty())
+    {
+        return;
+    }
+    add_go_raw_common_file(
+        result, options, "backend/workflows/workflows.go", go_workflow_descriptor_support_file()
+    );
+    for (const auto& workflow : system.workflows)
+    {
+        add_go_raw_common_file(
+            result, options, "backend/workflows/" + snake_identifier(workflow.name) + ".go",
+            generate_go_workflow_descriptor(workflow)
+        );
+    }
+}
+
 void add_go_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1110,6 +1153,7 @@ void add_go_common_runtime_artifacts(
     }
     add_go_shape_type_artifacts(result, options, system);
     add_go_entity_descriptor_artifacts(result, options, templates, system, diagnostics);
+    add_go_workflow_descriptor_artifacts(result, options, system);
     if (diagnostics.has_errors())
     {
         return;

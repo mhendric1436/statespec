@@ -25,6 +25,11 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     out << "mod descriptor_workers;\n";
     out << "#[path = \"descriptors/runtime.rs\"]\n";
     out << "mod descriptor_runtime;\n";
+    for (const auto& workflow : system.workflows)
+    {
+        out << "#[path = \"workflows/" << snake_identifier(workflow.name) << ".rs\"]\n";
+        out << "mod workflow_" << snake_identifier(workflow.name) << ";\n";
+    }
     for (const auto& entity : system.entities)
     {
         out << "#[path = \"descriptors/entities/" << snake_identifier(entity.name) << ".rs\"]\n";
@@ -63,7 +68,7 @@ std::string generate_rust_descriptor_prelude(
            "MetricSink};\n";
     out << "use crate::queue::{RegisterQueueDefinitionRequest, QueueDefinition, QueueStore};\n";
     out << "use crate::workflow::{RegisterWorkflowDefinitionRequest, WorkflowDefinition, "
-           "WorkflowStepDefinition, WorkflowStore};\n\n";
+           "WorkflowStore};\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct EventEnvelope {\n";
     out << "    pub name: String,\n";

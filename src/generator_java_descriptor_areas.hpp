@@ -27,6 +27,12 @@ std::string generate_java_shape_descriptors(const IrSystem& system);
 std::string generate_java_observability_descriptors(const IrSystem& system);
 std::string generate_java_entity_descriptors(const IrSystem& system);
 std::string generate_java_runtime_descriptors(const IrSystem& system);
+std::string generate_java_workflow_descriptor(
+    const IrWorkflow& workflow,
+    std::string_view package_name,
+    std::string_view class_name
+);
+std::string generate_java_workflow_descriptor_umbrella(const IrSystem& system);
 std::string generate_java_observability_registration(const IrSystem& system);
 std::string generate_java_runtime_registration(
     const IrSystem& system,

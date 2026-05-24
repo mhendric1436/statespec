@@ -791,6 +791,21 @@ void add_rust_descriptor_module_artifacts(
     }
 }
 
+void add_rust_workflow_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    for (const auto& workflow : system.workflows)
+    {
+        add_rust_raw_common_file(
+            result, options, "workflows/" + snake_identifier(workflow.name) + ".rs",
+            generate_rust_workflow_descriptor(workflow)
+        );
+    }
+}
+
 void add_rust_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1110,6 +1125,7 @@ void add_rust_common_runtime_artifacts(
 
     add_rust_shape_type_artifacts(result, options, system);
     add_rust_descriptor_module_artifacts(result, options, templates, system, diagnostics);
+    add_rust_workflow_descriptor_artifacts(result, options, system);
     if (diagnostics.has_errors())
     {
         return;

@@ -1,6 +1,7 @@
 #include "generator_go_descriptor_areas.hpp"
 
 #include "generator_go_descriptor_support.hpp"
+#include "identifier_case.hpp"
 
 #include <sstream>
 
@@ -45,32 +46,72 @@ std::string generate_go_runtime_descriptors(const IrSystem& system)
     out << "\t}\n";
     out << "}\n\n";
 
+    out << generate_go_workflow_descriptor_umbrella(system);
+
+    return out.str();
+}
+
+std::string generate_go_workflow_descriptor(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
+    out << "package workflows\n\n";
+    out << "import \"time\"\n\n";
+    out << "func " << pascal_identifier(workflow.name)
+        << "WorkflowDefinition() WorkflowDefinition {\n";
+    out << "\treturn WorkflowDefinition{\n";
+    out << "\t\tWorkflowName: " << go_string(workflow.name) << ",\n";
+    out << "\t\tWorkflowVersion: " << workflow.version.value_or(1) << ",\n";
+    out << "\t\tStartStep: " << go_string(workflow.start_step.value_or("")) << ",\n";
+    out << "\t\tExpectedExecutionTime: "
+        << parse_go_duration_seconds(workflow.expected_execution_time) << " * time.Second,\n";
+    out << "\t\tSingleton: " << (workflow.singleton.value_or(false) ? "true" : "false") << ",\n";
+    out << "\t\tSteps: []WorkflowStepDefinition{\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "\t\t\t{Name: " << go_string(step.name) << ", ExpectedExecutionTime: "
+            << parse_go_duration_seconds(step.expected_execution_time)
+            << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
+    }
+    out << "\t\t},\n";
+    out << "\t}\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_go_workflow_descriptor_umbrella(const IrSystem& system)
+{
+    std::ostringstream out;
     out << "func WorkflowDefinitions() []WorkflowDefinition {\n";
     out << "\treturn []WorkflowDefinition{\n";
     for (const auto& workflow : system.workflows)
     {
-        out << "\t\t{\n";
-        out << "\t\t\tWorkflowName: " << go_string(workflow.name) << ",\n";
-        out << "\t\t\tWorkflowVersion: " << workflow.version.value_or(1) << ",\n";
-        out << "\t\t\tStartStep: " << go_string(workflow.start_step.value_or("")) << ",\n";
-        out << "\t\t\tExpectedExecutionTime: "
-            << parse_go_duration_seconds(workflow.expected_execution_time) << " * time.Second,\n";
-        out << "\t\t\tSingleton: " << (workflow.singleton.value_or(false) ? "true" : "false")
-            << ",\n";
-        out << "\t\t\tSteps: []WorkflowStepDefinition{\n";
-        for (const auto& step : workflow.steps)
-        {
-            out << "\t\t\t\t{Name: " << go_string(step.name) << ", ExpectedExecutionTime: "
-                << parse_go_duration_seconds(step.expected_execution_time)
-                << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
-        }
-        out << "\t\t\t},\n";
-        out << "\t\t\tMetadata: JSONObject(map[string]JSON{}),\n";
-        out << "\t\t},\n";
+        out << "\t\ttoWorkflowDefinition(workflows." << pascal_identifier(workflow.name)
+            << "WorkflowDefinition()),\n";
     }
     out << "\t}\n";
     out << "}\n";
-
+    if (system.workflows.empty())
+    {
+        return out.str();
+    }
+    out << "\n";
+    out << "func toWorkflowDefinition(definition workflows.WorkflowDefinition) WorkflowDefinition "
+           "{\n";
+    out << "\tsteps := make([]WorkflowStepDefinition, 0, len(definition.Steps))\n";
+    out << "\tfor _, step := range definition.Steps {\n";
+    out << "\t\tsteps = append(steps, WorkflowStepDefinition{Name: step.Name, "
+           "ExpectedExecutionTime: step.ExpectedExecutionTime, MaxRetries: step.MaxRetries})\n";
+    out << "\t}\n";
+    out << "\treturn WorkflowDefinition{\n";
+    out << "\t\tWorkflowName: definition.WorkflowName,\n";
+    out << "\t\tWorkflowVersion: definition.WorkflowVersion,\n";
+    out << "\t\tStartStep: definition.StartStep,\n";
+    out << "\t\tExpectedExecutionTime: definition.ExpectedExecutionTime,\n";
+    out << "\t\tSingleton: definition.Singleton,\n";
+    out << "\t\tSteps: steps,\n";
+    out << "\t\tMetadata: JSONObject(map[string]JSON{}),\n";
+    out << "\t}\n";
+    out << "}\n";
     return out.str();
 }
 

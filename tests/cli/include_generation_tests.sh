@@ -22,5 +22,6 @@ assert_output_contains "generated $TMPDIR/out-include-cpp/common/descriptors.hpp
 assert_file_exists "$TMPDIR/out-include-cpp/common/descriptors.hpp"
 assert_file_contains "$TMPDIR/out-include-cpp/common/descriptors.hpp" "IncludedEntity"
 assert_file_contains "$TMPDIR/out-include-cpp/common/descriptors.hpp" "IncludedQueue"
-assert_file_contains "$TMPDIR/out-include-cpp/common/descriptors.hpp" "IncludedWorkflow"
+assert_file_exists "$TMPDIR/out-include-cpp/common/workflows/included_workflow.hpp"
+assert_file_contains "$TMPDIR/out-include-cpp/common/workflows/included_workflow.hpp" "IncludedWorkflow"
 assert_file_contains "$TMPDIR/out-include-cpp/common/descriptors.hpp" "IncludedEntityLaunch"

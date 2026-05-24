@@ -75,6 +75,7 @@ common/shapes/provision_callback_response.rs
 common/shapes/start_provision_request.rs
 common/shapes/start_provision_response.rs
 common/workflow.rs
+common/workflows/provision_service.rs
 lib.rs
 worker/main.rs
 worker/worker_application.rs

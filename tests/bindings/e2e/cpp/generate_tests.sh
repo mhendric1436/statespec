@@ -76,6 +76,7 @@ common/shapes/provision_callback_response.hpp
 common/shapes/start_provision_request.hpp
 common/shapes/start_provision_response.hpp
 common/workflow.hpp
+common/workflows/provision_service.hpp
 worker/main.cpp
 worker/worker_application.hpp
 worker/worker_contexts.hpp

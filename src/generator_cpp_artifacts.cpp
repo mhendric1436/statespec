@@ -742,6 +742,21 @@ void add_cpp_descriptor_module_artifacts(
     }
 }
 
+void add_cpp_workflow_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    for (const auto& workflow : system.workflows)
+    {
+        add_cpp_raw_common_file(
+            result, options, "workflows/" + snake_identifier(workflow.name) + ".hpp",
+            generate_cpp_workflow_descriptor(workflow)
+        );
+    }
+}
+
 void add_cpp_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1068,6 +1083,7 @@ void add_cpp_common_runtime_artifacts(
 
     add_cpp_shape_type_artifacts(result, options, system);
     add_cpp_descriptor_module_artifacts(result, options, templates, system, diagnostics);
+    add_cpp_workflow_descriptor_artifacts(result, options, system);
     if (diagnostics.has_errors())
     {
         return;

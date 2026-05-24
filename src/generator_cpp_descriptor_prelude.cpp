@@ -11,13 +11,17 @@ namespace statespec
 namespace
 {
 
-std::string cpp_descriptor_module_includes()
+std::string cpp_descriptor_module_includes(const IrSystem& system)
 {
     std::ostringstream out;
     out << "#include \"descriptors/core.hpp\"\n";
     out << "#include \"descriptors/apis.hpp\"\n";
     out << "#include \"descriptors/workers.hpp\"\n";
     out << "#include \"descriptors/runtime.hpp\"\n";
+    for (const auto& workflow : system.workflows)
+    {
+        out << "#include \"workflows/" << snake_identifier(workflow.name) << ".hpp\"\n";
+    }
     return out.str();
 }
 
@@ -41,7 +45,7 @@ std::string generate_cpp_descriptor_prelude(
     out << "#include \"queue.hpp\"\n";
     out << "#include \"shapes.hpp\"\n";
     out << "#include \"workflow.hpp\"\n\n";
-    out << cpp_descriptor_module_includes() << "\n";
+    out << cpp_descriptor_module_includes(system) << "\n";
     out << "#include <chrono>\n";
     out << "#include <cstdint>\n";
     out << "#include <map>\n";

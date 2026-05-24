@@ -27,6 +27,8 @@ std::string generate_go_shape_descriptors(const IrSystem& system);
 std::string generate_go_observability_descriptors(const IrSystem& system);
 std::string generate_go_entity_descriptors(const IrSystem& system);
 std::string generate_go_runtime_descriptors(const IrSystem& system);
+std::string generate_go_workflow_descriptor(const IrWorkflow& workflow);
+std::string generate_go_workflow_descriptor_umbrella(const IrSystem& system);
 std::string generate_go_observability_registration(const IrSystem& system);
 std::string generate_go_runtime_registration(
     const IrSystem& system,

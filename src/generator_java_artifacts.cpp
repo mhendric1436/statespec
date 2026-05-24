@@ -43,6 +43,11 @@ std::string java_entity_descriptor_module_class_name(std::string_view entity_nam
     return pascal_identifier(std::string{entity_name}) + "DescriptorModule";
 }
 
+std::string java_workflow_descriptor_module_class_name(std::string_view workflow_name)
+{
+    return pascal_identifier(std::string{workflow_name}) + "DescriptorModule";
+}
+
 std::string java_entity_descriptor_module_ref(std::string_view entity_name)
 {
     return "com.statespec.generated.descriptors.entities." +
@@ -75,6 +80,19 @@ std::vector<std::string> java_shape_sources(const IrSystem& system)
     {
         sources.push_back(
             "common/com/statespec/generated/shapes/" + pascal_identifier(shape.name) + ".java"
+        );
+    }
+    return sources;
+}
+
+std::vector<std::string> java_workflow_descriptor_sources(const IrSystem& system)
+{
+    std::vector<std::string> sources;
+    for (const auto& workflow : system.workflows)
+    {
+        sources.push_back(
+            "common/com/statespec/generated/workflows/" +
+            java_workflow_descriptor_module_class_name(workflow.name) + ".java"
         );
     }
     return sources;
@@ -420,6 +438,10 @@ TemplateRenderer::Values java_makefile_values(
         common_sources.push_back(source);
     }
     for (const auto& source : java_shape_sources(system))
+    {
+        common_sources.push_back(source);
+    }
+    for (const auto& source : java_workflow_descriptor_sources(system))
     {
         common_sources.push_back(source);
     }
@@ -817,6 +839,24 @@ void add_java_shape_type_artifacts(
         add_java_raw_common_file(
             result, options, shape_path / (pascal_identifier(shape.name) + ".java"),
             java_shape_type_file(shape)
+        );
+    }
+}
+
+void add_java_workflow_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    const auto workflow_path = join_artifact_path(GeneratedJavaOutputPackagePath, "workflows");
+    const std::string workflow_package = "com.statespec.generated.workflows";
+    for (const auto& workflow : system.workflows)
+    {
+        const auto class_name = java_workflow_descriptor_module_class_name(workflow.name);
+        add_java_raw_common_file(
+            result, options, workflow_path / (class_name + ".java"),
+            generate_java_workflow_descriptor(workflow, workflow_package, class_name)
         );
     }
 }
@@ -1241,6 +1281,7 @@ void add_java_common_runtime_artifacts(
         return;
     }
     add_java_shape_type_artifacts(result, options, system);
+    add_java_workflow_descriptor_artifacts(result, options, system);
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("Descriptors.java.tmpl"),
         common_artifact_path(
