@@ -34,6 +34,12 @@ api/backend/external_system_operator_metadata_api.go
 api/cmd/api/main.go
 common/backend/backend.go
 common/backend/descriptors.go
+common/backend/descriptors/apis.go
+common/backend/descriptors/core.go
+common/backend/descriptors/entities/service_instance.go
+common/backend/descriptors/runtime.go
+common/backend/descriptors/shapes.go
+common/backend/descriptors/workers.go
 common/backend/external_system.go
 common/backend/feature_flag.go
 common/backend/json.go

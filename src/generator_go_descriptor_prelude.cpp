@@ -9,6 +9,22 @@
 namespace statespec
 {
 
+namespace
+{
+
+std::string go_descriptor_module_imports(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "\t_ \"statespec-generated/common/backend/descriptors\"\n";
+    if (!system.entities.empty())
+    {
+        out << "\t_ \"statespec-generated/common/backend/descriptors/entities\"\n";
+    }
+    return out.str();
+}
+
+} // namespace
+
 std::string generate_go_descriptor_prelude(
     const IrSystem& system,
     const std::string& external_system_runtime,
@@ -22,6 +38,7 @@ std::string generate_go_descriptor_prelude(
     out << "import (\n";
     out << "\t\"context\"\n";
     out << "\t\"errors\"\n";
+    out << go_descriptor_module_imports(system);
     if (runtime_usage.uses_feature_flags)
     {
         out << "\t\"strconv\"\n";

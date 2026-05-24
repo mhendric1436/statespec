@@ -4,6 +4,7 @@
 #include "generator_go_descriptor_support.hpp"
 #include "generator_go_descriptors.hpp"
 #include "generator_support.hpp"
+#include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
@@ -220,6 +221,72 @@ void add_go_common_generated_template_file(
     );
 }
 
+TemplateRenderer::Values go_descriptor_module_values(
+    std::string_view package_name,
+    std::string_view module_name
+)
+{
+    return TemplateRenderer::Values{
+        {"descriptor_module_package", std::string{package_name}},
+        {"descriptor_module_name", std::string{module_name}},
+    };
+}
+
+void add_go_descriptor_module_artifact(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    std::string_view relative_output_path,
+    std::string_view package_name,
+    std::string_view module_name,
+    DiagnosticBag& diagnostics
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates, generated_template_path("descriptor_module.go.tmpl"),
+        common_artifact_path(relative_output_path), diagnostics, GeneratedArtifactTier::Common,
+        go_descriptor_module_values(package_name, module_name)
+    );
+}
+
+void add_go_descriptor_module_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    const IrSystem& system,
+    DiagnosticBag& diagnostics
+)
+{
+    add_go_descriptor_module_artifact(
+        result, options, templates, "backend/descriptors/core.go", "descriptors",
+        "core descriptors", diagnostics
+    );
+    add_go_descriptor_module_artifact(
+        result, options, templates, "backend/descriptors/shapes.go", "descriptors",
+        "shape descriptors", diagnostics
+    );
+    add_go_descriptor_module_artifact(
+        result, options, templates, "backend/descriptors/apis.go", "descriptors", "API descriptors",
+        diagnostics
+    );
+    add_go_descriptor_module_artifact(
+        result, options, templates, "backend/descriptors/workers.go", "descriptors",
+        "worker descriptors", diagnostics
+    );
+    add_go_descriptor_module_artifact(
+        result, options, templates, "backend/descriptors/runtime.go", "descriptors",
+        "runtime descriptors", diagnostics
+    );
+    for (const auto& entity : system.entities)
+    {
+        add_go_descriptor_module_artifact(
+            result, options, templates,
+            "backend/descriptors/entities/" + snake_identifier(entity.name) + ".go", "entities",
+            "entity descriptor " + entity.name, diagnostics
+        );
+    }
+}
+
 void add_go_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -374,6 +441,11 @@ void add_go_common_runtime_artifacts(
         add_go_common_generated_template_file(
             result, options, templates, "backend/runtime/entity_gc_workers.go", diagnostics
         );
+    }
+    add_go_descriptor_module_artifacts(result, options, templates, system, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        return;
     }
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("descriptors.go.tmpl"),
