@@ -1,5 +1,10 @@
-use crate::backend::Backend;
+use crate::backend::{Backend, BackendError, BackendResult};
 use crate::worker_runtime::WorkerRuntime;
+
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
+use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct WorkerProcessConfig {
@@ -14,17 +19,108 @@ impl Default for WorkerProcessConfig {
     }
 }
 
-pub struct WorkerProcess<B: Backend> {
+pub struct WorkerProcess<B: Backend + Clone> {
     pub runtime: WorkerRuntime<B>,
     pub config: WorkerProcessConfig,
+    stop_requested: Arc<AtomicBool>,
+    lifecycle: Arc<Mutex<WorkerProcessLifecycle>>,
 }
 
-impl<B: Backend> WorkerProcess<B> {
+struct WorkerProcessLifecycle {
+    started: bool,
+    running: bool,
+    handle: Option<JoinHandle<BackendResult<()>>>,
+}
+
+impl<B: Backend + Clone> WorkerProcess<B> {
     pub fn new(runtime: WorkerRuntime<B>) -> Self {
         Self::with_config(runtime, WorkerProcessConfig::default())
     }
 
     pub fn with_config(runtime: WorkerRuntime<B>, config: WorkerProcessConfig) -> Self {
-        Self { runtime, config }
+        Self {
+            runtime,
+            config,
+            stop_requested: Arc::new(AtomicBool::new(false)),
+            lifecycle: Arc::new(Mutex::new(WorkerProcessLifecycle {
+                started: false,
+                running: false,
+                handle: None,
+            })),
+        }
+    }
+
+    pub fn run(&self) -> BackendResult<()> {
+        if self.config.bootstrap_on_start {
+            self.runtime.bootstrap()?;
+        }
+        self.runtime
+            .start_entity_gc_workers(Duration::from_millis(0))?;
+        while !self.stop_requested.load(Ordering::SeqCst) {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        self.runtime.request_stop();
+        self.runtime.join_entity_gc_workers()
+    }
+
+    pub fn start(self: &Arc<Self>) -> BackendResult<()>
+    where
+        B: Send + Sync + 'static,
+    {
+        let mut lifecycle = self.lifecycle.lock().map_err(|_| BackendError::Internal {
+            message: "Worker process lifecycle lock poisoned".to_string(),
+        })?;
+        if lifecycle.started {
+            return Err(BackendError::Internal {
+                message: "generated Worker process already started".to_string(),
+            });
+        }
+
+        lifecycle.started = true;
+        lifecycle.running = true;
+        self.stop_requested.store(false, Ordering::SeqCst);
+        let process = Arc::clone(self);
+        lifecycle.handle = Some(std::thread::spawn(move || {
+            let result = process.run();
+            process.request_stop();
+            if let Ok(mut lifecycle) = process.lifecycle.lock() {
+                lifecycle.running = false;
+            }
+            result
+        }));
+        Ok(())
+    }
+
+    pub fn join(&self) -> BackendResult<()> {
+        let handle = {
+            let mut lifecycle = self.lifecycle.lock().map_err(|_| BackendError::Internal {
+                message: "Worker process lifecycle lock poisoned".to_string(),
+            })?;
+            if !lifecycle.started {
+                return Err(BackendError::Internal {
+                    message: "generated Worker process not started".to_string(),
+                });
+            }
+            lifecycle.handle.take()
+        };
+
+        match handle {
+            Some(handle) => handle.join().map_err(|_| BackendError::Internal {
+                message: "generated Worker process thread panicked".to_string(),
+            })?,
+            None => Ok(()),
+        }
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.lifecycle
+            .lock()
+            .map(|lifecycle| lifecycle.running)
+            .unwrap_or(false)
+    }
+
+    pub fn request_stop(&self) {
+        self.stop_requested.store(true, Ordering::SeqCst);
+        self.runtime.request_stop();
     }
 }

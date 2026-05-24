@@ -1,6 +1,61 @@
+use crate::backend::{Backend, BackendResult};
 use crate::memory_backend::InMemoryBackend;
+use crate::worker_process::WorkerProcess;
 use crate::worker_runtime::WorkerRuntime;
 
 pub fn main() {
-    let _ = WorkerRuntime::new(InMemoryBackend::new());
+    if let Err(error) = run() {
+        eprintln!("statespec generated Worker process failed: {error:?}");
+        std::process::exit(1);
+    }
+}
+
+pub fn run() -> BackendResult<()> {
+    let backend = InMemoryBackend::new();
+    let runtime = WorkerRuntime::new(backend);
+    let process = std::sync::Arc::new(WorkerProcess::new(runtime));
+    process.start()?;
+    install_signal_handling(process.clone());
+    process.join()
+}
+
+#[cfg(unix)]
+fn install_signal_handling<B>(process: std::sync::Arc<WorkerProcess<B>>)
+where
+    B: Backend + Clone + Send + Sync + 'static,
+{
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::time::Duration;
+
+    static STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
+    const SIGINT: i32 = 2;
+    const SIGTERM: i32 = 15;
+
+    extern "C" fn request_stop(_: i32) {
+        STOP_REQUESTED.store(true, Ordering::SeqCst);
+    }
+
+    unsafe extern "C" {
+        fn signal(signum: i32, handler: extern "C" fn(i32)) -> extern "C" fn(i32);
+    }
+
+    unsafe {
+        signal(SIGINT, request_stop);
+        signal(SIGTERM, request_stop);
+    }
+
+    std::thread::spawn(move || loop {
+        if STOP_REQUESTED.load(Ordering::SeqCst) {
+            process.request_stop();
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    });
+}
+
+#[cfg(not(unix))]
+fn install_signal_handling<B>(_process: std::sync::Arc<WorkerProcess<B>>)
+where
+    B: Backend + Clone + Send + Sync + 'static,
+{
 }
