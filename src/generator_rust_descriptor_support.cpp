@@ -49,6 +49,27 @@ std::string rust_entity_state_constant_name(
     return upper_snake_identifier(entity_name + "_status_" + state_name);
 }
 
+std::string rust_entity_name_constant_name(const std::string& entity_name)
+{
+    return upper_snake_identifier(entity_name + "_entity_name");
+}
+
+std::string rust_entity_field_constant_name(
+    const std::string& entity_name,
+    const std::string& field_name
+)
+{
+    return upper_snake_identifier(entity_name + "_field_" + field_name);
+}
+
+std::string rust_entity_index_constant_name(
+    const std::string& entity_name,
+    const std::string& index_name
+)
+{
+    return upper_snake_identifier(entity_name + "_index_" + index_name);
+}
+
 namespace
 {
 

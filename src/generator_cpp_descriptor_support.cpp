@@ -49,6 +49,27 @@ std::string cpp_entity_state_constant_name(
     return "k" + pascal_identifier(entity_name) + "Status" + pascal_identifier(state_name);
 }
 
+std::string cpp_entity_name_constant_name(const std::string& entity_name)
+{
+    return "k" + pascal_identifier(entity_name) + "EntityName";
+}
+
+std::string cpp_entity_field_constant_name(
+    const std::string& entity_name,
+    const std::string& field_name
+)
+{
+    return "k" + pascal_identifier(entity_name) + "Field" + pascal_identifier(field_name);
+}
+
+std::string cpp_entity_index_constant_name(
+    const std::string& entity_name,
+    const std::string& index_name
+)
+{
+    return "k" + pascal_identifier(entity_name) + "Index" + pascal_identifier(index_name);
+}
+
 namespace
 {
 

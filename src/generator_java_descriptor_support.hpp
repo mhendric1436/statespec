@@ -10,6 +10,15 @@ namespace statespec
 {
 
 std::string java_string(const std::string& value);
+std::string java_entity_name_constant_name(const std::string& entity_name);
+std::string java_entity_field_constant_name(
+    const std::string& entity_name,
+    const std::string& field_name
+);
+std::string java_entity_index_constant_name(
+    const std::string& entity_name,
+    const std::string& index_name
+);
 std::string java_entity_state_constant_name(
     const std::string& entity_name,
     const std::string& state_name
