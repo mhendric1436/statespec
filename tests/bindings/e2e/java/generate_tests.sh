@@ -146,7 +146,15 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Worker
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRuntime.java" "record Config(boolean entityGcEnabled"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRuntime.java" "startEntityGcWorkers"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRuntime.java" "public void requestStop()"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkerRuntime"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerProcess.java" "class WorkerProcess"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerProcess.java" "public synchronized void start()"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerProcess.java" "public int join()"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerProcess.java" "public synchronized boolean isRunning()"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerProcess.java" "public void requestStop()"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkerProcess"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "addShutdownHook"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "process.start()"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "process.join()"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "keepAliveStep"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.create_remote_service\""
@@ -158,7 +166,9 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Workfl
 cp "$SCRIPT_DIR/ApiLinkingFixture.java" "$TMPDIR/out-app-java/api/com/statespec/generated/ApiLinkingFixture.java"
 cp "$SCRIPT_DIR/RegistrationRestartFixture.java" "$TMPDIR/out-app-java/common/com/statespec/generated/RegistrationRestartFixture.java"
 cp "$SCRIPT_DIR/WorkerLinkingFixture.java" "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerLinkingFixture.java"
+cp "$SCRIPT_DIR/WorkerProcessFixture.java" "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerProcessFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-app-java" check
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.ApiLinkingFixture
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.RegistrationRestartFixture
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.WorkerLinkingFixture
+run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.WorkerProcessFixture

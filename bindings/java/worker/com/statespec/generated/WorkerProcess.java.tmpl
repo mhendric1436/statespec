@@ -1,5 +1,7 @@
 package com.statespec.generated;
 
+import com.statespec.backend.Backend;
+
 public final class WorkerProcess {
     public static final class Config {
         private final boolean bootstrapOnStart;
@@ -19,6 +21,12 @@ public final class WorkerProcess {
 
     private final WorkerRuntime runtime;
     private final Config config;
+    private Thread thread;
+    private int exitStatus = 1;
+    private Exception exitException;
+    private boolean started = false;
+    private boolean running = false;
+    private boolean stopRequested = false;
 
     public WorkerProcess(WorkerRuntime runtime) {
         this(runtime, Config.defaults());
@@ -35,5 +43,101 @@ public final class WorkerProcess {
 
     public Config config() {
         return config;
+    }
+
+    public int run() throws Backend.BackendException, InterruptedException {
+        if (config.bootstrapOnStart()) {
+            runtime.bootstrap();
+        }
+        runtime.startEntityGcWorkers(0);
+        synchronized (this) {
+            while (!stopRequested) {
+                wait();
+            }
+        }
+        runtime.requestStop();
+        runtime.joinEntityGcWorkers();
+        return 0;
+    }
+
+    public synchronized void start() {
+        if (started) {
+            throw new IllegalStateException("generated Worker process already started");
+        }
+        started = true;
+        running = true;
+        stopRequested = false;
+        exitStatus = 1;
+        exitException = null;
+        thread = new Thread(
+            () -> {
+                int status = 1;
+                Exception exception = null;
+                try {
+                    status = run();
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt();
+                    status = 130;
+                    exception = error;
+                    runtime.requestStop();
+                    try {
+                        runtime.joinEntityGcWorkers();
+                    } catch (InterruptedException joinError) {
+                        Thread.currentThread().interrupt();
+                    }
+                } catch (Backend.BackendException error) {
+                    status = 1;
+                    exception = error;
+                    runtime.requestStop();
+                    try {
+                        runtime.joinEntityGcWorkers();
+                    } catch (InterruptedException joinError) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                synchronized (WorkerProcess.this) {
+                    exitStatus = status;
+                    exitException = exception;
+                    running = false;
+                    WorkerProcess.this.notifyAll();
+                }
+            },
+            "statespec-worker-process"
+        );
+        thread.start();
+    }
+
+    public int join() throws Backend.BackendException, InterruptedException {
+        Thread processThread;
+        synchronized (this) {
+            if (!started) {
+                throw new IllegalStateException("generated Worker process not started");
+            }
+            processThread = thread;
+        }
+        processThread.join();
+
+        synchronized (this) {
+            if (exitException instanceof Backend.BackendException) {
+                throw (Backend.BackendException) exitException;
+            }
+            return exitStatus;
+        }
+    }
+
+    public synchronized boolean isRunning() {
+        return running;
+    }
+
+    public void requestStop() {
+        runtime.requestStop();
+        synchronized (this) {
+            stopRequested = true;
+            notifyAll();
+        }
+    }
+
+    public synchronized boolean stopRequested() {
+        return stopRequested;
     }
 }

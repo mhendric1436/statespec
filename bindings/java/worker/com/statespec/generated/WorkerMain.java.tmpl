@@ -1,11 +1,34 @@
 package com.statespec.generated;
 
+import com.statespec.backend.Backend;
 import com.statespec.backend.memory.InMemoryBackend;
 
 public final class WorkerMain {
     private WorkerMain() {}
 
     public static void main(String[] args) {
-        new WorkerRuntime(new InMemoryBackend());
+        var status = run();
+        if (status != 0) {
+            System.exit(status);
+        }
+    }
+
+    private static int run() {
+        var backend = new InMemoryBackend();
+        var runtime = new WorkerRuntime(backend);
+        var process = new WorkerProcess(runtime);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(process::requestStop, "statespec-worker-shutdown"));
+
+        try {
+            process.start();
+            return process.join();
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            return 130;
+        } catch (Backend.BackendException error) {
+            System.err.println("statespec generated Worker process failed: " + error.getMessage());
+            return 1;
+        }
     }
 }
