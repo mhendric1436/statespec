@@ -60,6 +60,41 @@ const IrField* find_field(
     return nullptr;
 }
 
+const IrField* find_entity_field_rs(
+    const IrEntity& entity,
+    const std::string& name
+)
+{
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+std::string rust_entity_field_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    if (find_entity_field_rs(entity, field_name) == nullptr)
+    {
+        return rust_string(field_name);
+    }
+    return rust_entity_field_constant_name(entity.name, field_name);
+}
+
+std::string rust_entity_field_string_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    return rust_entity_field_expr(entity, field_name) + ".to_string()";
+}
+
 const IrEntity* create_entity_for_api_rs(
     const IrSystem& system,
     const IrApi& api
@@ -366,8 +401,8 @@ void write_rust_parent_validation(
         for (const auto& key_field : parent->key_fields)
         {
             const auto* request_field = find_field(request, key_field);
-            out << "                    EntityKeyValue { field: " << rust_string(key_field)
-                << ".to_string(), value: ";
+            out << "                    EntityKeyValue { field: "
+                << rust_entity_field_string_expr(*parent, key_field) << ", value: ";
             if (request_field == nullptr)
             {
                 out << "Json::Null";
@@ -425,20 +460,20 @@ bool write_rust_create_handler_body(
     {
         if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
-            out << "        document.insert(" << rust_string(field.name)
-                << ".to_string(), Json::String(\"0\".to_string()));\n";
+            out << "        document.insert(" << rust_entity_field_string_expr(*entity, field.name)
+                << ", Json::String(\"0\".to_string()));\n";
         }
         else if (field.name == EntityStatusFieldName)
         {
-            out << "        document.insert(" << rust_string(field.name)
-                << ".to_string(), Json::String("
-                << rust_entity_state_constant_name(entity->name, status) << ".to_string()));\n";
+            out << "        document.insert(" << rust_entity_field_string_expr(*entity, field.name)
+                << ", Json::String(" << rust_entity_state_constant_name(entity->name, status)
+                << ".to_string()));\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
         {
-            out << "        document.insert(" << rust_string(field.name) << ".to_string(), "
-                << rust_encode_expr(*request_field, "request." + field.name) << ");\n";
+            out << "        document.insert(" << rust_entity_field_string_expr(*entity, field.name)
+                << ", " << rust_encode_expr(*request_field, "request." + field.name) << ");\n";
         }
     }
     out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
@@ -514,9 +549,10 @@ bool write_rust_get_handler_body(
     out << "            vec![\n";
     for (const auto& key_field : entity->key_fields)
     {
-        out << "                EntityKeyValue { field: " << rust_string(key_field)
-            << ".to_string(), value: path_parameter_json(&path_parameters, "
-            << rust_string(key_field) << ") },\n";
+        out << "                EntityKeyValue { field: "
+            << rust_entity_field_string_expr(*entity, key_field)
+            << ", value: path_parameter_json(&path_parameters, "
+            << rust_entity_field_expr(*entity, key_field) << ") },\n";
     }
     out << "            ],\n";
     out << "        )?;\n";
@@ -533,8 +569,8 @@ bool write_rust_get_handler_body(
             for (const auto& field : shape->fields)
             {
                 out << "        if let Json::Object(document) = &record.document {\n";
-                out << "            if let Some(value) = document.get(" << rust_string(field.name)
-                    << ") {\n";
+                out << "            if let Some(value) = document.get("
+                    << rust_entity_field_expr(*entity, field.name) << ") {\n";
                 out << "                body.insert(" << rust_string(field.name)
                     << ".to_string(), value.clone());\n";
                 out << "            }\n";
@@ -599,7 +635,8 @@ bool write_rust_list_handler_body(
             if (api.path.value_or("").find("{" + field_name + "}") != std::string::npos)
             {
                 out << "                IndexValue::String(path_parameters.get("
-                    << rust_string(field_name) << ").cloned().unwrap_or_else(String::new)),\n";
+                    << rust_entity_field_expr(*entity, field_name)
+                    << ").cloned().unwrap_or_else(String::new)),\n";
             }
         }
     }
@@ -620,8 +657,8 @@ bool write_rust_list_handler_body(
         else
         {
             out << "        body.insert(" << rust_string(field.name)
-                << ".to_string(), path_parameter_json(&path_parameters, " << rust_string(field.name)
-                << "));\n";
+                << ".to_string(), path_parameter_json(&path_parameters, "
+                << rust_entity_field_expr(*entity, field.name) << "));\n";
         }
     }
     out << "        Ok(ApiResponse { status_code: 200, body: Json::Object(body) })\n";
@@ -661,9 +698,9 @@ bool write_rust_update_status_handler_body(
     for (const auto& key_field : entity->key_fields)
     {
         const auto* field = find_field(*request, key_field);
-        out << "            EntityKeyValue { field: " << rust_string(key_field)
-            << ".to_string(), value: " << rust_encode_expr(*field, "request." + key_field)
-            << " },\n";
+        out << "            EntityKeyValue { field: "
+            << rust_entity_field_string_expr(*entity, key_field)
+            << ", value: " << rust_encode_expr(*field, "request." + key_field) << " },\n";
     }
     out << "        ];\n";
     out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
@@ -683,7 +720,7 @@ bool write_rust_update_status_handler_body(
            "an object\".to_string() });\n";
     out << "        };\n";
     out << "        let current_status = match document.get("
-        << rust_string(std::string{EntityStatusFieldName}) << ") {\n";
+        << rust_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << ") {\n";
     out << "            Some(Json::String(value)) => value.clone(),\n";
     out << "            _ => return Err(BackendError::InvalidSchema { message: \"missing entity "
            "field "
@@ -704,10 +741,12 @@ bool write_rust_update_status_handler_body(
     out << "            return Err(BackendError::InvalidSchema { message: \"invalid entity status "
            "transition\".to_string() });\n";
     out << "        }\n";
-    out << "        document.insert(" << rust_string(std::string{EntityStatusFieldName})
-        << ".to_string(), Json::String(requested_status));\n";
-    out << "        document.insert(" << rust_string(std::string{EntityUpdatedAtFieldName})
-        << ".to_string(), "
+    out << "        document.insert("
+        << rust_entity_field_string_expr(*entity, std::string{EntityStatusFieldName})
+        << ", Json::String(requested_status));\n";
+    out << "        document.insert("
+        << rust_entity_field_string_expr(*entity, std::string{EntityUpdatedAtFieldName})
+        << ", "
            "Json::String(\"0\".to_string()));\n";
     out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
         << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";
@@ -730,8 +769,8 @@ bool write_rust_update_status_handler_body(
             for (const auto& field : shape->fields)
             {
                 out << "        if let Json::Object(document) = &updated.document {\n";
-                out << "            if let Some(value) = document.get(" << rust_string(field.name)
-                    << ") {\n";
+                out << "            if let Some(value) = document.get("
+                    << rust_entity_field_expr(*entity, field.name) << ") {\n";
                 out << "                body.insert(" << rust_string(field.name)
                     << ".to_string(), value.clone());\n";
                 out << "            }\n";
@@ -774,9 +813,10 @@ bool write_rust_delete_handler_body(
     out << "        let key_values = vec![\n";
     for (const auto& key_field : entity->key_fields)
     {
-        out << "            EntityKeyValue { field: " << rust_string(key_field)
-            << ".to_string(), value: path_parameter_json(&path_parameters, "
-            << rust_string(key_field) << ") },\n";
+        out << "            EntityKeyValue { field: "
+            << rust_entity_field_string_expr(*entity, key_field)
+            << ", value: path_parameter_json(&path_parameters, "
+            << rust_entity_field_expr(*entity, key_field) << ") },\n";
     }
     out << "        ];\n";
     out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
@@ -795,7 +835,7 @@ bool write_rust_delete_handler_body(
            "be an object\".to_string() });\n";
     out << "        };\n";
     out << "        let current_status = match document.get("
-        << rust_string(std::string{EntityStatusFieldName}) << ") {\n";
+        << rust_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << ") {\n";
     out << "            Some(Json::String(value)) => value.clone(),\n";
     out << "            _ => return Err(BackendError::InvalidSchema { message: \"missing entity "
            "field status\".to_string() }),\n";
@@ -816,10 +856,12 @@ bool write_rust_delete_handler_body(
     out << "            return Err(BackendError::InvalidSchema { message: \"invalid entity delete "
            "transition\".to_string() });\n";
     out << "        }\n";
-    out << "        document.insert(" << rust_string(std::string{EntityStatusFieldName})
-        << ".to_string(), Json::String(requested_status));\n";
-    out << "        document.insert(" << rust_string(std::string{EntityUpdatedAtFieldName})
-        << ".to_string(), "
+    out << "        document.insert("
+        << rust_entity_field_string_expr(*entity, std::string{EntityStatusFieldName})
+        << ", Json::String(requested_status));\n";
+    out << "        document.insert("
+        << rust_entity_field_string_expr(*entity, std::string{EntityUpdatedAtFieldName})
+        << ", "
            "Json::String(\"0\".to_string()));\n";
     out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
         << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";

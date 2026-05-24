@@ -60,6 +60,33 @@ const IrField* find_field(
     return nullptr;
 }
 
+const IrField* find_entity_field(
+    const IrEntity& entity,
+    const std::string& name
+)
+{
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+std::string cpp_entity_field_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    if (find_entity_field(entity, field_name) == nullptr)
+    {
+        return cpp_string(field_name);
+    }
+    return cpp_entity_field_constant_name(entity.name, field_name);
+}
+
 const IrEntity* create_entity_for_api(
     const IrSystem& system,
     const IrApi& api
@@ -334,17 +361,23 @@ std::string cpp_create_response_assignment(
 
 std::string cpp_record_response_assignment(
     const IrField& field,
+    const IrEntity& entity,
     const std::string& record_expr
 )
 {
     return cpp_decode_expr(
-        field, "require_member(" + record_expr + ".document, " + cpp_string(field.name) + ")"
+        field, "require_member(" + record_expr + ".document, " +
+                   cpp_entity_field_expr(entity, field.name) + ")"
     );
 }
 
-std::string cpp_path_value(const std::string& field_name)
+std::string cpp_path_value(
+    const IrEntity& entity,
+    const std::string& field_name
+)
 {
-    return "path_parameter_json(path_parameters, " + cpp_string(field_name) + ")";
+    return "path_parameter_json(path_parameters, " + cpp_entity_field_expr(entity, field_name) +
+           ")";
 }
 
 void write_cpp_parent_validation(
@@ -375,12 +408,14 @@ void write_cpp_parent_validation(
             const auto* request_field = find_field(request, key_field);
             if (request_field == nullptr)
             {
-                out << "                    EntityKeyValue{" << cpp_string(key_field)
+                out << "                    EntityKeyValue{"
+                    << cpp_entity_field_expr(*parent, key_field)
                     << ", statespec::backend::Json::null()},\n";
             }
             else
             {
-                out << "                    EntityKeyValue{" << cpp_string(key_field) << ", "
+                out << "                    EntityKeyValue{"
+                    << cpp_entity_field_expr(*parent, key_field) << ", "
                     << cpp_json_expr(*request_field, "request." + key_field) << "},\n";
             }
         }
@@ -433,19 +468,19 @@ bool write_cpp_create_handler_body(
     {
         if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
-            out << "            document[" << cpp_string(field.name)
+            out << "            document[" << cpp_entity_field_expr(*entity, field.name)
                 << "] = statespec::backend::Json{generated_api_timestamp()};\n";
         }
         else if (field.name == EntityStatusFieldName)
         {
-            out << "            document[" << cpp_string(field.name)
+            out << "            document[" << cpp_entity_field_expr(*entity, field.name)
                 << "] = statespec::backend::Json{"
                 << cpp_entity_state_constant_name(entity->name, status) << "};\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
         {
-            out << "            document[" << cpp_string(field.name)
+            out << "            document[" << cpp_entity_field_expr(*entity, field.name)
                 << "] = " << cpp_json_expr(*request_field, "request." + field.name) << ";\n";
         }
     }
@@ -512,8 +547,8 @@ bool write_cpp_get_handler_body(
     out << "                {\n";
     for (const auto& key_field : entity->key_fields)
     {
-        out << "                    EntityKeyValue{" << cpp_string(key_field) << ", "
-            << cpp_path_value(key_field) << "},\n";
+        out << "                    EntityKeyValue{" << cpp_entity_field_expr(*entity, key_field)
+            << ", " << cpp_path_value(*entity, key_field) << "},\n";
     }
     out << "                }\n";
     out << "            );\n";
@@ -531,7 +566,7 @@ bool write_cpp_get_handler_body(
             for (const auto& field : shape->fields)
             {
                 out << "            response." << field.name << " = "
-                    << cpp_record_response_assignment(field, "record.value()") << ";\n";
+                    << cpp_record_response_assignment(field, *entity, "record.value()") << ";\n";
             }
             out << "            return encode_" << snake_identifier(api.name)
                 << "_response(response, 200);\n";
@@ -598,7 +633,7 @@ bool write_cpp_list_handler_body(
             {
                 out << "                    statespec::backend::IndexValue::string_value("
                        "path_parameter_json(path_parameters, "
-                    << cpp_string(field_name) << ").as_string()),\n";
+                    << cpp_entity_field_expr(*entity, field_name) << ").as_string()),\n";
             }
         }
     }
@@ -621,7 +656,7 @@ bool write_cpp_list_handler_body(
         else
         {
             out << "            body.emplace(" << cpp_string(field.name) << ", "
-                << cpp_path_value(field.name) << ");\n";
+                << cpp_path_value(*entity, field.name) << ");\n";
         }
     }
     out << "            return ApiResponse{200, "
@@ -669,8 +704,8 @@ bool write_cpp_update_status_handler_body(
     for (const auto& key_field : entity->key_fields)
     {
         const auto* field = find_field(*request, key_field);
-        out << "                EntityKeyValue{" << cpp_string(key_field) << ", "
-            << cpp_json_expr(*field, "request." + key_field) << "},\n";
+        out << "                EntityKeyValue{" << cpp_entity_field_expr(*entity, key_field)
+            << ", " << cpp_json_expr(*field, "request." + key_field) << "},\n";
     }
     out << "            };\n";
     out << "            const auto record = repository.getTx(*tx, key_values);\n";
@@ -681,8 +716,8 @@ bool write_cpp_update_status_handler_body(
     out << "            }\n";
     out << "            const auto current_status = decode_string(\n";
     out << "                require_member(record->document, "
-        << cpp_string(std::string{EntityStatusFieldName}) << "), "
-        << cpp_string(std::string{EntityStatusFieldName}) << "\n";
+        << cpp_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "), "
+        << cpp_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "\n";
     out << "            );\n";
     out << "            const auto requested_status = request.status;\n";
     out << "            const bool transition_allowed = current_status == requested_status";
@@ -701,9 +736,11 @@ bool write_cpp_update_status_handler_body(
            "transition\");\n";
     out << "            }\n";
     out << "            auto document = record->document.as_object();\n";
-    out << "            document[" << cpp_string(std::string{EntityStatusFieldName})
+    out << "            document["
+        << cpp_entity_field_expr(*entity, std::string{EntityStatusFieldName})
         << "] = statespec::backend::Json{requested_status};\n";
-    out << "            document[" << cpp_string(std::string{EntityUpdatedAtFieldName})
+    out << "            document["
+        << cpp_entity_field_expr(*entity, std::string{EntityUpdatedAtFieldName})
         << "] = "
            "statespec::backend::Json{generated_api_timestamp()};\n";
     out << "            const auto updated = repository.updateTx(\n";
@@ -726,7 +763,7 @@ bool write_cpp_update_status_handler_body(
             for (const auto& field : shape->fields)
             {
                 out << "            response." << field.name << " = "
-                    << cpp_record_response_assignment(field, "updated.value()") << ";\n";
+                    << cpp_record_response_assignment(field, *entity, "updated.value()") << ";\n";
             }
             out << "            return encode_" << snake_identifier(api.name)
                 << "_response(response, 200);\n";
@@ -773,8 +810,8 @@ bool write_cpp_delete_handler_body(
     out << "            std::vector<EntityKeyValue> key_values{\n";
     for (const auto& key_field : entity->key_fields)
     {
-        out << "                EntityKeyValue{" << cpp_string(key_field) << ", "
-            << cpp_path_value(key_field) << "},\n";
+        out << "                EntityKeyValue{" << cpp_entity_field_expr(*entity, key_field)
+            << ", " << cpp_path_value(*entity, key_field) << "},\n";
     }
     out << "            };\n";
     out << "            const auto record = repository.getTx(*tx, key_values);\n";
@@ -785,8 +822,8 @@ bool write_cpp_delete_handler_body(
     out << "            }\n";
     out << "            const auto current_status = decode_string(\n";
     out << "                require_member(record->document, "
-        << cpp_string(std::string{EntityStatusFieldName}) << "), "
-        << cpp_string(std::string{EntityStatusFieldName}) << "\n";
+        << cpp_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "), "
+        << cpp_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "\n";
     out << "            );\n";
     out << "            const auto requested_status = std::string{"
         << cpp_entity_state_constant_name(entity->name, *delete_state) << "};\n";
@@ -806,9 +843,11 @@ bool write_cpp_delete_handler_body(
            "transition\");\n";
     out << "            }\n";
     out << "            auto document = record->document.as_object();\n";
-    out << "            document[" << cpp_string(std::string{EntityStatusFieldName})
+    out << "            document["
+        << cpp_entity_field_expr(*entity, std::string{EntityStatusFieldName})
         << "] = statespec::backend::Json{requested_status};\n";
-    out << "            document[" << cpp_string(std::string{EntityUpdatedAtFieldName})
+    out << "            document["
+        << cpp_entity_field_expr(*entity, std::string{EntityUpdatedAtFieldName})
         << "] = "
            "statespec::backend::Json{generated_api_timestamp()};\n";
     out << "            const auto updated = repository.updateTx(\n";

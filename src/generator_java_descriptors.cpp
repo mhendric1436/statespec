@@ -61,6 +61,33 @@ const IrField* find_field(
     return nullptr;
 }
 
+const IrField* find_entity_field_java(
+    const IrEntity& entity,
+    const std::string& name
+)
+{
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+std::string java_entity_field_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    if (find_entity_field_java(entity, field_name) == nullptr)
+    {
+        return java_string(field_name);
+    }
+    return "Descriptors." + java_entity_field_constant_name(entity.name, field_name);
+}
+
 const IrEntity* create_entity_for_api_java(
     const IrSystem& system,
     const IrApi& api
@@ -379,7 +406,7 @@ void write_java_parent_validation(
             const auto& key_field = parent->key_fields[i];
             const auto* request_field = find_field(request, key_field);
             out << "                        new Descriptors.EntityKeyValue("
-                << java_string(key_field) << ", ";
+                << java_entity_field_expr(*parent, key_field) << ", ";
             if (request_field == nullptr)
             {
                 out << "com.statespec.backend.Json.nullValue()";
@@ -440,20 +467,21 @@ bool write_java_create_handler_body(
     {
         if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
-            out << "                document.put(" << java_string(field.name)
+            out << "                document.put(" << java_entity_field_expr(*entity, field.name)
                 << ", com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
         }
         else if (field.name == EntityStatusFieldName)
         {
-            out << "                document.put(" << java_string(field.name)
+            out << "                document.put(" << java_entity_field_expr(*entity, field.name)
                 << ", com.statespec.backend.Json.string(Descriptors."
                 << java_entity_state_constant_name(entity->name, status) << "));\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
         {
-            out << "                document.put(" << java_string(field.name) << ", "
-                << java_api_json_expr(*request_field, "request." + field.name + "()") << ");\n";
+            out << "                document.put(" << java_entity_field_expr(*entity, field.name)
+                << ", " << java_api_json_expr(*request_field, "request." + field.name + "()")
+                << ");\n";
         }
     }
     out << "                var record = repository.createTx(\n";
@@ -531,8 +559,9 @@ bool write_java_get_handler_body(
     for (std::size_t i = 0; i < entity->key_fields.size(); ++i)
     {
         const auto& key_field = entity->key_fields[i];
-        out << "                        new Descriptors.EntityKeyValue(" << java_string(key_field)
-            << ", pathParameterJson(pathParameters, " << java_string(key_field) << "))"
+        out << "                        new Descriptors.EntityKeyValue("
+            << java_entity_field_expr(*entity, key_field) << ", pathParameterJson(pathParameters, "
+            << java_entity_field_expr(*entity, key_field) << "))"
             << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
     }
     out << "                    )\n";
@@ -556,14 +585,14 @@ bool write_java_get_handler_body(
                 if (is_optional_type(field.type))
                 {
                     out << "Optional.of(ApiCodecs." << java_decode_func(field) << "(document.find("
-                        << java_string(field.name) << ").orElseThrow(), " << java_string(field.name)
-                        << "))";
+                        << java_entity_field_expr(*entity, field.name) << ").orElseThrow(), "
+                        << java_entity_field_expr(*entity, field.name) << "))";
                 }
                 else
                 {
                     out << "ApiCodecs." << java_decode_func(field) << "(document.find("
-                        << java_string(field.name) << ").orElseThrow(), " << java_string(field.name)
-                        << ")";
+                        << java_entity_field_expr(*entity, field.name) << ").orElseThrow(), "
+                        << java_entity_field_expr(*entity, field.name) << ")";
                 }
                 out << (i + 1 < shape->fields.size() ? "," : "") << "\n";
             }
@@ -641,7 +670,7 @@ bool write_java_list_handler_body(
                 out << "                        new "
                        "com.statespec.backend.Backend.IndexValue.StringValue("
                        "pathParameters.getOrDefault("
-                    << java_string(field_name) << ", \"\"))";
+                    << java_entity_field_expr(*entity, field_name) << ", \"\"))";
                 wrote_value = true;
             }
         }
@@ -667,7 +696,8 @@ bool write_java_list_handler_body(
         else
         {
             out << "                body.put(" << java_string(field.name)
-                << ", pathParameterJson(pathParameters, " << java_string(field.name) << "));\n";
+                << ", pathParameterJson(pathParameters, "
+                << java_entity_field_expr(*entity, field.name) << "));\n";
         }
     }
     out << "                return new Descriptors.ApiResponse(200, "
@@ -715,8 +745,9 @@ bool write_java_update_status_handler_body(
     {
         const auto& key_field = entity->key_fields[i];
         const auto* field = find_field(*request, key_field);
-        out << "                    new Descriptors.EntityKeyValue(" << java_string(key_field)
-            << ", " << java_api_json_expr(*field, "request." + key_field + "()") << ")"
+        out << "                    new Descriptors.EntityKeyValue("
+            << java_entity_field_expr(*entity, key_field) << ", "
+            << java_api_json_expr(*field, "request." + key_field + "()") << ")"
             << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
     }
     out << "                );\n";
@@ -728,8 +759,9 @@ bool write_java_update_status_handler_body(
     out << "                }\n";
     out << "                var currentStatus = ApiCodecs.decodeString(\n";
     out << "                    record.get().document().find("
-        << java_string(std::string{EntityStatusFieldName}) << ").orElseThrow(), "
-        << java_string(std::string{EntityStatusFieldName}) << "\n";
+        << java_entity_field_expr(*entity, std::string{EntityStatusFieldName})
+        << ").orElseThrow(), "
+        << java_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "\n";
     out << "                );\n";
     out << "                var requestedStatus = request.status();\n";
     out << "                var transitionAllowed = currentStatus.equals(requestedStatus)";
@@ -753,10 +785,12 @@ bool write_java_update_status_handler_body(
     out << "                }\n";
     out << "                var document = new java.util.HashMap<String, "
            "com.statespec.backend.Json>(objectValue.values());\n";
-    out << "                document.put(" << java_string(std::string{EntityStatusFieldName})
+    out << "                document.put("
+        << java_entity_field_expr(*entity, std::string{EntityStatusFieldName})
         << ", "
            "com.statespec.backend.Json.string(requestedStatus));\n";
-    out << "                document.put(" << java_string(std::string{EntityUpdatedAtFieldName})
+    out << "                document.put("
+        << java_entity_field_expr(*entity, std::string{EntityUpdatedAtFieldName})
         << ", "
            "com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
     out << "                var updated = repository.updateTx(\n";
@@ -784,14 +818,15 @@ bool write_java_update_status_handler_body(
                 if (is_optional_type(field.type))
                 {
                     out << "Optional.of(ApiCodecs." << java_decode_func(field)
-                        << "(responseDocument.find(" << java_string(field.name)
-                        << ").orElseThrow(), " << java_string(field.name) << "))";
+                        << "(responseDocument.find(" << java_entity_field_expr(*entity, field.name)
+                        << ").orElseThrow(), " << java_entity_field_expr(*entity, field.name)
+                        << "))";
                 }
                 else
                 {
                     out << "ApiCodecs." << java_decode_func(field) << "(responseDocument.find("
-                        << java_string(field.name) << ").orElseThrow(), " << java_string(field.name)
-                        << ")";
+                        << java_entity_field_expr(*entity, field.name) << ").orElseThrow(), "
+                        << java_entity_field_expr(*entity, field.name) << ")";
                 }
                 out << (i + 1 < shape->fields.size() ? "," : "") << "\n";
             }
@@ -843,8 +878,9 @@ bool write_java_delete_handler_body(
     for (std::size_t i = 0; i < entity->key_fields.size(); ++i)
     {
         const auto& key_field = entity->key_fields[i];
-        out << "                    new Descriptors.EntityKeyValue(" << java_string(key_field)
-            << ", pathParameterJson(pathParameters, " << java_string(key_field) << "))"
+        out << "                    new Descriptors.EntityKeyValue("
+            << java_entity_field_expr(*entity, key_field) << ", pathParameterJson(pathParameters, "
+            << java_entity_field_expr(*entity, key_field) << "))"
             << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
     }
     out << "                );\n";
@@ -856,8 +892,9 @@ bool write_java_delete_handler_body(
     out << "                }\n";
     out << "                var currentStatus = ApiCodecs.decodeString(\n";
     out << "                    record.get().document().find("
-        << java_string(std::string{EntityStatusFieldName}) << ").orElseThrow(), "
-        << java_string(std::string{EntityStatusFieldName}) << "\n";
+        << java_entity_field_expr(*entity, std::string{EntityStatusFieldName})
+        << ").orElseThrow(), "
+        << java_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "\n";
     out << "                );\n";
     out << "                var requestedStatus = Descriptors."
         << java_entity_state_constant_name(entity->name, *delete_state) << ";\n";
@@ -882,10 +919,12 @@ bool write_java_delete_handler_body(
     out << "                }\n";
     out << "                var document = new java.util.HashMap<String, "
            "com.statespec.backend.Json>(objectValue.values());\n";
-    out << "                document.put(" << java_string(std::string{EntityStatusFieldName})
+    out << "                document.put("
+        << java_entity_field_expr(*entity, std::string{EntityStatusFieldName})
         << ", "
            "com.statespec.backend.Json.string(requestedStatus));\n";
-    out << "                document.put(" << java_string(std::string{EntityUpdatedAtFieldName})
+    out << "                document.put("
+        << java_entity_field_expr(*entity, std::string{EntityUpdatedAtFieldName})
         << ", "
            "com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
     out << "                var updated = repository.updateTx(\n";
