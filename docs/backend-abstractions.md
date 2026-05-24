@@ -203,6 +203,11 @@ queries. API and worker application code should call the generated entity reposi
 surface, not hard-code collection names or raw index names. The generated repository
 helper selects the collection descriptor, index name, key encoding, and `IndexValue`
 ordering, then issues a generic backend query through the caller's transaction.
+Generated repository helper implementations should pass generated index-name constants
+to the generic query path. The string literal for a declared index belongs in exactly
+one generated constant definition for the target language; repository helpers, API
+handlers, GC/runtime metadata, and tests should reference that constant where the
+constant exists.
 
 For list APIs, generated handlers choose the declared index whose leading fields best
 match path parameters. A route such as `/tenants/{tenant_id}/accounts/{account_id}/tasks`

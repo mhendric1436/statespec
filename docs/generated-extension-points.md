@@ -151,6 +151,12 @@ rather than embedding raw index names in API code. The repository then translate
 typed generated surface into generic OCC backend queries within the caller-managed
 transaction.
 
+Generated constants are the canonical spelling source for entity metadata in binding
+output. Entity names, field names, state values, and index names are emitted once and
+then reused by descriptors, repository helpers, generated API handlers, GC metadata, and
+runtime helpers. User extension code should prefer those constants over repeating raw
+strings when it interacts with generated repositories or descriptor values.
+
 Typed operation handlers are the canonical API extension point. StateSpec does not
 generate a parallel generic API handler path; each declared API operation maps to one
 generated handler method and one dispatcher branch.

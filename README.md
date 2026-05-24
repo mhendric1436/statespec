@@ -369,6 +369,9 @@ own collection descriptor registration, key encoding, declared index names, and
 index-value ordering, while backend implementations remain generic OCC
 collection/document stores. Generated API list handlers call named repository helpers
 for declared indexes instead of embedding raw backend index names directly.
+Generated bindings also emit entity, field, state, and index constants and reuse those
+constants across descriptors, repositories, API handlers, GC metadata, and runtime
+helpers so host-language compilers can catch stale entity metadata references.
 
 ---
 

@@ -1033,6 +1033,8 @@ Prefer declaring repeated static strings once as named constants and using those
 
 The goal is to let the compiler catch misspellings and stale references where the host language supports it, instead of scattering unchecked string literals across parser, validator, IR, generator, runtime, and test code.
 
+Generated binding code must follow the same rule. Entity names, entity field names, entity state values, and entity index names should be emitted once as generated constants and then reused by descriptors, repositories, API handlers, GC metadata, and runtime helper code. In particular, generated index helper implementations must call the generic index query path with generated index-name constants, not repeated raw index-name literals.
+
 Use local string literals only when the value is genuinely one-off, clearer inline, or part of test data that is intentionally asserting exact generated output.
 
 ---
