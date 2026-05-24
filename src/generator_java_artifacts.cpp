@@ -4,6 +4,7 @@
 #include "generator_java_descriptor_support.hpp"
 #include "generator_java_descriptors.hpp"
 #include "generator_support.hpp"
+#include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
 #include <filesystem>
@@ -30,6 +31,30 @@ std::string java_makefile_source_list(const std::vector<std::string>& sources)
         out << " \\\n  " << source;
     }
     return out.str();
+}
+
+std::string java_entity_descriptor_module_class_name(std::string_view entity_name)
+{
+    return pascal_identifier(std::string{entity_name}) + "DescriptorModule";
+}
+
+std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
+{
+    std::vector<std::string> sources{
+        "common/com/statespec/generated/descriptors/CoreDescriptorModule.java",
+        "common/com/statespec/generated/descriptors/ShapeDescriptorModule.java",
+        "common/com/statespec/generated/descriptors/ApiDescriptorModule.java",
+        "common/com/statespec/generated/descriptors/WorkerDescriptorModule.java",
+        "common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java",
+    };
+    for (const auto& entity : system.entities)
+    {
+        sources.push_back(
+            "common/com/statespec/generated/descriptors/entities/" +
+            java_entity_descriptor_module_class_name(entity.name) + ".java"
+        );
+    }
+    return sources;
 }
 
 TemplateRenderer::Values java_makefile_values(
@@ -62,6 +87,10 @@ TemplateRenderer::Values java_makefile_values(
         "common/com/statespec/backend/memory/InMemoryTransaction.java",
         "common/com/statespec/generated/Descriptors.java",
     };
+    for (const auto& source : java_descriptor_module_sources(system))
+    {
+        common_sources.push_back(source);
+    }
     auto add_common = [&](bool used, std::string source)
     {
         if (used)
@@ -358,6 +387,83 @@ void add_java_generated_template_file(
     );
 }
 
+TemplateRenderer::Values java_descriptor_module_values(
+    std::string_view package_name,
+    std::string_view class_name,
+    std::string_view module_name
+)
+{
+    return TemplateRenderer::Values{
+        {"descriptor_module_package", std::string{package_name}},
+        {"descriptor_module_class", std::string{class_name}},
+        {"descriptor_module_name", std::string{module_name}},
+    };
+}
+
+void add_java_descriptor_module_artifact(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    const std::filesystem::path& relative_output_path,
+    std::string_view package_name,
+    std::string_view class_name,
+    std::string_view module_name,
+    DiagnosticBag& diagnostics
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates,
+        generated_template_path("DescriptorModule.java.tmpl"),
+        common_artifact_path(relative_output_path.generic_string()), diagnostics,
+        GeneratedArtifactTier::Common,
+        java_descriptor_module_values(package_name, class_name, module_name)
+    );
+}
+
+void add_java_descriptor_module_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    const IrSystem& system,
+    DiagnosticBag& diagnostics
+)
+{
+    const auto descriptor_package_path =
+        join_artifact_path(GeneratedJavaOutputPackagePath, "descriptors");
+    const auto entity_descriptor_package_path = descriptor_package_path / "entities";
+    const std::string descriptor_package = "com.statespec.generated.descriptors";
+    const std::string entity_descriptor_package = descriptor_package + ".entities";
+
+    add_java_descriptor_module_artifact(
+        result, options, templates, descriptor_package_path / "CoreDescriptorModule.java",
+        descriptor_package, "CoreDescriptorModule", "core descriptors", diagnostics
+    );
+    add_java_descriptor_module_artifact(
+        result, options, templates, descriptor_package_path / "ShapeDescriptorModule.java",
+        descriptor_package, "ShapeDescriptorModule", "shape descriptors", diagnostics
+    );
+    add_java_descriptor_module_artifact(
+        result, options, templates, descriptor_package_path / "ApiDescriptorModule.java",
+        descriptor_package, "ApiDescriptorModule", "API descriptors", diagnostics
+    );
+    add_java_descriptor_module_artifact(
+        result, options, templates, descriptor_package_path / "WorkerDescriptorModule.java",
+        descriptor_package, "WorkerDescriptorModule", "worker descriptors", diagnostics
+    );
+    add_java_descriptor_module_artifact(
+        result, options, templates, descriptor_package_path / "RuntimeDescriptorModule.java",
+        descriptor_package, "RuntimeDescriptorModule", "runtime descriptors", diagnostics
+    );
+    for (const auto& entity : system.entities)
+    {
+        const auto class_name = java_entity_descriptor_module_class_name(entity.name);
+        add_java_descriptor_module_artifact(
+            result, options, templates, entity_descriptor_package_path / (class_name + ".java"),
+            entity_descriptor_package, class_name, "entity descriptor " + entity.name, diagnostics
+        );
+    }
+}
+
 } // namespace
 
 void add_java_common_runtime_artifacts(
@@ -527,6 +633,11 @@ void add_java_common_runtime_artifacts(
             result, options.output_dir, templates, output_root / "runtime" / "EntityGcWorkers.java",
             output_root / "runtime" / "EntityGcWorkers.java", diagnostics
         );
+    }
+    add_java_descriptor_module_artifacts(result, options, templates, system, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        return;
     }
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("Descriptors.java.tmpl"),

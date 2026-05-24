@@ -55,6 +55,12 @@ common/com/statespec/backend/runtime/QueueStore.java
 common/com/statespec/backend/runtime/WorkflowCodec.java
 common/com/statespec/backend/runtime/WorkflowStore.java
 common/com/statespec/generated/Descriptors.java
+common/com/statespec/generated/descriptors/ApiDescriptorModule.java
+common/com/statespec/generated/descriptors/CoreDescriptorModule.java
+common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
+common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
+common/com/statespec/generated/descriptors/WorkerDescriptorModule.java
+common/com/statespec/generated/descriptors/entities/ServiceInstanceDescriptorModule.java
 worker/com/statespec/generated/WorkerApplication.java
 worker/com/statespec/generated/WorkerContexts.java
 worker/com/statespec/generated/WorkerDescriptors.java

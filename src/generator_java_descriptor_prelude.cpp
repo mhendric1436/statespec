@@ -8,6 +8,27 @@
 namespace statespec
 {
 
+namespace
+{
+
+std::string java_descriptor_module_imports(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "import com.statespec.generated.descriptors.ApiDescriptorModule;\n";
+    out << "import com.statespec.generated.descriptors.CoreDescriptorModule;\n";
+    out << "import com.statespec.generated.descriptors.RuntimeDescriptorModule;\n";
+    out << "import com.statespec.generated.descriptors.ShapeDescriptorModule;\n";
+    out << "import com.statespec.generated.descriptors.WorkerDescriptorModule;\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "import com.statespec.generated.descriptors.entities."
+            << pascal_identifier(entity.name) << "DescriptorModule;\n";
+    }
+    return out.str();
+}
+
+} // namespace
+
 std::string generate_java_descriptor_prelude(
     const IrSystem& system,
     const std::string& external_system_runtime,
@@ -17,6 +38,7 @@ std::string generate_java_descriptor_prelude(
 {
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
+    out << java_descriptor_module_imports(system);
     out << "import com.statespec.backend.Backend;\n";
     out << "import com.statespec.backend.ExternalSystem;\n";
     out << "import com.statespec.backend.FeatureFlag;\n";
