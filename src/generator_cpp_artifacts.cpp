@@ -121,6 +121,7 @@ TemplateRenderer::Values cpp_makefile_values(
         if (include_worker_composition)
         {
             worker_rules << "#include \"worker/worker_application.hpp\"\\n"
+                            "#include \"worker/worker_process.hpp\"\\n"
                             "#include \"worker/worker_runtime.hpp\"\\n";
         }
         if (usage.uses_leases)
@@ -576,6 +577,10 @@ void add_cpp_worker_artifacts(
         add_cpp_generated_template_file(
             result, options, templates, "worker/worker_application.hpp",
             GeneratedArtifactTier::Worker, diagnostics
+        );
+        add_cpp_generated_template_file(
+            result, options, templates, "worker/worker_process.hpp", GeneratedArtifactTier::Worker,
+            diagnostics
         );
         add_cpp_generated_template_file(
             result, options, templates, "worker/worker_runtime.hpp", GeneratedArtifactTier::Worker,

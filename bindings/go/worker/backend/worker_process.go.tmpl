@@ -1,0 +1,27 @@
+package backend
+
+type WorkerProcessConfig struct {
+	BootstrapOnStart bool
+}
+
+func DefaultWorkerProcessConfig() WorkerProcessConfig {
+	return WorkerProcessConfig{
+		BootstrapOnStart: true,
+	}
+}
+
+type WorkerProcess struct {
+	Runtime *WorkerTierRuntime
+	Config  WorkerProcessConfig
+}
+
+func NewWorkerProcess(runtime *WorkerTierRuntime) *WorkerProcess {
+	return NewWorkerProcessWithConfig(runtime, DefaultWorkerProcessConfig())
+}
+
+func NewWorkerProcessWithConfig(runtime *WorkerTierRuntime, config WorkerProcessConfig) *WorkerProcess {
+	return &WorkerProcess{
+		Runtime: runtime,
+		Config:  config,
+	}
+}

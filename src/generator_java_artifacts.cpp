@@ -130,6 +130,7 @@ TemplateRenderer::Values java_makefile_values(
         if (include_worker_composition)
         {
             worker_sources.push_back("worker/com/statespec/generated/WorkerApplication.java");
+            worker_sources.push_back("worker/com/statespec/generated/WorkerProcess.java");
             worker_sources.push_back("worker/com/statespec/generated/WorkerRuntime.java");
             worker_sources.push_back("worker/com/statespec/generated/WorkerMain.java");
         }
@@ -629,6 +630,10 @@ void add_java_worker_artifacts(
     {
         add_java_generated_template_file(
             result, options, templates, java_worker_generated_path("WorkerApplication.java"),
+            GeneratedArtifactTier::Worker, diagnostics
+        );
+        add_java_generated_template_file(
+            result, options, templates, java_worker_generated_path("WorkerProcess.java"),
             GeneratedArtifactTier::Worker, diagnostics
         );
         add_java_generated_template_file(

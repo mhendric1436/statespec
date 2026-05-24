@@ -93,6 +93,10 @@ void test_binding_app_artifact_kind_names()
         "worker_application", "worker application artifact kind name"
     );
     require_string_equal(
+        statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::WorkerProcess),
+        "worker_process", "worker process artifact kind name"
+    );
+    require_string_equal(
         statespec::binding_app_artifact_kind_name(statespec::BindingAppArtifactKind::WorkerMain),
         "worker_main", "worker main artifact kind name"
     );
@@ -136,6 +140,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/api_handler_registry.hpp", api, Kind::ApiHandlerRegistry},
             {"api/main.cpp", api, Kind::ApiMain},
             {"worker/worker_application.hpp", worker, Kind::WorkerApplication, true},
+            {"worker/worker_process.hpp", worker, Kind::WorkerProcess, true},
             {"worker/worker_runtime.hpp", worker, Kind::WorkerRuntime},
             {"worker/worker_registry.hpp", worker, Kind::WorkerRegistry, true},
             {"worker/workflow_runner.hpp", worker, Kind::WorkflowRunner, true},
@@ -176,6 +181,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/backend/api_handler_registry.go", api, Kind::ApiHandlerRegistry},
             {"api/cmd/api/main.go", api, Kind::ApiMain},
             {"worker/backend/worker_application.go", worker, Kind::WorkerApplication, true},
+            {"worker/backend/worker_process.go", worker, Kind::WorkerProcess, true},
             {"worker/backend/worker_runtime.go", worker, Kind::WorkerRuntime},
             {"worker/backend/worker_registry.go", worker, Kind::WorkerRegistry, true},
             {"worker/backend/workflow_runner.go", worker, Kind::WorkflowRunner, true},
@@ -227,6 +233,8 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/com/statespec/generated/ApiMain.java", api, Kind::ApiMain},
             {"worker/com/statespec/generated/WorkerApplication.java", worker,
              Kind::WorkerApplication, true},
+            {"worker/com/statespec/generated/WorkerProcess.java", worker, Kind::WorkerProcess,
+             true},
             {"worker/com/statespec/generated/WorkerRuntime.java", worker, Kind::WorkerRuntime},
             {"worker/com/statespec/generated/WorkerRegistry.java", worker, Kind::WorkerRegistry,
              true},
@@ -269,6 +277,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"api/api_handler_registry.rs", api, Kind::ApiHandlerRegistry},
             {"api/main.rs", api, Kind::ApiMain},
             {"worker/worker_application.rs", worker, Kind::WorkerApplication, true},
+            {"worker/worker_process.rs", worker, Kind::WorkerProcess, true},
             {"worker/worker_runtime.rs", worker, Kind::WorkerRuntime},
             {"worker/worker_registry.rs", worker, Kind::WorkerRegistry, true},
             {"worker/workflow_runner.rs", worker, Kind::WorkflowRunner, true},

@@ -51,6 +51,7 @@ enum class BindingAppArtifactKind
     ApiHandlerRegistry,
     ApiMain,
     WorkerApplication,
+    WorkerProcess,
     WorkerRuntime,
     WorkerRegistry,
     WorkflowRunner,

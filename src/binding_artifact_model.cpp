@@ -47,6 +47,8 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "api_main";
     case BindingAppArtifactKind::WorkerApplication:
         return "worker_application";
+    case BindingAppArtifactKind::WorkerProcess:
+        return "worker_process";
     case BindingAppArtifactKind::WorkerRuntime:
         return "worker_runtime";
     case BindingAppArtifactKind::WorkerRegistry:
@@ -124,6 +126,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"api/main.cpp", api, Kind::ApiMain, "API process entrypoint"},
             {"worker/worker_application.hpp", worker, Kind::WorkerApplication,
              "Worker application composition root", true},
+            {"worker/worker_process.hpp", worker, Kind::WorkerProcess,
+             "Worker process lifecycle runtime", true},
             {"worker/worker_runtime.hpp", worker, Kind::WorkerRuntime,
              "Worker polling and execution runtime"},
             {"worker/worker_registry.hpp", worker, Kind::WorkerRegistry,
@@ -190,6 +194,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"api/cmd/api/main.go", api, Kind::ApiMain, "API process entrypoint"},
             {"worker/backend/worker_application.go", worker, Kind::WorkerApplication,
              "Worker application composition root", true},
+            {"worker/backend/worker_process.go", worker, Kind::WorkerProcess,
+             "Worker process lifecycle runtime", true},
             {"worker/backend/worker_runtime.go", worker, Kind::WorkerRuntime,
              "Worker polling and execution runtime"},
             {"worker/backend/worker_registry.go", worker, Kind::WorkerRegistry,
@@ -258,6 +264,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "API process entrypoint"},
             {"worker/com/statespec/generated/WorkerApplication.java", worker,
              Kind::WorkerApplication, "Worker application composition root", true},
+            {"worker/com/statespec/generated/WorkerProcess.java", worker, Kind::WorkerProcess,
+             "Worker process lifecycle runtime", true},
             {"worker/com/statespec/generated/WorkerRuntime.java", worker, Kind::WorkerRuntime,
              "Worker polling and execution runtime"},
             {"worker/com/statespec/generated/WorkerRegistry.java", worker, Kind::WorkerRegistry,
@@ -322,6 +330,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
             {"api/main.rs", api, Kind::ApiMain, "API process entrypoint"},
             {"worker/worker_application.rs", worker, Kind::WorkerApplication,
              "Worker application composition root", true},
+            {"worker/worker_process.rs", worker, Kind::WorkerProcess,
+             "Worker process lifecycle runtime", true},
             {"worker/worker_runtime.rs", worker, Kind::WorkerRuntime,
              "Worker polling and execution runtime"},
             {"worker/worker_registry.rs", worker, Kind::WorkerRegistry,

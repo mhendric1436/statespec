@@ -1,0 +1,29 @@
+package com.statespec.backend.runtime;
+
+import java.util.List;
+
+public final class EntityGcDescriptors
+{
+    private EntityGcDescriptors() {}
+
+    public record TerminalState(
+        String state,
+        String after,
+        String mode
+    )
+    {
+    }
+
+    public record Descriptor(
+        String entity,
+        String collection,
+        List<TerminalState> terminalStates
+    )
+    {
+    }
+
+    public static List<Descriptor> descriptors()
+    {
+        return List.of();
+    }
+}

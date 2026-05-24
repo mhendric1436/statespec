@@ -1,0 +1,39 @@
+package com.statespec.generated;
+
+public final class WorkerProcess {
+    public static final class Config {
+        private final boolean bootstrapOnStart;
+
+        public Config(boolean bootstrapOnStart) {
+            this.bootstrapOnStart = bootstrapOnStart;
+        }
+
+        public static Config defaults() {
+            return new Config(true);
+        }
+
+        public boolean bootstrapOnStart() {
+            return bootstrapOnStart;
+        }
+    }
+
+    private final WorkerRuntime runtime;
+    private final Config config;
+
+    public WorkerProcess(WorkerRuntime runtime) {
+        this(runtime, Config.defaults());
+    }
+
+    public WorkerProcess(WorkerRuntime runtime, Config config) {
+        this.runtime = runtime;
+        this.config = config;
+    }
+
+    public WorkerRuntime runtime() {
+        return runtime;
+    }
+
+    public Config config() {
+        return config;
+    }
+}

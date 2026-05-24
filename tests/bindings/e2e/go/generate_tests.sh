@@ -60,6 +60,7 @@ worker/backend/worker_application.go
 worker/backend/worker_contexts.go
 worker/backend/worker_descriptors.go
 worker/backend/worker_leases.go
+worker/backend/worker_process.go
 worker/backend/worker_queues.go
 worker/backend/worker_registry.go
 worker/backend/worker_runtime.go

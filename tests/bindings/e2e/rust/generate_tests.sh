@@ -63,6 +63,7 @@ worker/worker_application.rs
 worker/worker_contexts.rs
 worker/worker_descriptors.rs
 worker/worker_leases.rs
+worker/worker_process.rs
 worker/worker_queues.rs
 worker/worker_registry.rs
 worker/worker_runtime.rs

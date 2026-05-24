@@ -1,0 +1,30 @@
+use crate::backend::Backend;
+use crate::worker_runtime::WorkerRuntime;
+
+#[derive(Clone, Debug)]
+pub struct WorkerProcessConfig {
+    pub bootstrap_on_start: bool,
+}
+
+impl Default for WorkerProcessConfig {
+    fn default() -> Self {
+        Self {
+            bootstrap_on_start: true,
+        }
+    }
+}
+
+pub struct WorkerProcess<B: Backend> {
+    pub runtime: WorkerRuntime<B>,
+    pub config: WorkerProcessConfig,
+}
+
+impl<B: Backend> WorkerProcess<B> {
+    pub fn new(runtime: WorkerRuntime<B>) -> Self {
+        Self::with_config(runtime, WorkerProcessConfig::default())
+    }
+
+    pub fn with_config(runtime: WorkerRuntime<B>, config: WorkerProcessConfig) -> Self {
+        Self { runtime, config }
+    }
+}

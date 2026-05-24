@@ -1,0 +1,40 @@
+#pragma once
+
+#include "worker_runtime.hpp"
+
+namespace statespec_generated::worker
+{
+
+struct WorkerProcessConfig
+{
+    bool bootstrap_on_start = true;
+};
+
+class WorkerProcess
+{
+  public:
+    explicit WorkerProcess(
+        WorkerRuntime& runtime,
+        WorkerProcessConfig config = {}
+    )
+        : runtime_(runtime),
+          config_(config)
+    {
+    }
+
+    WorkerRuntime& runtime()
+    {
+        return runtime_;
+    }
+
+    const WorkerProcessConfig& config() const
+    {
+        return config_;
+    }
+
+  private:
+    WorkerRuntime& runtime_;
+    WorkerProcessConfig config_;
+};
+
+} // namespace statespec_generated::worker

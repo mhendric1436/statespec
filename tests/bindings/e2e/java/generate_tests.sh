@@ -60,6 +60,7 @@ worker/com/statespec/generated/WorkerContexts.java
 worker/com/statespec/generated/WorkerDescriptors.java
 worker/com/statespec/generated/WorkerLeases.java
 worker/com/statespec/generated/WorkerMain.java
+worker/com/statespec/generated/WorkerProcess.java
 worker/com/statespec/generated/WorkerQueues.java
 worker/com/statespec/generated/WorkerRegistry.java
 worker/com/statespec/generated/WorkerRuntime.java

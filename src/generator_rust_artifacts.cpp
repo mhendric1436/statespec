@@ -179,6 +179,8 @@ TemplateRenderer::Values rust_lib_values(
         {
             worker_modules << "#[path = \"worker/worker_application.rs\"]\n";
             worker_modules << "pub mod worker_application;\n";
+            worker_modules << "#[path = \"worker/worker_process.rs\"]\n";
+            worker_modules << "pub mod worker_process;\n";
             worker_modules << "#[path = \"worker/worker_runtime.rs\"]\n";
             worker_modules << "pub mod worker_runtime;\n";
             worker_modules << "#[path = \"worker/main.rs\"]\n";
@@ -643,6 +645,10 @@ void add_rust_worker_artifacts(
         add_rust_generated_template_file(
             result, options, templates, "worker/worker_application.rs",
             GeneratedArtifactTier::Worker, diagnostics
+        );
+        add_rust_generated_template_file(
+            result, options, templates, "worker/worker_process.rs", GeneratedArtifactTier::Worker,
+            diagnostics
         );
         add_rust_generated_template_file(
             result, options, templates, "worker/worker_runtime.rs", GeneratedArtifactTier::Worker,

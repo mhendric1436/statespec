@@ -485,6 +485,10 @@ void add_go_worker_artifacts(
             GeneratedArtifactTier::Worker, diagnostics
         );
         add_go_generated_template_file(
+            result, options, templates, "worker/backend/worker_process.go",
+            GeneratedArtifactTier::Worker, diagnostics
+        );
+        add_go_generated_template_file(
             result, options, templates, "worker/backend/worker_runtime.go",
             GeneratedArtifactTier::Worker, diagnostics, go_worker_runtime_bootstrap_values(system)
         );
