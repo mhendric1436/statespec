@@ -29,6 +29,7 @@ truth for system behavior.
 | [generators.md](generators.md) | CLI-selected binding generation and expected output layout. |
 | [generated-extension-points.md](generated-extension-points.md) | User-owned API, worker, workflow step, and operator metadata implementation boundaries. |
 | [api-process-lifecycle.md](api-process-lifecycle.md) | Cross-language generated API process threading, startup, shutdown, and join contract. |
+| [worker-process-lifecycle.md](worker-process-lifecycle.md) | Cross-language generated Worker process startup, workflow loop, GC, stop, and join contract. |
 | [backend-abstractions.md](backend-abstractions.md) | OCC-centered backend abstraction source artifacts and runtime contracts. |
 | [schema-upgrades.md](schema-upgrades.md) | Backwards-compatible collection descriptor upgrade rules for backend adapters. |
 | [runtime-store-contract.md](runtime-store-contract.md) | Backend-neutral contract for feature flag, queue, lease, workflow, log, and metric stores. |
@@ -45,11 +46,12 @@ truth for system behavior.
 5. Use the focused guides while authoring specific sections.
 6. Read [generated-extension-points.md](generated-extension-points.md) before wiring generated code into runtime applications.
 7. Read [api-process-lifecycle.md](api-process-lifecycle.md) before changing generated API startup behavior.
-8. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
-9. Read [schema-upgrades.md](schema-upgrades.md) before implementing collection registration in a backend adapter.
-10. Read [entity-gc-runtime.md](entity-gc-runtime.md) before changing generated entity GC behavior.
-11. Read [in-memory-backend.md](in-memory-backend.md) before using generated local/test backend adapters.
-12. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
+8. Read [worker-process-lifecycle.md](worker-process-lifecycle.md) before changing generated Worker startup behavior.
+9. Read [backend-abstractions.md](backend-abstractions.md) when implementing runtimes or backend adapters.
+10. Read [schema-upgrades.md](schema-upgrades.md) before implementing collection registration in a backend adapter.
+11. Read [entity-gc-runtime.md](entity-gc-runtime.md) before changing generated entity GC behavior.
+12. Read [in-memory-backend.md](in-memory-backend.md) before using generated local/test backend adapters.
+13. Use [style-guide.md](style-guide.md) before submitting `.sspec` changes for review.
 
 ## Source Of Truth
 

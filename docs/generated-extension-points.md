@@ -192,9 +192,11 @@ unaware of external-system metadata concepts.
 ## Worker Runtime Extension Point
 
 Worker runtimes are generated for declared `worker` metadata. They own local runtime
-composition for backend stores, definition registration, and one-step workflow execution
-through generated workflow runners. StateSpec no longer generates a parallel coarse
-worker handler interface.
+composition for backend stores, definition registration, GC worker registration, and
+one-step workflow execution through generated workflow runners. `WorkerProcess` owns the
+background lifecycle: bootstrap, Worker-hosted GC startup, generated workflow polling
+loops, stop, and join. StateSpec no longer generates a parallel coarse worker handler
+interface.
 
 | Language | Generated worker runtime surface |
 |---|---|
@@ -204,12 +206,15 @@ worker handler interface.
 | Rust | `worker_runtime::WorkerRuntime` |
 
 Use workflow step handlers for business logic. Production adapters may wrap or replace
-the generated runtime loop, but persisted StateSpec resources must still be accessed
-through generated backend transaction interfaces.
+the generated process entrypoint, but persisted StateSpec resources must still be
+accessed through generated backend transaction interfaces.
 
 Worker runtime config controls whether Worker-hosted entity GC workers are started.
 Worker-only deployments can leave this enabled; mixed deployments should enable GC on
 only one tier.
+
+See [worker-process-lifecycle.md](worker-process-lifecycle.md) for the cross-language
+Worker process contract.
 
 ## Workflow Step Handler Extension Point
 

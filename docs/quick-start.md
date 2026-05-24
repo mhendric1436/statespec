@@ -275,28 +275,33 @@ queues, leases, and workflows.
 
 Generated Worker code owns:
 
+- Worker process lifecycle: `start`, background workflow loops, `request_stop`, and
+  `join`.
 - Worker descriptors derived from `worker` declarations.
 - Worker registry lookup helpers.
 - Worker context records.
 - Queue, lease, and workflow descriptor views.
 - Workflow step handler interfaces.
-- Worker handler interfaces.
+- A default workflow step handler so generated apps link until user code supplies the
+  production handler.
 - Workflow runner behavior for claim, keep alive, complete, fail, and retry-visible state.
+- Entity GC worker startup and shutdown when Worker-hosted GC is enabled.
 
 User code owns:
 
-- Queue polling or scheduler integration when needed.
-- Concrete worker handlers.
 - Concrete workflow step handlers.
 - External API clients, retries, timeouts, and idempotency behavior.
 - Concrete backend adapter implementing the generated OCC interfaces.
-- Application composition root that connects descriptors, handlers, and backend stores.
+- Concrete deployment and supervisor integration around generated `main`.
 
 Workflow step handlers should be idempotent. Any persisted state read that affects a
 worker decision must happen through the generated backend transaction model, in the same
 transaction as the write or workflow/queue operation that consumes the read.
 Local Worker app tests may use the generated in-memory workflow, queue, lease, log, and
 metric stores.
+
+The generated Worker process lifecycle is documented in
+[worker-process-lifecycle.md](worker-process-lifecycle.md).
 
 ## Generated Layout By Language
 

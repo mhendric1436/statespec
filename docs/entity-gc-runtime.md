@@ -123,6 +123,12 @@ background threads or goroutines, receive stop requests through the same process
 path as the API transport, and are joined before `join()` completes. The concrete
 repository implementation that supplies eligible rows remains backend/runtime-owned.
 
+Generated Worker processes use the same lifecycle shape. `WorkerProcess.start()` starts
+Worker-hosted entity GC when enabled, starts generated workflow polling loops, and
+`WorkerProcess.join()` waits for both GC workers and workflow loops to stop. This keeps
+GC usable in API-only, Worker-only, and mixed deployments without moving GC into
+workflow code.
+
 The generated architecture diagrams show this composition:
 
 - [Generated API app architecture](../diagrams/generated-api-app-architecture.puml)

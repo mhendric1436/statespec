@@ -145,10 +145,11 @@ The worker application artifact responsibilities are:
 | Kind | Responsibility |
 |---|---|
 | `worker_application` | Worker application composition root |
-| `worker_runtime` | Store composition, definition registration, and workflow execution runtime |
+| `worker_process` | Thread/goroutine-owned Worker lifecycle: bootstrap, workflow polling loops, Worker-hosted GC, stop, and join |
+| `worker_runtime` | Store composition, definition registration, GC worker registration, and one-step workflow execution runtime |
 | `worker_registry` | Registry derived from `worker` declarations |
 | `workflow_runner` | Workflow claim, keep-alive, typed step dispatch, `transition_to` advancement, complete, fail, and retry loop |
-| `workflow_step_handlers` | Step-specific user implementation contract for declared workflow steps |
+| `workflow_step_handlers` | Step-specific user implementation contract and default linking handler for declared workflow steps |
 | `worker_main` | Worker process entrypoint |
 
 Generated API application filenames:
@@ -164,10 +165,10 @@ Generated worker application filenames:
 
 | Language | Files |
 |---|---|
-| `cpp` | `worker/worker_application.hpp`, `worker/worker_runtime.hpp`, `worker/worker_registry.hpp`, `worker/workflow_runner.hpp`, `worker/workflow_step_handlers.hpp`, `worker/main.cpp` |
-| `go` | `worker/backend/worker_application.go`, `worker/backend/worker_runtime.go`, `worker/backend/worker_registry.go`, `worker/backend/workflow_runner.go`, `worker/backend/workflow_step_handlers.go`, `worker/cmd/worker/main.go` |
-| `java` | `worker/com/statespec/generated/WorkerApplication.java`, `worker/com/statespec/generated/WorkerRuntime.java`, `worker/com/statespec/generated/WorkerRegistry.java`, `worker/com/statespec/generated/WorkflowRunner.java`, `worker/com/statespec/generated/WorkflowStepHandlers.java`, `worker/com/statespec/generated/WorkerMain.java` |
-| `rust` | `worker/worker_application.rs`, `worker/worker_runtime.rs`, `worker/worker_registry.rs`, `worker/workflow_runner.rs`, `worker/workflow_step_handlers.rs`, `worker/main.rs` |
+| `cpp` | `worker/worker_application.hpp`, `worker/worker_process.hpp`, `worker/worker_runtime.hpp`, `worker/worker_registry.hpp`, `worker/workflow_runner.hpp`, `worker/workflow_step_handlers.hpp`, `worker/main.cpp` |
+| `go` | `worker/backend/worker_application.go`, `worker/backend/worker_process.go`, `worker/backend/worker_runtime.go`, `worker/backend/worker_registry.go`, `worker/backend/workflow_runner.go`, `worker/backend/workflow_step_handlers.go`, `worker/cmd/worker/main.go` |
+| `java` | `worker/com/statespec/generated/WorkerApplication.java`, `worker/com/statespec/generated/WorkerProcess.java`, `worker/com/statespec/generated/WorkerRuntime.java`, `worker/com/statespec/generated/WorkerRegistry.java`, `worker/com/statespec/generated/WorkflowRunner.java`, `worker/com/statespec/generated/WorkflowStepHandlers.java`, `worker/com/statespec/generated/WorkerMain.java` |
+| `rust` | `worker/worker_application.rs`, `worker/worker_process.rs`, `worker/worker_runtime.rs`, `worker/worker_registry.rs`, `worker/workflow_runner.rs`, `worker/workflow_step_handlers.rs`, `worker/main.rs` |
 
 In-memory backend filenames are always emitted as generic backend adapters. Runtime
 store filenames in the same table are usage-pruned:

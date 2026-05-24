@@ -12,14 +12,17 @@ package "Durable work sources" {
 
 package "Generated worker tier" {
   rectangle "worker/main\nprocess entrypoint" as WorkerMain
-  rectangle "WorkerRuntime\nbackend + runtime stores\nGC enablement flag" as WorkerRuntime
+  rectangle "WorkerProcess\nthread/goroutine lifecycle\nstart / stop / join\nworkflow loops + GC lifecycle" as WorkerProcess
+  rectangle "WorkerProcessConfig\nbootstrap + poll interval" as WorkerProcessConfig
+  rectangle "WorkerRuntime\nbackend + runtime stores\nGC enablement flag\nrun_once()" as WorkerRuntime
+  rectangle "Generated worker loops\nper WorkerContext concurrency" as WorkerLoops
   rectangle "WorkerApplication\ncontext + handler composition" as WorkerApplication
   rectangle "WorkerRegistry\nworker lookup" as WorkerRegistry
   rectangle "WorkerDescriptors\nworker catalog view" as WorkerDescriptors
   rectangle "WorkerContexts\nworker execution contexts" as WorkerContexts
   rectangle "WorkflowRunner\nclaim / keep alive / complete / fail" as WorkflowRunner
   interface "IWorkflowStepHandler\ntyped step methods" as StepHandler
-  rectangle "WorkflowStepHandlers\nhandler keys + context" as StepHandlers
+  rectangle "WorkflowStepHandlers\nhandler keys + context\ndefault linking handler" as StepHandlers
   rectangle "WorkerQueues\nqueue definitions" as WorkerQueues
   rectangle "WorkerLeases\nlease definitions" as WorkerLeases
   rectangle "WorkerWorkflows\nworkflow definitions" as WorkerWorkflows
@@ -63,7 +66,17 @@ package "Runtime effects" {
 }
 
 WorkerMain --> WorkerRuntime : wires backend
-WorkerMain --> WorkerApplication : wires context + handler
+WorkerMain --> StepHandler : wires handler
+WorkerMain --> WorkerProcessConfig : chooses lifecycle config
+WorkerMain --> WorkerProcess : start + signal stop + join
+WorkerProcess --> WorkerRuntime : bootstrap()
+WorkerProcess --> WorkerRuntime : start GC workers if enabled
+WorkerProcess --> WorkerLoops : starts / stops / joins
+WorkerProcess --> WorkerRuntime : request_stop()
+WorkerProcess --> WorkerRuntime : join GC workers
+WorkerProcess --> WorkerContexts : reads contexts
+WorkerLoops --> WorkerRuntime : run_once(context, handler, "")
+WorkerLoops --> StepHandler : handler reference
 WorkerRuntime --> CommonDescriptors : bootstrap()
 WorkerRuntime --> Backend : backend reference
 WorkerRuntime --> FeatureFlagStore : owns
@@ -142,6 +155,15 @@ step execution mechanics: claim,
 keep alive, typed handler dispatch,
 completion, failure, and retry-visible
 workflow records.
+end note
+
+note right of WorkerProcess
+WorkerProcess owns generated background
+lifecycle. It starts workflow loops for
+contexts with executes, uses an empty
+execution id to claim the next runnable
+workflow, requests stop, and joins all
+generated background work.
 end note
 
 note right of WorkerRuntime
