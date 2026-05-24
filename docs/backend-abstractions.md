@@ -240,12 +240,11 @@ spec, subject to the backend's physical storage compatibility. StateSpec defines
 backend API contract and generated repository encoding; it does not yet define a
 portable database file format or wire protocol for every backend implementation.
 
-Timestamp values are ordinary persisted document fields. C++, Go, and Java generated
-default API handlers currently write current UTC timestamps for foundational
-`created_at` and `updated_at` fields. Rust generated default API handlers currently
-write the placeholder string `"0"` for those fields. Cross-language readers should
-treat these fields as strings until timestamp generation is normalized across
-languages.
+Timestamp values are ordinary persisted document fields. C++, Go, Java, and Rust
+generated default API handlers write current timestamp strings for foundational
+`created_at` and `updated_at` fields. Cross-language readers should treat these fields
+as strings unless a backend or application layer adopts a stricter timestamp encoding
+contract.
 
 ### IndexEquals
 

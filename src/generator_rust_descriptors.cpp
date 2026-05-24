@@ -461,7 +461,7 @@ bool write_rust_create_handler_body(
         if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "        document.insert(" << rust_entity_field_string_expr(*entity, field.name)
-                << ", Json::String(\"0\".to_string()));\n";
+                << ", Json::String(generated_api_timestamp()));\n";
         }
         else if (field.name == EntityStatusFieldName)
         {
@@ -747,7 +747,7 @@ bool write_rust_update_status_handler_body(
     out << "        document.insert("
         << rust_entity_field_string_expr(*entity, std::string{EntityUpdatedAtFieldName})
         << ", "
-           "Json::String(\"0\".to_string()));\n";
+           "Json::String(generated_api_timestamp()));\n";
     out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
         << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";
     out << "            &repository,\n";
@@ -862,7 +862,7 @@ bool write_rust_delete_handler_body(
     out << "        document.insert("
         << rust_entity_field_string_expr(*entity, std::string{EntityUpdatedAtFieldName})
         << ", "
-           "Json::String(\"0\".to_string()));\n";
+           "Json::String(generated_api_timestamp()));\n";
     out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
         << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";
     out << "            &repository,\n";
