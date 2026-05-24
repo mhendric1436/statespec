@@ -281,6 +281,28 @@ TemplateRenderer::Values go_entity_descriptor_values(const IrEntity& entity)
     return TemplateRenderer::Values{{"entity_descriptor_content", content}};
 }
 
+TemplateRenderer::Values go_shape_descriptor_values(const IrSystem& system)
+{
+    return TemplateRenderer::Values{
+        {"shape_descriptor_content", generate_go_shape_descriptors(system)}
+    };
+}
+
+void add_go_shape_descriptor_artifact(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    const IrSystem& system,
+    DiagnosticBag& diagnostics
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates, generated_template_path("shape_descriptors.go.tmpl"),
+        common_artifact_path("backend/shape_descriptors.go"), diagnostics,
+        GeneratedArtifactTier::Common, go_shape_descriptor_values(system)
+    );
+}
+
 void add_go_entity_descriptor_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -333,6 +355,7 @@ void add_go_descriptor_module_artifacts(
         result, options, templates, "backend/descriptors/shapes.go", "descriptors",
         "shape descriptors", diagnostics
     );
+    add_go_shape_descriptor_artifact(result, options, templates, system, diagnostics);
     add_go_descriptor_module_artifact(
         result, options, templates, "backend/descriptors/apis.go", "descriptors", "API descriptors",
         diagnostics

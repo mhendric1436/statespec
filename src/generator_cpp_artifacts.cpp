@@ -368,20 +368,31 @@ TemplateRenderer::Values cpp_entity_descriptor_module_values(const IrEntity& ent
     };
 }
 
+TemplateRenderer::Values cpp_shape_descriptor_module_values(const IrSystem& system)
+{
+    return TemplateRenderer::Values{
+        {"descriptor_module_name", "shape descriptors"},
+        {"descriptor_module_content", generate_cpp_shape_descriptors(system)},
+    };
+}
+
 void add_cpp_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
     std::string_view relative_output_path,
     std::string_view module_name,
-    DiagnosticBag& diagnostics
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
 )
 {
+    const auto resolved_values =
+        values.empty() ? cpp_descriptor_module_values(module_name) : values;
     add_generated_template_file(
         result, options.output_dir, templates,
         generated_template_path("descriptor_module.hpp.tmpl"),
         common_artifact_path(relative_output_path), diagnostics, GeneratedArtifactTier::Common,
-        cpp_descriptor_module_values(module_name)
+        resolved_values
     );
 }
 
@@ -397,7 +408,8 @@ void add_cpp_descriptor_module_artifacts(
         result, options, templates, "descriptors/core.hpp", "core descriptors", diagnostics
     );
     add_cpp_descriptor_module_artifact(
-        result, options, templates, "descriptors/shapes.hpp", "shape descriptors", diagnostics
+        result, options, templates, "descriptors/shapes.hpp", "shape descriptors", diagnostics,
+        cpp_shape_descriptor_module_values(system)
     );
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/apis.hpp", "API descriptors", diagnostics

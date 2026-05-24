@@ -934,7 +934,7 @@ std::string generate_system_descriptors_header(
     out << generate_cpp_api_descriptors(system);
     out << generate_cpp_worker_descriptors(system);
     out << generate_cpp_policy_descriptors(system);
-    out << generate_cpp_shape_descriptors(system);
+    out << "#include \"descriptors/shapes.hpp\"\n\n";
     out << generate_cpp_observability_descriptors(system);
     out << generate_cpp_entity_module_umbrella(system);
     out << generate_cpp_runtime_descriptors(system);

@@ -424,19 +424,31 @@ TemplateRenderer::Values rust_entity_descriptor_module_values(const IrEntity& en
     };
 }
 
+TemplateRenderer::Values rust_shape_descriptor_module_values(const IrSystem& system)
+{
+    return TemplateRenderer::Values{
+        {"descriptor_module_name", "shape descriptors"},
+        {"descriptor_module_content",
+         "use super::*;\n\n" + generate_rust_shape_descriptors(system)},
+    };
+}
+
 void add_rust_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
     std::string_view relative_output_path,
     std::string_view module_name,
-    DiagnosticBag& diagnostics
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
 )
 {
+    const auto resolved_values =
+        values.empty() ? rust_descriptor_module_values(module_name) : values;
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("descriptor_module.rs.tmpl"),
         common_artifact_path(relative_output_path), diagnostics, GeneratedArtifactTier::Common,
-        rust_descriptor_module_values(module_name)
+        resolved_values
     );
 }
 
@@ -452,7 +464,8 @@ void add_rust_descriptor_module_artifacts(
         result, options, templates, "descriptors/core.rs", "core descriptors", diagnostics
     );
     add_rust_descriptor_module_artifact(
-        result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics
+        result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics,
+        rust_shape_descriptor_module_values(system)
     );
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/apis.rs", "API descriptors", diagnostics

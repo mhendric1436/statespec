@@ -422,6 +422,17 @@ TemplateRenderer::Values java_entity_descriptor_module_values(const IrEntity& en
     );
 }
 
+TemplateRenderer::Values java_shape_descriptor_module_values(
+    std::string_view package_name,
+    std::string_view class_name,
+    const IrSystem& system
+)
+{
+    return java_descriptor_module_values(
+        package_name, class_name, "shape descriptors", generate_java_shape_descriptors(system)
+    );
+}
+
 void add_java_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -430,15 +441,18 @@ void add_java_descriptor_module_artifact(
     std::string_view package_name,
     std::string_view class_name,
     std::string_view module_name,
-    DiagnosticBag& diagnostics
+    DiagnosticBag& diagnostics,
+    const TemplateRenderer::Values& values = {}
 )
 {
+    auto resolved_values =
+        values.empty() ? java_descriptor_module_values(package_name, class_name, module_name)
+                       : values;
     add_generated_template_file(
         result, options.output_dir, templates,
         generated_template_path("DescriptorModule.java.tmpl"),
         common_artifact_path(relative_output_path.generic_string()), diagnostics,
-        GeneratedArtifactTier::Common,
-        java_descriptor_module_values(package_name, class_name, module_name)
+        GeneratedArtifactTier::Common, resolved_values
     );
 }
 
@@ -462,7 +476,8 @@ void add_java_descriptor_module_artifacts(
     );
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "ShapeDescriptorModule.java",
-        descriptor_package, "ShapeDescriptorModule", "shape descriptors", diagnostics
+        descriptor_package, "ShapeDescriptorModule", "shape descriptors", diagnostics,
+        java_shape_descriptor_module_values(descriptor_package, "ShapeDescriptorModule", system)
     );
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "ApiDescriptorModule.java",

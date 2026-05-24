@@ -926,7 +926,6 @@ std::string generate_descriptors_rs(
     out << generate_rust_api_descriptors(system);
     out << generate_rust_worker_descriptors(system);
     out << generate_rust_policy_descriptors(system);
-    out << generate_rust_shape_descriptors(system);
     out << generate_rust_observability_descriptors(system);
     out << generate_rust_entity_module_umbrella(system);
     out << generate_rust_runtime_descriptors(system);

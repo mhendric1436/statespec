@@ -1015,7 +1015,9 @@ std::string generate_descriptors_java(
     out << generate_java_api_descriptors(system);
     out << generate_java_worker_descriptors(system);
     out << generate_java_policy_descriptors(system);
-    out << generate_java_shape_descriptors(system);
+    out << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";
+    out << "        return ShapeDescriptorModule.shapeDescriptors();\n";
+    out << "    }\n\n";
     out << generate_java_observability_descriptors(system);
     out << generate_java_entity_descriptor_umbrella(system);
     out << generate_java_runtime_descriptors(system);

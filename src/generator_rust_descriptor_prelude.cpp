@@ -18,6 +18,7 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     out << "mod descriptor_core;\n";
     out << "#[path = \"descriptors/shapes.rs\"]\n";
     out << "mod descriptor_shapes;\n";
+    out << "pub use descriptor_shapes::*;\n";
     out << "#[path = \"descriptors/apis.rs\"]\n";
     out << "mod descriptor_apis;\n";
     out << "#[path = \"descriptors/workers.rs\"]\n";
