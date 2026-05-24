@@ -4,6 +4,7 @@ PLANTUML ?= plantuml
 PLANTUML_FLAGS ?= -DPLANTUML_LIMIT_SIZE=16384 -Xmx512m
 CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -Iinclude -Ithird_party
 LDFLAGS ?=
+CLI_FAST_JOBS ?= $(shell sysctl -n hw.logicalcpu 2>/dev/null || echo 1)
 
 BUILD_DIR := build
 OBJ_DIR := $(BUILD_DIR)/obj
@@ -31,13 +32,16 @@ CATCH_OBJ := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CATCH_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d) $(CATCH_OBJ:.o=.d)
 
-.PHONY: all build cli check-build-tools ci test test-cli test-generated-apps test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check diagrams-png clean help print-files
+.PHONY: all build cli cli-fast check-build-tools ci test test-cli test-generated-apps test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check diagrams-png clean help print-files
 
 all: test cli
 
 build: $(LIB)
 
 cli: $(CLI)
+
+cli-fast:
+	$(MAKE) -j$(CLI_FAST_JOBS) cli
 
 $(LIB): $(OBJ)
 	@mkdir -p $(dir $@)
@@ -166,6 +170,7 @@ help:
 	@echo "  make                     Build and run tests, then build CLI"
 	@echo "  make build               Build libstatespec.a"
 	@echo "  make cli                 Build statespec CLI"
+	@echo "  make cli-fast            Build statespec CLI using all logical CPU cores"
 	@echo "  make check-build-tools   Check C++, Go, Java, and Rust build tools"
 	@echo "  make ci                  Run build tool, format, core, CLI, generated app, and binding checks"
 	@echo "  make test                Build and run core tests and CLI tests"
@@ -191,5 +196,6 @@ help:
 	@echo "  PLANTUML=$(PLANTUML)"
 	@echo "  PLANTUML_FLAGS=$(PLANTUML_FLAGS)"
 	@echo "  CXXFLAGS=$(CXXFLAGS)"
+	@echo "  CLI_FAST_JOBS=$(CLI_FAST_JOBS)"
 
 -include $(DEPS)
