@@ -26,9 +26,7 @@ public final class InMemoryBackend implements Backend
                 SchemaCompatibility.validateCollectionDescriptorUpgrade(existing, descriptor);
             }
             state.collections.put(descriptor.name(), descriptor);
-            state.indexes.put(
-                descriptor.name(), InMemoryTransaction.emptyIndexStates(descriptor)
-            );
+            state.indexes.put(descriptor.name(), InMemoryTransaction.emptyIndexStates(descriptor));
         }
     }
 

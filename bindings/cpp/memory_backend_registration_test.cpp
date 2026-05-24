@@ -69,6 +69,18 @@ statespec::backend::CollectionDescriptor alternate_compatible_descriptor()
     return descriptor;
 }
 
+statespec::backend::CollectionDescriptor unique_status_descriptor()
+{
+    auto descriptor = base_descriptor();
+    descriptor.indexes[0].unique = true;
+    return descriptor;
+}
+
+statespec::backend::Json order_document(std::string status)
+{
+    return statespec::backend::Json::object({{"status", std::move(status)}});
+}
+
 } // namespace
 
 TEST_CASE("C++ in-memory backend enforces compatible collection registration")
@@ -138,11 +150,32 @@ TEST_CASE("C++ in-memory index key extraction encodes scalar values deterministi
                }
     );
 
-    const auto invalid = statespec::backend::Json::object(
-        {{"status", statespec::backend::Json::array({"Open"})}}
-    );
+    const auto invalid =
+        statespec::backend::Json::object({{"status", statespec::backend::Json::array({"Open"})}});
     REQUIRE_THROWS_AS(
         statespec::backend::memory::detail::extract_index_key(invalid, index),
         statespec::backend::BackendError
     );
+}
+
+TEST_CASE("C++ in-memory backend enforces unique indexes on commit")
+{
+    statespec::backend::memory::InMemoryBackend backend;
+    backend.ensure_collection(unique_status_descriptor());
+
+    auto tx1 = backend.begin();
+    backend.put(*tx1, "orders", "order-1", order_document("Open"));
+    backend.commit(*tx1);
+
+    auto duplicate_tx = backend.begin();
+    backend.put(*duplicate_tx, "orders", "order-2", order_document("Open"));
+    REQUIRE_THROWS_AS(backend.commit(*duplicate_tx), statespec::backend::ConflictError);
+
+    auto update_tx = backend.begin();
+    backend.put(*update_tx, "orders", "order-1", order_document("Closed"));
+    backend.commit(*update_tx);
+
+    auto insert_tx = backend.begin();
+    backend.put(*insert_tx, "orders", "order-2", order_document("Open"));
+    REQUIRE_NOTHROW(backend.commit(*insert_tx));
 }

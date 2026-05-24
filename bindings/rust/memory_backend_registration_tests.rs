@@ -83,6 +83,19 @@ mod tests {
         descriptor
     }
 
+    fn unique_status_descriptor() -> CollectionDescriptor {
+        let mut descriptor = base_descriptor();
+        descriptor.indexes[0].unique = true;
+        descriptor
+    }
+
+    fn order_document(status: &str) -> Json {
+        Json::Object(BTreeMap::from([(
+            "status".to_string(),
+            Json::String(status.to_string()),
+        )]))
+    }
+
     #[test]
     fn applies_collection_batches_atomically() {
         let backend = InMemoryBackend::new();
@@ -145,5 +158,53 @@ mod tests {
             extract_index_key(&invalid, &index),
             Err(BackendError::InvalidSchema { .. })
         ));
+    }
+
+    #[test]
+    fn enforces_unique_indexes_on_commit() {
+        let backend = InMemoryBackend::new();
+        backend
+            .ensure_collection(&unique_status_descriptor())
+            .unwrap();
+
+        let mut tx1 = backend.begin().unwrap();
+        backend
+            .put(&mut tx1, "orders", "order-1", order_document("Open"))
+            .unwrap();
+        backend.commit(tx1).unwrap();
+
+        let mut duplicate_tx = backend.begin().unwrap();
+        backend
+            .put(
+                &mut duplicate_tx,
+                "orders",
+                "order-2",
+                order_document("Open"),
+            )
+            .unwrap();
+        assert!(matches!(
+            backend.commit(duplicate_tx),
+            Err(BackendError::Conflict {
+                kind: ConflictKind::UniqueIndexConflict,
+                ..
+            })
+        ));
+
+        let mut update_tx = backend.begin().unwrap();
+        backend
+            .put(
+                &mut update_tx,
+                "orders",
+                "order-1",
+                order_document("Closed"),
+            )
+            .unwrap();
+        backend.commit(update_tx).unwrap();
+
+        let mut insert_tx = backend.begin().unwrap();
+        backend
+            .put(&mut insert_tx, "orders", "order-2", order_document("Open"))
+            .unwrap();
+        backend.commit(insert_tx).unwrap();
     }
 }

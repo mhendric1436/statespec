@@ -203,6 +203,60 @@ func TestMemoryBackendAppliesCollectionBatchesAtomically(t *testing.T) {
 	}
 }
 
+func TestMemoryBackendEnforcesUniqueIndexesOnCommit(t *testing.T) {
+	ctx := context.Background()
+	backend := memory.NewBackend()
+	if err := backend.EnsureCollection(ctx, uniqueStatusCollectionDescriptor()); err != nil {
+		t.Fatal(err)
+	}
+
+	tx1, err := backend.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Put(ctx, tx1, common.CollectionName("orders"), common.Key("order-1"), orderDocument("Open")); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Commit(ctx, tx1); err != nil {
+		t.Fatal(err)
+	}
+
+	duplicateTx, err := backend.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Put(ctx, duplicateTx, common.CollectionName("orders"), common.Key("order-2"), orderDocument("Open")); err != nil {
+		t.Fatal(err)
+	}
+	err = backend.Commit(ctx, duplicateTx)
+	var conflict common.ConflictError
+	if !errors.As(err, &conflict) || conflict.Kind != common.UniqueIndexConflict {
+		t.Fatalf("expected unique index conflict, got %T %v", err, err)
+	}
+
+	updateTx, err := backend.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Put(ctx, updateTx, common.CollectionName("orders"), common.Key("order-1"), orderDocument("Closed")); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Commit(ctx, updateTx); err != nil {
+		t.Fatal(err)
+	}
+
+	insertTx, err := backend.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Put(ctx, insertTx, common.CollectionName("orders"), common.Key("order-2"), orderDocument("Open")); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Commit(ctx, insertTx); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func testCollectionDescriptor() common.CollectionDescriptor {
 	return common.CollectionDescriptor{
 		Name: "orders",
@@ -230,6 +284,16 @@ func testCollectionDescriptor() common.CollectionDescriptor {
 		},
 		SchemaVersion: 1,
 	}
+}
+
+func uniqueStatusCollectionDescriptor() common.CollectionDescriptor {
+	descriptor := testCollectionDescriptor()
+	descriptor.Indexes[0].Unique = true
+	return descriptor
+}
+
+func orderDocument(status string) common.JSON {
+	return common.JSONObject(map[string]common.JSON{"status": common.JSONString(status)})
 }
 
 func compatibleCollectionDescriptor() common.CollectionDescriptor {

@@ -31,7 +31,10 @@ public final class InMemoryTransaction implements Backend.Transaction
         }
     }
 
-    static Map<String, IndexState> emptyIndexStates(Backend.CollectionDescriptor descriptor)
+    static Map<
+        String,
+        IndexState>
+    emptyIndexStates(Backend.CollectionDescriptor descriptor)
     {
         var states = new HashMap<String, IndexState>();
         for (var index : descriptor.indexes())
@@ -62,19 +65,112 @@ public final class InMemoryTransaction implements Backend.Transaction
         }
         return switch (value.orElseThrow())
         {
-        case Json.NullValue ignored -> "null:";
-        case Json.BooleanValue bool -> "bool:" + bool.value();
-        case Json.IntegerValue integer -> "int:" + integer.value();
-        case Json.DecimalValue decimal ->
-            "decimal:" + new Json.DecimalValue(decimal.value()).canonicalString();
-        case Json.StringValue string -> "string:" + string.value();
-        case Json.ArrayValue ignored -> throw new Backend.BackendException(
-            "in-memory index fields must resolve to scalar JSON values"
-        );
-        case Json.ObjectValue ignored -> throw new Backend.BackendException(
-            "in-memory index fields must resolve to scalar JSON values"
-        );
+            case Json.NullValue ignored -> "null:";
+            case Json.BooleanValue bool -> "bool:" + bool.value();
+            case Json.IntegerValue integer -> "int:" + integer.value();
+            case Json.DecimalValue decimal ->
+                "decimal:" + new Json.DecimalValue(decimal.value()).canonicalString();
+            case Json.StringValue string -> "string:" + string.value();
+            case Json.ArrayValue ignored ->
+                throw new Backend.BackendException(
+                    "in-memory index fields must resolve to scalar JSON values"
+                );
+            case Json.ObjectValue ignored ->
+                throw new Backend.BackendException(
+                    "in-memory index fields must resolve to scalar JSON values"
+                );
         };
+    }
+
+    static Map<
+        String,
+        Map<String,
+            IndexState>>
+    cloneIndexStates(
+        Map<String,
+            Map<String,
+                IndexState>> indexes
+    )
+    {
+        var clone = new HashMap<String, Map<String, IndexState>>();
+        for (var collectionEntry : indexes.entrySet())
+        {
+            var collectionIndexes = new HashMap<String, IndexState>();
+            for (var indexEntry : collectionEntry.getValue().entrySet())
+            {
+                var source = indexEntry.getValue();
+                var copied = new IndexState(source.descriptor);
+                for (var entry : source.entries.entrySet())
+                {
+                    copied.entries.put(entry.getKey(), new HashSet<>(entry.getValue()));
+                }
+                collectionIndexes.put(indexEntry.getKey(), copied);
+            }
+            clone.put(collectionEntry.getKey(), collectionIndexes);
+        }
+        return clone;
+    }
+
+    static void removeRecordFromIndexes(
+        Map<String,
+            Map<String,
+                IndexState>> indexes,
+        Backend.VersionedRecord record
+    ) throws Backend.BackendException
+    {
+        var collectionIndexes = indexes.get(record.collection());
+        if (collectionIndexes == null)
+        {
+            return;
+        }
+        for (var index : collectionIndexes.values())
+        {
+            var key = extractIndexKey(record.document(), index.descriptor);
+            var entries = index.entries.get(key);
+            if (entries == null)
+            {
+                continue;
+            }
+            entries.remove(record.key());
+            if (entries.isEmpty())
+            {
+                index.entries.remove(key);
+            }
+        }
+    }
+
+    static void addRecordToIndexes(
+        Map<String,
+            Map<String,
+                IndexState>> indexes,
+        Backend.VersionedRecord record
+    ) throws Backend.BackendException
+    {
+        var collectionIndexes = indexes.get(record.collection());
+        if (collectionIndexes == null)
+        {
+            return;
+        }
+        for (var index : collectionIndexes.values())
+        {
+            var key = extractIndexKey(record.document(), index.descriptor);
+            var entries = index.entries.computeIfAbsent(key, ignored -> new HashSet<>());
+            if (index.descriptor.unique())
+            {
+                for (var existingKey : entries)
+                {
+                    if (!existingKey.equals(record.key()))
+                    {
+                        throw new Backend.ConflictException(
+                            Backend.ConflictKind.UNIQUE_INDEX_CONFLICT,
+                            "unique index conflict on collection '" + record.collection() +
+                                "' index '" + index.descriptor.name() + "'"
+                        );
+                    }
+                }
+            }
+            entries.add(record.key());
+        }
     }
 
     final State state;
@@ -217,6 +313,39 @@ public final class InMemoryTransaction implements Backend.Transaction
                     );
                 }
             }
+
+            var stagedIndexes = cloneIndexStates(state.indexes);
+            for (var versionKey : erases)
+            {
+                var parsed = parseRecordVersionKey(versionKey);
+                if (parsed.isEmpty())
+                {
+                    continue;
+                }
+                var collectionRecords = state.records.get(parsed.get().collection());
+                if (collectionRecords != null)
+                {
+                    var record = collectionRecords.get(parsed.get().key());
+                    if (record != null)
+                    {
+                        removeRecordFromIndexes(stagedIndexes, record);
+                    }
+                }
+            }
+            for (var record : puts.values())
+            {
+                var collectionRecords = state.records.get(record.collection());
+                if (collectionRecords != null)
+                {
+                    var existing = collectionRecords.get(record.key());
+                    if (existing != null)
+                    {
+                        removeRecordFromIndexes(stagedIndexes, existing);
+                    }
+                }
+                addRecordToIndexes(stagedIndexes, record);
+            }
+
             for (var versionKey : erases)
             {
                 eraseCommittedRecord(versionKey);
@@ -236,6 +365,8 @@ public final class InMemoryTransaction implements Backend.Transaction
                         )
                     );
             }
+            state.indexes.clear();
+            state.indexes.putAll(stagedIndexes);
         }
         abort();
     }
@@ -263,6 +394,31 @@ public final class InMemoryTransaction implements Backend.Transaction
     )
     {
         return "record:" + collection + ":" + key;
+    }
+
+    record ParsedRecordKey(
+        String collection,
+        String key
+    )
+    {
+    }
+
+    static Optional<ParsedRecordKey> parseRecordVersionKey(String versionKey)
+    {
+        var prefix = "record:";
+        if (!versionKey.startsWith(prefix))
+        {
+            return Optional.empty();
+        }
+        var rest = versionKey.substring(prefix.length());
+        var separator = rest.indexOf(':');
+        if (separator < 0)
+        {
+            return Optional.empty();
+        }
+        return Optional.of(
+            new ParsedRecordKey(rest.substring(0, separator), rest.substring(separator + 1))
+        );
     }
 
     static long versionOrZero(

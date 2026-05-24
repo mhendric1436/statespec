@@ -6,8 +6,10 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
+#include <utility>
 
 namespace statespec::backend::memory
 {
@@ -32,9 +34,10 @@ struct InMemoryState
     std::map<std::string, Version> versions;
 };
 
-inline std::map<std::string, InMemoryIndexState> empty_index_states(
-    const CollectionDescriptor& descriptor
-)
+inline std::map<
+    std::string,
+    InMemoryIndexState>
+empty_index_states(const CollectionDescriptor& descriptor)
 {
     std::map<std::string, InMemoryIndexState> states;
     for (const auto& index : descriptor.indexes)
@@ -85,6 +88,93 @@ inline InMemoryIndexKey extract_index_key(
         key.push_back(encode_index_value(document.find(field)));
     }
     return key;
+}
+
+inline std::optional<std::pair<
+    CollectionName,
+    Key>>
+parse_record_version_key(const std::string& version_key)
+{
+    const auto prefix = std::string{"record:"};
+    if (version_key.rfind(prefix, 0) != 0)
+    {
+        return std::nullopt;
+    }
+    const auto separator = version_key.find(':', prefix.size());
+    if (separator == std::string::npos)
+    {
+        return std::nullopt;
+    }
+    return std::make_pair(
+        version_key.substr(prefix.size(), separator - prefix.size()),
+        version_key.substr(separator + 1)
+    );
+}
+
+inline void remove_record_from_indexes(
+    std::map<
+        CollectionName,
+        std::map<
+            std::string,
+            InMemoryIndexState>>& indexes,
+    const VersionedRecord& record
+)
+{
+    auto collection_iter = indexes.find(record.collection);
+    if (collection_iter == indexes.end())
+    {
+        return;
+    }
+    for (auto& [_, index] : collection_iter->second)
+    {
+        const auto key = extract_index_key(record.document, index.descriptor);
+        auto entry_iter = index.entries.find(key);
+        if (entry_iter == index.entries.end())
+        {
+            continue;
+        }
+        entry_iter->second.erase(record.key);
+        if (entry_iter->second.empty())
+        {
+            index.entries.erase(entry_iter);
+        }
+    }
+}
+
+inline void add_record_to_indexes(
+    std::map<
+        CollectionName,
+        std::map<
+            std::string,
+            InMemoryIndexState>>& indexes,
+    const VersionedRecord& record
+)
+{
+    auto collection_iter = indexes.find(record.collection);
+    if (collection_iter == indexes.end())
+    {
+        return;
+    }
+    for (auto& [_, index] : collection_iter->second)
+    {
+        const auto key = extract_index_key(record.document, index.descriptor);
+        auto& keys = index.entries[key];
+        if (index.descriptor.unique)
+        {
+            for (const auto& existing_key : keys)
+            {
+                if (existing_key != record.key)
+                {
+                    throw ConflictError(
+                        ConflictKind::UniqueIndexConflict, "unique index conflict on collection '" +
+                                                               record.collection + "' index '" +
+                                                               index.descriptor.name + "'"
+                    );
+                }
+            }
+        }
+        keys.insert(record.key);
+    }
 }
 
 inline std::string record_version_key(
@@ -256,6 +346,40 @@ class InMemoryTransaction : public ITransaction
             }
         }
 
+        auto staged_indexes = state_->indexes;
+        for (const auto& version_key : erases_)
+        {
+            const auto parsed = detail::parse_record_version_key(version_key);
+            if (!parsed.has_value())
+            {
+                continue;
+            }
+            const auto& [collection, key] = *parsed;
+            const auto collection_iter = state_->records.find(collection);
+            if (collection_iter == state_->records.end())
+            {
+                continue;
+            }
+            const auto record_iter = collection_iter->second.find(key);
+            if (record_iter != collection_iter->second.end())
+            {
+                detail::remove_record_from_indexes(staged_indexes, record_iter->second);
+            }
+        }
+        for (const auto& [_, record] : puts_)
+        {
+            const auto collection_iter = state_->records.find(record.collection);
+            if (collection_iter != state_->records.end())
+            {
+                const auto record_iter = collection_iter->second.find(record.key);
+                if (record_iter != collection_iter->second.end())
+                {
+                    detail::remove_record_from_indexes(staged_indexes, record_iter->second);
+                }
+            }
+            detail::add_record_to_indexes(staged_indexes, record);
+        }
+
         for (const auto& version_key : erases_)
         {
             erase_record(*state_, version_key);
@@ -266,6 +390,7 @@ class InMemoryTransaction : public ITransaction
             record.version = ++state_->versions[version_key];
             state_->records[record.collection][record.key] = record;
         }
+        state_->indexes = std::move(staged_indexes);
 
         abort();
     }
@@ -337,18 +462,12 @@ class InMemoryTransaction : public ITransaction
         const std::string& version_key
     )
     {
-        const auto prefix = std::string{"record:"};
-        if (version_key.rfind(prefix, 0) != 0)
+        const auto parsed = detail::parse_record_version_key(version_key);
+        if (!parsed.has_value())
         {
             return;
         }
-        const auto separator = version_key.find(':', prefix.size());
-        if (separator == std::string::npos)
-        {
-            return;
-        }
-        const auto collection = version_key.substr(prefix.size(), separator - prefix.size());
-        const auto key = version_key.substr(separator + 1);
+        const auto& [collection, key] = *parsed;
         if (auto collection_iter = state.records.find(collection);
             collection_iter != state.records.end())
         {

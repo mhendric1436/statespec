@@ -42,7 +42,6 @@ pub(crate) fn empty_index_states(
         .collect()
 }
 
-#[allow(dead_code)]
 pub(crate) fn extract_index_key(
     document: &Json,
     descriptor: &IndexDescriptor,
@@ -55,19 +54,72 @@ pub(crate) fn extract_index_key(
         .map(InMemoryIndexKey)
 }
 
-#[allow(dead_code)]
 pub(crate) fn encode_index_value(value: Option<&Json>) -> BackendResult<String> {
     match value {
         None => Ok("missing:".to_string()),
         Some(Json::Null) => Ok("null:".to_string()),
         Some(Json::Bool(value)) => Ok(format!("bool:{value}")),
         Some(Json::Integer(value)) => Ok(format!("int:{value}")),
-        Some(Json::Decimal(value)) => Ok(format!("decimal:{}", Json::Decimal(*value).canonical_string())),
+        Some(Json::Decimal(value)) => Ok(format!(
+            "decimal:{}",
+            Json::Decimal(*value).canonical_string()
+        )),
         Some(Json::String(value)) => Ok(format!("string:{value}")),
         Some(Json::Array(_)) | Some(Json::Object(_)) => Err(BackendError::InvalidSchema {
             message: "in-memory index fields must resolve to scalar JSON values".to_string(),
         }),
     }
+}
+
+fn remove_record_from_indexes(
+    indexes: &mut BTreeMap<String, BTreeMap<String, InMemoryIndexState>>,
+    record: &VersionedRecord,
+) -> BackendResult<()> {
+    let Some(collection_indexes) = indexes.get_mut(&record.collection) else {
+        return Ok(());
+    };
+    for index in collection_indexes.values_mut() {
+        let key = extract_index_key(&record.document, &index.descriptor)?;
+        let remove_entry = match index.entries.get_mut(&key) {
+            Some(keys) => {
+                keys.remove(&record.key);
+                keys.is_empty()
+            }
+            None => false,
+        };
+        if remove_entry {
+            index.entries.remove(&key);
+        }
+    }
+    Ok(())
+}
+
+fn add_record_to_indexes(
+    indexes: &mut BTreeMap<String, BTreeMap<String, InMemoryIndexState>>,
+    record: &VersionedRecord,
+) -> BackendResult<()> {
+    let Some(collection_indexes) = indexes.get_mut(&record.collection) else {
+        return Ok(());
+    };
+    for index in collection_indexes.values_mut() {
+        let key = extract_index_key(&record.document, &index.descriptor)?;
+        let keys = index.entries.entry(key).or_default();
+        if index.descriptor.unique {
+            for existing_key in keys.iter() {
+                if existing_key != &record.key {
+                    return Err(BackendError::Conflict {
+                        kind: ConflictKind::UniqueIndexConflict,
+                        message: format!(
+                            "unique index conflict on collection '{}' index '{}'",
+                            record.collection, index.descriptor.name
+                        ),
+                    });
+                }
+            }
+        }
+        keys.insert(record.key.clone());
+    }
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -111,6 +163,31 @@ impl InMemoryTransaction {
                 });
             }
         }
+
+        let mut staged_indexes = state.indexes.clone();
+        for version_key in &self.erases {
+            let Some((collection, key)) = parse_record_version_key(version_key) else {
+                continue;
+            };
+            if let Some(record) = state
+                .records
+                .get(&collection)
+                .and_then(|records| records.get(&key))
+            {
+                remove_record_from_indexes(&mut staged_indexes, record)?;
+            }
+        }
+        for record in self.puts.values() {
+            if let Some(existing) = state
+                .records
+                .get(&record.collection)
+                .and_then(|records| records.get(&record.key))
+            {
+                remove_record_from_indexes(&mut staged_indexes, existing)?;
+            }
+            add_record_to_indexes(&mut staged_indexes, record)?;
+        }
+
         for version_key in &self.erases {
             erase_record(&mut state, version_key);
             *state.versions.entry(version_key.clone()).or_insert(0) += 1;
@@ -126,6 +203,7 @@ impl InMemoryTransaction {
                 .or_default()
                 .insert(committed.key.clone(), committed);
         }
+        state.indexes = staged_indexes;
         drop(state);
         self.abort()
     }
@@ -233,6 +311,12 @@ pub(crate) fn version_or_zero(versions: &BTreeMap<String, Version>, key: &str) -
     versions.get(key).copied().unwrap_or(0)
 }
 
+fn parse_record_version_key(version_key: &str) -> Option<(String, String)> {
+    let rest = version_key.strip_prefix("record:")?;
+    let (collection, key) = rest.split_once(':')?;
+    Some((collection.to_string(), key.to_string()))
+}
+
 fn matches_query(record: &VersionedRecord, query: &Query) -> bool {
     match query {
         Query::All => true,
@@ -253,15 +337,11 @@ fn find_json_path<'a>(document: &'a Json, path: &str) -> Option<&'a Json> {
 }
 
 fn erase_record(state: &mut InMemoryState, version_key: &str) {
-    let rest = match version_key.strip_prefix("record:") {
-        Some(rest) => rest,
-        None => return,
-    };
-    let Some((collection, key)) = rest.split_once(':') else {
+    let Some((collection, key)) = parse_record_version_key(version_key) else {
         return;
     };
-    if let Some(records) = state.records.get_mut(collection) {
-        records.remove(key);
+    if let Some(records) = state.records.get_mut(&collection) {
+        records.remove(&key);
     }
 }
 

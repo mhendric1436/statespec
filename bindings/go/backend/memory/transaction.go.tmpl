@@ -98,6 +98,79 @@ func encodeIndexKey(parts []string) string {
 	return builder.String()
 }
 
+func cloneIndexStates(indexes map[common.CollectionName]map[string]indexState) map[common.CollectionName]map[string]indexState {
+	clone := make(map[common.CollectionName]map[string]indexState, len(indexes))
+	for collection, collectionIndexes := range indexes {
+		clone[collection] = make(map[string]indexState, len(collectionIndexes))
+		for name, index := range collectionIndexes {
+			entries := make(map[string]map[common.Key]struct{}, len(index.entries))
+			for encodedKey, keys := range index.entries {
+				copiedKeys := make(map[common.Key]struct{}, len(keys))
+				for key := range keys {
+					copiedKeys[key] = struct{}{}
+				}
+				entries[encodedKey] = copiedKeys
+			}
+			clone[collection][name] = indexState{
+				descriptor: index.descriptor,
+				entries:    entries,
+			}
+		}
+	}
+	return clone
+}
+
+func removeRecordFromIndexes(indexes map[common.CollectionName]map[string]indexState, record common.VersionedRecord) error {
+	collectionIndexes, ok := indexes[record.Collection]
+	if !ok {
+		return nil
+	}
+	for name, index := range collectionIndexes {
+		parts, err := extractIndexKey(record.Document, index.descriptor)
+		if err != nil {
+			return err
+		}
+		encodedKey := encodeIndexKey(parts)
+		if keys, ok := index.entries[encodedKey]; ok {
+			delete(keys, record.Key)
+			if len(keys) == 0 {
+				delete(index.entries, encodedKey)
+			}
+		}
+		collectionIndexes[name] = index
+	}
+	return nil
+}
+
+func addRecordToIndexes(indexes map[common.CollectionName]map[string]indexState, record common.VersionedRecord) error {
+	collectionIndexes, ok := indexes[record.Collection]
+	if !ok {
+		return nil
+	}
+	for name, index := range collectionIndexes {
+		parts, err := extractIndexKey(record.Document, index.descriptor)
+		if err != nil {
+			return err
+		}
+		encodedKey := encodeIndexKey(parts)
+		keys := index.entries[encodedKey]
+		if keys == nil {
+			keys = map[common.Key]struct{}{}
+			index.entries[encodedKey] = keys
+		}
+		if index.descriptor.Unique {
+			for existingKey := range keys {
+				if existingKey != record.Key {
+					return conflict(common.UniqueIndexConflict, "unique index conflict on collection '"+string(record.Collection)+"' index '"+index.descriptor.Name+"'")
+				}
+			}
+		}
+		keys[record.Key] = struct{}{}
+		collectionIndexes[name] = index
+	}
+	return nil
+}
+
 type Transaction struct {
 	state *state
 	open  bool
@@ -241,6 +314,34 @@ func (tx *Transaction) commit() error {
 			return conflict(common.VersionConflict, "in-memory OCC conflict")
 		}
 	}
+
+	stagedIndexes := cloneIndexStates(tx.state.indexes)
+	for versionKey := range tx.erases {
+		collection, key, ok := parseRecordVersionKey(versionKey)
+		if !ok {
+			continue
+		}
+		if records, exists := tx.state.records[collection]; exists {
+			if record, found := records[key]; found {
+				if err := removeRecordFromIndexes(stagedIndexes, record); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	for _, record := range tx.puts {
+		if records, exists := tx.state.records[record.Collection]; exists {
+			if existing, found := records[record.Key]; found {
+				if err := removeRecordFromIndexes(stagedIndexes, existing); err != nil {
+					return err
+				}
+			}
+		}
+		if err := addRecordToIndexes(stagedIndexes, record); err != nil {
+			return err
+		}
+	}
+
 	for versionKey := range tx.erases {
 		collection, key, ok := parseRecordVersionKey(versionKey)
 		if ok {
@@ -258,6 +359,7 @@ func (tx *Transaction) commit() error {
 		}
 		tx.state.records[record.Collection][record.Key] = record
 	}
+	tx.state.indexes = stagedIndexes
 	return tx.Abort(context.Background())
 }
 

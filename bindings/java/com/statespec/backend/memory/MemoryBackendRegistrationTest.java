@@ -13,6 +13,7 @@ public final class MemoryBackendRegistrationTest
         enforcesCompatibleCollectionRegistration();
         appliesCollectionBatchesAtomically();
         extractsIndexKeysDeterministically();
+        enforcesUniqueIndexesOnCommit();
     }
 
     private static void enforcesCompatibleCollectionRegistration() throws Backend.BackendException
@@ -75,14 +76,10 @@ public final class MemoryBackendRegistrationTest
         var index = new Backend.IndexDescriptor(
             "by_status", List.of("status", "priority", "archived", "missing", "cleared"), false
         );
-        var document = Json.object(
-            Map.of(
-                "status", Json.string("Open"),
-                "priority", Json.integer(3L),
-                "archived", Json.bool(false),
-                "cleared", Json.nullValue()
-            )
-        );
+        var document = Json.object(Map.of(
+            "status", Json.string("Open"), "priority", Json.integer(3L), "archived",
+            Json.bool(false), "cleared", Json.nullValue()
+        ));
 
         var key = InMemoryTransaction.extractIndexKey(document, index);
         require(
@@ -106,6 +103,39 @@ public final class MemoryBackendRegistrationTest
         }
     }
 
+    private static void enforcesUniqueIndexesOnCommit() throws Backend.BackendException
+    {
+        var backend = new InMemoryBackend();
+        backend.ensureCollection(uniqueStatusDescriptor());
+
+        var tx1 = backend.begin();
+        backend.put(tx1, "orders", "order-1", orderDocument("Open"));
+        backend.commit(tx1);
+
+        var duplicateTx = backend.begin();
+        backend.put(duplicateTx, "orders", "order-2", orderDocument("Open"));
+        try
+        {
+            backend.commit(duplicateTx);
+            throw new AssertionError("expected unique index conflict");
+        }
+        catch (Backend.ConflictException error)
+        {
+            require(
+                error.kind() == Backend.ConflictKind.UNIQUE_INDEX_CONFLICT,
+                "expected unique index conflict"
+            );
+        }
+
+        var updateTx = backend.begin();
+        backend.put(updateTx, "orders", "order-1", orderDocument("Closed"));
+        backend.commit(updateTx);
+
+        var insertTx = backend.begin();
+        backend.put(insertTx, "orders", "order-2", orderDocument("Open"));
+        backend.commit(insertTx);
+    }
+
     private static Backend.CollectionDescriptor baseDescriptor()
     {
         return new Backend.CollectionDescriptor(
@@ -117,6 +147,19 @@ public final class MemoryBackendRegistrationTest
             List.of("tenant_id"),
             List.of(new Backend.IndexDescriptor("by_status", List.of("status"), false)), 1L
         );
+    }
+
+    private static Backend.CollectionDescriptor uniqueStatusDescriptor()
+    {
+        return descriptor(
+            baseDescriptor().fields(), baseDescriptor().keyFields(),
+            List.of(new Backend.IndexDescriptor("by_status", List.of("status"), true)), 1L
+        );
+    }
+
+    private static Json orderDocument(String status)
+    {
+        return Json.object(Map.of("status", Json.string(status)));
     }
 
     private static Backend.CollectionDescriptor compatibleDescriptor()

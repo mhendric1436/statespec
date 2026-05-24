@@ -25,9 +25,7 @@ class InMemoryBackend : public IBackend
             validate_collection_descriptor_upgrade(existing->second, descriptor);
         }
         state_->collections.insert_or_assign(descriptor.name, descriptor);
-        state_->indexes.insert_or_assign(
-            descriptor.name, detail::empty_index_states(descriptor)
-        );
+        state_->indexes.insert_or_assign(descriptor.name, detail::empty_index_states(descriptor));
     }
 
     void ensure_collections(const std::vector<CollectionDescriptor>& descriptors) override
