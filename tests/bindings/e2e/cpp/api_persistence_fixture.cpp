@@ -1,6 +1,7 @@
 #include "api/api_handler_registry.hpp"
 #include "common/memory/backend.hpp"
 
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 
@@ -64,6 +65,17 @@ void require_non_empty_array(const Json& value)
     }
 }
 
+void require_array_size(
+    const Json& value,
+    std::size_t expected
+)
+{
+    if (!value.is_array() || value.as_array().size() != expected)
+    {
+        throw std::runtime_error("unexpected array size");
+    }
+}
+
 } // namespace
 
 int main()
@@ -101,6 +113,33 @@ int main()
     require_status(task, 201);
     require_string(member(task.body, "status"), "Open");
 
+    const auto other_account = handler.handle_create_account(request(
+        "CreateAccount", "POST", "/v1/tenants/t1/accounts/a2",
+        Json::object({{"tenant_id", "t1"}, {"account_id", "a2"}, {"display_name", "Other"}})
+    ));
+    require_status(other_account, 201);
+
+    const auto other_project = handler.handle_create_project(request(
+        "CreateProject", "POST", "/v1/tenants/t1/accounts/a2/projects/p2",
+        Json::object(
+            {{"tenant_id", "t1"}, {"account_id", "a2"}, {"project_id", "p2"}, {"name", "Other"}}
+        )
+    ));
+    require_status(other_project, 201);
+
+    const auto other_task = handler.handle_create_task(request(
+        "CreateTask", "POST", "/v1/tenants/t1/projects/p2/tasks/t2",
+        Json::object(
+            {{"tenant_id", "t1"},
+             {"account_id", "a2"},
+             {"project_id", "p2"},
+             {"task_id", "t2"},
+             {"title", "Other"},
+             {"priority", 2}}
+        )
+    ));
+    require_status(other_task, 201);
+
     const auto got_account =
         handler.handle_get_account(request("GetAccount", "GET", "/v1/tenants/t1/accounts/a1"));
     require_status(got_account, 200);
@@ -120,18 +159,21 @@ int main()
         handler.handle_list_accounts(request("ListAccounts", "GET", "/v1/tenants/t1/accounts"));
     require_status(accounts, 200);
     require_non_empty_array(member(accounts.body, "accounts"));
+    require_array_size(member(accounts.body, "accounts"), 2);
 
     const auto projects = handler.handle_list_account_projects(
         request("ListAccountProjects", "GET", "/v1/tenants/t1/accounts/a1/projects")
     );
     require_status(projects, 200);
     require_non_empty_array(member(projects.body, "projects"));
+    require_array_size(member(projects.body, "projects"), 1);
 
     const auto tasks = handler.handle_list_project_tasks(
         request("ListProjectTasks", "GET", "/v1/tenants/t1/projects/p1/tasks")
     );
     require_status(tasks, 200);
     require_non_empty_array(member(tasks.body, "tasks"));
+    require_array_size(member(tasks.body, "tasks"), 1);
 
     const auto active_project = handler.handle_update_project_status(request(
         "UpdateProjectStatus", "PATCH", "/v1/tenants/t1/projects/p1/status",

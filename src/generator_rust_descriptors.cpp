@@ -182,15 +182,6 @@ const std::string* conventional_soft_delete_terminal_state_rs(const IrEntity& en
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
-const IrIndex* select_list_index_rs(const IrEntity& entity)
-{
-    if (!entity.indexes.empty())
-    {
-        return &entity.indexes.front();
-    }
-    return nullptr;
-}
-
 bool status_update_has_required_request_fields_rs(
     const IrEntity& entity,
     const IrShape& request
@@ -576,7 +567,7 @@ bool write_rust_list_handler_body(
     {
         return false;
     }
-    const auto* index = select_list_index_rs(*entity);
+    const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
     out << "        let path_parameters = extract_api_path_parameters("
         << rust_string(api.path.value_or("")) << ", &context.path);\n";
     out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";

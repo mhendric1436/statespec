@@ -142,6 +142,15 @@ entities, but any persisted state access must use the generated backend/OCC tran
 model. Handler code should not bypass `IBackend` and `ITransaction` or the equivalent
 language bindings for direct store access.
 
+Generated default entity API handlers use generated entity repositories for create,
+read, list, status update, and soft-delete operations. Repositories own collection names,
+descriptor registration, key encoding, declared index names, and index-value ordering.
+List handlers call named repository helpers derived from declared indexes, such as
+`listByAccountStatusTx`, `ListByAccountStatusTx`, or `list_by_account_status_tx`,
+rather than embedding raw index names in API code. The repository then translates the
+typed generated surface into generic OCC backend queries within the caller-managed
+transaction.
+
 Typed operation handlers are the canonical API extension point. StateSpec does not
 generate a parallel generic API handler path; each declared API operation maps to one
 generated handler method and one dispatcher branch.

@@ -76,7 +76,7 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 | `key` | complete | complete | complete | complete | complete | complete | complete | P0 | Composite keys are supported. |
 | `fields` | complete | complete | complete | complete | complete | complete | complete | P0 | Mandatory lifecycle fields are validated and must appear first in canonical order. |
 | `state_machine` | complete | complete | complete | complete | complete | complete | complete | P0 | Initial, terminal, transitions, and GC metadata are represented. |
-| `indexes` | complete | complete | complete | complete | complete | complete | complete | P1 | Index declarations populate generated collection `IndexDescriptor` metadata. |
+| `indexes` | complete | complete | complete | complete | complete | complete | complete | P1 | Index declarations populate generated collection `IndexDescriptor` metadata and named generated repository helpers. Generated list APIs choose the best leading path-parameter prefix index and query through repositories rather than raw backend index names. |
 | `ownership` | complete | complete | complete | complete | complete | not-started | complete | P0 | Mandatory for every entity. Represented in AST, validation, semantic model, IR, and binding descriptors; formatter support is still token-preserving. |
 | `relations` | complete | complete | complete | complete | complete | not-started | complete | P1 | Parent/reference metadata is validated and emitted in descriptors; composition-cycle checks remain future work. |
 | `children` | complete | complete | complete | complete | complete | not-started | complete | P2 | Parent-side declarations are validated against child-owned parent relations. |

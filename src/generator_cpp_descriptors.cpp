@@ -182,15 +182,6 @@ const std::string* conventional_soft_delete_terminal_state(const IrEntity& entit
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
-const IrIndex* select_list_index(const IrEntity& entity)
-{
-    if (!entity.indexes.empty())
-    {
-        return &entity.indexes.front();
-    }
-    return nullptr;
-}
-
 bool status_update_has_required_request_fields(
     const IrEntity& entity,
     const IrShape& request
@@ -576,7 +567,7 @@ bool write_cpp_list_handler_body(
     {
         return false;
     }
-    const auto* index = select_list_index(*entity);
+    const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
     out << "        const auto path_parameters = extract_api_path_parameters("
         << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
     out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";

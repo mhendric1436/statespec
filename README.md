@@ -364,6 +364,12 @@ From a single `.sspec` file, StateSpec tooling can derive:
 | Documentation | architecture docs, diagrams, state machine graphs |
 | Tooling | syntax highlighting, validation, autocomplete, symbol navigation |
 
+Generated entity repositories are the persistence boundary for entity collections. They
+own collection descriptor registration, key encoding, declared index names, and
+index-value ordering, while backend implementations remain generic OCC
+collection/document stores. Generated API list handlers call named repository helpers
+for declared indexes instead of embedding raw backend index names directly.
+
 ---
 
 ## Runtime Model

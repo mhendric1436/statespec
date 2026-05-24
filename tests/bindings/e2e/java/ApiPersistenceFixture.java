@@ -45,6 +45,34 @@ public final class ApiPersistenceFixture
         requireStatus(task, 201);
         requireString(task.body(), "status", "Open");
 
+        Descriptors.ApiResponse otherAccount = handler.handleCreateAccount(request(
+            "CreateAccount", "POST", "/v1/tenants/t1/accounts/a2",
+            Json.object(Map.of(
+                "tenant_id", Json.string("t1"), "account_id", Json.string("a2"), "display_name",
+                Json.string("Other")
+            ))
+        ));
+        requireStatus(otherAccount, 201);
+
+        Descriptors.ApiResponse otherProject = handler.handleCreateProject(request(
+            "CreateProject", "POST", "/v1/tenants/t1/accounts/a2/projects/p2",
+            Json.object(Map.of(
+                "tenant_id", Json.string("t1"), "account_id", Json.string("a2"), "project_id",
+                Json.string("p2"), "name", Json.string("Other")
+            ))
+        ));
+        requireStatus(otherProject, 201);
+
+        Descriptors.ApiResponse otherTask = handler.handleCreateTask(request(
+            "CreateTask", "POST", "/v1/tenants/t1/projects/p2/tasks/t2",
+            Json.object(Map.of(
+                "tenant_id", Json.string("t1"), "account_id", Json.string("a2"), "project_id",
+                Json.string("p2"), "task_id", Json.string("t2"), "title", Json.string("Other"),
+                "priority", Json.integer(2)
+            ))
+        ));
+        requireStatus(otherTask, 201);
+
         Descriptors.ApiResponse gotAccount =
             handler.handleGetAccount(request("GetAccount", "GET", "/v1/tenants/t1/accounts/a1"));
         requireStatus(gotAccount, 200);
@@ -64,18 +92,21 @@ public final class ApiPersistenceFixture
             handler.handleListAccounts(request("ListAccounts", "GET", "/v1/tenants/t1/accounts"));
         requireStatus(accounts, 200);
         requireArrayNotEmpty(accounts.body(), "accounts");
+        requireArraySize(accounts.body(), "accounts", 2);
 
         Descriptors.ApiResponse projects = handler.handleListAccountProjects(
             request("ListAccountProjects", "GET", "/v1/tenants/t1/accounts/a1/projects")
         );
         requireStatus(projects, 200);
         requireArrayNotEmpty(projects.body(), "projects");
+        requireArraySize(projects.body(), "projects", 1);
 
         Descriptors.ApiResponse tasks = handler.handleListProjectTasks(
             request("ListProjectTasks", "GET", "/v1/tenants/t1/projects/p1/tasks")
         );
         requireStatus(tasks, 200);
         requireArrayNotEmpty(tasks.body(), "tasks");
+        requireArraySize(tasks.body(), "tasks", 1);
 
         Descriptors.ApiResponse activeProject = handler.handleUpdateProjectStatus(request(
             "UpdateProjectStatus", "PATCH", "/v1/tenants/t1/projects/p1/status",
@@ -163,6 +194,20 @@ public final class ApiPersistenceFixture
         if (!(value instanceof Json.ArrayValue arrayValue) || arrayValue.values().isEmpty())
         {
             throw new IllegalStateException("expected non-empty array field " + field);
+        }
+    }
+
+    private static void requireArraySize(
+        Json body,
+        String field,
+        int expected
+    )
+    {
+        Json value = body.find(field).orElseThrow();
+        if (!(value instanceof Json.ArrayValue arrayValue) ||
+            arrayValue.values().size() != expected)
+        {
+            throw new IllegalStateException("unexpected array size for " + field);
         }
     }
 }

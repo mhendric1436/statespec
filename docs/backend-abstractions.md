@@ -198,11 +198,26 @@ IndexPrefix
 IndexRange
 ```
 
+Generated entity repositories own the mapping from declared entity indexes to backend
+queries. API and worker application code should call the generated entity repository
+surface, not hard-code collection names or raw index names. The generated repository
+helper selects the collection descriptor, index name, key encoding, and `IndexValue`
+ordering, then issues a generic backend query through the caller's transaction.
+
+For list APIs, generated handlers choose the declared index whose leading fields best
+match path parameters. A route such as `/tenants/{tenant_id}/accounts/{account_id}/tasks`
+should prefer an index beginning with `tenant_id, account_id` over a less selective
+tenant-only index. The generated handler still passes only ordered index values to the
+repository; the backend remains unaware of API routes or entity semantics.
+
 ### IndexEquals
 
 `IndexEquals` targets a named index and supplies equality values in index field order.
 
-Use it for exact index lookups, including unique-index lookups.
+Use it for exact index lookups, including unique-index lookups. Backends may also treat
+an `IndexEquals` request with fewer values than the declared index field count as a
+leading-prefix query when the generated repository intentionally supplies only the
+route-constrained prefix.
 
 ```text
 index_name = "orders_by_tenant_status"

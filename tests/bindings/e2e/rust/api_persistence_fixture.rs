@@ -50,6 +50,16 @@ fn require_array_not_empty(body: &Json, field: &str) {
     assert!(!items.is_empty(), "expected non-empty array field {field}");
 }
 
+fn require_array_size(body: &Json, field: &str, expected: usize) {
+    let Json::Object(values) = body else {
+        panic!("expected object body");
+    };
+    let Some(Json::Array(items)) = values.get(field) else {
+        panic!("expected array field {field}");
+    };
+    assert_eq!(items.len(), expected, "unexpected array size for {field}");
+}
+
 #[test]
 fn generated_api_persistence_handlers_round_trip_entities() {
     let handler = DefaultApiHandler {
@@ -105,6 +115,52 @@ fn generated_api_persistence_handlers_round_trip_entities() {
     require_status(&task, 201);
     require_string(&task.body, "status", "Open");
 
+    let other_account = handler
+        .handle_create_account(&api_request(
+            "CreateAccount",
+            "POST",
+            "/v1/tenants/t1/accounts/a2",
+            object(vec![
+                ("tenant_id", Json::String("t1".to_string())),
+                ("account_id", Json::String("a2".to_string())),
+                ("display_name", Json::String("Other".to_string())),
+            ]),
+        ))
+        .expect("create other account failed");
+    require_status(&other_account, 201);
+
+    let other_project = handler
+        .handle_create_project(&api_request(
+            "CreateProject",
+            "POST",
+            "/v1/tenants/t1/accounts/a2/projects/p2",
+            object(vec![
+                ("tenant_id", Json::String("t1".to_string())),
+                ("account_id", Json::String("a2".to_string())),
+                ("project_id", Json::String("p2".to_string())),
+                ("name", Json::String("Other".to_string())),
+            ]),
+        ))
+        .expect("create other project failed");
+    require_status(&other_project, 201);
+
+    let other_task = handler
+        .handle_create_task(&api_request(
+            "CreateTask",
+            "POST",
+            "/v1/tenants/t1/projects/p2/tasks/t2",
+            object(vec![
+                ("tenant_id", Json::String("t1".to_string())),
+                ("account_id", Json::String("a2".to_string())),
+                ("project_id", Json::String("p2".to_string())),
+                ("task_id", Json::String("t2".to_string())),
+                ("title", Json::String("Other".to_string())),
+                ("priority", Json::Integer(2)),
+            ]),
+        ))
+        .expect("create other task failed");
+    require_status(&other_task, 201);
+
     let got_account = handler
         .handle_get_account(&api_request(
             "GetAccount",
@@ -148,6 +204,7 @@ fn generated_api_persistence_handlers_round_trip_entities() {
         .expect("list accounts failed");
     require_status(&accounts, 200);
     require_array_not_empty(&accounts.body, "accounts");
+    require_array_size(&accounts.body, "accounts", 2);
 
     let projects = handler
         .handle_list_account_projects(&api_request(
@@ -159,6 +216,7 @@ fn generated_api_persistence_handlers_round_trip_entities() {
         .expect("list projects failed");
     require_status(&projects, 200);
     require_array_not_empty(&projects.body, "projects");
+    require_array_size(&projects.body, "projects", 1);
 
     let tasks = handler
         .handle_list_project_tasks(&api_request(
@@ -170,6 +228,7 @@ fn generated_api_persistence_handlers_round_trip_entities() {
         .expect("list tasks failed");
     require_status(&tasks, 200);
     require_array_not_empty(&tasks.body, "tasks");
+    require_array_size(&tasks.body, "tasks", 1);
 
     let active_project = handler
         .handle_update_project_status(&api_request(
