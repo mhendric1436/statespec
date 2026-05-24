@@ -7,11 +7,39 @@ use crate::backend::{
 };
 use crate::json::Json;
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct InMemoryIndexKey(pub Vec<String>);
+
+#[derive(Debug, Clone)]
+pub struct InMemoryIndexState {
+    pub descriptor: crate::backend::IndexDescriptor,
+    pub entries: BTreeMap<InMemoryIndexKey, BTreeSet<String>>,
+}
+
 #[derive(Debug, Default)]
 pub struct InMemoryState {
     pub records: BTreeMap<String, BTreeMap<String, VersionedRecord>>,
     pub versions: BTreeMap<String, Version>,
     pub collections: BTreeMap<String, CollectionDescriptor>,
+    pub indexes: BTreeMap<String, BTreeMap<String, InMemoryIndexState>>,
+}
+
+pub(crate) fn empty_index_states(
+    descriptor: &CollectionDescriptor,
+) -> BTreeMap<String, InMemoryIndexState> {
+    descriptor
+        .indexes
+        .iter()
+        .map(|index| {
+            (
+                index.name.clone(),
+                InMemoryIndexState {
+                    descriptor: index.clone(),
+                    entries: BTreeMap::new(),
+                },
+            )
+        })
+        .collect()
 }
 
 #[derive(Debug)]

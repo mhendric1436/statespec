@@ -34,6 +34,7 @@ func (b *Backend) EnsureCollection(ctx context.Context, descriptor common.Collec
 		}
 	}
 	b.state.collections[collection] = descriptor
+	b.state.indexes[collection] = emptyIndexStates(descriptor)
 	return nil
 }
 
@@ -45,6 +46,10 @@ func (b *Backend) EnsureCollections(ctx context.Context, descriptors []common.Co
 	for collection, descriptor := range b.state.collections {
 		staged[collection] = descriptor
 	}
+	stagedIndexes := make(map[common.CollectionName]map[string]indexState, len(b.state.indexes)+len(descriptors))
+	for collection, indexes := range b.state.indexes {
+		stagedIndexes[collection] = indexes
+	}
 	for _, descriptor := range descriptors {
 		collection := common.CollectionName(descriptor.Name)
 		if existing, ok := staged[collection]; ok {
@@ -53,8 +58,10 @@ func (b *Backend) EnsureCollections(ctx context.Context, descriptors []common.Co
 			}
 		}
 		staged[collection] = descriptor
+		stagedIndexes[collection] = emptyIndexStates(descriptor)
 	}
 	b.state.collections = staged
+	b.state.indexes = stagedIndexes
 	return nil
 }
 

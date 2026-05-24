@@ -14,15 +14,35 @@ type state struct {
 
 	collections map[common.CollectionName]common.CollectionDescriptor
 	records     map[common.CollectionName]map[common.Key]common.VersionedRecord
+	indexes     map[common.CollectionName]map[string]indexState
 	versions    map[string]common.Version
+}
+
+type indexKey []string
+
+type indexState struct {
+	descriptor common.IndexDescriptor
+	entries    map[string]map[common.Key]struct{}
 }
 
 func newState() *state {
 	return &state{
 		collections: map[common.CollectionName]common.CollectionDescriptor{},
 		records:     map[common.CollectionName]map[common.Key]common.VersionedRecord{},
+		indexes:     map[common.CollectionName]map[string]indexState{},
 		versions:    map[string]common.Version{},
 	}
+}
+
+func emptyIndexStates(descriptor common.CollectionDescriptor) map[string]indexState {
+	states := map[string]indexState{}
+	for _, index := range descriptor.Indexes {
+		states[index.Name] = indexState{
+			descriptor: index,
+			entries:    map[string]map[common.Key]struct{}{},
+		}
+	}
+	return states
 }
 
 type Transaction struct {

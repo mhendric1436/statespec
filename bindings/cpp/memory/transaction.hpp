@@ -15,13 +15,34 @@ namespace statespec::backend::memory
 namespace detail
 {
 
+using InMemoryIndexKey = std::vector<std::string>;
+
+struct InMemoryIndexState
+{
+    IndexDescriptor descriptor;
+    std::map<InMemoryIndexKey, std::set<Key>> entries;
+};
+
 struct InMemoryState
 {
     std::mutex mutex;
     std::map<CollectionName, CollectionDescriptor> collections;
     std::map<CollectionName, std::map<Key, VersionedRecord>> records;
+    std::map<CollectionName, std::map<std::string, InMemoryIndexState>> indexes;
     std::map<std::string, Version> versions;
 };
+
+inline std::map<std::string, InMemoryIndexState> empty_index_states(
+    const CollectionDescriptor& descriptor
+)
+{
+    std::map<std::string, InMemoryIndexState> states;
+    for (const auto& index : descriptor.indexes)
+    {
+        states.emplace(index.name, InMemoryIndexState{index, {}});
+    }
+    return states;
+}
 
 inline std::string record_version_key(
     const CollectionName& collection,

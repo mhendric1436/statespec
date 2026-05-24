@@ -26,6 +26,9 @@ public final class InMemoryBackend implements Backend
                 SchemaCompatibility.validateCollectionDescriptorUpgrade(existing, descriptor);
             }
             state.collections.put(descriptor.name(), descriptor);
+            state.indexes.put(
+                descriptor.name(), InMemoryTransaction.emptyIndexStates(descriptor)
+            );
         }
     }
 
@@ -35,6 +38,7 @@ public final class InMemoryBackend implements Backend
         synchronized (state)
         {
             var staged = new HashMap<>(state.collections);
+            var stagedIndexes = new HashMap<>(state.indexes);
             for (var descriptor : descriptors)
             {
                 var existing = staged.get(descriptor.name());
@@ -43,9 +47,14 @@ public final class InMemoryBackend implements Backend
                     SchemaCompatibility.validateCollectionDescriptorUpgrade(existing, descriptor);
                 }
                 staged.put(descriptor.name(), descriptor);
+                stagedIndexes.put(
+                    descriptor.name(), InMemoryTransaction.emptyIndexStates(descriptor)
+                );
             }
             state.collections.clear();
             state.collections.putAll(staged);
+            state.indexes.clear();
+            state.indexes.putAll(stagedIndexes);
         }
     }
 

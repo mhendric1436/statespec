@@ -5,7 +5,9 @@ use crate::backend::{
     VersionedRecord,
 };
 use crate::json::Json;
-use crate::memory_transaction::{lock_error, InMemoryState, InMemoryTransaction};
+use crate::memory_transaction::{
+    empty_index_states, lock_error, InMemoryState, InMemoryTransaction,
+};
 use crate::schema_compatibility::validate_collection_descriptor_upgrade;
 
 #[derive(Debug, Clone, Default)]
@@ -39,19 +41,25 @@ impl Backend for InMemoryBackend {
         state
             .collections
             .insert(descriptor.name.clone(), descriptor.clone());
+        state
+            .indexes
+            .insert(descriptor.name.clone(), empty_index_states(descriptor));
         Ok(())
     }
 
     fn ensure_collections(&self, descriptors: &[CollectionDescriptor]) -> BackendResult<()> {
         let mut state = self.state.lock().map_err(lock_error)?;
         let mut staged = state.collections.clone();
+        let mut staged_indexes = state.indexes.clone();
         for descriptor in descriptors {
             if let Some(existing) = staged.get(&descriptor.name) {
                 validate_collection_descriptor_upgrade(existing, descriptor)?;
             }
             staged.insert(descriptor.name.clone(), descriptor.clone());
+            staged_indexes.insert(descriptor.name.clone(), empty_index_states(descriptor));
         }
         state.collections = staged;
+        state.indexes = staged_indexes;
         Ok(())
     }
 

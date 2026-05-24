@@ -17,6 +17,28 @@ public final class InMemoryTransaction implements Backend.Transaction
         final Map<String, Map<String, Backend.VersionedRecord>> records = new HashMap<>();
         final Map<String, Long> versions = new HashMap<>();
         final Map<String, Backend.CollectionDescriptor> collections = new HashMap<>();
+        final Map<String, Map<String, IndexState>> indexes = new HashMap<>();
+    }
+
+    static final class IndexState
+    {
+        final Backend.IndexDescriptor descriptor;
+        final Map<List<String>, Set<String>> entries = new HashMap<>();
+
+        IndexState(Backend.IndexDescriptor descriptor)
+        {
+            this.descriptor = descriptor;
+        }
+    }
+
+    static Map<String, IndexState> emptyIndexStates(Backend.CollectionDescriptor descriptor)
+    {
+        var states = new HashMap<String, IndexState>();
+        for (var index : descriptor.indexes())
+        {
+            states.put(index.name(), new IndexState(index));
+        }
+        return states;
     }
 
     final State state;

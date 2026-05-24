@@ -25,6 +25,9 @@ class InMemoryBackend : public IBackend
             validate_collection_descriptor_upgrade(existing->second, descriptor);
         }
         state_->collections.insert_or_assign(descriptor.name, descriptor);
+        state_->indexes.insert_or_assign(
+            descriptor.name, detail::empty_index_states(descriptor)
+        );
     }
 
     void ensure_collections(const std::vector<CollectionDescriptor>& descriptors) override
@@ -40,7 +43,15 @@ class InMemoryBackend : public IBackend
             }
             staged.insert_or_assign(descriptor.name, descriptor);
         }
+        auto staged_indexes = state_->indexes;
+        for (const auto& descriptor : descriptors)
+        {
+            staged_indexes.insert_or_assign(
+                descriptor.name, detail::empty_index_states(descriptor)
+            );
+        }
         state_->collections = std::move(staged);
+        state_->indexes = std::move(staged_indexes);
     }
 
     std::unique_ptr<ITransaction> begin() override
