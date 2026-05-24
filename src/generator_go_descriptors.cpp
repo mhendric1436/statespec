@@ -474,7 +474,7 @@ bool write_go_create_handler_body(
     {
         if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
         {
-            out << "\tresponse := common." << pascal_identifier(shape->name) << "{}\n";
+            out << "\tresponse := shapes." << pascal_identifier(shape->name) << "{}\n";
             for (const auto& field : shape->fields)
             {
                 const auto access = "response." + pascal_identifier(field.name);
@@ -542,7 +542,7 @@ bool write_go_get_handler_body(
     {
         if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
         {
-            out << "\tresponse := common." << pascal_identifier(shape->name) << "{}\n";
+            out << "\tresponse := shapes." << pascal_identifier(shape->name) << "{}\n";
             for (const auto& field : shape->fields)
             {
                 const auto var_name = lower_camel_identifier(field.name);
@@ -724,7 +724,7 @@ bool write_go_update_status_handler_body(
     {
         if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
         {
-            out << "\tresponse := common." << pascal_identifier(shape->name) << "{}\n";
+            out << "\tresponse := shapes." << pascal_identifier(shape->name) << "{}\n";
             for (const auto& field : shape->fields)
             {
                 const auto var_name = "response" + pascal_identifier(field.name);
@@ -1050,7 +1050,7 @@ std::string generate_api_operation_default_handler_methods_go(const IrSystem& sy
         {
             if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
             {
-                out << "\tresponse := common." << pascal_identifier(shape->name) << "{}\n";
+                out << "\tresponse := shapes." << pascal_identifier(shape->name) << "{}\n";
                 for (const auto& field : shape->fields)
                 {
                     const auto access = "response." + pascal_identifier(field.name);
@@ -1138,9 +1138,9 @@ std::string generate_api_codecs_go(const IrSystem& system)
             if (shape != nullptr)
             {
                 out << "func Decode" << pascal_identifier(api.name)
-                    << "Request(request common.APIRequestContext) (common."
+                    << "Request(request common.APIRequestContext) (shapes."
                     << pascal_identifier(shape->name) << ", error) {\n";
-                out << "\tvar decoded common." << pascal_identifier(shape->name) << "\n";
+                out << "\tvar decoded shapes." << pascal_identifier(shape->name) << "\n";
                 for (const auto& field : shape->fields)
                 {
                     const auto field_name = go_string(field.name);
@@ -1152,7 +1152,7 @@ std::string generate_api_codecs_go(const IrSystem& system)
                             << "); ok && !member.IsNull() {\n";
                         out << "\t\t" << field_var << ", err := " << go_decode_func(field)
                             << "(member, " << field_name << ")\n";
-                        out << "\t\tif err != nil { return common."
+                        out << "\t\tif err != nil { return shapes."
                             << pascal_identifier(shape->name) << "{}, err }\n";
                         out << "\t\tdecoded." << field_access << " = &" << field_var << "\n";
                         out << "\t}\n";
@@ -1161,11 +1161,11 @@ std::string generate_api_codecs_go(const IrSystem& system)
                     {
                         out << "\t" << field_var << "JSON, err := requireMember(request.Body, "
                             << field_name << ")\n";
-                        out << "\tif err != nil { return common." << pascal_identifier(shape->name)
+                        out << "\tif err != nil { return shapes." << pascal_identifier(shape->name)
                             << "{}, err }\n";
                         out << "\t" << field_var << ", err := " << go_decode_func(field) << "("
                             << field_var << "JSON, " << field_name << ")\n";
-                        out << "\tif err != nil { return common." << pascal_identifier(shape->name)
+                        out << "\tif err != nil { return shapes." << pascal_identifier(shape->name)
                             << "{}, err }\n";
                         out << "\tdecoded." << field_access << " = " << field_var << "\n";
                     }
@@ -1181,7 +1181,7 @@ std::string generate_api_codecs_go(const IrSystem& system)
             if (shape != nullptr)
             {
                 out << "func Decode" << pascal_identifier(api.name)
-                    << "Response(response common.APIResponse) (common."
+                    << "Response(response common.APIResponse) (shapes."
                     << pascal_identifier(shape->name) << ", error) {\n";
                 out << "\trequest := common.APIRequestContext{Body: response.Body}\n";
                 out << "\treturn Decode" << pascal_identifier(api.name)
@@ -1189,9 +1189,9 @@ std::string generate_api_codecs_go(const IrSystem& system)
                 out << "}\n\n";
 
                 out << "func Decode" << pascal_identifier(api.name)
-                    << "ResponseBody(request common.APIRequestContext) (common."
+                    << "ResponseBody(request common.APIRequestContext) (shapes."
                     << pascal_identifier(shape->name) << ", error) {\n";
-                out << "\tvar decoded common." << pascal_identifier(shape->name) << "\n";
+                out << "\tvar decoded shapes." << pascal_identifier(shape->name) << "\n";
                 for (const auto& field : shape->fields)
                 {
                     const auto field_name = go_string(field.name);
@@ -1203,7 +1203,7 @@ std::string generate_api_codecs_go(const IrSystem& system)
                             << "); ok && !member.IsNull() {\n";
                         out << "\t\t" << field_var << ", err := " << go_decode_func(field)
                             << "(member, " << field_name << ")\n";
-                        out << "\t\tif err != nil { return common."
+                        out << "\t\tif err != nil { return shapes."
                             << pascal_identifier(shape->name) << "{}, err }\n";
                         out << "\t\tdecoded." << field_access << " = &" << field_var << "\n";
                         out << "\t}\n";
@@ -1212,11 +1212,11 @@ std::string generate_api_codecs_go(const IrSystem& system)
                     {
                         out << "\t" << field_var << "JSON, err := requireMember(request.Body, "
                             << field_name << ")\n";
-                        out << "\tif err != nil { return common." << pascal_identifier(shape->name)
+                        out << "\tif err != nil { return shapes." << pascal_identifier(shape->name)
                             << "{}, err }\n";
                         out << "\t" << field_var << ", err := " << go_decode_func(field) << "("
                             << field_var << "JSON, " << field_name << ")\n";
-                        out << "\tif err != nil { return common." << pascal_identifier(shape->name)
+                        out << "\tif err != nil { return shapes." << pascal_identifier(shape->name)
                             << "{}, err }\n";
                         out << "\tdecoded." << field_access << " = " << field_var << "\n";
                     }
@@ -1224,13 +1224,13 @@ std::string generate_api_codecs_go(const IrSystem& system)
                 out << "\treturn decoded, nil\n";
                 out << "}\n\n";
 
-                out << "func Encode" << pascal_identifier(api.name) << "Response(response common."
+                out << "func Encode" << pascal_identifier(api.name) << "Response(response shapes."
                     << pascal_identifier(shape->name) << ") common.APIResponse {\n";
                 out << "\treturn Encode" << pascal_identifier(api.name)
                     << "ResponseWithStatus(response, 200)\n";
                 out << "}\n\n";
                 out << "func Encode" << pascal_identifier(api.name)
-                    << "ResponseWithStatus(response common." << pascal_identifier(shape->name)
+                    << "ResponseWithStatus(response shapes." << pascal_identifier(shape->name)
                     << ", statusCode int) common.APIResponse {\n";
                 out << "\tbody := map[string]common.JSON{}\n";
                 for (const auto& field : shape->fields)

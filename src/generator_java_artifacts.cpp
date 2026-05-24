@@ -64,6 +64,18 @@ std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
     return sources;
 }
 
+std::vector<std::string> java_shape_sources(const IrSystem& system)
+{
+    std::vector<std::string> sources;
+    for (const auto& shape : system.shapes)
+    {
+        sources.push_back(
+            "common/com/statespec/generated/shapes/" + pascal_identifier(shape.name) + ".java"
+        );
+    }
+    return sources;
+}
+
 TemplateRenderer::Values java_makefile_values(
     BindingGenerationTier tier,
     const IrSystem& system
@@ -95,6 +107,10 @@ TemplateRenderer::Values java_makefile_values(
         "common/com/statespec/generated/Descriptors.java",
     };
     for (const auto& source : java_descriptor_module_sources(system))
+    {
+        common_sources.push_back(source);
+    }
+    for (const auto& source : java_shape_sources(system))
     {
         common_sources.push_back(source);
     }
@@ -433,6 +449,81 @@ TemplateRenderer::Values java_shape_descriptor_module_values(
     );
 }
 
+void add_java_raw_common_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const std::filesystem::path& relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = common_artifact_path(relative_output_path.generic_string());
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Common,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+std::string java_shape_type_file(const IrShape& shape)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.shapes;\n\n";
+    out << "import com.statespec.backend.Json;\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public record " << pascal_identifier(shape.name) << "(\n";
+    for (std::size_t i = 0; i < shape.fields.size(); ++i)
+    {
+        const auto& field = shape.fields[i];
+        out << "    " << java_shape_type(field.type) << " " << field.name;
+        out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
+    }
+    out << ") {}\n";
+    return out.str();
+}
+
+void add_java_shape_type_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    const auto shape_path = join_artifact_path(GeneratedJavaOutputPackagePath, "shapes");
+    for (const auto& shape : system.shapes)
+    {
+        add_java_raw_common_file(
+            result, options, shape_path / (pascal_identifier(shape.name) + ".java"),
+            java_shape_type_file(shape)
+        );
+    }
+}
+
+std::string java_api_shape_import(const IrSystem& system)
+{
+    for (const auto& api : system.apis)
+    {
+        if (api.input.has_value() || api.output.has_value())
+        {
+            return "import com.statespec.generated.shapes.*;\n";
+        }
+    }
+    return {};
+}
+
+std::string java_api_default_handler_shape_import(const IrSystem& system)
+{
+    for (const auto& api : system.apis)
+    {
+        if (api.output.has_value())
+        {
+            return "import com.statespec.generated.shapes.*;\n";
+        }
+    }
+    return {};
+}
+
 void add_java_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -680,6 +771,7 @@ void add_java_common_runtime_artifacts(
     {
         return;
     }
+    add_java_shape_type_artifacts(result, options, system);
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("Descriptors.java.tmpl"),
         common_artifact_path(
@@ -712,7 +804,10 @@ void add_java_api_artifacts(
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiCodecs.java"),
         GeneratedArtifactTier::Api, diagnostics,
-        TemplateRenderer::Values{{"api_codecs", generate_api_codecs_java(system)}}
+        TemplateRenderer::Values{
+            {"api_shape_import", java_api_shape_import(system)},
+            {"api_codecs", generate_api_codecs_java(system)}
+        }
     );
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiHandlers.java"),
@@ -726,7 +821,8 @@ void add_java_api_artifacts(
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             generate_api_operation_default_handler_methods_java(system)}
+             generate_api_operation_default_handler_methods_java(system)},
+            {"api_shape_import", java_api_default_handler_shape_import(system)}
         }
     );
     add_java_generated_template_file(

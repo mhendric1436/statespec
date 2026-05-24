@@ -9,6 +9,7 @@
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
+#include <utility>
 
 namespace statespec
 {
@@ -376,6 +377,72 @@ TemplateRenderer::Values cpp_shape_descriptor_module_values(const IrSystem& syst
     };
 }
 
+void add_cpp_raw_common_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = common_artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Common,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+std::string cpp_shape_type_header(const IrShape& shape)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../backend.hpp\"\n\n";
+    out << "#include <cstdint>\n";
+    out << "#include <optional>\n";
+    out << "#include <string>\n\n";
+    out << "namespace statespec_generated\n";
+    out << "{\n\n";
+    out << "struct " << pascal_identifier(shape.name) << "\n";
+    out << "{\n";
+    for (const auto& field : shape.fields)
+    {
+        out << "    " << cpp_shape_type(field.type) << " " << field.name << "{};\n";
+    }
+    out << "};\n\n";
+    out << "} // namespace statespec_generated\n";
+    return out.str();
+}
+
+std::string cpp_shapes_umbrella_header(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    for (const auto& shape : system.shapes)
+    {
+        out << "#include \"shapes/" << snake_identifier(shape.name) << ".hpp\"\n";
+    }
+    return out.str();
+}
+
+void add_cpp_shape_type_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    add_cpp_raw_common_file(result, options, "shapes.hpp", cpp_shapes_umbrella_header(system));
+    for (const auto& shape : system.shapes)
+    {
+        add_cpp_raw_common_file(
+            result, options, "shapes/" + snake_identifier(shape.name) + ".hpp",
+            cpp_shape_type_header(shape)
+        );
+    }
+}
+
 void add_cpp_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -596,6 +663,7 @@ void add_cpp_common_runtime_artifacts(
         return;
     }
 
+    add_cpp_shape_type_artifacts(result, options, system);
     add_cpp_descriptor_module_artifacts(result, options, templates, system, diagnostics);
     if (diagnostics.has_errors())
     {

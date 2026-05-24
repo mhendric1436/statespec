@@ -50,17 +50,6 @@ std::string generate_go_descriptor_prelude(
     out << "\tName string\n";
     out << "\tFields map[string]JSON\n";
     out << "}\n\n";
-    for (const auto& shape : system.shapes)
-    {
-        out << "type " << pascal_identifier(shape.name) << " struct {\n";
-        for (const auto& field : shape.fields)
-        {
-            out << "\t" << pascal_identifier(field.name) << " " << go_shape_type(field.type)
-                << " `json:\"" << field.name << "\"`\n";
-        }
-        out << "}\n\n";
-    }
-
     for (const auto& event : system.events)
     {
         out << "func New" << pascal_identifier(event.name) << "Event(";

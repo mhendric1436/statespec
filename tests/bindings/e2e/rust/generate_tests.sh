@@ -62,6 +62,11 @@ common/runtime/leases.rs
 common/runtime/queues.rs
 common/runtime/workflows.rs
 common/schema_compatibility.rs
+common/shapes.rs
+common/shapes/provision_callback_request.rs
+common/shapes/provision_callback_response.rs
+common/shapes/start_provision_request.rs
+common/shapes/start_provision_response.rs
 common/workflow.rs
 lib.rs
 worker/main.rs

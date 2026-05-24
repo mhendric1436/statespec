@@ -9,6 +9,7 @@
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
+#include <utility>
 
 namespace statespec
 {
@@ -80,6 +81,8 @@ TemplateRenderer::Values rust_lib_values(
     std::ostringstream runtime_modules;
     std::ostringstream api_modules;
     std::ostringstream worker_modules;
+    runtime_modules << "#[path = \"common/shapes.rs\"]\n";
+    runtime_modules << "pub mod shapes;\n";
     if (usage.uses_any_runtime_domain)
     {
         runtime_modules << "#[path = \"common/runtime/codec.rs\"]\n";
@@ -433,6 +436,68 @@ TemplateRenderer::Values rust_shape_descriptor_module_values(const IrSystem& sys
     };
 }
 
+void add_rust_raw_common_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = common_artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Common,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+std::string rust_shape_type_file(const IrShape& shape)
+{
+    std::ostringstream out;
+    out << "#[allow(unused_imports)]\n";
+    out << "use crate::json::Json;\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct " << pascal_identifier(shape.name) << " {\n";
+    for (const auto& field : shape.fields)
+    {
+        out << "    pub " << field.name << ": " << rust_shape_type(field.type) << ",\n";
+    }
+    out << "}\n";
+    return out.str();
+}
+
+std::string rust_shapes_module(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& shape : system.shapes)
+    {
+        const auto module_name = "shape_" + snake_identifier(shape.name);
+        out << "#[path = \"shapes/" << snake_identifier(shape.name) << ".rs\"]\n";
+        out << "mod " << module_name << ";\n";
+        out << "pub use " << module_name << "::*;\n";
+    }
+    return out.str();
+}
+
+void add_rust_shape_type_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    add_rust_raw_common_file(result, options, "shapes.rs", rust_shapes_module(system));
+    for (const auto& shape : system.shapes)
+    {
+        add_rust_raw_common_file(
+            result, options, "shapes/" + snake_identifier(shape.name) + ".rs",
+            rust_shape_type_file(shape)
+        );
+    }
+}
+
 void add_rust_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -648,6 +713,7 @@ void add_rust_common_runtime_artifacts(
         return;
     }
 
+    add_rust_shape_type_artifacts(result, options, system);
     add_rust_descriptor_module_artifacts(result, options, templates, system, diagnostics);
     if (diagnostics.has_errors())
     {

@@ -62,6 +62,10 @@ common/backend/runtime/workflows.go
 common/backend/schema_compatibility.go
 common/backend/service_instance_descriptors.go
 common/backend/shape_descriptors.go
+common/backend/shapes/provision_callback_request.go
+common/backend/shapes/provision_callback_response.go
+common/backend/shapes/start_provision_request.go
+common/backend/shapes/start_provision_response.go
 common/backend/workflow.go
 go.mod
 worker/backend/worker_application.go

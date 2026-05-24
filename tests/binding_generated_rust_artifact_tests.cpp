@@ -47,6 +47,7 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors/runtime.rs", common},
             {"common/descriptors/shapes.rs", common},
             {"common/descriptors/workers.rs", common},
+            {"common/shapes.rs", common},
             {"common/Cargo.toml", common},
             {"common/lib.rs", common},
             {"common/Makefile", common},
@@ -83,6 +84,9 @@ void test_rust_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "descriptors/shapes.rs", "common/descriptors/shapes.rs",
         statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "shapes.rs", "common/shapes.rs", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "descriptors/workers.rs", "common/descriptors/workers.rs",

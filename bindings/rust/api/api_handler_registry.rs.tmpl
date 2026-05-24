@@ -2,9 +2,12 @@
 use crate::api_handlers::{ApiHandler, ApiRequestContext, ApiResponse};
 #[allow(unused_imports)]
 use crate::backend::{Backend, BackendError, BackendResult, IndexValue};
+#[allow(unused_imports)]
 use crate::descriptors::*;
 #[allow(unused_imports)]
 use crate::json::Json;
+#[allow(unused_imports)]
+use crate::shapes;
 
 #[derive(Debug, Clone)]
 pub struct DefaultApiHandler<B: Backend> {

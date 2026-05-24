@@ -516,8 +516,7 @@ bool write_java_create_handler_body(
     {
         if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
         {
-            out << "                var response = new Descriptors."
-                << pascal_identifier(shape->name) << "(\n";
+            out << "                var response = new " << pascal_identifier(shape->name) << "(\n";
             for (std::size_t i = 0; i < shape->fields.size(); ++i)
             {
                 const auto& field = shape->fields[i];
@@ -596,8 +595,7 @@ bool write_java_get_handler_body(
         if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
         {
             out << "                var document = record.get().document();\n";
-            out << "                var response = new Descriptors."
-                << pascal_identifier(shape->name) << "(\n";
+            out << "                var response = new " << pascal_identifier(shape->name) << "(\n";
             for (std::size_t i = 0; i < shape->fields.size(); ++i)
             {
                 const auto& field = shape->fields[i];
@@ -828,8 +826,7 @@ bool write_java_update_status_handler_body(
         if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
         {
             out << "                var responseDocument = updated.get().document();\n";
-            out << "                var response = new Descriptors."
-                << pascal_identifier(shape->name) << "(\n";
+            out << "                var response = new " << pascal_identifier(shape->name) << "(\n";
             for (std::size_t i = 0; i < shape->fields.size(); ++i)
             {
                 const auto& field = shape->fields[i];
@@ -1189,8 +1186,7 @@ std::string generate_api_operation_default_handler_methods_java(const IrSystem& 
         {
             if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
             {
-                out << "            var response = new Descriptors."
-                    << pascal_identifier(shape->name) << "(\n";
+                out << "            var response = new " << pascal_identifier(shape->name) << "(\n";
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
                     const auto& field = shape->fields[i];
@@ -1274,10 +1270,10 @@ std::string generate_api_codecs_java(const IrSystem& system)
             const auto* shape = find_shape(system, *api.input);
             if (shape != nullptr)
             {
-                out << "    public static Descriptors." << pascal_identifier(shape->name)
-                    << " decode" << pascal_identifier(api.name)
+                out << "    public static " << pascal_identifier(shape->name) << " decode"
+                    << pascal_identifier(api.name)
                     << "Request(Descriptors.ApiRequestContext request) {\n";
-                out << "        return new Descriptors." << pascal_identifier(shape->name) << "(\n";
+                out << "        return new " << pascal_identifier(shape->name) << "(\n";
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
                     const auto& field = shape->fields[i];
@@ -1306,10 +1302,10 @@ std::string generate_api_codecs_java(const IrSystem& system)
             const auto* shape = find_shape(system, *api.output);
             if (shape != nullptr)
             {
-                out << "    public static Descriptors." << pascal_identifier(shape->name)
-                    << " decode" << pascal_identifier(api.name)
+                out << "    public static " << pascal_identifier(shape->name) << " decode"
+                    << pascal_identifier(api.name)
                     << "Response(Descriptors.ApiResponse response) {\n";
-                out << "        return new Descriptors." << pascal_identifier(shape->name) << "(\n";
+                out << "        return new " << pascal_identifier(shape->name) << "(\n";
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
                     const auto& field = shape->fields[i];
@@ -1333,14 +1329,14 @@ std::string generate_api_codecs_java(const IrSystem& system)
                 out << "    }\n\n";
 
                 out << "    public static Descriptors.ApiResponse encode"
-                    << pascal_identifier(api.name) << "Response(Descriptors."
-                    << pascal_identifier(shape->name) << " response) {\n";
+                    << pascal_identifier(api.name) << "Response(" << pascal_identifier(shape->name)
+                    << " response) {\n";
                 out << "        return encode" << pascal_identifier(api.name)
                     << "Response(response, 200);\n";
                 out << "    }\n\n";
                 out << "    public static Descriptors.ApiResponse encode"
-                    << pascal_identifier(api.name) << "Response(Descriptors."
-                    << pascal_identifier(shape->name) << " response, int statusCode) {\n";
+                    << pascal_identifier(api.name) << "Response(" << pascal_identifier(shape->name)
+                    << " response, int statusCode) {\n";
                 out << "        Map<String, Json> body = new TreeMap<>();\n";
                 for (const auto& field : shape->fields)
                 {

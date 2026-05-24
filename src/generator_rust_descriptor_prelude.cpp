@@ -69,17 +69,6 @@ std::string generate_rust_descriptor_prelude(
     out << "    pub name: String,\n";
     out << "    pub fields: BTreeMap<String, Json>,\n";
     out << "}\n\n";
-    for (const auto& shape : system.shapes)
-    {
-        out << "#[derive(Debug, Clone)]\n";
-        out << "pub struct " << pascal_identifier(shape.name) << " {\n";
-        for (const auto& field : shape.fields)
-        {
-            out << "    pub " << field.name << ": " << rust_shape_type(field.type) << ",\n";
-        }
-        out << "}\n\n";
-    }
-
     for (const auto& event : system.events)
     {
         out << "pub fn make_" << snake_identifier(event.name) << "_event(\n";

@@ -491,7 +491,7 @@ bool write_rust_create_handler_body(
     {
         if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
         {
-            out << "        let response = " << pascal_identifier(shape->name) << " {\n";
+            out << "        let response = shapes::" << pascal_identifier(shape->name) << " {\n";
             for (const auto& field : shape->fields)
             {
                 out << "            " << field.name << ": ";
@@ -1083,7 +1083,8 @@ std::string generate_api_operation_default_handler_methods_rs(const IrSystem& sy
         {
             if (const auto* shape = find_shape(system, *api.output); shape != nullptr)
             {
-                out << "        let response = " << pascal_identifier(shape->name) << " {\n";
+                out << "        let response = shapes::" << pascal_identifier(shape->name)
+                    << " {\n";
                 for (const auto& field : shape->fields)
                 {
                     out << "            " << field.name << ": ";
@@ -1164,9 +1165,9 @@ std::string generate_api_codecs_rs(const IrSystem& system)
             if (shape != nullptr)
             {
                 out << "pub fn decode_" << snake_identifier(api.name)
-                    << "_request(request: &ApiRequestContext) -> BackendResult<"
+                    << "_request(request: &ApiRequestContext) -> BackendResult<shapes::"
                     << pascal_identifier(shape->name) << "> {\n";
-                out << "    Ok(" << pascal_identifier(shape->name) << " {\n";
+                out << "    Ok(shapes::" << pascal_identifier(shape->name) << " {\n";
                 for (const auto& field : shape->fields)
                 {
                     out << "        " << field.name << ": ";
@@ -1195,9 +1196,9 @@ std::string generate_api_codecs_rs(const IrSystem& system)
             if (shape != nullptr)
             {
                 out << "pub fn decode_" << snake_identifier(api.name)
-                    << "_response(response: &ApiResponse) -> BackendResult<"
+                    << "_response(response: &ApiResponse) -> BackendResult<shapes::"
                     << pascal_identifier(shape->name) << "> {\n";
-                out << "    Ok(" << pascal_identifier(shape->name) << " {\n";
+                out << "    Ok(shapes::" << pascal_identifier(shape->name) << " {\n";
                 for (const auto& field : shape->fields)
                 {
                     out << "        " << field.name << ": ";
@@ -1219,13 +1220,14 @@ std::string generate_api_codecs_rs(const IrSystem& system)
                 out << "    })\n";
                 out << "}\n\n";
 
-                out << "pub fn encode_" << snake_identifier(api.name) << "_response(response: &"
-                    << pascal_identifier(shape->name) << ") -> ApiResponse {\n";
+                out << "pub fn encode_" << snake_identifier(api.name)
+                    << "_response(response: &shapes::" << pascal_identifier(shape->name)
+                    << ") -> ApiResponse {\n";
                 out << "    encode_" << snake_identifier(api.name)
                     << "_response_with_status(response, 200)\n";
                 out << "}\n\n";
                 out << "pub fn encode_" << snake_identifier(api.name)
-                    << "_response_with_status(response: &" << pascal_identifier(shape->name)
+                    << "_response_with_status(response: &shapes::" << pascal_identifier(shape->name)
                     << ", status_code: i32) -> ApiResponse {\n";
                 out << "    let mut body = BTreeMap::new();\n";
                 for (const auto& field : shape->fields)

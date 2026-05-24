@@ -61,6 +61,11 @@ common/runtime/lease_store.hpp
 common/runtime/queue_store.hpp
 common/runtime/workflow_store.hpp
 common/schema_compatibility.hpp
+common/shapes.hpp
+common/shapes/provision_callback_request.hpp
+common/shapes/provision_callback_response.hpp
+common/shapes/start_provision_request.hpp
+common/shapes/start_provision_response.hpp
 common/workflow.hpp
 worker/main.cpp
 worker/worker_application.hpp

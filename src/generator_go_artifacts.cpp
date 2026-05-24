@@ -7,8 +7,10 @@
 #include "generator_support.hpp"
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
+#include "type_syntax.hpp"
 
 #include <sstream>
+#include <utility>
 
 namespace statespec
 {
@@ -192,6 +194,48 @@ TemplateRenderer::Values go_api_runtime_bootstrap_values(const IrSystem& system)
     return values;
 }
 
+bool go_api_uses_shapes(const IrSystem& system)
+{
+    for (const auto& api : system.apis)
+    {
+        if (api.input.has_value() || api.output.has_value())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool go_api_default_handlers_use_shapes(const IrSystem& system)
+{
+    for (const auto& api : system.apis)
+    {
+        if (api.output.has_value())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string go_api_shape_import(const IrSystem& system)
+{
+    if (!go_api_uses_shapes(system))
+    {
+        return {};
+    }
+    return "\tshapes \"statespec-generated/common/backend/shapes\"\n";
+}
+
+std::string go_api_default_handler_shape_import(const IrSystem& system)
+{
+    if (!go_api_default_handlers_use_shapes(system))
+    {
+        return {};
+    }
+    return "\tshapes \"statespec-generated/common/backend/shapes\"\n";
+}
+
 TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
 {
     std::ostringstream descriptors;
@@ -286,6 +330,80 @@ TemplateRenderer::Values go_shape_descriptor_values(const IrSystem& system)
     return TemplateRenderer::Values{
         {"shape_descriptor_content", generate_go_shape_descriptors(system)}
     };
+}
+
+void add_go_raw_common_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = common_artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Common,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+std::string go_shape_field_type(const std::string& type)
+{
+    auto mapped = go_shape_type(type);
+    const auto json_pos = mapped.find("JSON");
+    if (json_pos != std::string::npos)
+    {
+        mapped.replace(json_pos, 4, "common.JSON");
+    }
+    return mapped;
+}
+
+bool go_shape_uses_json(const IrShape& shape)
+{
+    for (const auto& field : shape.fields)
+    {
+        if (strip_optional_type(field.type) == "json")
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string go_shape_type_file(const IrShape& shape)
+{
+    std::ostringstream out;
+    out << "package shapes\n\n";
+    if (go_shape_uses_json(shape))
+    {
+        out << "import common \"statespec-generated/common/backend\"\n\n";
+    }
+    out << "type " << pascal_identifier(shape.name) << " struct {\n";
+    for (const auto& field : shape.fields)
+    {
+        out << "\t" << pascal_identifier(field.name) << " " << go_shape_field_type(field.type)
+            << " `json:\"" << field.name << "\"`\n";
+    }
+    out << "}\n";
+    return out.str();
+}
+
+void add_go_shape_type_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    for (const auto& shape : system.shapes)
+    {
+        add_go_raw_common_file(
+            result, options, "backend/shapes/" + snake_identifier(shape.name) + ".go",
+            go_shape_type_file(shape)
+        );
+    }
 }
 
 void add_go_shape_descriptor_artifact(
@@ -538,6 +656,7 @@ void add_go_common_runtime_artifacts(
     {
         return;
     }
+    add_go_shape_type_artifacts(result, options, system);
     add_go_entity_descriptor_artifacts(result, options, templates, system, diagnostics);
     if (diagnostics.has_errors())
     {
@@ -576,7 +695,11 @@ void add_go_api_artifacts(
     );
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_codecs.go", GeneratedArtifactTier::Api,
-        diagnostics, TemplateRenderer::Values{{"api_codecs", generate_api_codecs_go(system)}}
+        diagnostics,
+        TemplateRenderer::Values{
+            {"api_shape_import", go_api_shape_import(system)},
+            {"api_codecs", generate_api_codecs_go(system)}
+        }
     );
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_handlers.go", GeneratedArtifactTier::Api,
@@ -590,7 +713,8 @@ void add_go_api_artifacts(
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             generate_api_operation_default_handler_methods_go(system)}
+             generate_api_operation_default_handler_methods_go(system)},
+            {"api_shape_import", go_api_default_handler_shape_import(system)}
         }
     );
     add_go_generated_template_file(

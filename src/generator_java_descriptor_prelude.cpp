@@ -66,18 +66,6 @@ std::string generate_java_descriptor_prelude(
     out << "        String name,\n";
     out << "        Map<String, Json> fields\n";
     out << "    ) {}\n\n";
-    for (const auto& shape : system.shapes)
-    {
-        out << "    public record " << pascal_identifier(shape.name) << "(\n";
-        for (std::size_t i = 0; i < shape.fields.size(); ++i)
-        {
-            const auto& field = shape.fields[i];
-            out << "        " << java_shape_type(field.type) << " " << field.name;
-            out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
-        }
-        out << "    ) {}\n\n";
-    }
-
     for (const auto& event : system.events)
     {
         out << "    public static EventEnvelope build" << pascal_identifier(event.name)

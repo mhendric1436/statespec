@@ -39,6 +39,7 @@ std::string generate_cpp_descriptor_prelude(
     out << "#include \"log.hpp\"\n";
     out << "#include \"metric.hpp\"\n";
     out << "#include \"queue.hpp\"\n";
+    out << "#include \"shapes.hpp\"\n";
     out << "#include \"workflow.hpp\"\n\n";
     out << cpp_descriptor_module_includes() << "\n";
     out << "#include <chrono>\n";
@@ -56,17 +57,6 @@ std::string generate_cpp_descriptor_prelude(
     out << "    std::string name;\n";
     out << "    std::map<std::string, statespec::backend::Json> fields;\n";
     out << "};\n\n";
-    for (const auto& shape : system.shapes)
-    {
-        out << "struct " << pascal_identifier(shape.name) << "\n";
-        out << "{\n";
-        for (const auto& field : shape.fields)
-        {
-            out << "    " << cpp_shape_type(field.type) << " " << field.name << "{};\n";
-        }
-        out << "};\n\n";
-    }
-
     for (const auto& event : system.events)
     {
         out << "inline EventEnvelope make_" << snake_identifier(event.name) << "_event(\n";

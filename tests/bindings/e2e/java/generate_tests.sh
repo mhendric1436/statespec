@@ -61,6 +61,10 @@ common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
 common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
 common/com/statespec/generated/descriptors/WorkerDescriptorModule.java
 common/com/statespec/generated/descriptors/entities/ServiceInstanceDescriptorModule.java
+common/com/statespec/generated/shapes/ProvisionCallbackRequest.java
+common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
+common/com/statespec/generated/shapes/StartProvisionRequest.java
+common/com/statespec/generated/shapes/StartProvisionResponse.java
 worker/com/statespec/generated/WorkerApplication.java
 worker/com/statespec/generated/WorkerContexts.java
 worker/com/statespec/generated/WorkerDescriptors.java
