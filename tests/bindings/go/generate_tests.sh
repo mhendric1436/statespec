@@ -325,8 +325,10 @@ assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "Type: Field
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "Type: FieldTypeNamed"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "Type: FieldTypeTimestamp"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "Type: FieldTypeOptional"
-assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "TypeName: \"OrderStatus\""
-assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "TypeName: \"int?\""
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "OrderFieldStatusTypeName = \"string\""
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "OrderFieldRetryCountTypeName = \"int?\""
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "{Name: OrderFieldStatus, Type: FieldTypeString, TypeName: OrderFieldStatusTypeName, Required: true}"
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "TypeName: OrderFieldRetryCountTypeName"
 
 cp "$SCRIPT_DIR/metadata_resolver_fixture_test.go" "$TMPDIR/out-go/common/backend/metadata_resolver_fixture_test.go"
 cp "$SCRIPT_DIR/runtime_fixture_test.go" "$TMPDIR/out-go/common/backend/runtime/runtime_fixture_test.go"

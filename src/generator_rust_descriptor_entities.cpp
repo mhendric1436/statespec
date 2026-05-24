@@ -20,6 +20,9 @@ std::string generate_rust_entity_descriptors(const IrSystem& system)
         {
             out << "pub const " << rust_entity_field_constant_name(entity.name, field.name)
                 << ": &str = " << rust_string(field.name) << ";\n";
+            out << "pub const "
+                << rust_entity_field_type_name_constant_name(entity.name, field.name)
+                << ": &str = " << rust_string(field.type) << ";\n";
         }
         for (const auto& index : entity.indexes)
         {

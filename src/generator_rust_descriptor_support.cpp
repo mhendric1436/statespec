@@ -62,6 +62,14 @@ std::string rust_entity_field_constant_name(
     return upper_snake_identifier(entity_name + "_field_" + field_name);
 }
 
+std::string rust_entity_field_type_name_constant_name(
+    const std::string& entity_name,
+    const std::string& field_name
+)
+{
+    return rust_entity_field_constant_name(entity_name, field_name) + "_TYPE_NAME";
+}
+
 std::string rust_entity_index_constant_name(
     const std::string& entity_name,
     const std::string& index_name
@@ -140,7 +148,8 @@ std::string rust_entity_field_descriptor_expr(
     return "FieldDescriptor { name: " + rust_entity_field_constant_name(entity_name, field.name) +
            ".to_string(), field_type: " +
            rust_field_type_expr(classify_field_descriptor_type(field.type)) +
-           ", type_name: " + rust_string(field.type) + ".to_string(), required: " +
+           ", type_name: " + rust_entity_field_type_name_constant_name(entity_name, field.name) +
+           ".to_string(), required: " +
            (is_required_descriptor_field(field.type) ? "true" : "false") + " }";
 }
 

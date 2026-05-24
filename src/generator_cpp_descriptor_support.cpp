@@ -62,6 +62,14 @@ std::string cpp_entity_field_constant_name(
     return "k" + pascal_identifier(entity_name) + "Field" + pascal_identifier(field_name);
 }
 
+std::string cpp_entity_field_type_name_constant_name(
+    const std::string& entity_name,
+    const std::string& field_name
+)
+{
+    return cpp_entity_field_constant_name(entity_name, field_name) + "TypeName";
+}
+
 std::string cpp_entity_index_constant_name(
     const std::string& entity_name,
     const std::string& index_name
@@ -140,7 +148,7 @@ std::string cpp_entity_field_descriptor_expr(
     return "statespec::backend::FieldDescriptor{" +
            cpp_entity_field_constant_name(entity_name, field.name) + ", " +
            cpp_field_type_expr(classify_field_descriptor_type(field.type)) + ", " +
-           cpp_string(field.type) + ", " +
+           cpp_entity_field_type_name_constant_name(entity_name, field.name) + ", " +
            (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
 }
 

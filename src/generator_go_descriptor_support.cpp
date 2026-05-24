@@ -62,6 +62,14 @@ std::string go_entity_field_constant_name(
     return pascal_identifier(entity_name) + "Field" + pascal_identifier(field_name);
 }
 
+std::string go_entity_field_type_name_constant_name(
+    const std::string& entity_name,
+    const std::string& field_name
+)
+{
+    return go_entity_field_constant_name(entity_name, field_name) + "TypeName";
+}
+
 std::string go_entity_index_constant_name(
     const std::string& entity_name,
     const std::string& index_name
@@ -139,7 +147,7 @@ std::string go_entity_field_descriptor_expr(
 {
     return "{Name: " + go_entity_field_constant_name(entity_name, field.name) +
            ", Type: " + go_field_type_expr(classify_field_descriptor_type(field.type)) +
-           ", TypeName: " + go_string(field.type) +
+           ", TypeName: " + go_entity_field_type_name_constant_name(entity_name, field.name) +
            ", Required: " + (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
 }
 

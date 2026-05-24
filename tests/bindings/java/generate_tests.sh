@@ -321,8 +321,10 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptor
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "FieldType.NAMED"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "FieldType.TIMESTAMP"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "FieldType.OPTIONAL"
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "\"OrderStatus\""
-assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "\"int?\""
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "ORDER_FIELD_STATUS_TYPE_NAME = \"string\""
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "ORDER_FIELD_RETRY_COUNT_TYPE_NAME = \"int?\""
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "ORDER_FIELD_STATUS, FieldType.STRING, ORDER_FIELD_STATUS_TYPE_NAME"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "ORDER_FIELD_RETRY_COUNT, FieldType.OPTIONAL, ORDER_FIELD_RETRY_COUNT_TYPE_NAME"
 
 cp "$SCRIPT_DIR/MetadataResolverFixture.java" "$TMPDIR/out-java/common/com/statespec/generated/MetadataResolverFixture.java"
 cp "$SCRIPT_DIR/MemoryBackendFixture.java" "$TMPDIR/out-java/common/com/statespec/backend/memory/MemoryBackendFixture.java"

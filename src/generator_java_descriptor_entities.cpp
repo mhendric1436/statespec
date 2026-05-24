@@ -21,6 +21,9 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             out << "    public static final String "
                 << java_entity_field_constant_name(entity.name, field.name) << " = "
                 << java_string(field.name) << ";\n";
+            out << "    public static final String "
+                << java_entity_field_type_name_constant_name(entity.name, field.name) << " = "
+                << java_string(field.type) << ";\n";
         }
         for (const auto& index : entity.indexes)
         {

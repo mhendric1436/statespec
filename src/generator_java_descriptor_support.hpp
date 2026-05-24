@@ -15,6 +15,10 @@ std::string java_entity_field_constant_name(
     const std::string& entity_name,
     const std::string& field_name
 );
+std::string java_entity_field_type_name_constant_name(
+    const std::string& entity_name,
+    const std::string& field_name
+);
 std::string java_entity_index_constant_name(
     const std::string& entity_name,
     const std::string& index_name

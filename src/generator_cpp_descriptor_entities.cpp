@@ -21,6 +21,9 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
             out << "inline constexpr const char* "
                 << cpp_entity_field_constant_name(entity.name, field.name) << " = "
                 << cpp_string(field.name) << ";\n";
+            out << "inline constexpr const char* "
+                << cpp_entity_field_type_name_constant_name(entity.name, field.name) << " = "
+                << cpp_string(field.type) << ";\n";
         }
         for (const auto& index : entity.indexes)
         {
