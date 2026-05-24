@@ -86,6 +86,7 @@ assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"input
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "ExternalSystemOperatorMetadataAPIHandler"
 cp "$SCRIPT_DIR/api_process_fixture_test.go" "$TMPDIR/out-e2e-go/api/backend/api_process_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-e2e-go" check-api
+run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-e2e-go" build-api
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-go"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry.go" "repository := common.DefaultAccountRepository{}"
@@ -134,6 +135,7 @@ assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/project_descrip
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/project_descriptors.go" "ProjectStatusDeleted"
 cp "$SCRIPT_DIR/api_persistence_fixture_test.go" "$TMPDIR/out-api-entities-go/api/backend/api_persistence_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-go" check-api
+run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-api-entities-go" build-api
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"
@@ -198,3 +200,4 @@ cp "$SCRIPT_DIR/registration_restart_fixture_test.go" "$TMPDIR/out-app-go/common
 cp "$SCRIPT_DIR/worker_linking_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_linking_fixture_test.go"
 cp "$SCRIPT_DIR/worker_process_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_process_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-app-go" check
+run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-app-go" build

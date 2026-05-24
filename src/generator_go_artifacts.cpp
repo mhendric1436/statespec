@@ -32,40 +32,61 @@ TemplateRenderer::Values go_makefile_values(
     std::ostringstream phony_targets;
     std::ostringstream api_package_additions;
     std::ostringstream worker_package_additions;
+    std::ostringstream api_build_dependency;
+    std::ostringstream worker_build_dependency;
+    std::ostringstream api_build_command;
+    std::ostringstream worker_build_command;
     std::ostringstream api_rules;
     std::ostringstream worker_rules;
     if (include_api_composition)
     {
         api_package_additions << " ./api/cmd/api";
+        api_build_dependency << " $(BIN_DIR)";
+        api_build_command << "\t$(GO) build -o $(BIN_DIR)/statespec-api ./api/cmd/api\n";
     }
     if (include_worker_composition)
     {
         worker_package_additions << " ./worker/cmd/worker";
+        worker_build_dependency << " $(BIN_DIR)";
+        worker_build_command
+            << "\t$(GO) build -o $(BIN_DIR)/statespec-worker ./worker/cmd/worker\n";
     }
     if (include_api)
     {
+        if (!include_api_composition)
+        {
+            api_build_command << "\t$(GO) build $(API_PACKAGES)\n";
+        }
         target_additions << "\nCHECK_TARGETS += check-api";
         target_additions << "\nBUILD_TARGETS += build-api";
         target_additions << "\nPACKAGE_TARGETS += package-api";
         phony_targets << " check-api build-api package-api";
         api_rules << "check-api:\n";
         api_rules << "\t$(GO) test $(API_PACKAGES)\n\n";
-        api_rules << "build-api:\n";
-        api_rules << "\t$(GO) test $(API_PACKAGES)\n\n";
+        api_rules << "build-api:" << api_build_dependency.str() << "\n";
+        api_rules << "\t$(GO) build ./api/backend\n";
+        api_rules << api_build_command.str();
+        api_rules << "\n";
         api_rules << "package-api: build-api $(DIST_DIR)\n";
         api_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-api-go.tgz common api go.mod "
                      "Makefile\n\n";
     }
     if (include_worker)
     {
+        if (!include_worker_composition)
+        {
+            worker_build_command << "\t$(GO) build $(WORKER_PACKAGES)\n";
+        }
         target_additions << "\nCHECK_TARGETS += check-worker";
         target_additions << "\nBUILD_TARGETS += build-worker";
         target_additions << "\nPACKAGE_TARGETS += package-worker";
         phony_targets << " check-worker build-worker package-worker";
         worker_rules << "check-worker:\n";
         worker_rules << "\t$(GO) test $(WORKER_PACKAGES)\n\n";
-        worker_rules << "build-worker:\n";
-        worker_rules << "\t$(GO) test $(WORKER_PACKAGES)\n\n";
+        worker_rules << "build-worker:" << worker_build_dependency.str() << "\n";
+        worker_rules << "\t$(GO) build ./worker/backend\n";
+        worker_rules << worker_build_command.str();
+        worker_rules << "\n";
         worker_rules << "package-worker: build-worker $(DIST_DIR)\n";
         worker_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-go.tgz common worker "
                         "go.mod Makefile\n\n";

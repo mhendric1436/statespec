@@ -1,4 +1,5 @@
 GO ?= go
+BIN_DIR ?= build/bin
 DIST_DIR ?= dist
 
 COMMON_PACKAGES := ./common/...
@@ -18,9 +19,9 @@ help:
 	@printf '%s\n' ''
 	@printf '%s\n' 'Default target: all -> check'
 	@printf '%s\n' '  check   Runs go test for generated packages.'
-	@printf '%s\n' '  build   Runs build validation for generated packages.'
+	@printf '%s\n' '  build   Runs go build for generated packages and entrypoint binaries.'
 	@printf '%s\n' '  package Builds and archives generated artifacts under $(DIST_DIR).'
-	@printf '%s\n' '  clean   Clears Go test cache and removes $(DIST_DIR).'
+	@printf '%s\n' '  clean   Clears Go test cache and removes build and $(DIST_DIR).'
 	@printf '%s\n' ''
 	@printf '%s\n' 'Tier targets:'
 	@printf '%s\n' '  check-common  build-common  package-common'
@@ -36,15 +37,18 @@ package: $(PACKAGE_TARGETS)
 $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+
 check-common:
 	$(GO) test $(COMMON_PACKAGES)
 
 build-common:
-	$(GO) test $(COMMON_PACKAGES)
+	$(GO) build $(COMMON_PACKAGES)
 
 package-common: build-common $(DIST_DIR)
 	tar -czf $(DIST_DIR)/statespec-generated-common-go.tgz common go.mod Makefile
 
 {{api_rules}}{{worker_rules}}clean:
 	$(GO) clean -testcache
-	rm -rf $(DIST_DIR)
+	rm -rf build $(DIST_DIR)
