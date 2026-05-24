@@ -13,7 +13,8 @@ import (
 func TestGeneratedWorkerProcessLifecycle(t *testing.T) {
 	backend := memory.NewBackend()
 	runtime := worker.NewWorkerTierRuntime(backend)
-	process := worker.NewWorkerProcess(runtime)
+	handler := worker.DefaultWorkflowStepHandler{}
+	process := worker.NewWorkerProcess(runtime, handler)
 
 	if err := process.Join(); err == nil {
 		t.Fatal("joining a WorkerProcess before start should fail")

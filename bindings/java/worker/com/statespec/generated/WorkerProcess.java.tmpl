@@ -5,35 +5,44 @@ import com.statespec.backend.Backend;
 public final class WorkerProcess {
     public static final class Config {
         private final boolean bootstrapOnStart;
+        private final int workerPollIntervalMs;
 
-        public Config(boolean bootstrapOnStart) {
+        public Config(boolean bootstrapOnStart, int workerPollIntervalMs) {
             this.bootstrapOnStart = bootstrapOnStart;
+            this.workerPollIntervalMs = workerPollIntervalMs;
         }
 
         public static Config defaults() {
-            return new Config(true);
+            return new Config(true, 1000);
         }
 
         public boolean bootstrapOnStart() {
             return bootstrapOnStart;
         }
+
+        public int workerPollIntervalMs() {
+            return workerPollIntervalMs;
+        }
     }
 
     private final WorkerRuntime runtime;
+    private final WorkflowStepHandlers.Handler handler;
     private final Config config;
     private Thread thread;
+    private final java.util.List<Thread> workerLoopThreads = new java.util.ArrayList<>();
     private int exitStatus = 1;
     private Exception exitException;
     private boolean started = false;
     private boolean running = false;
     private boolean stopRequested = false;
 
-    public WorkerProcess(WorkerRuntime runtime) {
-        this(runtime, Config.defaults());
+    public WorkerProcess(WorkerRuntime runtime, WorkflowStepHandlers.Handler handler) {
+        this(runtime, handler, Config.defaults());
     }
 
-    public WorkerProcess(WorkerRuntime runtime, Config config) {
+    public WorkerProcess(WorkerRuntime runtime, WorkflowStepHandlers.Handler handler, Config config) {
         this.runtime = runtime;
+        this.handler = handler;
         this.config = config;
     }
 
@@ -50,14 +59,59 @@ public final class WorkerProcess {
             runtime.bootstrap();
         }
         runtime.startEntityGcWorkers(0);
+        startWorkerLoops();
         synchronized (this) {
             while (!stopRequested) {
                 wait();
             }
         }
         runtime.requestStop();
+        joinWorkerLoops();
         runtime.joinEntityGcWorkers();
         return 0;
+    }
+
+    private synchronized void startWorkerLoops() {
+        int intervalMs = Math.max(1, config.workerPollIntervalMs());
+        for (Descriptors.WorkerContext context : WorkerContexts.workerContexts()) {
+            if (context.executes().isEmpty()) {
+                continue;
+            }
+            long concurrency = Math.max(1, context.concurrency());
+            for (long index = 0; index < concurrency; index++) {
+                Thread workerThread = new Thread(
+                    () -> {
+                        while (!stopRequested()) {
+                            try {
+                                runtime.runOnce(context, handler, "");
+                            } catch (Exception error) {
+                            }
+                            try {
+                                Thread.sleep(intervalMs);
+                            } catch (InterruptedException error) {
+                                Thread.currentThread().interrupt();
+                                return;
+                            }
+                        }
+                    },
+                    "statespec-worker-loop"
+                );
+                workerThread.start();
+                workerLoopThreads.add(workerThread);
+            }
+        }
+    }
+
+    private void joinWorkerLoops() throws InterruptedException {
+        java.util.List<Thread> threads;
+        synchronized (this) {
+            threads = new java.util.ArrayList<>(workerLoopThreads);
+            workerLoopThreads.clear();
+        }
+        for (Thread workerThread : threads) {
+            workerThread.interrupt();
+            workerThread.join();
+        }
     }
 
     public synchronized void start() {

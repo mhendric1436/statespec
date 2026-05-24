@@ -150,8 +150,10 @@ public final class WorkflowStore implements Workflow
             {
                 break;
             }
-            if (!execution.workflowExecutionId().equals(request.workflowExecutionId()) ||
-                !execution.workflowName().equals(request.workflowName()) ||
+            var matchesExecutionId =
+                request.workflowExecutionId().isEmpty() ||
+                execution.workflowExecutionId().equals(request.workflowExecutionId());
+            if (!matchesExecutionId || !execution.workflowName().equals(request.workflowName()) ||
                 execution.workflowVersion() != request.workflowVersion() ||
                 !execution.status().equals("Running"))
             {

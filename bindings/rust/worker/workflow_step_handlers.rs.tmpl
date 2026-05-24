@@ -1,4 +1,4 @@
-use crate::backend::BackendResult;
+use crate::backend::{BackendError, BackendResult};
 use crate::json::Json;
 
 #[derive(Debug, Clone)]
@@ -12,6 +12,13 @@ pub struct WorkflowStepHandlerContext {
 
 pub trait WorkflowStepHandler {
 {{workflow_step_handler_methods}}
+}
+
+#[derive(Clone, Debug)]
+pub struct DefaultWorkflowStepHandler;
+
+impl WorkflowStepHandler for DefaultWorkflowStepHandler {
+{{default_workflow_step_handler_methods}}
 }
 
 pub fn workflow_step_handler_keys() -> Vec<&'static str> {

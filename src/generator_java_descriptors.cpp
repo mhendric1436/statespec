@@ -970,6 +970,25 @@ std::string generate_workflow_step_handler_methods_java(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_default_workflow_step_handler_methods_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "        @Override\n";
+            out << "        public void handle"
+                << pascal_identifier(workflow.name + "_" + step.name) << "(Context context) {\n";
+            out << "            throw new UnsupportedOperationException(\"generated workflow step "
+                   "handler "
+                << workflow.name << "." << step.name << " is not implemented\");\n";
+            out << "        }\n";
+        }
+    }
+    return out.str();
+}
+
 std::string generate_workflow_step_dispatch_cases_java(const IrSystem& system)
 {
     std::ostringstream out;

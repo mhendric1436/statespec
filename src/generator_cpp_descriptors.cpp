@@ -888,6 +888,24 @@ std::string generate_workflow_step_handler_methods(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_default_workflow_step_handler_methods(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "    void handle_" << snake_identifier(workflow.name + "_" + step.name)
+                << "(const WorkflowStepHandlerContext&) override\n";
+            out << "    {\n";
+            out << "        throw std::runtime_error(\"generated workflow step handler "
+                << workflow.name << "." << step.name << " is not implemented\");\n";
+            out << "    }\n";
+        }
+    }
+    return out.str();
+}
+
 std::string generate_workflow_step_dispatch_cases(const IrSystem& system)
 {
     std::ostringstream out;

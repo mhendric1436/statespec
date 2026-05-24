@@ -4,6 +4,7 @@ import (
 	"context"
 
 	common "statespec-generated/common/backend"
+{{workflow_step_handler_imports}}
 )
 
 type WorkflowStepHandlerContext struct {
@@ -17,6 +18,10 @@ type WorkflowStepHandlerContext struct {
 type WorkflowStepHandler interface {
 {{workflow_step_handler_methods}}
 }
+
+type DefaultWorkflowStepHandler struct{}
+
+{{default_workflow_step_handler_methods}}
 
 func WorkflowStepHandlerKeys() []string {
 	return []string{

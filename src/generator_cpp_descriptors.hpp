@@ -17,6 +17,8 @@ std::string generate_workflow_step_handler_keys(const IrSystem& system);
 
 std::string generate_workflow_step_handler_methods(const IrSystem& system);
 
+std::string generate_default_workflow_step_handler_methods(const IrSystem& system);
+
 std::string generate_workflow_step_dispatch_cases(const IrSystem& system);
 
 std::string generate_workflow_step_next_cases(const IrSystem& system);

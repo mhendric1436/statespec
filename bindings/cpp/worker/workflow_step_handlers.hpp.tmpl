@@ -3,6 +3,7 @@
 #include "../common/descriptors.hpp"
 
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,14 @@ class IWorkflowStepHandler
     virtual ~IWorkflowStepHandler() = default;
     // clang-format off
 {{workflow_step_handler_methods}}
+    // clang-format on
+};
+
+class DefaultWorkflowStepHandler final : public IWorkflowStepHandler
+{
+  public:
+    // clang-format off
+{{default_workflow_step_handler_methods}}
     // clang-format on
 };
 

@@ -127,7 +127,8 @@ func (s *WorkflowStore) ClaimStepsTx(ctx context.Context, tx common.Transaction,
 		if uint32(len(claimed)) >= request.MaxSteps {
 			break
 		}
-		if execution.WorkflowExecutionID != request.WorkflowExecutionID || execution.WorkflowName != request.WorkflowName || execution.WorkflowVersion != request.WorkflowVersion || execution.Status != "Running" {
+		matchesExecutionID := request.WorkflowExecutionID == "" || execution.WorkflowExecutionID == request.WorkflowExecutionID
+		if !matchesExecutionID || execution.WorkflowName != request.WorkflowName || execution.WorkflowVersion != request.WorkflowVersion || execution.Status != "Running" {
 			continue
 		}
 		visible := execution.ClaimedBy == nil || (execution.ClaimExpiresAt != nil && !execution.ClaimExpiresAt.After(request.Now))

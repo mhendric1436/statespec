@@ -4,23 +4,28 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 )
 
 type WorkerProcessConfig struct {
 	BootstrapOnStart bool
+	WorkerPollInterval time.Duration
 }
 
 func DefaultWorkerProcessConfig() WorkerProcessConfig {
 	return WorkerProcessConfig{
 		BootstrapOnStart: true,
+		WorkerPollInterval: time.Second,
 	}
 }
 
 type WorkerProcess struct {
 	Runtime *WorkerTierRuntime
+	Handler WorkflowStepHandler
 	Config  WorkerProcessConfig
 
 	lifecycleMu sync.Mutex
+	workerWait  sync.WaitGroup
 	ctx         context.Context
 	cancel      context.CancelFunc
 	done        chan struct{}
@@ -29,13 +34,14 @@ type WorkerProcess struct {
 	running     bool
 }
 
-func NewWorkerProcess(runtime *WorkerTierRuntime) *WorkerProcess {
-	return NewWorkerProcessWithConfig(runtime, DefaultWorkerProcessConfig())
+func NewWorkerProcess(runtime *WorkerTierRuntime, handler WorkflowStepHandler) *WorkerProcess {
+	return NewWorkerProcessWithConfig(runtime, handler, DefaultWorkerProcessConfig())
 }
 
-func NewWorkerProcessWithConfig(runtime *WorkerTierRuntime, config WorkerProcessConfig) *WorkerProcess {
+func NewWorkerProcessWithConfig(runtime *WorkerTierRuntime, handler WorkflowStepHandler, config WorkerProcessConfig) *WorkerProcess {
 	return &WorkerProcess{
 		Runtime: runtime,
+		Handler: handler,
 		Config:  config,
 	}
 }
@@ -49,10 +55,50 @@ func (process *WorkerProcess) Run(ctx context.Context) error {
 	if err := process.Runtime.StartEntityGCWorkers(ctx, 0); err != nil {
 		return err
 	}
+	process.startWorkerLoops(ctx)
 	<-ctx.Done()
 	process.Runtime.RequestStop()
+	process.workerWait.Wait()
 	process.Runtime.JoinEntityGCWorkers()
 	return ctx.Err()
+}
+
+func (process *WorkerProcess) startWorkerLoops(ctx context.Context) {
+	interval := process.Config.WorkerPollInterval
+	if interval <= 0 {
+		interval = time.Second
+	}
+	for _, workerContext := range WorkerTierContexts() {
+		workerContext := workerContext
+		if workerContext.Executes == nil {
+			continue
+		}
+		concurrency := workerContext.Concurrency
+		if concurrency < 1 {
+			concurrency = 1
+		}
+		for index := 0; index < concurrency; index++ {
+			process.workerWait.Add(1)
+			go func() {
+				defer process.workerWait.Done()
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+					}
+					_, _ = process.Runtime.RunOnce(ctx, workerContext, process.Handler, "")
+					timer := time.NewTimer(interval)
+					select {
+					case <-ctx.Done():
+						timer.Stop()
+						return
+					case <-timer.C:
+					}
+				}
+			}()
+		}
+	}
 }
 
 func (process *WorkerProcess) Start(ctx context.Context) error {

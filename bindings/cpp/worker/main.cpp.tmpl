@@ -1,6 +1,7 @@
 #include "../common/memory/backend.hpp"
 #include "worker_process.hpp"
 #include "worker_runtime.hpp"
+#include "workflow_step_handlers.hpp"
 
 #include <csignal>
 #include <exception>
@@ -28,7 +29,8 @@ int main()
     {
         statespec::backend::memory::InMemoryBackend backend;
         statespec_generated::worker::WorkerRuntime runtime{backend};
-        statespec_generated::worker::WorkerProcess process{runtime};
+        statespec_generated::worker::DefaultWorkflowStepHandler handler;
+        statespec_generated::worker::WorkerProcess process{runtime, handler};
 
         g_worker_process = &process;
         std::signal(SIGINT, request_worker_stop);

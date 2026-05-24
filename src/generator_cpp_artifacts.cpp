@@ -215,6 +215,18 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
             << "        return runner.run_once(workflow_execution_id, *context.executes, 1);\n"
             << "    }\n";
     }
+    else
+    {
+        worker_run_once
+            << "    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(\n"
+            << "        const WorkerContext&,\n"
+            << "        IWorkflowStepHandler&,\n"
+            << "        const std::string&\n"
+            << "    )\n"
+            << "    {\n"
+            << "        return std::nullopt;\n"
+            << "    }\n";
+    }
 
     return TemplateRenderer::Values{
         {"runtime_store_includes", includes.str()},
@@ -598,6 +610,8 @@ void add_cpp_worker_artifacts(
             GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_handler_methods", generate_workflow_step_handler_methods(system)},
+                {"default_workflow_step_handler_methods",
+                 generate_default_workflow_step_handler_methods(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}
             }
         );

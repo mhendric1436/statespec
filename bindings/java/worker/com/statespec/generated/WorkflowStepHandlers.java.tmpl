@@ -18,6 +18,9 @@ public final class WorkflowStepHandlers {
     public interface Handler {
 {{workflow_step_handler_methods}}    }
 
+    public static final class DefaultHandler implements Handler {
+{{default_workflow_step_handler_methods}}    }
+
     public static List<String> workflowStepHandlerKeys() {
         return List.of(
 {{workflow_step_handler_keys}}        );

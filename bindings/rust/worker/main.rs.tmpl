@@ -1,5 +1,6 @@
 use crate::backend::{Backend, BackendResult};
 use crate::memory_backend::InMemoryBackend;
+use crate::workflow_step_handlers::DefaultWorkflowStepHandler;
 use crate::worker_process::WorkerProcess;
 use crate::worker_runtime::WorkerRuntime;
 
@@ -13,16 +14,18 @@ pub fn main() {
 pub fn run() -> BackendResult<()> {
     let backend = InMemoryBackend::new();
     let runtime = WorkerRuntime::new(backend);
-    let process = std::sync::Arc::new(WorkerProcess::new(runtime));
+    let handler = DefaultWorkflowStepHandler;
+    let process = std::sync::Arc::new(WorkerProcess::new(runtime, handler));
     process.start()?;
     install_signal_handling(process.clone());
     process.join()
 }
 
 #[cfg(unix)]
-fn install_signal_handling<B>(process: std::sync::Arc<WorkerProcess<B>>)
+fn install_signal_handling<B, H>(process: std::sync::Arc<WorkerProcess<B, H>>)
 where
     B: Backend + Clone + Send + Sync + 'static,
+    H: crate::workflow_step_handlers::WorkflowStepHandler + Clone + Send + Sync + 'static,
 {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::time::Duration;
@@ -54,8 +57,9 @@ where
 }
 
 #[cfg(not(unix))]
-fn install_signal_handling<B>(_process: std::sync::Arc<WorkerProcess<B>>)
+fn install_signal_handling<B, H>(_process: std::sync::Arc<WorkerProcess<B, H>>)
 where
     B: Backend + Clone + Send + Sync + 'static,
+    H: crate::workflow_step_handlers::WorkflowStepHandler + Clone + Send + Sync + 'static,
 {
 }

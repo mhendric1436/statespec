@@ -259,6 +259,22 @@ TemplateRenderer::Values rust_runtime_bootstrap_values(const IrSystem& system)
             << "        runner.run_once(workflow_execution_id, executes, 1)\n"
             << "    }\n";
     }
+    else
+    {
+        worker_imports << "use crate::workflow_step_handlers::WorkflowStepHandler;\n";
+        worker_imports << "use crate::worker_contexts::WorkerContext;\n";
+        worker_run_once
+            << "    pub fn run_once(\n"
+            << "        &self,\n"
+            << "        _context: &WorkerContext,\n"
+            << "        _handler: &impl WorkflowStepHandler,\n"
+            << "        _workflow_execution_id: &str,\n"
+            << "    ) -> "
+               "crate::backend::BackendResult<Option<crate::workflow::WorkflowExecutionRecord>> "
+               "{\n"
+            << "        Ok(None)\n"
+            << "    }\n";
+    }
     return TemplateRenderer::Values{
         {"runtime_store_imports", imports.str()},
         {"worker_runtime_imports", worker_imports.str()},
@@ -666,6 +682,8 @@ void add_rust_worker_artifacts(
             TemplateRenderer::Values{
                 {"workflow_step_handler_methods",
                  generate_workflow_step_handler_methods_rs(system)},
+                {"default_workflow_step_handler_methods",
+                 generate_default_workflow_step_handler_methods_rs(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}
             }
         );

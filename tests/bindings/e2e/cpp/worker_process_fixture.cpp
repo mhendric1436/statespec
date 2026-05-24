@@ -1,6 +1,7 @@
 #include "common/memory/backend.hpp"
 #include "worker/worker_process.hpp"
 #include "worker/worker_runtime.hpp"
+#include "worker/workflow_step_handlers.hpp"
 
 #include <chrono>
 #include <stdexcept>
@@ -10,7 +11,8 @@ int main()
 {
     statespec::backend::memory::InMemoryBackend backend;
     statespec_generated::worker::WorkerRuntime runtime{backend};
-    statespec_generated::worker::WorkerProcess process{runtime};
+    statespec_generated::worker::DefaultWorkflowStepHandler handler;
+    statespec_generated::worker::WorkerProcess process{runtime, handler};
 
     if (process.join() == 0)
     {

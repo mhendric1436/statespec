@@ -858,6 +858,29 @@ std::string generate_workflow_step_handler_methods_go(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_default_workflow_step_handler_methods_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "func (DefaultWorkflowStepHandler) Handle"
+                << pascal_identifier(workflow.name + "_" + step.name)
+                << "(context.Context, WorkflowStepHandlerContext) error {\n";
+            out << "\treturn fmt.Errorf(\"generated workflow step handler " << workflow.name << "."
+                << step.name << " is not implemented\")\n";
+            out << "}\n\n";
+        }
+    }
+    return out.str();
+}
+
+std::string generate_workflow_step_handler_imports_go(const IrSystem& system)
+{
+    return system.workflows.empty() ? std::string{} : "\t\"fmt\"\n";
+}
+
 std::string generate_workflow_step_dispatch_cases_go(const IrSystem& system)
 {
     std::ostringstream out;

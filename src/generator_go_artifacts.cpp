@@ -129,6 +129,15 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
             << "\treturn runner.RunOnce(ctx, workflowExecutionID, *workerContext.Executes, 1)\n"
             << "}\n";
     }
+    else
+    {
+        worker_run_once
+            << "func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext "
+               "common.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) "
+               "(*common.WorkflowExecutionRecord, error) {\n"
+            << "\treturn nil, nil\n"
+            << "}\n";
+    }
     return TemplateRenderer::Values{
         {"runtime_store_import", runtime_import.str()},
         {"runtime_store_fields", fields.str()},
@@ -505,6 +514,10 @@ void add_go_worker_artifacts(
             TemplateRenderer::Values{
                 {"workflow_step_handler_methods",
                  generate_workflow_step_handler_methods_go(system)},
+                {"default_workflow_step_handler_methods",
+                 generate_default_workflow_step_handler_methods_go(system)},
+                {"workflow_step_handler_imports",
+                 generate_workflow_step_handler_imports_go(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys_go(system)}
             }
         );

@@ -245,6 +245,19 @@ TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
                "1);\n"
             << "    }\n";
     }
+    else
+    {
+        worker_imports << "import java.util.Optional;\n";
+        worker_run_once
+            << "    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> "
+               "runOnce(\n"
+            << "        Descriptors.WorkerContext context,\n"
+            << "        WorkflowStepHandlers.Handler handler,\n"
+            << "        String workflowExecutionId\n"
+            << "    ) {\n"
+            << "        return Optional.empty();\n"
+            << "    }\n";
+    }
     return TemplateRenderer::Values{
         {"runtime_store_imports", imports.str()},
         {"runtime_store_fields", fields.str()},
@@ -653,6 +666,8 @@ void add_java_worker_artifacts(
             TemplateRenderer::Values{
                 {"workflow_step_handler_methods",
                  generate_workflow_step_handler_methods_java(system)},
+                {"default_workflow_step_handler_methods",
+                 generate_default_workflow_step_handler_methods_java(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys_java(system)}
             }
         );

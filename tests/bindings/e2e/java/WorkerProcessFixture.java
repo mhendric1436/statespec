@@ -10,7 +10,8 @@ public final class WorkerProcessFixture
     {
         InMemoryBackend backend = new InMemoryBackend();
         WorkerRuntime runtime = new WorkerRuntime(backend);
-        WorkerProcess process = new WorkerProcess(runtime);
+        WorkflowStepHandlers.DefaultHandler handler = new WorkflowStepHandlers.DefaultHandler();
+        WorkerProcess process = new WorkerProcess(runtime, handler);
 
         try
         {

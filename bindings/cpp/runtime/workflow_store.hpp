@@ -124,8 +124,10 @@ class RuntimeWorkflowStore : public IWorkflowStore
             {
                 break;
             }
-            if (execution.workflow_execution_id != request.workflow_execution_id ||
-                execution.workflow_name != request.workflow_name ||
+            const auto matches_execution_id =
+                request.workflow_execution_id.empty() ||
+                execution.workflow_execution_id == request.workflow_execution_id;
+            if (!matches_execution_id || execution.workflow_name != request.workflow_name ||
                 execution.workflow_version != request.workflow_version ||
                 execution.status != "Running")
             {

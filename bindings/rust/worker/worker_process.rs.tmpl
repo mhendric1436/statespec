@@ -1,5 +1,7 @@
 use crate::backend::{Backend, BackendError, BackendResult};
 use crate::worker_runtime::WorkerRuntime;
+use crate::workflow_step_handlers::WorkflowStepHandler;
+use crate::worker_contexts::worker_contexts;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -9,21 +11,25 @@ use std::time::Duration;
 #[derive(Clone, Debug)]
 pub struct WorkerProcessConfig {
     pub bootstrap_on_start: bool,
+    pub worker_poll_interval_ms: u64,
 }
 
 impl Default for WorkerProcessConfig {
     fn default() -> Self {
         Self {
             bootstrap_on_start: true,
+            worker_poll_interval_ms: 1000,
         }
     }
 }
 
-pub struct WorkerProcess<B: Backend + Clone> {
+pub struct WorkerProcess<B: Backend + Clone, H: WorkflowStepHandler + Clone> {
     pub runtime: WorkerRuntime<B>,
+    pub handler: H,
     pub config: WorkerProcessConfig,
     stop_requested: Arc<AtomicBool>,
     lifecycle: Arc<Mutex<WorkerProcessLifecycle>>,
+    worker_handles: Arc<Mutex<Vec<JoinHandle<()>>>>,
 }
 
 struct WorkerProcessLifecycle {
@@ -32,14 +38,19 @@ struct WorkerProcessLifecycle {
     handle: Option<JoinHandle<BackendResult<()>>>,
 }
 
-impl<B: Backend + Clone> WorkerProcess<B> {
-    pub fn new(runtime: WorkerRuntime<B>) -> Self {
-        Self::with_config(runtime, WorkerProcessConfig::default())
+impl<B, H> WorkerProcess<B, H>
+where
+    B: Backend + Clone,
+    H: WorkflowStepHandler + Clone,
+{
+    pub fn new(runtime: WorkerRuntime<B>, handler: H) -> Self {
+        Self::with_config(runtime, handler, WorkerProcessConfig::default())
     }
 
-    pub fn with_config(runtime: WorkerRuntime<B>, config: WorkerProcessConfig) -> Self {
+    pub fn with_config(runtime: WorkerRuntime<B>, handler: H, config: WorkerProcessConfig) -> Self {
         Self {
             runtime,
+            handler,
             config,
             stop_requested: Arc::new(AtomicBool::new(false)),
             lifecycle: Arc::new(Mutex::new(WorkerProcessLifecycle {
@@ -47,25 +58,33 @@ impl<B: Backend + Clone> WorkerProcess<B> {
                 running: false,
                 handle: None,
             })),
+            worker_handles: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
-    pub fn run(&self) -> BackendResult<()> {
+    pub fn run(&self) -> BackendResult<()>
+    where
+        B: Send + Sync + 'static,
+        H: Send + Sync + 'static,
+    {
         if self.config.bootstrap_on_start {
             self.runtime.bootstrap()?;
         }
         self.runtime
             .start_entity_gc_workers(Duration::from_millis(0))?;
+        self.start_worker_loops()?;
         while !self.stop_requested.load(Ordering::SeqCst) {
             std::thread::sleep(Duration::from_millis(100));
         }
         self.runtime.request_stop();
+        self.join_worker_loops()?;
         self.runtime.join_entity_gc_workers()
     }
 
     pub fn start(self: &Arc<Self>) -> BackendResult<()>
     where
         B: Send + Sync + 'static,
+        H: Send + Sync + 'static,
     {
         let mut lifecycle = self.lifecycle.lock().map_err(|_| BackendError::Internal {
             message: "Worker process lifecycle lock poisoned".to_string(),
@@ -122,5 +141,58 @@ impl<B: Backend + Clone> WorkerProcess<B> {
     pub fn request_stop(&self) {
         self.stop_requested.store(true, Ordering::SeqCst);
         self.runtime.request_stop();
+    }
+
+    fn start_worker_loops(&self) -> BackendResult<()>
+    where
+        B: Send + Sync + 'static,
+        H: Send + Sync + 'static,
+    {
+        let interval = Duration::from_millis(self.config.worker_poll_interval_ms.max(1));
+        let mut handles = self.worker_handles.lock().map_err(|_| BackendError::Internal {
+            message: "Worker process worker loop handle lock poisoned".to_string(),
+        })?;
+        for context in worker_contexts() {
+            if context.executes.is_none() {
+                continue;
+            }
+            let concurrency = context.concurrency.max(1);
+            for _ in 0..concurrency {
+                let runtime = self.runtime.clone();
+                let handler = self.handler.clone();
+                let context = context.clone();
+                let stop = Arc::clone(&self.stop_requested);
+                handles.push(std::thread::spawn(move || {
+                    while !stop.load(Ordering::SeqCst) {
+                        let _ = runtime.run_once(&context, &handler, "");
+                        let mut slept = Duration::from_millis(0);
+                        while slept < interval && !stop.load(Ordering::SeqCst) {
+                            let step = Duration::from_millis(100).min(interval - slept);
+                            std::thread::sleep(step);
+                            slept += step;
+                        }
+                    }
+                }));
+            }
+        }
+        Ok(())
+    }
+
+    fn join_worker_loops(&self) -> BackendResult<()> {
+        let handles = {
+            let mut handles =
+                self.worker_handles
+                    .lock()
+                    .map_err(|_| BackendError::Internal {
+                        message: "Worker process worker loop handle lock poisoned".to_string(),
+                    })?;
+            std::mem::take(&mut *handles)
+        };
+        for handle in handles {
+            handle.join().map_err(|_| BackendError::Internal {
+                message: "generated Worker loop thread panicked".to_string(),
+            })?;
+        }
+        Ok(())
     }
 }

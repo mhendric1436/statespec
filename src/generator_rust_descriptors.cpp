@@ -893,6 +893,25 @@ std::string generate_workflow_step_handler_methods_rs(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_default_workflow_step_handler_methods_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        for (const auto& step : workflow.steps)
+        {
+            out << "    fn handle_" << snake_identifier(workflow.name + "_" + step.name)
+                << "(&self, _context: &WorkflowStepHandlerContext) -> BackendResult<()> {\n";
+            out << "        Err(BackendError::Internal {\n";
+            out << "            message: \"generated workflow step handler " << workflow.name << "."
+                << step.name << " is not implemented\".to_string(),\n";
+            out << "        })\n";
+            out << "    }\n";
+        }
+    }
+    return out.str();
+}
+
 std::string generate_workflow_step_dispatch_cases_rs(const IrSystem& system)
 {
     std::ostringstream out;

@@ -176,7 +176,9 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
             if claimed.len() >= request.max_steps as usize {
                 break;
             }
-            if execution.workflow_execution_id != request.workflow_execution_id
+            let matches_execution_id = request.workflow_execution_id.is_empty()
+                || execution.workflow_execution_id == request.workflow_execution_id;
+            if !matches_execution_id
                 || execution.workflow_name != request.workflow_name
                 || execution.workflow_version != request.workflow_version
                 || execution.status != "Running"
