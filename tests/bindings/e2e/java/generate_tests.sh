@@ -85,6 +85,7 @@ worker/com/statespec/generated/WorkerRuntime.java
 worker/com/statespec/generated/WorkerWorkflows.java
 worker/com/statespec/generated/WorkflowRunner.java
 worker/com/statespec/generated/WorkflowStepHandlers.java
+worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$E2E_SPEC" --out "$TMPDIR/out-e2e-java"
@@ -202,9 +203,10 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Workfl
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "\"ProvisionService.wait_for_remote_service\""
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "handleProvisionServiceValidateRequest"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "handleProvisionServiceValidateRequest"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "nextStep = Optional.of(\"create_remote_service\")"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "nextStep = Optional.of(\"wait_for_remote_service\")"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "ProvisionServiceWorkerModule.dispatchStep"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "handleProvisionServiceValidateRequest"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "Optional.of(\"create_remote_service\")"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "Optional.of(\"wait_for_remote_service\")"
 cp "$SCRIPT_DIR/ApiLinkingFixture.java" "$TMPDIR/out-app-java/api/com/statespec/generated/ApiLinkingFixture.java"
 cp "$SCRIPT_DIR/RegistrationRestartFixture.java" "$TMPDIR/out-app-java/common/com/statespec/generated/RegistrationRestartFixture.java"
 cp "$SCRIPT_DIR/WorkerLinkingFixture.java" "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerLinkingFixture.java"

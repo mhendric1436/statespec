@@ -6,6 +6,7 @@ import (
 	"time"
 
 	common "statespec-generated/common/backend"
+	workflowmodules "statespec-generated/worker/backend/workflows"
 )
 
 type WorkflowRunner struct {
@@ -48,8 +49,8 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		Input:           record.State,
 	}
 	var handlerErr error
-	switch {
-{{workflow_step_dispatch_cases}}	default:
+	var handled bool
+{{workflow_step_module_dispatch_cases}}	if !handled {
 		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s.%s", record.WorkflowName, record.CurrentStep)
 	}
 	if handlerErr != nil {
@@ -67,7 +68,7 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		return &failed, handlerErr
 	}
 	var nextStep *string
-{{workflow_step_next_cases}}
+{{workflow_step_module_next_cases}}
 	completed, err := runner.WorkflowStore.CompleteStep(ctx, runner.Backend, common.CompleteWorkflowStepRequest{
 		WorkflowExecutionID: record.WorkflowExecutionID,
 		Worker:              runner.WorkerName,

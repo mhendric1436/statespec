@@ -89,6 +89,7 @@ worker/worker_runtime.hpp
 worker/worker_workflows.hpp
 worker/workflow_runner.hpp
 worker/workflow_step_handlers.hpp
+worker/workflows/provision_service.hpp
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPDIR/out-e2e-cpp"
@@ -203,9 +204,10 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "De
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.wait_for_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "handle_provision_service_validate_request"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "handler_.handle_provision_service_validate_request"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "next_step = \"create_remote_service\""
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "next_step = \"wait_for_remote_service\""
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "provision_service_dispatch_step"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "handler.handle_provision_service_validate_request"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"create_remote_service\""
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"wait_for_remote_service\""
 run_expect_status 0 make -C "$TMPDIR/out-app-cpp" check
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/api_linking_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/api-linking-fixture"
 run_expect_status 0 "$TMPDIR/out-app-cpp/build/api-linking-fixture"

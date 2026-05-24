@@ -6,6 +6,7 @@ use crate::workflow::{
     KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,
 };
 use crate::workflow_step_handlers::{WorkflowStepHandler, WorkflowStepHandlerContext};
+{{workflow_step_module_declarations}}
 
 pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> {
     pub backend: &'a B,
@@ -55,17 +56,18 @@ impl<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> WorkflowRunner
             execution_id: Some(record.workflow_execution_id.clone()),
             input: record.state.clone(),
         };
-        let handler_result = match (record.workflow_name.as_str(), record.current_step.as_str()) {
-{{workflow_step_dispatch_cases}}            _ => Err(BackendError::Unsupported {
+        let mut matched = false;
+        let mut handler_result: BackendResult<()> = Ok(());
+{{workflow_step_module_dispatch_cases}}
+        if !matched {
+            handler_result = Err(BackendError::Unsupported {
                 message: "unknown generated workflow step handler".to_string(),
-            }),
-        };
+            });
+        }
         match handler_result {
             Ok(()) => {
-                let next_step =
-                    match (record.workflow_name.as_str(), record.current_step.as_str()) {
-{{workflow_step_next_cases}}                            _ => None,
-                    };
+                let mut next_step = None;
+{{workflow_step_module_next_cases}}
                 self.workflow_store
                     .complete_step(
                         self.backend,

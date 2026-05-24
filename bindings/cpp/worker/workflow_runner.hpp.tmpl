@@ -1,6 +1,9 @@
 #pragma once
 
 #include "workflow_step_handlers.hpp"
+// clang-format off
+{{workflow_step_module_includes}}
+// clang-format on
 
 #include <chrono>
 #include <cstdint>
@@ -75,7 +78,7 @@ class WorkflowRunner
             };
             bool handled = false;
             // clang-format off
-{{workflow_step_dispatch_cases}}
+{{workflow_step_module_dispatch_cases}}
             // clang-format on
             if (!handled)
             {
@@ -83,7 +86,7 @@ class WorkflowRunner
             }
             std::optional<std::string> next_step;
             // clang-format off
-{{workflow_step_next_cases}}
+{{workflow_step_module_next_cases}}
             // clang-format on
             return workflow_store_.complete_step(
                 backend_, statespec::backend::CompleteWorkflowStepRequest{

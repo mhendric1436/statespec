@@ -89,6 +89,7 @@ worker/worker_runtime.rs
 worker/worker_workflows.rs
 worker/workflow_runner.rs
 worker/workflow_step_handlers.rs
+worker/workflows/provision_service.rs
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$E2E_SPEC" --out "$TMPDIR/out-e2e-rust"
@@ -206,9 +207,10 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pu
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.wait_for_remote_service\""
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "handle_provision_service_validate_request"
-assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "handle_provision_service_validate_request"
-assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "Some(\"create_remote_service\".to_string())"
-assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "Some(\"wait_for_remote_service\".to_string())"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "workflow_provision_service::dispatch_step"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "handle_provision_service_validate_request"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "Some(\"create_remote_service\".to_string())"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "Some(\"wait_for_remote_service\".to_string())"
 mkdir -p "$TMPDIR/out-app-rust/tests"
 cp "$SCRIPT_DIR/api_linking_fixture.rs" "$TMPDIR/out-app-rust/tests/api_linking_fixture.rs"
 cp "$SCRIPT_DIR/registration_restart_fixture.rs" "$TMPDIR/out-app-rust/tests/registration_restart_fixture.rs"

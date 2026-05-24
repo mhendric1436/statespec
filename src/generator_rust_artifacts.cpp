@@ -293,6 +293,89 @@ TemplateRenderer::Values rust_runtime_bootstrap_values(const IrSystem& system)
     };
 }
 
+std::string rust_workflow_module_name(const IrWorkflow& workflow)
+{
+    return "workflow_" + snake_identifier(workflow.name);
+}
+
+std::string generate_rust_workflow_worker_module(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
+    out << "use crate::backend::{BackendError, BackendResult};\n";
+    out << "use crate::workflow::WorkflowExecutionRecord;\n";
+    out << "use crate::workflow_step_handlers::{WorkflowStepHandler, "
+           "WorkflowStepHandlerContext};\n\n";
+    out << "pub fn dispatch_step(\n";
+    out << "    handler: &impl WorkflowStepHandler,\n";
+    out << "    context: &WorkflowStepHandlerContext,\n";
+    out << "    record: &WorkflowExecutionRecord,\n";
+    out << ") -> Option<BackendResult<()>> {\n";
+    out << "    if record.workflow_name != " << rust_string(workflow.name) << " {\n";
+    out << "        return None;\n";
+    out << "    }\n";
+    out << "    match record.current_step.as_str() {\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "        " << rust_string(step.name) << " => Some(handler.handle_"
+            << snake_identifier(workflow.name + "_" + step.name) << "(context)),\n";
+    }
+    out << "        _ => Some(Err(BackendError::Unsupported {\n";
+    out << "            message: \"unknown generated workflow step handler\".to_string(),\n";
+    out << "        })),\n";
+    out << "    }\n";
+    out << "}\n\n";
+    out << "pub fn next_step(record: &WorkflowExecutionRecord) -> Option<String> {\n";
+    out << "    if record.workflow_name != " << rust_string(workflow.name) << " {\n";
+    out << "        return None;\n";
+    out << "    }\n";
+    out << "    match record.current_step.as_str() {\n";
+    for (const auto& step : workflow.steps)
+    {
+        for (const auto& statement : step.statements)
+        {
+            if (statement.kind != "transition_to" || !statement.target.has_value())
+            {
+                continue;
+            }
+            out << "        " << rust_string(step.name) << " => Some("
+                << rust_string(*statement.target) << ".to_string()),\n";
+        }
+    }
+    out << "        _ => None,\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
+TemplateRenderer::Values rust_workflow_runner_values(const IrSystem& system)
+{
+    std::ostringstream declarations;
+    std::ostringstream dispatch_cases;
+    std::ostringstream next_cases;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto module_name = rust_workflow_module_name(workflow);
+        declarations << "#[path = \"workflows/" << snake_identifier(workflow.name) << ".rs\"]\n";
+        declarations << "mod " << module_name << ";\n";
+        dispatch_cases << "        if !matched {\n";
+        dispatch_cases << "            if let Some(result) = " << module_name
+                       << "::dispatch_step(self.handler, &context, &record) {\n";
+        dispatch_cases << "                matched = true;\n";
+        dispatch_cases << "                handler_result = result;\n";
+        dispatch_cases << "            }\n";
+        dispatch_cases << "        }\n";
+        next_cases << "                if next_step.is_none() {\n";
+        next_cases << "                    next_step = " << module_name
+                   << "::next_step(&record);\n";
+        next_cases << "                }\n";
+    }
+    return TemplateRenderer::Values{
+        {"workflow_step_module_declarations", declarations.str()},
+        {"workflow_step_module_dispatch_cases", dispatch_cases.str()},
+        {"workflow_step_module_next_cases", next_cases.str()},
+    };
+}
+
 struct ApiHandlerDomain
 {
     std::string name;
@@ -840,6 +923,24 @@ void add_rust_raw_api_file(
     );
 }
 
+void add_rust_raw_worker_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Worker,
+            relative_path.generic_string(),
+        }
+    );
+}
+
 std::string rust_api_descriptor_module_name(const IrApi& api)
 {
     return "api_descriptor_" + snake_identifier(api.name);
@@ -1287,6 +1388,13 @@ void add_rust_worker_artifacts(
     }
     if (include_worker_execution)
     {
+        for (const auto& workflow : system.workflows)
+        {
+            add_rust_raw_worker_file(
+                result, options, "worker/workflows/" + snake_identifier(workflow.name) + ".rs",
+                generate_rust_workflow_worker_module(workflow)
+            );
+        }
         add_rust_generated_template_file(
             result, options, templates, "worker/workflow_step_handlers.rs",
             GeneratedArtifactTier::Worker, diagnostics,
@@ -1300,11 +1408,7 @@ void add_rust_worker_artifacts(
         );
         add_rust_generated_template_file(
             result, options, templates, "worker/workflow_runner.rs", GeneratedArtifactTier::Worker,
-            diagnostics,
-            TemplateRenderer::Values{
-                {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_rs(system)},
-                {"workflow_step_next_cases", generate_workflow_step_next_cases_rs(system)}
-            }
+            diagnostics, rust_workflow_runner_values(system)
         );
     }
     if (usage.uses_queues)

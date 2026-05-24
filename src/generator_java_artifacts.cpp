@@ -22,6 +22,8 @@ namespace
 
 std::string java_api_default_handler_shape_import(const IrSystem& system);
 std::string java_api_shape_import(const IrSystem& system);
+std::string java_workflow_worker_module_class_name(const IrWorkflow& workflow);
+std::filesystem::path java_worker_generated_path(std::string_view filename);
 
 std::string java_makefile_source_list(const std::vector<std::string>& sources)
 {
@@ -531,6 +533,12 @@ TemplateRenderer::Values java_makefile_values(
         }
         if (include_worker_execution)
         {
+            for (const auto& workflow : system.workflows)
+            {
+                worker_sources.push_back(java_worker_generated_path(
+                    "workflows/" + java_workflow_worker_module_class_name(workflow) + ".java"
+                ));
+            }
             worker_sources.push_back("worker/com/statespec/generated/WorkflowStepHandlers.java");
             worker_sources.push_back("worker/com/statespec/generated/WorkflowRunner.java");
         }
@@ -669,6 +677,87 @@ TemplateRenderer::Values java_api_runtime_bootstrap_values(const IrSystem& syste
     values.erase("worker_runtime_imports");
     values.erase("worker_runtime_run_once");
     return values;
+}
+
+std::string java_workflow_worker_module_class_name(const IrWorkflow& workflow)
+{
+    return pascal_identifier(workflow.name) + "WorkerModule";
+}
+
+std::string generate_java_workflow_worker_module(const IrWorkflow& workflow)
+{
+    const auto class_name = java_workflow_worker_module_class_name(workflow);
+    std::ostringstream out;
+    out << "package com.statespec.generated.workflows;\n\n";
+    out << "import com.statespec.generated.WorkflowStepHandlers;\n";
+    out << "import com.statespec.backend.Workflow;\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class " << class_name << " {\n";
+    out << "    private " << class_name << "() {}\n\n";
+    out << "    public static boolean dispatchStep(\n";
+    out << "        WorkflowStepHandlers.Handler handler,\n";
+    out << "        WorkflowStepHandlers.Context context,\n";
+    out << "        Workflow.WorkflowExecutionRecord record\n";
+    out << "    ) throws Exception {\n";
+    out << "        if (!record.workflowName().equals(" << java_string(workflow.name) << ")) {\n";
+    out << "            return false;\n";
+    out << "        }\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "        if (record.currentStep().equals(" << java_string(step.name) << ")) {\n";
+        out << "            handler.handle" << pascal_identifier(workflow.name + "_" + step.name)
+            << "(context);\n";
+        out << "            return true;\n";
+        out << "        }\n";
+    }
+    out << "        return false;\n";
+    out << "    }\n\n";
+    out << "    public static Optional<String> nextStep(Workflow.WorkflowExecutionRecord record) "
+           "{\n";
+    out << "        if (!record.workflowName().equals(" << java_string(workflow.name) << ")) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    for (const auto& step : workflow.steps)
+    {
+        for (const auto& statement : step.statements)
+        {
+            if (statement.kind != "transition_to" || !statement.target.has_value())
+            {
+                continue;
+            }
+            out << "        if (record.currentStep().equals(" << java_string(step.name) << ")) {\n";
+            out << "            return Optional.of(" << java_string(*statement.target) << ");\n";
+            out << "        }\n";
+        }
+    }
+    out << "        return Optional.empty();\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
+TemplateRenderer::Values java_workflow_runner_values(const IrSystem& system)
+{
+    std::ostringstream imports;
+    std::ostringstream dispatch_cases;
+    std::ostringstream next_cases;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto class_name = java_workflow_worker_module_class_name(workflow);
+        imports << "import com.statespec.generated.workflows." << class_name << ";\n";
+        dispatch_cases << "            if (!handled) {\n";
+        dispatch_cases << "                handled = " << class_name
+                       << ".dispatchStep(handler, context, record);\n";
+        dispatch_cases << "            }\n";
+        next_cases << "            if (nextStep.isEmpty()) {\n";
+        next_cases << "                nextStep = " << class_name << ".nextStep(record);\n";
+        next_cases << "            }\n";
+    }
+    return TemplateRenderer::Values{
+        {"workflow_step_module_imports", imports.str()},
+        {"workflow_step_module_dispatch_cases", dispatch_cases.str()},
+        {"workflow_step_module_next_cases", next_cases.str()},
+    };
 }
 
 TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system)
@@ -898,6 +987,24 @@ void add_java_raw_api_file(
             (options.output_dir / relative_path).string(),
             std::move(content),
             GeneratedArtifactTier::Api,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+void add_java_raw_worker_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const std::filesystem::path& relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = artifact_path(relative_output_path.generic_string());
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Worker,
             relative_path.generic_string(),
         }
     );
@@ -1438,6 +1545,16 @@ void add_java_worker_artifacts(
     }
     if (include_worker_execution)
     {
+        for (const auto& workflow : system.workflows)
+        {
+            add_java_raw_worker_file(
+                result, options,
+                java_worker_generated_path(
+                    "workflows/" + java_workflow_worker_module_class_name(workflow) + ".java"
+                ),
+                generate_java_workflow_worker_module(workflow)
+            );
+        }
         add_java_generated_template_file(
             result, options, templates, java_worker_generated_path("WorkflowStepHandlers.java"),
             GeneratedArtifactTier::Worker, diagnostics,
@@ -1451,12 +1568,7 @@ void add_java_worker_artifacts(
         );
         add_java_generated_template_file(
             result, options, templates, java_worker_generated_path("WorkflowRunner.java"),
-            GeneratedArtifactTier::Worker, diagnostics,
-            TemplateRenderer::Values{
-                {"workflow_step_dispatch_cases",
-                 generate_workflow_step_dispatch_cases_java(system)},
-                {"workflow_step_next_cases", generate_workflow_step_next_cases_java(system)}
-            }
+            GeneratedArtifactTier::Worker, diagnostics, java_workflow_runner_values(system)
         );
     }
     if (usage.uses_queues)

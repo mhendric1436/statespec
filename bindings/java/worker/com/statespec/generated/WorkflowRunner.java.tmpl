@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+{{workflow_step_module_imports}}
 
 public final class WorkflowRunner {
     private final Backend backend;
@@ -73,11 +74,11 @@ public final class WorkflowRunner {
                     Json.parse(record.stateJson())
                 );
             boolean handled = false;
-{{workflow_step_dispatch_cases}}            if (!handled) {
+{{workflow_step_module_dispatch_cases}}            if (!handled) {
                 throw new IllegalArgumentException("unknown generated workflow step handler");
             }
             Optional<String> nextStep = Optional.empty();
-{{workflow_step_next_cases}}            return Optional.of(
+{{workflow_step_module_next_cases}}            return Optional.of(
                 workflowStore.completeStep(
                     backend,
                     new Workflow.CompleteWorkflowStepRequest(

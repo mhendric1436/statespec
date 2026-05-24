@@ -89,6 +89,8 @@ worker/backend/worker_runtime.go
 worker/backend/worker_workflows.go
 worker/backend/workflow_runner.go
 worker/backend/workflow_step_handlers.go
+worker/backend/workflows/provision_service.go
+worker/backend/workflows/workflows.go
 worker/cmd/worker/main.go
 EOF
 
@@ -207,9 +209,10 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.g
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.wait_for_remote_service\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "HandleProvisionServiceValidateRequest"
-assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "HandleProvisionServiceValidateRequest"
-assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "nextStepValue := \"create_remote_service\""
-assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "nextStepValue := \"wait_for_remote_service\""
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "workflowmodules.DispatchProvisionServiceStep"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "HandleProvisionServiceValidateRequest"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "nextStep := \"create_remote_service\""
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "nextStep := \"wait_for_remote_service\""
 cp "$SCRIPT_DIR/api_linking_fixture_test.go" "$TMPDIR/out-app-go/api/backend/api_linking_fixture_test.go"
 cp "$SCRIPT_DIR/registration_restart_fixture_test.go" "$TMPDIR/out-app-go/common/backend/registration_restart_fixture_test.go"
 cp "$SCRIPT_DIR/worker_linking_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_linking_fixture_test.go"

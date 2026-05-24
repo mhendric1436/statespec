@@ -188,6 +188,99 @@ TemplateRenderer::Values go_worker_runtime_bootstrap_values(const IrSystem& syst
     return values;
 }
 
+std::string generate_go_workflow_module_support()
+{
+    return R"(package workflows
+
+import common "statespec-generated/common/backend"
+
+type WorkflowStepHandlerContext struct {
+	WorkflowName    string
+	WorkflowVersion int64
+	StepName        string
+	ExecutionID     *string
+	Input           common.JSON
+}
+)";
+}
+
+std::string generate_go_workflow_worker_module(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
+    out << "package workflows\n\n";
+    out << "import \"context\"\n\n";
+    out << "type " << pascal_identifier(workflow.name) << "StepHandler interface {\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "\tHandle" << pascal_identifier(workflow.name + "_" + step.name)
+            << "(context.Context, WorkflowStepHandlerContext) error\n";
+    }
+    out << "}\n\n";
+    out << "func Dispatch" << pascal_identifier(workflow.name)
+        << "Step(ctx context.Context, handler " << pascal_identifier(workflow.name)
+        << "StepHandler, stepContext WorkflowStepHandlerContext) (bool, error) {\n";
+    out << "\tif stepContext.WorkflowName != " << go_string(workflow.name) << " {\n";
+    out << "\t\treturn false, nil\n";
+    out << "\t}\n";
+    out << "\tswitch stepContext.StepName {\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "\tcase " << go_string(step.name) << ":\n";
+        out << "\t\treturn true, handler.Handle"
+            << pascal_identifier(workflow.name + "_" + step.name) << "(ctx, stepContext)\n";
+    }
+    out << "\tdefault:\n";
+    out << "\t\treturn false, nil\n";
+    out << "\t}\n";
+    out << "}\n\n";
+    out << "func Next" << pascal_identifier(workflow.name)
+        << "Step(workflowName string, currentStep string) *string {\n";
+    out << "\tif workflowName != " << go_string(workflow.name) << " {\n";
+    out << "\t\treturn nil\n";
+    out << "\t}\n";
+    out << "\tswitch currentStep {\n";
+    for (const auto& step : workflow.steps)
+    {
+        for (const auto& statement : step.statements)
+        {
+            if (statement.kind != "transition_to" || !statement.target.has_value())
+            {
+                continue;
+            }
+            out << "\tcase " << go_string(step.name) << ":\n";
+            out << "\t\tnextStep := " << go_string(*statement.target) << "\n";
+            out << "\t\treturn &nextStep\n";
+        }
+    }
+    out << "\tdefault:\n";
+    out << "\t\treturn nil\n";
+    out << "\t}\n";
+    out << "}\n";
+    return out.str();
+}
+
+TemplateRenderer::Values go_workflow_runner_values(const IrSystem& system)
+{
+    std::ostringstream dispatch_cases;
+    std::ostringstream next_cases;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto pascal = pascal_identifier(workflow.name);
+        dispatch_cases << "\tif !handled {\n";
+        dispatch_cases << "\t\thandled, handlerErr = workflowmodules.Dispatch" << pascal
+                       << "Step(ctx, runner.Handler, stepContext)\n";
+        dispatch_cases << "\t}\n";
+        next_cases << "\tif nextStep == nil {\n";
+        next_cases << "\t\tnextStep = workflowmodules.Next" << pascal
+                   << "Step(record.WorkflowName, record.CurrentStep)\n";
+        next_cases << "\t}\n";
+    }
+    return TemplateRenderer::Values{
+        {"workflow_step_module_dispatch_cases", dispatch_cases.str()},
+        {"workflow_step_module_next_cases", next_cases.str()},
+    };
+}
+
 TemplateRenderer::Values go_api_runtime_bootstrap_values(const IrSystem& system)
 {
     auto values = go_runtime_bootstrap_values(system);
@@ -870,6 +963,24 @@ void add_go_raw_api_file(
     );
 }
 
+void add_go_raw_worker_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Worker,
+            relative_path.generic_string(),
+        }
+    );
+}
+
 std::string go_api_descriptor_function_name(const IrApi& api)
 {
     return pascal_identifier(api.name) + "ApiDescriptors";
@@ -1315,6 +1426,21 @@ void add_go_worker_artifacts(
     }
     if (include_worker_execution)
     {
+        if (!system.workflows.empty())
+        {
+            add_go_raw_worker_file(
+                result, options, "worker/backend/workflows/workflows.go",
+                generate_go_workflow_module_support()
+            );
+        }
+        for (const auto& workflow : system.workflows)
+        {
+            add_go_raw_worker_file(
+                result, options,
+                "worker/backend/workflows/" + snake_identifier(workflow.name) + ".go",
+                generate_go_workflow_worker_module(workflow)
+            );
+        }
         add_go_generated_template_file(
             result, options, templates, "worker/backend/workflow_step_handlers.go",
             GeneratedArtifactTier::Worker, diagnostics,
@@ -1330,11 +1456,7 @@ void add_go_worker_artifacts(
         );
         add_go_generated_template_file(
             result, options, templates, "worker/backend/workflow_runner.go",
-            GeneratedArtifactTier::Worker, diagnostics,
-            TemplateRenderer::Values{
-                {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases_go(system)},
-                {"workflow_step_next_cases", generate_workflow_step_next_cases_go(system)}
-            }
+            GeneratedArtifactTier::Worker, diagnostics, go_workflow_runner_values(system)
         );
     }
     if (usage.uses_queues)

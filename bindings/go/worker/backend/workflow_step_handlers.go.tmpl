@@ -3,17 +3,11 @@ package backend
 import (
 	"context"
 
-	common "statespec-generated/common/backend"
+	workflowmodules "statespec-generated/worker/backend/workflows"
 {{workflow_step_handler_imports}}
 )
 
-type WorkflowStepHandlerContext struct {
-	WorkflowName    string
-	WorkflowVersion int64
-	StepName        string
-	ExecutionID     *string
-	Input           common.JSON
-}
+type WorkflowStepHandlerContext = workflowmodules.WorkflowStepHandlerContext
 
 type WorkflowStepHandler interface {
 {{workflow_step_handler_methods}}

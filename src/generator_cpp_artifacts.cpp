@@ -257,6 +257,101 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
     };
 }
 
+std::string cpp_workflow_module_function_name(
+    const IrWorkflow& workflow,
+    std::string_view suffix
+)
+{
+    return snake_identifier(workflow.name) + std::string(suffix);
+}
+
+std::string generate_cpp_workflow_step_module(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../workflow_step_handlers.hpp\"\n\n";
+    out << "#include <optional>\n";
+    out << "#include <string>\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n\n";
+    out << "inline bool " << cpp_workflow_module_function_name(workflow, "_dispatch_step") << "(\n";
+    out << "    IWorkflowStepHandler& handler,\n";
+    out << "    const WorkflowStepHandlerContext& context,\n";
+    out << "    const statespec::backend::WorkflowExecutionRecord& record\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    if (record.workflow_name != " << cpp_string(workflow.name) << ")\n";
+    out << "    {\n";
+    out << "        return false;\n";
+    out << "    }\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "    if (record.current_step == " << cpp_string(step.name) << ")\n";
+        out << "    {\n";
+        out << "        handler.handle_" << snake_identifier(workflow.name + "_" + step.name)
+            << "(context);\n";
+        out << "        return true;\n";
+        out << "    }\n";
+    }
+    out << "    return false;\n";
+    out << "}\n\n";
+    out << "inline std::optional<std::string> "
+        << cpp_workflow_module_function_name(workflow, "_next_step") << "(\n";
+    out << "    const statespec::backend::WorkflowExecutionRecord& record\n";
+    out << ")\n";
+    out << "{\n";
+    out << "    if (record.workflow_name != " << cpp_string(workflow.name) << ")\n";
+    out << "    {\n";
+    out << "        return std::nullopt;\n";
+    out << "    }\n";
+    for (const auto& step : workflow.steps)
+    {
+        for (const auto& statement : step.statements)
+        {
+            if (statement.kind != "transition_to" || !statement.target.has_value())
+            {
+                continue;
+            }
+            out << "    if (record.current_step == " << cpp_string(step.name) << ")\n";
+            out << "    {\n";
+            out << "        return " << cpp_string(*statement.target) << ";\n";
+            out << "    }\n";
+        }
+    }
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
+TemplateRenderer::Values cpp_workflow_runner_values(const IrSystem& system)
+{
+    std::ostringstream includes;
+    std::ostringstream dispatch_cases;
+    std::ostringstream next_cases;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto snake = snake_identifier(workflow.name);
+        includes << "#include \"workflows/" << snake << ".hpp\"\n";
+        dispatch_cases << "            if (!handled)\n";
+        dispatch_cases << "            {\n";
+        dispatch_cases << "                handled = "
+                       << cpp_workflow_module_function_name(workflow, "_dispatch_step")
+                       << "(handler_, context, record);\n";
+        dispatch_cases << "            }\n";
+        next_cases << "            if (!next_step.has_value())\n";
+        next_cases << "            {\n";
+        next_cases << "                next_step = "
+                   << cpp_workflow_module_function_name(workflow, "_next_step") << "(record);\n";
+        next_cases << "            }\n";
+    }
+    return TemplateRenderer::Values{
+        {"workflow_step_module_includes", includes.str()},
+        {"workflow_step_module_dispatch_cases", dispatch_cases.str()},
+        {"workflow_step_module_next_cases", next_cases.str()},
+    };
+}
+
 TemplateRenderer::Values cpp_runtime_codec_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
@@ -791,6 +886,24 @@ void add_cpp_raw_api_file(
     );
 }
 
+void add_cpp_raw_worker_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Worker,
+            relative_path.generic_string(),
+        }
+    );
+}
+
 std::string cpp_api_descriptor_function_name(const IrApi& api)
 {
     return snake_identifier(api.name) + "_api_descriptors";
@@ -1247,6 +1360,13 @@ void add_cpp_worker_artifacts(
     }
     if (include_worker_execution)
     {
+        for (const auto& workflow : system.workflows)
+        {
+            add_cpp_raw_worker_file(
+                result, options, "worker/workflows/" + snake_identifier(workflow.name) + ".hpp",
+                generate_cpp_workflow_step_module(workflow)
+            );
+        }
         add_cpp_generated_template_file(
             result, options, templates, "worker/workflow_step_handlers.hpp",
             GeneratedArtifactTier::Worker, diagnostics,
@@ -1259,11 +1379,7 @@ void add_cpp_worker_artifacts(
         );
         add_cpp_generated_template_file(
             result, options, templates, "worker/workflow_runner.hpp", GeneratedArtifactTier::Worker,
-            diagnostics,
-            TemplateRenderer::Values{
-                {"workflow_step_dispatch_cases", generate_workflow_step_dispatch_cases(system)},
-                {"workflow_step_next_cases", generate_workflow_step_next_cases(system)}
-            }
+            diagnostics, cpp_workflow_runner_values(system)
         );
     }
     if (usage.uses_queues)
