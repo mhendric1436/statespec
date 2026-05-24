@@ -162,6 +162,24 @@ system WorkflowEntitiesOnly {
     }
   }
 
+  worker AccountLifecycleWorker {
+    singleton false
+    executes AccountLifecycle
+    concurrency 1
+  }
+
+  worker ProjectLifecycleWorker {
+    singleton false
+    executes ProjectLifecycle
+    concurrency 1
+  }
+
+  worker TaskLifecycleWorker {
+    singleton false
+    executes TaskLifecycle
+    concurrency 1
+  }
+
   workflow AccountLifecycle {
     version 1
     singleton false

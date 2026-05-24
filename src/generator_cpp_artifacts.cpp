@@ -165,6 +165,7 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
     std::ostringstream includes;
+    std::ostringstream worker_domain_includes;
     std::ostringstream initializers;
     std::ostringstream members;
     std::ostringstream arguments;
@@ -194,6 +195,18 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
         "statespec::backend::runtime::RuntimeLogSink", "logs_", "logs_");
     add(usage.uses_metrics, "../common/runtime/metric_sink.hpp",
         "statespec::backend::runtime::RuntimeMetricSink", "metrics_", "metrics_");
+    if (usage.uses_queues)
+    {
+        worker_domain_includes << "#include \"worker_queues.hpp\"\n";
+    }
+    if (usage.uses_leases)
+    {
+        worker_domain_includes << "#include \"worker_leases.hpp\"\n";
+    }
+    if (usage.uses_workflows)
+    {
+        worker_domain_includes << "#include \"worker_workflows.hpp\"\n";
+    }
 
     if (usage.uses_workflows)
     {
@@ -230,6 +243,7 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
 
     return TemplateRenderer::Values{
         {"runtime_store_includes", includes.str()},
+        {"worker_domain_includes", worker_domain_includes.str()},
         {"runtime_store_initializers", initializers.str()},
         {"runtime_store_members", members.str()},
         {"runtime_bootstrap_arguments", arguments.str()},
@@ -291,6 +305,7 @@ TemplateRenderer::Values cpp_api_runtime_values(const IrSystem& system)
 {
     auto values = cpp_runtime_bootstrap_values(system);
     values.erase("worker_runtime_run_once");
+    values.erase("worker_domain_includes");
     return values;
 }
 

@@ -12,9 +12,23 @@ WORKER_EXTENSION_SOURCES := $(filter-out $(WORKER_SOURCES),$(wildcard worker/com
 BUILD_TARGETS := build-common{{build_target_additions}}
 PACKAGE_TARGETS := package-common{{package_target_additions}}
 
-.PHONY: all check build package build-common package-common{{phony_targets}} clean
+.PHONY: all help check build package build-common package-common{{phony_targets}} clean
 
 all: check
+
+help:
+	@printf '%s\n' 'StateSpec generated Java bindings Makefile'
+	@printf '%s\n' ''
+	@printf '%s\n' 'Default target: all -> check -> build'
+	@printf '%s\n' '  check   Alias for build; compiles generated Java sources.'
+	@printf '%s\n' '  build   Compiles generated Java sources into $(BUILD_DIR).'
+	@printf '%s\n' '  package Builds and archives generated artifacts under $(DIST_DIR).'
+	@printf '%s\n' '  clean   Removes build and $(DIST_DIR).'
+	@printf '%s\n' ''
+	@printf '%s\n' 'Tier targets:'
+	@printf '%s\n' '  build-common  package-common'
+	@printf '%s\n' '  build-api     package-api     when API tier is generated'
+	@printf '%s\n' '  build-worker  package-worker  when Worker tier is generated'
 
 check: build
 

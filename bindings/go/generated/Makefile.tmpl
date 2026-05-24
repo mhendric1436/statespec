@@ -9,9 +9,23 @@ CHECK_TARGETS := check-common
 BUILD_TARGETS := build-common
 PACKAGE_TARGETS := package-common{{target_additions}}
 
-.PHONY: all check build package check-common build-common package-common{{phony_targets}} clean
+.PHONY: all help check build package check-common build-common package-common{{phony_targets}} clean
 
 all: check
+
+help:
+	@printf '%s\n' 'StateSpec generated Go bindings Makefile'
+	@printf '%s\n' ''
+	@printf '%s\n' 'Default target: all -> check'
+	@printf '%s\n' '  check   Runs go test for generated packages.'
+	@printf '%s\n' '  build   Runs build validation for generated packages.'
+	@printf '%s\n' '  package Builds and archives generated artifacts under $(DIST_DIR).'
+	@printf '%s\n' '  clean   Clears Go test cache and removes $(DIST_DIR).'
+	@printf '%s\n' ''
+	@printf '%s\n' 'Tier targets:'
+	@printf '%s\n' '  check-common  build-common  package-common'
+	@printf '%s\n' '  check-api     build-api     package-api     when API tier is generated'
+	@printf '%s\n' '  check-worker  build-worker  package-worker  when Worker tier is generated'
 
 check: $(CHECK_TARGETS)
 

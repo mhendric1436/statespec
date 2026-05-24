@@ -67,6 +67,8 @@ assert_file_exists "$TMPDIR/out-java/worker/com/statespec/generated/WorkerQueues
 assert_file_exists "$TMPDIR/out-java/worker/com/statespec/generated/WorkerLeases.java"
 assert_file_exists "$TMPDIR/out-java/worker/com/statespec/generated/WorkerWorkflows.java"
 assert_file_contains "$TMPDIR/out-java/Makefile" "JAVAC ?= javac"
+assert_file_contains "$TMPDIR/out-java/Makefile" "help:"
+assert_file_contains "$TMPDIR/out-java/Makefile" "Default target: all -> check -> build"
 assert_file_contains "$TMPDIR/out-java/Makefile" "BUILD_DIR ?= build/classes"
 assert_file_contains "$TMPDIR/out-java/Makefile" "COMMON_SOURCES :="
 assert_file_contains "$TMPDIR/out-java/Makefile" "API_SOURCES :="
