@@ -31,6 +31,8 @@ api/api_process.rs
 api/api_routes.rs
 api/api_server.rs
 api/api_transport.rs
+api/descriptors/report_provision_ready.rs
+api/descriptors/start_provision.rs
 api/external_system_operator_metadata_api.rs
 api/main.rs
 common/backend.rs

@@ -8,6 +8,7 @@
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <utility>
 
@@ -514,6 +515,165 @@ void add_cpp_generated_template_file(
     );
 }
 
+void add_cpp_raw_api_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Api,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+std::string cpp_api_descriptor_function_name(const IrApi& api)
+{
+    return snake_identifier(api.name) + "_api_descriptors";
+}
+
+std::string cpp_api_route_descriptor_function_name(const IrApi& api)
+{
+    return snake_identifier(api.name) + "_api_route_descriptors";
+}
+
+std::string cpp_api_descriptor_module(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../common/descriptors.hpp\"\n\n";
+    out << "namespace statespec_generated::api::descriptors\n";
+    out << "{\n\n";
+    out << "inline std::vector<::statespec_generated::ApiDescriptor> "
+        << cpp_api_descriptor_function_name(api) << "()\n";
+    out << "{\n";
+    out << "    return {\n";
+    out << "        ::statespec_generated::ApiDescriptor{\n";
+    out << "            " << cpp_string(api.name) << ",\n";
+    out << "            " << optional_string_expr(api.method) << ",\n";
+    out << "            " << optional_string_expr(api.path) << ",\n";
+    out << "            " << optional_string_expr(api.input) << ",\n";
+    out << "            " << optional_string_expr(api.output) << ",\n";
+    out << "            " << optional_string_expr(api.error) << ",\n";
+    out << "            " << optional_string_expr(api.starts_workflow) << ",\n";
+    out << "            " << optional_string_expr(api.enqueues) << ",\n";
+    out << "        },\n";
+    out << "    };\n";
+    out << "}\n\n";
+    out << "inline std::vector<::statespec_generated::ApiRouteDescriptor> "
+        << cpp_api_route_descriptor_function_name(api) << "()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) ==
+            api_server.serves.end())
+        {
+            continue;
+        }
+        out << "        ::statespec_generated::ApiRouteDescriptor{\n";
+        out << "            " << cpp_string(api_server.name + "." + api.name) << ",\n";
+        out << "            " << cpp_string(api_server.name) << ",\n";
+        out << "            " << cpp_string(api.name) << ",\n";
+        out << "            " << optional_string_expr(api.method) << ",\n";
+        out << "            " << optional_string_expr(api.path) << ",\n";
+        out << "            " << optional_string_expr(api.input) << ",\n";
+        out << "            " << optional_string_expr(api.output) << ",\n";
+        out << "            " << optional_string_expr(api.error) << ",\n";
+        out << "        },\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api::descriptors\n";
+    return out.str();
+}
+
+void add_cpp_api_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    for (const auto& api : system.apis)
+    {
+        add_cpp_raw_api_file(
+            result, options, "api/descriptors/" + snake_identifier(api.name) + ".hpp",
+            cpp_api_descriptor_module(system, api)
+        );
+    }
+}
+
+TemplateRenderer::Values cpp_api_descriptor_values(const IrSystem& system)
+{
+    std::ostringstream includes;
+    std::ostringstream api_aggregation;
+    std::ostringstream server_descriptors;
+    for (const auto& api : system.apis)
+    {
+        includes << "\n#include \"descriptors/" << snake_identifier(api.name) << ".hpp\"";
+        const auto module = "descriptors::" + cpp_api_descriptor_function_name(api) + "()";
+        api_aggregation << "    {\n";
+        api_aggregation << "        auto slice = " << module << ";\n";
+        api_aggregation << "        descriptors.insert(descriptors.end(), slice.begin(), "
+                           "slice.end());\n";
+        api_aggregation << "    }\n";
+    }
+    server_descriptors << "    return {\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        server_descriptors << "        ApiServerDescriptor{\n";
+        server_descriptors << "            " << cpp_string(api_server.name) << ",\n";
+        server_descriptors << "            {";
+        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
+        {
+            if (i > 0)
+            {
+                server_descriptors << ", ";
+            }
+            server_descriptors << cpp_string(api_server.serves[i]);
+        }
+        server_descriptors << "},\n";
+        server_descriptors << "            " << api_server.concurrency.value_or(1) << ",\n";
+        server_descriptors << "        },\n";
+    }
+    server_descriptors << "    };\n";
+    return TemplateRenderer::Values{
+        {"api_descriptor_includes", includes.str()},
+        {"api_descriptor_aggregation", api_aggregation.str()},
+        {"api_server_descriptors", server_descriptors.str()},
+    };
+}
+
+TemplateRenderer::Values cpp_api_route_values(const IrSystem& system)
+{
+    std::ostringstream includes;
+    std::ostringstream route_aggregation;
+    for (const auto& api : system.apis)
+    {
+        includes << "\n#include \"descriptors/" << snake_identifier(api.name) << ".hpp\"";
+        const auto route_module =
+            "descriptors::" + cpp_api_route_descriptor_function_name(api) + "()";
+        route_aggregation << "    {\n";
+        route_aggregation << "        auto slice = " << route_module << ";\n";
+        route_aggregation << "        descriptors.insert(descriptors.end(), slice.begin(), "
+                             "slice.end());\n";
+        route_aggregation << "    }\n";
+    }
+    return TemplateRenderer::Values{
+        {"api_descriptor_includes", includes.str()},
+        {"api_route_descriptor_aggregation", route_aggregation.str()},
+    };
+}
+
 } // namespace
 
 void add_cpp_common_runtime_artifacts(
@@ -694,9 +854,10 @@ void add_cpp_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
+    add_cpp_api_descriptor_artifacts(result, options, system);
     add_cpp_generated_template_file(
         result, options, templates, "api/api_descriptors.hpp", GeneratedArtifactTier::Api,
-        diagnostics
+        diagnostics, cpp_api_descriptor_values(system)
     );
     add_cpp_generated_template_file(
         result, options, templates, "api/api_codecs.hpp", GeneratedArtifactTier::Api, diagnostics,
@@ -747,7 +908,7 @@ void add_cpp_api_artifacts(
         );
         add_cpp_generated_template_file(
             result, options, templates, "api/api_routes.hpp", GeneratedArtifactTier::Api,
-            diagnostics
+            diagnostics, cpp_api_route_values(system)
         );
         add_cpp_generated_template_file(
             result, options, templates, "api/main.cpp", GeneratedArtifactTier::Api, diagnostics

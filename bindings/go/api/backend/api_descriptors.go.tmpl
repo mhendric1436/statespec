@@ -1,14 +1,17 @@
 package backend
 
-import common "statespec-generated/common/backend"
+import (
+	common "statespec-generated/common/backend"
+	descriptors "statespec-generated/api/backend/descriptors"
+)
 
 type APITierDescriptor = common.ApiDescriptor
 type APITierServerDescriptor = common.ApiServerDescriptor
 
 func APITierDescriptors() []common.ApiDescriptor {
-	return common.ApiDescriptors()
+	result := []common.ApiDescriptor{}
+{{api_descriptor_aggregation}}	return result
 }
 
 func APITierServerDescriptors() []common.ApiServerDescriptor {
-	return common.ApiServerDescriptors()
-}
+{{api_server_descriptors}}}

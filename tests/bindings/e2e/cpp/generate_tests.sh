@@ -30,6 +30,8 @@ api/api_process.hpp
 api/api_routes.hpp
 api/api_server.hpp
 api/api_transport.hpp
+api/descriptors/report_provision_ready.hpp
+api/descriptors/start_provision.hpp
 api/external_system_operator_metadata_api.hpp
 api/main.cpp
 common/backend.hpp

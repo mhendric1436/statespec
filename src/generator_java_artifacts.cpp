@@ -76,6 +76,24 @@ std::vector<std::string> java_shape_sources(const IrSystem& system)
     return sources;
 }
 
+std::string java_api_descriptor_module_class_name(std::string_view api_name)
+{
+    return pascal_identifier(std::string{api_name}) + "DescriptorModule";
+}
+
+std::vector<std::string> java_api_descriptor_sources(const IrSystem& system)
+{
+    std::vector<std::string> sources;
+    for (const auto& api : system.apis)
+    {
+        sources.push_back(
+            "api/com/statespec/generated/descriptors/" +
+            java_api_descriptor_module_class_name(api.name) + ".java"
+        );
+    }
+    return sources;
+}
+
 TemplateRenderer::Values java_makefile_values(
     BindingGenerationTier tier,
     const IrSystem& system
@@ -159,6 +177,10 @@ TemplateRenderer::Values java_makefile_values(
             "api/com/statespec/generated/ApiHandlerRegistry.java",
             "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
         };
+        for (const auto& source : java_api_descriptor_sources(system))
+        {
+            api_sources.push_back(source);
+        }
         if (include_api_composition)
         {
             api_sources.push_back("api/com/statespec/generated/ApiApplication.java");
@@ -524,6 +546,154 @@ std::string java_api_default_handler_shape_import(const IrSystem& system)
     return {};
 }
 
+void add_java_raw_api_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const std::filesystem::path& relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = artifact_path(relative_output_path.generic_string());
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Api,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+bool java_api_server_serves(
+    const IrApiServer& api_server,
+    const std::string& api_name
+)
+{
+    for (const auto& served_api : api_server.serves)
+    {
+        if (served_api == api_name)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string java_api_descriptor_module(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.descriptors;\n\n";
+    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import java.util.List;\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class " << java_api_descriptor_module_class_name(api.name) << " {\n";
+    out << "    private " << java_api_descriptor_module_class_name(api.name) << "() {}\n\n";
+    out << "    public static List<Descriptors.ApiDescriptor> apiDescriptors() {\n";
+    out << "        return List.of(\n";
+    out << "            new Descriptors.ApiDescriptor(\n";
+    out << "                " << java_string(api.name) << ",\n";
+    out << "                " << java_optional_string_expr(api.method) << ",\n";
+    out << "                " << java_optional_string_expr(api.path) << ",\n";
+    out << "                " << java_optional_string_expr(api.input) << ",\n";
+    out << "                " << java_optional_string_expr(api.output) << ",\n";
+    out << "                " << java_optional_string_expr(api.error) << ",\n";
+    out << "                " << java_optional_string_expr(api.starts_workflow) << ",\n";
+    out << "                " << java_optional_string_expr(api.enqueues) << "\n";
+    out << "            )\n";
+    out << "        );\n";
+    out << "    }\n\n";
+    out << "    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {\n";
+    out << "        return List.of(\n";
+    bool first_route = true;
+    for (const auto& api_server : system.api_servers)
+    {
+        if (!java_api_server_serves(api_server, api.name))
+        {
+            continue;
+        }
+        if (!first_route)
+        {
+            out << ",\n";
+        }
+        first_route = false;
+        out << "            new Descriptors.ApiRouteDescriptor(\n";
+        out << "                " << java_string(api_server.name + "." + api.name) << ",\n";
+        out << "                " << java_string(api_server.name) << ",\n";
+        out << "                " << java_string(api.name) << ",\n";
+        out << "                " << java_optional_string_expr(api.method) << ",\n";
+        out << "                " << java_optional_string_expr(api.path) << ",\n";
+        out << "                " << java_optional_string_expr(api.input) << ",\n";
+        out << "                " << java_optional_string_expr(api.output) << ",\n";
+        out << "                " << java_optional_string_expr(api.error) << "\n";
+        out << "            )";
+    }
+    out << "\n";
+    out << "        );\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
+void add_java_api_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    const auto descriptor_path = java_api_generated_path("descriptors");
+    for (const auto& api : system.apis)
+    {
+        add_java_raw_api_file(
+            result, options,
+            descriptor_path / (java_api_descriptor_module_class_name(api.name) + ".java"),
+            java_api_descriptor_module(system, api)
+        );
+    }
+}
+
+TemplateRenderer::Values java_api_descriptor_values(const IrSystem& system)
+{
+    std::ostringstream api_aggregation;
+    std::ostringstream route_aggregation;
+    std::ostringstream server_descriptors;
+    for (const auto& api : system.apis)
+    {
+        const auto class_name = java_api_descriptor_module_class_name(api.name);
+        api_aggregation << "        descriptors.addAll(" << class_name << ".apiDescriptors());\n";
+        route_aggregation << "        descriptors.addAll(" << class_name
+                          << ".apiRouteDescriptors());\n";
+    }
+    server_descriptors << "        return List.of(\n";
+    for (std::size_t server_index = 0; server_index < system.api_servers.size(); ++server_index)
+    {
+        const auto& api_server = system.api_servers[server_index];
+        server_descriptors << "            new Descriptors.ApiServerDescriptor(\n";
+        server_descriptors << "                " << java_string(api_server.name) << ",\n";
+        server_descriptors << "                List.of(";
+        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
+        {
+            if (i > 0)
+            {
+                server_descriptors << ", ";
+            }
+            server_descriptors << java_string(api_server.serves[i]);
+        }
+        server_descriptors << "),\n";
+        server_descriptors << "                " << api_server.concurrency.value_or(1) << "\n";
+        server_descriptors << "            )"
+                           << (server_index + 1 < system.api_servers.size() ? "," : "") << "\n";
+    }
+    server_descriptors << "        );\n";
+    return TemplateRenderer::Values{
+        {"api_descriptor_aggregation", api_aggregation.str()},
+        {"api_route_descriptor_aggregation", route_aggregation.str()},
+        {"api_server_descriptors", server_descriptors.str()},
+    };
+}
+
 void add_java_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -797,9 +967,10 @@ void add_java_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
+    add_java_api_descriptor_artifacts(result, options, system);
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiDescriptors.java"),
-        GeneratedArtifactTier::Api, diagnostics
+        GeneratedArtifactTier::Api, diagnostics, java_api_descriptor_values(system)
     );
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiCodecs.java"),

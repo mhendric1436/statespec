@@ -568,6 +568,162 @@ void add_rust_generated_template_file(
     );
 }
 
+void add_rust_raw_api_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Api,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+std::string rust_api_descriptor_module_name(const IrApi& api)
+{
+    return "api_descriptor_" + snake_identifier(api.name);
+}
+
+std::string rust_api_descriptor_function_name(const IrApi& api)
+{
+    return snake_identifier(api.name) + "_api_descriptors";
+}
+
+std::string rust_api_route_descriptor_function_name(const IrApi& api)
+{
+    return snake_identifier(api.name) + "_api_route_descriptors";
+}
+
+bool rust_api_server_serves(
+    const IrApiServer& api_server,
+    const std::string& api_name
+)
+{
+    for (const auto& served_api : api_server.serves)
+    {
+        if (served_api == api_name)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string rust_api_descriptor_module(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    std::ostringstream out;
+    out << "use crate::descriptors::{ApiDescriptor, ApiRouteDescriptor};\n\n";
+    out << "pub fn " << rust_api_descriptor_function_name(api) << "() -> Vec<ApiDescriptor> {\n";
+    out << "    vec![\n";
+    out << "        ApiDescriptor {\n";
+    out << "            name: " << rust_string(api.name) << ".to_string(),\n";
+    out << "            method: " << rust_optional_string_expr(api.method) << ",\n";
+    out << "            path: " << rust_optional_string_expr(api.path) << ",\n";
+    out << "            input: " << rust_optional_string_expr(api.input) << ",\n";
+    out << "            output: " << rust_optional_string_expr(api.output) << ",\n";
+    out << "            error: " << rust_optional_string_expr(api.error) << ",\n";
+    out << "            starts_workflow: " << rust_optional_string_expr(api.starts_workflow)
+        << ",\n";
+    out << "            enqueues: " << rust_optional_string_expr(api.enqueues) << ",\n";
+    out << "        },\n";
+    out << "    ]\n";
+    out << "}\n\n";
+    out << "pub fn " << rust_api_route_descriptor_function_name(api)
+        << "() -> Vec<ApiRouteDescriptor> {\n";
+    out << "    vec![\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        if (!rust_api_server_serves(api_server, api.name))
+        {
+            continue;
+        }
+        out << "        ApiRouteDescriptor {\n";
+        out << "            name: " << rust_string(api_server.name + "." + api.name)
+            << ".to_string(),\n";
+        out << "            server_name: " << rust_string(api_server.name) << ".to_string(),\n";
+        out << "            api_name: " << rust_string(api.name) << ".to_string(),\n";
+        out << "            method: " << rust_optional_string_expr(api.method) << ",\n";
+        out << "            path: " << rust_optional_string_expr(api.path) << ",\n";
+        out << "            input: " << rust_optional_string_expr(api.input) << ",\n";
+        out << "            output: " << rust_optional_string_expr(api.output) << ",\n";
+        out << "            error: " << rust_optional_string_expr(api.error) << ",\n";
+        out << "        },\n";
+    }
+    out << "    ]\n";
+    out << "}\n";
+    return out.str();
+}
+
+void add_rust_api_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    for (const auto& api : system.apis)
+    {
+        add_rust_raw_api_file(
+            result, options, "api/descriptors/" + snake_identifier(api.name) + ".rs",
+            rust_api_descriptor_module(system, api)
+        );
+    }
+}
+
+TemplateRenderer::Values rust_api_descriptor_values(const IrSystem& system)
+{
+    std::ostringstream modules;
+    std::ostringstream api_aggregation;
+    std::ostringstream route_aggregation;
+    std::ostringstream server_descriptors;
+    for (const auto& api : system.apis)
+    {
+        const auto module = rust_api_descriptor_module_name(api);
+        modules << "#[path = \"descriptors/" << snake_identifier(api.name) << ".rs\"]\n";
+        modules << "mod " << module << ";\n";
+        api_aggregation << "    descriptors.extend(" << module
+                        << "::" << rust_api_descriptor_function_name(api) << "());\n";
+        route_aggregation << "    descriptors.extend(" << module
+                          << "::" << rust_api_route_descriptor_function_name(api) << "());\n";
+    }
+    server_descriptors << "    vec![\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        server_descriptors << "        ApiServerDescriptor {\n";
+        server_descriptors << "            name: " << rust_string(api_server.name)
+                           << ".to_string(),\n";
+        server_descriptors << "            serves: vec![";
+        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
+        {
+            if (i > 0)
+            {
+                server_descriptors << ", ";
+            }
+            server_descriptors << rust_string(api_server.serves[i]) << ".to_string()";
+        }
+        server_descriptors << "],\n";
+        server_descriptors << "            concurrency: " << api_server.concurrency.value_or(1)
+                           << ",\n";
+        server_descriptors << "        },\n";
+    }
+    server_descriptors << "    ]\n";
+    return TemplateRenderer::Values{
+        {"api_descriptor_modules", modules.str()},
+        {"api_descriptor_aggregation", api_aggregation.str()},
+        {"api_route_descriptor_aggregation", route_aggregation.str()},
+        {"api_server_descriptors", server_descriptors.str()},
+    };
+}
+
 } // namespace
 
 void add_rust_common_runtime_artifacts(
@@ -752,9 +908,10 @@ void add_rust_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
+    add_rust_api_descriptor_artifacts(result, options, system);
     add_rust_generated_template_file(
         result, options, templates, "api/api_descriptors.rs", GeneratedArtifactTier::Api,
-        diagnostics
+        diagnostics, rust_api_descriptor_values(system)
     );
     add_rust_generated_template_file(
         result, options, templates, "api/api_codecs.rs", GeneratedArtifactTier::Api, diagnostics,

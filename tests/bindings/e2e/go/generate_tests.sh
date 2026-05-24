@@ -30,6 +30,8 @@ api/backend/api_process.go
 api/backend/api_routes.go
 api/backend/api_server.go
 api/backend/api_transport.go
+api/backend/descriptors/report_provision_ready.go
+api/backend/descriptors/start_provision.go
 api/backend/external_system_operator_metadata_api.go
 api/cmd/api/main.go
 common/backend/backend.go

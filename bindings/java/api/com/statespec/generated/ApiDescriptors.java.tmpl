@@ -1,15 +1,22 @@
 package com.statespec.generated;
 
+import com.statespec.generated.descriptors.*;
 import java.util.List;
+import java.util.ArrayList;
 
 public final class ApiDescriptors {
     private ApiDescriptors() {}
 
     public static List<Descriptors.ApiDescriptor> apiDescriptors() {
-        return Descriptors.apiDescriptors();
+        var descriptors = new ArrayList<Descriptors.ApiDescriptor>();
+{{api_descriptor_aggregation}}        return List.copyOf(descriptors);
     }
 
     public static List<Descriptors.ApiServerDescriptor> apiServerDescriptors() {
-        return Descriptors.apiServerDescriptors();
+{{api_server_descriptors}}    }
+
+    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {
+        var descriptors = new ArrayList<Descriptors.ApiRouteDescriptor>();
+{{api_route_descriptor_aggregation}}        return List.copyOf(descriptors);
     }
 }

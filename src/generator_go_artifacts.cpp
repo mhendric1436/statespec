@@ -513,6 +513,162 @@ void add_go_generated_template_file(
     );
 }
 
+void add_go_raw_api_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+)
+{
+    const auto relative_path = artifact_path(relative_output_path);
+    result.files.push_back(
+        GeneratedFile{
+            (options.output_dir / relative_path).string(),
+            std::move(content),
+            GeneratedArtifactTier::Api,
+            relative_path.generic_string(),
+        }
+    );
+}
+
+std::string go_api_descriptor_function_name(const IrApi& api)
+{
+    return pascal_identifier(api.name) + "ApiDescriptors";
+}
+
+std::string go_api_route_descriptor_function_name(const IrApi& api)
+{
+    return pascal_identifier(api.name) + "ApiRouteDescriptors";
+}
+
+bool go_api_server_serves(
+    const IrApiServer& api_server,
+    const std::string& api_name
+)
+{
+    for (const auto& served_api : api_server.serves)
+    {
+        if (served_api == api_name)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string go_api_descriptor_module(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    std::ostringstream out;
+    const auto string_ptr = lower_camel_identifier(api.name) + "StringPtr";
+    auto optional_string = [&](const std::optional<std::string>& value)
+    { return value.has_value() ? string_ptr + "(" + go_string(*value) + ")" : "nil"; };
+    out << "package descriptors\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "func " << string_ptr << "(value string) *string { return &value }\n\n";
+    out << "func " << go_api_descriptor_function_name(api) << "() []common.ApiDescriptor {\n";
+    out << "\treturn []common.ApiDescriptor{\n";
+    out << "\t\t{\n";
+    out << "\t\t\tName: " << go_string(api.name) << ",\n";
+    out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
+    out << "\t\t\tPath: " << optional_string(api.path) << ",\n";
+    out << "\t\t\tInput: " << optional_string(api.input) << ",\n";
+    out << "\t\t\tOutput: " << optional_string(api.output) << ",\n";
+    out << "\t\t\tError: " << optional_string(api.error) << ",\n";
+    out << "\t\t\tStartsWorkflow: " << optional_string(api.starts_workflow) << ",\n";
+    out << "\t\t\tEnqueues: " << optional_string(api.enqueues) << ",\n";
+    out << "\t\t},\n";
+    out << "\t}\n";
+    out << "}\n\n";
+    out << "func " << go_api_route_descriptor_function_name(api)
+        << "() []common.ApiRouteDescriptor {\n";
+    out << "\treturn []common.ApiRouteDescriptor{\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        if (!go_api_server_serves(api_server, api.name))
+        {
+            continue;
+        }
+        out << "\t\t{\n";
+        out << "\t\t\tName: " << go_string(api_server.name + "." + api.name) << ",\n";
+        out << "\t\t\tServerName: " << go_string(api_server.name) << ",\n";
+        out << "\t\t\tApiName: " << go_string(api.name) << ",\n";
+        out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
+        out << "\t\t\tPath: " << optional_string(api.path) << ",\n";
+        out << "\t\t\tInput: " << optional_string(api.input) << ",\n";
+        out << "\t\t\tOutput: " << optional_string(api.output) << ",\n";
+        out << "\t\t\tError: " << optional_string(api.error) << ",\n";
+        out << "\t\t},\n";
+    }
+    out << "\t}\n";
+    out << "}\n";
+    return out.str();
+}
+
+void add_go_api_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    for (const auto& api : system.apis)
+    {
+        add_go_raw_api_file(
+            result, options, "api/backend/descriptors/" + snake_identifier(api.name) + ".go",
+            go_api_descriptor_module(system, api)
+        );
+    }
+}
+
+TemplateRenderer::Values go_api_descriptor_values(const IrSystem& system)
+{
+    std::ostringstream api_aggregation;
+    std::ostringstream server_descriptors;
+    for (const auto& api : system.apis)
+    {
+        api_aggregation << "\tresult = append(result, descriptors."
+                        << go_api_descriptor_function_name(api) << "()...)\n";
+    }
+    server_descriptors << "\treturn []common.ApiServerDescriptor{\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        server_descriptors << "\t\t{\n";
+        server_descriptors << "\t\t\tName: " << go_string(api_server.name) << ",\n";
+        server_descriptors << "\t\t\tServes: []string{";
+        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
+        {
+            if (i > 0)
+            {
+                server_descriptors << ", ";
+            }
+            server_descriptors << go_string(api_server.serves[i]);
+        }
+        server_descriptors << "},\n";
+        server_descriptors << "\t\t\tConcurrency: " << api_server.concurrency.value_or(1) << ",\n";
+        server_descriptors << "\t\t},\n";
+    }
+    server_descriptors << "\t}\n";
+    return TemplateRenderer::Values{
+        {"api_descriptor_aggregation", api_aggregation.str()},
+        {"api_server_descriptors", server_descriptors.str()},
+    };
+}
+
+TemplateRenderer::Values go_api_route_values(const IrSystem& system)
+{
+    std::ostringstream route_aggregation;
+    for (const auto& api : system.apis)
+    {
+        route_aggregation << "\tresult = append(result, descriptors."
+                          << go_api_route_descriptor_function_name(api) << "()...)\n";
+    }
+    return TemplateRenderer::Values{
+        {"api_route_descriptor_aggregation", route_aggregation.str()},
+    };
+}
+
 } // namespace
 
 void add_go_common_runtime_artifacts(
@@ -689,9 +845,10 @@ void add_go_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
+    add_go_api_descriptor_artifacts(result, options, system);
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_descriptors.go", GeneratedArtifactTier::Api,
-        diagnostics
+        diagnostics, go_api_descriptor_values(system)
     );
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_codecs.go", GeneratedArtifactTier::Api,
@@ -748,7 +905,7 @@ void add_go_api_artifacts(
         );
         add_go_generated_template_file(
             result, options, templates, "api/backend/api_routes.go", GeneratedArtifactTier::Api,
-            diagnostics
+            diagnostics, go_api_route_values(system)
         );
         add_go_generated_template_file(
             result, options, templates, "api/cmd/api/main.go", GeneratedArtifactTier::Api,

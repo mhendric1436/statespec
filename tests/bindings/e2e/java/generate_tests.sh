@@ -32,6 +32,8 @@ api/com/statespec/generated/ApiRoutes.java
 api/com/statespec/generated/ApiServer.java
 api/com/statespec/generated/ApiTransport.java
 api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java
+api/com/statespec/generated/descriptors/ReportProvisionReadyDescriptorModule.java
+api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java
 common/com/statespec/backend/Backend.java
 common/com/statespec/backend/ExternalSystem.java
 common/com/statespec/backend/FeatureFlag.java

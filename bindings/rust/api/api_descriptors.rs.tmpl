@@ -1,11 +1,16 @@
-use crate::descriptors;
+{{api_descriptor_modules}}
 
-pub use crate::descriptors::{ApiDescriptor, ApiServerDescriptor};
+pub use crate::descriptors::{ApiDescriptor, ApiRouteDescriptor, ApiServerDescriptor};
 
 pub fn api_descriptors() -> Vec<ApiDescriptor> {
-    descriptors::api_descriptors()
+    let mut descriptors = Vec::new();
+{{api_descriptor_aggregation}}    descriptors
 }
 
 pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {
-    descriptors::api_server_descriptors()
+{{api_server_descriptors}}}
+
+pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {
+    let mut descriptors = Vec::new();
+{{api_route_descriptor_aggregation}}    descriptors
 }
