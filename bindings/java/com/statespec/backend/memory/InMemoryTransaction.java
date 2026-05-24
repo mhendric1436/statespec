@@ -82,6 +82,82 @@ public final class InMemoryTransaction implements Backend.Transaction
         };
     }
 
+    static List<String> extractIndexKey(List<Backend.IndexValue> values)
+    {
+        var key = new ArrayList<String>();
+        for (var value : values)
+        {
+            key.add(encodeIndexValue(value));
+        }
+        return List.copyOf(key);
+    }
+
+    static String encodeIndexValue(Backend.IndexValue value)
+    {
+        return switch (value)
+        {
+            case Backend.IndexValue.NullValue ignored -> "null:";
+            case Backend.IndexValue.StringValue string -> "string:" + string.raw();
+            case Backend.IndexValue.TimestampValue timestamp -> "string:" + timestamp.raw();
+            case Backend.IndexValue.IntegerValue integer -> "int:" + integer.raw();
+            case Backend.IndexValue.DecimalValue decimal ->
+                "decimal:" + Json.decimal(decimal.raw()).canonicalString();
+            case Backend.IndexValue.BooleanValue bool -> "bool:" + bool.raw();
+        };
+    }
+
+    static boolean indexKeyStartsWith(
+        List<String> key,
+        List<String> prefix
+    )
+    {
+        return key.size() >= prefix.size() && key.subList(0, prefix.size()).equals(prefix);
+    }
+
+    static boolean indexKeyInRange(
+        List<String> key,
+        Optional<Backend.IndexBound> lower,
+        Optional<Backend.IndexBound> upper
+    )
+    {
+        if (lower.isPresent())
+        {
+            var lowerKey = extractIndexKey(lower.get().values());
+            var compare = compareIndexKeys(key, lowerKey);
+            if (lower.get().inclusive() ? compare < 0 : compare <= 0)
+            {
+                return false;
+            }
+        }
+        if (upper.isPresent())
+        {
+            var upperKey = extractIndexKey(upper.get().values());
+            var compare = compareIndexKeys(key, upperKey);
+            if (upper.get().inclusive() ? compare > 0 : compare >= 0)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static int compareIndexKeys(
+        List<String> left,
+        List<String> right
+    )
+    {
+        var count = Math.min(left.size(), right.size());
+        for (int index = 0; index < count; ++index)
+        {
+            var compare = left.get(index).compareTo(right.get(index));
+            if (compare != 0)
+            {
+                return compare;
+            }
+        }
+        return Integer.compare(left.size(), right.size());
+    }
+
     static Map<
         String,
         Map<String,
@@ -237,15 +313,30 @@ public final class InMemoryTransaction implements Backend.Transaction
         var byKey = new HashMap<String, Backend.VersionedRecord>();
         synchronized (state)
         {
-            var collectionRecords = state.records.get(collection);
-            if (collectionRecords != null)
+            if (isIndexQuery(query))
             {
-                byKey.putAll(collectionRecords);
+                for (var record : committedIndexQueryLocked(collection, query))
+                {
+                    byKey.put(record.key(), record);
+                }
+            }
+            else
+            {
+                var collectionRecords = state.records.get(collection);
+                if (collectionRecords != null)
+                {
+                    byKey.putAll(collectionRecords);
+                }
             }
         }
         for (var record : puts.values())
         {
-            if (record.collection().equals(collection))
+            var matches = true;
+            if (isIndexQuery(query))
+            {
+                matches = stagedRecordMatchesIndexQuery(record, query);
+            }
+            if (record.collection().equals(collection) && matches)
             {
                 byKey.put(record.key(), record);
             }
@@ -271,6 +362,116 @@ public final class InMemoryTransaction implements Backend.Transaction
             }
         }
         return matched;
+    }
+
+    private static boolean isIndexQuery(Backend.Query query)
+    {
+        return query instanceof Backend.Query.IndexEquals ||
+            query instanceof Backend.Query.IndexPrefix || query instanceof Backend.Query.IndexRange;
+    }
+
+    private List<Backend.VersionedRecord> committedIndexQueryLocked(
+        String collection,
+        Backend.Query query
+    ) throws Backend.BackendException
+    {
+        var indexName = indexName(query);
+        if (indexName.isEmpty())
+        {
+            return List.of();
+        }
+        var collectionIndexes = state.indexes.get(collection);
+        if (collectionIndexes == null)
+        {
+            return List.of();
+        }
+        var index = collectionIndexes.get(indexName.get());
+        if (index == null)
+        {
+            return List.of();
+        }
+        var records = new ArrayList<Backend.VersionedRecord>();
+        var collectionRecords = state.records.get(collection);
+        if (collectionRecords == null)
+        {
+            return records;
+        }
+        for (var entry : index.entries.entrySet())
+        {
+            if (!matchesIndexKey(entry.getKey(), query))
+            {
+                continue;
+            }
+            for (var key : entry.getValue())
+            {
+                var record = collectionRecords.get(key);
+                if (record != null)
+                {
+                    records.add(record);
+                }
+            }
+        }
+        return records;
+    }
+
+    private boolean stagedRecordMatchesIndexQuery(
+        Backend.VersionedRecord record,
+        Backend.Query query
+    ) throws Backend.BackendException
+    {
+        var indexName = indexName(query);
+        if (indexName.isEmpty())
+        {
+            return false;
+        }
+        Backend.IndexDescriptor descriptor;
+        synchronized (state)
+        {
+            var collectionIndexes = state.indexes.get(record.collection());
+            if (collectionIndexes == null || collectionIndexes.get(indexName.get()) == null)
+            {
+                return false;
+            }
+            descriptor = collectionIndexes.get(indexName.get()).descriptor;
+        }
+        return matchesIndexKey(extractIndexKey(record.document(), descriptor), query);
+    }
+
+    private static Optional<String> indexName(Backend.Query query)
+    {
+        if (query instanceof Backend.Query.IndexEquals indexEquals)
+        {
+            return Optional.of(indexEquals.indexName());
+        }
+        if (query instanceof Backend.Query.IndexPrefix indexPrefix)
+        {
+            return Optional.of(indexPrefix.indexName());
+        }
+        if (query instanceof Backend.Query.IndexRange indexRange)
+        {
+            return Optional.of(indexRange.indexName());
+        }
+        return Optional.empty();
+    }
+
+    private static boolean matchesIndexKey(
+        List<String> key,
+        Backend.Query query
+    )
+    {
+        if (query instanceof Backend.Query.IndexEquals indexEquals)
+        {
+            return indexKeyStartsWith(key, extractIndexKey(indexEquals.values()));
+        }
+        if (query instanceof Backend.Query.IndexPrefix indexPrefix)
+        {
+            return indexKeyStartsWith(key, extractIndexKey(indexPrefix.prefixValues()));
+        }
+        if (query instanceof Backend.Query.IndexRange indexRange)
+        {
+            return indexKeyInRange(key, indexRange.lowerBound(), indexRange.upperBound());
+        }
+        return false;
     }
 
     @Override
@@ -502,6 +703,10 @@ public final class InMemoryTransaction implements Backend.Transaction
             var value = findJsonPath(record.document(), jsonEquals.path());
             return value != null &&
                 value.canonicalString().equals(jsonEquals.value().canonicalString());
+        }
+        if (isIndexQuery(query))
+        {
+            return true;
         }
         return true;
     }

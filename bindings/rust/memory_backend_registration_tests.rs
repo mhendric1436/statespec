@@ -173,6 +173,21 @@ mod tests {
             .unwrap();
         backend.commit(tx1).unwrap();
 
+        let mut read_tx = backend.begin().unwrap();
+        let records = backend
+            .query(
+                &mut read_tx,
+                "orders",
+                &crate::backend::Query::IndexEquals {
+                    index_name: "by_status".to_string(),
+                    values: vec![crate::backend::IndexValue::String("Open".to_string())],
+                },
+            )
+            .unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].key, "order-1");
+        backend.commit(read_tx).unwrap();
+
         let mut duplicate_tx = backend.begin().unwrap();
         backend
             .put(
@@ -205,6 +220,18 @@ mod tests {
         backend
             .put(&mut insert_tx, "orders", "order-2", order_document("Open"))
             .unwrap();
+        let records = backend
+            .query(
+                &mut insert_tx,
+                "orders",
+                &crate::backend::Query::IndexEquals {
+                    index_name: "by_status".to_string(),
+                    values: vec![crate::backend::IndexValue::String("Open".to_string())],
+                },
+            )
+            .unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].key, "order-2");
         backend.commit(insert_tx).unwrap();
     }
 }

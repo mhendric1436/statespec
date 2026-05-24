@@ -90,6 +90,69 @@ inline InMemoryIndexKey extract_index_key(
     return key;
 }
 
+inline std::string encode_index_value(const IndexValue& value)
+{
+    switch (value.kind)
+    {
+    case IndexValue::Kind::Null:
+        return "null:";
+    case IndexValue::Kind::String:
+    case IndexValue::Kind::Timestamp:
+        return "string:" + value.value.as_string();
+    case IndexValue::Kind::Integer:
+        return "int:" + value.value.canonical_string();
+    case IndexValue::Kind::Decimal:
+        return "decimal:" + value.value.canonical_string();
+    case IndexValue::Kind::Boolean:
+        return std::string{"bool:"} + (value.value.as_bool() ? "true" : "false");
+    }
+    return "null:";
+}
+
+inline InMemoryIndexKey extract_index_key(const std::vector<IndexValue>& values)
+{
+    InMemoryIndexKey key;
+    key.reserve(values.size());
+    for (const auto& value : values)
+    {
+        key.push_back(encode_index_value(value));
+    }
+    return key;
+}
+
+inline bool index_key_starts_with(
+    const InMemoryIndexKey& key,
+    const InMemoryIndexKey& prefix
+)
+{
+    return key.size() >= prefix.size() && std::equal(prefix.begin(), prefix.end(), key.begin());
+}
+
+inline bool index_key_in_range(
+    const InMemoryIndexKey& key,
+    const std::optional<IndexBound>& lower,
+    const std::optional<IndexBound>& upper
+)
+{
+    if (lower.has_value())
+    {
+        const auto lower_key = extract_index_key(lower->values);
+        if (lower->inclusive ? key < lower_key : key <= lower_key)
+        {
+            return false;
+        }
+    }
+    if (upper.has_value())
+    {
+        const auto upper_key = extract_index_key(upper->values);
+        if (upper->inclusive ? key > upper_key : key >= upper_key)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 inline std::optional<std::pair<
     CollectionName,
     Key>>
@@ -261,8 +324,12 @@ class InMemoryTransaction : public ITransaction
         std::vector<VersionedRecord> records;
         {
             std::lock_guard<std::mutex> lock(state_->mutex);
-            if (const auto collection_iter = state_->records.find(collection);
-                collection_iter != state_->records.end())
+            if (is_index_query(query))
+            {
+                records = committed_index_query_locked(collection, query);
+            }
+            else if (const auto collection_iter = state_->records.find(collection);
+                     collection_iter != state_->records.end())
             {
                 for (const auto& [_, record] : collection_iter->second)
                 {
@@ -277,7 +344,8 @@ class InMemoryTransaction : public ITransaction
 
         for (const auto& [_, record] : puts_)
         {
-            if (record.collection == collection)
+            if (record.collection == collection &&
+                (!is_index_query(query) || staged_record_matches_index_query(record, query)))
             {
                 records.push_back(record);
             }
@@ -288,6 +356,12 @@ class InMemoryTransaction : public ITransaction
                 records.begin(), records.end(),
                 [&](const VersionedRecord& record)
                 {
+                    const auto version_key =
+                        detail::record_version_key(record.collection, record.key);
+                    if (record.version != 0 && puts_.find(version_key) != puts_.end())
+                    {
+                        return true;
+                    }
                     return erases_.find(
                                detail::record_version_key(record.collection, record.key)
                            ) != erases_.end();
@@ -426,8 +500,103 @@ class InMemoryTransaction : public ITransaction
         case Query::Kind::JsonEquals:
             return query.json_path.has_value() && query.json_value.has_value() &&
                    json_path_equals(record.document, *query.json_path, *query.json_value);
+        case Query::Kind::IndexEquals:
+        case Query::Kind::IndexPrefix:
+        case Query::Kind::IndexRange:
+            return true;
         default:
             return true;
+        }
+    }
+
+    static bool is_index_query(const Query& query)
+    {
+        return query.kind == Query::Kind::IndexEquals || query.kind == Query::Kind::IndexPrefix ||
+               query.kind == Query::Kind::IndexRange;
+    }
+
+    bool staged_record_matches_index_query(
+        const VersionedRecord& record,
+        const Query& query
+    ) const
+    {
+        if (!query.index_name.has_value())
+        {
+            return false;
+        }
+        std::lock_guard<std::mutex> lock(state_->mutex);
+        const auto collection_indexes = state_->indexes.find(record.collection);
+        if (collection_indexes == state_->indexes.end())
+        {
+            return false;
+        }
+        const auto index_iter = collection_indexes->second.find(*query.index_name);
+        if (index_iter == collection_indexes->second.end())
+        {
+            return false;
+        }
+        return matches_index_key(
+            detail::extract_index_key(record.document, index_iter->second.descriptor), query
+        );
+    }
+
+    std::vector<VersionedRecord> committed_index_query_locked(
+        const CollectionName& collection,
+        const Query& query
+    ) const
+    {
+        std::vector<VersionedRecord> records;
+        if (!query.index_name.has_value())
+        {
+            return records;
+        }
+        const auto collection_indexes = state_->indexes.find(collection);
+        if (collection_indexes == state_->indexes.end())
+        {
+            return records;
+        }
+        const auto index_iter = collection_indexes->second.find(*query.index_name);
+        if (index_iter == collection_indexes->second.end())
+        {
+            return records;
+        }
+        for (const auto& [index_key, keys] : index_iter->second.entries)
+        {
+            if (!matches_index_key(index_key, query))
+            {
+                continue;
+            }
+            for (const auto& key : keys)
+            {
+                const auto record_iter = state_->records.at(collection).find(key);
+                if (record_iter != state_->records.at(collection).end())
+                {
+                    records.push_back(record_iter->second);
+                }
+            }
+        }
+        return records;
+    }
+
+    static bool matches_index_key(
+        const detail::InMemoryIndexKey& index_key,
+        const Query& query
+    )
+    {
+        switch (query.kind)
+        {
+        case Query::Kind::IndexEquals:
+            return detail::index_key_starts_with(
+                index_key, detail::extract_index_key(query.index_values)
+            );
+        case Query::Kind::IndexPrefix:
+            return detail::index_key_starts_with(
+                index_key, detail::extract_index_key(query.index_values)
+            );
+        case Query::Kind::IndexRange:
+            return detail::index_key_in_range(index_key, query.lower_bound, query.upper_bound);
+        default:
+            return false;
         }
     }
 

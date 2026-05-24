@@ -112,6 +112,17 @@ public final class MemoryBackendRegistrationTest
         backend.put(tx1, "orders", "order-1", orderDocument("Open"));
         backend.commit(tx1);
 
+        var readTx = backend.begin();
+        var records = backend.query(
+            readTx, "orders",
+            new Backend.Query.IndexEquals(
+                "by_status", List.of(new Backend.IndexValue.StringValue("Open"))
+            )
+        );
+        require(records.size() == 1, "expected one indexed record");
+        require(records.get(0).key().equals("order-1"), "expected order-1 from index query");
+        backend.commit(readTx);
+
         var duplicateTx = backend.begin();
         backend.put(duplicateTx, "orders", "order-2", orderDocument("Open"));
         try
@@ -133,6 +144,14 @@ public final class MemoryBackendRegistrationTest
 
         var insertTx = backend.begin();
         backend.put(insertTx, "orders", "order-2", orderDocument("Open"));
+        records = backend.query(
+            insertTx, "orders",
+            new Backend.Query.IndexEquals(
+                "by_status", List.of(new Backend.IndexValue.StringValue("Open"))
+            )
+        );
+        require(records.size() == 1, "expected one staged indexed record");
+        require(records.get(0).key().equals("order-2"), "expected order-2 from index query");
         backend.commit(insertTx);
     }
 

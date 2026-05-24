@@ -221,6 +221,21 @@ func TestMemoryBackendEnforcesUniqueIndexesOnCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	readTx, err := backend.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records, err := backend.Query(ctx, readTx, common.CollectionName("orders"), common.IndexEqualsQuery("by_status", []common.IndexValue{common.StringIndexValue("Open")}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0].Key != common.Key("order-1") {
+		t.Fatalf("expected order-1 from index query, got %#v", records)
+	}
+	if err := backend.Commit(ctx, readTx); err != nil {
+		t.Fatal(err)
+	}
+
 	duplicateTx, err := backend.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -251,6 +266,13 @@ func TestMemoryBackendEnforcesUniqueIndexesOnCommit(t *testing.T) {
 	}
 	if err := backend.Put(ctx, insertTx, common.CollectionName("orders"), common.Key("order-2"), orderDocument("Open")); err != nil {
 		t.Fatal(err)
+	}
+	records, err = backend.Query(ctx, insertTx, common.CollectionName("orders"), common.IndexEqualsQuery("by_status", []common.IndexValue{common.StringIndexValue("Open")}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0].Key != common.Key("order-2") {
+		t.Fatalf("expected staged order-2 from index query, got %#v", records)
 	}
 	if err := backend.Commit(ctx, insertTx); err != nil {
 		t.Fatal(err)

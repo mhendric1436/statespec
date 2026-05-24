@@ -17,9 +17,11 @@ func NewBackend() *Backend {
 func (b *Backend) Capabilities(ctx context.Context) common.BackendCapabilities {
 	_ = ctx
 	return common.BackendCapabilities{
-		Transactions:   true,
-		CompareAndSwap: true,
-		PrefixQuery:    true,
+		Transactions:     true,
+		CompareAndSwap:   true,
+		PrefixQuery:      true,
+		SecondaryIndexes: true,
+		UniqueIndexes:    true,
 	}
 }
 
@@ -32,6 +34,8 @@ func (b *Backend) EnsureCollection(ctx context.Context, descriptor common.Collec
 		if err := common.ValidateCollectionDescriptorUpgrade(existing, descriptor); err != nil {
 			return err
 		}
+		b.state.collections[collection] = descriptor
+		return nil
 	}
 	b.state.collections[collection] = descriptor
 	b.state.indexes[collection] = emptyIndexStates(descriptor)
@@ -58,7 +62,9 @@ func (b *Backend) EnsureCollections(ctx context.Context, descriptors []common.Co
 			}
 		}
 		staged[collection] = descriptor
-		stagedIndexes[collection] = emptyIndexStates(descriptor)
+		if _, exists := b.state.collections[collection]; !exists {
+			stagedIndexes[collection] = emptyIndexStates(descriptor)
+		}
 	}
 	b.state.collections = staged
 	b.state.indexes = stagedIndexes

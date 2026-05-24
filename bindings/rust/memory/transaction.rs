@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
 use crate::backend::{
-    BackendError, BackendResult, CollectionDescriptor, ConflictKind, IndexDescriptor, Query,
-    Transaction, Version, VersionedRecord,
+    BackendError, BackendResult, CollectionDescriptor, ConflictKind, IndexBound, IndexDescriptor,
+    IndexValue, Query, Transaction, Version, VersionedRecord,
 };
 use crate::json::Json;
 
@@ -69,6 +69,54 @@ pub(crate) fn encode_index_value(value: Option<&Json>) -> BackendResult<String> 
             message: "in-memory index fields must resolve to scalar JSON values".to_string(),
         }),
     }
+}
+
+pub(crate) fn extract_index_key_from_values(values: &[IndexValue]) -> InMemoryIndexKey {
+    InMemoryIndexKey(values.iter().map(encode_query_index_value).collect())
+}
+
+fn encode_query_index_value(value: &IndexValue) -> String {
+    match value {
+        IndexValue::Null => "null:".to_string(),
+        IndexValue::String(value) | IndexValue::Timestamp(value) => format!("string:{value}"),
+        IndexValue::Integer(value) => format!("int:{value}"),
+        IndexValue::Decimal(value) => {
+            format!("decimal:{}", Json::Decimal(*value).canonical_string())
+        }
+        IndexValue::Boolean(value) => format!("bool:{value}"),
+    }
+}
+
+fn index_key_starts_with(key: &InMemoryIndexKey, prefix: &InMemoryIndexKey) -> bool {
+    key.0.len() >= prefix.0.len() && key.0[..prefix.0.len()] == prefix.0
+}
+
+fn index_key_in_range(
+    key: &InMemoryIndexKey,
+    lower: &Option<IndexBound>,
+    upper: &Option<IndexBound>,
+) -> bool {
+    if let Some(lower) = lower {
+        let lower_key = extract_index_key_from_values(&lower.values);
+        if if lower.inclusive {
+            key < &lower_key
+        } else {
+            key <= &lower_key
+        } {
+            return false;
+        }
+    }
+    if let Some(upper) = upper {
+        let upper_key = extract_index_key_from_values(&upper.values);
+        if if upper.inclusive {
+            key > &upper_key
+        } else {
+            key >= &upper_key
+        } {
+            return false;
+        }
+    }
+    true
 }
 
 fn remove_record_from_indexes(
@@ -249,10 +297,22 @@ impl Transaction for InMemoryTransaction {
         self.require_open()?;
         let mut by_key = {
             let state = self.state.lock().map_err(lock_error)?;
-            state.records.get(collection).cloned().unwrap_or_default()
+            if is_index_query(query) {
+                self.committed_index_query_locked(&state, collection, query)?
+                    .into_iter()
+                    .map(|record| (record.key.clone(), record))
+                    .collect()
+            } else {
+                state.records.get(collection).cloned().unwrap_or_default()
+            }
         };
         for record in self.puts.values() {
-            if record.collection == collection {
+            let matches = if is_index_query(query) {
+                self.staged_record_matches_index_query(record, query)?
+            } else {
+                true
+            };
+            if record.collection == collection && matches {
                 by_key.insert(record.key.clone(), record.clone());
             }
         }
@@ -303,6 +363,63 @@ impl Transaction for InMemoryTransaction {
     }
 }
 
+impl InMemoryTransaction {
+    fn committed_index_query_locked(
+        &self,
+        state: &InMemoryState,
+        collection: &str,
+        query: &Query,
+    ) -> BackendResult<Vec<VersionedRecord>> {
+        let Some(index_name) = query_index_name(query) else {
+            return Ok(Vec::new());
+        };
+        let Some(index) = state
+            .indexes
+            .get(collection)
+            .and_then(|indexes| indexes.get(index_name))
+        else {
+            return Ok(Vec::new());
+        };
+        let Some(collection_records) = state.records.get(collection) else {
+            return Ok(Vec::new());
+        };
+        let mut records = Vec::new();
+        for (index_key, keys) in &index.entries {
+            if !matches_index_key(index_key, query) {
+                continue;
+            }
+            for key in keys {
+                if let Some(record) = collection_records.get(key) {
+                    records.push(record.clone());
+                }
+            }
+        }
+        Ok(records)
+    }
+
+    fn staged_record_matches_index_query(
+        &self,
+        record: &VersionedRecord,
+        query: &Query,
+    ) -> BackendResult<bool> {
+        let Some(index_name) = query_index_name(query) else {
+            return Ok(false);
+        };
+        let state = self.state.lock().map_err(lock_error)?;
+        let Some(index) = state
+            .indexes
+            .get(&record.collection)
+            .and_then(|indexes| indexes.get(index_name))
+        else {
+            return Ok(false);
+        };
+        Ok(matches_index_key(
+            &extract_index_key(&record.document, &index.descriptor)?,
+            query,
+        ))
+    }
+}
+
 pub(crate) fn record_version_key(collection: &str, key: &str) -> String {
     format!("record:{collection}:{key}")
 }
@@ -324,7 +441,40 @@ fn matches_query(record: &VersionedRecord, query: &Query) -> bool {
         Query::JsonEquals { path, value } => find_json_path(&record.document, path)
             .map(|found| found == value)
             .unwrap_or(false),
-        _ => true,
+        Query::IndexEquals { .. } | Query::IndexPrefix { .. } | Query::IndexRange { .. } => true,
+    }
+}
+
+fn is_index_query(query: &Query) -> bool {
+    matches!(
+        query,
+        Query::IndexEquals { .. } | Query::IndexPrefix { .. } | Query::IndexRange { .. }
+    )
+}
+
+fn query_index_name(query: &Query) -> Option<&str> {
+    match query {
+        Query::IndexEquals { index_name, .. }
+        | Query::IndexPrefix { index_name, .. }
+        | Query::IndexRange { index_name, .. } => Some(index_name),
+        _ => None,
+    }
+}
+
+fn matches_index_key(key: &InMemoryIndexKey, query: &Query) -> bool {
+    match query {
+        Query::IndexEquals { values, .. } => {
+            index_key_starts_with(key, &extract_index_key_from_values(values))
+        }
+        Query::IndexPrefix { prefix_values, .. } => {
+            index_key_starts_with(key, &extract_index_key_from_values(prefix_values))
+        }
+        Query::IndexRange {
+            lower_bound,
+            upper_bound,
+            ..
+        } => index_key_in_range(key, lower_bound, upper_bound),
+        _ => false,
     }
 }
 

@@ -13,6 +13,8 @@ class InMemoryBackend : public IBackend
     {
         BackendCapabilities capabilities;
         capabilities.prefix_query = true;
+        capabilities.secondary_indexes = true;
+        capabilities.unique_indexes = true;
         return capabilities;
     }
 
@@ -23,6 +25,8 @@ class InMemoryBackend : public IBackend
         if (existing != state_->collections.end())
         {
             validate_collection_descriptor_upgrade(existing->second, descriptor);
+            state_->collections.insert_or_assign(descriptor.name, descriptor);
+            return;
         }
         state_->collections.insert_or_assign(descriptor.name, descriptor);
         state_->indexes.insert_or_assign(descriptor.name, detail::empty_index_states(descriptor));
@@ -44,9 +48,12 @@ class InMemoryBackend : public IBackend
         auto staged_indexes = state_->indexes;
         for (const auto& descriptor : descriptors)
         {
-            staged_indexes.insert_or_assign(
-                descriptor.name, detail::empty_index_states(descriptor)
-            );
+            if (state_->collections.find(descriptor.name) == state_->collections.end())
+            {
+                staged_indexes.insert_or_assign(
+                    descriptor.name, detail::empty_index_states(descriptor)
+                );
+            }
         }
         state_->collections = std::move(staged);
         state_->indexes = std::move(staged_indexes);

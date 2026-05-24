@@ -59,6 +59,50 @@ func extractIndexKey(document common.JSON, descriptor common.IndexDescriptor) ([
 	return key, nil
 }
 
+func extractIndexKeyFromValues(values []common.IndexValue) ([]string, error) {
+	key := make([]string, 0, len(values))
+	for _, value := range values {
+		encoded, err := encodeQueryIndexValue(value)
+		if err != nil {
+			return nil, err
+		}
+		key = append(key, encoded)
+	}
+	return key, nil
+}
+
+func encodeQueryIndexValue(value common.IndexValue) (string, error) {
+	switch value.Kind {
+	case common.IndexNull:
+		return "null:", nil
+	case common.IndexString, common.IndexTimestamp:
+		raw, ok := value.Value.AsString()
+		if !ok {
+			return "", common.ErrInvalidSchema
+		}
+		return "string:" + raw, nil
+	case common.IndexInteger:
+		raw, ok := value.Value.AsInt()
+		if !ok {
+			return "", common.ErrInvalidSchema
+		}
+		return "int:" + strconv.FormatInt(raw, 10), nil
+	case common.IndexDecimal:
+		return "decimal:" + value.Value.CanonicalString(), nil
+	case common.IndexBoolean:
+		raw, ok := value.Value.AsBool()
+		if !ok {
+			return "", common.ErrInvalidSchema
+		}
+		if raw {
+			return "bool:true", nil
+		}
+		return "bool:false", nil
+	default:
+		return "", common.ErrInvalidSchema
+	}
+}
+
 func encodeIndexValue(value common.JSON, present bool) (string, error) {
 	if !present {
 		return "missing:", nil
@@ -96,6 +140,42 @@ func encodeIndexKey(parts []string) string {
 		builder.WriteString(part)
 	}
 	return builder.String()
+}
+
+func indexKeyStartsWith(encodedKey string, prefix []string) bool {
+	return strings.HasPrefix(encodedKey, encodeIndexKey(prefix))
+}
+
+func indexKeyInRange(encodedKey string, lower *common.IndexBound, upper *common.IndexBound) (bool, error) {
+	if lower != nil {
+		lowerKey, err := extractIndexKeyFromValues(lower.Values)
+		if err != nil {
+			return false, err
+		}
+		encodedLower := encodeIndexKey(lowerKey)
+		if lower.Inclusive {
+			if encodedKey < encodedLower {
+				return false, nil
+			}
+		} else if encodedKey <= encodedLower {
+			return false, nil
+		}
+	}
+	if upper != nil {
+		upperKey, err := extractIndexKeyFromValues(upper.Values)
+		if err != nil {
+			return false, err
+		}
+		encodedUpper := encodeIndexKey(upperKey)
+		if upper.Inclusive {
+			if encodedKey > encodedUpper {
+				return false, nil
+			}
+		} else if encodedKey >= encodedUpper {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func cloneIndexStates(indexes map[common.CollectionName]map[string]indexState) map[common.CollectionName]map[string]indexState {
@@ -243,7 +323,16 @@ func (tx *Transaction) Query(ctx context.Context, collection common.CollectionNa
 	byKey := map[string]common.VersionedRecord{}
 
 	tx.state.mu.Lock()
-	if collectionRecords, ok := tx.state.records[collection]; ok {
+	if isIndexQuery(query) {
+		records, err := tx.committedIndexQueryLocked(collection, query)
+		if err != nil {
+			tx.state.mu.Unlock()
+			return nil, err
+		}
+		for _, record := range records {
+			byKey[string(record.Key)] = record
+		}
+	} else if collectionRecords, ok := tx.state.records[collection]; ok {
 		for key, record := range collectionRecords {
 			if _, staged := tx.puts[recordVersionKey(record.Collection, record.Key)]; !staged {
 				byKey[string(key)] = record
@@ -253,7 +342,15 @@ func (tx *Transaction) Query(ctx context.Context, collection common.CollectionNa
 	tx.state.mu.Unlock()
 
 	for _, record := range tx.puts {
-		if record.Collection == collection {
+		matches := true
+		if isIndexQuery(query) {
+			var err error
+			matches, err = tx.stagedRecordMatchesIndexQuery(record, query)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if record.Collection == collection && matches {
 			byKey[string(record.Key)] = record
 		}
 	}
@@ -272,6 +369,83 @@ func (tx *Transaction) Query(ctx context.Context, collection common.CollectionNa
 		}
 	}
 	return records, nil
+}
+
+func isIndexQuery(query common.Query) bool {
+	return query.Kind == common.QueryIndexEquals || query.Kind == common.QueryIndexPrefix || query.Kind == common.QueryIndexRange
+}
+
+func (tx *Transaction) committedIndexQueryLocked(collection common.CollectionName, query common.Query) ([]common.VersionedRecord, error) {
+	if query.IndexName == nil {
+		return nil, nil
+	}
+	collectionIndexes, ok := tx.state.indexes[collection]
+	if !ok {
+		return nil, nil
+	}
+	index, ok := collectionIndexes[*query.IndexName]
+	if !ok {
+		return nil, nil
+	}
+	var records []common.VersionedRecord
+	for encodedKey, keys := range index.entries {
+		matches, err := matchesIndexKey(encodedKey, query)
+		if err != nil {
+			return nil, err
+		}
+		if !matches {
+			continue
+		}
+		for key := range keys {
+			if record, ok := tx.state.records[collection][key]; ok {
+				records = append(records, record)
+			}
+		}
+	}
+	return records, nil
+}
+
+func (tx *Transaction) stagedRecordMatchesIndexQuery(record common.VersionedRecord, query common.Query) (bool, error) {
+	if query.IndexName == nil {
+		return false, nil
+	}
+	tx.state.mu.Lock()
+	collectionIndexes, ok := tx.state.indexes[record.Collection]
+	if !ok {
+		tx.state.mu.Unlock()
+		return false, nil
+	}
+	index, ok := collectionIndexes[*query.IndexName]
+	tx.state.mu.Unlock()
+	if !ok {
+		return false, nil
+	}
+	parts, err := extractIndexKey(record.Document, index.descriptor)
+	if err != nil {
+		return false, err
+	}
+	return matchesIndexKey(encodeIndexKey(parts), query)
+}
+
+func matchesIndexKey(encodedKey string, query common.Query) (bool, error) {
+	switch query.Kind {
+	case common.QueryIndexEquals:
+		key, err := extractIndexKeyFromValues(query.IndexValues)
+		if err != nil {
+			return false, err
+		}
+		return indexKeyStartsWith(encodedKey, key), nil
+	case common.QueryIndexPrefix:
+		key, err := extractIndexKeyFromValues(query.IndexValues)
+		if err != nil {
+			return false, err
+		}
+		return indexKeyStartsWith(encodedKey, key), nil
+	case common.QueryIndexRange:
+		return indexKeyInRange(encodedKey, query.LowerBound, query.UpperBound)
+	default:
+		return false, nil
+	}
 }
 
 func (tx *Transaction) Put(ctx context.Context, collection common.CollectionName, key common.Key, document common.JSON) error {
@@ -383,6 +557,8 @@ func recordMatchesQuery(record common.VersionedRecord, query common.Query) bool 
 		}
 		value, ok := findJSONPath(record.Document, *query.JSONPath)
 		return ok && value.CanonicalString() == query.JSONValue.CanonicalString()
+	case common.QueryIndexEquals, common.QueryIndexPrefix, common.QueryIndexRange:
+		return true
 	default:
 		return true
 	}

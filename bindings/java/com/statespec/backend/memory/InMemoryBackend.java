@@ -13,7 +13,7 @@ public final class InMemoryBackend implements Backend
 
     @Override public BackendCapabilities capabilities()
     {
-        return new BackendCapabilities(true, true, true, false, false, false, false, false, false);
+        return new BackendCapabilities(true, true, true, true, true, false, false, false, false);
     }
 
     @Override public void ensureCollection(CollectionDescriptor descriptor) throws BackendException
@@ -24,6 +24,8 @@ public final class InMemoryBackend implements Backend
             if (existing != null)
             {
                 SchemaCompatibility.validateCollectionDescriptorUpgrade(existing, descriptor);
+                state.collections.put(descriptor.name(), descriptor);
+                return;
             }
             state.collections.put(descriptor.name(), descriptor);
             state.indexes.put(descriptor.name(), InMemoryTransaction.emptyIndexStates(descriptor));
@@ -45,9 +47,12 @@ public final class InMemoryBackend implements Backend
                     SchemaCompatibility.validateCollectionDescriptorUpgrade(existing, descriptor);
                 }
                 staged.put(descriptor.name(), descriptor);
-                stagedIndexes.put(
-                    descriptor.name(), InMemoryTransaction.emptyIndexStates(descriptor)
-                );
+                if (!state.collections.containsKey(descriptor.name()))
+                {
+                    stagedIndexes.put(
+                        descriptor.name(), InMemoryTransaction.emptyIndexStates(descriptor)
+                    );
+                }
             }
             state.collections.clear();
             state.collections.putAll(staged);

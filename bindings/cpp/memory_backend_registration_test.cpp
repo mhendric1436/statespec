@@ -167,6 +167,17 @@ TEST_CASE("C++ in-memory backend enforces unique indexes on commit")
     backend.put(*tx1, "orders", "order-1", order_document("Open"));
     backend.commit(*tx1);
 
+    auto read_tx = backend.begin();
+    auto records = backend.query(
+        *read_tx, "orders",
+        statespec::backend::Query::index_equals(
+            "by_status", {statespec::backend::IndexValue::string_value("Open")}
+        )
+    );
+    REQUIRE(records.size() == 1);
+    REQUIRE(records[0].key == "order-1");
+    backend.commit(*read_tx);
+
     auto duplicate_tx = backend.begin();
     backend.put(*duplicate_tx, "orders", "order-2", order_document("Open"));
     REQUIRE_THROWS_AS(backend.commit(*duplicate_tx), statespec::backend::ConflictError);
@@ -177,5 +188,13 @@ TEST_CASE("C++ in-memory backend enforces unique indexes on commit")
 
     auto insert_tx = backend.begin();
     backend.put(*insert_tx, "orders", "order-2", order_document("Open"));
+    records = backend.query(
+        *insert_tx, "orders",
+        statespec::backend::Query::index_equals(
+            "by_status", {statespec::backend::IndexValue::string_value("Open")}
+        )
+    );
+    REQUIRE(records.size() == 1);
+    REQUIRE(records[0].key == "order-2");
     REQUIRE_NOTHROW(backend.commit(*insert_tx));
 }

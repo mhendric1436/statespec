@@ -29,6 +29,8 @@ impl Backend for InMemoryBackend {
             transactions: true,
             compare_and_swap: true,
             prefix_query: true,
+            secondary_indexes: true,
+            unique_indexes: true,
             ..BackendCapabilities::default()
         }
     }
@@ -37,6 +39,10 @@ impl Backend for InMemoryBackend {
         let mut state = self.state.lock().map_err(lock_error)?;
         if let Some(existing) = state.collections.get(&descriptor.name) {
             validate_collection_descriptor_upgrade(existing, descriptor)?;
+            state
+                .collections
+                .insert(descriptor.name.clone(), descriptor.clone());
+            return Ok(());
         }
         state
             .collections
@@ -56,7 +62,9 @@ impl Backend for InMemoryBackend {
                 validate_collection_descriptor_upgrade(existing, descriptor)?;
             }
             staged.insert(descriptor.name.clone(), descriptor.clone());
-            staged_indexes.insert(descriptor.name.clone(), empty_index_states(descriptor));
+            if !state.collections.contains_key(&descriptor.name) {
+                staged_indexes.insert(descriptor.name.clone(), empty_index_states(descriptor));
+            }
         }
         state.collections = staged;
         state.indexes = staged_indexes;
