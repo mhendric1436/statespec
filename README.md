@@ -372,6 +372,10 @@ for declared indexes instead of embedding raw backend index names directly.
 Generated bindings also emit entity, field, state, and index constants and reuse those
 constants across descriptors, repositories, API handlers, GC metadata, and runtime
 helpers so host-language compilers can catch stale entity metadata references.
+Generated API apps for C++, Go, Java, and Rust are expected to share persisted entity
+data when they are generated from the same `.sspec` file and use a compatible OCC
+backend storage contract. See [Backend Abstractions](docs/backend-abstractions.md) for
+the cross-language entity persistence contract.
 
 ---
 

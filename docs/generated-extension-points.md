@@ -157,6 +157,11 @@ then reused by descriptors, repository helpers, generated API handlers, GC metad
 runtime helpers. User extension code should prefer those constants over repeating raw
 strings when it interacts with generated repositories or descriptor values.
 
+User extension code should not create alternate entity key encodings, collection names,
+or document field layouts. Cross-language API app persistence compatibility depends on
+generated repositories owning those details consistently for C++, Go, Java, and Rust
+bindings produced from the same `.sspec` file.
+
 Typed operation handlers are the canonical API extension point. StateSpec does not
 generate a parallel generic API handler path; each declared API operation maps to one
 generated handler method and one dispatcher branch.

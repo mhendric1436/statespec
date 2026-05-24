@@ -1035,6 +1035,8 @@ The goal is to let the compiler catch misspellings and stale references where th
 
 Generated binding code must follow the same rule. Entity names, entity field names, entity state values, and entity index names should be emitted once as generated constants and then reused by descriptors, repositories, API handlers, GC metadata, and runtime helper code. In particular, generated index helper implementations must call the generic index query path with generated index-name constants, not repeated raw index-name literals.
 
+Cross-language generated entity persistence is a compatibility contract. Generated C++, Go, Java, and Rust repositories for the same `.sspec` file must keep collection names, key-field ordering, key encoding, persisted field names, index names, index field order, and uniqueness flags aligned. Changes to those details require cross-language generated binding tests and documentation updates.
+
 Use local string literals only when the value is genuinely one-off, clearer inline, or part of test data that is intentionally asserting exact generated output.
 
 ---

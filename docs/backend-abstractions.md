@@ -215,6 +215,38 @@ should prefer an index beginning with `tenant_id, account_id` over a less select
 tenant-only index. The generated handler still passes only ordered index values to the
 repository; the backend remains unaware of API routes or entity semantics.
 
+### Cross-Language Entity Persistence
+
+Generated C++, Go, Java, and Rust entity repositories are expected to interoperate when
+they are generated from the same `.sspec` file and point at a backend implementation
+that shares the same persisted OCC collection/document storage contract.
+
+The language-neutral contract is:
+
+- collection names come from generated entity-name constants
+- entity key fields are encoded in declared key-field order
+- key components are encoded as `field=canonical_json` with a trailing newline per
+  component
+- persisted document fields use the StateSpec field names from generated field
+  constants
+- declared index names, index field order, and uniqueness flags come from generated
+  descriptor constants
+- list helpers pass ordered index values through the generated repository surface
+  instead of embedding API route semantics in the backend
+
+This means an entity record written through a generated C++ API app should be readable,
+updatable, and listable through generated Go, Java, and Rust API apps from the same
+spec, subject to the backend's physical storage compatibility. StateSpec defines the
+backend API contract and generated repository encoding; it does not yet define a
+portable database file format or wire protocol for every backend implementation.
+
+Timestamp values are ordinary persisted document fields. C++, Go, and Java generated
+default API handlers currently write current UTC timestamps for foundational
+`created_at` and `updated_at` fields. Rust generated default API handlers currently
+write the placeholder string `"0"` for those fields. Cross-language readers should
+treat these fields as strings until timestamp generation is normalized across
+languages.
+
 ### IndexEquals
 
 `IndexEquals` targets a named index and supplies equality values in index field order.
