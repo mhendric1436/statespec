@@ -1,17 +1,47 @@
 package com.statespec.generated;
 
+import com.statespec.backend.Workflow;
 import com.statespec.backend.memory.InMemoryBackend;
+import com.statespec.backend.runtime.WorkflowStore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class WorkerProcessFixture
 {
     private WorkerProcessFixture() {}
 
+    private static final class ProcessStepHandler implements WorkflowStepHandlers.Handler
+    {
+        private final AtomicBoolean handledValidateRequest = new AtomicBoolean(false);
+
+        @Override
+        public void handleProvisionServiceValidateRequest(WorkflowStepHandlers.Context context)
+        {
+            if (!context.workflowName().equals("ProvisionService") ||
+                !context.stepName().equals("validate_request"))
+            {
+                throw new IllegalStateException("unexpected workflow step");
+            }
+            handledValidateRequest.set(true);
+        }
+
+        @Override
+        public void handleProvisionServiceCreateRemoteService(WorkflowStepHandlers.Context context)
+        {
+        }
+
+        @Override
+        public void handleProvisionServiceWaitForRemoteService(WorkflowStepHandlers.Context context)
+        {
+        }
+    }
+
     public static void main(String[] args) throws Exception
     {
         InMemoryBackend backend = new InMemoryBackend();
         WorkerRuntime runtime = new WorkerRuntime(backend);
-        WorkflowStepHandlers.DefaultHandler handler = new WorkflowStepHandlers.DefaultHandler();
-        WorkerProcess process = new WorkerProcess(runtime, handler);
+        ProcessStepHandler handler = new ProcessStepHandler();
+        WorkerProcess.Config config = new WorkerProcess.Config(true, 1);
+        WorkerProcess process = new WorkerProcess(runtime, handler, config);
 
         try
         {
@@ -22,6 +52,14 @@ public final class WorkerProcessFixture
         {
         }
         process.requestStop();
+
+        runtime.bootstrap();
+        WorkflowStore workflows = new WorkflowStore();
+        workflows.start(
+            backend, new Workflow.StartWorkflowRequest(
+                         "wf-process-1", "ProvisionService", 1L, "validate_request", "{}"
+                     )
+        );
 
         process.start();
         try
@@ -38,10 +76,24 @@ public final class WorkerProcessFixture
             throw new IllegalStateException("started WorkerProcess should report running");
         }
 
+        long deadline = System.currentTimeMillis() + 2000;
+        while (!handler.handledValidateRequest.get() && System.currentTimeMillis() < deadline)
+        {
+            Thread.sleep(10);
+        }
+        if (!handler.handledValidateRequest.get())
+        {
+            throw new IllegalStateException("WorkerProcess did not execute a workflow step");
+        }
+
         process.requestStop();
         if (process.join() != 0)
         {
             throw new IllegalStateException("stopped WorkerProcess should join cleanly");
+        }
+        if (process.isRunning())
+        {
+            throw new IllegalStateException("joined WorkerProcess should not report running");
         }
     }
 }

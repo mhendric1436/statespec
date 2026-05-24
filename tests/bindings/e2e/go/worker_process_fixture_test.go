@@ -6,22 +6,65 @@ import (
 	"testing"
 	"time"
 
+	common "statespec-generated/common/backend"
 	"statespec-generated/common/backend/memory"
 	worker "statespec-generated/worker/backend"
 )
 
+type processWorkflowStepHandler struct {
+	handled chan struct{}
+}
+
+func (h processWorkflowStepHandler) HandleProvisionServiceValidateRequest(ctx context.Context, step worker.WorkflowStepHandlerContext) error {
+	if step.WorkflowName != "ProvisionService" || step.StepName != "validate_request" {
+		t := ctx.Value(testingContextKey{}).(*testing.T)
+		t.Fatalf("unexpected workflow step: %#v", step)
+	}
+	select {
+	case <-h.handled:
+	default:
+		close(h.handled)
+	}
+	return nil
+}
+
+func (h processWorkflowStepHandler) HandleProvisionServiceCreateRemoteService(context.Context, worker.WorkflowStepHandlerContext) error {
+	return nil
+}
+
+func (h processWorkflowStepHandler) HandleProvisionServiceWaitForRemoteService(context.Context, worker.WorkflowStepHandlerContext) error {
+	return nil
+}
+
 func TestGeneratedWorkerProcessLifecycle(t *testing.T) {
+	ctx := context.WithValue(context.Background(), testingContextKey{}, t)
 	backend := memory.NewBackend()
 	runtime := worker.NewWorkerTierRuntime(backend)
-	handler := worker.DefaultWorkflowStepHandler{}
-	process := worker.NewWorkerProcess(runtime, handler)
+	handler := processWorkflowStepHandler{handled: make(chan struct{})}
+	config := worker.DefaultWorkerProcessConfig()
+	config.WorkerPollInterval = time.Millisecond
+	process := worker.NewWorkerProcessWithConfig(runtime, handler, config)
 
 	if err := process.Join(); err == nil {
 		t.Fatal("joining a WorkerProcess before start should fail")
 	}
 	process.RequestStop()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	if err := runtime.Bootstrap(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, err := runtime.Workflows.Start(ctx, backend, common.StartWorkflowRequest{
+		WorkflowExecutionID: "wf-process-1",
+		WorkflowName:        "ProvisionService",
+		WorkflowVersion:     1,
+		StartStep:           "validate_request",
+		State:               common.JSONObject(map[string]common.JSON{}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	if err := process.Start(ctx); err != nil {
 		t.Fatalf("starting WorkerProcess failed: %v", err)
@@ -34,9 +77,18 @@ func TestGeneratedWorkerProcessLifecycle(t *testing.T) {
 		t.Fatal("started WorkerProcess should report running")
 	}
 
+	select {
+	case <-handler.handled:
+	case <-time.After(2 * time.Second):
+		t.Fatal("WorkerProcess did not execute a workflow step")
+	}
+
 	process.RequestStop()
-	err := process.Join()
+	err = process.Join()
 	if err != nil && !errors.Is(err, context.Canceled) {
 		t.Fatalf("stopped WorkerProcess should join cleanly: %v", err)
+	}
+	if process.Running() {
+		t.Fatal("joined WorkerProcess should not report running")
 	}
 }
