@@ -49,6 +49,27 @@ std::string java_entity_state_constant_name(
     return upper_snake_identifier(entity_name + "_status_" + state_name);
 }
 
+std::string java_shape_name_constant_name(const std::string& shape_name)
+{
+    return upper_snake_identifier(shape_name + "_shape_name");
+}
+
+std::string java_shape_field_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+)
+{
+    return upper_snake_identifier(shape_name + "_field_" + field_name);
+}
+
+std::string java_shape_field_type_name_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+)
+{
+    return java_shape_field_constant_name(shape_name, field_name) + "_TYPE_NAME";
+}
+
 std::string java_entity_name_constant_name(const std::string& entity_name)
 {
     return upper_snake_identifier(entity_name + "_entity_name");
@@ -148,6 +169,17 @@ std::string java_entity_field_descriptor_expr(
     return "new FieldDescriptor(" + java_entity_field_constant_name(entity_name, field.name) +
            ", " + java_field_type_expr(classify_field_descriptor_type(field.type)) + ", " +
            java_entity_field_type_name_constant_name(entity_name, field.name) + ", " +
+           (is_required_descriptor_field(field.type) ? "true" : "false") + ")";
+}
+
+std::string java_shape_field_descriptor_expr(
+    const std::string& shape_name,
+    const IrField& field
+)
+{
+    return "new FieldDescriptor(" + java_shape_field_constant_name(shape_name, field.name) + ", " +
+           java_field_type_expr(classify_field_descriptor_type(field.type)) + ", " +
+           java_shape_field_type_name_constant_name(shape_name, field.name) + ", " +
            (is_required_descriptor_field(field.type) ? "true" : "false") + ")";
 }
 

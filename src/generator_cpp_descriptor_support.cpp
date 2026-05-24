@@ -49,6 +49,27 @@ std::string cpp_entity_state_constant_name(
     return "k" + pascal_identifier(entity_name) + "Status" + pascal_identifier(state_name);
 }
 
+std::string cpp_shape_name_constant_name(const std::string& shape_name)
+{
+    return "k" + pascal_identifier(shape_name) + "ShapeName";
+}
+
+std::string cpp_shape_field_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+)
+{
+    return "k" + pascal_identifier(shape_name) + "Field" + pascal_identifier(field_name);
+}
+
+std::string cpp_shape_field_type_name_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+)
+{
+    return cpp_shape_field_constant_name(shape_name, field_name) + "TypeName";
+}
+
 std::string cpp_entity_name_constant_name(const std::string& entity_name)
 {
     return "k" + pascal_identifier(entity_name) + "EntityName";
@@ -149,6 +170,18 @@ std::string cpp_entity_field_descriptor_expr(
            cpp_entity_field_constant_name(entity_name, field.name) + ", " +
            cpp_field_type_expr(classify_field_descriptor_type(field.type)) + ", " +
            cpp_entity_field_type_name_constant_name(entity_name, field.name) + ", " +
+           (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
+}
+
+std::string cpp_shape_field_descriptor_expr(
+    const std::string& shape_name,
+    const IrField& field
+)
+{
+    return "statespec::backend::FieldDescriptor{" +
+           cpp_shape_field_constant_name(shape_name, field.name) + ", " +
+           cpp_field_type_expr(classify_field_descriptor_type(field.type)) + ", " +
+           cpp_shape_field_type_name_constant_name(shape_name, field.name) + ", " +
            (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
 }
 

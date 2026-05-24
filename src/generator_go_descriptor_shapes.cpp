@@ -10,16 +10,34 @@ namespace statespec
 std::string generate_go_shape_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
+    if (!system.shapes.empty())
+    {
+        out << "const (\n";
+        for (const auto& shape : system.shapes)
+        {
+            out << "\t" << go_shape_name_constant_name(shape.name) << " = " << go_string(shape.name)
+                << "\n";
+            for (const auto& field : shape.fields)
+            {
+                out << "\t" << go_shape_field_constant_name(shape.name, field.name) << " = "
+                    << go_string(field.name) << "\n";
+                out << "\t" << go_shape_field_type_name_constant_name(shape.name, field.name)
+                    << " = " << go_string(field.type) << "\n";
+            }
+        }
+        out << ")\n\n";
+    }
+
     out << "func ShapeDescriptors() []ShapeDescriptor {\n";
     out << "\treturn []ShapeDescriptor{\n";
     for (const auto& shape : system.shapes)
     {
         out << "\t\t{\n";
-        out << "\t\t\tName: " << go_string(shape.name) << ",\n";
+        out << "\t\t\tName: " << go_shape_name_constant_name(shape.name) << ",\n";
         out << "\t\t\tFields: []FieldDescriptor{\n";
         for (const auto& field : shape.fields)
         {
-            out << "\t\t\t\t" << go_field_descriptor_expr(field) << ",\n";
+            out << "\t\t\t\t" << go_shape_field_descriptor_expr(shape.name, field) << ",\n";
         }
         out << "\t\t\t},\n";
         out << "\t\t},\n";

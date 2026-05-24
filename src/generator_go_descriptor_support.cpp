@@ -49,6 +49,27 @@ std::string go_entity_state_constant_name(
     return pascal_identifier(entity_name) + "Status" + pascal_identifier(state_name);
 }
 
+std::string go_shape_name_constant_name(const std::string& shape_name)
+{
+    return pascal_identifier(shape_name) + "ShapeName";
+}
+
+std::string go_shape_field_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+)
+{
+    return pascal_identifier(shape_name) + "Field" + pascal_identifier(field_name);
+}
+
+std::string go_shape_field_type_name_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+)
+{
+    return go_shape_field_constant_name(shape_name, field_name) + "TypeName";
+}
+
 std::string go_entity_name_constant_name(const std::string& entity_name)
 {
     return pascal_identifier(entity_name) + "EntityName";
@@ -148,6 +169,17 @@ std::string go_entity_field_descriptor_expr(
     return "{Name: " + go_entity_field_constant_name(entity_name, field.name) +
            ", Type: " + go_field_type_expr(classify_field_descriptor_type(field.type)) +
            ", TypeName: " + go_entity_field_type_name_constant_name(entity_name, field.name) +
+           ", Required: " + (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
+}
+
+std::string go_shape_field_descriptor_expr(
+    const std::string& shape_name,
+    const IrField& field
+)
+{
+    return "{Name: " + go_shape_field_constant_name(shape_name, field.name) +
+           ", Type: " + go_field_type_expr(classify_field_descriptor_type(field.type)) +
+           ", TypeName: " + go_shape_field_type_name_constant_name(shape_name, field.name) +
            ", Required: " + (is_required_descriptor_field(field.type) ? "true" : "false") + "}";
 }
 

@@ -27,9 +27,22 @@ std::string cpp_entity_state_constant_name(
     const std::string& entity_name,
     const std::string& state_name
 );
+std::string cpp_shape_name_constant_name(const std::string& shape_name);
+std::string cpp_shape_field_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+);
+std::string cpp_shape_field_type_name_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+);
 std::string cpp_field_descriptor_expr(const IrField& field);
 std::string cpp_entity_field_descriptor_expr(
     const std::string& entity_name,
+    const IrField& field
+);
+std::string cpp_shape_field_descriptor_expr(
+    const std::string& shape_name,
     const IrField& field
 );
 std::string cpp_shape_type(const std::string& type);

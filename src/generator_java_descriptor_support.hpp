@@ -27,9 +27,22 @@ std::string java_entity_state_constant_name(
     const std::string& entity_name,
     const std::string& state_name
 );
+std::string java_shape_name_constant_name(const std::string& shape_name);
+std::string java_shape_field_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+);
+std::string java_shape_field_type_name_constant_name(
+    const std::string& shape_name,
+    const std::string& field_name
+);
 std::string java_field_descriptor_expr(const IrField& field);
 std::string java_entity_field_descriptor_expr(
     const std::string& entity_name,
+    const IrField& field
+);
+std::string java_shape_field_descriptor_expr(
+    const std::string& shape_name,
     const IrField& field
 );
 std::string java_shape_type(const std::string& type);
