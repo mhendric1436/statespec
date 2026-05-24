@@ -10,64 +10,6 @@ namespace statespec
 std::string generate_java_runtime_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "    public static List<CollectionDescriptor> collectionDescriptors() {\n";
-    out << "        return List.of(\n";
-
-    if (!system.entities.empty())
-    {
-        for (std::size_t entity_index = 0; entity_index < system.entities.size(); ++entity_index)
-        {
-            const auto& entity = system.entities[entity_index];
-            out << "            new CollectionDescriptor(\n";
-            out << "                " << java_string(entity.name) << ",\n";
-            out << "                List.of(\n";
-            for (std::size_t i = 0; i < entity.fields.size(); ++i)
-            {
-                const auto& field = entity.fields[i];
-                out << "                    " << java_field_descriptor_expr(field);
-                out << (i + 1 < entity.fields.size() ? "," : "") << "\n";
-            }
-            out << "                ),\n";
-            out << "                List.of(";
-            for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-            {
-                if (i > 0)
-                {
-                    out << ", ";
-                }
-                out << java_string(entity.key_fields[i]);
-            }
-            out << "),\n";
-            out << "                List.of(\n";
-            for (std::size_t i = 0; i < entity.indexes.size(); ++i)
-            {
-                const auto& index = entity.indexes[i];
-                out << "                    new IndexDescriptor(\n";
-                out << "                        " << java_string(index.name) << ",\n";
-                out << "                        List.of(";
-                for (std::size_t field_index = 0; field_index < index.fields.size(); ++field_index)
-                {
-                    if (field_index > 0)
-                    {
-                        out << ", ";
-                    }
-                    out << java_string(index.fields[field_index]);
-                }
-                out << "),\n";
-                out << "                        " << (index.unique ? "true" : "false") << "\n";
-                out << "                    )" << (i + 1 < entity.indexes.size() ? "," : "")
-                    << "\n";
-            }
-            out << "                ),\n";
-            out << "                1L\n";
-            out << "            )";
-            out << (entity_index + 1 < system.entities.size() ? "," : "") << "\n";
-        }
-    }
-
-    out << "        );\n";
-    out << "    }\n\n";
-
     out << "    public static List<QueueDefinition> queueDefinitions() {\n";
     out << "        return List.of(\n";
     if (!system.queues.empty())

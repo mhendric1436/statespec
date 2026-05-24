@@ -76,6 +76,16 @@ const IrField* find_entity_field_java(
     return nullptr;
 }
 
+std::string java_entity_descriptor_module_class_name(std::string_view entity_name)
+{
+    return pascal_identifier(std::string{entity_name}) + "DescriptorModule";
+}
+
+std::string java_entity_descriptor_module_ref(std::string_view entity_name)
+{
+    return java_entity_descriptor_module_class_name(entity_name);
+}
+
 std::string java_entity_field_expr(
     const IrEntity& entity,
     const std::string& field_name
@@ -85,7 +95,17 @@ std::string java_entity_field_expr(
     {
         return java_string(field_name);
     }
-    return "Descriptors." + java_entity_field_constant_name(entity.name, field_name);
+    return java_entity_descriptor_module_ref(entity.name) + "." +
+           java_entity_field_constant_name(entity.name, field_name);
+}
+
+std::string java_entity_state_expr(
+    const IrEntity& entity,
+    const std::string& state_name
+)
+{
+    return java_entity_descriptor_module_ref(entity.name) + "." +
+           java_entity_state_constant_name(entity.name, state_name);
 }
 
 const IrEntity* create_entity_for_api_java(
@@ -352,8 +372,7 @@ std::string java_create_response_expr(
     {
         if (entity.initial_state.has_value())
         {
-            return "Descriptors." +
-                   java_entity_state_constant_name(entity.name, *entity.initial_state);
+            return java_entity_state_expr(entity, *entity.initial_state);
         }
         return "\"\"";
     }
@@ -396,7 +415,8 @@ void write_java_parent_validation(
             continue;
         }
         out << "            {\n";
-        out << "                var parent = new Descriptors.Default"
+        out << "                var parent = new "
+            << java_entity_descriptor_module_ref(parent->name) << ".Default"
             << pascal_identifier(parent->name) << "Repository();\n";
         out << "                var parentRecord = parent.getTx(\n";
         out << "                    tx,\n";
@@ -455,8 +475,8 @@ bool write_java_create_handler_body(
     const auto status = entity->initial_state.value_or("Created");
     out << "            var request = ApiCodecs.decode" << pascal_identifier(api.name)
         << "Request(context);\n";
-    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
-        << "Repository();\n";
+    out << "            var repository = new " << java_entity_descriptor_module_ref(entity->name)
+        << ".Default" << pascal_identifier(entity->name) << "Repository();\n";
     out << "            repository.registerDescriptor(backend);\n";
     out << "            var tx = backend.begin();\n";
     out << "            try {\n";
@@ -473,8 +493,8 @@ bool write_java_create_handler_body(
         else if (field.name == EntityStatusFieldName)
         {
             out << "                document.put(" << java_entity_field_expr(*entity, field.name)
-                << ", com.statespec.backend.Json.string(Descriptors."
-                << java_entity_state_constant_name(entity->name, status) << "));\n";
+                << ", com.statespec.backend.Json.string(" << java_entity_state_expr(*entity, status)
+                << "));\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
@@ -548,8 +568,8 @@ bool write_java_get_handler_body(
     }
     out << "            var pathParameters = extractApiPathParameters("
         << java_string(api.path.value_or("")) << ", context.path());\n";
-    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
-        << "Repository();\n";
+    out << "            var repository = new " << java_entity_descriptor_module_ref(entity->name)
+        << ".Default" << pascal_identifier(entity->name) << "Repository();\n";
     out << "            repository.registerDescriptor(backend);\n";
     out << "            var tx = backend.begin();\n";
     out << "            try {\n";
@@ -636,8 +656,8 @@ bool write_java_list_handler_body(
     const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
     out << "            var pathParameters = extractApiPathParameters("
         << java_string(api.path.value_or("")) << ", context.path());\n";
-    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
-        << "Repository();\n";
+    out << "            var repository = new " << java_entity_descriptor_module_ref(entity->name)
+        << ".Default" << pascal_identifier(entity->name) << "Repository();\n";
     out << "            repository.registerDescriptor(backend);\n";
     out << "            var tx = backend.begin();\n";
     out << "            try {\n";
@@ -735,8 +755,8 @@ bool write_java_update_status_handler_body(
     }
     out << "            var request = ApiCodecs.decode" << pascal_identifier(api.name)
         << "Request(context);\n";
-    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
-        << "Repository();\n";
+    out << "            var repository = new " << java_entity_descriptor_module_ref(entity->name)
+        << ".Default" << pascal_identifier(entity->name) << "Repository();\n";
     out << "            repository.registerDescriptor(backend);\n";
     out << "            var tx = backend.begin();\n";
     out << "            try {\n";
@@ -768,10 +788,9 @@ bool write_java_update_status_handler_body(
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "                    (currentStatus.equals(Descriptors."
-            << java_entity_state_constant_name(entity->name, transition.from)
-            << ") && requestedStatus.equals(Descriptors."
-            << java_entity_state_constant_name(entity->name, transition.to) << "))";
+        out << "                    (currentStatus.equals("
+            << java_entity_state_expr(*entity, transition.from) << ") && requestedStatus.equals("
+            << java_entity_state_expr(*entity, transition.to) << "))";
     }
     out << ";\n";
     out << "                if (!transitionAllowed) {\n";
@@ -869,8 +888,8 @@ bool write_java_delete_handler_body(
     }
     out << "            var pathParameters = extractApiPathParameters("
         << java_string(api.path.value_or("")) << ", context.path());\n";
-    out << "            var repository = new Descriptors.Default" << pascal_identifier(entity->name)
-        << "Repository();\n";
+    out << "            var repository = new " << java_entity_descriptor_module_ref(entity->name)
+        << ".Default" << pascal_identifier(entity->name) << "Repository();\n";
     out << "            repository.registerDescriptor(backend);\n";
     out << "            var tx = backend.begin();\n";
     out << "            try {\n";
@@ -896,16 +915,15 @@ bool write_java_delete_handler_body(
         << ").orElseThrow(), "
         << java_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "\n";
     out << "                );\n";
-    out << "                var requestedStatus = Descriptors."
-        << java_entity_state_constant_name(entity->name, *delete_state) << ";\n";
+    out << "                var requestedStatus = "
+        << java_entity_state_expr(*entity, *delete_state) << ";\n";
     out << "                var transitionAllowed = currentStatus.equals(requestedStatus)";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "                    (currentStatus.equals(Descriptors."
-            << java_entity_state_constant_name(entity->name, transition.from)
-            << ") && requestedStatus.equals(Descriptors."
-            << java_entity_state_constant_name(entity->name, transition.to) << "))";
+        out << "                    (currentStatus.equals("
+            << java_entity_state_expr(*entity, transition.from) << ") && requestedStatus.equals("
+            << java_entity_state_expr(*entity, transition.to) << "))";
     }
     out << ";\n";
     out << "                if (!transitionAllowed) {\n";
@@ -949,6 +967,33 @@ bool write_java_delete_handler_body(
     return true;
 }
 
+std::string generate_java_entity_descriptor_umbrella(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "    public static List<EntityDescriptor> entityDescriptors() {\n";
+    out << "        java.util.ArrayList<EntityDescriptor> descriptors = new "
+           "java.util.ArrayList<>();\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "        descriptors.addAll(" << java_entity_descriptor_module_ref(entity.name)
+            << ".entityDescriptors());\n";
+    }
+    out << "        return List.copyOf(descriptors);\n";
+    out << "    }\n\n";
+
+    out << "    public static List<CollectionDescriptor> collectionDescriptors() {\n";
+    out << "        java.util.ArrayList<CollectionDescriptor> descriptors = new "
+           "java.util.ArrayList<>();\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "        descriptors.add(" << java_entity_descriptor_module_ref(entity.name) << "."
+            << lower_camel_identifier(entity.name) << "CollectionDescriptor());\n";
+    }
+    out << "        return List.copyOf(descriptors);\n";
+    out << "    }\n\n";
+    return out.str();
+}
+
 } // namespace
 
 std::string generate_descriptors_java(
@@ -972,7 +1017,7 @@ std::string generate_descriptors_java(
     out << generate_java_policy_descriptors(system);
     out << generate_java_shape_descriptors(system);
     out << generate_java_observability_descriptors(system);
-    out << generate_java_entity_descriptors(system);
+    out << generate_java_entity_descriptor_umbrella(system);
     out << generate_java_runtime_descriptors(system);
     out << generate_java_observability_registration(system);
     out << generate_java_runtime_registration(system, templates);

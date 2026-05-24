@@ -10,55 +10,6 @@ namespace statespec
 std::string generate_rust_runtime_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "pub fn collection_descriptors() -> Vec<CollectionDescriptor> {\n";
-    out << "    vec![\n";
-
-    for (const auto& entity : system.entities)
-    {
-        out << "        CollectionDescriptor {\n";
-        out << "            name: " << rust_string(entity.name) << ".to_string(),\n";
-        out << "            fields: vec![\n";
-        for (const auto& field : entity.fields)
-        {
-            out << "                " << rust_field_descriptor_expr(field) << ",\n";
-        }
-        out << "            ],\n";
-        out << "            key_fields: vec![";
-        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << rust_string(entity.key_fields[i]) << ".to_string()";
-        }
-        out << "],\n";
-        out << "            indexes: vec![\n";
-        for (const auto& index : entity.indexes)
-        {
-            out << "                IndexDescriptor {\n";
-            out << "                    name: " << rust_string(index.name) << ".to_string(),\n";
-            out << "                    fields: vec![";
-            for (std::size_t i = 0; i < index.fields.size(); ++i)
-            {
-                if (i > 0)
-                {
-                    out << ", ";
-                }
-                out << rust_string(index.fields[i]) << ".to_string()";
-            }
-            out << "],\n";
-            out << "                    unique: " << (index.unique ? "true" : "false") << ",\n";
-            out << "                },\n";
-        }
-        out << "            ],\n";
-        out << "            schema_version: 1,\n";
-        out << "        },\n";
-    }
-
-    out << "    ]\n";
-    out << "}\n\n";
-
     out << "pub fn queue_definitions() -> Vec<QueueDefinition> {\n";
     out << "    vec![\n";
     for (const auto& queue : system.queues)

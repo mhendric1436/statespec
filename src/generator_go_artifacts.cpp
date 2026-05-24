@@ -1,6 +1,7 @@
 #include "generator_go_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_go_descriptor_areas.hpp"
 #include "generator_go_descriptor_support.hpp"
 #include "generator_go_descriptors.hpp"
 #include "generator_support.hpp"
@@ -232,6 +233,52 @@ TemplateRenderer::Values go_descriptor_module_values(
     };
 }
 
+std::string replace_all_copy(
+    std::string value,
+    std::string_view from,
+    std::string_view to
+)
+{
+    std::size_t pos = 0;
+    while ((pos = value.find(from, pos)) != std::string::npos)
+    {
+        value.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+    return value;
+}
+
+TemplateRenderer::Values go_entity_descriptor_values(const IrEntity& entity)
+{
+    IrSystem one_entity_system;
+    one_entity_system.entities.push_back(entity);
+    auto content = generate_go_entity_descriptors(one_entity_system);
+    const auto type_name = pascal_identifier(entity.name);
+    content = replace_all_copy(content, "EntityDescriptors()", type_name + "EntityDescriptors()");
+    content =
+        replace_all_copy(content, "CollectionDescriptors()", type_name + "CollectionDescriptors()");
+    return TemplateRenderer::Values{{"entity_descriptor_content", content}};
+}
+
+void add_go_entity_descriptor_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    const IrSystem& system,
+    DiagnosticBag& diagnostics
+)
+{
+    for (const auto& entity : system.entities)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            generated_template_path("entity_descriptors.go.tmpl"),
+            common_artifact_path("backend/" + snake_identifier(entity.name) + "_descriptors.go"),
+            diagnostics, GeneratedArtifactTier::Common, go_entity_descriptor_values(entity)
+        );
+    }
+}
+
 void add_go_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -443,6 +490,11 @@ void add_go_common_runtime_artifacts(
         );
     }
     add_go_descriptor_module_artifacts(result, options, templates, system, diagnostics);
+    if (diagnostics.has_errors())
+    {
+        return;
+    }
+    add_go_entity_descriptor_artifacts(result, options, templates, system, diagnostics);
     if (diagnostics.has_errors())
     {
         return;

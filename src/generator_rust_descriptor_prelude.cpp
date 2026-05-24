@@ -28,6 +28,7 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     {
         out << "#[path = \"descriptors/entities/" << snake_identifier(entity.name) << ".rs\"]\n";
         out << "mod descriptor_entity_" << snake_identifier(entity.name) << ";\n";
+        out << "pub use descriptor_entity_" << snake_identifier(entity.name) << "::*;\n";
     }
     return out.str();
 }

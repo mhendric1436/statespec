@@ -1,6 +1,7 @@
 #include "generator_java_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_java_descriptor_areas.hpp"
 #include "generator_java_descriptor_support.hpp"
 #include "generator_java_descriptors.hpp"
 #include "generator_support.hpp"
@@ -36,6 +37,12 @@ std::string java_makefile_source_list(const std::vector<std::string>& sources)
 std::string java_entity_descriptor_module_class_name(std::string_view entity_name)
 {
     return pascal_identifier(std::string{entity_name}) + "DescriptorModule";
+}
+
+std::string java_entity_descriptor_module_ref(std::string_view entity_name)
+{
+    return "com.statespec.generated.descriptors.entities." +
+           java_entity_descriptor_module_class_name(entity_name);
 }
 
 std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
@@ -323,7 +330,8 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
             {
                 terminal_states << ",\n";
             }
-            terminal_states << "                new TerminalState(Descriptors."
+            const auto module_ref = java_entity_descriptor_module_ref(entity.name);
+            terminal_states << "                new TerminalState(" << module_ref << "."
                             << java_entity_state_constant_name(entity.name, state.name) << ", "
                             << java_string(state.garbage_collection->after) << ", "
                             << java_string(state.garbage_collection->mode) << ")";
@@ -335,10 +343,10 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
         }
         std::ostringstream descriptor;
         descriptor << "            new Descriptor(\n"
-                   << "                Descriptors." << java_entity_name_constant_name(entity.name)
-                   << ",\n"
-                   << "                Descriptors." << java_entity_name_constant_name(entity.name)
-                   << ",\n"
+                   << "                " << java_entity_descriptor_module_ref(entity.name) << "."
+                   << java_entity_name_constant_name(entity.name) << ",\n"
+                   << "                " << java_entity_descriptor_module_ref(entity.name) << "."
+                   << java_entity_name_constant_name(entity.name) << ",\n"
                    << "                List.of(\n"
                    << terminal_states.str() << "\n"
                    << "                )\n"
@@ -390,14 +398,28 @@ void add_java_generated_template_file(
 TemplateRenderer::Values java_descriptor_module_values(
     std::string_view package_name,
     std::string_view class_name,
-    std::string_view module_name
+    std::string_view module_name,
+    std::string content = {}
 )
 {
     return TemplateRenderer::Values{
         {"descriptor_module_package", std::string{package_name}},
         {"descriptor_module_class", std::string{class_name}},
         {"descriptor_module_name", std::string{module_name}},
+        {"descriptor_module_content", std::move(content)},
     };
+}
+
+TemplateRenderer::Values java_entity_descriptor_module_values(const IrEntity& entity)
+{
+    IrSystem one_entity_system;
+    one_entity_system.entities.push_back(entity);
+    auto content = generate_java_entity_descriptors(one_entity_system);
+    return java_descriptor_module_values(
+        "com.statespec.generated.descriptors.entities",
+        java_entity_descriptor_module_class_name(entity.name), "entity descriptor " + entity.name,
+        std::move(content)
+    );
 }
 
 void add_java_descriptor_module_artifact(
@@ -457,9 +479,13 @@ void add_java_descriptor_module_artifacts(
     for (const auto& entity : system.entities)
     {
         const auto class_name = java_entity_descriptor_module_class_name(entity.name);
-        add_java_descriptor_module_artifact(
-            result, options, templates, entity_descriptor_package_path / (class_name + ".java"),
-            entity_descriptor_package, class_name, "entity descriptor " + entity.name, diagnostics
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            generated_template_path("DescriptorModule.java.tmpl"),
+            common_artifact_path(
+                (entity_descriptor_package_path / (class_name + ".java")).generic_string()
+            ),
+            diagnostics, GeneratedArtifactTier::Common, java_entity_descriptor_module_values(entity)
         );
     }
 }

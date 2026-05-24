@@ -883,6 +883,30 @@ bool write_rust_delete_handler_body(
 
 } // namespace
 
+std::string generate_rust_entity_module_umbrella(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "pub fn entity_descriptors() -> Vec<EntityDescriptor> {\n";
+    out << "    let mut descriptors = Vec::new();\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "    descriptors.extend(" << snake_identifier(entity.name)
+            << "_entity_descriptors());\n";
+    }
+    out << "    descriptors\n";
+    out << "}\n\n";
+    out << "pub fn collection_descriptors() -> Vec<CollectionDescriptor> {\n";
+    out << "    let mut descriptors = Vec::new();\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "    descriptors.push(" << snake_identifier(entity.name)
+            << "_collection_descriptor());\n";
+    }
+    out << "    descriptors\n";
+    out << "}\n\n";
+    return out.str();
+}
+
 std::string generate_descriptors_rs(
     const IrSystem& system,
     const TemplatePackage& templates
@@ -904,7 +928,7 @@ std::string generate_descriptors_rs(
     out << generate_rust_policy_descriptors(system);
     out << generate_rust_shape_descriptors(system);
     out << generate_rust_observability_descriptors(system);
-    out << generate_rust_entity_descriptors(system);
+    out << generate_rust_entity_module_umbrella(system);
     out << generate_rust_runtime_descriptors(system);
     out << generate_rust_observability_registration(system);
     out << generate_rust_runtime_registration(system, templates);

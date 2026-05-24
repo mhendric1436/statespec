@@ -322,6 +322,30 @@ std::string artifact_content(
     return {};
 }
 
+bool is_entity_descriptor_module_path(std::string_view artifact_path)
+{
+    return artifact_path.find("/descriptors/entities/") != std::string_view::npos ||
+           (artifact_path.find("common/backend/") == 0 &&
+            artifact_path.ends_with("_descriptors.go"));
+}
+
+std::string descriptor_content(
+    const statespec::GenerationResult& result,
+    const LanguageRuntimePaths& paths
+)
+{
+    std::string content = artifact_content(result, paths.descriptors_path);
+    for (const auto& file : result.files)
+    {
+        if (is_entity_descriptor_module_path(file.artifact_path))
+        {
+            content += '\n';
+            content += file.content;
+        }
+    }
+    return content;
+}
+
 void require_artifacts_present(
     const statespec::GenerationResult& result,
     const std::vector<std::string>& artifact_paths,
@@ -528,7 +552,7 @@ void require_descriptor_names(
     const std::string& context
 )
 {
-    const auto descriptors = artifact_content(result, paths.descriptors_path);
+    const auto descriptors = descriptor_content(result, paths);
     for (const auto& name : present_names)
     {
         require_contains(descriptors, name, context + " descriptors");

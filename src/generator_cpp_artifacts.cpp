@@ -1,6 +1,7 @@
 #include "generator_cpp_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_cpp_descriptor_areas.hpp"
 #include "generator_cpp_descriptor_support.hpp"
 #include "generator_cpp_descriptors.hpp"
 #include "generator_support.hpp"
@@ -331,7 +332,40 @@ void add_cpp_common_generated_template_file(
 
 TemplateRenderer::Values cpp_descriptor_module_values(std::string_view module_name)
 {
-    return TemplateRenderer::Values{{"descriptor_module_name", std::string{module_name}}};
+    return TemplateRenderer::Values{
+        {"descriptor_module_name", std::string{module_name}},
+        {"descriptor_module_content", ""},
+    };
+}
+
+std::string replace_all_copy(
+    std::string value,
+    std::string_view from,
+    std::string_view to
+)
+{
+    std::size_t pos = 0;
+    while ((pos = value.find(from, pos)) != std::string::npos)
+    {
+        value.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+    return value;
+}
+
+TemplateRenderer::Values cpp_entity_descriptor_module_values(const IrEntity& entity)
+{
+    IrSystem one_entity_system;
+    one_entity_system.entities.push_back(entity);
+    auto content = generate_cpp_entity_descriptors(one_entity_system);
+    const auto prefix = snake_identifier(entity.name);
+    content = replace_all_copy(content, "entity_descriptors()", prefix + "_entity_descriptors()");
+    content =
+        replace_all_copy(content, "collection_descriptors()", prefix + "_collection_descriptors()");
+    return TemplateRenderer::Values{
+        {"descriptor_module_name", "entity descriptor " + entity.name},
+        {"descriptor_module_content", content},
+    };
 }
 
 void add_cpp_descriptor_module_artifact(
@@ -376,10 +410,11 @@ void add_cpp_descriptor_module_artifacts(
     );
     for (const auto& entity : system.entities)
     {
-        add_cpp_descriptor_module_artifact(
-            result, options, templates,
-            "descriptors/entities/" + snake_identifier(entity.name) + ".hpp",
-            "entity descriptor " + entity.name, diagnostics
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            generated_template_path("descriptor_module.hpp.tmpl"),
+            common_artifact_path("descriptors/entities/" + snake_identifier(entity.name) + ".hpp"),
+            diagnostics, GeneratedArtifactTier::Common, cpp_entity_descriptor_module_values(entity)
         );
     }
 }
