@@ -14,6 +14,20 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
     std::ostringstream out;
     for (const auto& entity : system.entities)
     {
+        out << "    public static final String " << java_entity_name_constant_name(entity.name)
+            << " = " << java_string(entity.name) << ";\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "    public static final String "
+                << java_entity_field_constant_name(entity.name, field.name) << " = "
+                << java_string(field.name) << ";\n";
+        }
+        for (const auto& index : entity.indexes)
+        {
+            out << "    public static final String "
+                << java_entity_index_constant_name(entity.name, index.name) << " = "
+                << java_string(index.name) << ";\n";
+        }
         for (const auto& state : entity.states)
         {
             out << "    public static final String "

@@ -14,6 +14,20 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
     std::ostringstream out;
     for (const auto& entity : system.entities)
     {
+        out << "inline constexpr const char* " << cpp_entity_name_constant_name(entity.name)
+            << " = " << cpp_string(entity.name) << ";\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "inline constexpr const char* "
+                << cpp_entity_field_constant_name(entity.name, field.name) << " = "
+                << cpp_string(field.name) << ";\n";
+        }
+        for (const auto& index : entity.indexes)
+        {
+            out << "inline constexpr const char* "
+                << cpp_entity_index_constant_name(entity.name, index.name) << " = "
+                << cpp_string(index.name) << ";\n";
+        }
         for (const auto& state : entity.states)
         {
             out << "inline constexpr const char* "

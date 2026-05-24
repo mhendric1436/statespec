@@ -14,6 +14,18 @@ std::string generate_rust_entity_descriptors(const IrSystem& system)
     std::ostringstream out;
     for (const auto& entity : system.entities)
     {
+        out << "pub const " << rust_entity_name_constant_name(entity.name)
+            << ": &str = " << rust_string(entity.name) << ";\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "pub const " << rust_entity_field_constant_name(entity.name, field.name)
+                << ": &str = " << rust_string(field.name) << ";\n";
+        }
+        for (const auto& index : entity.indexes)
+        {
+            out << "pub const " << rust_entity_index_constant_name(entity.name, index.name)
+                << ": &str = " << rust_string(index.name) << ";\n";
+        }
         for (const auto& state : entity.states)
         {
             out << "pub const " << rust_entity_state_constant_name(entity.name, state.name)

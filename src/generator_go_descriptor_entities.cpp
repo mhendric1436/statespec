@@ -17,6 +17,18 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
         out << "const (\n";
         for (const auto& entity : system.entities)
         {
+            out << "\t" << go_entity_name_constant_name(entity.name) << " = "
+                << go_string(entity.name) << "\n";
+            for (const auto& field : entity.fields)
+            {
+                out << "\t" << go_entity_field_constant_name(entity.name, field.name) << " = "
+                    << go_string(field.name) << "\n";
+            }
+            for (const auto& index : entity.indexes)
+            {
+                out << "\t" << go_entity_index_constant_name(entity.name, index.name) << " = "
+                    << go_string(index.name) << "\n";
+            }
             for (const auto& state : entity.states)
             {
                 out << "\t" << go_entity_state_constant_name(entity.name, state.name) << " = "
