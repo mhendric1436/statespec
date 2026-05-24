@@ -4,6 +4,7 @@
 #include "generator_cpp_descriptor_support.hpp"
 #include "generator_cpp_descriptors.hpp"
 #include "generator_support.hpp"
+#include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
@@ -328,6 +329,61 @@ void add_cpp_common_generated_template_file(
     );
 }
 
+TemplateRenderer::Values cpp_descriptor_module_values(std::string_view module_name)
+{
+    return TemplateRenderer::Values{{"descriptor_module_name", std::string{module_name}}};
+}
+
+void add_cpp_descriptor_module_artifact(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    std::string_view relative_output_path,
+    std::string_view module_name,
+    DiagnosticBag& diagnostics
+)
+{
+    add_generated_template_file(
+        result, options.output_dir, templates,
+        generated_template_path("descriptor_module.hpp.tmpl"),
+        common_artifact_path(relative_output_path), diagnostics, GeneratedArtifactTier::Common,
+        cpp_descriptor_module_values(module_name)
+    );
+}
+
+void add_cpp_descriptor_module_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
+    const IrSystem& system,
+    DiagnosticBag& diagnostics
+)
+{
+    add_cpp_descriptor_module_artifact(
+        result, options, templates, "descriptors/core.hpp", "core descriptors", diagnostics
+    );
+    add_cpp_descriptor_module_artifact(
+        result, options, templates, "descriptors/shapes.hpp", "shape descriptors", diagnostics
+    );
+    add_cpp_descriptor_module_artifact(
+        result, options, templates, "descriptors/apis.hpp", "API descriptors", diagnostics
+    );
+    add_cpp_descriptor_module_artifact(
+        result, options, templates, "descriptors/workers.hpp", "worker descriptors", diagnostics
+    );
+    add_cpp_descriptor_module_artifact(
+        result, options, templates, "descriptors/runtime.hpp", "runtime descriptors", diagnostics
+    );
+    for (const auto& entity : system.entities)
+    {
+        add_cpp_descriptor_module_artifact(
+            result, options, templates,
+            "descriptors/entities/" + snake_identifier(entity.name) + ".hpp",
+            "entity descriptor " + entity.name, diagnostics
+        );
+    }
+}
+
 void add_cpp_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -488,6 +544,12 @@ void add_cpp_common_runtime_artifacts(
         );
     }
 
+    if (diagnostics.has_errors())
+    {
+        return;
+    }
+
+    add_cpp_descriptor_module_artifacts(result, options, templates, system, diagnostics);
     if (diagnostics.has_errors())
     {
         return;

@@ -34,6 +34,12 @@ api/external_system_operator_metadata_api.hpp
 api/main.cpp
 common/backend.hpp
 common/descriptors.hpp
+common/descriptors/apis.hpp
+common/descriptors/core.hpp
+common/descriptors/entities/service_instance.hpp
+common/descriptors/runtime.hpp
+common/descriptors/shapes.hpp
+common/descriptors/workers.hpp
 common/external_system.hpp
 common/feature_flag.hpp
 common/json.hpp

@@ -8,6 +8,26 @@
 namespace statespec
 {
 
+namespace
+{
+
+std::string cpp_descriptor_module_includes(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "#include \"descriptors/core.hpp\"\n";
+    out << "#include \"descriptors/shapes.hpp\"\n";
+    out << "#include \"descriptors/apis.hpp\"\n";
+    out << "#include \"descriptors/workers.hpp\"\n";
+    out << "#include \"descriptors/runtime.hpp\"\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "#include \"descriptors/entities/" << snake_identifier(entity.name) << ".hpp\"\n";
+    }
+    return out.str();
+}
+
+} // namespace
+
 std::string generate_cpp_descriptor_prelude(
     const IrSystem& system,
     const std::string& external_system_runtime,
@@ -25,6 +45,7 @@ std::string generate_cpp_descriptor_prelude(
     out << "#include \"metric.hpp\"\n";
     out << "#include \"queue.hpp\"\n";
     out << "#include \"workflow.hpp\"\n\n";
+    out << cpp_descriptor_module_includes(system) << "\n";
     out << "#include <chrono>\n";
     out << "#include <cstdint>\n";
     out << "#include <map>\n";
