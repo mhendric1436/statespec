@@ -1,5 +1,6 @@
 #include "generator_java_descriptors.hpp"
 
+#include "generator_entity_index_helpers.hpp"
 #include "generator_java_descriptor_areas.hpp"
 #include "generator_java_descriptor_support.hpp"
 #include "identifier_case.hpp"
@@ -620,9 +621,20 @@ bool write_java_list_handler_body(
     out << "            repository.registerDescriptor(backend);\n";
     out << "            var tx = backend.begin();\n";
     out << "            try {\n";
-    out << "                var records = repository.listByIndexTx(\n";
+    out << "                var records = repository.";
+    if (index == nullptr)
+    {
+        out << "listByIndexTx(\n";
+    }
+    else
+    {
+        out << entity_index_repository_method_name(index->name) << "(\n";
+    }
     out << "                    tx,\n";
-    out << "                    " << java_string(index == nullptr ? "" : index->name) << ",\n";
+    if (index == nullptr)
+    {
+        out << "                    " << java_string("") << ",\n";
+    }
     out << "                    java.util.List.of(\n";
     bool wrote_value = false;
     if (index != nullptr)

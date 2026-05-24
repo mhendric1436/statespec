@@ -1,5 +1,6 @@
 #include "generator_go_descriptor_areas.hpp"
 
+#include "generator_entity_index_helpers.hpp"
 #include "generator_go_descriptor_support.hpp"
 #include "identifier_case.hpp"
 
@@ -208,6 +209,11 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
                "error)\n";
         out << "\tListByIndexTx(context.Context, Transaction, string, []IndexValue) "
                "([]VersionedRecord, error)\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "\t" << go_entity_index_repository_method_name(index.name)
+                << "(context.Context, Transaction, []IndexValue) ([]VersionedRecord, error)\n";
+        }
         out << "\tUpdateTx(context.Context, Transaction, []EntityKeyValue, JSON, Version) "
                "(*VersionedRecord, error)\n";
         out << "}\n\n";
@@ -239,6 +245,16 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
                "EntityListByIndexRequest{Entity: "
             << go_string(entity.name) << ", IndexName: indexName, Values: values})\n";
         out << "}\n\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "func (repository Default" << type_name << "Repository) "
+                << go_entity_index_repository_method_name(index.name)
+                << "(ctx context.Context, tx Transaction, values []IndexValue) "
+                   "([]VersionedRecord, error) {\n";
+            out << "\treturn repository.ListByIndexTx(ctx, tx, " << go_string(index.name)
+                << ", values)\n";
+            out << "}\n\n";
+        }
         out << "func (Default" << type_name
             << "Repository) UpdateTx(ctx context.Context, tx Transaction, keyValues "
                "[]EntityKeyValue, document JSON, expectedVersion Version) (*VersionedRecord, "

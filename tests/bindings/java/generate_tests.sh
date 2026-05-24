@@ -254,6 +254,8 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptor
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "class DefaultOrderRepository"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "createTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "listByIndexTx"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "listByTenantStatusTx"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "listByTenantOrderTx"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "entityLookupFromDocument"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "entityDescriptors"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "featureFlagDefinitions"

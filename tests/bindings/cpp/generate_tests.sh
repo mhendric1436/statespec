@@ -263,6 +263,8 @@ assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "class IOrderRepos
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "class DefaultOrderRepository"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "createTx"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "listByIndexTx"
+assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "listByTenantStatusTx"
+assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "listByTenantOrderTx"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "entity_lookup_from_document"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "entity_descriptors"
 assert_file_contains "$TMPDIR/out-cpp/common/descriptors.hpp" "CollectionDescriptor"

@@ -1,5 +1,6 @@
 #include "generator_java_descriptor_areas.hpp"
 
+#include "generator_entity_index_helpers.hpp"
 #include "generator_java_descriptor_support.hpp"
 #include "identifier_case.hpp"
 
@@ -184,6 +185,14 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         out << "            String indexName,\n";
         out << "            List<Backend.IndexValue> values\n";
         out << "        ) throws Backend.BackendException;\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "        List<Backend.VersionedRecord> "
+                << entity_index_repository_method_name(index.name) << "(\n";
+            out << "            Backend.Transaction tx,\n";
+            out << "            List<Backend.IndexValue> values\n";
+            out << "        ) throws Backend.BackendException;\n";
+        }
         out << "        Optional<Backend.VersionedRecord> updateTx(\n";
         out << "            Backend.Transaction tx,\n";
         out << "            List<EntityKeyValue> keyValues,\n";
@@ -238,6 +247,19 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         out << "            );\n";
         out << "        }\n";
         out << "\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "        @Override public List<Backend.VersionedRecord> "
+                << entity_index_repository_method_name(index.name) << "(\n";
+            out << "            Backend.Transaction tx,\n";
+            out << "            List<Backend.IndexValue> values\n";
+            out << "        ) throws Backend.BackendException\n";
+            out << "        {\n";
+            out << "            return listByIndexTx(tx, " << java_string(index.name)
+                << ", values);\n";
+            out << "        }\n";
+            out << "\n";
+        }
         out << "        @Override public Optional<Backend.VersionedRecord> updateTx(\n";
         out << "            Backend.Transaction tx,\n";
         out << "            List<EntityKeyValue> keyValues,\n";

@@ -1,6 +1,7 @@
 #include "generator_cpp_descriptor_areas.hpp"
 
 #include "generator_cpp_descriptor_support.hpp"
+#include "generator_entity_index_helpers.hpp"
 #include "identifier_case.hpp"
 
 #include <sstream>
@@ -227,6 +228,14 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
         out << "        std::string index_name,\n";
         out << "        std::vector<statespec::backend::IndexValue> values\n";
         out << "    ) = 0;\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "    virtual std::vector<statespec::backend::VersionedRecord> "
+                << entity_index_repository_method_name(index.name) << "(\n";
+            out << "        statespec::backend::ITransaction& tx,\n";
+            out << "        std::vector<statespec::backend::IndexValue> values\n";
+            out << "    ) = 0;\n";
+        }
         out << "    virtual std::optional<statespec::backend::VersionedRecord> updateTx(\n";
         out << "        statespec::backend::ITransaction& tx,\n";
         out << "        std::vector<EntityKeyValue> key_values,\n";
@@ -280,6 +289,18 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system)
         out << "            }\n";
         out << "        );\n";
         out << "    }\n\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "    std::vector<statespec::backend::VersionedRecord> "
+                << entity_index_repository_method_name(index.name) << "(\n";
+            out << "        statespec::backend::ITransaction& tx,\n";
+            out << "        std::vector<statespec::backend::IndexValue> values\n";
+            out << "    ) override\n";
+            out << "    {\n";
+            out << "        return listByIndexTx(tx, " << cpp_string(index.name)
+                << ", std::move(values));\n";
+            out << "    }\n\n";
+        }
         out << "    std::optional<statespec::backend::VersionedRecord> updateTx(\n";
         out << "        statespec::backend::ITransaction& tx,\n";
         out << "        std::vector<EntityKeyValue> key_values,\n";

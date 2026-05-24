@@ -1,5 +1,6 @@
 #include "generator_rust_descriptors.hpp"
 
+#include "generator_entity_index_helpers.hpp"
 #include "generator_rust_descriptor_areas.hpp"
 #include "generator_rust_descriptor_support.hpp"
 #include "identifier_case.hpp"
@@ -584,10 +585,21 @@ bool write_rust_list_handler_body(
         << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
     out << "        let mut tx = self.backend.begin()?;\n";
     out << "        let records = <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name) << "Repository<B>>::list_by_index_tx(\n";
+        << pascal_identifier(entity->name) << "Repository<B>>::";
+    if (index == nullptr)
+    {
+        out << "list_by_index_tx(\n";
+    }
+    else
+    {
+        out << rust_entity_index_repository_method_name(index->name) << "(\n";
+    }
     out << "            &repository,\n";
     out << "            &mut tx,\n";
-    out << "            " << rust_string(index == nullptr ? "" : index->name) << ".to_string(),\n";
+    if (index == nullptr)
+    {
+        out << "            " << rust_string("") << ".to_string(),\n";
+    }
     out << "            vec![\n";
     if (index != nullptr)
     {

@@ -2,6 +2,7 @@
 
 #include "generator_cpp_descriptor_areas.hpp"
 #include "generator_cpp_descriptor_support.hpp"
+#include "generator_entity_index_helpers.hpp"
 #include "identifier_case.hpp"
 #include "statespec/language_constants.hpp"
 #include "type_syntax.hpp"
@@ -583,9 +584,20 @@ bool write_cpp_list_handler_body(
     out << "        auto tx = backend_.begin();\n";
     out << "        try\n";
     out << "        {\n";
-    out << "            const auto records = repository.listByIndexTx(\n";
+    out << "            const auto records = repository.";
+    if (index == nullptr)
+    {
+        out << "listByIndexTx(\n";
+    }
+    else
+    {
+        out << entity_index_repository_method_name(index->name) << "(\n";
+    }
     out << "                *tx,\n";
-    out << "                " << cpp_string(index == nullptr ? "" : index->name) << ",\n";
+    if (index == nullptr)
+    {
+        out << "                " << cpp_string("") << ",\n";
+    }
     out << "                {\n";
     if (index != nullptr)
     {

@@ -1,5 +1,6 @@
 #include "generator_go_descriptors.hpp"
 
+#include "generator_entity_index_helpers.hpp"
 #include "generator_go_descriptor_areas.hpp"
 #include "generator_go_descriptor_support.hpp"
 #include "identifier_case.hpp"
@@ -571,8 +572,16 @@ bool write_go_list_handler_body(
     out << "\ttx, err := handler.Backend.Begin(ctx)\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
     out << "\tdefer func() { if tx.IsOpen() { _ = tx.Abort(ctx) } }()\n";
-    out << "\trecords, err := repository.ListByIndexTx(ctx, tx, "
-        << go_string(index == nullptr ? "" : index->name) << ", []common.IndexValue{\n";
+    out << "\trecords, err := repository.";
+    if (index == nullptr)
+    {
+        out << "ListByIndexTx(ctx, tx, " << go_string("") << ", []common.IndexValue{\n";
+    }
+    else
+    {
+        out << go_entity_index_repository_method_name(index->name)
+            << "(ctx, tx, []common.IndexValue{\n";
+    }
     if (index != nullptr)
     {
         for (const auto& field_name : index->fields)

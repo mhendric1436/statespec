@@ -278,6 +278,8 @@ assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub trait OrderRe
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct DefaultOrderRepository"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "create_tx"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "list_by_index_tx"
+assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "list_by_tenant_status_tx"
+assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "list_by_tenant_order_tx"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn entity_lookup_from_document"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn entity_descriptors() -> Vec<EntityDescriptor>"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub fn collection_descriptors() -> Vec<CollectionDescriptor>"

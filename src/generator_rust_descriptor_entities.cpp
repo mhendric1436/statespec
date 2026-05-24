@@ -1,5 +1,6 @@
 #include "generator_rust_descriptor_areas.hpp"
 
+#include "generator_entity_index_helpers.hpp"
 #include "generator_rust_descriptor_support.hpp"
 #include "identifier_case.hpp"
 
@@ -186,6 +187,14 @@ std::string generate_rust_entity_descriptors(const IrSystem& system)
         out << "        index_name: String,\n";
         out << "        values: Vec<crate::backend::IndexValue>,\n";
         out << "    ) -> BackendResult<Vec<VersionedRecord>>;\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "    fn " << rust_entity_index_repository_method_name(index.name) << "(\n";
+            out << "        &self,\n";
+            out << "        tx: &mut B::Tx,\n";
+            out << "        values: Vec<crate::backend::IndexValue>,\n";
+            out << "    ) -> BackendResult<Vec<VersionedRecord>>;\n";
+        }
         out << "\n";
         out << "    fn update_tx(\n";
         out << "        &self,\n";
@@ -248,6 +257,23 @@ std::string generate_rust_entity_descriptors(const IrSystem& system)
         out << "        )\n";
         out << "    }\n";
         out << "\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "    fn " << rust_entity_index_repository_method_name(index.name) << "(\n";
+            out << "        &self,\n";
+            out << "        tx: &mut B::Tx,\n";
+            out << "        values: Vec<crate::backend::IndexValue>,\n";
+            out << "    ) -> BackendResult<Vec<VersionedRecord>> {\n";
+            out << "        <Default" << type_name << "Repository as " << type_name
+                << "Repository<B>>::list_by_index_tx(\n";
+            out << "            self,\n";
+            out << "            tx,\n";
+            out << "            " << rust_string(index.name) << ".to_string(),\n";
+            out << "            values,\n";
+            out << "        )\n";
+            out << "    }\n";
+            out << "\n";
+        }
         out << "    fn update_tx(\n";
         out << "        &self,\n";
         out << "        tx: &mut B::Tx,\n";

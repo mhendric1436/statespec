@@ -266,6 +266,8 @@ assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type OrderR
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type DefaultOrderRepository struct"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "CreateTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "ListByIndexTx"
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "ListByTenantStatusTx"
+assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "ListByTenantOrderTx"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func EntityLookupFromDocument"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func EntityDescriptors() []EntityDescriptor"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "func CollectionDescriptors() []CollectionDescriptor"
