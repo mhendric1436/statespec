@@ -1,8 +1,10 @@
 package com.statespec.backend.memory;
 
 import com.statespec.backend.Backend;
+import com.statespec.backend.Json;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class MemoryBackendRegistrationTest
 {
@@ -10,6 +12,7 @@ public final class MemoryBackendRegistrationTest
     {
         enforcesCompatibleCollectionRegistration();
         appliesCollectionBatchesAtomically();
+        extractsIndexKeysDeterministically();
     }
 
     private static void enforcesCompatibleCollectionRegistration() throws Backend.BackendException
@@ -65,6 +68,42 @@ public final class MemoryBackendRegistrationTest
         }
 
         backend.ensureCollection(alternateCompatibleDescriptor());
+    }
+
+    private static void extractsIndexKeysDeterministically() throws Backend.BackendException
+    {
+        var index = new Backend.IndexDescriptor(
+            "by_status", List.of("status", "priority", "archived", "missing", "cleared"), false
+        );
+        var document = Json.object(
+            Map.of(
+                "status", Json.string("Open"),
+                "priority", Json.integer(3L),
+                "archived", Json.bool(false),
+                "cleared", Json.nullValue()
+            )
+        );
+
+        var key = InMemoryTransaction.extractIndexKey(document, index);
+        require(
+            key.equals(List.of("string:Open", "int:3", "bool:false", "missing:", "null:")),
+            "expected typed index key encoding"
+        );
+
+        try
+        {
+            InMemoryTransaction.extractIndexKey(
+                Json.object(Map.of("status", Json.array(List.of(Json.string("Open"))))), index
+            );
+            throw new AssertionError("expected scalar index field error");
+        }
+        catch (Backend.BackendException expected)
+        {
+            require(
+                expected.getMessage().contains("scalar JSON values"),
+                "expected scalar value diagnostic"
+            );
+        }
     }
 
     private static Backend.CollectionDescriptor baseDescriptor()

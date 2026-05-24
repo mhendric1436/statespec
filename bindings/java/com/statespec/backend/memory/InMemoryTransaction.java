@@ -41,6 +41,42 @@ public final class InMemoryTransaction implements Backend.Transaction
         return states;
     }
 
+    static List<String> extractIndexKey(
+        Json document,
+        Backend.IndexDescriptor descriptor
+    ) throws Backend.BackendException
+    {
+        var key = new ArrayList<String>();
+        for (var field : descriptor.fields())
+        {
+            key.add(encodeIndexValue(document.find(field)));
+        }
+        return List.copyOf(key);
+    }
+
+    static String encodeIndexValue(Optional<Json> value) throws Backend.BackendException
+    {
+        if (value.isEmpty())
+        {
+            return "missing:";
+        }
+        return switch (value.orElseThrow())
+        {
+        case Json.NullValue ignored -> "null:";
+        case Json.BooleanValue bool -> "bool:" + bool.value();
+        case Json.IntegerValue integer -> "int:" + integer.value();
+        case Json.DecimalValue decimal ->
+            "decimal:" + new Json.DecimalValue(decimal.value()).canonicalString();
+        case Json.StringValue string -> "string:" + string.value();
+        case Json.ArrayValue ignored -> throw new Backend.BackendException(
+            "in-memory index fields must resolve to scalar JSON values"
+        );
+        case Json.ObjectValue ignored -> throw new Backend.BackendException(
+            "in-memory index fields must resolve to scalar JSON values"
+        );
+        };
+    }
+
     final State state;
     boolean open = true;
     final Map<String, Long> readVersions = new HashMap<>();

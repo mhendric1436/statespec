@@ -115,3 +115,34 @@ TEST_CASE("C++ in-memory backend applies collection batches atomically")
 
     REQUIRE_NOTHROW(backend.ensure_collection(alternate_compatible_descriptor()));
 }
+
+TEST_CASE("C++ in-memory index key extraction encodes scalar values deterministically")
+{
+    const auto index = statespec::backend::IndexDescriptor{
+        .name = "by_status",
+        .fields = {"status", "priority", "archived", "missing", "cleared"},
+        .unique = false,
+    };
+    const auto document = statespec::backend::Json::object(
+        {{"status", "Open"},
+         {"priority", std::int64_t{3}},
+         {"archived", false},
+         {"cleared", statespec::backend::Json::null()}}
+    );
+
+    const auto key = statespec::backend::memory::detail::extract_index_key(document, index);
+
+    REQUIRE(
+        key == statespec::backend::memory::detail::InMemoryIndexKey{
+                   "string:Open", "int:3", "bool:false", "missing:", "null:"
+               }
+    );
+
+    const auto invalid = statespec::backend::Json::object(
+        {{"status", statespec::backend::Json::array({"Open"})}}
+    );
+    REQUIRE_THROWS_AS(
+        statespec::backend::memory::detail::extract_index_key(invalid, index),
+        statespec::backend::BackendError
+    );
+}

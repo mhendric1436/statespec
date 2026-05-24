@@ -44,6 +44,49 @@ inline std::map<std::string, InMemoryIndexState> empty_index_states(
     return states;
 }
 
+inline std::string encode_index_value(const Json* value)
+{
+    if (value == nullptr)
+    {
+        return "missing:";
+    }
+    if (value->is_null())
+    {
+        return "null:";
+    }
+    if (value->is_bool())
+    {
+        return std::string{"bool:"} + (value->as_bool() ? "true" : "false");
+    }
+    if (value->is_int64())
+    {
+        return "int:" + value->canonical_string();
+    }
+    if (value->is_double())
+    {
+        return "decimal:" + value->canonical_string();
+    }
+    if (value->is_string())
+    {
+        return "string:" + value->as_string();
+    }
+    throw BackendError("in-memory index fields must resolve to scalar JSON values");
+}
+
+inline InMemoryIndexKey extract_index_key(
+    const Json& document,
+    const IndexDescriptor& descriptor
+)
+{
+    InMemoryIndexKey key;
+    key.reserve(descriptor.fields.size());
+    for (const auto& field : descriptor.fields)
+    {
+        key.push_back(encode_index_value(document.find(field)));
+    }
+    return key;
+}
+
 inline std::string record_version_key(
     const CollectionName& collection,
     const Key& key

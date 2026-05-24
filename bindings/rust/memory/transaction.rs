@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
 use crate::backend::{
-    BackendError, BackendResult, CollectionDescriptor, ConflictKind, Query, Transaction, Version,
-    VersionedRecord,
+    BackendError, BackendResult, CollectionDescriptor, ConflictKind, IndexDescriptor, Query,
+    Transaction, Version, VersionedRecord,
 };
 use crate::json::Json;
 
@@ -40,6 +40,34 @@ pub(crate) fn empty_index_states(
             )
         })
         .collect()
+}
+
+#[allow(dead_code)]
+pub(crate) fn extract_index_key(
+    document: &Json,
+    descriptor: &IndexDescriptor,
+) -> BackendResult<InMemoryIndexKey> {
+    descriptor
+        .fields
+        .iter()
+        .map(|field| encode_index_value(document.find(field)))
+        .collect::<BackendResult<Vec<_>>>()
+        .map(InMemoryIndexKey)
+}
+
+#[allow(dead_code)]
+pub(crate) fn encode_index_value(value: Option<&Json>) -> BackendResult<String> {
+    match value {
+        None => Ok("missing:".to_string()),
+        Some(Json::Null) => Ok("null:".to_string()),
+        Some(Json::Bool(value)) => Ok(format!("bool:{value}")),
+        Some(Json::Integer(value)) => Ok(format!("int:{value}")),
+        Some(Json::Decimal(value)) => Ok(format!("decimal:{}", Json::Decimal(*value).canonical_string())),
+        Some(Json::String(value)) => Ok(format!("string:{value}")),
+        Some(Json::Array(_)) | Some(Json::Object(_)) => Err(BackendError::InvalidSchema {
+            message: "in-memory index fields must resolve to scalar JSON values".to_string(),
+        }),
+    }
 }
 
 #[derive(Debug)]

@@ -4,7 +4,10 @@ mod tests {
         Backend, BackendError, CollectionDescriptor, ConflictKind, FieldDescriptor, FieldType,
         IndexDescriptor,
     };
+    use crate::json::Json;
     use crate::memory::backend::InMemoryBackend;
+    use crate::memory_transaction::{extract_index_key, InMemoryIndexKey};
+    use std::collections::BTreeMap;
 
     fn base_descriptor() -> CollectionDescriptor {
         CollectionDescriptor {
@@ -100,5 +103,47 @@ mod tests {
         backend
             .ensure_collection(&alternate_compatible_descriptor())
             .unwrap();
+    }
+
+    #[test]
+    fn extracts_index_keys_deterministically() {
+        let index = IndexDescriptor {
+            name: "by_status".to_string(),
+            fields: vec![
+                "status".to_string(),
+                "priority".to_string(),
+                "archived".to_string(),
+                "missing".to_string(),
+                "cleared".to_string(),
+            ],
+            unique: false,
+        };
+        let document = Json::Object(BTreeMap::from([
+            ("status".to_string(), Json::String("Open".to_string())),
+            ("priority".to_string(), Json::Integer(3)),
+            ("archived".to_string(), Json::Bool(false)),
+            ("cleared".to_string(), Json::Null),
+        ]));
+
+        let key = extract_index_key(&document, &index).unwrap();
+        assert_eq!(
+            key,
+            InMemoryIndexKey(vec![
+                "string:Open".to_string(),
+                "int:3".to_string(),
+                "bool:false".to_string(),
+                "missing:".to_string(),
+                "null:".to_string(),
+            ])
+        );
+
+        let invalid = Json::Object(BTreeMap::from([(
+            "status".to_string(),
+            Json::Array(vec![Json::String("Open".to_string())]),
+        )]));
+        assert!(matches!(
+            extract_index_key(&invalid, &index),
+            Err(BackendError::InvalidSchema { .. })
+        ));
     }
 }

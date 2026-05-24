@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -43,6 +44,58 @@ func emptyIndexStates(descriptor common.CollectionDescriptor) map[string]indexSt
 		}
 	}
 	return states
+}
+
+func extractIndexKey(document common.JSON, descriptor common.IndexDescriptor) ([]string, error) {
+	key := make([]string, 0, len(descriptor.Fields))
+	for _, field := range descriptor.Fields {
+		value, ok := document.Find(field)
+		encoded, err := encodeIndexValue(value, ok)
+		if err != nil {
+			return nil, err
+		}
+		key = append(key, encoded)
+	}
+	return key, nil
+}
+
+func encodeIndexValue(value common.JSON, present bool) (string, error) {
+	if !present {
+		return "missing:", nil
+	}
+	if value.IsNull() {
+		return "null:", nil
+	}
+	if boolValue, ok := value.AsBool(); ok {
+		if boolValue {
+			return "bool:true", nil
+		}
+		return "bool:false", nil
+	}
+	if intValue, ok := value.AsInt(); ok {
+		return "int:" + strconv.FormatInt(intValue, 10), nil
+	}
+	if floatValue, ok := value.AsFloat(); ok {
+		jsonValue, err := common.JSONFloat(floatValue)
+		if err != nil {
+			return "", err
+		}
+		return "decimal:" + jsonValue.CanonicalString(), nil
+	}
+	if stringValue, ok := value.AsString(); ok {
+		return "string:" + stringValue, nil
+	}
+	return "", common.ErrInvalidSchema
+}
+
+func encodeIndexKey(parts []string) string {
+	var builder strings.Builder
+	for _, part := range parts {
+		builder.WriteString(strconv.Itoa(len(part)))
+		builder.WriteByte(':')
+		builder.WriteString(part)
+	}
+	return builder.String()
 }
 
 type Transaction struct {
