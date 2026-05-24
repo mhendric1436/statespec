@@ -1,5 +1,11 @@
 package backend
 
+import (
+	"context"
+	"fmt"
+	"sync"
+)
+
 type WorkerProcessConfig struct {
 	BootstrapOnStart bool
 }
@@ -13,6 +19,14 @@ func DefaultWorkerProcessConfig() WorkerProcessConfig {
 type WorkerProcess struct {
 	Runtime *WorkerTierRuntime
 	Config  WorkerProcessConfig
+
+	lifecycleMu sync.Mutex
+	ctx         context.Context
+	cancel      context.CancelFunc
+	done        chan struct{}
+	runErr      error
+	started     bool
+	running     bool
 }
 
 func NewWorkerProcess(runtime *WorkerTierRuntime) *WorkerProcess {
@@ -24,4 +38,74 @@ func NewWorkerProcessWithConfig(runtime *WorkerTierRuntime, config WorkerProcess
 		Runtime: runtime,
 		Config:  config,
 	}
+}
+
+func (process *WorkerProcess) Run(ctx context.Context) error {
+	if process.Config.BootstrapOnStart {
+		if err := process.Runtime.Bootstrap(ctx); err != nil {
+			return err
+		}
+	}
+	if err := process.Runtime.StartEntityGCWorkers(ctx, 0); err != nil {
+		return err
+	}
+	<-ctx.Done()
+	process.Runtime.RequestStop()
+	process.Runtime.JoinEntityGCWorkers()
+	return ctx.Err()
+}
+
+func (process *WorkerProcess) Start(ctx context.Context) error {
+	process.lifecycleMu.Lock()
+	defer process.lifecycleMu.Unlock()
+	if process.started {
+		return fmt.Errorf("generated Worker process already started")
+	}
+
+	process.ctx, process.cancel = context.WithCancel(ctx)
+	process.done = make(chan struct{})
+	process.started = true
+	process.running = true
+	go func() {
+		err := process.Run(process.ctx)
+		process.RequestStop()
+		process.lifecycleMu.Lock()
+		process.runErr = err
+		process.running = false
+		close(process.done)
+		process.lifecycleMu.Unlock()
+	}()
+	return nil
+}
+
+func (process *WorkerProcess) Join() error {
+	process.lifecycleMu.Lock()
+	if !process.started {
+		process.lifecycleMu.Unlock()
+		return fmt.Errorf("generated Worker process not started")
+	}
+	done := process.done
+	process.lifecycleMu.Unlock()
+
+	<-done
+
+	process.lifecycleMu.Lock()
+	defer process.lifecycleMu.Unlock()
+	return process.runErr
+}
+
+func (process *WorkerProcess) Running() bool {
+	process.lifecycleMu.Lock()
+	defer process.lifecycleMu.Unlock()
+	return process.running
+}
+
+func (process *WorkerProcess) RequestStop() {
+	process.lifecycleMu.Lock()
+	cancel := process.cancel
+	process.lifecycleMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+	process.Runtime.RequestStop()
 }

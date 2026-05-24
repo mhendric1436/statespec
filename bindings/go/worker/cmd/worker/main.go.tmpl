@@ -1,10 +1,33 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"os/signal"
 	"statespec-generated/common/backend/memory"
 	worker "statespec-generated/worker/backend"
+	"syscall"
 )
 
 func main() {
-	_ = worker.NewWorkerTierRuntime(memory.NewBackend())
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	backend := memory.NewBackend()
+	runtime := worker.NewWorkerTierRuntime(backend)
+	process := worker.NewWorkerProcess(runtime)
+
+	if err := process.Start(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "statespec generated Worker process failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	<-ctx.Done()
+	process.RequestStop()
+	if err := process.Join(); err != nil && !errors.Is(err, context.Canceled) {
+		fmt.Fprintf(os.Stderr, "statespec generated Worker process failed: %v\n", err)
+		os.Exit(1)
+	}
 }
