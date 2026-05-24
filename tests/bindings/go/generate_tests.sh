@@ -182,6 +182,8 @@ assert_file_contains "$TMPDIR/out-go/common/backend/runtime/workflows.go" "type 
 assert_file_contains "$TMPDIR/out-go/common/backend/runtime/logs.go" "func (s *LogSink) InspectEvents"
 assert_file_contains "$TMPDIR/out-go/common/backend/runtime/metrics.go" "func (s *MetricSink) InspectSamples"
 assert_file_contains "$TMPDIR/out-go/common/backend/runtime/entity_gc_descriptors.go" "type EntityGCDescriptor struct"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/entity_gc_descriptors.go" "common.OrderEntityName"
+assert_file_contains "$TMPDIR/out-go/common/backend/runtime/entity_gc_descriptors.go" "common.OrderStatusFailed"
 assert_file_contains "$TMPDIR/out-go/common/backend/runtime/entity_gc_repository.go" "type EntityGCRepository interface"
 assert_file_contains "$TMPDIR/out-go/common/backend/runtime/entity_gc_workers.go" "type EntityGCWorker struct"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptors.go" "type FeatureFlagDescriptor struct"

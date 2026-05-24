@@ -339,7 +339,8 @@ TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system
                 continue;
             }
             terminal_states << "            EntityGcTerminalStateDescriptor {\n"
-                            << "                state: " << rust_string(state.name)
+                            << "                state: "
+                            << rust_entity_state_constant_name(entity.name, state.name)
                             << ".to_string(),\n"
                             << "                after: "
                             << rust_string(state.garbage_collection->after) << ".to_string(),\n"
@@ -352,8 +353,10 @@ TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system
             continue;
         }
         descriptors << "        EntityGcDescriptor {\n"
-                    << "            entity: " << rust_string(entity.name) << ".to_string(),\n"
-                    << "            collection: " << rust_string(entity.name) << ".to_string(),\n"
+                    << "            entity: " << rust_entity_name_constant_name(entity.name)
+                    << ".to_string(),\n"
+                    << "            collection: " << rust_entity_name_constant_name(entity.name)
+                    << ".to_string(),\n"
                     << "            terminal_states: vec![\n"
                     << terminal_states.str() << "            ],\n"
                     << "        },\n";

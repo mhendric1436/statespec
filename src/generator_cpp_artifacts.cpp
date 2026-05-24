@@ -283,7 +283,8 @@ TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
                 continue;
             }
             terminal_states << "                EntityGcTerminalStateDescriptor{"
-                            << cpp_string(state.name) << ", "
+                            << "::statespec_generated::"
+                            << cpp_entity_state_constant_name(entity.name, state.name) << ", "
                             << cpp_string(state.garbage_collection->after) << ", "
                             << cpp_string(state.garbage_collection->mode) << "},\n";
         }
@@ -292,8 +293,10 @@ TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
             continue;
         }
         descriptors << "        EntityGcDescriptor{\n"
-                    << "            " << cpp_string(entity.name) << ",\n"
-                    << "            " << cpp_string(entity.name) << ",\n"
+                    << "            ::statespec_generated::"
+                    << cpp_entity_name_constant_name(entity.name) << ",\n"
+                    << "            ::statespec_generated::"
+                    << cpp_entity_name_constant_name(entity.name) << ",\n"
                     << "            std::vector<EntityGcTerminalStateDescriptor>{\n"
                     << terminal_states.str() << "            }\n"
                     << "        },\n";

@@ -181,7 +181,8 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
             {
                 continue;
             }
-            terminal_states << "\t\t\t{State: " << go_string(state.name)
+            terminal_states << "\t\t\t{State: common."
+                            << go_entity_state_constant_name(entity.name, state.name)
                             << ", After: " << go_string(state.garbage_collection->after)
                             << ", Mode: " << go_string(state.garbage_collection->mode) << "},\n";
         }
@@ -190,8 +191,9 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
             continue;
         }
         descriptors << "\t\t{\n"
-                    << "\t\t\tEntity: " << go_string(entity.name) << ",\n"
-                    << "\t\t\tCollection: " << go_string(entity.name) << ",\n"
+                    << "\t\t\tEntity: common." << go_entity_name_constant_name(entity.name) << ",\n"
+                    << "\t\t\tCollection: common." << go_entity_name_constant_name(entity.name)
+                    << ",\n"
                     << "\t\t\tTerminalStates: []EntityGCTerminalStateDescriptor{\n"
                     << terminal_states.str() << "\t\t\t},\n"
                     << "\t\t},\n";

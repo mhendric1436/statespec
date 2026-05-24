@@ -294,8 +294,9 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
             {
                 terminal_states << ",\n";
             }
-            terminal_states << "                new TerminalState(" << java_string(state.name)
-                            << ", " << java_string(state.garbage_collection->after) << ", "
+            terminal_states << "                new TerminalState(Descriptors."
+                            << java_entity_state_constant_name(entity.name, state.name) << ", "
+                            << java_string(state.garbage_collection->after) << ", "
                             << java_string(state.garbage_collection->mode) << ")";
             first_terminal_state = false;
         }
@@ -305,8 +306,10 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
         }
         std::ostringstream descriptor;
         descriptor << "            new Descriptor(\n"
-                   << "                " << java_string(entity.name) << ",\n"
-                   << "                " << java_string(entity.name) << ",\n"
+                   << "                Descriptors." << java_entity_name_constant_name(entity.name)
+                   << ",\n"
+                   << "                Descriptors." << java_entity_name_constant_name(entity.name)
+                   << ",\n"
                    << "                List.of(\n"
                    << terminal_states.str() << "\n"
                    << "                )\n"

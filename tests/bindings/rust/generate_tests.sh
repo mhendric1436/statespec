@@ -194,6 +194,8 @@ assert_file_contains "$TMPDIR/out-rust/common/runtime/workflows.rs" "pub struct 
 assert_file_contains "$TMPDIR/out-rust/common/runtime/logs.rs" "inspect_events"
 assert_file_contains "$TMPDIR/out-rust/common/runtime/metrics.rs" "inspect_samples"
 assert_file_contains "$TMPDIR/out-rust/common/runtime/entity_gc_descriptors.rs" "pub struct EntityGcDescriptor"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/entity_gc_descriptors.rs" "ORDER_ENTITY_NAME"
+assert_file_contains "$TMPDIR/out-rust/common/runtime/entity_gc_descriptors.rs" "ORDER_STATUS_FAILED"
 assert_file_contains "$TMPDIR/out-rust/common/runtime/entity_gc_repository.rs" "pub trait EntityGcRepository"
 assert_file_contains "$TMPDIR/out-rust/common/runtime/entity_gc_workers.rs" "pub struct EntityGcWorker"
 assert_file_contains "$TMPDIR/out-rust/common/descriptors.rs" "pub struct FeatureFlagDefinition"
