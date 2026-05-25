@@ -710,9 +710,45 @@ TemplateRenderer::Values cpp_entity_descriptor_module_values(const IrEntity& ent
 
 TemplateRenderer::Values cpp_shape_descriptor_module_values(const IrSystem& system)
 {
+    std::ostringstream includes;
+    std::ostringstream aggregation;
+    for (const auto& shape : system.shapes)
+    {
+        const auto prefix = snake_identifier(shape.name);
+        includes << "#include \"shapes/" << prefix << ".hpp\"\n";
+        aggregation << "    for (auto descriptor : " << prefix << "_shape_descriptors())\n";
+        aggregation << "    {\n";
+        aggregation << "        descriptors.push_back(std::move(descriptor));\n";
+        aggregation << "    }\n";
+    }
+    std::ostringstream content;
+    content << includes.str();
+    if (!includes.str().empty())
+    {
+        content << "\n";
+    }
+    content << "inline std::vector<ShapeDescriptor> shape_descriptors()\n";
+    content << "{\n";
+    content << "    std::vector<ShapeDescriptor> descriptors;\n";
+    content << aggregation.str();
+    content << "    return descriptors;\n";
+    content << "}\n\n";
     return TemplateRenderer::Values{
         {"descriptor_module_name", "shape descriptors"},
-        {"descriptor_module_content", generate_cpp_shape_descriptors(system)},
+        {"descriptor_module_content", content.str()},
+    };
+}
+
+TemplateRenderer::Values cpp_shape_descriptor_module_values(const IrShape& shape)
+{
+    IrSystem one_shape_system;
+    one_shape_system.shapes.push_back(shape);
+    auto content = generate_cpp_shape_descriptors(one_shape_system);
+    const auto prefix = snake_identifier(shape.name);
+    content = replace_all_copy(content, "shape_descriptors()", prefix + "_shape_descriptors()");
+    return TemplateRenderer::Values{
+        {"descriptor_module_name", "shape descriptor " + shape.name},
+        {"descriptor_module_content", content},
     };
 }
 
@@ -817,6 +853,15 @@ void add_cpp_descriptor_module_artifacts(
         result, options, templates, "descriptors/shapes.hpp", "shape descriptors", diagnostics,
         cpp_shape_descriptor_module_values(system)
     );
+    for (const auto& shape : system.shapes)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            generated_template_path("descriptor_module.hpp.tmpl"),
+            common_artifact_path("descriptors/shapes/" + snake_identifier(shape.name) + ".hpp"),
+            diagnostics, GeneratedArtifactTier::Common, cpp_shape_descriptor_module_values(shape)
+        );
+    }
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/apis.hpp", "API descriptors", diagnostics
     );

@@ -751,10 +751,42 @@ TemplateRenderer::Values rust_entity_descriptor_module_values(const IrEntity& en
 
 TemplateRenderer::Values rust_shape_descriptor_module_values(const IrSystem& system)
 {
+    std::ostringstream content;
+    for (const auto& shape : system.shapes)
+    {
+        content << "#[path = \"shapes/" << snake_identifier(shape.name) << ".rs\"]\n";
+        content << "mod shape_" << snake_identifier(shape.name) << ";\n";
+        content << "pub use shape_" << snake_identifier(shape.name) << "::*;\n";
+    }
+    if (!system.shapes.empty())
+    {
+        content << "\n";
+    }
+    content << "pub fn shape_descriptors() -> Vec<ShapeDescriptor> {\n";
+    content << "    let mut descriptors = Vec::new();\n";
+    for (const auto& shape : system.shapes)
+    {
+        content << "    descriptors.extend(shape_" << snake_identifier(shape.name)
+                << "::" << snake_identifier(shape.name) << "_shape_descriptors());\n";
+    }
+    content << "    descriptors\n";
+    content << "}\n\n";
     return TemplateRenderer::Values{
         {"descriptor_module_name", "shape descriptors"},
-        {"descriptor_module_content",
-         "use super::*;\n\n" + generate_rust_shape_descriptors(system)},
+        {"descriptor_module_content", "use super::*;\n\n" + content.str()},
+    };
+}
+
+TemplateRenderer::Values rust_shape_descriptor_module_values(const IrShape& shape)
+{
+    IrSystem one_shape_system;
+    one_shape_system.shapes.push_back(shape);
+    auto content = generate_rust_shape_descriptors(one_shape_system);
+    const auto prefix = snake_identifier(shape.name);
+    content = replace_all_copy(content, "shape_descriptors()", prefix + "_shape_descriptors()");
+    return TemplateRenderer::Values{
+        {"descriptor_module_name", "shape descriptor " + shape.name},
+        {"descriptor_module_content", "use super::*;\n\n" + content},
     };
 }
 
@@ -854,6 +886,15 @@ void add_rust_descriptor_module_artifacts(
         result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics,
         rust_shape_descriptor_module_values(system)
     );
+    for (const auto& shape : system.shapes)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            generated_template_path("descriptor_module.rs.tmpl"),
+            common_artifact_path("descriptors/shapes/" + snake_identifier(shape.name) + ".rs"),
+            diagnostics, GeneratedArtifactTier::Common, rust_shape_descriptor_module_values(shape)
+        );
+    }
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/apis.rs", "API descriptors", diagnostics
     );

@@ -48,6 +48,10 @@ common/descriptors/core.hpp
 common/descriptors/entities/service_instance.hpp
 common/descriptors/runtime.hpp
 common/descriptors/shapes.hpp
+common/descriptors/shapes/provision_callback_request.hpp
+common/descriptors/shapes/provision_callback_response.hpp
+common/descriptors/shapes/start_provision_request.hpp
+common/descriptors/shapes/start_provision_response.hpp
 common/descriptors/workers.hpp
 common/external_system.hpp
 common/feature_flag.hpp
@@ -130,10 +134,10 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/a
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "inline constexpr const char* kAccountIndexByTenantAccount = \"by_tenant_account\""
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "FieldDescriptor{kAccountFieldCreatedAt, statespec::backend::FieldType::Timestamp, kAccountFieldCreatedAtTypeName, true}"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "FieldDescriptor{kAccountFieldStatus, statespec::backend::FieldType::String, kAccountFieldStatusTypeName, true}"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes.hpp" "inline constexpr const char* kCreateAccountRequestShapeName = \"CreateAccountRequest\""
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes.hpp" "inline constexpr const char* kCreateAccountRequestFieldTenantId = \"tenant_id\""
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes.hpp" "inline constexpr const char* kCreateAccountRequestFieldTenantIdTypeName = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes.hpp" "FieldDescriptor{kCreateAccountRequestFieldTenantId, statespec::backend::FieldType::String, kCreateAccountRequestFieldTenantIdTypeName, true}"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "inline constexpr const char* kCreateAccountRequestShapeName = \"CreateAccountRequest\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "inline constexpr const char* kCreateAccountRequestFieldTenantId = \"tenant_id\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "inline constexpr const char* kCreateAccountRequestFieldTenantIdTypeName = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "FieldDescriptor{kCreateAccountRequestFieldTenantId, statespec::backend::FieldType::String, kCreateAccountRequestFieldTenantIdTypeName, true}"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "{kAccountFieldTenantId, kAccountFieldAccountId}"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "key += value->canonical_string()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "object[key_value.field] = key_value.value"

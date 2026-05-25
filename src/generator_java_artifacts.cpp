@@ -50,6 +50,11 @@ std::string java_workflow_descriptor_module_class_name(std::string_view workflow
     return pascal_identifier(std::string{workflow_name}) + "DescriptorModule";
 }
 
+std::string java_shape_descriptor_module_class_name(std::string_view shape_name)
+{
+    return pascal_identifier(std::string{shape_name}) + "DescriptorModule";
+}
+
 std::string java_entity_descriptor_module_ref(std::string_view entity_name)
 {
     return "com.statespec.generated.descriptors.entities." +
@@ -65,6 +70,13 @@ std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
         "common/com/statespec/generated/descriptors/WorkerDescriptorModule.java",
         "common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java",
     };
+    for (const auto& shape : system.shapes)
+    {
+        sources.push_back(
+            "common/com/statespec/generated/descriptors/shapes/" +
+            java_shape_descriptor_module_class_name(shape.name) + ".java"
+        );
+    }
     for (const auto& entity : system.entities)
     {
         sources.push_back(
@@ -876,8 +888,39 @@ TemplateRenderer::Values java_shape_descriptor_module_values(
     const IrSystem& system
 )
 {
+    std::ostringstream content;
+    content << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";
+    if (system.shapes.empty())
+    {
+        content << "        return List.of();\n";
+        content << "    }\n\n";
+        return java_descriptor_module_values(
+            package_name, class_name, "shape descriptors", content.str()
+        );
+    }
+    content << "        return List.of(\n";
+    for (std::size_t i = 0; i < system.shapes.size(); ++i)
+    {
+        const auto& shape = system.shapes[i];
+        content << "            com.statespec.generated.descriptors.shapes."
+                << java_shape_descriptor_module_class_name(shape.name) << ".shapeDescriptors()";
+        content << (i + 1 < system.shapes.size() ? ",\n" : "\n");
+    }
+    content << "        ).stream().flatMap(List::stream).toList();\n";
+    content << "    }\n\n";
     return java_descriptor_module_values(
-        package_name, class_name, "shape descriptors", generate_java_shape_descriptors(system)
+        package_name, class_name, "shape descriptors", content.str()
+    );
+}
+
+TemplateRenderer::Values java_shape_descriptor_module_values(const IrShape& shape)
+{
+    IrSystem one_shape_system;
+    one_shape_system.shapes.push_back(shape);
+    return java_descriptor_module_values(
+        "com.statespec.generated.descriptors.shapes",
+        java_shape_descriptor_module_class_name(shape.name), "shape descriptor " + shape.name,
+        generate_java_shape_descriptors(one_shape_system)
     );
 }
 
@@ -1174,6 +1217,7 @@ void add_java_descriptor_module_artifacts(
     const auto descriptor_package_path =
         join_artifact_path(GeneratedJavaOutputPackagePath, "descriptors");
     const auto entity_descriptor_package_path = descriptor_package_path / "entities";
+    const auto shape_descriptor_package_path = descriptor_package_path / "shapes";
     const std::string descriptor_package = "com.statespec.generated.descriptors";
     const std::string entity_descriptor_package = descriptor_package + ".entities";
 
@@ -1186,6 +1230,18 @@ void add_java_descriptor_module_artifacts(
         descriptor_package, "ShapeDescriptorModule", "shape descriptors", diagnostics,
         java_shape_descriptor_module_values(descriptor_package, "ShapeDescriptorModule", system)
     );
+    for (const auto& shape : system.shapes)
+    {
+        const auto class_name = java_shape_descriptor_module_class_name(shape.name);
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            generated_template_path("DescriptorModule.java.tmpl"),
+            common_artifact_path(
+                (shape_descriptor_package_path / (class_name + ".java")).generic_string()
+            ),
+            diagnostics, GeneratedArtifactTier::Common, java_shape_descriptor_module_values(shape)
+        );
+    }
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "ApiDescriptorModule.java",
         descriptor_package, "ApiDescriptorModule", "API descriptors", diagnostics

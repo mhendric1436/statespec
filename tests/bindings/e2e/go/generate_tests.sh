@@ -56,6 +56,8 @@ common/backend/log.go
 common/backend/memory/backend.go
 common/backend/memory/transaction.go
 common/backend/metric.go
+common/backend/provision_callback_request_shape_descriptors.go
+common/backend/provision_callback_response_shape_descriptors.go
 common/backend/queue.go
 common/backend/runtime/codec.go
 common/backend/runtime/codec_leases.go
@@ -74,6 +76,8 @@ common/backend/shapes/provision_callback_request.go
 common/backend/shapes/provision_callback_response.go
 common/backend/shapes/start_provision_request.go
 common/backend/shapes/start_provision_response.go
+common/backend/start_provision_request_shape_descriptors.go
+common/backend/start_provision_response_shape_descriptors.go
 common/backend/workflow.go
 common/backend/workflows/provision_service.go
 common/backend/workflows/workflows.go
@@ -133,10 +137,10 @@ assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/account_descrip
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/account_descriptors.go" "AccountIndexByTenantAccount = \"by_tenant_account\""
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/account_descriptors.go" "{Name: AccountFieldCreatedAt, Type: FieldTypeTimestamp, TypeName: AccountFieldCreatedAtTypeName, Required: true}"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/account_descriptors.go" "{Name: AccountFieldStatus, Type: FieldTypeString, TypeName: AccountFieldStatusTypeName, Required: true}"
-assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/shape_descriptors.go" "CreateAccountRequestShapeName = \"CreateAccountRequest\""
-assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/shape_descriptors.go" "CreateAccountRequestFieldTenantId = \"tenant_id\""
-assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/shape_descriptors.go" "CreateAccountRequestFieldTenantIdTypeName = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/shape_descriptors.go" "{Name: CreateAccountRequestFieldTenantId, Type: FieldTypeString, TypeName: CreateAccountRequestFieldTenantIdTypeName, Required: true}"
+assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go" "CreateAccountRequestShapeName = \"CreateAccountRequest\""
+assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go" "CreateAccountRequestFieldTenantId = \"tenant_id\""
+assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go" "CreateAccountRequestFieldTenantIdTypeName = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go" "{Name: CreateAccountRequestFieldTenantId, Type: FieldTypeString, TypeName: CreateAccountRequestFieldTenantIdTypeName, Required: true}"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/account_descriptors.go" "KeyFields: []string{AccountFieldTenantId, AccountFieldAccountId}"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/descriptors.go" "builder.WriteString(value.CanonicalString())"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/descriptors.go" "object[keyValue.Field] = keyValue.Value"

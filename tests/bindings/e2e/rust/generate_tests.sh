@@ -47,6 +47,10 @@ common/descriptors/core.rs
 common/descriptors/entities/service_instance.rs
 common/descriptors/runtime.rs
 common/descriptors/shapes.rs
+common/descriptors/shapes/provision_callback_request.rs
+common/descriptors/shapes/provision_callback_response.rs
+common/descriptors/shapes/start_provision_request.rs
+common/descriptors/shapes/start_provision_response.rs
 common/descriptors/workers.rs
 common/external_system.rs
 common/feature_flag.rs
@@ -132,10 +136,10 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "pub const ACCOUNT_INDEX_BY_TENANT_ACCOUNT: &str = \"by_tenant_account\""
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "FieldDescriptor { name: ACCOUNT_FIELD_CREATED_AT.to_string(), field_type: FieldType::Timestamp, type_name: ACCOUNT_FIELD_CREATED_AT_TYPE_NAME.to_string(), required: true }"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "FieldDescriptor { name: ACCOUNT_FIELD_STATUS.to_string(), field_type: FieldType::String, type_name: ACCOUNT_FIELD_STATUS_TYPE_NAME.to_string(), required: true }"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes.rs" "pub const CREATE_ACCOUNT_REQUEST_SHAPE_NAME: &str = \"CreateAccountRequest\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID: &str = \"tenant_id\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME: &str = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes.rs" "FieldDescriptor { name: CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID.to_string(), field_type: FieldType::String, type_name: CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME.to_string(), required: true }"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_SHAPE_NAME: &str = \"CreateAccountRequest\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID: &str = \"tenant_id\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME: &str = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "FieldDescriptor { name: CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID.to_string(), field_type: FieldType::String, type_name: CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME.to_string(), required: true }"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "key_fields: vec![ACCOUNT_FIELD_TENANT_ID.to_string(), ACCOUNT_FIELD_ACCOUNT_ID.to_string()]"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors.rs" "key.push_str(&value.value.canonical_string())"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors.rs" "values.insert(key_value.field.clone(), key_value.value.clone())"

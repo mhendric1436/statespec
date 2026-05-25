@@ -68,6 +68,10 @@ common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
 common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
 common/com/statespec/generated/descriptors/WorkerDescriptorModule.java
 common/com/statespec/generated/descriptors/entities/ServiceInstanceDescriptorModule.java
+common/com/statespec/generated/descriptors/shapes/ProvisionCallbackRequestDescriptorModule.java
+common/com/statespec/generated/descriptors/shapes/ProvisionCallbackResponseDescriptorModule.java
+common/com/statespec/generated/descriptors/shapes/StartProvisionRequestDescriptorModule.java
+common/com/statespec/generated/descriptors/shapes/StartProvisionResponseDescriptorModule.java
 common/com/statespec/generated/shapes/ProvisionCallbackRequest.java
 common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
 common/com/statespec/generated/shapes/StartProvisionRequest.java
@@ -127,10 +131,10 @@ assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generat
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java" "public static final String ACCOUNT_INDEX_BY_TENANT_ACCOUNT = \"by_tenant_account\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java" "new FieldDescriptor(ACCOUNT_FIELD_CREATED_AT, FieldType.TIMESTAMP, ACCOUNT_FIELD_CREATED_AT_TYPE_NAME, true)"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java" "new FieldDescriptor(ACCOUNT_FIELD_STATUS, FieldType.STRING, ACCOUNT_FIELD_STATUS_TYPE_NAME, true)"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/ShapeDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_SHAPE_NAME = \"CreateAccountRequest\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/ShapeDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID = \"tenant_id\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/ShapeDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/ShapeDescriptorModule.java" "new FieldDescriptor(CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID, FieldType.STRING, CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME, true)"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_SHAPE_NAME = \"CreateAccountRequest\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID = \"tenant_id\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "new FieldDescriptor(CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID, FieldType.STRING, CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME, true)"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java" "List.of(ACCOUNT_FIELD_TENANT_ID, ACCOUNT_FIELD_ACCOUNT_ID)"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/Descriptors.java" "key.append(keyField).append('=').append(value.canonicalString()).append('\\n')"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/Descriptors.java" "values.put(keyValue.field(), keyValue.value())"

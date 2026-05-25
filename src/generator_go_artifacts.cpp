@@ -716,9 +716,27 @@ TemplateRenderer::Values go_entity_descriptor_values(const IrEntity& entity)
 
 TemplateRenderer::Values go_shape_descriptor_values(const IrSystem& system)
 {
-    return TemplateRenderer::Values{
-        {"shape_descriptor_content", generate_go_shape_descriptors(system)}
-    };
+    std::ostringstream content;
+    content << "func ShapeDescriptors() []ShapeDescriptor {\n";
+    content << "\tvar descriptors []ShapeDescriptor\n";
+    for (const auto& shape : system.shapes)
+    {
+        content << "\tdescriptors = append(descriptors, " << pascal_identifier(shape.name)
+                << "ShapeDescriptors()...)\n";
+    }
+    content << "\treturn descriptors\n";
+    content << "}\n\n";
+    return TemplateRenderer::Values{{"shape_descriptor_content", content.str()}};
+}
+
+std::string go_shape_descriptor_file(const IrShape& shape)
+{
+    IrSystem one_shape_system;
+    one_shape_system.shapes.push_back(shape);
+    auto content = generate_go_shape_descriptors(one_shape_system);
+    const auto type_name = pascal_identifier(shape.name);
+    content = replace_all_copy(content, "ShapeDescriptors()", type_name + "ShapeDescriptors()");
+    return "package backend\n\n" + content;
 }
 
 void add_go_raw_common_file(
@@ -808,6 +826,13 @@ void add_go_shape_descriptor_artifact(
         common_artifact_path("backend/shape_descriptors.go"), diagnostics,
         GeneratedArtifactTier::Common, go_shape_descriptor_values(system)
     );
+    for (const auto& shape : system.shapes)
+    {
+        add_go_raw_common_file(
+            result, options, "backend/" + snake_identifier(shape.name) + "_shape_descriptors.go",
+            go_shape_descriptor_file(shape)
+        );
+    }
 }
 
 void add_go_entity_descriptor_artifacts(
