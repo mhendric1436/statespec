@@ -45,7 +45,6 @@ common/backend.hpp
 common/descriptors.hpp
 common/descriptors/apis.hpp
 common/descriptors/core.hpp
-common/descriptors/entities/service_instance.hpp
 common/descriptors/events.hpp
 common/descriptors/external_systems.hpp
 common/descriptors/runtime.hpp
@@ -134,21 +133,22 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "re
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "repository.listByTenantAccountTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "repository.listByAccountStatusTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/task.hpp" "repository.listByProjectStatusTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/project.hpp" "listByTenantProjectTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/task.hpp" "listByTenantTaskTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/task.hpp" "listByAccountPriorityTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "inline constexpr const char* kAccountEntityName = \"Account\""
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "inline constexpr const char* kAccountFieldTenantId = \"tenant_id\""
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "inline constexpr const char* kAccountFieldCreatedAtTypeName = \"timestamp\""
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "inline constexpr const char* kAccountFieldStatusTypeName = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "inline constexpr const char* kAccountIndexByTenantAccount = \"by_tenant_account\""
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "FieldDescriptor{kAccountFieldCreatedAt, statespec::backend::FieldType::Timestamp, kAccountFieldCreatedAtTypeName, true}"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "FieldDescriptor{kAccountFieldStatus, statespec::backend::FieldType::String, kAccountFieldStatusTypeName, true}"
+assert_file_not_exists "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/project/persistence.hpp" "listByTenantProjectTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/task/persistence.hpp" "listByTenantTaskTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/task/persistence.hpp" "listByAccountPriorityTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/model.hpp" "inline constexpr const char* kAccountEntityName = \"Account\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/model.hpp" "inline constexpr const char* kAccountFieldTenantId = \"tenant_id\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/model.hpp" "inline constexpr const char* kAccountFieldCreatedAtTypeName = \"timestamp\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/model.hpp" "inline constexpr const char* kAccountFieldStatusTypeName = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/model.hpp" "inline constexpr const char* kAccountIndexByTenantAccount = \"by_tenant_account\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/model.hpp" "FieldDescriptor{kAccountFieldCreatedAt, statespec::backend::FieldType::Timestamp, kAccountFieldCreatedAtTypeName, true}"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/model.hpp" "FieldDescriptor{kAccountFieldStatus, statespec::backend::FieldType::String, kAccountFieldStatusTypeName, true}"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "inline constexpr const char* kCreateAccountRequestShapeName = \"CreateAccountRequest\""
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "inline constexpr const char* kCreateAccountRequestFieldTenantId = \"tenant_id\""
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "inline constexpr const char* kCreateAccountRequestFieldTenantIdTypeName = \"string\""
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "FieldDescriptor{kCreateAccountRequestFieldTenantId, statespec::backend::FieldType::String, kCreateAccountRequestFieldTenantIdTypeName, true}"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp" "{kAccountFieldTenantId, kAccountFieldAccountId}"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/schema.hpp" "{kAccountFieldTenantId, kAccountFieldAccountId}"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "key += value->canonical_string()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "object[key_value.field] = key_value.value"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "return ApiResponse{404"
@@ -159,8 +159,8 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "do
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "const auto requested_status = std::string{kProjectStatusDeleted}"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "return ApiResponse{204"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/project.hpp" "updateTx"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/project.hpp" "kProjectStatusDeleted"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/project/persistence.hpp" "updateTx"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/project/model.hpp" "kProjectStatusDeleted"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-cpp" check-api
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-api-entities-cpp" -I"$TMPDIR/out-api-entities-cpp/common" "$SCRIPT_DIR/api_persistence_fixture.cpp" -o "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
 run_expect_status 0 "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"

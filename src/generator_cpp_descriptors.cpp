@@ -876,43 +876,7 @@ bool write_cpp_delete_handler_body(
 
 std::string generate_cpp_entity_module_umbrella(const IrSystem& system)
 {
-    std::ostringstream out;
-    for (const auto& entity : system.entities)
-    {
-        out << "#include \"descriptors/entities/" << snake_identifier(entity.name) << ".hpp\"\n";
-    }
-    if (!system.entities.empty())
-    {
-        out << "\n";
-    }
-    out << "inline std::vector<EntityDescriptor> entity_descriptors()\n";
-    out << "{\n";
-    out << "    std::vector<EntityDescriptor> descriptors;\n";
-    for (const auto& entity : system.entities)
-    {
-        const auto prefix = snake_identifier(entity.name);
-        out << "    for (auto descriptor : " << prefix << "_entity_descriptors())\n";
-        out << "    {\n";
-        out << "        descriptors.push_back(std::move(descriptor));\n";
-        out << "    }\n";
-    }
-    out << "    return descriptors;\n";
-    out << "}\n\n";
-    out << "inline std::vector<statespec::backend::CollectionDescriptor> "
-           "collection_descriptors()\n";
-    out << "{\n";
-    out << "    std::vector<statespec::backend::CollectionDescriptor> descriptors;\n";
-    for (const auto& entity : system.entities)
-    {
-        const auto prefix = snake_identifier(entity.name);
-        out << "    for (auto descriptor : " << prefix << "_collection_descriptors())\n";
-        out << "    {\n";
-        out << "        descriptors.push_back(std::move(descriptor));\n";
-        out << "    }\n";
-    }
-    out << "    return descriptors;\n";
-    out << "}\n\n";
-    return out.str();
+    return generate_cpp_entity_descriptors(system);
 }
 
 } // namespace

@@ -72,7 +72,6 @@ common/com/statespec/generated/descriptors/RuntimeQueueRegistrationModule.java
 common/com/statespec/generated/descriptors/RuntimeWorkflowRegistrationModule.java
 common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
 common/com/statespec/generated/descriptors/WorkerDescriptorModule.java
-common/com/statespec/generated/descriptors/entities/ServiceInstanceDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/ProvisionCallbackRequestDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/ProvisionCallbackResponseDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/StartProvisionRequestDescriptorModule.java
@@ -114,16 +113,16 @@ run_expect_status 0 make -C "$TMPDIR/out-e2e-java" build-api
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-e2e-java/build/classes" com.statespec.generated.ApiProcessFixture
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-java"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "new AccountDescriptorModule.DefaultAccountRepository()"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "new ProjectDescriptorModule.DefaultProjectRepository()"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryTask.java" "new TaskDescriptorModule.DefaultTaskRepository()"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "new Descriptors.DefaultAccountRepository()"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "new Descriptors.DefaultProjectRepository()"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryTask.java" "new Descriptors.DefaultTaskRepository()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "backend.begin()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "repository.createTx"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "AccountDescriptorModule.ACCOUNT_FIELD_CREATED_AT"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "AccountDescriptorModule.ACCOUNT_FIELD_UPDATED_AT"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "AccountDescriptorModule.ACCOUNT_FIELD_STATUS"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "document.put(AccountDescriptorModule.ACCOUNT_FIELD_CREATED_AT, com.statespec.backend.Json.string(java.time.Instant.now().toString()))"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "document.put(AccountDescriptorModule.ACCOUNT_FIELD_STATUS, com.statespec.backend.Json.string(AccountDescriptorModule.ACCOUNT_STATUS_ACTIVE))"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "Descriptors.ACCOUNT_FIELD_CREATED_AT"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "Descriptors.ACCOUNT_FIELD_UPDATED_AT"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "Descriptors.ACCOUNT_FIELD_STATUS"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "document.put(Descriptors.ACCOUNT_FIELD_CREATED_AT, com.statespec.backend.Json.string(java.time.Instant.now().toString()))"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "document.put(Descriptors.ACCOUNT_FIELD_STATUS, com.statespec.backend.Json.string(Descriptors.ACCOUNT_STATUS_ACTIVE))"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "missing required parent Account"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryTask.java" "missing required parent Project"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "extractApiPathParameters"
@@ -134,8 +133,9 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Persistence.java" "listByTenantProjectTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/task/Persistence.java" "listByTenantTaskTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/task/Persistence.java" "listByAccountPriorityTx"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java" "ACCOUNT_ENTITY_NAME = com.statespec.generated.entities.account.Model.ACCOUNT_ENTITY_NAME"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java" "ACCOUNT_FIELD_TENANT_ID = com.statespec.generated.entities.account.Model.ACCOUNT_FIELD_TENANT_ID"
+assert_file_not_exists "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_ENTITY_NAME = \"Account\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_FIELD_TENANT_ID = \"tenant_id\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_FIELD_CREATED_AT_TYPE_NAME = \"timestamp\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_FIELD_STATUS_TYPE_NAME = \"string\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_INDEX_BY_TENANT_ACCOUNT = \"by_tenant_account\""
@@ -152,12 +152,12 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "com.statespec.backend.Json.array(items)"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "repository.updateTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "invalid entity status transition"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "document.put(ProjectDescriptorModule.PROJECT_FIELD_UPDATED_AT"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "var requestedStatus = ProjectDescriptorModule.PROJECT_STATUS_DELETED"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "document.put(Descriptors.PROJECT_FIELD_UPDATED_AT"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "var requestedStatus = Descriptors.PROJECT_STATUS_DELETED"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "new Descriptors.ApiResponse(204"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Persistence.java" "updateTx"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/ProjectDescriptorModule.java" "PROJECT_STATUS_DELETED"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Model.java" "PROJECT_STATUS_DELETED"
 cp "$SCRIPT_DIR/ApiPersistenceFixture.java" "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiPersistenceFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-java" build-api
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-api-entities-java/build/classes" com.statespec.generated.ApiPersistenceFixture

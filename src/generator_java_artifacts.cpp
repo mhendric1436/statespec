@@ -26,11 +26,6 @@ std::string java_api_shape_import(const IrSystem& system);
 std::string java_workflow_worker_module_class_name(const IrWorkflow& workflow);
 std::filesystem::path java_worker_generated_path(std::string_view filename);
 
-std::string java_entity_descriptor_module_class_name(std::string_view entity_name)
-{
-    return pascal_identifier(std::string{entity_name}) + "DescriptorModule";
-}
-
 std::string java_workflow_descriptor_module_class_name(std::string_view workflow_name)
 {
     return pascal_identifier(std::string{workflow_name}) + "DescriptorModule";
@@ -48,8 +43,8 @@ std::string java_shape_descriptor_module_class_name(std::string_view shape_name)
 
 std::string java_entity_descriptor_module_ref(std::string_view entity_name)
 {
-    return "com.statespec.generated.descriptors.entities." +
-           java_entity_descriptor_module_class_name(entity_name);
+    (void)entity_name;
+    return "com.statespec.generated.Descriptors";
 }
 
 std::string java_event_descriptor_module_file(const IrSystem& system)
@@ -387,7 +382,6 @@ std::string java_api_handler_domain_file(
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
     out << "import static com.statespec.generated.ApiHandlerRegistry.*;\n";
-    out << "import com.statespec.generated.descriptors.entities.*;\n";
     out << java_api_default_handler_shape_import(filtered);
     out << "import java.util.Optional;\n\n";
     out << "final class " << java_api_handler_domain_class_name(domain.name) << " {\n";
@@ -830,18 +824,6 @@ TemplateRenderer::Values java_descriptor_module_values(
         {"descriptor_module_name", std::string{module_name}},
         {"descriptor_module_content", std::move(content)},
     };
-}
-
-TemplateRenderer::Values java_entity_descriptor_module_values(const IrEntity& entity)
-{
-    IrSystem one_entity_system;
-    one_entity_system.entities.push_back(entity);
-    auto content = generate_java_entity_descriptors(one_entity_system);
-    return java_descriptor_module_values(
-        "com.statespec.generated.descriptors.entities",
-        java_entity_descriptor_module_class_name(entity.name), "entity descriptor " + entity.name,
-        std::move(content)
-    );
 }
 
 std::string java_entity_centered_facade_file(
@@ -1588,15 +1570,6 @@ void add_java_descriptor_module_artifacts(
     }
     for (const auto& entity : system.entities)
     {
-        const auto class_name = java_entity_descriptor_module_class_name(entity.name);
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            generated_template_path("DescriptorModule.java.tmpl"),
-            common_artifact_path(
-                (entity_descriptor_package_path / (class_name + ".java")).generic_string()
-            ),
-            diagnostics, GeneratedArtifactTier::Common, java_entity_descriptor_module_values(entity)
-        );
         const auto entity_path = std::filesystem::path{"entities"} / snake_identifier(entity.name);
         add_java_raw_common_file(
             result, options, entity_path / "Model.java",

@@ -44,7 +44,6 @@ common/backend/backend.go
 common/backend/descriptors.go
 common/backend/descriptors/apis.go
 common/backend/descriptors/core.go
-common/backend/descriptors/entities/service_instance.go
 common/backend/descriptors/runtime.go
 common/backend/descriptors/shapes.go
 common/backend/descriptors/workers.go

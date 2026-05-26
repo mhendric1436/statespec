@@ -76,14 +76,10 @@ const IrField* find_entity_field_java(
     return nullptr;
 }
 
-std::string java_entity_descriptor_module_class_name(std::string_view entity_name)
-{
-    return pascal_identifier(std::string{entity_name}) + "DescriptorModule";
-}
-
 std::string java_entity_descriptor_module_ref(std::string_view entity_name)
 {
-    return java_entity_descriptor_module_class_name(entity_name);
+    (void)entity_name;
+    return "Descriptors";
 }
 
 std::string java_entity_field_expr(
@@ -967,24 +963,15 @@ bool write_java_delete_handler_body(
 std::string generate_java_entity_descriptor_umbrella(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "    public static List<EntityDescriptor> entityDescriptors() {\n";
-    out << "        java.util.ArrayList<EntityDescriptor> descriptors = new "
-           "java.util.ArrayList<>();\n";
-    for (const auto& entity : system.entities)
-    {
-        out << "        descriptors.addAll(" << java_entity_descriptor_module_ref(entity.name)
-            << ".entityDescriptors());\n";
-    }
-    out << "        return List.copyOf(descriptors);\n";
-    out << "    }\n\n";
+    out << generate_java_entity_descriptors(system);
 
     out << "    public static List<CollectionDescriptor> collectionDescriptors() {\n";
     out << "        java.util.ArrayList<CollectionDescriptor> descriptors = new "
            "java.util.ArrayList<>();\n";
     for (const auto& entity : system.entities)
     {
-        out << "        descriptors.add(" << java_entity_descriptor_module_ref(entity.name) << "."
-            << lower_camel_identifier(entity.name) << "CollectionDescriptor());\n";
+        out << "        descriptors.add(" << lower_camel_identifier(entity.name)
+            << "CollectionDescriptor());\n";
     }
     out << "        return List.copyOf(descriptors);\n";
     out << "    }\n\n";

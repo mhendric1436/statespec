@@ -794,21 +794,6 @@ std::string replace_all_copy(
     return value;
 }
 
-TemplateRenderer::Values cpp_entity_descriptor_module_values(const IrEntity& entity)
-{
-    IrSystem one_entity_system;
-    one_entity_system.entities.push_back(entity);
-    auto content = generate_cpp_entity_descriptors(one_entity_system);
-    const auto prefix = snake_identifier(entity.name);
-    content = replace_all_copy(content, "entity_descriptors()", prefix + "_entity_descriptors()");
-    content =
-        replace_all_copy(content, "collection_descriptors()", prefix + "_collection_descriptors()");
-    return TemplateRenderer::Values{
-        {"descriptor_module_name", "entity descriptor " + entity.name},
-        {"descriptor_module_content", content},
-    };
-}
-
 std::string cpp_entity_centered_facade_header(
     const IrEntity& entity,
     std::string_view area
@@ -923,9 +908,8 @@ std::string cpp_entity_centered_facade_header(
         }
         out << "    };\n";
         out << "}\n\n";
-        out << "// Relationship metadata is now rooted with the entity model.\n";
-        out << "// The existing descriptors/entities/" << entity_path
-            << ".hpp module remains as the compatibility facade for repository users.\n\n";
+        out << "// Relationship metadata is rooted with the entity model.\n";
+        out << "// common/descriptors.hpp composes entity descriptor catalogs.\n\n";
     }
     else if (area == "schema")
     {
@@ -979,8 +963,7 @@ std::string cpp_entity_centered_facade_header(
         out << "}\n\n";
         out << "// Collection schema and compatibility metadata are rooted with the entity "
                "schema.\n";
-        out << "// The existing descriptors/entities/" << entity_path
-            << ".hpp module remains as the compatibility facade for repository users.\n\n";
+        out << "// common/descriptors.hpp composes entity descriptor catalogs.\n\n";
     }
     else if (area == "persistence")
     {
@@ -1390,12 +1373,6 @@ void add_cpp_descriptor_module_artifacts(
     }
     for (const auto& entity : system.entities)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            generated_template_path("descriptor_module.hpp.tmpl"),
-            common_artifact_path("descriptors/entities/" + snake_identifier(entity.name) + ".hpp"),
-            diagnostics, GeneratedArtifactTier::Common, cpp_entity_descriptor_module_values(entity)
-        );
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
         add_cpp_raw_common_file(
             result, options, entity_dir + "model.hpp",

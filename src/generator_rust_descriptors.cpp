@@ -886,15 +886,7 @@ bool write_rust_delete_handler_body(
 std::string generate_rust_entity_module_umbrella(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "pub fn entity_descriptors() -> Vec<EntityDescriptor> {\n";
-    out << "    let mut descriptors = Vec::new();\n";
-    for (const auto& entity : system.entities)
-    {
-        out << "    descriptors.extend(" << snake_identifier(entity.name)
-            << "_entity_descriptors());\n";
-    }
-    out << "    descriptors\n";
-    out << "}\n\n";
+    out << generate_rust_entity_descriptors(system);
     out << "pub fn collection_descriptors() -> Vec<CollectionDescriptor> {\n";
     out << "    let mut descriptors = Vec::new();\n";
     for (const auto& entity : system.entities)

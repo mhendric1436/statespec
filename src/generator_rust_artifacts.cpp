@@ -827,22 +827,6 @@ std::string replace_all_copy(
     return value;
 }
 
-TemplateRenderer::Values rust_entity_descriptor_module_values(const IrEntity& entity)
-{
-    IrSystem one_entity_system;
-    one_entity_system.entities.push_back(entity);
-    auto content =
-        std::string{"use super::*;\n\n"} + generate_rust_entity_descriptors(one_entity_system);
-    const auto prefix = snake_identifier(entity.name);
-    content = replace_all_copy(content, "entity_descriptors()", prefix + "_entity_descriptors()");
-    content =
-        replace_all_copy(content, "collection_descriptors()", prefix + "_collection_descriptors()");
-    return TemplateRenderer::Values{
-        {"descriptor_module_name", "entity descriptor " + entity.name},
-        {"descriptor_module_content", content},
-    };
-}
-
 std::string rust_entity_centered_facade_file(
     const IrEntity& entity,
     std::string_view area
@@ -929,10 +913,7 @@ std::string rust_entity_centered_facade_file(
         }
         out << "    ]\n";
         out << "}\n\n";
-        out << "// Entity descriptor and repository construction still move in the next staged "
-               "split.\n";
-        out << "// The existing descriptors/entities/" << snake_identifier(entity.name)
-            << ".rs module remains as the compatibility facade for repository users.\n";
+        out << "// Entity descriptor catalogs are composed by common/descriptors.rs.\n";
     }
     else if (area == "schema")
     {
@@ -989,8 +970,7 @@ std::string rust_entity_centered_facade_file(
         out << "}\n\n";
         out << "// Collection schema and compatibility metadata are rooted with the entity "
                "schema.\n";
-        out << "// The existing descriptors/entities/" << snake_identifier(entity.name)
-            << ".rs module remains as the compatibility facade for repository users.\n";
+        out << "// common/descriptors.rs composes entity descriptor catalogs.\n";
     }
     else if (area == "persistence")
     {
@@ -1398,12 +1378,6 @@ void add_rust_descriptor_module_artifacts(
     }
     for (const auto& entity : system.entities)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            generated_template_path("descriptor_module.rs.tmpl"),
-            common_artifact_path("descriptors/entities/" + snake_identifier(entity.name) + ".rs"),
-            diagnostics, GeneratedArtifactTier::Common, rust_entity_descriptor_module_values(entity)
-        );
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
         add_rust_raw_common_file(
             result, options, entity_dir + "model.rs",

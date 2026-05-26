@@ -61,12 +61,6 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
         out << "#[path = \"workflows/" << snake_identifier(workflow.name) << ".rs\"]\n";
         out << "mod workflow_" << snake_identifier(workflow.name) << ";\n";
     }
-    for (const auto& entity : system.entities)
-    {
-        out << "#[path = \"descriptors/entities/" << snake_identifier(entity.name) << ".rs\"]\n";
-        out << "mod descriptor_entity_" << snake_identifier(entity.name) << ";\n";
-        out << "pub use descriptor_entity_" << snake_identifier(entity.name) << "::*;\n";
-    }
     return out.str();
 }
 

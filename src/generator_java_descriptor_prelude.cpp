@@ -26,11 +26,6 @@ std::string java_descriptor_module_imports(const IrSystem& system)
         out << "import com.statespec.generated.workflows." << pascal_identifier(workflow.name)
             << "DescriptorModule;\n";
     }
-    for (const auto& entity : system.entities)
-    {
-        out << "import com.statespec.generated.descriptors.entities."
-            << pascal_identifier(entity.name) << "DescriptorModule;\n";
-    }
     return out.str();
 }
 

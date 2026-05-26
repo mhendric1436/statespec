@@ -1390,14 +1390,6 @@ void add_go_descriptor_module_artifacts(
             go_runtime_registration_module_file(templates, name)
         );
     }
-    for (const auto& entity : system.entities)
-    {
-        add_go_descriptor_module_artifact(
-            result, options, templates,
-            "backend/descriptors/entities/" + snake_identifier(entity.name) + ".go", "entities",
-            "entity descriptor " + entity.name, diagnostics
-        );
-    }
 }
 
 void add_go_generated_template_file(

@@ -44,7 +44,6 @@ common/backend.rs
 common/descriptors.rs
 common/descriptors/apis.rs
 common/descriptors/core.rs
-common/descriptors/entities/service_instance.rs
 common/descriptors/events.rs
 common/descriptors/external_systems.rs
 common/descriptors/runtime.rs
@@ -136,21 +135,22 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "ge
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "list_by_tenant_account_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "list_by_account_status_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/task.rs" "list_by_project_status_tx"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/project.rs" "list_by_tenant_project_tx"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/task.rs" "list_by_tenant_task_tx"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/task.rs" "list_by_account_priority_tx"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "pub const ACCOUNT_ENTITY_NAME: &str = \"Account\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "pub const ACCOUNT_FIELD_TENANT_ID: &str = \"tenant_id\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "pub const ACCOUNT_FIELD_CREATED_AT_TYPE_NAME: &str = \"timestamp\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "pub const ACCOUNT_FIELD_STATUS_TYPE_NAME: &str = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "pub const ACCOUNT_INDEX_BY_TENANT_ACCOUNT: &str = \"by_tenant_account\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "FieldDescriptor { name: ACCOUNT_FIELD_CREATED_AT.to_string(), field_type: FieldType::Timestamp, type_name: ACCOUNT_FIELD_CREATED_AT_TYPE_NAME.to_string(), required: true }"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "FieldDescriptor { name: ACCOUNT_FIELD_STATUS.to_string(), field_type: FieldType::String, type_name: ACCOUNT_FIELD_STATUS_TYPE_NAME.to_string(), required: true }"
+assert_file_not_exists "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/persistence.rs" "list_by_tenant_project_tx"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/task/persistence.rs" "list_by_tenant_task_tx"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/task/persistence.rs" "list_by_account_priority_tx"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/model.rs" "pub const ACCOUNT_ENTITY_NAME: &str = \"Account\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/model.rs" "pub const ACCOUNT_FIELD_TENANT_ID: &str = \"tenant_id\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/model.rs" "pub const ACCOUNT_FIELD_CREATED_AT_TYPE_NAME: &str = \"timestamp\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/model.rs" "pub const ACCOUNT_FIELD_STATUS_TYPE_NAME: &str = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/model.rs" "pub const ACCOUNT_INDEX_BY_TENANT_ACCOUNT: &str = \"by_tenant_account\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/model.rs" "FieldDescriptor { name: ACCOUNT_FIELD_CREATED_AT.to_string(), field_type: FieldType::Timestamp, type_name: ACCOUNT_FIELD_CREATED_AT_TYPE_NAME.to_string(), required: true }"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/model.rs" "FieldDescriptor { name: ACCOUNT_FIELD_STATUS.to_string(), field_type: FieldType::String, type_name: ACCOUNT_FIELD_STATUS_TYPE_NAME.to_string(), required: true }"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_SHAPE_NAME: &str = \"CreateAccountRequest\""
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID: &str = \"tenant_id\""
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME: &str = \"string\""
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "FieldDescriptor { name: CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID.to_string(), field_type: FieldType::String, type_name: CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME.to_string(), required: true }"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs" "key_fields: vec![ACCOUNT_FIELD_TENANT_ID.to_string(), ACCOUNT_FIELD_ACCOUNT_ID.to_string()]"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/schema.rs" "key_fields: vec![ACCOUNT_FIELD_TENANT_ID.to_string(), ACCOUNT_FIELD_ACCOUNT_ID.to_string()]"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors.rs" "key.push_str(&value.value.canonical_string())"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors.rs" "values.insert(key_value.field.clone(), key_value.value.clone())"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "status_code: 404"
@@ -161,8 +161,8 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "do
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "let requested_status = PROJECT_STATUS_DELETED.to_string()"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "status_code: 204"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/project.rs" "update_tx"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/entities/project.rs" "PROJECT_STATUS_DELETED"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/persistence.rs" "update_tx"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/model.rs" "PROJECT_STATUS_DELETED"
 mkdir -p "$TMPDIR/out-api-entities-rust/tests"
 cp "$SCRIPT_DIR/api_persistence_fixture.rs" "$TMPDIR/out-api-entities-rust/tests/api_persistence_fixture.rs"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-rust" check-api
