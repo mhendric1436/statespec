@@ -844,30 +844,6 @@ bool write_go_delete_handler_body(
 
 } // namespace
 
-std::string generate_go_entity_module_umbrella(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << "func EntityDescriptors() []EntityDescriptor {\n";
-    out << "\tvar descriptors []EntityDescriptor\n";
-    for (const auto& entity : system.entities)
-    {
-        out << "\tdescriptors = append(descriptors, " << pascal_identifier(entity.name)
-            << "EntityDescriptors()...)\n";
-    }
-    out << "\treturn descriptors\n";
-    out << "}\n\n";
-    out << "func CollectionDescriptors() []CollectionDescriptor {\n";
-    out << "\tvar descriptors []CollectionDescriptor\n";
-    for (const auto& entity : system.entities)
-    {
-        out << "\tdescriptors = append(descriptors, " << pascal_identifier(entity.name)
-            << "CollectionDescriptors()...)\n";
-    }
-    out << "\treturn descriptors\n";
-    out << "}\n\n";
-    return out.str();
-}
-
 std::string generate_descriptors_go(
     const IrSystem& system,
     const TemplatePackage& templates
@@ -885,7 +861,6 @@ std::string generate_descriptors_go(
     out << generate_go_worker_descriptors(system);
     out << generate_go_policy_descriptors(system);
     out << generate_go_observability_descriptors(system);
-    out << generate_go_entity_module_umbrella(system);
     out << generate_go_runtime_descriptors(system);
     out << generate_go_observability_registration(system);
     out << generate_go_runtime_registration(system, templates);

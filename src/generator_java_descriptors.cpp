@@ -966,24 +966,6 @@ bool write_java_delete_handler_body(
     return true;
 }
 
-std::string generate_java_entity_descriptor_umbrella(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << generate_java_entity_descriptors(system);
-
-    out << "    public static List<CollectionDescriptor> collectionDescriptors() {\n";
-    out << "        java.util.ArrayList<CollectionDescriptor> descriptors = new "
-           "java.util.ArrayList<>();\n";
-    for (const auto& entity : system.entities)
-    {
-        out << "        descriptors.add(" << lower_camel_identifier(entity.name)
-            << "CollectionDescriptor());\n";
-    }
-    out << "        return List.copyOf(descriptors);\n";
-    out << "    }\n\n";
-    return out.str();
-}
-
 } // namespace
 
 std::string generate_java_external_system_descriptor_delegates()
@@ -1090,7 +1072,6 @@ std::string generate_descriptors_java(
     out << "        return ShapeDescriptorModule.shapeDescriptors();\n";
     out << "    }\n\n";
     out << generate_java_observability_descriptors(system);
-    out << generate_java_entity_descriptor_umbrella(system);
     out << generate_java_runtime_descriptors(system);
     out << generate_java_observability_registration(system);
     out << generate_java_runtime_registration(system, templates);

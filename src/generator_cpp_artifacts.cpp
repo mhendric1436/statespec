@@ -1012,17 +1012,26 @@ std::string cpp_entity_centered_facade_header(
         out << "inline ::statespec_generated::EntityDescriptor " << entity_path
             << "_entity_descriptor()\n";
         out << "{\n";
-        out << "    for (const auto& descriptor : ::statespec_generated::entity_descriptors())\n";
-        out << "    {\n";
-        out << "        if (descriptor.name == " << cpp_entity_name_constant_name(entity.name)
-            << ")\n";
-        out << "        {\n";
-        out << "            return descriptor;\n";
-        out << "        }\n";
-        out << "    }\n";
-        out << "    throw statespec::backend::BackendError(std::string{\"entity descriptor not "
-               "found: \"} + "
-            << cpp_entity_name_constant_name(entity.name) << ");\n";
+        out << "    return ::statespec_generated::EntityDescriptor{\n";
+        out << "        " << cpp_entity_name_constant_name(entity.name) << ",\n";
+        out << "        {";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "        std::nullopt,\n";
+        out << "        {},\n";
+        out << "        {},\n";
+        out << "        {},\n";
+        out << "        {},\n";
+        out << "        std::nullopt,\n";
+        out << "        {},\n";
+        out << "    };\n";
         out << "}\n\n";
         out << "class I" << type_name << "Repository\n";
         out << "{\n";

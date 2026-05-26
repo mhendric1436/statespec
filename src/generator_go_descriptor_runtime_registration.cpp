@@ -1,5 +1,6 @@
 #include "generator_go_descriptor_areas.hpp"
 
+#include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
@@ -36,6 +37,15 @@ std::string generate_go_runtime_registration(
     std::ostringstream params;
     std::ostringstream args;
     std::ostringstream calls;
+    std::ostringstream ensure_collections_body;
+    ensure_collections_body << "\tvar descriptors []CollectionDescriptor\n";
+    for (const auto& entity : system.entities)
+    {
+        ensure_collections_body << "\tdescriptors = append(descriptors, "
+                                << pascal_identifier(entity.name)
+                                << "CollectionDescriptors()...)\n";
+    }
+    ensure_collections_body << "\treturn backend.EnsureCollections(ctx, descriptors)\n";
     auto add = [&](std::string_view type, std::string_view name, std::string_view fn)
     {
         params << ", " << name << " " << type;
@@ -81,15 +91,17 @@ std::string generate_go_runtime_registration(
         }
     }
     return templates.render(
-        "generated/runtime_registration.go.tmpl", TemplateRenderer::Values{
-                                                      {"feature_flag_helpers", {}},
-                                                      {"lease_helpers", {}},
-                                                      {"domain_registration_helpers", {}},
-                                                      {"tx_parameters", params.str()},
-                                                      {"runtime_parameters", params.str()},
-                                                      {"runtime_arguments", args.str()},
-                                                      {"tx_calls", calls.str()},
-                                                  }
+        "generated/runtime_registration.go.tmpl",
+        TemplateRenderer::Values{
+            {"feature_flag_helpers", {}},
+            {"lease_helpers", {}},
+            {"domain_registration_helpers", {}},
+            {"tx_parameters", params.str()},
+            {"runtime_parameters", params.str()},
+            {"runtime_arguments", args.str()},
+            {"ensure_system_collections_body", ensure_collections_body.str()},
+            {"tx_calls", calls.str()},
+        }
     );
 }
 

@@ -1,5 +1,5 @@
 {{feature_flag_helpers}}{{lease_helpers}}func EnsureSystemCollections(ctx context.Context, backend Backend) error {
-	return backend.EnsureCollections(ctx, CollectionDescriptors())
+{{ensure_system_collections_body}}
 }
 
 {{domain_registration_helpers}}func RegisterRuntimeCatalogTx(ctx context.Context, tx Transaction{{tx_parameters}}) error {

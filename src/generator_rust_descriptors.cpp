@@ -899,59 +899,6 @@ bool write_rust_delete_handler_body(
 
 } // namespace
 
-std::string generate_rust_entity_module_umbrella(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << generate_rust_entity_descriptors(system);
-    out << "pub fn collection_descriptors() -> Vec<CollectionDescriptor> {\n";
-    out << "    vec![\n";
-    for (const auto& entity : system.entities)
-    {
-        out << "        CollectionDescriptor {\n";
-        out << "            name: " << rust_string(entity.name) << ".to_string(),\n";
-        out << "            fields: vec![\n";
-        for (const auto& field : entity.fields)
-        {
-            out << "                FieldDescriptor { name: " << rust_string(field.name)
-                << ".to_string(), field_type: " << rust_field_type_enum_expr(field.type)
-                << ", type_name: " << rust_string(field.type) << ".to_string(), required: "
-                << (rust_field_required(field.type) ? "true" : "false") << " },\n";
-        }
-        out << "            ],\n";
-        out << "            key_fields: vec![";
-        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << rust_string(entity.key_fields[i]) << ".to_string()";
-        }
-        out << "],\n";
-        out << "            indexes: vec![\n";
-        for (const auto& index : entity.indexes)
-        {
-            out << "                IndexDescriptor { name: " << rust_string(index.name)
-                << ".to_string(), fields: vec![";
-            for (std::size_t i = 0; i < index.fields.size(); ++i)
-            {
-                if (i > 0)
-                {
-                    out << ", ";
-                }
-                out << rust_string(index.fields[i]) << ".to_string()";
-            }
-            out << "], unique: " << (index.unique ? "true" : "false") << " },\n";
-        }
-        out << "            ],\n";
-        out << "            schema_version: 1,\n";
-        out << "        },\n";
-    }
-    out << "    ]\n";
-    out << "}\n\n";
-    return out.str();
-}
-
 std::string generate_descriptors_rs(
     const IrSystem& system,
     const TemplatePackage& templates
@@ -969,7 +916,6 @@ std::string generate_descriptors_rs(
     out << generate_rust_worker_descriptors(system);
     out << generate_rust_policy_descriptors(system);
     out << generate_rust_observability_descriptors(system);
-    out << generate_rust_entity_module_umbrella(system);
     out << generate_rust_runtime_descriptors(system);
     out << generate_rust_observability_registration(system);
     out << generate_rust_runtime_registration(system, templates);

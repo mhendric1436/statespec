@@ -77,8 +77,8 @@ std::string generate_rust_descriptor_prelude(
     out << rust_descriptor_module_declarations(system) << "\n";
     out << "use std::collections::BTreeMap;\n";
     out << "use std::time::Duration;\n\n";
-    out << "use crate::backend::{Backend, BackendError, BackendResult, CollectionDescriptor, "
-           "ConflictKind, FieldDescriptor, FieldType, IndexDescriptor, Transaction, "
+    out << "use crate::backend::{Backend, BackendError, BackendResult, "
+           "ConflictKind, FieldDescriptor, FieldType, Transaction, "
            "VersionedRecord};\n";
     out << "use crate::external_system::{ExternalSystemMetadataLookup, "
            "ExternalSystemMetadataResolution, "
