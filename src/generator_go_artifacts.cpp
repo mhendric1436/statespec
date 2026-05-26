@@ -1,6 +1,7 @@
 #include "generator_go_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_entity_index_helpers.hpp"
 #include "generator_go_descriptor_areas.hpp"
 #include "generator_go_descriptor_support.hpp"
 #include "generator_go_descriptors.hpp"
@@ -961,6 +962,112 @@ std::string go_entity_centered_facade_file(
                "schema.\n";
         out << "// The existing common/backend/" << snake_identifier(entity.name)
             << "_descriptors.go module remains as the compatibility facade for repository users.\n";
+    }
+    else if (area == "persistence")
+    {
+        const auto type_name = pascal_identifier(entity.name);
+        out << "import (\n";
+        out << "\t\"context\"\n\n";
+        out << "\tbackend \"statespec-generated/common/backend\"\n";
+        out << ")\n\n";
+        out << "func " << type_name << "Lookup(keyValues []backend.EntityKeyValue) "
+            << "backend.EntityLookup {\n";
+        out << "\treturn backend.EntityLookup{Entity: " << go_entity_name_constant_name(entity.name)
+            << ", KeyFields: []string{";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "}, KeyValues: keyValues}\n";
+        out << "}\n\n";
+        out << "func " << type_name << "EntityDescriptor() backend.EntityDescriptor {\n";
+        out << "\treturn backend.EntityDescriptor{Name: "
+            << go_entity_name_constant_name(entity.name) << ", KeyFields: []string{";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "}}\n";
+        out << "}\n\n";
+        out << "type " << type_name << "Repository interface {\n";
+        out << "\tRegisterDescriptor(context.Context, backend.Backend) error\n";
+        out << "\tCreateTx(context.Context, backend.Transaction, backend.JSON) "
+               "(*backend.VersionedRecord, error)\n";
+        out << "\tGetTx(context.Context, backend.Transaction, []backend.EntityKeyValue) "
+               "(*backend.VersionedRecord, error)\n";
+        out << "\tListByIndexTx(context.Context, backend.Transaction, string, "
+               "[]backend.IndexValue) ([]backend.VersionedRecord, error)\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "\t" << go_entity_index_repository_method_name(index.name)
+                << "(context.Context, backend.Transaction, []backend.IndexValue) "
+                   "([]backend.VersionedRecord, error)\n";
+        }
+        out << "\tUpdateTx(context.Context, backend.Transaction, []backend.EntityKeyValue, "
+               "backend.JSON, backend.Version) (*backend.VersionedRecord, error)\n";
+        out << "}\n\n";
+        out << "type Default" << type_name << "Repository struct{}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) RegisterDescriptor(ctx context.Context, backendStore "
+               "backend.Backend) error {\n";
+        out << "\treturn backendStore.EnsureCollection(ctx, " << type_name
+            << "CollectionDescriptor())\n";
+        out << "}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) CreateTx(ctx context.Context, tx backend.Transaction, document "
+               "backend.JSON) (*backend.VersionedRecord, error) {\n";
+        out << "\treturn backend.DefaultEntityRepository{}.CreateEntityTx(ctx, tx, "
+               "backend.EntityCreateRequest{\n";
+        out << "\t\tLookup: backend.EntityLookupFromDocument(" << type_name
+            << "EntityDescriptor(), document),\n";
+        out << "\t\tDocument: document,\n";
+        out << "\t})\n";
+        out << "}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) GetTx(ctx context.Context, tx backend.Transaction, keyValues "
+               "[]backend.EntityKeyValue) (*backend.VersionedRecord, error) {\n";
+        out << "\treturn backend.DefaultEntityRepository{}.GetEntityTx(ctx, tx, "
+               "backend.EntityGetRequest{Lookup: "
+            << type_name << "Lookup(keyValues)})\n";
+        out << "}\n\n";
+        out << "func (Default" << type_name
+            << "Repository) ListByIndexTx(ctx context.Context, tx backend.Transaction, indexName "
+               "string, values []backend.IndexValue) ([]backend.VersionedRecord, error) {\n";
+        out << "\treturn backend.DefaultEntityRepository{}.ListEntitiesByIndexTx(ctx, tx, "
+               "backend.EntityListByIndexRequest{Entity: "
+            << go_entity_name_constant_name(entity.name)
+            << ", IndexName: indexName, Values: values})\n";
+        out << "}\n\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "func (repository Default" << type_name << "Repository) "
+                << go_entity_index_repository_method_name(index.name)
+                << "(ctx context.Context, tx backend.Transaction, values []backend.IndexValue) "
+                   "([]backend.VersionedRecord, error) {\n";
+            out << "\treturn repository.ListByIndexTx(ctx, tx, "
+                << go_entity_index_constant_name(entity.name, index.name) << ", values)\n";
+            out << "}\n\n";
+        }
+        out << "func (Default" << type_name
+            << "Repository) UpdateTx(ctx context.Context, tx backend.Transaction, keyValues "
+               "[]backend.EntityKeyValue, document backend.JSON, expectedVersion "
+               "backend.Version) (*backend.VersionedRecord, error) {\n";
+        out << "\treturn backend.DefaultEntityRepository{}.UpsertEntityTx(ctx, tx, "
+               "backend.EntityUpsertRequest{\n";
+        out << "\t\tLookup: " << type_name << "Lookup(keyValues),\n";
+        out << "\t\tDocument: document,\n";
+        out << "\t\tExpectedVersion: &expectedVersion,\n";
+        out << "\t})\n";
+        out << "}\n\n";
+        out << "var _ " << type_name << "Repository = Default" << type_name << "Repository{}\n";
     }
     else
     {

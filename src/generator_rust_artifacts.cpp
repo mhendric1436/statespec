@@ -1,6 +1,7 @@
 #include "generator_rust_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_entity_index_helpers.hpp"
 #include "generator_rust_descriptor_areas.hpp"
 #include "generator_rust_descriptor_support.hpp"
 #include "generator_rust_descriptors.hpp"
@@ -990,6 +991,174 @@ std::string rust_entity_centered_facade_file(
                "schema.\n";
         out << "// The existing descriptors/entities/" << snake_identifier(entity.name)
             << ".rs module remains as the compatibility facade for repository users.\n";
+    }
+    else if (area == "persistence")
+    {
+        const auto type_name = pascal_identifier(entity.name);
+        const auto function_prefix = snake_identifier(entity.name);
+        out << "use crate::backend::{Backend, BackendResult, Json, VersionedRecord};\n";
+        out << "use crate::descriptors::{\n";
+        out << "    entity_lookup_from_document, DefaultEntityRepository, EntityCreateRequest,\n";
+        out << "    EntityDescriptor, EntityGetRequest, EntityKeyValue, "
+               "EntityListByIndexRequest,\n";
+        out << "    EntityLookup, EntityRepository, EntityUpsertRequest,\n";
+        out << "};\n";
+        out << "use super::model::*;\n";
+        out << "use super::schema::*;\n\n";
+        out << "pub fn " << function_prefix
+            << "_lookup(key_values: Vec<EntityKeyValue>) -> EntityLookup {\n";
+        out << "    EntityLookup {\n";
+        out << "        entity: " << rust_entity_name_constant_name(entity.name)
+            << ".to_string(),\n";
+        out << "        key_fields: vec![";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_entity_field_constant_name(entity.name, entity.key_fields[i])
+                << ".to_string()";
+        }
+        out << "],\n";
+        out << "        key_values,\n";
+        out << "    }\n";
+        out << "}\n\n";
+        out << "pub fn " << function_prefix << "_entity_descriptor() -> EntityDescriptor {\n";
+        out << "    EntityDescriptor {\n";
+        out << "        name: " << rust_entity_name_constant_name(entity.name) << ".to_string(),\n";
+        out << "        key_fields: vec![";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_entity_field_constant_name(entity.name, entity.key_fields[i])
+                << ".to_string()";
+        }
+        out << "],\n";
+        out << "        ownership: None,\n";
+        out << "        relations: vec![],\n";
+        out << "        children: vec![],\n";
+        out << "        invariants: vec![],\n";
+        out << "        states: vec![],\n";
+        out << "        initial_state: None,\n";
+        out << "        terminal_states: vec![],\n";
+        out << "    }\n";
+        out << "}\n\n";
+        out << "pub trait " << type_name << "Repository<B: Backend> {\n";
+        out << "    fn register_descriptor(&self, backend: &B) -> BackendResult<()>;\n";
+        out << "    fn create_tx(&self, tx: &mut B::Tx, document: Json) -> "
+               "BackendResult<Option<VersionedRecord>>;\n";
+        out << "    fn get_tx(&self, tx: &mut B::Tx, key_values: Vec<EntityKeyValue>) -> "
+               "BackendResult<Option<VersionedRecord>>;\n";
+        out << "    fn list_by_index_tx(\n";
+        out << "        &self,\n";
+        out << "        tx: &mut B::Tx,\n";
+        out << "        index_name: String,\n";
+        out << "        values: Vec<crate::backend::IndexValue>,\n";
+        out << "    ) -> BackendResult<Vec<VersionedRecord>>;\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "    fn " << rust_entity_index_repository_method_name(index.name) << "(\n";
+            out << "        &self,\n";
+            out << "        tx: &mut B::Tx,\n";
+            out << "        values: Vec<crate::backend::IndexValue>,\n";
+            out << "    ) -> BackendResult<Vec<VersionedRecord>>;\n";
+        }
+        out << "    fn update_tx(\n";
+        out << "        &self,\n";
+        out << "        tx: &mut B::Tx,\n";
+        out << "        key_values: Vec<EntityKeyValue>,\n";
+        out << "        document: Json,\n";
+        out << "        expected_version: u64,\n";
+        out << "    ) -> BackendResult<Option<VersionedRecord>>;\n";
+        out << "}\n\n";
+        out << "#[derive(Debug, Clone, Copy, Default)]\n";
+        out << "pub struct Default" << type_name << "Repository;\n\n";
+        out << "impl<B: Backend> " << type_name << "Repository<B> for Default" << type_name
+            << "Repository {\n";
+        out << "    fn register_descriptor(&self, backend: &B) -> BackendResult<()> {\n";
+        out << "        backend.ensure_collection(&" << function_prefix
+            << "_collection_descriptor())\n";
+        out << "    }\n\n";
+        out << "    fn create_tx(&self, tx: &mut B::Tx, document: Json) -> "
+               "BackendResult<Option<VersionedRecord>> {\n";
+        out << "        <DefaultEntityRepository as EntityRepository<B>>::create_entity_tx(\n";
+        out << "            &DefaultEntityRepository,\n";
+        out << "            tx,\n";
+        out << "            &EntityCreateRequest {\n";
+        out << "                lookup: entity_lookup_from_document(&" << function_prefix
+            << "_entity_descriptor(), &document),\n";
+        out << "                document,\n";
+        out << "            },\n";
+        out << "        )\n";
+        out << "    }\n\n";
+        out << "    fn get_tx(&self, tx: &mut B::Tx, key_values: Vec<EntityKeyValue>) -> "
+               "BackendResult<Option<VersionedRecord>> {\n";
+        out << "        <DefaultEntityRepository as EntityRepository<B>>::get_entity_tx(\n";
+        out << "            &DefaultEntityRepository,\n";
+        out << "            tx,\n";
+        out << "            &EntityGetRequest { lookup: " << function_prefix
+            << "_lookup(key_values) },\n";
+        out << "        )\n";
+        out << "    }\n\n";
+        out << "    fn list_by_index_tx(\n";
+        out << "        &self,\n";
+        out << "        tx: &mut B::Tx,\n";
+        out << "        index_name: String,\n";
+        out << "        values: Vec<crate::backend::IndexValue>,\n";
+        out << "    ) -> BackendResult<Vec<VersionedRecord>> {\n";
+        out << "        <DefaultEntityRepository as "
+               "EntityRepository<B>>::list_entities_by_index_tx(\n";
+        out << "            &DefaultEntityRepository,\n";
+        out << "            tx,\n";
+        out << "            &EntityListByIndexRequest {\n";
+        out << "                entity: " << rust_entity_name_constant_name(entity.name)
+            << ".to_string(),\n";
+        out << "                index_name,\n";
+        out << "                values,\n";
+        out << "            },\n";
+        out << "        )\n";
+        out << "    }\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "\n";
+            out << "    fn " << rust_entity_index_repository_method_name(index.name) << "(\n";
+            out << "        &self,\n";
+            out << "        tx: &mut B::Tx,\n";
+            out << "        values: Vec<crate::backend::IndexValue>,\n";
+            out << "    ) -> BackendResult<Vec<VersionedRecord>> {\n";
+            out << "        <Default" << type_name << "Repository as " << type_name
+                << "Repository<B>>::list_by_index_tx(\n";
+            out << "            self,\n";
+            out << "            tx,\n";
+            out << "            " << rust_entity_index_constant_name(entity.name, index.name)
+                << ".to_string(),\n";
+            out << "            values,\n";
+            out << "        )\n";
+            out << "    }\n";
+        }
+        out << "\n";
+        out << "    fn update_tx(\n";
+        out << "        &self,\n";
+        out << "        tx: &mut B::Tx,\n";
+        out << "        key_values: Vec<EntityKeyValue>,\n";
+        out << "        document: Json,\n";
+        out << "        expected_version: u64,\n";
+        out << "    ) -> BackendResult<Option<VersionedRecord>> {\n";
+        out << "        <DefaultEntityRepository as EntityRepository<B>>::upsert_entity_tx(\n";
+        out << "            &DefaultEntityRepository,\n";
+        out << "            tx,\n";
+        out << "            &EntityUpsertRequest {\n";
+        out << "                lookup: " << function_prefix << "_lookup(key_values),\n";
+        out << "                document,\n";
+        out << "                expected_version: Some(expected_version),\n";
+        out << "            },\n";
+        out << "        )\n";
+        out << "    }\n";
+        out << "}\n";
     }
     else
     {

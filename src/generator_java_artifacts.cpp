@@ -1,6 +1,7 @@
 #include "generator_java_artifacts.hpp"
 
 #include "generator_artifact_paths.hpp"
+#include "generator_entity_index_helpers.hpp"
 #include "generator_java_descriptor_areas.hpp"
 #include "generator_java_descriptor_support.hpp"
 #include "generator_java_descriptors.hpp"
@@ -1011,6 +1012,177 @@ std::string java_entity_centered_facade_file(
             << "IndexDescriptors(),\n";
         out << "            " << schema_version_constant << "\n";
         out << "        );\n";
+        out << "    }\n";
+    }
+    else if (area == "persistence")
+    {
+        const auto type_name = pascal_identifier(entity.name);
+        out << "\n";
+        out << "    public static com.statespec.generated.Descriptors.EntityLookup build"
+            << type_name << "Lookup(\n";
+        out << "        java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+               "keyValues\n";
+        out << "    ) {\n";
+        out << "        return new com.statespec.generated.Descriptors.EntityLookup(\n";
+        out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
+        out << "            java.util.List.of(";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << "Model." << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "),\n";
+        out << "            java.util.List.copyOf(keyValues)\n";
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    public static com.statespec.generated.Descriptors.EntityDescriptor "
+            << lower_camel_identifier(entity.name) << "EntityDescriptor() {\n";
+        out << "        return new com.statespec.generated.Descriptors.EntityDescriptor(\n";
+        out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
+        out << "            java.util.List.of(";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << "Model." << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "),\n";
+        out << "            java.util.Optional.empty(),\n";
+        out << "            java.util.List.of(),\n";
+        out << "            java.util.List.of(),\n";
+        out << "            java.util.List.of(),\n";
+        out << "            java.util.List.of(),\n";
+        out << "            java.util.Optional.empty(),\n";
+        out << "            java.util.List.of()\n";
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    public interface " << type_name << "Repository {\n";
+        out << "        void registerDescriptor(com.statespec.backend.Backend backend) throws "
+               "com.statespec.backend.Backend.BackendException;\n";
+        out << "        java.util.Optional<com.statespec.backend.Backend.VersionedRecord> "
+               "createTx(\n";
+        out << "            com.statespec.backend.Backend.Transaction tx,\n";
+        out << "            com.statespec.backend.Json document\n";
+        out << "        ) throws com.statespec.backend.Backend.BackendException;\n";
+        out << "        java.util.Optional<com.statespec.backend.Backend.VersionedRecord> getTx(\n";
+        out << "            com.statespec.backend.Backend.Transaction tx,\n";
+        out << "            java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+               "keyValues\n";
+        out << "        ) throws com.statespec.backend.Backend.BackendException;\n";
+        out << "        java.util.List<com.statespec.backend.Backend.VersionedRecord> "
+               "listByIndexTx(\n";
+        out << "            com.statespec.backend.Backend.Transaction tx,\n";
+        out << "            String indexName,\n";
+        out << "            java.util.List<com.statespec.backend.Backend.IndexValue> values\n";
+        out << "        ) throws com.statespec.backend.Backend.BackendException;\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "        java.util.List<com.statespec.backend.Backend.VersionedRecord> "
+                << entity_index_repository_method_name(index.name) << "(\n";
+            out << "            com.statespec.backend.Backend.Transaction tx,\n";
+            out << "            java.util.List<com.statespec.backend.Backend.IndexValue> values\n";
+            out << "        ) throws com.statespec.backend.Backend.BackendException;\n";
+        }
+        out << "        java.util.Optional<com.statespec.backend.Backend.VersionedRecord> "
+               "updateTx(\n";
+        out << "            com.statespec.backend.Backend.Transaction tx,\n";
+        out << "            java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+               "keyValues,\n";
+        out << "            com.statespec.backend.Json document,\n";
+        out << "            long expectedVersion\n";
+        out << "        ) throws com.statespec.backend.Backend.BackendException;\n";
+        out << "    }\n\n";
+        out << "    public static final class Default" << type_name << "Repository implements "
+            << type_name << "Repository {\n";
+        out << "        private final com.statespec.generated.Descriptors.EntityRepository "
+               "entities = new com.statespec.generated.Descriptors.DefaultEntityRepository();\n\n";
+        out << "        @Override public void registerDescriptor(com.statespec.backend.Backend "
+               "backend)\n";
+        out << "            throws com.statespec.backend.Backend.BackendException\n";
+        out << "        {\n";
+        out << "            backend.ensureCollection(Schema." << lower_camel_identifier(entity.name)
+            << "CollectionDescriptor());\n";
+        out << "        }\n\n";
+        out << "        @Override public java.util.Optional<com.statespec.backend.Backend."
+               "VersionedRecord> createTx(\n";
+        out << "            com.statespec.backend.Backend.Transaction tx,\n";
+        out << "            com.statespec.backend.Json document\n";
+        out << "        ) throws com.statespec.backend.Backend.BackendException\n";
+        out << "        {\n";
+        out << "            return entities.createEntityTx(\n";
+        out << "                tx,\n";
+        out << "                new com.statespec.generated.Descriptors.EntityCreateRequest(\n";
+        out << "                    com.statespec.generated.Descriptors.entityLookupFromDocument("
+            << lower_camel_identifier(entity.name) << "EntityDescriptor(), document),\n";
+        out << "                    document\n";
+        out << "                )\n";
+        out << "            );\n";
+        out << "        }\n\n";
+        out << "        @Override public java.util.Optional<com.statespec.backend.Backend."
+               "VersionedRecord> getTx(\n";
+        out << "            com.statespec.backend.Backend.Transaction tx,\n";
+        out << "            java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+               "keyValues\n";
+        out << "        ) throws com.statespec.backend.Backend.BackendException\n";
+        out << "        {\n";
+        out << "            return entities.getEntityTx(\n";
+        out << "                tx, new com.statespec.generated.Descriptors.EntityGetRequest("
+               "build"
+            << type_name << "Lookup(keyValues))\n";
+        out << "            );\n";
+        out << "        }\n\n";
+        out << "        @Override public java.util.List<com.statespec.backend.Backend."
+               "VersionedRecord> listByIndexTx(\n";
+        out << "            com.statespec.backend.Backend.Transaction tx,\n";
+        out << "            String indexName,\n";
+        out << "            java.util.List<com.statespec.backend.Backend.IndexValue> values\n";
+        out << "        ) throws com.statespec.backend.Backend.BackendException\n";
+        out << "        {\n";
+        out << "            return entities.listEntitiesByIndexTx(\n";
+        out << "                tx,\n";
+        out << "                new com.statespec.generated.Descriptors.EntityListByIndexRequest("
+               "Model."
+            << java_entity_name_constant_name(entity.name) << ", indexName, values)\n";
+        out << "            );\n";
+        out << "        }\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "\n";
+            out << "        @Override public java.util.List<com.statespec.backend.Backend."
+                   "VersionedRecord> "
+                << entity_index_repository_method_name(index.name) << "(\n";
+            out << "            com.statespec.backend.Backend.Transaction tx,\n";
+            out << "            java.util.List<com.statespec.backend.Backend.IndexValue> values\n";
+            out << "        ) throws com.statespec.backend.Backend.BackendException\n";
+            out << "        {\n";
+            out << "            return listByIndexTx(tx, Model."
+                << java_entity_index_constant_name(entity.name, index.name) << ", values);\n";
+            out << "        }\n";
+        }
+        out << "\n";
+        out << "        @Override public java.util.Optional<com.statespec.backend.Backend."
+               "VersionedRecord> updateTx(\n";
+        out << "            com.statespec.backend.Backend.Transaction tx,\n";
+        out << "            java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+               "keyValues,\n";
+        out << "            com.statespec.backend.Json document,\n";
+        out << "            long expectedVersion\n";
+        out << "        ) throws com.statespec.backend.Backend.BackendException\n";
+        out << "        {\n";
+        out << "            return entities.upsertEntityTx(\n";
+        out << "                tx,\n";
+        out << "                new com.statespec.generated.Descriptors.EntityUpsertRequest(\n";
+        out << "                    build" << type_name << "Lookup(keyValues),\n";
+        out << "                    document,\n";
+        out << "                    java.util.Optional.of(expectedVersion)\n";
+        out << "                )\n";
+        out << "            );\n";
+        out << "        }\n";
         out << "    }\n";
     }
     out << "}\n";
