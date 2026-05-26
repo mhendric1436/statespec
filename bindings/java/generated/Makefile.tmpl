@@ -2,12 +2,9 @@ JAVAC ?= javac
 JAR ?= jar
 BUILD_DIR ?= build/classes
 DIST_DIR ?= dist
-COMMON_SOURCES :={{common_sources}}
-API_SOURCES :={{api_sources}}
-WORKER_SOURCES :={{worker_sources}}
-COMMON_EXTENSION_SOURCES := $(filter-out $(COMMON_SOURCES),$(wildcard common/com/statespec/generated/*.java common/com/statespec/backend/memory/*.java))
-API_EXTENSION_SOURCES := $(filter-out $(API_SOURCES),$(wildcard api/com/statespec/generated/*.java))
-WORKER_EXTENSION_SOURCES := $(filter-out $(WORKER_SOURCES),$(wildcard worker/com/statespec/generated/*.java))
+COMMON_SOURCES := $(shell find common -name '*.java' -print)
+API_SOURCES := $(shell if [ -d api ]; then find api -name '*.java' -print; fi)
+WORKER_SOURCES := $(shell if [ -d worker ]; then find worker -name '*.java' -print; fi)
 
 BUILD_TARGETS := build-common{{build_target_additions}}
 PACKAGE_TARGETS := package-common{{package_target_additions}}
@@ -43,7 +40,7 @@ $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
 build-common: $(BUILD_DIR)
-	$(JAVAC) -d $(BUILD_DIR) $(COMMON_SOURCES) $(COMMON_EXTENSION_SOURCES)
+	$(JAVAC) -d $(BUILD_DIR) $(COMMON_SOURCES)
 
 package-common: build-common $(DIST_DIR)
 	$(JAR) --create --file $(DIST_DIR)/statespec-generated-common-java.jar -C $(BUILD_DIR) .

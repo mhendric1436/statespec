@@ -25,21 +25,6 @@ std::string java_api_shape_import(const IrSystem& system);
 std::string java_workflow_worker_module_class_name(const IrWorkflow& workflow);
 std::filesystem::path java_worker_generated_path(std::string_view filename);
 
-std::string java_makefile_source_list(const std::vector<std::string>& sources)
-{
-    if (sources.empty())
-    {
-        return {};
-    }
-
-    std::ostringstream out;
-    for (const auto& source : sources)
-    {
-        out << " \\\n  " << source;
-    }
-    return out.str();
-}
-
 std::string java_entity_descriptor_module_class_name(std::string_view entity_name)
 {
     return pascal_identifier(std::string{entity_name}) + "DescriptorModule";
@@ -267,86 +252,9 @@ std::string java_runtime_registration_module_file(
     return out.str();
 }
 
-std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
-{
-    std::vector<std::string> sources{
-        "common/com/statespec/generated/descriptors/CoreDescriptorModule.java",
-        "common/com/statespec/generated/descriptors/EventDescriptorModule.java",
-        "common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java",
-        "common/com/statespec/generated/descriptors/ShapeDescriptorModule.java",
-        "common/com/statespec/generated/descriptors/ApiDescriptorModule.java",
-        "common/com/statespec/generated/descriptors/WorkerDescriptorModule.java",
-        "common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java",
-    };
-    for (const auto& [name, class_name] : java_runtime_registration_modules(system))
-    {
-        sources.push_back("common/com/statespec/generated/descriptors/" + class_name + ".java");
-    }
-    for (const auto& shape : system.shapes)
-    {
-        sources.push_back(
-            "common/com/statespec/generated/descriptors/shapes/" +
-            java_shape_descriptor_module_class_name(shape.name) + ".java"
-        );
-    }
-    for (const auto& entity : system.entities)
-    {
-        sources.push_back(
-            "common/com/statespec/generated/descriptors/entities/" +
-            java_entity_descriptor_module_class_name(entity.name) + ".java"
-        );
-    }
-    for (const auto& worker : system.workers)
-    {
-        sources.push_back(
-            "common/com/statespec/generated/descriptors/workers/" +
-            java_worker_descriptor_module_class_name(worker.name) + ".java"
-        );
-    }
-    return sources;
-}
-
-std::vector<std::string> java_shape_sources(const IrSystem& system)
-{
-    std::vector<std::string> sources;
-    for (const auto& shape : system.shapes)
-    {
-        sources.push_back(
-            "common/com/statespec/generated/shapes/" + pascal_identifier(shape.name) + ".java"
-        );
-    }
-    return sources;
-}
-
-std::vector<std::string> java_workflow_descriptor_sources(const IrSystem& system)
-{
-    std::vector<std::string> sources;
-    for (const auto& workflow : system.workflows)
-    {
-        sources.push_back(
-            "common/com/statespec/generated/workflows/" +
-            java_workflow_descriptor_module_class_name(workflow.name) + ".java"
-        );
-    }
-    return sources;
-}
-
 std::string java_api_descriptor_module_class_name(std::string_view api_name)
 {
     return pascal_identifier(std::string{api_name}) + "DescriptorModule";
-}
-
-std::vector<std::string> java_api_descriptor_sources(const IrSystem& system)
-{
-    std::vector<std::string> sources;
-    for (const auto& api : system.apis)
-    {
-        sources.push_back(
-            "api/com/statespec/generated/descriptors/" +
-            java_api_descriptor_module_class_name(api.name) + ".java"
-        );
-    }
-    return sources;
 }
 
 struct ApiHandlerDomain
@@ -450,16 +358,6 @@ std::filesystem::path java_api_handler_domain_path(std::string_view domain_name)
            (java_api_handler_domain_class_name(domain_name) + ".java");
 }
 
-std::vector<std::string> java_api_handler_domain_sources(const IrSystem& system)
-{
-    std::vector<std::string> sources;
-    for (const auto& domain : api_handler_domains(system))
-    {
-        sources.push_back(java_api_handler_domain_path(domain.name).generic_string());
-    }
-    return sources;
-}
-
 std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
 {
     std::ostringstream out;
@@ -560,16 +458,6 @@ std::filesystem::path java_api_codec_shape_path(std::string_view shape_name)
            (java_api_codec_shape_class_name(shape_name) + ".java");
 }
 
-std::vector<std::string> java_api_codec_shape_sources(const IrSystem& system)
-{
-    std::vector<std::string> sources;
-    for (const auto& shape : api_codec_shapes(system))
-    {
-        sources.push_back(java_api_codec_shape_path(shape.name).generic_string());
-    }
-    return sources;
-}
-
 std::string java_api_codec_shape_file(
     const IrSystem& system,
     const IrShape& shape
@@ -641,158 +529,11 @@ TemplateRenderer::Values java_makefile_values(
     const IrSystem& system
 )
 {
-    const auto usage = runtime_domain_usage(system);
+    static_cast<void>(system);
     const auto include_api =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
     const auto include_worker =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
-    const auto include_api_composition = include_api && !system.api_servers.empty();
-    const auto include_worker_composition = include_worker && !system.workers.empty();
-    const auto include_worker_execution =
-        include_worker && (include_worker_composition || usage.uses_workflows);
-
-    std::vector<std::string> common_sources{
-        "common/com/statespec/backend/Json.java",
-        "common/com/statespec/backend/Backend.java",
-        "common/com/statespec/backend/ExternalSystem.java",
-        "common/com/statespec/backend/FeatureFlag.java",
-        "common/com/statespec/backend/Lease.java",
-        "common/com/statespec/backend/Log.java",
-        "common/com/statespec/backend/Metric.java",
-        "common/com/statespec/backend/Queue.java",
-        "common/com/statespec/backend/SchemaCompatibility.java",
-        "common/com/statespec/backend/Workflow.java",
-        "common/com/statespec/backend/memory/InMemoryBackend.java",
-        "common/com/statespec/backend/memory/InMemoryTransaction.java",
-        "common/com/statespec/generated/Descriptors.java",
-    };
-    for (const auto& source : java_descriptor_module_sources(system))
-    {
-        common_sources.push_back(source);
-    }
-    for (const auto& source : java_shape_sources(system))
-    {
-        common_sources.push_back(source);
-    }
-    for (const auto& source : java_workflow_descriptor_sources(system))
-    {
-        common_sources.push_back(source);
-    }
-    auto add_common = [&](bool used, std::string source)
-    {
-        if (used)
-        {
-            common_sources.push_back(std::move(source));
-        }
-    };
-    add_common(usage.uses_any_runtime_domain, "common/com/statespec/backend/runtime/Codec.java");
-    add_common(
-        usage.uses_feature_flags, "common/com/statespec/backend/runtime/FeatureFlagCodec.java"
-    );
-    add_common(
-        usage.uses_feature_flags, "common/com/statespec/backend/runtime/FeatureFlagStore.java"
-    );
-    add_common(usage.uses_queues, "common/com/statespec/backend/runtime/QueueCodec.java");
-    add_common(usage.uses_queues, "common/com/statespec/backend/runtime/QueueStore.java");
-    add_common(usage.uses_leases, "common/com/statespec/backend/runtime/LeaseCodec.java");
-    add_common(usage.uses_leases, "common/com/statespec/backend/runtime/LeaseStore.java");
-    add_common(usage.uses_workflows, "common/com/statespec/backend/runtime/WorkflowCodec.java");
-    add_common(usage.uses_workflows, "common/com/statespec/backend/runtime/WorkflowStore.java");
-    add_common(
-        usage.uses_observability, "common/com/statespec/backend/runtime/ObservabilityCodec.java"
-    );
-    add_common(usage.uses_logs, "common/com/statespec/backend/runtime/LogCodec.java");
-    add_common(usage.uses_logs, "common/com/statespec/backend/runtime/LogSink.java");
-    add_common(usage.uses_metrics, "common/com/statespec/backend/runtime/MetricCodec.java");
-    add_common(usage.uses_metrics, "common/com/statespec/backend/runtime/MetricSink.java");
-    add_common(
-        usage.uses_entity_gc, "common/com/statespec/backend/runtime/EntityGcDescriptors.java"
-    );
-    add_common(
-        usage.uses_entity_gc, "common/com/statespec/backend/runtime/EntityGcRepository.java"
-    );
-    add_common(usage.uses_entity_gc, "common/com/statespec/backend/runtime/EntityGcWorkers.java");
-
-    std::vector<std::string> api_sources;
-    if (include_api)
-    {
-        api_sources = {
-            "api/com/statespec/generated/ApiDescriptors.java",
-            "api/com/statespec/generated/ApiCodecs.java",
-            "api/com/statespec/generated/ApiHandlers.java",
-            "api/com/statespec/generated/ApiHandlerRegistry.java",
-            "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
-        };
-        for (const auto& source : java_api_descriptor_sources(system))
-        {
-            api_sources.push_back(source);
-        }
-        for (const auto& source : java_api_codec_shape_sources(system))
-        {
-            api_sources.push_back(source);
-        }
-        for (const auto& source : java_api_handler_domain_sources(system))
-        {
-            api_sources.push_back(source);
-        }
-        if (include_api_composition)
-        {
-            api_sources.push_back("api/com/statespec/generated/ApiApplication.java");
-            api_sources.push_back("api/com/statespec/generated/ApiProcess.java");
-            api_sources.push_back("api/com/statespec/generated/ApiDispatcher.java");
-            api_sources.push_back("api/com/statespec/generated/ApiServer.java");
-            api_sources.push_back("api/com/statespec/generated/ApiTransport.java");
-            api_sources.push_back("api/com/statespec/generated/ApiRoutes.java");
-            api_sources.push_back("api/com/statespec/generated/ApiMain.java");
-        }
-    }
-
-    std::vector<std::string> worker_sources;
-    if (include_worker)
-    {
-        worker_sources = {
-            "worker/com/statespec/generated/WorkerDescriptors.java",
-            "worker/com/statespec/generated/WorkerContexts.java",
-            "worker/com/statespec/generated/WorkerRegistry.java",
-        };
-        if (include_worker_composition)
-        {
-            for (const auto& worker : system.workers)
-            {
-                worker_sources.push_back(
-                    "worker/com/statespec/generated/registry/" + pascal_identifier(worker.name) +
-                    "Registry.java"
-                );
-            }
-            worker_sources.push_back("worker/com/statespec/generated/WorkerApplication.java");
-            worker_sources.push_back("worker/com/statespec/generated/WorkerProcess.java");
-            worker_sources.push_back("worker/com/statespec/generated/WorkerRuntime.java");
-            worker_sources.push_back("worker/com/statespec/generated/WorkerMain.java");
-        }
-        if (include_worker_execution)
-        {
-            for (const auto& workflow : system.workflows)
-            {
-                worker_sources.push_back(java_worker_generated_path(
-                    "workflows/" + java_workflow_worker_module_class_name(workflow) + ".java"
-                ));
-            }
-            worker_sources.push_back("worker/com/statespec/generated/WorkflowStepHandlers.java");
-            worker_sources.push_back("worker/com/statespec/generated/WorkflowRunner.java");
-        }
-        if (usage.uses_queues)
-        {
-            worker_sources.push_back("worker/com/statespec/generated/WorkerQueues.java");
-        }
-        if (usage.uses_leases)
-        {
-            worker_sources.push_back("worker/com/statespec/generated/WorkerLeases.java");
-        }
-        if (usage.uses_workflows)
-        {
-            worker_sources.push_back("worker/com/statespec/generated/WorkerWorkflows.java");
-        }
-    }
 
     std::ostringstream build_target_additions;
     std::ostringstream package_target_additions;
@@ -805,8 +546,7 @@ TemplateRenderer::Values java_makefile_values(
         package_target_additions << " package-api";
         phony_targets << " build-api package-api";
         api_rules << "build-api: $(BUILD_DIR)\n";
-        api_rules << "\t$(JAVAC) -d $(BUILD_DIR) $(COMMON_SOURCES) "
-                     "$(COMMON_EXTENSION_SOURCES) $(API_SOURCES) $(API_EXTENSION_SOURCES)\n\n";
+        api_rules << "\t$(JAVAC) -d $(BUILD_DIR) $(COMMON_SOURCES) $(API_SOURCES)\n\n";
         api_rules << "package-api: build-api $(DIST_DIR)\n";
         api_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-api-java.tgz common api "
                      "Makefile\n\n";
@@ -817,18 +557,13 @@ TemplateRenderer::Values java_makefile_values(
         package_target_additions << " package-worker";
         phony_targets << " build-worker package-worker";
         worker_rules << "build-worker: $(BUILD_DIR)\n";
-        worker_rules << "\t$(JAVAC) -d $(BUILD_DIR) $(COMMON_SOURCES) "
-                        "$(COMMON_EXTENSION_SOURCES) $(WORKER_SOURCES) "
-                        "$(WORKER_EXTENSION_SOURCES)\n\n";
+        worker_rules << "\t$(JAVAC) -d $(BUILD_DIR) $(COMMON_SOURCES) $(WORKER_SOURCES)\n\n";
         worker_rules << "package-worker: build-worker $(DIST_DIR)\n";
         worker_rules << "\ttar -czf $(DIST_DIR)/statespec-generated-worker-java.tgz common worker "
                         "Makefile\n\n";
     }
 
     return TemplateRenderer::Values{
-        {"common_sources", java_makefile_source_list(common_sources)},
-        {"api_sources", java_makefile_source_list(api_sources)},
-        {"worker_sources", java_makefile_source_list(worker_sources)},
         {"build_target_additions", build_target_additions.str()},
         {"package_target_additions", package_target_additions.str()},
         {"phony_targets", phony_targets.str()},
