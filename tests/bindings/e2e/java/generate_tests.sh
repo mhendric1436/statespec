@@ -134,6 +134,8 @@ assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Pers
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/task/Persistence.java" "listByTenantTaskTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/task/Persistence.java" "listByAccountPriorityTx"
 assert_file_not_exists "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java"
+assert_file_not_exists "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/ProjectDescriptorModule.java"
+assert_file_not_exists "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/TaskDescriptorModule.java"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_ENTITY_NAME = \"Account\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_FIELD_TENANT_ID = \"tenant_id\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_FIELD_CREATED_AT_TYPE_NAME = \"timestamp\""

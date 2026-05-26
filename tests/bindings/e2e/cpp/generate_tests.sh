@@ -134,6 +134,8 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "re
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "repository.listByAccountStatusTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/task.hpp" "repository.listByProjectStatusTx"
 assert_file_not_exists "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/account.hpp"
+assert_file_not_exists "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/project.hpp"
+assert_file_not_exists "$TMPDIR/out-api-entities-cpp/common/descriptors/entities/task.hpp"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/project/persistence.hpp" "listByTenantProjectTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/task/persistence.hpp" "listByTenantTaskTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/task/persistence.hpp" "listByAccountPriorityTx"

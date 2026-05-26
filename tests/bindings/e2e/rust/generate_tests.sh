@@ -137,6 +137,8 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "li
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "list_by_account_status_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/task.rs" "list_by_project_status_tx"
 assert_file_not_exists "$TMPDIR/out-api-entities-rust/common/descriptors/entities/account.rs"
+assert_file_not_exists "$TMPDIR/out-api-entities-rust/common/descriptors/entities/project.rs"
+assert_file_not_exists "$TMPDIR/out-api-entities-rust/common/descriptors/entities/task.rs"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/persistence.rs" "list_by_tenant_project_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/task/persistence.rs" "list_by_tenant_task_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/task/persistence.rs" "list_by_account_priority_tx"
