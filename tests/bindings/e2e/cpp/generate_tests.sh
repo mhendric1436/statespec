@@ -59,6 +59,9 @@ common/descriptors/shapes/start_provision_request.hpp
 common/descriptors/shapes/start_provision_response.hpp
 common/descriptors/workers.hpp
 common/descriptors/workers/provision_worker.hpp
+common/entities/service_instance/model.hpp
+common/entities/service_instance/persistence.hpp
+common/entities/service_instance/schema.hpp
 common/external_system.hpp
 common/feature_flag.hpp
 common/json.hpp

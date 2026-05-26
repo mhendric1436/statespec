@@ -842,6 +842,19 @@ TemplateRenderer::Values rust_entity_descriptor_module_values(const IrEntity& en
     };
 }
 
+std::string rust_entity_centered_facade_file(
+    const IrEntity& entity,
+    std::string_view area
+)
+{
+    std::ostringstream out;
+    out << "#![allow(dead_code)]\n\n";
+    out << "// Entity-centered " << area
+        << " facade. The active implementation remains in descriptors/entities/"
+        << snake_identifier(entity.name) << ".rs during the staged split.\n";
+    return out.str();
+}
+
 std::string rust_event_descriptor_module(const IrSystem& system)
 {
     std::ostringstream out;
@@ -1077,6 +1090,19 @@ void add_rust_descriptor_module_artifacts(
             generated_template_path("descriptor_module.rs.tmpl"),
             common_artifact_path("descriptors/entities/" + snake_identifier(entity.name) + ".rs"),
             diagnostics, GeneratedArtifactTier::Common, rust_entity_descriptor_module_values(entity)
+        );
+        const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
+        add_rust_raw_common_file(
+            result, options, entity_dir + "model.rs",
+            rust_entity_centered_facade_file(entity, "model")
+        );
+        add_rust_raw_common_file(
+            result, options, entity_dir + "persistence.rs",
+            rust_entity_centered_facade_file(entity, "persistence")
+        );
+        add_rust_raw_common_file(
+            result, options, entity_dir + "schema.rs",
+            rust_entity_centered_facade_file(entity, "schema")
         );
     }
 }

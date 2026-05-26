@@ -816,6 +816,19 @@ TemplateRenderer::Values go_entity_descriptor_values(const IrEntity& entity)
     return TemplateRenderer::Values{{"entity_descriptor_content", content}};
 }
 
+std::string go_entity_centered_facade_file(
+    const IrEntity& entity,
+    std::string_view area
+)
+{
+    std::ostringstream out;
+    out << "package " << snake_identifier(entity.name) << "\n\n";
+    out << "// Entity-centered " << area
+        << " facade. The active implementation remains in common/backend/"
+        << snake_identifier(entity.name) << "_descriptors.go during the staged split.\n";
+    return out.str();
+}
+
 std::string go_event_helpers_file(const IrSystem& system)
 {
     std::ostringstream out;
@@ -1005,6 +1018,19 @@ void add_go_entity_descriptor_artifacts(
             generated_template_path("entity_descriptors.go.tmpl"),
             common_artifact_path("backend/" + snake_identifier(entity.name) + "_descriptors.go"),
             diagnostics, GeneratedArtifactTier::Common, go_entity_descriptor_values(entity)
+        );
+        const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
+        add_go_raw_common_file(
+            result, options, entity_dir + "model.go",
+            go_entity_centered_facade_file(entity, "model")
+        );
+        add_go_raw_common_file(
+            result, options, entity_dir + "persistence.go",
+            go_entity_centered_facade_file(entity, "persistence")
+        );
+        add_go_raw_common_file(
+            result, options, entity_dir + "schema.go",
+            go_entity_centered_facade_file(entity, "schema")
         );
     }
 }

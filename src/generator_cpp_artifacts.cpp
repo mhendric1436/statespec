@@ -808,6 +808,25 @@ TemplateRenderer::Values cpp_entity_descriptor_module_values(const IrEntity& ent
     };
 }
 
+std::string cpp_entity_centered_facade_header(
+    const IrEntity& entity,
+    std::string_view area
+)
+{
+    const auto entity_path = snake_identifier(entity.name);
+    const auto entity_namespace = entity_path;
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../descriptors/entities/" << entity_path << ".hpp\"\n\n";
+    out << "namespace statespec_generated::entities::" << entity_namespace << "\n";
+    out << "{\n\n";
+    out << "// Entity-centered " << area
+        << " facade. The active implementation remains in descriptors/entities/" << entity_path
+        << ".hpp during the staged split.\n\n";
+    out << "} // namespace statespec_generated::entities::" << entity_namespace << "\n";
+    return out.str();
+}
+
 std::string cpp_event_descriptor_module(const IrSystem& system)
 {
     std::ostringstream out;
@@ -1062,6 +1081,19 @@ void add_cpp_descriptor_module_artifacts(
             generated_template_path("descriptor_module.hpp.tmpl"),
             common_artifact_path("descriptors/entities/" + snake_identifier(entity.name) + ".hpp"),
             diagnostics, GeneratedArtifactTier::Common, cpp_entity_descriptor_module_values(entity)
+        );
+        const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
+        add_cpp_raw_common_file(
+            result, options, entity_dir + "model.hpp",
+            cpp_entity_centered_facade_header(entity, "model")
+        );
+        add_cpp_raw_common_file(
+            result, options, entity_dir + "persistence.hpp",
+            cpp_entity_centered_facade_header(entity, "persistence")
+        );
+        add_cpp_raw_common_file(
+            result, options, entity_dir + "schema.hpp",
+            cpp_entity_centered_facade_header(entity, "schema")
         );
     }
 }

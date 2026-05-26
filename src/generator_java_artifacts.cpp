@@ -843,6 +843,24 @@ TemplateRenderer::Values java_entity_descriptor_module_values(const IrEntity& en
     );
 }
 
+std::string java_entity_centered_facade_file(
+    const IrEntity& entity,
+    std::string_view class_name,
+    std::string_view area
+)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.entities." << snake_identifier(entity.name) << ";\n\n";
+    out << "/** Entity-centered " << area
+        << " facade. The active implementation remains in descriptors.entities."
+        << java_entity_descriptor_module_class_name(entity.name)
+        << " during the staged split. */\n";
+    out << "public final class " << class_name << " {\n";
+    out << "    private " << class_name << "() {}\n";
+    out << "}\n";
+    return out.str();
+}
+
 TemplateRenderer::Values java_shape_descriptor_module_values(
     std::string_view package_name,
     std::string_view class_name,
@@ -1250,6 +1268,19 @@ void add_java_descriptor_module_artifacts(
                 (entity_descriptor_package_path / (class_name + ".java")).generic_string()
             ),
             diagnostics, GeneratedArtifactTier::Common, java_entity_descriptor_module_values(entity)
+        );
+        const auto entity_path = std::filesystem::path{"entities"} / snake_identifier(entity.name);
+        add_java_raw_common_file(
+            result, options, entity_path / "Model.java",
+            java_entity_centered_facade_file(entity, "Model", "model")
+        );
+        add_java_raw_common_file(
+            result, options, entity_path / "Persistence.java",
+            java_entity_centered_facade_file(entity, "Persistence", "persistence")
+        );
+        add_java_raw_common_file(
+            result, options, entity_path / "Schema.java",
+            java_entity_centered_facade_file(entity, "Schema", "schema")
         );
     }
 }

@@ -83,6 +83,9 @@ common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
 common/com/statespec/generated/shapes/StartProvisionRequest.java
 common/com/statespec/generated/shapes/StartProvisionResponse.java
 common/com/statespec/generated/workflows/ProvisionServiceDescriptorModule.java
+common/entities/service_instance/Model.java
+common/entities/service_instance/Persistence.java
+common/entities/service_instance/Schema.java
 worker/com/statespec/generated/WorkerApplication.java
 worker/com/statespec/generated/WorkerContexts.java
 worker/com/statespec/generated/WorkerDescriptors.java
