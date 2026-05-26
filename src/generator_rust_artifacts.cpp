@@ -933,6 +933,64 @@ std::string rust_entity_centered_facade_file(
         out << "// The existing descriptors/entities/" << snake_identifier(entity.name)
             << ".rs module remains as the compatibility facade for repository users.\n";
     }
+    else if (area == "schema")
+    {
+        out << "use crate::backend::CollectionDescriptor;\n";
+        out << "use super::model::*;\n\n";
+        out << "pub const " << upper_snake_identifier(entity.name + "_schema_version")
+            << ": u64 = 1;\n";
+        if (entity.ownership.has_value())
+        {
+            out << "pub const " << upper_snake_identifier(entity.name + "_ownership_authority")
+                << ": &str = " << rust_string(entity.ownership->authority) << ";\n";
+            out << "pub const "
+                << upper_snake_identifier(entity.name + "_ownership_system_of_record")
+                << ": &str = " << rust_string(entity.ownership->system_of_record) << ";\n";
+            out << "pub const " << upper_snake_identifier(entity.name + "_ownership_lifecycle")
+                << ": &str = " << rust_string(entity.ownership->lifecycle) << ";\n";
+        }
+        for (const auto& state : entity.states)
+        {
+            out << "pub const "
+                << upper_snake_identifier(entity.name + "_state_" + state.name + "_terminal")
+                << ": bool = " << (state.terminal ? "true" : "false") << ";\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "pub const "
+                    << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
+                    << ": &str = " << rust_string(state.garbage_collection->after) << ";\n";
+                out << "pub const "
+                    << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode")
+                    << ": &str = " << rust_string(state.garbage_collection->mode) << ";\n";
+            }
+        }
+        out << "\n";
+        out << "pub fn " << snake_identifier(entity.name)
+            << "_collection_descriptor() -> CollectionDescriptor {\n";
+        out << "    CollectionDescriptor {\n";
+        out << "        name: " << rust_entity_name_constant_name(entity.name) << ".to_string(),\n";
+        out << "        fields: " << snake_identifier(entity.name) << "_field_descriptors(),\n";
+        out << "        key_fields: vec![";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_entity_field_constant_name(entity.name, entity.key_fields[i])
+                << ".to_string()";
+        }
+        out << "],\n";
+        out << "        indexes: " << snake_identifier(entity.name) << "_index_descriptors(),\n";
+        out << "        schema_version: " << upper_snake_identifier(entity.name + "_schema_version")
+            << ",\n";
+        out << "    }\n";
+        out << "}\n\n";
+        out << "// Collection schema and compatibility metadata are rooted with the entity "
+               "schema.\n";
+        out << "// The existing descriptors/entities/" << snake_identifier(entity.name)
+            << ".rs module remains as the compatibility facade for repository users.\n";
+    }
     else
     {
         out << "// Entity-centered " << area

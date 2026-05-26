@@ -907,6 +907,61 @@ std::string go_entity_centered_facade_file(
         out << "// The existing common/backend/" << snake_identifier(entity.name)
             << "_descriptors.go module remains as the compatibility facade for repository users.\n";
     }
+    else if (area == "schema")
+    {
+        out << "import backend \"statespec-generated/common/backend\"\n\n";
+        out << "const (\n";
+        out << "\t" << pascal_identifier(entity.name) << "SchemaVersion uint64 = 1\n";
+        if (entity.ownership.has_value())
+        {
+            out << "\t" << pascal_identifier(entity.name)
+                << "OwnershipAuthority = " << go_string(entity.ownership->authority) << "\n";
+            out << "\t" << pascal_identifier(entity.name)
+                << "OwnershipSystemOfRecord = " << go_string(entity.ownership->system_of_record)
+                << "\n";
+            out << "\t" << pascal_identifier(entity.name)
+                << "OwnershipLifecycle = " << go_string(entity.ownership->lifecycle) << "\n";
+        }
+        for (const auto& state : entity.states)
+        {
+            out << "\t" << pascal_identifier(entity.name) << "State"
+                << pascal_identifier(state.name)
+                << "Terminal = " << (state.terminal ? "true" : "false") << "\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "\t" << pascal_identifier(entity.name) << "State"
+                    << pascal_identifier(state.name)
+                    << "GcAfter = " << go_string(state.garbage_collection->after) << "\n";
+                out << "\t" << pascal_identifier(entity.name) << "State"
+                    << pascal_identifier(state.name)
+                    << "GcMode = " << go_string(state.garbage_collection->mode) << "\n";
+            }
+        }
+        out << ")\n\n";
+        out << "func " << pascal_identifier(entity.name)
+            << "CollectionDescriptor() backend.CollectionDescriptor {\n";
+        out << "\treturn backend.CollectionDescriptor{\n";
+        out << "\t\tName: " << go_entity_name_constant_name(entity.name) << ",\n";
+        out << "\t\tFields: " << pascal_identifier(entity.name) << "FieldDescriptors(),\n";
+        out << "\t\tKeyFields: []string{";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "\t\tIndexes: " << pascal_identifier(entity.name) << "IndexDescriptors(),\n";
+        out << "\t\tSchemaVersion: " << pascal_identifier(entity.name) << "SchemaVersion,\n";
+        out << "\t}\n";
+        out << "}\n\n";
+        out << "// Collection schema and compatibility metadata are rooted with the entity "
+               "schema.\n";
+        out << "// The existing common/backend/" << snake_identifier(entity.name)
+            << "_descriptors.go module remains as the compatibility facade for repository users.\n";
+    }
     else
     {
         out << "// Entity-centered " << area

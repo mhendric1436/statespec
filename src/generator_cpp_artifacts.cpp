@@ -822,6 +822,13 @@ std::string cpp_entity_centered_facade_header(
         out << "#include \"../../backend.hpp\"\n\n";
         out << "#include <vector>\n\n";
     }
+    else if (area == "schema")
+    {
+        out << "#include \"model.hpp\"\n";
+        out << "#include \"../../backend.hpp\"\n\n";
+        out << "#include <cstdint>\n";
+        out << "#include <vector>\n\n";
+    }
     out << "namespace statespec_generated::entities::" << entity_namespace << "\n";
     out << "{\n\n";
     if (area == "model")
@@ -906,6 +913,61 @@ std::string cpp_entity_centered_facade_header(
         out << "    };\n";
         out << "}\n\n";
         out << "// Relationship metadata is now rooted with the entity model.\n";
+        out << "// The existing descriptors/entities/" << entity_path
+            << ".hpp module remains as the compatibility facade for repository users.\n\n";
+    }
+    else if (area == "schema")
+    {
+        out << "inline constexpr std::uint64_t k" << pascal_identifier(entity.name)
+            << "SchemaVersion = 1;\n";
+        if (entity.ownership.has_value())
+        {
+            out << "inline constexpr const char* k" << pascal_identifier(entity.name)
+                << "OwnershipAuthority = " << cpp_string(entity.ownership->authority) << ";\n";
+            out << "inline constexpr const char* k" << pascal_identifier(entity.name)
+                << "OwnershipSystemOfRecord = " << cpp_string(entity.ownership->system_of_record)
+                << ";\n";
+            out << "inline constexpr const char* k" << pascal_identifier(entity.name)
+                << "OwnershipLifecycle = " << cpp_string(entity.ownership->lifecycle) << ";\n";
+        }
+        for (const auto& state : entity.states)
+        {
+            out << "inline constexpr bool k" << pascal_identifier(entity.name) << "State"
+                << pascal_identifier(state.name)
+                << "Terminal = " << (state.terminal ? "true" : "false") << ";\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "inline constexpr const char* k" << pascal_identifier(entity.name) << "State"
+                    << pascal_identifier(state.name)
+                    << "GcAfter = " << cpp_string(state.garbage_collection->after) << ";\n";
+                out << "inline constexpr const char* k" << pascal_identifier(entity.name) << "State"
+                    << pascal_identifier(state.name)
+                    << "GcMode = " << cpp_string(state.garbage_collection->mode) << ";\n";
+            }
+        }
+        out << "\n";
+        out << "inline statespec::backend::CollectionDescriptor " << entity_path
+            << "_collection_descriptor()\n";
+        out << "{\n";
+        out << "    return statespec::backend::CollectionDescriptor{\n";
+        out << "        " << cpp_entity_name_constant_name(entity.name) << ",\n";
+        out << "        " << entity_path << "_field_descriptors(),\n";
+        out << "        {";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << cpp_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "},\n";
+        out << "        " << entity_path << "_index_descriptors(),\n";
+        out << "        k" << pascal_identifier(entity.name) << "SchemaVersion,\n";
+        out << "    };\n";
+        out << "}\n\n";
+        out << "// Collection schema and compatibility metadata are rooted with the entity "
+               "schema.\n";
         out << "// The existing descriptors/entities/" << entity_path
             << ".hpp module remains as the compatibility facade for repository users.\n\n";
     }

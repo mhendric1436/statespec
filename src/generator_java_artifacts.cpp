@@ -859,6 +859,13 @@ std::string java_entity_centered_facade_file(
         out << "import java.util.List;\n\n";
         out << "/** Entity-centered model constants and metadata for " << entity.name << ". */\n";
     }
+    else if (area == "schema")
+    {
+        out << "import com.statespec.backend.Backend.CollectionDescriptor;\n";
+        out << "import java.util.List;\n\n";
+        out << "/** Entity-centered collection schema and compatibility metadata for "
+            << entity.name << ". */\n";
+    }
     else
     {
         out << "/** Entity-centered " << area
@@ -947,6 +954,62 @@ std::string java_entity_centered_facade_file(
             out << "                " << (index.unique ? "true" : "false") << "\n";
             out << "            )" << (i + 1 < entity.indexes.size() ? "," : "") << "\n";
         }
+        out << "        );\n";
+        out << "    }\n";
+    }
+    else if (area == "schema")
+    {
+        out << "\n";
+        const auto schema_version_constant =
+            upper_snake_identifier(entity.name + "_schema_version");
+        out << "    public static final long " << schema_version_constant << " = 1L;\n";
+        if (entity.ownership.has_value())
+        {
+            out << "    public static final String "
+                << upper_snake_identifier(entity.name + "_ownership_authority") << " = "
+                << java_string(entity.ownership->authority) << ";\n";
+            out << "    public static final String "
+                << upper_snake_identifier(entity.name + "_ownership_system_of_record") << " = "
+                << java_string(entity.ownership->system_of_record) << ";\n";
+            out << "    public static final String "
+                << upper_snake_identifier(entity.name + "_ownership_lifecycle") << " = "
+                << java_string(entity.ownership->lifecycle) << ";\n";
+        }
+        for (const auto& state : entity.states)
+        {
+            out << "    public static final boolean "
+                << upper_snake_identifier(entity.name + "_state_" + state.name + "_terminal")
+                << " = " << (state.terminal ? "true" : "false") << ";\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "    public static final String "
+                    << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
+                    << " = " << java_string(state.garbage_collection->after) << ";\n";
+                out << "    public static final String "
+                    << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode")
+                    << " = " << java_string(state.garbage_collection->mode) << ";\n";
+            }
+        }
+        out << "\n";
+        out << "    public static CollectionDescriptor " << lower_camel_identifier(entity.name)
+            << "CollectionDescriptor() {\n";
+        out << "        return new CollectionDescriptor(\n";
+        out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
+        out << "            Model." << lower_camel_identifier(entity.name)
+            << "FieldDescriptors(),\n";
+        out << "            List.of(";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << "Model." << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "),\n";
+        out << "            Model." << lower_camel_identifier(entity.name)
+            << "IndexDescriptors(),\n";
+        out << "            " << schema_version_constant << "\n";
         out << "        );\n";
         out << "    }\n";
     }
