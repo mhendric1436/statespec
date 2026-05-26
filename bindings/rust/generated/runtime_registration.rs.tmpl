@@ -1,5 +1,5 @@
 {{feature_flag_helpers}}{{lease_helpers}}pub fn ensure_system_collections<B: Backend>(backend: &B) -> BackendResult<()> {
-    backend.ensure_collections(&collection_descriptors())
+{{ensure_system_collections_body}}
 }
 
 {{domain_registration_helpers}}pub fn register_runtime_catalog_tx<B{{generic_parameters}}>(

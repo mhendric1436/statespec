@@ -774,6 +774,7 @@ std::string go_api_codec_delegates(const IrSystem& system)
 
 TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
 {
+    std::ostringstream imports;
     std::ostringstream descriptors;
     for (const auto& entity : system.entities)
     {
@@ -784,22 +785,35 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
             {
                 continue;
             }
-            terminal_states << "\t\t\t{State: " << go_string(state.name)
-                            << ", After: " << go_string(state.garbage_collection->after)
-                            << ", Mode: " << go_string(state.garbage_collection->mode) << "},\n";
+            terminal_states << "\t\t\t{State: " << snake_identifier(entity.name) << "."
+                            << go_entity_state_constant_name(entity.name, state.name)
+                            << ", After: " << snake_identifier(entity.name) << "."
+                            << pascal_identifier(entity.name) << "State"
+                            << pascal_identifier(state.name) << "GcAfter"
+                            << ", Mode: " << snake_identifier(entity.name) << "."
+                            << pascal_identifier(entity.name) << "State"
+                            << pascal_identifier(state.name) << "GcMode},\n";
         }
         if (terminal_states.str().empty())
         {
             continue;
         }
+        imports << "\t" << snake_identifier(entity.name)
+                << " \"statespec-generated/common/entities/" << snake_identifier(entity.name)
+                << "\"\n";
         descriptors << "\t\t{\n"
-                    << "\t\t\tEntity: " << go_string(entity.name) << ",\n"
-                    << "\t\t\tCollection: " << go_string(entity.name) << ",\n"
+                    << "\t\t\tEntity: " << snake_identifier(entity.name) << "."
+                    << go_entity_name_constant_name(entity.name) << ",\n"
+                    << "\t\t\tCollection: " << snake_identifier(entity.name) << "."
+                    << go_entity_name_constant_name(entity.name) << ",\n"
                     << "\t\t\tTerminalStates: []EntityGCTerminalStateDescriptor{\n"
                     << terminal_states.str() << "\t\t\t},\n"
                     << "\t\t},\n";
     }
-    return TemplateRenderer::Values{{"entity_gc_descriptors", descriptors.str()}};
+    return TemplateRenderer::Values{
+        {"entity_gc_entity_imports", imports.str().empty() ? "" : "\n" + imports.str()},
+        {"entity_gc_descriptors", descriptors.str()},
+    };
 }
 
 void add_go_common_generated_template_file(

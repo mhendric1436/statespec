@@ -1,5 +1,6 @@
 #include "generator_rust_descriptor_areas.hpp"
 
+#include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
@@ -38,6 +39,15 @@ std::string generate_rust_runtime_registration(
     std::ostringstream params;
     std::ostringstream args;
     std::ostringstream calls;
+    std::ostringstream ensure_collections_body;
+    ensure_collections_body << "    backend.ensure_collections(&[\n";
+    for (const auto& entity : system.entities)
+    {
+        ensure_collections_body << "        crate::entity_" << snake_identifier(entity.name)
+                                << "::schema::" << snake_identifier(entity.name)
+                                << "_collection_descriptor(),\n";
+    }
+    ensure_collections_body << "    ])\n";
     auto add = [&](std::string_view generic, std::string_view bound, std::string_view name,
                    std::string_view fn)
     {
@@ -94,6 +104,7 @@ std::string generate_rust_runtime_registration(
             {"tx_parameters", params.str()},
             {"runtime_parameters", params.str()},
             {"runtime_arguments", args.str()},
+            {"ensure_system_collections_body", ensure_collections_body.str()},
             {"tx_calls", calls.str()},
         }
     );

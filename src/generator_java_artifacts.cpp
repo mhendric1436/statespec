@@ -740,19 +740,30 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
             {
                 terminal_states << ",\n";
             }
-            terminal_states << "                new TerminalState(" << java_string(state.name)
-                            << ", " << java_string(state.garbage_collection->after) << ", "
-                            << java_string(state.garbage_collection->mode) << ")";
+            const auto model_class =
+                "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Model";
+            const auto schema_class =
+                "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Schema";
+            terminal_states
+                << "                new TerminalState(" << model_class << "."
+                << java_entity_state_constant_name(entity.name, state.name) << ", " << schema_class
+                << "." << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
+                << ", " << schema_class << "."
+                << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode") << ")";
             first_terminal_state = false;
         }
         if (terminal_states.str().empty())
         {
             continue;
         }
+        const auto model_class =
+            "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Model";
         std::ostringstream descriptor;
         descriptor << "            new Descriptor(\n"
-                   << "                " << java_string(entity.name) << ",\n"
-                   << "                " << java_string(entity.name) << ",\n"
+                   << "                " << model_class << "."
+                   << java_entity_name_constant_name(entity.name) << ",\n"
+                   << "                " << model_class << "."
+                   << java_entity_name_constant_name(entity.name) << ",\n"
                    << "                List.of(\n"
                    << terminal_states.str() << "\n"
                    << "                )\n"

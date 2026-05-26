@@ -1,5 +1,6 @@
 #include "generator_cpp_descriptor_areas.hpp"
 
+#include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
@@ -37,6 +38,17 @@ std::string generate_cpp_runtime_registration(
     std::ostringstream runtime_parameters;
     std::ostringstream runtime_arguments;
     std::ostringstream tx_calls;
+    std::ostringstream ensure_collections_body;
+
+    ensure_collections_body << "    backend.ensure_collections({\n";
+    for (const auto& entity : system.entities)
+    {
+        ensure_collections_body << "        ::statespec_generated::entities::"
+                                << snake_identifier(entity.name)
+                                << "::" << snake_identifier(entity.name)
+                                << "_collection_descriptor(),\n";
+    }
+    ensure_collections_body << "    });\n";
 
     auto add_domain =
         [&](std::string_view tx_type, std::string_view name, std::string_view register_call)
@@ -106,6 +118,7 @@ std::string generate_cpp_runtime_registration(
             {"tx_parameters", tx_parameters.str()},
             {"runtime_parameters", runtime_parameters.str()},
             {"runtime_arguments", runtime_arguments.str()},
+            {"ensure_system_collections_body", ensure_collections_body.str()},
             {"tx_calls", tx_calls.str()},
         }
     );

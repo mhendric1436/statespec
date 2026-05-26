@@ -18,6 +18,10 @@ std::string cpp_descriptor_module_includes(const IrSystem& system)
     out << "#include \"descriptors/apis.hpp\"\n";
     out << "#include \"descriptors/workers.hpp\"\n";
     out << "#include \"descriptors/runtime.hpp\"\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "#include \"entities/" << snake_identifier(entity.name) << "/schema.hpp\"\n";
+    }
     for (const auto& workflow : system.workflows)
     {
         out << "#include \"workflows/" << snake_identifier(workflow.name) << ".hpp\"\n";

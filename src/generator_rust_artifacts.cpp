@@ -755,6 +755,7 @@ TemplateRenderer::Values rust_api_runtime_bootstrap_values(const IrSystem& syste
 
 TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system)
 {
+    std::ostringstream imports;
     std::ostringstream descriptors;
     for (const auto& entity : system.entities)
     {
@@ -765,27 +766,46 @@ TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system
             {
                 continue;
             }
-            terminal_states << "            EntityGcTerminalStateDescriptor {\n"
-                            << "                state: " << rust_string(state.name)
-                            << ".to_string(),\n"
-                            << "                after: "
-                            << rust_string(state.garbage_collection->after) << ".to_string(),\n"
-                            << "                mode: "
-                            << rust_string(state.garbage_collection->mode) << ".to_string(),\n"
-                            << "            },\n";
+            terminal_states
+                << "            EntityGcTerminalStateDescriptor {\n"
+                << "                state: " << snake_identifier(entity.name)
+                << "_model::" << rust_entity_state_constant_name(entity.name, state.name)
+                << ".to_string(),\n"
+                << "                after: " << snake_identifier(entity.name) << "_schema::"
+                << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
+                << ".to_string(),\n"
+                << "                mode: " << snake_identifier(entity.name) << "_schema::"
+                << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode")
+                << ".to_string(),\n"
+                << "            },\n";
         }
         if (terminal_states.str().empty())
         {
             continue;
         }
+        imports << "use crate::entity_" << snake_identifier(entity.name) << "::model as "
+                << snake_identifier(entity.name) << "_model;\n";
+        imports << "use crate::entity_" << snake_identifier(entity.name) << "::schema as "
+                << snake_identifier(entity.name) << "_schema;\n";
         descriptors << "        EntityGcDescriptor {\n"
-                    << "            entity: " << rust_string(entity.name) << ".to_string(),\n"
-                    << "            collection: " << rust_string(entity.name) << ".to_string(),\n"
+                    << "            entity: " << snake_identifier(entity.name)
+                    << "_model::" << rust_entity_name_constant_name(entity.name)
+                    << ".to_string(),\n"
+                    << "            collection: " << snake_identifier(entity.name)
+                    << "_model::" << rust_entity_name_constant_name(entity.name)
+                    << ".to_string(),\n"
                     << "            terminal_states: vec![\n"
                     << terminal_states.str() << "            ],\n"
                     << "        },\n";
     }
-    return TemplateRenderer::Values{{"entity_gc_descriptors", descriptors.str()}};
+    if (!imports.str().empty())
+    {
+        imports << "\n";
+    }
+    return TemplateRenderer::Values{
+        {"entity_gc_entity_imports", imports.str()},
+        {"entity_gc_descriptors", descriptors.str()},
+    };
 }
 
 void add_rust_common_generated_template_file(
