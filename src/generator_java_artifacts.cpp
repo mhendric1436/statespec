@@ -1097,7 +1097,7 @@ std::string java_entity_centered_facade_file(
         out << "            long expectedVersion\n";
         out << "        ) throws com.statespec.backend.Backend.BackendException;\n";
         out << "    }\n\n";
-        out << "    public static final class Default" << type_name << "Repository implements "
+        out << "    public static class Default" << type_name << "Repository implements "
             << type_name << "Repository {\n";
         out << "        private final com.statespec.generated.Descriptors.EntityRepository "
                "entities = new com.statespec.generated.Descriptors.DefaultEntityRepository();\n\n";

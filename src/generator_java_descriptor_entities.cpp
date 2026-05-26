@@ -15,27 +15,33 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
     for (const auto& entity : system.entities)
     {
         out << "    public static final String " << java_entity_name_constant_name(entity.name)
-            << " = " << java_string(entity.name) << ";\n";
+            << " = com.statespec.generated.entities." << snake_identifier(entity.name) << ".Model."
+            << java_entity_name_constant_name(entity.name) << ";\n";
         for (const auto& field : entity.fields)
         {
             out << "    public static final String "
-                << java_entity_field_constant_name(entity.name, field.name) << " = "
-                << java_string(field.name) << ";\n";
+                << java_entity_field_constant_name(entity.name, field.name)
+                << " = com.statespec.generated.entities." << snake_identifier(entity.name)
+                << ".Model." << java_entity_field_constant_name(entity.name, field.name) << ";\n";
             out << "    public static final String "
-                << java_entity_field_type_name_constant_name(entity.name, field.name) << " = "
-                << java_string(field.type) << ";\n";
+                << java_entity_field_type_name_constant_name(entity.name, field.name)
+                << " = com.statespec.generated.entities." << snake_identifier(entity.name)
+                << ".Model." << java_entity_field_type_name_constant_name(entity.name, field.name)
+                << ";\n";
         }
         for (const auto& index : entity.indexes)
         {
             out << "    public static final String "
-                << java_entity_index_constant_name(entity.name, index.name) << " = "
-                << java_string(index.name) << ";\n";
+                << java_entity_index_constant_name(entity.name, index.name)
+                << " = com.statespec.generated.entities." << snake_identifier(entity.name)
+                << ".Model." << java_entity_index_constant_name(entity.name, index.name) << ";\n";
         }
         for (const auto& state : entity.states)
         {
             out << "    public static final String "
-                << java_entity_state_constant_name(entity.name, state.name) << " = "
-                << java_string(state.name) << ";\n";
+                << java_entity_state_constant_name(entity.name, state.name)
+                << " = com.statespec.generated.entities." << snake_identifier(entity.name)
+                << ".Model." << java_entity_state_constant_name(entity.name, state.name) << ";\n";
         }
     }
     if (!system.entities.empty())
@@ -180,174 +186,20 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         const auto type_name = pascal_identifier(entity.name);
         out << "    public static EntityLookup build" << type_name
             << "Lookup(List<EntityKeyValue> keyValues) {\n";
-        out << "        return new EntityLookup(\n";
-        out << "            " << java_entity_name_constant_name(entity.name) << ",\n";
-        out << "            List.of(";
-        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
-        }
-        out << "),\n";
-        out << "            List.copyOf(keyValues)\n";
-        out << "        );\n";
+        out << "        return com.statespec.generated.entities." << snake_identifier(entity.name)
+            << ".Persistence.build" << type_name << "Lookup(keyValues);\n";
         out << "    }\n\n";
-        out << "    public interface " << type_name << "Repository {\n";
-        out << "        void registerDescriptor(Backend backend) throws "
-               "Backend.BackendException;\n";
-        out << "        Optional<Backend.VersionedRecord> createTx(\n";
-        out << "            Backend.Transaction tx,\n";
-        out << "            Json document\n";
-        out << "        ) throws Backend.BackendException;\n";
-        out << "        Optional<Backend.VersionedRecord> getTx(\n";
-        out << "            Backend.Transaction tx,\n";
-        out << "            List<EntityKeyValue> keyValues\n";
-        out << "        ) throws Backend.BackendException;\n";
-        out << "        List<Backend.VersionedRecord> listByIndexTx(\n";
-        out << "            Backend.Transaction tx,\n";
-        out << "            String indexName,\n";
-        out << "            List<Backend.IndexValue> values\n";
-        out << "        ) throws Backend.BackendException;\n";
-        for (const auto& index : entity.indexes)
-        {
-            out << "        List<Backend.VersionedRecord> "
-                << entity_index_repository_method_name(index.name) << "(\n";
-            out << "            Backend.Transaction tx,\n";
-            out << "            List<Backend.IndexValue> values\n";
-            out << "        ) throws Backend.BackendException;\n";
-        }
-        out << "        Optional<Backend.VersionedRecord> updateTx(\n";
-        out << "            Backend.Transaction tx,\n";
-        out << "            List<EntityKeyValue> keyValues,\n";
-        out << "            Json document,\n";
-        out << "            long expectedVersion\n";
-        out << "        ) throws Backend.BackendException;\n";
-        out << "    }\n\n";
-        out << "    public static final class Default" << type_name << "Repository implements "
-            << type_name << "Repository {\n";
-        out << "        private final EntityRepository entities = new "
-               "DefaultEntityRepository();\n\n";
-        out << "        @Override public void registerDescriptor(Backend backend)\n";
-        out << "            throws Backend.BackendException\n";
-        out << "        {\n";
-        out << "            backend.ensureCollection(" << lower_camel_identifier(entity.name)
-            << "CollectionDescriptor());\n";
-        out << "        }\n\n";
-        out << "        @Override public Optional<Backend.VersionedRecord> createTx(\n";
-        out << "            Backend.Transaction tx,\n";
-        out << "            Json document\n";
-        out << "        ) throws Backend.BackendException\n";
-        out << "        {\n";
-        out << "            return entities.createEntityTx(\n";
-        out << "                tx,\n";
-        out << "                new EntityCreateRequest(\n";
-        out << "                    entityLookupFromDocument("
-            << lower_camel_identifier(entity.name) << "EntityDescriptor(), document),\n";
-        out << "                    document\n";
-        out << "                )\n";
-        out << "            );\n";
-        out << "        }\n\n";
-        out << "        @Override public Optional<Backend.VersionedRecord> getTx(\n";
-        out << "            Backend.Transaction tx,\n";
-        out << "            List<EntityKeyValue> keyValues\n";
-        out << "        ) throws Backend.BackendException\n";
-        out << "        {\n";
-        out << "            return entities.getEntityTx(\n";
-        out << "                tx, new EntityGetRequest(build" << type_name
-            << "Lookup(keyValues))\n";
-        out << "            );\n";
-        out << "        }\n\n";
-        out << "        @Override public List<Backend.VersionedRecord> listByIndexTx(\n";
-        out << "            Backend.Transaction tx,\n";
-        out << "            String indexName,\n";
-        out << "            List<Backend.IndexValue> values\n";
-        out << "        ) throws Backend.BackendException\n";
-        out << "        {\n";
-        out << "            return entities.listEntitiesByIndexTx(\n";
-        out << "                tx,\n";
-        out << "                new EntityListByIndexRequest("
-            << java_entity_name_constant_name(entity.name) << ", indexName, values)\n";
-        out << "            );\n";
-        out << "        }\n";
-        out << "\n";
-        for (const auto& index : entity.indexes)
-        {
-            out << "        @Override public List<Backend.VersionedRecord> "
-                << entity_index_repository_method_name(index.name) << "(\n";
-            out << "            Backend.Transaction tx,\n";
-            out << "            List<Backend.IndexValue> values\n";
-            out << "        ) throws Backend.BackendException\n";
-            out << "        {\n";
-            out << "            return listByIndexTx(tx, "
-                << java_entity_index_constant_name(entity.name, index.name) << ", values);\n";
-            out << "        }\n";
-            out << "\n";
-        }
-        out << "        @Override public Optional<Backend.VersionedRecord> updateTx(\n";
-        out << "            Backend.Transaction tx,\n";
-        out << "            List<EntityKeyValue> keyValues,\n";
-        out << "            Json document,\n";
-        out << "            long expectedVersion\n";
-        out << "        ) throws Backend.BackendException\n";
-        out << "        {\n";
-        out << "            return entities.upsertEntityTx(\n";
-        out << "                tx,\n";
-        out << "                new EntityUpsertRequest(\n";
-        out << "                    build" << type_name << "Lookup(keyValues),\n";
-        out << "                    document,\n";
-        out << "                    Optional.of(expectedVersion)\n";
-        out << "                )\n";
-        out << "            );\n";
-        out << "        }\n";
-        out << "    }\n\n";
+        out << "    public interface " << type_name
+            << "Repository extends com.statespec.generated.entities."
+            << snake_identifier(entity.name) << ".Persistence." << type_name << "Repository {}\n\n";
+        out << "    public static final class Default" << type_name
+            << "Repository extends com.statespec.generated.entities."
+            << snake_identifier(entity.name) << ".Persistence.Default" << type_name
+            << "Repository implements " << type_name << "Repository {}\n\n";
         out << "    public static CollectionDescriptor " << lower_camel_identifier(entity.name)
             << "CollectionDescriptor() {\n";
-        out << "        return new CollectionDescriptor(\n";
-        out << "            " << java_entity_name_constant_name(entity.name) << ",\n";
-        out << "            List.of(\n";
-        for (std::size_t i = 0; i < entity.fields.size(); ++i)
-        {
-            out << "                "
-                << java_entity_field_descriptor_expr(entity.name, entity.fields[i]);
-            out << (i + 1 < entity.fields.size() ? "," : "") << "\n";
-        }
-        out << "            ),\n";
-        out << "            List.of(";
-        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
-        }
-        out << "),\n";
-        out << "            List.of(\n";
-        for (std::size_t i = 0; i < entity.indexes.size(); ++i)
-        {
-            const auto& index = entity.indexes[i];
-            out << "                new IndexDescriptor(\n";
-            out << "                    "
-                << java_entity_index_constant_name(entity.name, index.name) << ",\n";
-            out << "                    List.of(";
-            for (std::size_t field_index = 0; field_index < index.fields.size(); ++field_index)
-            {
-                if (field_index > 0)
-                {
-                    out << ", ";
-                }
-                out << java_entity_field_constant_name(entity.name, index.fields[field_index]);
-            }
-            out << "),\n";
-            out << "                    " << (index.unique ? "true" : "false") << "\n";
-            out << "                )" << (i + 1 < entity.indexes.size() ? "," : "") << "\n";
-        }
-        out << "            ),\n";
-        out << "            1L\n";
-        out << "        );\n";
+        out << "        return com.statespec.generated.entities." << snake_identifier(entity.name)
+            << ".Schema." << lower_camel_identifier(entity.name) << "CollectionDescriptor();\n";
         out << "    }\n\n";
         out << "    public static EntityDescriptor " << lower_camel_identifier(entity.name)
             << "EntityDescriptor() {\n";
