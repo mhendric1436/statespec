@@ -45,6 +45,7 @@ common/descriptors.rs
 common/descriptors/apis.rs
 common/descriptors/core.rs
 common/descriptors/entities/service_instance.rs
+common/descriptors/events.rs
 common/descriptors/runtime.rs
 common/descriptors/shapes.rs
 common/descriptors/shapes/provision_callback_request.rs

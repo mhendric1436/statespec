@@ -46,6 +46,7 @@ common/descriptors.hpp
 common/descriptors/apis.hpp
 common/descriptors/core.hpp
 common/descriptors/entities/service_instance.hpp
+common/descriptors/events.hpp
 common/descriptors/runtime.hpp
 common/descriptors/shapes.hpp
 common/descriptors/shapes/provision_callback_request.hpp

@@ -64,6 +64,7 @@ common/com/statespec/backend/runtime/WorkflowStore.java
 common/com/statespec/generated/Descriptors.java
 common/com/statespec/generated/descriptors/ApiDescriptorModule.java
 common/com/statespec/generated/descriptors/CoreDescriptorModule.java
+common/com/statespec/generated/descriptors/EventDescriptorModule.java
 common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
 common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
 common/com/statespec/generated/descriptors/WorkerDescriptorModule.java

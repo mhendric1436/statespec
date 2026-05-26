@@ -714,6 +714,42 @@ TemplateRenderer::Values go_entity_descriptor_values(const IrEntity& entity)
     return TemplateRenderer::Values{{"entity_descriptor_content", content}};
 }
 
+std::string go_event_helpers_file(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "type EventEnvelope struct {\n";
+    out << "\tName string\n";
+    out << "\tFields map[string]JSON\n";
+    out << "}\n\n";
+    for (const auto& event : system.events)
+    {
+        out << "func New" << pascal_identifier(event.name) << "Event(";
+        for (std::size_t i = 0; i < event.fields.size(); ++i)
+        {
+            const auto& field = event.fields[i];
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << lower_camel_identifier(field.name) << " JSON";
+        }
+        out << ") EventEnvelope {\n";
+        out << "\treturn EventEnvelope{\n";
+        out << "\t\tName: " << go_string(event.name) << ",\n";
+        out << "\t\tFields: map[string]JSON{\n";
+        for (const auto& field : event.fields)
+        {
+            out << "\t\t\t" << go_string(field.name) << ": " << lower_camel_identifier(field.name)
+                << ",\n";
+        }
+        out << "\t\t},\n";
+        out << "\t}\n";
+        out << "}\n\n";
+    }
+    return out.str();
+}
+
 TemplateRenderer::Values go_shape_descriptor_values(const IrSystem& system)
 {
     std::ostringstream content;
@@ -926,6 +962,7 @@ void add_go_descriptor_module_artifacts(
         result, options, templates, "backend/descriptors/core.go", "descriptors",
         "core descriptors", diagnostics
     );
+    add_go_raw_common_file(result, options, "backend/events.go", go_event_helpers_file(system));
     add_go_descriptor_module_artifact(
         result, options, templates, "backend/descriptors/shapes.go", "descriptors",
         "shape descriptors", diagnostics

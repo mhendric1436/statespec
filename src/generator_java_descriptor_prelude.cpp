@@ -16,6 +16,7 @@ std::string java_descriptor_module_imports(const IrSystem& system)
     std::ostringstream out;
     out << "import com.statespec.generated.descriptors.ApiDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.CoreDescriptorModule;\n";
+    out << "import com.statespec.generated.descriptors.EventDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.RuntimeDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.ShapeDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.WorkerDescriptorModule;\n";
@@ -82,18 +83,17 @@ std::string generate_java_descriptor_prelude(
             out << (i + 1 < event.fields.size() ? "," : "") << "\n";
         }
         out << "    ) {\n";
-        out << "        return new EventEnvelope(\n";
-        out << "            " << java_string(event.name) << ",\n";
-        out << "            Map.of(\n";
+        out << "        return EventDescriptorModule.build" << pascal_identifier(event.name)
+            << "Event(";
         for (std::size_t i = 0; i < event.fields.size(); ++i)
         {
-            const auto& field = event.fields[i];
-            out << "                " << java_string(field.name) << ", "
-                << lower_camel_identifier(field.name);
-            out << (i + 1 < event.fields.size() ? "," : "") << "\n";
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << lower_camel_identifier(event.fields[i].name);
         }
-        out << "            )\n";
-        out << "        );\n";
+        out << ");\n";
         out << "    }\n\n";
     }
 

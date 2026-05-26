@@ -44,6 +44,7 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors.rs", common},
             {"common/descriptors/apis.rs", common},
             {"common/descriptors/core.rs", common},
+            {"common/descriptors/events.rs", common},
             {"common/descriptors/runtime.rs", common},
             {"common/descriptors/shapes.rs", common},
             {"common/descriptors/workers.rs", common},
@@ -75,6 +76,10 @@ void test_rust_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "descriptors/core.rs", "common/descriptors/core.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/events.rs", "common/descriptors/events.rs",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

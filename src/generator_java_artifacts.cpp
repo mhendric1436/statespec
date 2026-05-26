@@ -61,10 +61,49 @@ std::string java_entity_descriptor_module_ref(std::string_view entity_name)
            java_entity_descriptor_module_class_name(entity_name);
 }
 
+std::string java_event_descriptor_module_file(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.descriptors;\n\n";
+    out << "import com.statespec.backend.Json;\n";
+    out << "import com.statespec.generated.Descriptors.EventEnvelope;\n";
+    out << "import java.util.Map;\n\n";
+    out << "public final class EventDescriptorModule {\n";
+    out << "    private EventDescriptorModule() {}\n\n";
+    for (const auto& event : system.events)
+    {
+        out << "    public static EventEnvelope build" << pascal_identifier(event.name)
+            << "Event(\n";
+        for (std::size_t i = 0; i < event.fields.size(); ++i)
+        {
+            const auto& field = event.fields[i];
+            out << "        Json " << lower_camel_identifier(field.name);
+            out << (i + 1 < event.fields.size() ? "," : "") << "\n";
+        }
+        out << "    ) {\n";
+        out << "        return new EventEnvelope(\n";
+        out << "            " << java_string(event.name) << ",\n";
+        out << "            Map.of(\n";
+        for (std::size_t i = 0; i < event.fields.size(); ++i)
+        {
+            const auto& field = event.fields[i];
+            out << "                " << java_string(field.name) << ", "
+                << lower_camel_identifier(field.name);
+            out << (i + 1 < event.fields.size() ? "," : "") << "\n";
+        }
+        out << "            )\n";
+        out << "        );\n";
+        out << "    }\n\n";
+    }
+    out << "}\n";
+    return out.str();
+}
+
 std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
 {
     std::vector<std::string> sources{
         "common/com/statespec/generated/descriptors/CoreDescriptorModule.java",
+        "common/com/statespec/generated/descriptors/EventDescriptorModule.java",
         "common/com/statespec/generated/descriptors/ShapeDescriptorModule.java",
         "common/com/statespec/generated/descriptors/ApiDescriptorModule.java",
         "common/com/statespec/generated/descriptors/WorkerDescriptorModule.java",
@@ -1224,6 +1263,10 @@ void add_java_descriptor_module_artifacts(
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "CoreDescriptorModule.java",
         descriptor_package, "CoreDescriptorModule", "core descriptors", diagnostics
+    );
+    add_java_raw_common_file(
+        result, options, descriptor_package_path / "EventDescriptorModule.java",
+        java_event_descriptor_module_file(system)
     );
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "ShapeDescriptorModule.java",

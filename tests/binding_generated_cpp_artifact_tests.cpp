@@ -44,6 +44,7 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors.hpp", common},
             {"common/descriptors/apis.hpp", common},
             {"common/descriptors/core.hpp", common},
+            {"common/descriptors/events.hpp", common},
             {"common/descriptors/runtime.hpp", common},
             {"common/descriptors/shapes.hpp", common},
             {"common/descriptors/workers.hpp", common},
@@ -72,6 +73,10 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "descriptors/core.hpp", "common/descriptors/core.hpp",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/events.hpp", "common/descriptors/events.hpp",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

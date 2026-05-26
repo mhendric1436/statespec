@@ -50,36 +50,6 @@ std::string generate_go_descriptor_prelude(
     out << "\t\"strings\"\n";
     out << "\t\"time\"\n";
     out << ")\n\n";
-    out << "type EventEnvelope struct {\n";
-    out << "\tName string\n";
-    out << "\tFields map[string]JSON\n";
-    out << "}\n\n";
-    for (const auto& event : system.events)
-    {
-        out << "func New" << pascal_identifier(event.name) << "Event(";
-        for (std::size_t i = 0; i < event.fields.size(); ++i)
-        {
-            const auto& field = event.fields[i];
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << lower_camel_identifier(field.name) << " JSON";
-        }
-        out << ") EventEnvelope {\n";
-        out << "\treturn EventEnvelope{\n";
-        out << "\t\tName: " << go_string(event.name) << ",\n";
-        out << "\t\tFields: map[string]JSON{\n";
-        for (const auto& field : event.fields)
-        {
-            out << "\t\t\t" << go_string(field.name) << ": " << lower_camel_identifier(field.name)
-                << ",\n";
-        }
-        out << "\t\t},\n";
-        out << "\t}\n";
-        out << "}\n\n";
-    }
-
     out << "type LeaseDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tResource *string\n";

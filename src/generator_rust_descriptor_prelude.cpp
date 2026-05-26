@@ -16,6 +16,9 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     std::ostringstream out;
     out << "#[path = \"descriptors/core.rs\"]\n";
     out << "mod descriptor_core;\n";
+    out << "#[path = \"descriptors/events.rs\"]\n";
+    out << "mod descriptor_events;\n";
+    out << "pub use descriptor_events::*;\n";
     out << "#[path = \"descriptors/shapes.rs\"]\n";
     out << "mod descriptor_shapes;\n";
     out << "pub use descriptor_shapes::*;\n";
@@ -69,30 +72,6 @@ std::string generate_rust_descriptor_prelude(
     out << "use crate::queue::{RegisterQueueDefinitionRequest, QueueDefinition, QueueStore};\n";
     out << "use crate::workflow::{RegisterWorkflowDefinitionRequest, WorkflowDefinition, "
            "WorkflowStore};\n\n";
-    out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct EventEnvelope {\n";
-    out << "    pub name: String,\n";
-    out << "    pub fields: BTreeMap<String, Json>,\n";
-    out << "}\n\n";
-    for (const auto& event : system.events)
-    {
-        out << "pub fn make_" << snake_identifier(event.name) << "_event(\n";
-        for (const auto& field : event.fields)
-        {
-            out << "    " << field.name << ": Json,\n";
-        }
-        out << ") -> EventEnvelope {\n";
-        out << "    let mut fields = BTreeMap::new();\n";
-        for (const auto& field : event.fields)
-        {
-            out << "    fields.insert(" << rust_string(field.name) << ".to_string(), " << field.name
-                << ");\n";
-        }
-        out << "    EventEnvelope { name: " << rust_string(event.name)
-            << ".to_string(), fields }\n";
-        out << "}\n\n";
-    }
-
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct LeaseDefinition {\n";
     out << "    pub name: String,\n";

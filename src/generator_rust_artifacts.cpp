@@ -749,6 +749,37 @@ TemplateRenderer::Values rust_entity_descriptor_module_values(const IrEntity& en
     };
 }
 
+std::string rust_event_descriptor_module(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "use std::collections::BTreeMap;\n\n";
+    out << "use crate::json::Json;\n\n";
+    out << "#[derive(Debug, Clone)]\n";
+    out << "pub struct EventEnvelope {\n";
+    out << "    pub name: String,\n";
+    out << "    pub fields: BTreeMap<String, Json>,\n";
+    out << "}\n\n";
+    for (const auto& event : system.events)
+    {
+        out << "pub fn make_" << snake_identifier(event.name) << "_event(\n";
+        for (const auto& field : event.fields)
+        {
+            out << "    " << field.name << ": Json,\n";
+        }
+        out << ") -> EventEnvelope {\n";
+        out << "    let mut fields = BTreeMap::new();\n";
+        for (const auto& field : event.fields)
+        {
+            out << "    fields.insert(" << rust_string(field.name) << ".to_string(), " << field.name
+                << ");\n";
+        }
+        out << "    EventEnvelope { name: " << rust_string(event.name)
+            << ".to_string(), fields }\n";
+        out << "}\n\n";
+    }
+    return out.str();
+}
+
 TemplateRenderer::Values rust_shape_descriptor_module_values(const IrSystem& system)
 {
     std::ostringstream content;
@@ -881,6 +912,9 @@ void add_rust_descriptor_module_artifacts(
 {
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/core.rs", "core descriptors", diagnostics
+    );
+    add_rust_raw_common_file(
+        result, options, "descriptors/events.rs", rust_event_descriptor_module(system)
     );
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics,

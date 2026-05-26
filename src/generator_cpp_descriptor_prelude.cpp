@@ -56,34 +56,7 @@ std::string generate_cpp_descriptor_prelude(
     out << "#include <vector>\n\n";
     out << "namespace statespec_generated\n";
     out << "{\n\n";
-    out << "struct EventEnvelope\n";
-    out << "{\n";
-    out << "    std::string name;\n";
-    out << "    std::map<std::string, statespec::backend::Json> fields;\n";
-    out << "};\n\n";
-    for (const auto& event : system.events)
-    {
-        out << "inline EventEnvelope make_" << snake_identifier(event.name) << "_event(\n";
-        for (std::size_t i = 0; i < event.fields.size(); ++i)
-        {
-            const auto& field = event.fields[i];
-            out << "    statespec::backend::Json " << field.name;
-            out << (i + 1 < event.fields.size() ? ",\n" : "\n");
-        }
-        out << ")\n";
-        out << "{\n";
-        out << "    return EventEnvelope{\n";
-        out << "        " << cpp_string(event.name) << ",\n";
-        out << "        {\n";
-        for (const auto& field : event.fields)
-        {
-            out << "            {" << cpp_string(field.name) << ", std::move(" << field.name
-                << ")},\n";
-        }
-        out << "        },\n";
-        out << "    };\n";
-        out << "}\n\n";
-    }
+    out << "#include \"descriptors/events.hpp\"\n\n";
 
     out << "struct LeaseDefinition\n";
     out << "{\n";

@@ -48,6 +48,7 @@ common/backend/descriptors/entities/service_instance.go
 common/backend/descriptors/runtime.go
 common/backend/descriptors/shapes.go
 common/backend/descriptors/workers.go
+common/backend/events.go
 common/backend/external_system.go
 common/backend/feature_flag.go
 common/backend/json.go

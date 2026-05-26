@@ -220,6 +220,7 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptor
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record EventDescriptor"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record EventEnvelope"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "buildOrderAcceptedEvent"
+assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/descriptors/EventDescriptorModule.java" "buildOrderAcceptedEvent"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record ExternalSystemDescriptor"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataDescriptor"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java" "record ExternalSystemMetadataMappingDescriptor"
