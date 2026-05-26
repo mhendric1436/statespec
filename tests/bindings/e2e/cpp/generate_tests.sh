@@ -49,6 +49,9 @@ common/descriptors/entities/service_instance.hpp
 common/descriptors/events.hpp
 common/descriptors/external_systems.hpp
 common/descriptors/runtime.hpp
+common/descriptors/runtime/leases.hpp
+common/descriptors/runtime/queues.hpp
+common/descriptors/runtime/workflows.hpp
 common/descriptors/shapes.hpp
 common/descriptors/shapes/provision_callback_request.hpp
 common/descriptors/shapes/provision_callback_response.hpp

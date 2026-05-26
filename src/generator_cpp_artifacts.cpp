@@ -63,6 +63,31 @@ TemplateRenderer::Values cpp_common_runtime_values(const IrSystem& system)
     return TemplateRenderer::Values{{"common_runtime_includes", includes.str()}};
 }
 
+std::vector<std::pair<
+    std::string,
+    std::string>>
+cpp_runtime_registration_modules(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::vector<std::pair<std::string, std::string>> modules;
+    auto add = [&](bool used, std::string name, std::string label)
+    {
+        if (used)
+        {
+            modules.emplace_back(std::move(name), std::move(label));
+        }
+    };
+    add(usage.uses_feature_flags, "feature_flags", "feature flag runtime registration");
+    add(usage.uses_queues, "queues", "queue runtime registration");
+    add(usage.uses_leases, "leases", "lease runtime registration");
+    add(usage.uses_logs, "logs", "log runtime registration");
+    add(usage.uses_metrics, "metrics", "metric runtime registration");
+    add(usage.uses_logs && usage.uses_metrics, "observability",
+        "observability runtime registration");
+    add(usage.uses_workflows, "workflows", "workflow runtime registration");
+    return modules;
+}
+
 TemplateRenderer::Values cpp_makefile_values(
     BindingGenerationTier tier,
     const IrSystem& system
@@ -931,6 +956,17 @@ void add_cpp_descriptor_module_artifacts(
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/runtime.hpp", "runtime descriptors", diagnostics
     );
+    for (const auto& [name, label] : cpp_runtime_registration_modules(system))
+    {
+        add_cpp_descriptor_module_artifact(
+            result, options, templates, "descriptors/runtime/" + name + ".hpp", label, diagnostics,
+            TemplateRenderer::Values{
+                {"descriptor_module_name", label},
+                {"descriptor_module_content",
+                 generate_cpp_runtime_registration_domain(templates, name)}
+            }
+        );
+    }
     for (const auto& entity : system.entities)
     {
         add_generated_template_file(

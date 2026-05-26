@@ -120,6 +120,77 @@ std::string java_external_system_descriptor_module_file(
     return out.str();
 }
 
+std::vector<std::pair<
+    std::string,
+    std::string>>
+java_runtime_registration_modules(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::vector<std::pair<std::string, std::string>> modules;
+    auto add = [&](bool used, std::string name, std::string class_name)
+    {
+        if (used)
+        {
+            modules.emplace_back(std::move(name), std::move(class_name));
+        }
+    };
+    add(usage.uses_feature_flags, "feature_flags", "RuntimeFeatureFlagRegistrationModule");
+    add(usage.uses_queues, "queues", "RuntimeQueueRegistrationModule");
+    add(usage.uses_leases, "leases", "RuntimeLeaseRegistrationModule");
+    add(usage.uses_logs, "logs", "RuntimeLogRegistrationModule");
+    add(usage.uses_metrics, "metrics", "RuntimeMetricRegistrationModule");
+    add(usage.uses_logs && usage.uses_metrics, "observability",
+        "RuntimeObservabilityRegistrationModule");
+    add(usage.uses_workflows, "workflows", "RuntimeWorkflowRegistrationModule");
+    return modules;
+}
+
+std::string java_runtime_registration_module_file(
+    const TemplatePackage& templates,
+    std::string_view name,
+    std::string_view class_name
+)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.descriptors;\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.FeatureFlag;\n";
+    out << "import com.statespec.backend.Lease;\n";
+    out << "import com.statespec.backend.Log;\n";
+    out << "import com.statespec.backend.Metric;\n";
+    out << "import com.statespec.backend.Queue;\n";
+    out << "import com.statespec.backend.Workflow;\n";
+    out << "import java.time.Duration;\n";
+    out << "import java.util.Locale;\n\n";
+    out << "import static com.statespec.generated.Descriptors.*;\n\n";
+    out << "public final class " << class_name << " {\n";
+    out << "    private " << class_name << "() {}\n\n";
+    if (name == "logs")
+    {
+        out << "    private static Log.Level logLevelFromDescriptor(String level) {\n";
+        out << "        return switch (level.toLowerCase(Locale.ROOT)) {\n";
+        out << "            case \"debug\" -> Log.Level.DEBUG;\n";
+        out << "            case \"warn\" -> Log.Level.WARN;\n";
+        out << "            case \"error\" -> Log.Level.ERROR;\n";
+        out << "            default -> Log.Level.INFO;\n";
+        out << "        };\n";
+        out << "    }\n\n";
+    }
+    if (name == "metrics")
+    {
+        out << "    private static Metric.Kind metricKindFromDescriptor(String kind) {\n";
+        out << "        return switch (kind.toLowerCase(Locale.ROOT)) {\n";
+        out << "            case \"gauge\" -> Metric.Kind.GAUGE;\n";
+        out << "            case \"histogram\" -> Metric.Kind.HISTOGRAM;\n";
+        out << "            default -> Metric.Kind.COUNTER;\n";
+        out << "        };\n";
+        out << "    }\n\n";
+    }
+    out << generate_java_runtime_registration_domain(templates, name);
+    out << "}\n";
+    return out.str();
+}
+
 std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
 {
     std::vector<std::string> sources{
@@ -131,6 +202,10 @@ std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
         "common/com/statespec/generated/descriptors/WorkerDescriptorModule.java",
         "common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java",
     };
+    for (const auto& [name, class_name] : java_runtime_registration_modules(system))
+    {
+        sources.push_back("common/com/statespec/generated/descriptors/" + class_name + ".java");
+    }
     for (const auto& shape : system.shapes)
     {
         sources.push_back(
@@ -1323,6 +1398,13 @@ void add_java_descriptor_module_artifacts(
         result, options, templates, descriptor_package_path / "RuntimeDescriptorModule.java",
         descriptor_package, "RuntimeDescriptorModule", "runtime descriptors", diagnostics
     );
+    for (const auto& [name, class_name] : java_runtime_registration_modules(system))
+    {
+        add_java_raw_common_file(
+            result, options, descriptor_package_path / (class_name + ".java"),
+            java_runtime_registration_module_file(templates, name, class_name)
+        );
+    }
     for (const auto& entity : system.entities)
     {
         const auto class_name = java_entity_descriptor_module_class_name(entity.name);

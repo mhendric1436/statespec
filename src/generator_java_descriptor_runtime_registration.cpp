@@ -19,42 +19,105 @@ std::string java_runtime_registration_snippet(
 
 std::string java_registration_helpers(
     const RuntimeDomainUsage& usage,
-    const TemplatePackage& templates
+    const TemplatePackage&
 )
 {
     std::ostringstream out;
     if (usage.uses_feature_flags)
     {
-        out << java_runtime_registration_snippet(templates, "feature_flags");
+        out << "    public static void registerFeatureFlagDefinitionsTx(\n";
+        out << "        Backend.Transaction tx,\n";
+        out << "        FeatureFlag featureFlagStore\n";
+        out << "    ) throws Backend.BackendException {\n";
+        out << "        com.statespec.generated.descriptors.RuntimeFeatureFlagRegistrationModule."
+               "registerFeatureFlagDefinitionsTx(tx, featureFlagStore);\n";
+        out << "    }\n\n";
     }
     if (usage.uses_queues)
     {
-        out << java_runtime_registration_snippet(templates, "queues");
+        out << "    public static void registerQueueDefinitionsTx(\n";
+        out << "        Backend.Transaction tx,\n";
+        out << "        Queue queueStore\n";
+        out << "    ) throws Backend.BackendException {\n";
+        out << "        com.statespec.generated.descriptors.RuntimeQueueRegistrationModule."
+               "registerQueueDefinitionsTx(tx, queueStore);\n";
+        out << "    }\n\n";
     }
     if (usage.uses_leases)
     {
-        out << java_runtime_registration_snippet(templates, "leases");
+        out << "    public static void registerLeaseDefinitionsTx(\n";
+        out << "        Backend.Transaction tx,\n";
+        out << "        Lease leaseStore\n";
+        out << "    ) throws Backend.BackendException {\n";
+        out << "        com.statespec.generated.descriptors.RuntimeLeaseRegistrationModule."
+               "registerLeaseDefinitionsTx(tx, leaseStore);\n";
+        out << "    }\n\n";
     }
     if (usage.uses_logs)
     {
-        out << java_runtime_registration_snippet(templates, "logs");
+        out << "    public static void registerLogDefinitionsTx(\n";
+        out << "        Backend.Transaction tx,\n";
+        out << "        Log logSink\n";
+        out << "    ) throws Backend.BackendException {\n";
+        out << "        com.statespec.generated.descriptors.RuntimeLogRegistrationModule."
+               "registerLogDefinitionsTx(tx, logSink);\n";
+        out << "    }\n\n";
     }
     if (usage.uses_metrics)
     {
-        out << java_runtime_registration_snippet(templates, "metrics");
+        out << "    public static void registerMetricDefinitionsTx(\n";
+        out << "        Backend.Transaction tx,\n";
+        out << "        Metric metricSink\n";
+        out << "    ) throws Backend.BackendException {\n";
+        out << "        com.statespec.generated.descriptors.RuntimeMetricRegistrationModule."
+               "registerMetricDefinitionsTx(tx, metricSink);\n";
+        out << "    }\n\n";
     }
     if (usage.uses_logs && usage.uses_metrics)
     {
-        out << java_runtime_registration_snippet(templates, "observability");
+        out << "    public static void registerObservabilityCatalogTx(\n";
+        out << "        Backend.Transaction tx,\n";
+        out << "        Log logSink,\n";
+        out << "        Metric metricSink\n";
+        out << "    ) throws Backend.BackendException {\n";
+        out << "        com.statespec.generated.descriptors.RuntimeObservabilityRegistrationModule."
+               "registerObservabilityCatalogTx(tx, logSink, metricSink);\n";
+        out << "    }\n\n";
     }
     if (usage.uses_workflows)
     {
-        out << java_runtime_registration_snippet(templates, "workflows");
+        out << "    public static void registerWorkflowDefinitionsTx(\n";
+        out << "        Backend.Transaction tx,\n";
+        out << "        Workflow workflowStore\n";
+        out << "    ) throws Backend.BackendException {\n";
+        out << "        com.statespec.generated.descriptors.RuntimeWorkflowRegistrationModule."
+               "registerWorkflowDefinitionsTx(tx, workflowStore);\n";
+        out << "    }\n\n";
     }
     return out.str();
 }
 
 } // namespace
+
+std::string generate_java_runtime_registration_domain(
+    const TemplatePackage& templates,
+    std::string_view name
+)
+{
+    if (name == "observability")
+    {
+        return R"(    public static void registerObservabilityCatalogTx(
+        Backend.Transaction tx,
+        Log logSink,
+        Metric metricSink
+    ) throws Backend.BackendException {
+        RuntimeLogRegistrationModule.registerLogDefinitionsTx(tx, logSink);
+        RuntimeMetricRegistrationModule.registerMetricDefinitionsTx(tx, metricSink);
+    }
+)";
+    }
+    return java_runtime_registration_snippet(templates, name);
+}
 
 std::string generate_java_runtime_registration(
     const IrSystem& system,

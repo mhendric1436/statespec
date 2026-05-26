@@ -17,28 +17,15 @@ std::string cpp_runtime_registration_snippet(
     return templates.load("generated/runtime_registration_" + std::string(name) + ".hpp.tmpl");
 }
 
-std::string cpp_observability_registration(
-    const RuntimeDomainUsage& usage,
-    const TemplatePackage& templates
+} // namespace
+
+std::string generate_cpp_runtime_registration_domain(
+    const TemplatePackage& templates,
+    std::string_view name
 )
 {
-    std::ostringstream out;
-    if (usage.uses_logs)
-    {
-        out << cpp_runtime_registration_snippet(templates, "logs");
-    }
-    if (usage.uses_metrics)
-    {
-        out << cpp_runtime_registration_snippet(templates, "metrics");
-    }
-    if (usage.uses_logs && usage.uses_metrics)
-    {
-        out << cpp_runtime_registration_snippet(templates, "observability");
-    }
-    return out.str();
+    return cpp_runtime_registration_snippet(templates, name);
 }
-
-} // namespace
 
 std::string generate_cpp_runtime_registration(
     const IrSystem& system,
@@ -46,8 +33,6 @@ std::string generate_cpp_runtime_registration(
 )
 {
     const auto usage = runtime_domain_usage(system);
-    std::ostringstream helpers;
-    std::ostringstream registrations;
     std::ostringstream tx_parameters;
     std::ostringstream runtime_parameters;
     std::ostringstream runtime_arguments;
@@ -64,7 +49,6 @@ std::string generate_cpp_runtime_registration(
 
     if (usage.uses_feature_flags)
     {
-        registrations << cpp_runtime_registration_snippet(templates, "feature_flags");
         add_domain(
             "statespec::backend::IFeatureFlagStore", "feature_flag_store",
             "register_feature_flag_definitionsTx"
@@ -72,27 +56,23 @@ std::string generate_cpp_runtime_registration(
     }
     if (usage.uses_queues)
     {
-        registrations << cpp_runtime_registration_snippet(templates, "queues");
         add_domain(
             "statespec::backend::IQueueStore", "queue_store", "register_queue_definitionsTx"
         );
     }
     if (usage.uses_leases)
     {
-        registrations << cpp_runtime_registration_snippet(templates, "leases");
         add_domain(
             "statespec::backend::ILeaseStore", "lease_store", "register_lease_definitionsTx"
         );
     }
     if (usage.uses_workflows)
     {
-        registrations << cpp_runtime_registration_snippet(templates, "workflows");
         add_domain(
             "statespec::backend::IWorkflowStore", "workflow_store",
             "register_workflow_definitionsTx"
         );
     }
-    registrations << cpp_observability_registration(usage, templates);
     if (usage.uses_logs && usage.uses_metrics)
     {
         tx_parameters << ",\n    statespec::backend::ILogSink& log_sink";
@@ -120,9 +100,9 @@ std::string generate_cpp_runtime_registration(
     return templates.render(
         "generated/runtime_registration.hpp.tmpl",
         TemplateRenderer::Values{
-            {"feature_flag_helpers", helpers.str()},
+            {"feature_flag_helpers", {}},
             {"lease_helpers", {}},
-            {"domain_registration_helpers", registrations.str()},
+            {"domain_registration_helpers", {}},
             {"tx_parameters", tx_parameters.str()},
             {"runtime_parameters", runtime_parameters.str()},
             {"runtime_arguments", runtime_arguments.str()},

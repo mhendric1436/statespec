@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -103,6 +104,50 @@ TemplateRenderer::Values go_makefile_values(
         {"api_rules", api_rules.str()},
         {"worker_rules", worker_rules.str()},
     };
+}
+
+std::vector<std::pair<
+    std::string,
+    std::string>>
+go_runtime_registration_modules(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::vector<std::pair<std::string, std::string>> modules;
+    auto add = [&](bool used, std::string name, std::string label)
+    {
+        if (used)
+        {
+            modules.emplace_back(std::move(name), std::move(label));
+        }
+    };
+    add(usage.uses_feature_flags, "feature_flags", "feature flag runtime registration");
+    add(usage.uses_queues, "queues", "queue runtime registration");
+    add(usage.uses_leases, "leases", "lease runtime registration");
+    add(usage.uses_logs, "logs", "log runtime registration");
+    add(usage.uses_metrics, "metrics", "metric runtime registration");
+    add(usage.uses_logs && usage.uses_metrics, "observability",
+        "observability runtime registration");
+    add(usage.uses_workflows, "workflows", "workflow runtime registration");
+    return modules;
+}
+
+std::string go_runtime_registration_module_file(
+    const TemplatePackage& templates,
+    std::string_view name
+)
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n";
+    if (name == "feature_flags")
+    {
+        out << "\t\"strconv\"\n";
+        out << "\t\"strings\"\n";
+    }
+    out << ")\n\n";
+    out << generate_go_runtime_registration_domain(templates, name);
+    return out.str();
 }
 
 TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
@@ -1000,6 +1045,13 @@ void add_go_descriptor_module_artifacts(
         result, options, templates, "backend/descriptors/runtime.go", "descriptors",
         "runtime descriptors", diagnostics
     );
+    for (const auto& [name, label] : go_runtime_registration_modules(system))
+    {
+        add_go_raw_common_file(
+            result, options, "backend/runtime_registration_" + name + ".go",
+            go_runtime_registration_module_file(templates, name)
+        );
+    }
     for (const auto& entity : system.entities)
     {
         add_go_descriptor_module_artifact(

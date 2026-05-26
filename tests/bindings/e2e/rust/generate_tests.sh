@@ -48,6 +48,9 @@ common/descriptors/entities/service_instance.rs
 common/descriptors/events.rs
 common/descriptors/external_systems.rs
 common/descriptors/runtime.rs
+common/descriptors/runtime/leases.rs
+common/descriptors/runtime/queues.rs
+common/descriptors/runtime/workflows.rs
 common/descriptors/shapes.rs
 common/descriptors/shapes/provision_callback_request.rs
 common/descriptors/shapes/provision_callback_response.rs

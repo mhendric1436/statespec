@@ -2,8 +2,10 @@
 
 #include "generator_rust_descriptor_support.hpp"
 #include "identifier_case.hpp"
+#include "statespec/runtime_usage.hpp"
 
 #include <sstream>
+#include <string_view>
 
 namespace statespec
 {
@@ -13,6 +15,7 @@ namespace
 
 std::string rust_descriptor_module_declarations(const IrSystem& system)
 {
+    const auto usage = runtime_domain_usage(system);
     std::ostringstream out;
     out << "#[path = \"descriptors/core.rs\"]\n";
     out << "mod descriptor_core;\n";
@@ -31,6 +34,23 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     out << "mod descriptor_workers;\n";
     out << "#[path = \"descriptors/runtime.rs\"]\n";
     out << "mod descriptor_runtime;\n";
+    auto add_runtime_registration_module = [&](bool used, std::string_view module_name)
+    {
+        if (!used)
+        {
+            return;
+        }
+        out << "#[path = \"descriptors/runtime/" << module_name << ".rs\"]\n";
+        out << "mod descriptor_runtime_" << module_name << ";\n";
+        out << "pub use descriptor_runtime_" << module_name << "::*;\n";
+    };
+    add_runtime_registration_module(usage.uses_feature_flags, "feature_flags");
+    add_runtime_registration_module(usage.uses_queues, "queues");
+    add_runtime_registration_module(usage.uses_leases, "leases");
+    add_runtime_registration_module(usage.uses_logs, "logs");
+    add_runtime_registration_module(usage.uses_metrics, "metrics");
+    add_runtime_registration_module(usage.uses_logs && usage.uses_metrics, "observability");
+    add_runtime_registration_module(usage.uses_workflows, "workflows");
     for (const auto& workflow : system.workflows)
     {
         out << "#[path = \"workflows/" << snake_identifier(workflow.name) << ".rs\"]\n";

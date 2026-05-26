@@ -67,6 +67,9 @@ common/com/statespec/generated/descriptors/CoreDescriptorModule.java
 common/com/statespec/generated/descriptors/EventDescriptorModule.java
 common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java
 common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
+common/com/statespec/generated/descriptors/RuntimeLeaseRegistrationModule.java
+common/com/statespec/generated/descriptors/RuntimeQueueRegistrationModule.java
+common/com/statespec/generated/descriptors/RuntimeWorkflowRegistrationModule.java
 common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
 common/com/statespec/generated/descriptors/WorkerDescriptorModule.java
 common/com/statespec/generated/descriptors/entities/ServiceInstanceDescriptorModule.java

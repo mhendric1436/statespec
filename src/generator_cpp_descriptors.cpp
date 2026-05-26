@@ -5,10 +5,12 @@
 #include "generator_entity_index_helpers.hpp"
 #include "identifier_case.hpp"
 #include "statespec/language_constants.hpp"
+#include "statespec/runtime_usage.hpp"
 #include "type_syntax.hpp"
 
 #include <algorithm>
 #include <sstream>
+#include <string_view>
 
 namespace statespec
 {
@@ -915,6 +917,31 @@ std::string generate_cpp_entity_module_umbrella(const IrSystem& system)
 
 } // namespace
 
+std::string generate_cpp_runtime_registration_includes(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream out;
+    auto add = [&](bool used, std::string_view path)
+    {
+        if (used)
+        {
+            out << "#include \"" << path << "\"\n";
+        }
+    };
+    add(usage.uses_feature_flags, "descriptors/runtime/feature_flags.hpp");
+    add(usage.uses_queues, "descriptors/runtime/queues.hpp");
+    add(usage.uses_leases, "descriptors/runtime/leases.hpp");
+    add(usage.uses_logs, "descriptors/runtime/logs.hpp");
+    add(usage.uses_metrics, "descriptors/runtime/metrics.hpp");
+    add(usage.uses_logs && usage.uses_metrics, "descriptors/runtime/observability.hpp");
+    add(usage.uses_workflows, "descriptors/runtime/workflows.hpp");
+    if (usage.uses_any_runtime_domain)
+    {
+        out << "\n";
+    }
+    return out.str();
+}
+
 std::string generate_system_descriptors_header(
     const IrSystem& system,
     const TemplatePackage& templates
@@ -937,6 +964,7 @@ std::string generate_system_descriptors_header(
     out << generate_cpp_entity_module_umbrella(system);
     out << generate_cpp_runtime_descriptors(system);
     out << generate_cpp_observability_registration(system);
+    out << generate_cpp_runtime_registration_includes(system);
     out << generate_cpp_runtime_registration(system, templates);
     out << "} // namespace statespec_generated\n";
     return out.str();

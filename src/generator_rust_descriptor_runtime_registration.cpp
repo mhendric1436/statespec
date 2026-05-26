@@ -17,44 +17,15 @@ std::string rust_runtime_registration_snippet(
     return templates.load("generated/runtime_registration_" + std::string(name) + ".rs.tmpl");
 }
 
-std::string rust_registration_helpers(
-    const RuntimeDomainUsage& usage,
-    const TemplatePackage& templates
+} // namespace
+
+std::string generate_rust_runtime_registration_domain(
+    const TemplatePackage& templates,
+    std::string_view name
 )
 {
-    std::ostringstream out;
-    if (usage.uses_feature_flags)
-    {
-        out << rust_runtime_registration_snippet(templates, "feature_flags");
-    }
-    if (usage.uses_queues)
-    {
-        out << rust_runtime_registration_snippet(templates, "queues");
-    }
-    if (usage.uses_leases)
-    {
-        out << rust_runtime_registration_snippet(templates, "leases");
-    }
-    if (usage.uses_logs)
-    {
-        out << rust_runtime_registration_snippet(templates, "logs");
-    }
-    if (usage.uses_metrics)
-    {
-        out << rust_runtime_registration_snippet(templates, "metrics");
-    }
-    if (usage.uses_logs && usage.uses_metrics)
-    {
-        out << rust_runtime_registration_snippet(templates, "observability");
-    }
-    if (usage.uses_workflows)
-    {
-        out << rust_runtime_registration_snippet(templates, "workflows");
-    }
-    return out.str();
+    return rust_runtime_registration_snippet(templates, name);
 }
-
-} // namespace
 
 std::string generate_rust_runtime_registration(
     const IrSystem& system,
@@ -62,7 +33,6 @@ std::string generate_rust_runtime_registration(
 )
 {
     const auto usage = runtime_domain_usage(system);
-    std::ostringstream helpers;
     std::ostringstream generic_parameters;
     std::ostringstream generic_bounds;
     std::ostringstream params;
@@ -116,9 +86,9 @@ std::string generate_rust_runtime_registration(
     return templates.render(
         "generated/runtime_registration.rs.tmpl",
         TemplateRenderer::Values{
-            {"feature_flag_helpers", helpers.str()},
+            {"feature_flag_helpers", {}},
             {"lease_helpers", {}},
-            {"domain_registration_helpers", rust_registration_helpers(usage, templates)},
+            {"domain_registration_helpers", {}},
             {"generic_parameters", generic_parameters.str()},
             {"generic_bounds", generic_bounds.str()},
             {"tx_parameters", params.str()},

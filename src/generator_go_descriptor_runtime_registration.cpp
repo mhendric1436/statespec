@@ -17,44 +17,15 @@ std::string go_runtime_registration_snippet(
     return templates.load("generated/runtime_registration_" + std::string(name) + ".go.tmpl");
 }
 
-std::string go_registration_helpers(
-    const RuntimeDomainUsage& usage,
-    const TemplatePackage& templates
+} // namespace
+
+std::string generate_go_runtime_registration_domain(
+    const TemplatePackage& templates,
+    std::string_view name
 )
 {
-    std::ostringstream out;
-    if (usage.uses_feature_flags)
-    {
-        out << go_runtime_registration_snippet(templates, "feature_flags");
-    }
-    if (usage.uses_queues)
-    {
-        out << go_runtime_registration_snippet(templates, "queues");
-    }
-    if (usage.uses_leases)
-    {
-        out << go_runtime_registration_snippet(templates, "leases");
-    }
-    if (usage.uses_logs)
-    {
-        out << go_runtime_registration_snippet(templates, "logs");
-    }
-    if (usage.uses_metrics)
-    {
-        out << go_runtime_registration_snippet(templates, "metrics");
-    }
-    if (usage.uses_logs && usage.uses_metrics)
-    {
-        out << go_runtime_registration_snippet(templates, "observability");
-    }
-    if (usage.uses_workflows)
-    {
-        out << go_runtime_registration_snippet(templates, "workflows");
-    }
-    return out.str();
+    return go_runtime_registration_snippet(templates, name);
 }
-
-} // namespace
 
 std::string generate_go_runtime_registration(
     const IrSystem& system,
@@ -62,7 +33,6 @@ std::string generate_go_runtime_registration(
 )
 {
     const auto usage = runtime_domain_usage(system);
-    std::ostringstream helper;
     std::ostringstream params;
     std::ostringstream args;
     std::ostringstream calls;
@@ -111,16 +81,15 @@ std::string generate_go_runtime_registration(
         }
     }
     return templates.render(
-        "generated/runtime_registration.go.tmpl",
-        TemplateRenderer::Values{
-            {"feature_flag_helpers", helper.str()},
-            {"lease_helpers", {}},
-            {"domain_registration_helpers", go_registration_helpers(usage, templates)},
-            {"tx_parameters", params.str()},
-            {"runtime_parameters", params.str()},
-            {"runtime_arguments", args.str()},
-            {"tx_calls", calls.str()},
-        }
+        "generated/runtime_registration.go.tmpl", TemplateRenderer::Values{
+                                                      {"feature_flag_helpers", {}},
+                                                      {"lease_helpers", {}},
+                                                      {"domain_registration_helpers", {}},
+                                                      {"tx_parameters", params.str()},
+                                                      {"runtime_parameters", params.str()},
+                                                      {"runtime_arguments", args.str()},
+                                                      {"tx_calls", calls.str()},
+                                                  }
     );
 }
 

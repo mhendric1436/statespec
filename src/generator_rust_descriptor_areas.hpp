@@ -4,6 +4,7 @@
 #include "statespec/template_renderer.hpp"
 
 #include <string>
+#include <string_view>
 
 namespace statespec
 {
@@ -33,6 +34,10 @@ std::string generate_rust_observability_registration(const IrSystem& system);
 std::string generate_rust_runtime_registration(
     const IrSystem& system,
     const TemplatePackage& templates
+);
+std::string generate_rust_runtime_registration_domain(
+    const TemplatePackage& templates,
+    std::string_view name
 );
 
 } // namespace statespec

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -63,6 +64,44 @@ TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier)
         {"phony_targets", phony_targets.str()},
         {"api_rules", api_rules.str()},
         {"worker_rules", worker_rules.str()},
+    };
+}
+
+std::vector<std::pair<
+    std::string,
+    std::string>>
+rust_runtime_registration_modules(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::vector<std::pair<std::string, std::string>> modules;
+    auto add = [&](bool used, std::string name, std::string label)
+    {
+        if (used)
+        {
+            modules.emplace_back(std::move(name), std::move(label));
+        }
+    };
+    add(usage.uses_feature_flags, "feature_flags", "feature flag runtime registration");
+    add(usage.uses_queues, "queues", "queue runtime registration");
+    add(usage.uses_leases, "leases", "lease runtime registration");
+    add(usage.uses_logs, "logs", "log runtime registration");
+    add(usage.uses_metrics, "metrics", "metric runtime registration");
+    add(usage.uses_logs && usage.uses_metrics, "observability",
+        "observability runtime registration");
+    add(usage.uses_workflows, "workflows", "workflow runtime registration");
+    return modules;
+}
+
+TemplateRenderer::Values rust_runtime_registration_module_values(
+    const TemplatePackage& templates,
+    std::string_view name,
+    std::string_view label
+)
+{
+    return TemplateRenderer::Values{
+        {"descriptor_module_name", std::string{label}},
+        {"descriptor_module_content",
+         "use super::*;\n\n" + generate_rust_runtime_registration_domain(templates, name)}
     };
 }
 
@@ -960,6 +999,16 @@ void add_rust_descriptor_module_artifacts(
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/runtime.rs", "runtime descriptors", diagnostics
     );
+    for (const auto& [name, label] : rust_runtime_registration_modules(system))
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            generated_template_path("descriptor_module.rs.tmpl"),
+            common_artifact_path("descriptors/runtime/" + name + ".rs"), diagnostics,
+            GeneratedArtifactTier::Common,
+            rust_runtime_registration_module_values(templates, name, label)
+        );
+    }
     for (const auto& entity : system.entities)
     {
         add_generated_template_file(

@@ -2,7 +2,6 @@
 
 #include "generator_go_descriptor_support.hpp"
 #include "identifier_case.hpp"
-#include "statespec/runtime_usage.hpp"
 
 #include <sstream>
 
@@ -37,16 +36,11 @@ std::string generate_go_descriptor_prelude(
 )
 {
     std::ostringstream out;
-    const auto runtime_usage = runtime_domain_usage(system);
     out << "package backend\n\n";
     out << "import (\n";
     out << "\t\"context\"\n";
     out << "\t\"errors\"\n";
     out << go_descriptor_module_imports(system);
-    if (runtime_usage.uses_feature_flags)
-    {
-        out << "\t\"strconv\"\n";
-    }
     out << "\t\"strings\"\n";
     out << "\t\"time\"\n";
     out << ")\n\n";
