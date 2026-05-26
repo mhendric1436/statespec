@@ -153,6 +153,16 @@ bool is_required_descriptor_field(const std::string& type)
 
 } // namespace
 
+std::string cpp_field_type_enum_expr(const std::string& type)
+{
+    return cpp_field_type_expr(classify_field_descriptor_type(type));
+}
+
+bool cpp_field_required(const std::string& type)
+{
+    return is_required_descriptor_field(type);
+}
+
 std::string cpp_field_descriptor_expr(const IrField& field)
 {
     return "statespec::backend::FieldDescriptor{" + cpp_string(field.name) + ", " +

@@ -84,7 +84,29 @@ std::string rust_entity_field_expr(
     {
         return rust_string(field_name);
     }
-    return rust_entity_field_constant_name(entity.name, field_name);
+    return "crate::entity_" + snake_identifier(entity.name) +
+           "::model::" + rust_entity_field_constant_name(entity.name, field_name);
+}
+
+std::string rust_entity_state_expr(
+    const IrEntity& entity,
+    const std::string& state_name
+)
+{
+    return "crate::entity_" + snake_identifier(entity.name) +
+           "::model::" + rust_entity_state_constant_name(entity.name, state_name);
+}
+
+std::string rust_entity_repository_type(const IrEntity& entity)
+{
+    return "crate::entity_" + snake_identifier(entity.name) + "::persistence::Default" +
+           pascal_identifier(entity.name) + "Repository";
+}
+
+std::string rust_entity_repository_trait(const IrEntity& entity)
+{
+    return "crate::entity_" + snake_identifier(entity.name) +
+           "::persistence::" + pascal_identifier(entity.name) + "Repository";
 }
 
 std::string rust_entity_field_string_expr(
@@ -364,8 +386,7 @@ std::string rust_create_response_expr(
     {
         if (entity.initial_state.has_value())
         {
-            return rust_entity_state_constant_name(entity.name, *entity.initial_state) +
-                   ".to_string()";
+            return rust_entity_state_expr(entity, *entity.initial_state) + ".to_string()";
         }
         return "String::new()";
     }
@@ -391,10 +412,9 @@ void write_rust_parent_validation(
             continue;
         }
         out << "        {\n";
-        out << "            let parent = Default" << pascal_identifier(parent->name)
-            << "Repository;\n";
-        out << "            let parent_record = <Default" << pascal_identifier(parent->name)
-            << "Repository as " << pascal_identifier(parent->name) << "Repository<B>>::get_tx(\n";
+        out << "            let parent = " << rust_entity_repository_type(*parent) << ";\n";
+        out << "            let parent_record = <" << rust_entity_repository_type(*parent) << " as "
+            << rust_entity_repository_trait(*parent) << "<B>>::get_tx(\n";
         out << "                &parent,\n";
         out << "                &mut tx,\n";
         out << "                vec![\n";
@@ -449,10 +469,10 @@ bool write_rust_create_handler_body(
     const auto status = entity->initial_state.value_or("Created");
     out << "        let request = crate::api_codecs::decode_" << snake_identifier(api.name)
         << "_request(context)?;\n";
-    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
-    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name)
-        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let repository = " << rust_entity_repository_type(*entity) << ";\n";
+    out << "        <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity)
+        << "<B>>::register_descriptor(&repository, &self.backend)?;\n";
     out << "        let mut tx = self.backend.begin()?;\n";
     write_rust_parent_validation(out, system, *entity, *request);
     out << "        let mut document = std::collections::BTreeMap::new();\n";
@@ -466,7 +486,7 @@ bool write_rust_create_handler_body(
         else if (field.name == EntityStatusFieldName)
         {
             out << "        document.insert(" << rust_entity_field_string_expr(*entity, field.name)
-                << ", Json::String(" << rust_entity_state_constant_name(entity->name, status)
+                << ", Json::String(" << rust_entity_state_expr(*entity, status)
                 << ".to_string()));\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
@@ -476,8 +496,8 @@ bool write_rust_create_handler_body(
                 << ", " << rust_encode_expr(*request_field, "request." + field.name) << ");\n";
         }
     }
-    out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name) << "Repository<B>>::create_tx(\n";
+    out << "        let record = <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity) << "<B>>::create_tx(\n";
     out << "            &repository,\n";
     out << "            &mut tx,\n";
     out << "            Json::Object(document),\n";
@@ -537,13 +557,13 @@ bool write_rust_get_handler_body(
     }
     out << "        let path_parameters = extract_api_path_parameters("
         << rust_string(api.path.value_or("")) << ", &context.path);\n";
-    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
-    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name)
-        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let repository = " << rust_entity_repository_type(*entity) << ";\n";
+    out << "        <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity)
+        << "<B>>::register_descriptor(&repository, &self.backend)?;\n";
     out << "        let mut tx = self.backend.begin()?;\n";
-    out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name) << "Repository<B>>::get_tx(\n";
+    out << "        let record = <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity) << "<B>>::get_tx(\n";
     out << "            &repository,\n";
     out << "            &mut tx,\n";
     out << "            vec![\n";
@@ -606,13 +626,13 @@ bool write_rust_list_handler_body(
     const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
     out << "        let path_parameters = extract_api_path_parameters("
         << rust_string(api.path.value_or("")) << ", &context.path);\n";
-    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
-    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name)
-        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let repository = " << rust_entity_repository_type(*entity) << ";\n";
+    out << "        <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity)
+        << "<B>>::register_descriptor(&repository, &self.backend)?;\n";
     out << "        let mut tx = self.backend.begin()?;\n";
-    out << "        let records = <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name) << "Repository<B>>::";
+    out << "        let records = <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity) << "<B>>::";
     if (index == nullptr)
     {
         out << "list_by_index_tx(\n";
@@ -689,10 +709,10 @@ bool write_rust_update_status_handler_body(
     }
     out << "        let request = crate::api_codecs::decode_" << snake_identifier(api.name)
         << "_request(context)?;\n";
-    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
-    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name)
-        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let repository = " << rust_entity_repository_type(*entity) << ";\n";
+    out << "        <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity)
+        << "<B>>::register_descriptor(&repository, &self.backend)?;\n";
     out << "        let mut tx = self.backend.begin()?;\n";
     out << "        let key_values = vec![\n";
     for (const auto& key_field : entity->key_fields)
@@ -703,8 +723,8 @@ bool write_rust_update_status_handler_body(
             << ", value: " << rust_encode_expr(*field, "request." + key_field) << " },\n";
     }
     out << "        ];\n";
-    out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name) << "Repository<B>>::get_tx(\n";
+    out << "        let record = <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity) << "<B>>::get_tx(\n";
     out << "            &repository,\n";
     out << "            &mut tx,\n";
     out << "            key_values.clone(),\n";
@@ -731,10 +751,8 @@ bool write_rust_update_status_handler_body(
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "            (current_status == "
-            << rust_entity_state_constant_name(entity->name, transition.from)
-            << " && requested_status == "
-            << rust_entity_state_constant_name(entity->name, transition.to) << ")";
+        out << "            (current_status == " << rust_entity_state_expr(*entity, transition.from)
+            << " && requested_status == " << rust_entity_state_expr(*entity, transition.to) << ")";
     }
     out << ";\n";
     out << "        if !transition_allowed {\n";
@@ -748,8 +766,8 @@ bool write_rust_update_status_handler_body(
         << rust_entity_field_string_expr(*entity, std::string{EntityUpdatedAtFieldName})
         << ", "
            "Json::String(generated_api_timestamp()));\n";
-    out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";
+    out << "        let updated = <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity) << "<B>>::update_tx(\n";
     out << "            &repository,\n";
     out << "            &mut tx,\n";
     out << "            key_values,\n";
@@ -805,10 +823,10 @@ bool write_rust_delete_handler_body(
     }
     out << "        let path_parameters = extract_api_path_parameters("
         << rust_string(api.path.value_or("")) << ", &context.path);\n";
-    out << "        let repository = Default" << pascal_identifier(entity->name) << "Repository;\n";
-    out << "        <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name)
-        << "Repository<B>>::register_descriptor(&repository, &self.backend)?;\n";
+    out << "        let repository = " << rust_entity_repository_type(*entity) << ";\n";
+    out << "        <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity)
+        << "<B>>::register_descriptor(&repository, &self.backend)?;\n";
     out << "        let mut tx = self.backend.begin()?;\n";
     out << "        let key_values = vec![\n";
     for (const auto& key_field : entity->key_fields)
@@ -819,8 +837,8 @@ bool write_rust_delete_handler_body(
             << rust_entity_field_expr(*entity, key_field) << ") },\n";
     }
     out << "        ];\n";
-    out << "        let record = <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name) << "Repository<B>>::get_tx(\n";
+    out << "        let record = <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity) << "<B>>::get_tx(\n";
     out << "            &repository,\n";
     out << "            &mut tx,\n";
     out << "            key_values.clone(),\n";
@@ -840,16 +858,14 @@ bool write_rust_delete_handler_body(
     out << "            _ => return Err(BackendError::InvalidSchema { message: \"missing entity "
            "field status\".to_string() }),\n";
     out << "        };\n";
-    out << "        let requested_status = "
-        << rust_entity_state_constant_name(entity->name, *delete_state) << ".to_string();\n";
+    out << "        let requested_status = " << rust_entity_state_expr(*entity, *delete_state)
+        << ".to_string();\n";
     out << "        let transition_allowed = current_status == requested_status";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "            (current_status == "
-            << rust_entity_state_constant_name(entity->name, transition.from)
-            << " && requested_status == "
-            << rust_entity_state_constant_name(entity->name, transition.to) << ")";
+        out << "            (current_status == " << rust_entity_state_expr(*entity, transition.from)
+            << " && requested_status == " << rust_entity_state_expr(*entity, transition.to) << ")";
     }
     out << ";\n";
     out << "        if !transition_allowed {\n";
@@ -863,8 +879,8 @@ bool write_rust_delete_handler_body(
         << rust_entity_field_string_expr(*entity, std::string{EntityUpdatedAtFieldName})
         << ", "
            "Json::String(generated_api_timestamp()));\n";
-    out << "        let updated = <Default" << pascal_identifier(entity->name) << "Repository as "
-        << pascal_identifier(entity->name) << "Repository<B>>::update_tx(\n";
+    out << "        let updated = <" << rust_entity_repository_type(*entity) << " as "
+        << rust_entity_repository_trait(*entity) << "<B>>::update_tx(\n";
     out << "            &repository,\n";
     out << "            &mut tx,\n";
     out << "            key_values,\n";
@@ -888,13 +904,50 @@ std::string generate_rust_entity_module_umbrella(const IrSystem& system)
     std::ostringstream out;
     out << generate_rust_entity_descriptors(system);
     out << "pub fn collection_descriptors() -> Vec<CollectionDescriptor> {\n";
-    out << "    let mut descriptors = Vec::new();\n";
+    out << "    vec![\n";
     for (const auto& entity : system.entities)
     {
-        out << "    descriptors.push(" << snake_identifier(entity.name)
-            << "_collection_descriptor());\n";
+        out << "        CollectionDescriptor {\n";
+        out << "            name: " << rust_string(entity.name) << ".to_string(),\n";
+        out << "            fields: vec![\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "                FieldDescriptor { name: " << rust_string(field.name)
+                << ".to_string(), field_type: " << rust_field_type_enum_expr(field.type)
+                << ", type_name: " << rust_string(field.type) << ".to_string(), required: "
+                << (rust_field_required(field.type) ? "true" : "false") << " },\n";
+        }
+        out << "            ],\n";
+        out << "            key_fields: vec![";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << rust_string(entity.key_fields[i]) << ".to_string()";
+        }
+        out << "],\n";
+        out << "            indexes: vec![\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "                IndexDescriptor { name: " << rust_string(index.name)
+                << ".to_string(), fields: vec![";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << rust_string(index.fields[i]) << ".to_string()";
+            }
+            out << "], unique: " << (index.unique ? "true" : "false") << " },\n";
+        }
+        out << "            ],\n";
+        out << "            schema_version: 1,\n";
+        out << "        },\n";
     }
-    out << "    descriptors\n";
+    out << "    ]\n";
     out << "}\n\n";
     return out.str();
 }

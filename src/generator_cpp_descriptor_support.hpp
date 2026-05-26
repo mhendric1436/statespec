@@ -37,6 +37,8 @@ std::string cpp_shape_field_type_name_constant_name(
     const std::string& field_name
 );
 std::string cpp_field_descriptor_expr(const IrField& field);
+std::string cpp_field_type_enum_expr(const std::string& type);
+bool cpp_field_required(const std::string& type);
 std::string cpp_entity_field_descriptor_expr(
     const std::string& entity_name,
     const IrField& field

@@ -57,6 +57,7 @@ common/descriptors/shapes/start_provision_request.rs
 common/descriptors/shapes/start_provision_response.rs
 common/descriptors/workers.rs
 common/descriptors/workers/provision_worker.rs
+common/entities/service_instance/mod.rs
 common/entities/service_instance/model.rs
 common/entities/service_instance/persistence.rs
 common/entities/service_instance/schema.rs
@@ -117,17 +118,17 @@ cp "$SCRIPT_DIR/api_process_fixture.rs" "$TMPDIR/out-e2e-rust/tests/api_process_
 run_expect_status 0 make -C "$TMPDIR/out-e2e-rust" check-api
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-rust"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "let repository = DefaultAccountRepository;"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "let repository = DefaultProjectRepository;"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/task.rs" "let repository = DefaultTaskRepository;"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "let repository = crate::entity_account::persistence::DefaultAccountRepository;"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "let repository = crate::entity_project::persistence::DefaultProjectRepository;"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/task.rs" "let repository = crate::entity_task::persistence::DefaultTaskRepository;"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "self.backend.begin()"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "create_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "ACCOUNT_FIELD_CREATED_AT"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "ACCOUNT_FIELD_UPDATED_AT"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "ACCOUNT_FIELD_STATUS"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/api_handler_registry.rs" "pub(crate) fn generated_api_timestamp() -> String"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "document.insert(ACCOUNT_FIELD_CREATED_AT.to_string(), Json::String(generated_api_timestamp()))"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "document.insert(ACCOUNT_FIELD_STATUS.to_string(), Json::String(ACCOUNT_STATUS_ACTIVE.to_string()))"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "document.insert(crate::entity_account::model::ACCOUNT_FIELD_CREATED_AT.to_string(), Json::String(generated_api_timestamp()))"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "document.insert(crate::entity_account::model::ACCOUNT_FIELD_STATUS.to_string(), Json::String(crate::entity_account::model::ACCOUNT_STATUS_ACTIVE.to_string()))"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "missing required parent Account"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/task.rs" "missing required parent Project"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "extract_api_path_parameters"
@@ -157,8 +158,8 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "st
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "Json::Array(records.into_iter().map"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "update_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "invalid entity status transition"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "document.insert(PROJECT_FIELD_UPDATED_AT.to_string()"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "let requested_status = PROJECT_STATUS_DELETED.to_string()"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "document.insert(crate::entity_project::model::PROJECT_FIELD_UPDATED_AT.to_string()"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "let requested_status = crate::entity_project::model::PROJECT_STATUS_DELETED.to_string()"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "status_code: 204"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/persistence.rs" "update_tx"

@@ -8,54 +8,36 @@
 
 namespace statespec
 {
+namespace
+{
+
+std::string java_entity_model_ref(const IrEntity& entity)
+{
+    return "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Model";
+}
+
+std::string java_entity_model_constant(
+    const IrEntity& entity,
+    const std::string& constant_name
+)
+{
+    return java_entity_model_ref(entity) + "." + constant_name;
+}
+
+} // namespace
 
 std::string generate_java_entity_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
-    for (const auto& entity : system.entities)
-    {
-        out << "    public static final String " << java_entity_name_constant_name(entity.name)
-            << " = com.statespec.generated.entities." << snake_identifier(entity.name) << ".Model."
-            << java_entity_name_constant_name(entity.name) << ";\n";
-        for (const auto& field : entity.fields)
-        {
-            out << "    public static final String "
-                << java_entity_field_constant_name(entity.name, field.name)
-                << " = com.statespec.generated.entities." << snake_identifier(entity.name)
-                << ".Model." << java_entity_field_constant_name(entity.name, field.name) << ";\n";
-            out << "    public static final String "
-                << java_entity_field_type_name_constant_name(entity.name, field.name)
-                << " = com.statespec.generated.entities." << snake_identifier(entity.name)
-                << ".Model." << java_entity_field_type_name_constant_name(entity.name, field.name)
-                << ";\n";
-        }
-        for (const auto& index : entity.indexes)
-        {
-            out << "    public static final String "
-                << java_entity_index_constant_name(entity.name, index.name)
-                << " = com.statespec.generated.entities." << snake_identifier(entity.name)
-                << ".Model." << java_entity_index_constant_name(entity.name, index.name) << ";\n";
-        }
-        for (const auto& state : entity.states)
-        {
-            out << "    public static final String "
-                << java_entity_state_constant_name(entity.name, state.name)
-                << " = com.statespec.generated.entities." << snake_identifier(entity.name)
-                << ".Model." << java_entity_state_constant_name(entity.name, state.name) << ";\n";
-        }
-    }
-    if (!system.entities.empty())
-    {
-        out << "\n";
-    }
-
     out << "    public static List<EntityDescriptor> entityDescriptors() {\n";
     out << "        return List.of(\n";
     for (std::size_t entity_index = 0; entity_index < system.entities.size(); ++entity_index)
     {
         const auto& entity = system.entities[entity_index];
         out << "            new EntityDescriptor(\n";
-        out << "                " << java_entity_name_constant_name(entity.name) << ",\n";
+        out << "                "
+            << java_entity_model_constant(entity, java_entity_name_constant_name(entity.name))
+            << ",\n";
         out << "                List.of(";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -63,7 +45,9 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
+            out << java_entity_model_constant(
+                entity, java_entity_field_constant_name(entity.name, entity.key_fields[i])
+            );
         }
         out << "),\n";
         if (entity.ownership.has_value())
@@ -142,7 +126,10 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             const auto& state = entity.states[i];
             out << "                    new EntityStateDescriptor(\n";
             out << "                        "
-                << java_entity_state_constant_name(entity.name, state.name) << ",\n";
+                << java_entity_model_constant(
+                       entity, java_entity_state_constant_name(entity.name, state.name)
+                   )
+                << ",\n";
             out << "                        " << (state.terminal ? "true" : "false") << ",\n";
             if (state.garbage_collection.has_value())
             {
@@ -160,7 +147,10 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         if (entity.initial_state.has_value())
         {
             out << "                Optional.of("
-                << java_entity_state_constant_name(entity.name, *entity.initial_state) << "),\n";
+                << java_entity_model_constant(
+                       entity, java_entity_state_constant_name(entity.name, *entity.initial_state)
+                   )
+                << "),\n";
         }
         else
         {
@@ -173,7 +163,9 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << java_entity_state_constant_name(entity.name, entity.terminal_states[i]);
+            out << java_entity_model_constant(
+                entity, java_entity_state_constant_name(entity.name, entity.terminal_states[i])
+            );
         }
         out << ")\n";
         out << "            )" << (entity_index + 1 < system.entities.size() ? "," : "") << "\n";
@@ -183,19 +175,6 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
 
     for (const auto& entity : system.entities)
     {
-        const auto type_name = pascal_identifier(entity.name);
-        out << "    public static EntityLookup build" << type_name
-            << "Lookup(List<EntityKeyValue> keyValues) {\n";
-        out << "        return com.statespec.generated.entities." << snake_identifier(entity.name)
-            << ".Persistence.build" << type_name << "Lookup(keyValues);\n";
-        out << "    }\n\n";
-        out << "    public interface " << type_name
-            << "Repository extends com.statespec.generated.entities."
-            << snake_identifier(entity.name) << ".Persistence." << type_name << "Repository {}\n\n";
-        out << "    public static final class Default" << type_name
-            << "Repository extends com.statespec.generated.entities."
-            << snake_identifier(entity.name) << ".Persistence.Default" << type_name
-            << "Repository implements " << type_name << "Repository {}\n\n";
         out << "    public static CollectionDescriptor " << lower_camel_identifier(entity.name)
             << "CollectionDescriptor() {\n";
         out << "        return com.statespec.generated.entities." << snake_identifier(entity.name)
@@ -205,11 +184,14 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             << "EntityDescriptor() {\n";
         out << "        return entityDescriptors().stream()\n";
         out << "            .filter(descriptor -> descriptor.name().equals("
-            << java_entity_name_constant_name(entity.name) << "))\n";
+            << java_entity_model_constant(entity, java_entity_name_constant_name(entity.name))
+            << "))\n";
         out << "            .findFirst()\n";
         out << "            .orElseThrow(() -> new IllegalStateException(\"entity descriptor not "
                "found: "
-            << "\" + " << java_entity_name_constant_name(entity.name) << "));\n";
+            << "\" + "
+            << java_entity_model_constant(entity, java_entity_name_constant_name(entity.name))
+            << "));\n";
         out << "    }\n\n";
     }
 

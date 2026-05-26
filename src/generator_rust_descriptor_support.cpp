@@ -153,6 +153,16 @@ bool is_required_descriptor_field(const std::string& type)
 
 } // namespace
 
+std::string rust_field_type_enum_expr(const std::string& type)
+{
+    return rust_field_type_expr(classify_field_descriptor_type(type));
+}
+
+bool rust_field_required(const std::string& type)
+{
+    return is_required_descriptor_field(type);
+}
+
 std::string rust_field_descriptor_expr(const IrField& field)
 {
     return "FieldDescriptor { name: " + rust_string(field.name) + ".to_string(), field_type: " +

@@ -169,6 +169,12 @@ TemplateRenderer::Values rust_lib_values(
         runtime_modules << "#[path = \"common/runtime/entity_gc_workers.rs\"]\n";
         runtime_modules << "pub mod runtime_entity_gc_workers;\n";
     }
+    for (const auto& entity : system.entities)
+    {
+        runtime_modules << "#[path = \"common/entities/" << snake_identifier(entity.name)
+                        << "/mod.rs\"]\n";
+        runtime_modules << "pub mod entity_" << snake_identifier(entity.name) << ";\n";
+    }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
     {
         api_modules << "#[path = \"api/api_descriptors.rs\"]\n";
@@ -760,8 +766,7 @@ TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system
                 continue;
             }
             terminal_states << "            EntityGcTerminalStateDescriptor {\n"
-                            << "                state: "
-                            << rust_entity_state_constant_name(entity.name, state.name)
+                            << "                state: " << rust_string(state.name)
                             << ".to_string(),\n"
                             << "                after: "
                             << rust_string(state.garbage_collection->after) << ".to_string(),\n"
@@ -774,10 +779,8 @@ TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system
             continue;
         }
         descriptors << "        EntityGcDescriptor {\n"
-                    << "            entity: " << rust_entity_name_constant_name(entity.name)
-                    << ".to_string(),\n"
-                    << "            collection: " << rust_entity_name_constant_name(entity.name)
-                    << ".to_string(),\n"
+                    << "            entity: " << rust_string(entity.name) << ".to_string(),\n"
+                    << "            collection: " << rust_string(entity.name) << ".to_string(),\n"
                     << "            terminal_states: vec![\n"
                     << terminal_states.str() << "            ],\n"
                     << "        },\n";
@@ -976,13 +979,14 @@ std::string rust_entity_centered_facade_file(
     {
         const auto type_name = pascal_identifier(entity.name);
         const auto function_prefix = snake_identifier(entity.name);
-        out << "use crate::backend::{Backend, BackendResult, Json, VersionedRecord};\n";
+        out << "use crate::backend::{Backend, BackendResult, VersionedRecord};\n";
         out << "use crate::descriptors::{\n";
         out << "    entity_lookup_from_document, DefaultEntityRepository, EntityCreateRequest,\n";
         out << "    EntityDescriptor, EntityGetRequest, EntityKeyValue, "
                "EntityListByIndexRequest,\n";
         out << "    EntityLookup, EntityRepository, EntityUpsertRequest,\n";
         out << "};\n";
+        out << "use crate::json::Json;\n";
         out << "use super::model::*;\n";
         out << "use super::schema::*;\n\n";
         out << "pub fn " << function_prefix
@@ -1379,6 +1383,10 @@ void add_rust_descriptor_module_artifacts(
     for (const auto& entity : system.entities)
     {
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
+        add_rust_raw_common_file(
+            result, options, entity_dir + "mod.rs",
+            "pub mod model;\npub mod persistence;\npub mod schema;\n"
+        );
         add_rust_raw_common_file(
             result, options, entity_dir + "model.rs",
             rust_entity_centered_facade_file(entity, "model")

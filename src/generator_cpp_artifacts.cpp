@@ -615,7 +615,13 @@ std::string cpp_api_handler_domain_file(
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"../api_codecs.hpp\"\n";
-    out << "#include \"../api_handler_registry_support.hpp\"\n\n";
+    out << "#include \"../api_handler_registry_support.hpp\"\n";
+    for (const auto& entity : system.entities)
+    {
+        out << "#include \"../../common/entities/" << snake_identifier(entity.name)
+            << "/persistence.hpp\"\n";
+    }
+    out << "\n";
     out << "namespace statespec_generated::api\n";
     out << "{\n\n";
     out << "class " << cpp_api_handler_domain_class_name(domain.name) << " final\n";
@@ -726,8 +732,7 @@ TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
                 continue;
             }
             terminal_states << "                EntityGcTerminalStateDescriptor{"
-                            << "::statespec_generated::"
-                            << cpp_entity_state_constant_name(entity.name, state.name) << ", "
+                            << cpp_string(state.name) << ", "
                             << cpp_string(state.garbage_collection->after) << ", "
                             << cpp_string(state.garbage_collection->mode) << "},\n";
         }
@@ -736,10 +741,8 @@ TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
             continue;
         }
         descriptors << "        EntityGcDescriptor{\n"
-                    << "            ::statespec_generated::"
-                    << cpp_entity_name_constant_name(entity.name) << ",\n"
-                    << "            ::statespec_generated::"
-                    << cpp_entity_name_constant_name(entity.name) << ",\n"
+                    << "            " << cpp_string(entity.name) << ",\n"
+                    << "            " << cpp_string(entity.name) << ",\n"
                     << "            std::vector<EntityGcTerminalStateDescriptor>{\n"
                     << terminal_states.str() << "            }\n"
                     << "        },\n";

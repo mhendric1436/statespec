@@ -84,7 +84,23 @@ std::string go_entity_field_expr(
     {
         return go_string(field_name);
     }
-    return "common." + go_entity_field_constant_name(entity.name, field_name);
+    return snake_identifier(entity.name) + "." +
+           go_entity_field_constant_name(entity.name, field_name);
+}
+
+std::string go_entity_state_expr(
+    const IrEntity& entity,
+    const std::string& state_name
+)
+{
+    return snake_identifier(entity.name) + "." +
+           go_entity_state_constant_name(entity.name, state_name);
+}
+
+std::string go_entity_repository_expr(const IrEntity& entity)
+{
+    return snake_identifier(entity.name) + ".Default" + pascal_identifier(entity.name) +
+           "Repository{}";
 }
 
 const IrEntity* create_entity_for_api_go(
@@ -355,7 +371,7 @@ std::string go_create_response_expr(
     {
         if (entity.initial_state.has_value())
         {
-            return "common." + go_entity_state_constant_name(entity.name, *entity.initial_state);
+            return go_entity_state_expr(entity, *entity.initial_state);
         }
         return "\"\"";
     }
@@ -381,8 +397,7 @@ void write_go_parent_validation(
             continue;
         }
         out << "\t{\n";
-        out << "\t\tparent := common.Default" << pascal_identifier(parent->name)
-            << "Repository{}\n";
+        out << "\t\tparent := " << go_entity_repository_expr(*parent) << "\n";
         out << "\t\tparentRecord, err := parent.GetTx(ctx, tx, []common.EntityKeyValue{\n";
         for (const auto& key_field : parent->key_fields)
         {
@@ -435,7 +450,7 @@ bool write_go_create_handler_body(
     const auto status = entity->initial_state.value_or("Created");
     out << "\tdecodedRequest, err := Decode" << pascal_identifier(api.name) << "Request(request)\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
-    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
     out << "\ttx, err := handler.Backend.Begin(ctx)\n";
@@ -453,8 +468,7 @@ bool write_go_create_handler_body(
         else if (field.name == EntityStatusFieldName)
         {
             out << "\tdocument[" << go_entity_field_expr(*entity, field.name)
-                << "] = common.JSONString("
-                << "common." << go_entity_state_constant_name(entity->name, status) << ")\n";
+                << "] = common.JSONString(" << go_entity_state_expr(*entity, status) << ")\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
@@ -519,7 +533,7 @@ bool write_go_get_handler_body(
     }
     out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
         << ", request.Path)\n";
-    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
     out << "\ttx, err := handler.Backend.Begin(ctx)\n";
@@ -586,7 +600,7 @@ bool write_go_list_handler_body(
     const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
     out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
         << ", request.Path)\n";
-    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
     out << "\ttx, err := handler.Backend.Begin(ctx)\n";
@@ -660,7 +674,7 @@ bool write_go_update_status_handler_body(
     }
     out << "\tdecodedRequest, err := Decode" << pascal_identifier(api.name) << "Request(request)\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
-    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
     out << "\ttx, err := handler.Backend.Begin(ctx)\n";
@@ -694,10 +708,8 @@ bool write_go_update_status_handler_body(
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "\t\t(currentStatus == common."
-            << go_entity_state_constant_name(entity->name, transition.from)
-            << " && requestedStatus == common."
-            << go_entity_state_constant_name(entity->name, transition.to) << ")";
+        out << "\t\t(currentStatus == " << go_entity_state_expr(*entity, transition.from)
+            << " && requestedStatus == " << go_entity_state_expr(*entity, transition.to) << ")";
     }
     out << "\n";
     out << "\tif !transitionAllowed { return common.APIResponse{}, fmt.Errorf(\"invalid entity "
@@ -767,7 +779,7 @@ bool write_go_delete_handler_body(
     }
     out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
         << ", request.Path)\n";
-    out << "\trepository := common.Default" << pascal_identifier(entity->name) << "Repository{}\n";
+    out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
     out << "\ttx, err := handler.Backend.Begin(ctx)\n";
@@ -796,16 +808,13 @@ bool write_go_delete_handler_body(
     out << "\tcurrentStatus, err := decodeString(statusJSON, "
         << go_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << ")\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
-    out << "\trequestedStatus := common."
-        << go_entity_state_constant_name(entity->name, *delete_state) << "\n";
+    out << "\trequestedStatus := " << go_entity_state_expr(*entity, *delete_state) << "\n";
     out << "\ttransitionAllowed := currentStatus == requestedStatus";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
-        out << "\t\t(currentStatus == common."
-            << go_entity_state_constant_name(entity->name, transition.from)
-            << " && requestedStatus == common."
-            << go_entity_state_constant_name(entity->name, transition.to) << ")";
+        out << "\t\t(currentStatus == " << go_entity_state_expr(*entity, transition.from)
+            << " && requestedStatus == " << go_entity_state_expr(*entity, transition.to) << ")";
     }
     out << "\n";
     out << "\tif !transitionAllowed { return common.APIResponse{}, fmt.Errorf(\"invalid entity "

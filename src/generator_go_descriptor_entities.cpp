@@ -12,40 +12,12 @@ namespace statespec
 std::string generate_go_entity_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
-    if (!system.entities.empty())
-    {
-        out << "const (\n";
-        for (const auto& entity : system.entities)
-        {
-            out << "\t" << go_entity_name_constant_name(entity.name) << " = "
-                << go_string(entity.name) << "\n";
-            for (const auto& field : entity.fields)
-            {
-                out << "\t" << go_entity_field_constant_name(entity.name, field.name) << " = "
-                    << go_string(field.name) << "\n";
-                out << "\t" << go_entity_field_type_name_constant_name(entity.name, field.name)
-                    << " = " << go_string(field.type) << "\n";
-            }
-            for (const auto& index : entity.indexes)
-            {
-                out << "\t" << go_entity_index_constant_name(entity.name, index.name) << " = "
-                    << go_string(index.name) << "\n";
-            }
-            for (const auto& state : entity.states)
-            {
-                out << "\t" << go_entity_state_constant_name(entity.name, state.name) << " = "
-                    << go_string(state.name) << "\n";
-            }
-        }
-        out << ")\n\n";
-    }
-
     out << "func EntityDescriptors() []EntityDescriptor {\n";
     out << "\treturn []EntityDescriptor{\n";
     for (const auto& entity : system.entities)
     {
         out << "\t\t{\n";
-        out << "\t\t\tName: " << go_entity_name_constant_name(entity.name) << ",\n";
+        out << "\t\t\tName: " << go_string(entity.name) << ",\n";
         out << "\t\t\tKeyFields: []string{";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -53,7 +25,7 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
+            out << go_string(entity.key_fields[i]);
         }
         out << "},\n";
         if (entity.ownership.has_value())
@@ -120,8 +92,7 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
         for (const auto& state : entity.states)
         {
             out << "\t\t\t\t{\n";
-            out << "\t\t\t\t\tName: " << go_entity_state_constant_name(entity.name, state.name)
-                << ",\n";
+            out << "\t\t\t\t\tName: " << go_string(state.name) << ",\n";
             out << "\t\t\t\t\tTerminal: " << (state.terminal ? "true" : "false") << ",\n";
             if (state.garbage_collection.has_value())
             {
@@ -138,8 +109,7 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
         out << "\t\t\t},\n";
         if (entity.initial_state.has_value())
         {
-            out << "\t\t\tInitialState: stringPtr("
-                << go_entity_state_constant_name(entity.name, *entity.initial_state) << "),\n";
+            out << "\t\t\tInitialState: stringPtr(" << go_string(*entity.initial_state) << "),\n";
         }
         else
         {
@@ -152,7 +122,7 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << go_entity_state_constant_name(entity.name, entity.terminal_states[i]);
+            out << go_string(entity.terminal_states[i]);
         }
         out << "},\n";
         out << "\t\t},\n";
@@ -166,11 +136,14 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
     for (const auto& entity : system.entities)
     {
         out << "\t\t{\n";
-        out << "\t\t\tName: " << go_entity_name_constant_name(entity.name) << ",\n";
+        out << "\t\t\tName: " << go_string(entity.name) << ",\n";
         out << "\t\t\tFields: []FieldDescriptor{\n";
         for (const auto& field : entity.fields)
         {
-            out << "\t\t\t\t" << go_entity_field_descriptor_expr(entity.name, field) << ",\n";
+            out << "\t\t\t\t{Name: " << go_string(field.name)
+                << ", Type: " << go_field_type_enum_expr(field.type)
+                << ", TypeName: " << go_string(field.type)
+                << ", Required: " << (go_field_required(field.type) ? "true" : "false") << "},\n";
         }
         out << "\t\t\t},\n";
         out << "\t\t\tKeyFields: []string{";
@@ -180,15 +153,14 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
+            out << go_string(entity.key_fields[i]);
         }
         out << "},\n";
         out << "\t\t\tIndexes: []IndexDescriptor{\n";
         for (const auto& index : entity.indexes)
         {
             out << "\t\t\t\t{\n";
-            out << "\t\t\t\t\tName: " << go_entity_index_constant_name(entity.name, index.name)
-                << ",\n";
+            out << "\t\t\t\t\tName: " << go_string(index.name) << ",\n";
             out << "\t\t\t\t\tFields: []string{";
             for (std::size_t i = 0; i < index.fields.size(); ++i)
             {
@@ -196,7 +168,7 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
                 {
                     out << ", ";
                 }
-                out << go_entity_field_constant_name(entity.name, index.fields[i]);
+                out << go_string(index.fields[i]);
             }
             out << "},\n";
             out << "\t\t\t\t\tUnique: " << (index.unique ? "true" : "false") << ",\n";
@@ -209,136 +181,6 @@ std::string generate_go_entity_descriptors(const IrSystem& system)
 
     out << "\t}\n";
     out << "}\n\n";
-
-    for (const auto& entity : system.entities)
-    {
-        const auto type_name = pascal_identifier(entity.name);
-        out << "func " << type_name << "Lookup(keyValues []EntityKeyValue) EntityLookup {\n";
-        out << "\treturn EntityLookup{Entity: " << go_entity_name_constant_name(entity.name)
-            << ", KeyFields: []string{";
-        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
-        }
-        out << "}, KeyValues: keyValues}\n";
-        out << "}\n\n";
-        out << "type " << type_name << "Repository interface {\n";
-        out << "\tRegisterDescriptor(context.Context, Backend) error\n";
-        out << "\tCreateTx(context.Context, Transaction, JSON) (*VersionedRecord, error)\n";
-        out << "\tGetTx(context.Context, Transaction, []EntityKeyValue) (*VersionedRecord, "
-               "error)\n";
-        out << "\tListByIndexTx(context.Context, Transaction, string, []IndexValue) "
-               "([]VersionedRecord, error)\n";
-        for (const auto& index : entity.indexes)
-        {
-            out << "\t" << go_entity_index_repository_method_name(index.name)
-                << "(context.Context, Transaction, []IndexValue) ([]VersionedRecord, error)\n";
-        }
-        out << "\tUpdateTx(context.Context, Transaction, []EntityKeyValue, JSON, Version) "
-               "(*VersionedRecord, error)\n";
-        out << "}\n\n";
-        out << "type Default" << type_name << "Repository struct{}\n\n";
-        out << "func (Default" << type_name
-            << "Repository) RegisterDescriptor(ctx context.Context, backend Backend) error {\n";
-        out << "\treturn backend.EnsureCollection(ctx, " << type_name
-            << "CollectionDescriptor())\n";
-        out << "}\n\n";
-        out << "func (Default" << type_name
-            << "Repository) CreateTx(ctx context.Context, tx Transaction, document JSON) "
-               "(*VersionedRecord, error) {\n";
-        out << "\treturn DefaultEntityRepository{}.CreateEntityTx(ctx, tx, EntityCreateRequest{\n";
-        out << "\t\tLookup: EntityLookupFromDocument(" << type_name
-            << "EntityDescriptor(), document),\n";
-        out << "\t\tDocument: document,\n";
-        out << "\t})\n";
-        out << "}\n\n";
-        out << "func (Default" << type_name
-            << "Repository) GetTx(ctx context.Context, tx Transaction, keyValues []EntityKeyValue) "
-               "(*VersionedRecord, error) {\n";
-        out << "\treturn DefaultEntityRepository{}.GetEntityTx(ctx, tx, EntityGetRequest{Lookup: "
-            << type_name << "Lookup(keyValues)})\n";
-        out << "}\n\n";
-        out << "func (Default" << type_name
-            << "Repository) ListByIndexTx(ctx context.Context, tx Transaction, indexName string, "
-               "values []IndexValue) ([]VersionedRecord, error) {\n";
-        out << "\treturn DefaultEntityRepository{}.ListEntitiesByIndexTx(ctx, tx, "
-               "EntityListByIndexRequest{Entity: "
-            << go_entity_name_constant_name(entity.name)
-            << ", IndexName: indexName, Values: values})\n";
-        out << "}\n\n";
-        for (const auto& index : entity.indexes)
-        {
-            out << "func (repository Default" << type_name << "Repository) "
-                << go_entity_index_repository_method_name(index.name)
-                << "(ctx context.Context, tx Transaction, values []IndexValue) "
-                   "([]VersionedRecord, error) {\n";
-            out << "\treturn repository.ListByIndexTx(ctx, tx, "
-                << go_entity_index_constant_name(entity.name, index.name) << ", values)\n";
-            out << "}\n\n";
-        }
-        out << "func (Default" << type_name
-            << "Repository) UpdateTx(ctx context.Context, tx Transaction, keyValues "
-               "[]EntityKeyValue, document JSON, expectedVersion Version) (*VersionedRecord, "
-               "error) {\n";
-        out << "\treturn DefaultEntityRepository{}.UpsertEntityTx(ctx, tx, EntityUpsertRequest{\n";
-        out << "\t\tLookup: " << type_name << "Lookup(keyValues),\n";
-        out << "\t\tDocument: document,\n";
-        out << "\t\tExpectedVersion: &expectedVersion,\n";
-        out << "\t})\n";
-        out << "}\n\n";
-        out << "func " << type_name << "CollectionDescriptor() CollectionDescriptor {\n";
-        out << "\treturn CollectionDescriptor{\n";
-        out << "\t\tName: " << go_entity_name_constant_name(entity.name) << ",\n";
-        out << "\t\tFields: []FieldDescriptor{\n";
-        for (const auto& field : entity.fields)
-        {
-            out << "\t\t\t" << go_entity_field_descriptor_expr(entity.name, field) << ",\n";
-        }
-        out << "\t\t},\n";
-        out << "\t\tKeyFields: []string{";
-        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
-        }
-        out << "},\n";
-        out << "\t\tIndexes: []IndexDescriptor{\n";
-        for (const auto& index : entity.indexes)
-        {
-            out << "\t\t\t{Name: " << go_entity_index_constant_name(entity.name, index.name)
-                << ", Fields: []string{";
-            for (std::size_t i = 0; i < index.fields.size(); ++i)
-            {
-                if (i > 0)
-                {
-                    out << ", ";
-                }
-                out << go_entity_field_constant_name(entity.name, index.fields[i]);
-            }
-            out << "}, Unique: " << (index.unique ? "true" : "false") << "},\n";
-        }
-        out << "\t\t},\n";
-        out << "\t\tSchemaVersion: 1,\n";
-        out << "\t}\n";
-        out << "}\n\n";
-        out << "func " << type_name << "EntityDescriptor() EntityDescriptor {\n";
-        out << "\tfor _, descriptor := range EntityDescriptors() {\n";
-        out << "\t\tif descriptor.Name == " << go_entity_name_constant_name(entity.name) << " {\n";
-        out << "\t\t\treturn descriptor\n";
-        out << "\t\t}\n";
-        out << "\t}\n";
-        out << "\tpanic(\"entity descriptor not found: \" + "
-            << go_entity_name_constant_name(entity.name) << ")\n";
-        out << "}\n\n";
-        out << "var _ " << type_name << "Repository = Default" << type_name << "Repository{}\n\n";
-    }
 
     return out.str();
 }

@@ -36,6 +36,8 @@ std::string go_shape_field_type_name_constant_name(
     const std::string& field_name
 );
 std::string go_field_descriptor_expr(const IrField& field);
+std::string go_field_type_enum_expr(const std::string& type);
+bool go_field_required(const std::string& type);
 std::string go_entity_field_descriptor_expr(
     const std::string& entity_name,
     const IrField& field

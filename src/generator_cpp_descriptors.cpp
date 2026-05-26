@@ -86,7 +86,23 @@ std::string cpp_entity_field_expr(
     {
         return cpp_string(field_name);
     }
-    return cpp_entity_field_constant_name(entity.name, field_name);
+    return "::statespec_generated::entities::" + snake_identifier(entity.name) +
+           "::" + cpp_entity_field_constant_name(entity.name, field_name);
+}
+
+std::string cpp_entity_state_expr(
+    const IrEntity& entity,
+    const std::string& state_name
+)
+{
+    return "::statespec_generated::entities::" + snake_identifier(entity.name) +
+           "::" + cpp_entity_state_constant_name(entity.name, state_name);
+}
+
+std::string cpp_entity_repository_expr(const IrEntity& entity)
+{
+    return "::statespec_generated::entities::" + snake_identifier(entity.name) + "::Default" +
+           pascal_identifier(entity.name) + "Repository";
 }
 
 const IrEntity* create_entity_for_api(
@@ -354,7 +370,7 @@ std::string cpp_create_response_assignment(
         if (entity.initial_state.has_value())
         {
             return std::string{"std::string{"} +
-                   cpp_entity_state_constant_name(entity.name, *entity.initial_state) + "}";
+                   cpp_entity_state_expr(entity, *entity.initial_state) + "}";
         }
         return "std::string{}";
     }
@@ -401,7 +417,7 @@ void write_cpp_parent_validation(
             continue;
         }
         out << "        {\n";
-        out << "            Default" << pascal_identifier(parent->name) << "Repository parent;\n";
+        out << "            " << cpp_entity_repository_expr(*parent) << " parent;\n";
         out << "            const auto parent_record = parent.getTx(\n";
         out << "                *tx,\n";
         out << "                {\n";
@@ -459,7 +475,7 @@ bool write_cpp_create_handler_body(
     const auto status = entity->initial_state.value_or("Created");
     out << "        const auto request = decode_" << snake_identifier(api.name)
         << "_request(context);\n";
-    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        " << cpp_entity_repository_expr(*entity) << " repository;\n";
     out << "        repository.register_descriptor(backend_);\n";
     out << "        auto tx = backend_.begin();\n";
     out << "        try\n";
@@ -476,8 +492,8 @@ bool write_cpp_create_handler_body(
         else if (field.name == EntityStatusFieldName)
         {
             out << "            document[" << cpp_entity_field_expr(*entity, field.name)
-                << "] = statespec::backend::Json{"
-                << cpp_entity_state_constant_name(entity->name, status) << "};\n";
+                << "] = statespec::backend::Json{" << cpp_entity_state_expr(*entity, status)
+                << "};\n";
         }
         else if (const auto* request_field = find_field(*request, field.name);
                  request_field != nullptr)
@@ -539,7 +555,7 @@ bool write_cpp_get_handler_body(
     }
     out << "        const auto path_parameters = extract_api_path_parameters("
         << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
-    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        " << cpp_entity_repository_expr(*entity) << " repository;\n";
     out << "        repository.register_descriptor(backend_);\n";
     out << "        auto tx = backend_.begin();\n";
     out << "        try\n";
@@ -607,7 +623,7 @@ bool write_cpp_list_handler_body(
     const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
     out << "        const auto path_parameters = extract_api_path_parameters("
         << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
-    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        " << cpp_entity_repository_expr(*entity) << " repository;\n";
     out << "        repository.register_descriptor(backend_);\n";
     out << "        auto tx = backend_.begin();\n";
     out << "        try\n";
@@ -697,7 +713,7 @@ bool write_cpp_update_status_handler_body(
 
     out << "        const auto request = decode_" << snake_identifier(api.name)
         << "_request(context);\n";
-    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        " << cpp_entity_repository_expr(*entity) << " repository;\n";
     out << "        repository.register_descriptor(backend_);\n";
     out << "        auto tx = backend_.begin();\n";
     out << "        try\n";
@@ -727,9 +743,8 @@ bool write_cpp_update_status_handler_body(
     {
         out << " ||\n";
         out << "                (current_status == "
-            << cpp_entity_state_constant_name(entity->name, transition.from)
-            << " && requested_status == "
-            << cpp_entity_state_constant_name(entity->name, transition.to) << ")";
+            << cpp_entity_state_expr(*entity, transition.from)
+            << " && requested_status == " << cpp_entity_state_expr(*entity, transition.to) << ")";
     }
     out << ";\n";
     out << "            if (!transition_allowed)\n";
@@ -804,7 +819,7 @@ bool write_cpp_delete_handler_body(
 
     out << "        const auto path_parameters = extract_api_path_parameters("
         << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
-    out << "        Default" << pascal_identifier(entity->name) << "Repository repository;\n";
+    out << "        " << cpp_entity_repository_expr(*entity) << " repository;\n";
     out << "        repository.register_descriptor(backend_);\n";
     out << "        auto tx = backend_.begin();\n";
     out << "        try\n";
@@ -828,15 +843,14 @@ bool write_cpp_delete_handler_body(
         << cpp_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "\n";
     out << "            );\n";
     out << "            const auto requested_status = std::string{"
-        << cpp_entity_state_constant_name(entity->name, *delete_state) << "};\n";
+        << cpp_entity_state_expr(*entity, *delete_state) << "};\n";
     out << "            const bool transition_allowed = current_status == requested_status";
     for (const auto& transition : entity->transitions)
     {
         out << " ||\n";
         out << "                (current_status == "
-            << cpp_entity_state_constant_name(entity->name, transition.from)
-            << " && requested_status == "
-            << cpp_entity_state_constant_name(entity->name, transition.to) << ")";
+            << cpp_entity_state_expr(*entity, transition.from)
+            << " && requested_status == " << cpp_entity_state_expr(*entity, transition.to) << ")";
     }
     out << ";\n";
     out << "            if (!transition_allowed)\n";

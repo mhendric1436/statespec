@@ -153,6 +153,16 @@ bool is_required_descriptor_field(const std::string& type)
 
 } // namespace
 
+std::string go_field_type_enum_expr(const std::string& type)
+{
+    return go_field_type_expr(classify_field_descriptor_type(type));
+}
+
+bool go_field_required(const std::string& type)
+{
+    return is_required_descriptor_field(type);
+}
+
 std::string go_field_descriptor_expr(const IrField& field)
 {
     return "{Name: " + go_string(field.name) +

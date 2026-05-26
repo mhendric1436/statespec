@@ -11,6 +11,7 @@
 #include "type_syntax.hpp"
 
 #include <algorithm>
+#include <set>
 #include <sstream>
 #include <string_view>
 #include <utility>
@@ -534,6 +535,48 @@ std::string go_api_handler_domain_path(std::string_view domain_name)
     return "api/backend/api_handler_registry_" + snake_identifier(std::string{domain_name}) + ".go";
 }
 
+std::string go_api_handler_entity_imports(
+    const IrSystem& system,
+    const std::vector<IrApi>& apis
+)
+{
+    std::set<std::string> entity_names;
+    for (const auto& api : apis)
+    {
+        for (const auto& entity : system.entities)
+        {
+            const auto pascal = pascal_identifier(entity.name);
+            const auto is_create = api.name == "Create" + pascal;
+            const auto is_entity_api =
+                is_create || api.name == "Get" + pascal || api.name == "Delete" + pascal ||
+                api.name == "Update" + pascal + "Status" || api.name == "List" + pascal;
+            if (!is_entity_api)
+            {
+                continue;
+            }
+            entity_names.insert(entity.name);
+            if (is_create)
+            {
+                for (const auto& relation : entity.relations)
+                {
+                    if (relation.kind == "parent")
+                    {
+                        entity_names.insert(relation.target);
+                    }
+                }
+            }
+        }
+    }
+
+    std::ostringstream out;
+    for (const auto& entity_name : entity_names)
+    {
+        out << "\t" << snake_identifier(entity_name) << " \"statespec-generated/common/entities/"
+            << snake_identifier(entity_name) << "\"\n";
+    }
+    return out.str();
+}
+
 std::string go_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
 {
     std::ostringstream out;
@@ -566,6 +609,7 @@ std::string go_api_handler_domain_file(
     out << "\t\"fmt\"\n";
     out << "\t\"time\"\n\n";
     out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << go_api_handler_entity_imports(system, domain.apis);
     out << go_api_default_handler_shape_import(filtered);
     out << ")\n\n";
     out << "var _ = fmt.Errorf\n";
@@ -740,8 +784,7 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
             {
                 continue;
             }
-            terminal_states << "\t\t\t{State: common."
-                            << go_entity_state_constant_name(entity.name, state.name)
+            terminal_states << "\t\t\t{State: " << go_string(state.name)
                             << ", After: " << go_string(state.garbage_collection->after)
                             << ", Mode: " << go_string(state.garbage_collection->mode) << "},\n";
         }
@@ -750,9 +793,8 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
             continue;
         }
         descriptors << "\t\t{\n"
-                    << "\t\t\tEntity: common." << go_entity_name_constant_name(entity.name) << ",\n"
-                    << "\t\t\tCollection: common." << go_entity_name_constant_name(entity.name)
-                    << ",\n"
+                    << "\t\t\tEntity: " << go_string(entity.name) << ",\n"
+                    << "\t\t\tCollection: " << go_string(entity.name) << ",\n"
                     << "\t\t\tTerminalStates: []EntityGCTerminalStateDescriptor{\n"
                     << terminal_states.str() << "\t\t\t},\n"
                     << "\t\t},\n";

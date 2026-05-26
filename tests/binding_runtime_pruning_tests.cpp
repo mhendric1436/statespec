@@ -573,6 +573,14 @@ void require_descriptor_names(
             descriptors += artifact_content(result, path);
         }
     }
+    for (const auto& file : result.files)
+    {
+        if (file.path.find("common/entities/") != std::string::npos)
+        {
+            descriptors += "\n";
+            descriptors += file.content;
+        }
+    }
     for (const auto& name : present_names)
     {
         require_contains(descriptors, name, context + " descriptors");

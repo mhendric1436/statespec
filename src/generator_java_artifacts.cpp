@@ -41,12 +41,6 @@ std::string java_shape_descriptor_module_class_name(std::string_view shape_name)
     return pascal_identifier(std::string{shape_name}) + "DescriptorModule";
 }
 
-std::string java_entity_descriptor_module_ref(std::string_view entity_name)
-{
-    (void)entity_name;
-    return "com.statespec.generated.Descriptors";
-}
-
 std::string java_event_descriptor_module_file(const IrSystem& system)
 {
     std::ostringstream out;
@@ -746,10 +740,8 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
             {
                 terminal_states << ",\n";
             }
-            const auto module_ref = java_entity_descriptor_module_ref(entity.name);
-            terminal_states << "                new TerminalState(" << module_ref << "."
-                            << java_entity_state_constant_name(entity.name, state.name) << ", "
-                            << java_string(state.garbage_collection->after) << ", "
+            terminal_states << "                new TerminalState(" << java_string(state.name)
+                            << ", " << java_string(state.garbage_collection->after) << ", "
                             << java_string(state.garbage_collection->mode) << ")";
             first_terminal_state = false;
         }
@@ -759,10 +751,8 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
         }
         std::ostringstream descriptor;
         descriptor << "            new Descriptor(\n"
-                   << "                " << java_entity_descriptor_module_ref(entity.name) << "."
-                   << java_entity_name_constant_name(entity.name) << ",\n"
-                   << "                " << java_entity_descriptor_module_ref(entity.name) << "."
-                   << java_entity_name_constant_name(entity.name) << ",\n"
+                   << "                " << java_string(entity.name) << ",\n"
+                   << "                " << java_string(entity.name) << ",\n"
                    << "                List.of(\n"
                    << terminal_states.str() << "\n"
                    << "                )\n"
