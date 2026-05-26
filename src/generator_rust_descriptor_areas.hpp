@@ -23,6 +23,7 @@ std::string generate_rust_external_system_descriptors(
 );
 std::string generate_rust_api_descriptors(const IrSystem& system);
 std::string generate_rust_worker_descriptors(const IrSystem& system);
+std::string generate_rust_worker_descriptor_module(const IrWorker& worker);
 std::string generate_rust_policy_descriptors(const IrSystem& system);
 std::string generate_rust_shape_descriptors(const IrSystem& system);
 std::string generate_rust_observability_descriptors(const IrSystem& system);

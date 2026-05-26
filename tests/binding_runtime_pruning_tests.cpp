@@ -329,6 +329,13 @@ bool is_entity_descriptor_module_path(std::string_view artifact_path)
             artifact_path.ends_with("_descriptors.go"));
 }
 
+bool is_worker_descriptor_module_path(std::string_view artifact_path)
+{
+    return artifact_path.find("/descriptors/workers/") != std::string_view::npos ||
+           (artifact_path.find("common/backend/worker_descriptor_") == 0 &&
+            artifact_path.ends_with(".go"));
+}
+
 std::string descriptor_content(
     const statespec::GenerationResult& result,
     const LanguageRuntimePaths& paths
@@ -337,7 +344,8 @@ std::string descriptor_content(
     std::string content = artifact_content(result, paths.descriptors_path);
     for (const auto& file : result.files)
     {
-        if (is_entity_descriptor_module_path(file.artifact_path))
+        if (is_entity_descriptor_module_path(file.artifact_path) ||
+            is_worker_descriptor_module_path(file.artifact_path))
         {
             content += '\n';
             content += file.content;

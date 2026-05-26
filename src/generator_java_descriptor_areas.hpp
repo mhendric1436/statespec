@@ -23,6 +23,11 @@ std::string generate_java_external_system_descriptors(
 );
 std::string generate_java_api_descriptors(const IrSystem& system);
 std::string generate_java_worker_descriptors(const IrSystem& system);
+std::string generate_java_worker_descriptor_module(
+    const IrWorker& worker,
+    std::string_view package_name,
+    std::string_view class_name
+);
 std::string generate_java_policy_descriptors(const IrSystem& system);
 std::string generate_java_shape_descriptors(const IrSystem& system);
 std::string generate_java_observability_descriptors(const IrSystem& system);

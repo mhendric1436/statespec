@@ -23,6 +23,7 @@ std::string generate_go_external_system_descriptors(
 );
 std::string generate_go_api_descriptors(const IrSystem& system);
 std::string generate_go_worker_descriptors(const IrSystem& system);
+std::string generate_go_worker_descriptor_module(const IrWorker& worker);
 std::string generate_go_policy_descriptors(const IrSystem& system);
 std::string generate_go_shape_descriptors(const IrSystem& system);
 std::string generate_go_observability_descriptors(const IrSystem& system);

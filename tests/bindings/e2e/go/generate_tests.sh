@@ -83,10 +83,12 @@ common/backend/shapes/start_provision_request.go
 common/backend/shapes/start_provision_response.go
 common/backend/start_provision_request_shape_descriptors.go
 common/backend/start_provision_response_shape_descriptors.go
+common/backend/worker_descriptor_provision_worker.go
 common/backend/workflow.go
 common/backend/workflows/provision_service.go
 common/backend/workflows/workflows.go
 go.mod
+worker/backend/registry/provision_worker.go
 worker/backend/worker_application.go
 worker/backend/worker_contexts.go
 worker/backend/worker_descriptors.go
@@ -167,8 +169,8 @@ run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"
 assert_file_manifest_equals "$TMPDIR/out-app-go" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionApi.StartProvision\""
-assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionCommands.CreateRemoteService\""
-assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-go/common/backend/worker_descriptor_provision_worker.go" "\"ProvisionCommands.CreateRemoteService\""
+assert_file_contains "$TMPDIR/out-app-go/common/backend/worker_descriptor_provision_worker.go" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_application.go" "type APITierApplication struct"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "type APIProcess struct"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) RequestStop()"

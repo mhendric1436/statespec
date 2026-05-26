@@ -50,6 +50,11 @@ std::string java_workflow_descriptor_module_class_name(std::string_view workflow
     return pascal_identifier(std::string{workflow_name}) + "DescriptorModule";
 }
 
+std::string java_worker_descriptor_module_class_name(std::string_view worker_name)
+{
+    return pascal_identifier(std::string{worker_name}) + "DescriptorModule";
+}
+
 std::string java_shape_descriptor_module_class_name(std::string_view shape_name)
 {
     return pascal_identifier(std::string{shape_name}) + "DescriptorModule";
@@ -95,6 +100,77 @@ std::string java_event_descriptor_module_file(const IrSystem& system)
         out << "        );\n";
         out << "    }\n\n";
     }
+    out << "}\n";
+    return out.str();
+}
+
+std::string java_worker_registry_module_file(
+    const IrWorker& worker,
+    std::string_view package_name,
+    std::string_view class_name
+)
+{
+    std::ostringstream out;
+    out << "package " << package_name << ";\n\n";
+    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import com.statespec.generated.descriptors.workers."
+        << java_worker_descriptor_module_class_name(worker.name) << ";\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class " << class_name << " {\n";
+    out << "    private " << class_name << "() {}\n\n";
+    out << "    public static Optional<Descriptors.WorkerDescriptor> findWorkerDescriptor(String "
+           "workerName) {\n";
+    out << "        if (" << java_string(worker.name) << ".equals(workerName)) {\n";
+    out << "            return Optional.of("
+        << java_worker_descriptor_module_class_name(worker.name) << ".workerDescriptor());\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
+    out << "    }\n\n";
+    out << "    public static Optional<Descriptors.WorkerContext> findWorkerContext(String "
+           "workerName) {\n";
+    out << "        if (" << java_string(worker.name) << ".equals(workerName)) {\n";
+    out << "            return Optional.of("
+        << java_worker_descriptor_module_class_name(worker.name) << ".workerContext());\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string java_worker_registry_facade_file(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class WorkerRegistry {\n";
+    out << "    private WorkerRegistry() {}\n\n";
+    out << "    public static Optional<Descriptors.WorkerDescriptor> findWorkerDescriptor(String "
+           "workerName) {\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "        var " << lower_camel_identifier(worker.name)
+            << "Worker = com.statespec.generated.registry." << pascal_identifier(worker.name)
+            << "Registry.findWorkerDescriptor(workerName);\n";
+        out << "        if (" << lower_camel_identifier(worker.name) << "Worker.isPresent()) {\n";
+        out << "            return " << lower_camel_identifier(worker.name) << "Worker;\n";
+        out << "        }\n";
+    }
+    out << "        return Optional.empty();\n";
+    out << "    }\n\n";
+    out << "    public static Optional<Descriptors.WorkerContext> findWorkerContext(String "
+           "workerName) {\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "        var " << lower_camel_identifier(worker.name)
+            << "Context = com.statespec.generated.registry." << pascal_identifier(worker.name)
+            << "Registry.findWorkerContext(workerName);\n";
+        out << "        if (" << lower_camel_identifier(worker.name) << "Context.isPresent()) {\n";
+        out << "            return " << lower_camel_identifier(worker.name) << "Context;\n";
+        out << "        }\n";
+    }
+    out << "        return Optional.empty();\n";
+    out << "    }\n";
     out << "}\n";
     return out.str();
 }
@@ -218,6 +294,13 @@ std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
         sources.push_back(
             "common/com/statespec/generated/descriptors/entities/" +
             java_entity_descriptor_module_class_name(entity.name) + ".java"
+        );
+    }
+    for (const auto& worker : system.workers)
+    {
+        sources.push_back(
+            "common/com/statespec/generated/descriptors/workers/" +
+            java_worker_descriptor_module_class_name(worker.name) + ".java"
         );
     }
     return sources;
@@ -674,6 +757,13 @@ TemplateRenderer::Values java_makefile_values(
         };
         if (include_worker_composition)
         {
+            for (const auto& worker : system.workers)
+            {
+                worker_sources.push_back(
+                    "worker/com/statespec/generated/registry/" + pascal_identifier(worker.name) +
+                    "Registry.java"
+                );
+            }
             worker_sources.push_back("worker/com/statespec/generated/WorkerApplication.java");
             worker_sources.push_back("worker/com/statespec/generated/WorkerProcess.java");
             worker_sources.push_back("worker/com/statespec/generated/WorkerRuntime.java");
@@ -1394,6 +1484,16 @@ void add_java_descriptor_module_artifacts(
         result, options, templates, descriptor_package_path / "WorkerDescriptorModule.java",
         descriptor_package, "WorkerDescriptorModule", "worker descriptors", diagnostics
     );
+    for (const auto& worker : system.workers)
+    {
+        const auto class_name = java_worker_descriptor_module_class_name(worker.name);
+        add_java_raw_common_file(
+            result, options, descriptor_package_path / "workers" / (class_name + ".java"),
+            generate_java_worker_descriptor_module(
+                worker, descriptor_package + ".workers", class_name
+            )
+        );
+    }
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "RuntimeDescriptorModule.java",
         descriptor_package, "RuntimeDescriptorModule", "runtime descriptors", diagnostics
@@ -1727,10 +1827,23 @@ void add_java_worker_artifacts(
         result, options, templates, java_worker_generated_path("WorkerContexts.java"),
         GeneratedArtifactTier::Worker, diagnostics
     );
-    add_java_generated_template_file(
-        result, options, templates, java_worker_generated_path("WorkerRegistry.java"),
-        GeneratedArtifactTier::Worker, diagnostics
+    add_java_raw_worker_file(
+        result, options, java_worker_generated_path("WorkerRegistry.java"),
+        java_worker_registry_facade_file(system)
     );
+    for (const auto& worker : system.workers)
+    {
+        add_java_raw_worker_file(
+            result, options,
+            java_worker_generated_path(
+                "registry/" + pascal_identifier(worker.name) + "Registry.java"
+            ),
+            java_worker_registry_module_file(
+                worker, "com.statespec.generated.registry",
+                pascal_identifier(worker.name) + "Registry"
+            )
+        );
+    }
     if (include_worker_composition)
     {
         add_java_generated_template_file(

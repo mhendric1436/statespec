@@ -349,6 +349,81 @@ std::string generate_cpp_workflow_step_module(const IrWorkflow& workflow)
     return out.str();
 }
 
+std::string cpp_worker_registry_module(const IrWorker& worker)
+{
+    const auto snake = snake_identifier(worker.name);
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../worker_contexts.hpp\"\n";
+    out << "#include \"../worker_descriptors.hpp\"\n\n";
+    out << "#include <optional>\n";
+    out << "#include <string_view>\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n\n";
+    out << "inline std::optional<WorkerDescriptor> find_" << snake
+        << "_worker_descriptor(std::string_view worker_name)\n";
+    out << "{\n";
+    out << "    if (worker_name == " << cpp_string(worker.name) << ")\n";
+    out << "    {\n";
+    out << "        return ::statespec_generated::" << snake << "_worker_descriptor();\n";
+    out << "    }\n";
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "inline std::optional<WorkerContext> find_" << snake
+        << "_worker_context(std::string_view worker_name)\n";
+    out << "{\n";
+    out << "    if (worker_name == " << cpp_string(worker.name) << ")\n";
+    out << "    {\n";
+    out << "        return ::statespec_generated::" << snake << "_worker_context();\n";
+    out << "    }\n";
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
+std::string cpp_worker_registry_facade(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "#include \"registry/" << snake_identifier(worker.name) << ".hpp\"\n";
+    }
+    out << "\n#include <optional>\n";
+    out << "#include <string_view>\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n\n";
+    out << "inline std::optional<WorkerDescriptor> find_worker_descriptor(std::string_view "
+           "worker_name)\n";
+    out << "{\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "    if (auto worker = find_" << snake_identifier(worker.name)
+            << "_worker_descriptor(worker_name))\n";
+        out << "    {\n";
+        out << "        return worker;\n";
+        out << "    }\n";
+    }
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "inline std::optional<WorkerContext> find_worker_context(std::string_view "
+           "worker_name)\n";
+    out << "{\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "    if (auto context = find_" << snake_identifier(worker.name)
+            << "_worker_context(worker_name))\n";
+        out << "    {\n";
+        out << "        return context;\n";
+        out << "    }\n";
+    }
+    out << "    return std::nullopt;\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
 TemplateRenderer::Values cpp_workflow_runner_values(const IrSystem& system)
 {
     std::ostringstream includes;
@@ -953,6 +1028,19 @@ void add_cpp_descriptor_module_artifacts(
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/workers.hpp", "worker descriptors", diagnostics
     );
+    for (const auto& worker : system.workers)
+    {
+        add_generated_template_file(
+            result, options.output_dir, templates,
+            generated_template_path("descriptor_module.hpp.tmpl"),
+            common_artifact_path("descriptors/workers/" + snake_identifier(worker.name) + ".hpp"),
+            diagnostics, GeneratedArtifactTier::Common,
+            TemplateRenderer::Values{
+                {"descriptor_module_name", "worker descriptor " + worker.name},
+                {"descriptor_module_content", generate_cpp_worker_descriptor_module(worker)}
+            }
+        );
+    }
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/runtime.hpp", "runtime descriptors", diagnostics
     );
@@ -1476,10 +1564,16 @@ void add_cpp_worker_artifacts(
         result, options, templates, "worker/worker_contexts.hpp", GeneratedArtifactTier::Worker,
         diagnostics
     );
-    add_cpp_generated_template_file(
-        result, options, templates, "worker/worker_registry.hpp", GeneratedArtifactTier::Worker,
-        diagnostics
+    add_cpp_raw_worker_file(
+        result, options, "worker/worker_registry.hpp", cpp_worker_registry_facade(system)
     );
+    for (const auto& worker : system.workers)
+    {
+        add_cpp_raw_worker_file(
+            result, options, "worker/registry/" + snake_identifier(worker.name) + ".hpp",
+            cpp_worker_registry_module(worker)
+        );
+    }
     if (include_worker_composition)
     {
         add_cpp_generated_template_file(

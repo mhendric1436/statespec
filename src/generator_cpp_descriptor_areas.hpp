@@ -23,6 +23,7 @@ std::string generate_cpp_external_system_descriptors(
 );
 std::string generate_cpp_api_descriptors(const IrSystem& system);
 std::string generate_cpp_worker_descriptors(const IrSystem& system);
+std::string generate_cpp_worker_descriptor_module(const IrWorker& worker);
 std::string generate_cpp_policy_descriptors(const IrSystem& system);
 std::string generate_cpp_shape_descriptors(const IrSystem& system);
 std::string generate_cpp_observability_descriptors(const IrSystem& system);

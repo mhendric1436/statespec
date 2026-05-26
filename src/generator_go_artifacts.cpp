@@ -249,6 +249,63 @@ type WorkflowStepHandlerContext struct {
 )";
 }
 
+std::string go_worker_registry_module(const IrWorker& worker)
+{
+    const auto pascal = pascal_identifier(worker.name);
+    std::ostringstream out;
+    out << "package registry\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "func Find" << pascal
+        << "WorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {\n";
+    out << "\tif workerName == " << go_string(worker.name) << " {\n";
+    out << "\t\treturn common." << pascal << "WorkerDescriptor(), true\n";
+    out << "\t}\n";
+    out << "\treturn common.WorkerDescriptor{}, false\n";
+    out << "}\n\n";
+    out << "func Find" << pascal
+        << "WorkerTierContext(workerName string) (common.WorkerContext, bool) {\n";
+    out << "\tif workerName == " << go_string(worker.name) << " {\n";
+    out << "\t\treturn common." << pascal << "WorkerContext(), true\n";
+    out << "\t}\n";
+    out << "\treturn common.WorkerContext{}, false\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string go_worker_registry_facade(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    if (!system.workers.empty())
+    {
+        out << "\tregistry \"statespec-generated/worker/backend/registry\"\n";
+    }
+    out << ")\n\n";
+    out << "func FindWorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "\tif worker, ok := registry.Find" << pascal_identifier(worker.name)
+            << "WorkerTierDescriptor(workerName); ok {\n";
+        out << "\t\treturn worker, true\n";
+        out << "\t}\n";
+    }
+    out << "\treturn common.WorkerDescriptor{}, false\n";
+    out << "}\n\n";
+    out << "func FindWorkerTierContext(workerName string) (common.WorkerContext, bool) {\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "\tif context, ok := registry.Find" << pascal_identifier(worker.name)
+            << "WorkerTierContext(workerName); ok {\n";
+        out << "\t\treturn context, true\n";
+        out << "\t}\n";
+    }
+    out << "\treturn common.WorkerContext{}, false\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string generate_go_workflow_worker_module(const IrWorkflow& workflow)
 {
     std::ostringstream out;
@@ -1041,6 +1098,13 @@ void add_go_descriptor_module_artifacts(
         result, options, templates, "backend/descriptors/workers.go", "descriptors",
         "worker descriptors", diagnostics
     );
+    for (const auto& worker : system.workers)
+    {
+        add_go_raw_common_file(
+            result, options, "backend/worker_descriptor_" + snake_identifier(worker.name) + ".go",
+            generate_go_worker_descriptor_module(worker)
+        );
+    }
     add_go_descriptor_module_artifact(
         result, options, templates, "backend/descriptors/runtime.go", "descriptors",
         "runtime descriptors", diagnostics
@@ -1535,10 +1599,16 @@ void add_go_worker_artifacts(
         result, options, templates, "worker/backend/worker_contexts.go",
         GeneratedArtifactTier::Worker, diagnostics
     );
-    add_go_generated_template_file(
-        result, options, templates, "worker/backend/worker_registry.go",
-        GeneratedArtifactTier::Worker, diagnostics
+    add_go_raw_worker_file(
+        result, options, "worker/backend/worker_registry.go", go_worker_registry_facade(system)
     );
+    for (const auto& worker : system.workers)
+    {
+        add_go_raw_worker_file(
+            result, options, "worker/backend/registry/" + snake_identifier(worker.name) + ".go",
+            go_worker_registry_module(worker)
+        );
+    }
     if (include_worker_composition)
     {
         add_go_generated_template_file(

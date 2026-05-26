@@ -77,6 +77,7 @@ common/com/statespec/generated/descriptors/shapes/ProvisionCallbackRequestDescri
 common/com/statespec/generated/descriptors/shapes/ProvisionCallbackResponseDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/StartProvisionRequestDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/StartProvisionResponseDescriptorModule.java
+common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java
 common/com/statespec/generated/shapes/ProvisionCallbackRequest.java
 common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
 common/com/statespec/generated/shapes/StartProvisionRequest.java
@@ -94,6 +95,7 @@ worker/com/statespec/generated/WorkerRuntime.java
 worker/com/statespec/generated/WorkerWorkflows.java
 worker/com/statespec/generated/WorkflowRunner.java
 worker/com/statespec/generated/WorkflowStepHandlers.java
+worker/com/statespec/generated/registry/ProvisionWorkerRegistry.java
 worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java
 EOF
 
@@ -161,8 +163,8 @@ run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang java "$APP_SPEC" --out "$TMPDIR/out-app-java"
 assert_file_manifest_equals "$TMPDIR/out-app-java" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionApi.StartProvision\""
-assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionCommands.CreateRemoteService\""
-assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java" "\"ProvisionCommands.CreateRemoteService\""
+assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiApplication.java" "class ApiApplication"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/codecs/ApiCodecsStartProvisionRequest.java" "decodeStartProvisionRequest"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java" "encodeStartProvisionResponse"
