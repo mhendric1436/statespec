@@ -823,9 +823,95 @@ std::string go_entity_centered_facade_file(
 {
     std::ostringstream out;
     out << "package " << snake_identifier(entity.name) << "\n\n";
-    out << "// Entity-centered " << area
-        << " facade. The active implementation remains in common/backend/"
-        << snake_identifier(entity.name) << "_descriptors.go during the staged split.\n";
+    if (area == "model")
+    {
+        out << "import backend \"statespec-generated/common/backend\"\n\n";
+        out << "const (\n";
+        out << "\t" << go_entity_name_constant_name(entity.name) << " = " << go_string(entity.name)
+            << "\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "\t" << go_entity_field_constant_name(entity.name, field.name) << " = "
+                << go_string(field.name) << "\n";
+            out << "\t" << go_entity_field_type_name_constant_name(entity.name, field.name) << " = "
+                << go_string(field.type) << "\n";
+        }
+        for (const auto& index : entity.indexes)
+        {
+            out << "\t" << go_entity_index_constant_name(entity.name, index.name) << " = "
+                << go_string(index.name) << "\n";
+        }
+        for (const auto& state : entity.states)
+        {
+            out << "\t" << go_entity_state_constant_name(entity.name, state.name) << " = "
+                << go_string(state.name) << "\n";
+        }
+        for (const auto& relation : entity.relations)
+        {
+            const auto relation_constant_prefix =
+                pascal_identifier(entity.name) + "Relation" + pascal_identifier(relation.name);
+            out << "\t" << relation_constant_prefix << "Name = " << go_string(relation.name)
+                << "\n";
+            out << "\t" << relation_constant_prefix << "Target = " << go_string(relation.target)
+                << "\n";
+            out << "\t" << relation_constant_prefix << "Kind = " << go_string(relation.kind)
+                << "\n";
+            if (relation.relation_kind.has_value())
+            {
+                out << "\t" << relation_constant_prefix
+                    << "RelationKind = " << go_string(*relation.relation_kind) << "\n";
+            }
+            if (relation.on_parent_delete.has_value())
+            {
+                out << "\t" << relation_constant_prefix
+                    << "OnParentDelete = " << go_string(*relation.on_parent_delete) << "\n";
+            }
+        }
+        out << ")\n\n";
+        out << "func " << pascal_identifier(entity.name)
+            << "FieldDescriptors() []backend.FieldDescriptor {\n";
+        out << "\treturn []backend.FieldDescriptor{\n";
+        for (const auto& field : entity.fields)
+        {
+            auto field_descriptor = go_entity_field_descriptor_expr(entity.name, field);
+            field_descriptor = replace_all_copy(field_descriptor, "FieldType", "backend.FieldType");
+            out << "\t\t" << field_descriptor << ",\n";
+        }
+        out << "\t}\n";
+        out << "}\n\n";
+        out << "func " << pascal_identifier(entity.name)
+            << "IndexDescriptors() []backend.IndexDescriptor {\n";
+        out << "\treturn []backend.IndexDescriptor{\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "\t\t{\n";
+            out << "\t\t\tName: " << go_entity_index_constant_name(entity.name, index.name)
+                << ",\n";
+            out << "\t\t\tFields: []string{";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << go_entity_field_constant_name(entity.name, index.fields[i]);
+            }
+            out << "},\n";
+            out << "\t\t\tUnique: " << (index.unique ? "true" : "false") << ",\n";
+            out << "\t\t},\n";
+        }
+        out << "\t}\n";
+        out << "}\n\n";
+        out << "// Entity descriptor and repository construction still move in the next staged "
+               "split.\n";
+        out << "// The existing common/backend/" << snake_identifier(entity.name)
+            << "_descriptors.go module remains as the compatibility facade for repository users.\n";
+    }
+    else
+    {
+        out << "// Entity-centered " << area
+            << " facade. Implementation moves here in the next staged split.\n";
+    }
     return out.str();
 }
 

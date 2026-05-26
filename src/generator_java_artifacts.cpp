@@ -851,12 +851,105 @@ std::string java_entity_centered_facade_file(
 {
     std::ostringstream out;
     out << "package com.statespec.generated.entities." << snake_identifier(entity.name) << ";\n\n";
-    out << "/** Entity-centered " << area
-        << " facade. The active implementation remains in descriptors.entities."
-        << java_entity_descriptor_module_class_name(entity.name)
-        << " during the staged split. */\n";
+    if (area == "model")
+    {
+        out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
+        out << "import com.statespec.backend.Backend.FieldType;\n";
+        out << "import com.statespec.backend.Backend.IndexDescriptor;\n";
+        out << "import java.util.List;\n\n";
+        out << "/** Entity-centered model constants and metadata for " << entity.name << ". */\n";
+    }
+    else
+    {
+        out << "/** Entity-centered " << area
+            << " facade. Implementation moves here in the next staged split. */\n";
+    }
     out << "public final class " << class_name << " {\n";
     out << "    private " << class_name << "() {}\n";
+    if (area == "model")
+    {
+        out << "\n";
+        out << "    public static final String " << java_entity_name_constant_name(entity.name)
+            << " = " << java_string(entity.name) << ";\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "    public static final String "
+                << java_entity_field_constant_name(entity.name, field.name) << " = "
+                << java_string(field.name) << ";\n";
+            out << "    public static final String "
+                << java_entity_field_type_name_constant_name(entity.name, field.name) << " = "
+                << java_string(field.type) << ";\n";
+        }
+        for (const auto& index : entity.indexes)
+        {
+            out << "    public static final String "
+                << java_entity_index_constant_name(entity.name, index.name) << " = "
+                << java_string(index.name) << ";\n";
+        }
+        for (const auto& state : entity.states)
+        {
+            out << "    public static final String "
+                << java_entity_state_constant_name(entity.name, state.name) << " = "
+                << java_string(state.name) << ";\n";
+        }
+        for (const auto& relation : entity.relations)
+        {
+            const auto relation_constant_prefix =
+                upper_snake_identifier(entity.name + "_relation_" + relation.name);
+            out << "    public static final String " << relation_constant_prefix
+                << "_NAME = " << java_string(relation.name) << ";\n";
+            out << "    public static final String " << relation_constant_prefix
+                << "_TARGET = " << java_string(relation.target) << ";\n";
+            out << "    public static final String " << relation_constant_prefix
+                << "_KIND = " << java_string(relation.kind) << ";\n";
+            if (relation.relation_kind.has_value())
+            {
+                out << "    public static final String " << relation_constant_prefix
+                    << "_RELATION_KIND = " << java_string(*relation.relation_kind) << ";\n";
+            }
+            if (relation.on_parent_delete.has_value())
+            {
+                out << "    public static final String " << relation_constant_prefix
+                    << "_ON_PARENT_DELETE = " << java_string(*relation.on_parent_delete) << ";\n";
+            }
+        }
+        out << "\n";
+        out << "    public static List<FieldDescriptor> " << lower_camel_identifier(entity.name)
+            << "FieldDescriptors() {\n";
+        out << "        return List.of(\n";
+        for (std::size_t i = 0; i < entity.fields.size(); ++i)
+        {
+            const auto& field = entity.fields[i];
+            out << "            " << java_entity_field_descriptor_expr(entity.name, field);
+            out << (i + 1 < entity.fields.size() ? ",\n" : "\n");
+        }
+        out << "        );\n";
+        out << "    }\n\n";
+        out << "    public static List<IndexDescriptor> " << lower_camel_identifier(entity.name)
+            << "IndexDescriptors() {\n";
+        out << "        return List.of(\n";
+        for (std::size_t i = 0; i < entity.indexes.size(); ++i)
+        {
+            const auto& index = entity.indexes[i];
+            out << "            new IndexDescriptor(\n";
+            out << "                " << java_entity_index_constant_name(entity.name, index.name)
+                << ",\n";
+            out << "                List.of(";
+            for (std::size_t j = 0; j < index.fields.size(); ++j)
+            {
+                if (j > 0)
+                {
+                    out << ", ";
+                }
+                out << java_entity_field_constant_name(entity.name, index.fields[j]);
+            }
+            out << "),\n";
+            out << "                " << (index.unique ? "true" : "false") << "\n";
+            out << "            )" << (i + 1 < entity.indexes.size() ? "," : "") << "\n";
+        }
+        out << "        );\n";
+        out << "    }\n";
+    }
     out << "}\n";
     return out.str();
 }

@@ -849,9 +849,95 @@ std::string rust_entity_centered_facade_file(
 {
     std::ostringstream out;
     out << "#![allow(dead_code)]\n\n";
-    out << "// Entity-centered " << area
-        << " facade. The active implementation remains in descriptors/entities/"
-        << snake_identifier(entity.name) << ".rs during the staged split.\n";
+    if (area == "model")
+    {
+        out << "use crate::backend::{FieldDescriptor, FieldType, IndexDescriptor};\n\n";
+        out << "pub const " << rust_entity_name_constant_name(entity.name)
+            << ": &str = " << rust_string(entity.name) << ";\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "pub const " << rust_entity_field_constant_name(entity.name, field.name)
+                << ": &str = " << rust_string(field.name) << ";\n";
+            out << "pub const "
+                << rust_entity_field_type_name_constant_name(entity.name, field.name)
+                << ": &str = " << rust_string(field.type) << ";\n";
+        }
+        for (const auto& index : entity.indexes)
+        {
+            out << "pub const " << rust_entity_index_constant_name(entity.name, index.name)
+                << ": &str = " << rust_string(index.name) << ";\n";
+        }
+        for (const auto& state : entity.states)
+        {
+            out << "pub const " << rust_entity_state_constant_name(entity.name, state.name)
+                << ": &str = " << rust_string(state.name) << ";\n";
+        }
+        for (const auto& relation : entity.relations)
+        {
+            const auto relation_constant_prefix =
+                upper_snake_identifier(entity.name + "_relation_" + relation.name);
+            out << "pub const " << relation_constant_prefix
+                << "_NAME: &str = " << rust_string(relation.name) << ";\n";
+            out << "pub const " << relation_constant_prefix
+                << "_TARGET: &str = " << rust_string(relation.target) << ";\n";
+            out << "pub const " << relation_constant_prefix
+                << "_KIND: &str = " << rust_string(relation.kind) << ";\n";
+            if (relation.relation_kind.has_value())
+            {
+                out << "pub const " << relation_constant_prefix
+                    << "_RELATION_KIND: &str = " << rust_string(*relation.relation_kind) << ";\n";
+            }
+            if (relation.on_parent_delete.has_value())
+            {
+                out << "pub const " << relation_constant_prefix
+                    << "_ON_PARENT_DELETE: &str = " << rust_string(*relation.on_parent_delete)
+                    << ";\n";
+            }
+        }
+        out << "\n";
+        out << "pub fn " << snake_identifier(entity.name)
+            << "_field_descriptors() -> Vec<FieldDescriptor> {\n";
+        out << "    vec![\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "        " << rust_entity_field_descriptor_expr(entity.name, field) << ",\n";
+        }
+        out << "    ]\n";
+        out << "}\n\n";
+        out << "pub fn " << snake_identifier(entity.name)
+            << "_index_descriptors() -> Vec<IndexDescriptor> {\n";
+        out << "    vec![\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "        IndexDescriptor {\n";
+            out << "            name: " << rust_entity_index_constant_name(entity.name, index.name)
+                << ".to_string(),\n";
+            out << "            fields: vec![";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << rust_entity_field_constant_name(entity.name, index.fields[i])
+                    << ".to_string()";
+            }
+            out << "],\n";
+            out << "            unique: " << (index.unique ? "true" : "false") << ",\n";
+            out << "        },\n";
+        }
+        out << "    ]\n";
+        out << "}\n\n";
+        out << "// Entity descriptor and repository construction still move in the next staged "
+               "split.\n";
+        out << "// The existing descriptors/entities/" << snake_identifier(entity.name)
+            << ".rs module remains as the compatibility facade for repository users.\n";
+    }
+    else
+    {
+        out << "// Entity-centered " << area
+            << " facade. Implementation moves here in the next staged split.\n";
+    }
     return out.str();
 }
 

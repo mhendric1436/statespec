@@ -817,12 +817,103 @@ std::string cpp_entity_centered_facade_header(
     const auto entity_namespace = entity_path;
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"../../descriptors/entities/" << entity_path << ".hpp\"\n\n";
+    if (area == "model")
+    {
+        out << "#include \"../../backend.hpp\"\n\n";
+        out << "#include <vector>\n\n";
+    }
     out << "namespace statespec_generated::entities::" << entity_namespace << "\n";
     out << "{\n\n";
-    out << "// Entity-centered " << area
-        << " facade. The active implementation remains in descriptors/entities/" << entity_path
-        << ".hpp during the staged split.\n\n";
+    if (area == "model")
+    {
+        out << "inline constexpr const char* " << cpp_entity_name_constant_name(entity.name)
+            << " = " << cpp_string(entity.name) << ";\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "inline constexpr const char* "
+                << cpp_entity_field_constant_name(entity.name, field.name) << " = "
+                << cpp_string(field.name) << ";\n";
+            out << "inline constexpr const char* "
+                << cpp_entity_field_type_name_constant_name(entity.name, field.name) << " = "
+                << cpp_string(field.type) << ";\n";
+        }
+        for (const auto& index : entity.indexes)
+        {
+            out << "inline constexpr const char* "
+                << cpp_entity_index_constant_name(entity.name, index.name) << " = "
+                << cpp_string(index.name) << ";\n";
+        }
+        for (const auto& state : entity.states)
+        {
+            out << "inline constexpr const char* "
+                << cpp_entity_state_constant_name(entity.name, state.name) << " = "
+                << cpp_string(state.name) << ";\n";
+        }
+        for (const auto& relation : entity.relations)
+        {
+            const auto relation_constant_prefix = "k" + pascal_identifier(entity.name) +
+                                                  "Relation" + pascal_identifier(relation.name);
+            out << "inline constexpr const char* " << relation_constant_prefix
+                << "Name = " << cpp_string(relation.name) << ";\n";
+            out << "inline constexpr const char* " << relation_constant_prefix
+                << "Target = " << cpp_string(relation.target) << ";\n";
+            out << "inline constexpr const char* " << relation_constant_prefix
+                << "Kind = " << cpp_string(relation.kind) << ";\n";
+            if (relation.relation_kind.has_value())
+            {
+                out << "inline constexpr const char* " << relation_constant_prefix
+                    << "RelationKind = " << cpp_string(*relation.relation_kind) << ";\n";
+            }
+            if (relation.on_parent_delete.has_value())
+            {
+                out << "inline constexpr const char* " << relation_constant_prefix
+                    << "OnParentDelete = " << cpp_string(*relation.on_parent_delete) << ";\n";
+            }
+        }
+        out << "\n";
+        out << "inline std::vector<statespec::backend::FieldDescriptor> " << entity_path
+            << "_field_descriptors()\n";
+        out << "{\n";
+        out << "    return {\n";
+        for (const auto& field : entity.fields)
+        {
+            out << "        " << cpp_entity_field_descriptor_expr(entity.name, field) << ",\n";
+        }
+        out << "    };\n";
+        out << "}\n\n";
+        out << "inline std::vector<statespec::backend::IndexDescriptor> " << entity_path
+            << "_index_descriptors()\n";
+        out << "{\n";
+        out << "    return {\n";
+        for (const auto& index : entity.indexes)
+        {
+            out << "        statespec::backend::IndexDescriptor{\n";
+            out << "            " << cpp_entity_index_constant_name(entity.name, index.name)
+                << ",\n";
+            out << "            {";
+            for (std::size_t i = 0; i < index.fields.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << cpp_entity_field_constant_name(entity.name, index.fields[i]);
+            }
+            out << "},\n";
+            out << "            " << (index.unique ? "true" : "false") << ",\n";
+            out << "        },\n";
+        }
+        out << "    };\n";
+        out << "}\n\n";
+        out << "// Relationship metadata is now rooted with the entity model.\n";
+        out << "// The existing descriptors/entities/" << entity_path
+            << ".hpp module remains as the compatibility facade for repository users.\n\n";
+    }
+    else
+    {
+        out << "// Entity-centered " << area
+            << " facade. Implementation moves here in the next staged split.\n\n";
+    }
     out << "} // namespace statespec_generated::entities::" << entity_namespace << "\n";
     return out.str();
 }
