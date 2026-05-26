@@ -920,9 +920,6 @@ std::string generate_descriptors_rs(
     );
     out << generate_rust_feature_flag_descriptors(system);
     out << generate_rust_declaration_descriptors(system);
-    out << generate_rust_external_system_descriptors(
-        system, templates.load("generated/external_system_call_adapters.rs.tmpl")
-    );
     out << generate_rust_api_descriptors(system);
     out << generate_rust_worker_descriptors(system);
     out << generate_rust_policy_descriptors(system);

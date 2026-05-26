@@ -50,6 +50,7 @@ common/backend/descriptors/shapes.go
 common/backend/descriptors/workers.go
 common/backend/events.go
 common/backend/external_system.go
+common/backend/external_systems.go
 common/backend/feature_flag.go
 common/backend/json.go
 common/backend/lease.go
@@ -103,8 +104,8 @@ run_expect_status 0 "$CLI" generate bindings --lang go "$E2E_SPEC" --out "$TMPDI
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "func ApiRouteDescriptors"
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"OperatorApi\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"UpsertExternalSystemEndpoint\""
-assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"metadata.retry_policy\""
-assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-go/common/backend/external_systems.go" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-go/common/backend/external_systems.go" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "ExternalSystemOperatorMetadataAPIHandler"
 cp "$SCRIPT_DIR/api_process_fixture_test.go" "$TMPDIR/out-e2e-go/api/backend/api_process_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-e2e-go" check-api

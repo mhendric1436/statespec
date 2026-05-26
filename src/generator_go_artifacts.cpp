@@ -750,6 +750,23 @@ std::string go_event_helpers_file(const IrSystem& system)
     return out.str();
 }
 
+std::string go_external_systems_file(
+    const IrSystem& system,
+    const TemplatePackage& templates
+)
+{
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n";
+    out << "\t\"strings\"\n";
+    out << ")\n\n";
+    out << generate_go_external_system_descriptors(
+        system, templates.load("generated/external_system_call_adapters.go.tmpl")
+    );
+    return out.str();
+}
+
 TemplateRenderer::Values go_shape_descriptor_values(const IrSystem& system)
 {
     std::ostringstream content;
@@ -963,6 +980,9 @@ void add_go_descriptor_module_artifacts(
         "core descriptors", diagnostics
     );
     add_go_raw_common_file(result, options, "backend/events.go", go_event_helpers_file(system));
+    add_go_raw_common_file(
+        result, options, "backend/external_systems.go", go_external_systems_file(system, templates)
+    );
     add_go_descriptor_module_artifact(
         result, options, templates, "backend/descriptors/shapes.go", "descriptors",
         "shape descriptors", diagnostics

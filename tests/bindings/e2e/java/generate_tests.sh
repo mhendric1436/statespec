@@ -65,6 +65,7 @@ common/com/statespec/generated/Descriptors.java
 common/com/statespec/generated/descriptors/ApiDescriptorModule.java
 common/com/statespec/generated/descriptors/CoreDescriptorModule.java
 common/com/statespec/generated/descriptors/EventDescriptorModule.java
+common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java
 common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
 common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
 common/com/statespec/generated/descriptors/WorkerDescriptorModule.java
@@ -97,8 +98,8 @@ run_expect_status 0 "$CLI" generate bindings --lang java "$E2E_SPEC" --out "$TMP
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "apiRouteDescriptors"
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"OperatorApi\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"UpsertExternalSystemEndpoint\""
-assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"metadata.retry_policy\""
-assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "ExternalSystemOperatorMetadataApiHandler"
 cp "$SCRIPT_DIR/ApiProcessFixture.java" "$TMPDIR/out-e2e-java/api/com/statespec/generated/ApiProcessFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-e2e-java" build-api

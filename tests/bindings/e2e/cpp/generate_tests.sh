@@ -47,6 +47,7 @@ common/descriptors/apis.hpp
 common/descriptors/core.hpp
 common/descriptors/entities/service_instance.hpp
 common/descriptors/events.hpp
+common/descriptors/external_systems.hpp
 common/descriptors/runtime.hpp
 common/descriptors/shapes.hpp
 common/descriptors/shapes/provision_callback_request.hpp
@@ -101,8 +102,8 @@ run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPD
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "api_route_descriptors"
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"OperatorApi\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"UpsertExternalSystemEndpoint\""
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"metadata.retry_policy\""
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/external_systems.hpp" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/external_systems.hpp" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "IExternalSystemOperatorMetadataApiHandler"
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-e2e-cpp" -I"$TMPDIR/out-e2e-cpp/common" "$SCRIPT_DIR/api_process_fixture.cpp" -o "$TMPDIR/api-process-fixture-cpp"
 run_expect_status 0 "$TMPDIR/api-process-fixture-cpp"

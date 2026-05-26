@@ -742,6 +742,20 @@ std::string cpp_event_descriptor_module(const IrSystem& system)
     return out.str();
 }
 
+TemplateRenderer::Values cpp_external_system_descriptor_module_values(
+    const IrSystem& system,
+    const TemplatePackage& templates
+)
+{
+    return TemplateRenderer::Values{
+        {"descriptor_module_name", "external system descriptors"},
+        {"descriptor_module_content",
+         generate_cpp_external_system_descriptors(
+             system, templates.load("generated/external_system_call_adapters.hpp.tmpl")
+         )},
+    };
+}
+
 TemplateRenderer::Values cpp_shape_descriptor_module_values(const IrSystem& system)
 {
     std::ostringstream includes;
@@ -889,6 +903,11 @@ void add_cpp_descriptor_module_artifacts(
             {"descriptor_module_name", "event helpers"},
             {"descriptor_module_content", cpp_event_descriptor_module(system)}
         }
+    );
+    add_cpp_descriptor_module_artifact(
+        result, options, templates, "descriptors/external_systems.hpp",
+        "external system descriptors", diagnostics,
+        cpp_external_system_descriptor_module_values(system, templates)
     );
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/shapes.hpp", "shape descriptors", diagnostics,

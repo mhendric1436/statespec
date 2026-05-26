@@ -99,11 +99,33 @@ std::string java_event_descriptor_module_file(const IrSystem& system)
     return out.str();
 }
 
+std::string java_external_system_descriptor_module_file(
+    const IrSystem& system,
+    const TemplatePackage& templates
+)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.descriptors;\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.ExternalSystem;\n";
+    out << "import com.statespec.generated.Descriptors.*;\n";
+    out << "import java.util.List;\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class ExternalSystemDescriptorModule {\n";
+    out << "    private ExternalSystemDescriptorModule() {}\n\n";
+    out << generate_java_external_system_descriptors(
+        system, templates.load("generated/ExternalSystemCallAdapters.java.tmpl")
+    );
+    out << "}\n";
+    return out.str();
+}
+
 std::vector<std::string> java_descriptor_module_sources(const IrSystem& system)
 {
     std::vector<std::string> sources{
         "common/com/statespec/generated/descriptors/CoreDescriptorModule.java",
         "common/com/statespec/generated/descriptors/EventDescriptorModule.java",
+        "common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java",
         "common/com/statespec/generated/descriptors/ShapeDescriptorModule.java",
         "common/com/statespec/generated/descriptors/ApiDescriptorModule.java",
         "common/com/statespec/generated/descriptors/WorkerDescriptorModule.java",
@@ -1267,6 +1289,10 @@ void add_java_descriptor_module_artifacts(
     add_java_raw_common_file(
         result, options, descriptor_package_path / "EventDescriptorModule.java",
         java_event_descriptor_module_file(system)
+    );
+    add_java_raw_common_file(
+        result, options, descriptor_package_path / "ExternalSystemDescriptorModule.java",
+        java_external_system_descriptor_module_file(system, templates)
     );
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "ShapeDescriptorModule.java",

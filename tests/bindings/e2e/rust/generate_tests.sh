@@ -46,6 +46,7 @@ common/descriptors/apis.rs
 common/descriptors/core.rs
 common/descriptors/entities/service_instance.rs
 common/descriptors/events.rs
+common/descriptors/external_systems.rs
 common/descriptors/runtime.rs
 common/descriptors/shapes.rs
 common/descriptors/shapes/provision_callback_request.rs
@@ -101,8 +102,8 @@ run_expect_status 0 "$CLI" generate bindings --lang rust "$E2E_SPEC" --out "$TMP
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "pub fn api_route_descriptors"
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"OperatorApi\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"UpsertExternalSystemEndpoint\""
-assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"metadata.retry_policy\""
-assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"input.payment_id\""
+assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors/external_systems.rs" "\"metadata.retry_policy\""
+assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors/external_systems.rs" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "ExternalSystemOperatorMetadataApiHandler"
 mkdir -p "$TMPDIR/out-e2e-rust/tests"
 cp "$SCRIPT_DIR/api_process_fixture.rs" "$TMPDIR/out-e2e-rust/tests/api_process_fixture.rs"

@@ -993,6 +993,89 @@ std::string generate_java_entity_descriptor_umbrella(const IrSystem& system)
 
 } // namespace
 
+std::string generate_java_external_system_descriptor_delegates()
+{
+    std::ostringstream out;
+    out << "    public static List<ExternalSystemDescriptor> externalSystemDescriptors() {\n";
+    out << "        return ExternalSystemDescriptorModule.externalSystemDescriptors();\n";
+    out << "    }\n\n";
+    out << "    public static ExternalSystemMetadataMappingPlan "
+           "externalSystemMetadataMappingPlan(\n";
+    out << "        ExternalSystemDescriptor descriptor\n";
+    out << "    ) {\n";
+    out << "        return ExternalSystemDescriptorModule.externalSystemMetadataMappingPlan("
+           "descriptor);\n";
+    out << "    }\n\n";
+    out << "    public static Optional<ExternalSystem.MetadataLookup> "
+           "externalSystemMetadataLookup(\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
+    out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
+    out << "    ) {\n";
+    out << "        return ExternalSystemDescriptorModule.externalSystemMetadataLookup("
+           "descriptor, keyValues);\n";
+    out << "    }\n\n";
+    out << "    public static Optional<ExternalSystem.MetadataLookup> "
+           "externalSystemMetadataLookup(\n";
+    out << "        String externalSystem,\n";
+    out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
+    out << "    ) {\n";
+    out << "        return ExternalSystemDescriptorModule.externalSystemMetadataLookup("
+           "externalSystem, keyValues);\n";
+    out << "    }\n\n";
+    out << "    public static Optional<ExternalSystem.MetadataResolution> "
+           "resolveExternalSystemMetadataTx(\n";
+    out << "        ExternalSystem resolver,\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
+    out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        return ExternalSystemDescriptorModule.resolveExternalSystemMetadataTx(\n";
+    out << "            resolver, tx, descriptor, keyValues\n";
+    out << "        );\n";
+    out << "    }\n\n";
+    out << "    public static Optional<ExternalSystem.MetadataResolution> "
+           "resolveExternalSystemMetadataTx(\n";
+    out << "        ExternalSystem resolver,\n";
+    out << "        Backend.Transaction tx,\n";
+    out << "        String externalSystem,\n";
+    out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
+    out << "    ) throws Backend.BackendException {\n";
+    out << "        return ExternalSystemDescriptorModule.resolveExternalSystemMetadataTx(\n";
+    out << "            resolver, tx, externalSystem, keyValues\n";
+    out << "        );\n";
+    out << "    }\n\n";
+    out << "    public static ExternalSystemCallRequest buildExternalSystemCallRequest(\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        return ExternalSystemDescriptorModule.buildExternalSystemCallRequest(\n";
+    out << "            applicator, descriptor, inputs\n";
+    out << "        );\n";
+    out << "    }\n\n";
+    out << "    public static ExternalSystemCallResponse callExternalSystem(\n";
+    out << "        ExternalSystemClient client,\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        return ExternalSystemDescriptorModule.callExternalSystem(\n";
+    out << "            client, applicator, descriptor, inputs\n";
+    out << "        );\n";
+    out << "    }\n\n";
+    out << "    public static Optional<ExternalSystemCallResponse> callExternalSystem(\n";
+    out << "        ExternalSystemClient client,\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        String externalSystem,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        return ExternalSystemDescriptorModule.callExternalSystem(\n";
+    out << "            client, applicator, externalSystem, inputs\n";
+    out << "        );\n";
+    out << "    }\n\n";
+    return out.str();
+}
+
 std::string generate_descriptors_java(
     const IrSystem& system,
     const TemplatePackage& templates
@@ -1006,9 +1089,7 @@ std::string generate_descriptors_java(
     );
     out << generate_java_feature_flag_descriptors(system);
     out << generate_java_declaration_descriptors(system);
-    out << generate_java_external_system_descriptors(
-        system, templates.load("generated/ExternalSystemCallAdapters.java.tmpl")
-    );
+    out << generate_java_external_system_descriptor_delegates();
     out << generate_java_api_descriptors(system);
     out << generate_java_worker_descriptors(system);
     out << generate_java_policy_descriptors(system);

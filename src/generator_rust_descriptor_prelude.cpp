@@ -19,6 +19,9 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     out << "#[path = \"descriptors/events.rs\"]\n";
     out << "mod descriptor_events;\n";
     out << "pub use descriptor_events::*;\n";
+    out << "#[path = \"descriptors/external_systems.rs\"]\n";
+    out << "mod descriptor_external_systems;\n";
+    out << "pub use descriptor_external_systems::*;\n";
     out << "#[path = \"descriptors/shapes.rs\"]\n";
     out << "mod descriptor_shapes;\n";
     out << "pub use descriptor_shapes::*;\n";
@@ -58,8 +61,8 @@ std::string generate_rust_descriptor_prelude(
     out << "use crate::backend::{Backend, BackendError, BackendResult, CollectionDescriptor, "
            "ConflictKind, FieldDescriptor, FieldType, IndexDescriptor, Transaction, "
            "VersionedRecord};\n";
-    out << "use crate::external_system::{ExternalSystemMetadataKeyValue, "
-           "ExternalSystemMetadataLookup, ExternalSystemMetadataResolution, "
+    out << "use crate::external_system::{ExternalSystemMetadataLookup, "
+           "ExternalSystemMetadataResolution, "
            "ExternalSystemMetadataResolver};\n";
     out << "use crate::feature_flag::{FeatureFlagDefinition as RuntimeFeatureFlagDefinition, "
            "FeatureFlagScopeKind, FeatureFlagStore, FeatureFlagType, FeatureFlagValue};\n";

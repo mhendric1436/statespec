@@ -44,6 +44,7 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/workflow.go", common},
             {"common/backend/descriptors.go", common},
             {"common/backend/events.go", common},
+            {"common/backend/external_systems.go", common},
             {"common/backend/descriptors/apis.go", common},
             {"common/backend/descriptors/core.go", common},
             {"common/backend/descriptors/runtime.go", common},
@@ -73,6 +74,10 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "backend/events.go", "common/backend/events.go",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "backend/external_systems.go", "common/backend/external_systems.go",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

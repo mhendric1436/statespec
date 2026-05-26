@@ -780,6 +780,24 @@ std::string rust_event_descriptor_module(const IrSystem& system)
     return out.str();
 }
 
+std::string rust_external_system_descriptor_module(
+    const IrSystem& system,
+    const TemplatePackage& templates
+)
+{
+    std::ostringstream out;
+    out << "use super::*;\n";
+    out << "use crate::backend::{Backend, BackendResult};\n";
+    out << "use crate::external_system::{\n";
+    out << "    ExternalSystemMetadataKeyValue, ExternalSystemMetadataLookup,\n";
+    out << "    ExternalSystemMetadataResolution, ExternalSystemMetadataResolver,\n";
+    out << "};\n\n";
+    out << generate_rust_external_system_descriptors(
+        system, templates.load("generated/external_system_call_adapters.rs.tmpl")
+    );
+    return out.str();
+}
+
 TemplateRenderer::Values rust_shape_descriptor_module_values(const IrSystem& system)
 {
     std::ostringstream content;
@@ -915,6 +933,10 @@ void add_rust_descriptor_module_artifacts(
     );
     add_rust_raw_common_file(
         result, options, "descriptors/events.rs", rust_event_descriptor_module(system)
+    );
+    add_rust_raw_common_file(
+        result, options, "descriptors/external_systems.rs",
+        rust_external_system_descriptor_module(system, templates)
     );
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics,
