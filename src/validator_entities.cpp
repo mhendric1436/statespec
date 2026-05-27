@@ -436,6 +436,56 @@ bool is_prefix(
            std::equal(prefix.begin(), prefix.end(), values.begin());
 }
 
+std::vector<std::string> path_parameters(const std::string& path)
+{
+    std::vector<std::string> parameters;
+    std::size_t cursor = 0;
+    while (cursor < path.size())
+    {
+        const auto open = path.find('{', cursor);
+        if (open == std::string::npos)
+        {
+            break;
+        }
+        const auto close = path.find('}', open + 1);
+        if (close == std::string::npos)
+        {
+            break;
+        }
+        if (close > open + 1)
+        {
+            parameters.push_back(path.substr(open + 1, close - open - 1));
+        }
+        cursor = close + 1;
+    }
+    return parameters;
+}
+
+std::unordered_set<std::string> path_parameter_set(const std::optional<std::string>& path)
+{
+    std::unordered_set<std::string> parameters;
+    if (!path.has_value())
+    {
+        return parameters;
+    }
+    for (const auto& parameter : path_parameters(*path))
+    {
+        parameters.insert(parameter);
+    }
+    return parameters;
+}
+
+bool has_all_key_fields(
+    const std::unordered_set<std::string>& path_fields,
+    const EntityDecl& entity
+)
+{
+    return std::all_of(
+        entity.key_fields.begin(), entity.key_fields.end(),
+        [&](const std::string& key_field) { return contains(path_fields, key_field); }
+    );
+}
+
 bool entity_api_list_selector_is_allowed(
     const EntityDecl& entity,
     const EntityApiListDecl& list
@@ -461,6 +511,114 @@ bool entity_api_list_selector_is_allowed(
     return false;
 }
 
+void validate_entity_api_path_parameters(
+    const EntityDecl& entity,
+    const std::optional<std::string>& path,
+    const SourceRange& range,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!path.has_value())
+    {
+        return;
+    }
+
+    const auto fields = field_names(entity.fields);
+    for (const auto& parameter : path_parameters(*path))
+    {
+        if (!contains(fields, parameter))
+        {
+            unknown_reference_error(diagnostics, range, "entity api path parameter", parameter);
+        }
+    }
+}
+
+void validate_entity_api_resource_path(
+    const EntityDecl& entity,
+    const EntityApiDecl& api,
+    DiagnosticBag& diagnostics
+)
+{
+    validate_entity_api_path_parameters(entity, api.resource, api.range, diagnostics);
+
+    const auto resource_parameters = path_parameter_set(api.resource);
+    if (!api.resource.has_value())
+    {
+        if (api.get.has_value() || api.update_status.has_value() || api.delete_.has_value())
+        {
+            required_error(diagnostics, api.range, "entity api", "resource");
+        }
+        return;
+    }
+
+    if (!has_all_key_fields(resource_parameters, entity))
+    {
+        diagnostics.error(
+            api.range, diagnostic_codes::UnknownReference,
+            "entity api resource path for entity '" + entity.name +
+                "' must include all key fields"
+        );
+    }
+
+    if ((api.get.has_value() || api.update_status.has_value() || api.delete_.has_value()) &&
+        !has_all_key_fields(resource_parameters, entity))
+    {
+        diagnostics.error(
+            api.range, diagnostic_codes::UnknownReference,
+            "entity api get, update_status, and delete require key fields resolvable from resource "
+            "path"
+        );
+    }
+}
+
+void validate_entity_api_create(
+    const EntityDecl& entity,
+    const EntityApiCreateDecl& create,
+    DiagnosticBag& diagnostics
+)
+{
+    const auto fields = field_names(entity.fields);
+    static const std::unordered_set<std::string> disallowed_fields{
+        std::string{EntityCreatedAtFieldName},
+        std::string{EntityUpdatedAtFieldName},
+        std::string{EntityStatusFieldName},
+    };
+
+    for (const auto& field : create.fields)
+    {
+        if (!contains(fields, field))
+        {
+            unknown_reference_error(diagnostics, create.range, "entity api create field", field);
+        }
+        if (contains(disallowed_fields, field))
+        {
+            diagnostics.error(
+                create.range, diagnostic_codes::EntityDuplicateFieldName,
+                "entity api create for entity '" + entity.name +
+                    "' must not supply created_at, updated_at, or status"
+            );
+        }
+    }
+}
+
+bool has_conventional_delete_terminal_state(const EntityDecl& entity)
+{
+    if (!entity.state_machine.has_value())
+    {
+        return false;
+    }
+
+    for (const auto& state : entity.state_machine->states)
+    {
+        if (state.name == ConventionalSoftDeleteTerminalStateName && state.terminal &&
+            state.garbage_collection.has_value())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void validate_entity_api(
     const EntityDecl& entity,
     DiagnosticBag& diagnostics
@@ -471,8 +629,17 @@ void validate_entity_api(
         return;
     }
 
+    const auto& api = *entity.api;
+    validate_entity_api_resource_path(entity, api, diagnostics);
+
+    if (api.create.has_value())
+    {
+        validate_entity_api_create(entity, *api.create, diagnostics);
+    }
+
     for (const auto& list : entity.api->lists)
     {
+        validate_entity_api_path_parameters(entity, list.path, list.range, diagnostics);
         if (list.by.empty())
         {
             required_error(diagnostics, list.range, "entity api list", "by");
@@ -484,6 +651,33 @@ void validate_entity_api(
                 diagnostics, list.range, "entity api list selector", list.by.front()
             );
         }
+    }
+
+    if (api.update_status.has_value())
+    {
+        if (find_field(entity.fields, std::string{EntityStatusFieldName}) == nullptr)
+        {
+            required_error(
+                diagnostics, api.update_status->range,
+                "entity api update_status for entity '" + entity.name + "'", "status field"
+            );
+        }
+        if (!entity.state_machine.has_value())
+        {
+            required_error(
+                diagnostics, api.update_status->range,
+                "entity api update_status for entity '" + entity.name + "'", "state_machine"
+            );
+        }
+    }
+
+    if (api.delete_.has_value() && !has_conventional_delete_terminal_state(entity))
+    {
+        diagnostics.error(
+            api.delete_->range, diagnostic_codes::EntityStateTransitionGcConflict,
+            "entity api delete for entity '" + entity.name +
+                "' requires terminal state Deleted with garbage_collection"
+        );
     }
 }
 

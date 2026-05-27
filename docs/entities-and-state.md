@@ -331,6 +331,12 @@ prefix, a declared index name, or a declared index field prefix. It may not refe
 arbitrary fields. List APIs therefore stay aligned with durable access paths that the
 backend can index and enforce.
 
+The validator also checks that entity API paths are backed by entity fields. Resource
+paths for key-addressed operations must expose all key fields. `create` field allowlists
+must reference entity fields and may not include `created_at`, `updated_at`, or `status`.
+`update_status` requires the canonical `status` field and a state machine. `delete`
+requires a conventional terminal `Deleted` state with garbage collection metadata.
+
 ## Authoring Checklist
 
 Before committing an entity:

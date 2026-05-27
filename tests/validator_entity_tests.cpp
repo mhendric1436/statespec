@@ -160,7 +160,16 @@ void validator_warns_on_noncanonical_entity_and_workflow_order()
             }
             state_machine {
               state Active
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
               initial Active
+              terminal [Deleted]
+              Active -> Deleted
             }
           }
 
@@ -358,6 +367,86 @@ void validator_rejects_entity_api_list_arbitrary_field_selector()
     require(
         has_error_code(diagnostics, dc::UnknownReference),
         "validator should reject arbitrary entity API list selectors"
+    );
+}
+
+void validator_rejects_invalid_entity_api_paths_and_create_fields()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system AccountSystem {
+          entity Account {
+            key tenant_id, account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+              display_name string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{missing_id}"
+              create {
+                fields [created_at, display_name, missing_field]
+              }
+              get
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, dc::UnknownReference),
+        "validator should reject unknown path/create fields and missing key path fields"
+    );
+    require(
+        has_error_code(diagnostics, dc::EntityDuplicateFieldName),
+        "validator should reject foundational create fields"
+    );
+}
+
+void validator_rejects_entity_api_delete_without_deleted_terminal_state()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system AccountSystem {
+          entity Account {
+            key tenant_id, account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+              delete
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, dc::EntityStateTransitionGcConflict),
+        "validator should reject delete without a suitable terminal state"
     );
 }
 
@@ -678,6 +767,16 @@ TEST_CASE("validator accepts entity API list key and index selectors")
 TEST_CASE("validator rejects entity API list arbitrary field selector")
 {
     validator_rejects_entity_api_list_arbitrary_field_selector();
+}
+
+TEST_CASE("validator rejects invalid entity API paths and create fields")
+{
+    validator_rejects_invalid_entity_api_paths_and_create_fields();
+}
+
+TEST_CASE("validator rejects entity API delete without Deleted terminal state")
+{
+    validator_rejects_entity_api_delete_without_deleted_terminal_state();
 }
 
 TEST_CASE("validator rejects missing entity management model")
