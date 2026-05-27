@@ -49,6 +49,8 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors/runtime.rs", common},
             {"common/descriptors/shapes.rs", common},
             {"common/descriptors/workers.rs", common},
+            {"common/entity_repository.rs", common},
+            {"common/runtime_registration.rs", common},
             {"common/shapes.rs", common},
             {"common/Cargo.toml", common},
             {"common/lib.rs", common},
@@ -89,6 +91,14 @@ void test_rust_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "descriptors/runtime.rs", "common/descriptors/runtime.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "entity_repository.rs", "common/entity_repository.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "runtime_registration.rs", "common/runtime_registration.rs",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

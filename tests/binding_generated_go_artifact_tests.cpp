@@ -50,6 +50,8 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/descriptors/runtime.go", common},
             {"common/backend/descriptors/shapes.go", common},
             {"common/backend/descriptors/workers.go", common},
+            {"common/backend/entity_repository.go", common},
+            {"common/backend/runtime_registration.go", common},
             {"common/go.mod", common},
             {"common/Makefile", common},
             {"api/backend/api_codecs.go", api},
@@ -90,6 +92,14 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "backend/descriptors/runtime.go", "common/backend/descriptors/runtime.go",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "backend/entity_repository.go", "common/backend/entity_repository.go",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "backend/runtime_registration.go", "common/backend/runtime_registration.go",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
