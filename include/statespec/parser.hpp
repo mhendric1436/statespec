@@ -52,6 +52,9 @@ class Parser : private ParserContext
     RelationDecl parse_relation_decl(DiagnosticBag& diagnostics);
     ChildDecl parse_child_decl(DiagnosticBag& diagnostics);
     InvariantDecl parse_invariant_decl(DiagnosticBag& diagnostics);
+    EntityApiDecl parse_entity_api_decl(DiagnosticBag& diagnostics);
+    EntityApiCreateDecl parse_entity_api_create_decl(DiagnosticBag& diagnostics);
+    EntityApiListDecl parse_entity_api_list_decl(DiagnosticBag& diagnostics);
     FieldDecl parse_field_decl(DiagnosticBag& diagnostics);
     IndexDecl parse_index_decl(DiagnosticBag& diagnostics);
 

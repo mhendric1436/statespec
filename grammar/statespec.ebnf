@@ -317,6 +317,7 @@ entity_metadata_member  ::= key_decl
                           | children_block
                           | invariants_block
                           | indexes_block
+                          | entity_api_block
                           | annotations_block ;
 
 key_decl                ::= "key" key_field_list ";"? ;
@@ -346,6 +347,40 @@ field_option            ::= "required" ":" BooleanLiteral ";"?
                           | "index" ":" BooleanLiteral ";"?
                           | "unique" ":" BooleanLiteral ";"?
                           | annotations_block ;
+
+entity_api_block        ::= "api" "{"
+                              entity_api_member*
+                            "}" ;
+
+entity_api_member       ::= entity_api_resource_decl
+                          | entity_api_create_decl
+                          | entity_api_get_decl
+                          | entity_api_list_decl
+                          | entity_api_update_status_decl
+                          | entity_api_delete_decl
+                          | annotations_block ;
+
+entity_api_resource_decl ::= "resource" StringLiteral ";"? ;
+
+entity_api_create_decl  ::= "create" ("{" entity_api_create_member* "}")? ";"? ;
+
+entity_api_create_member ::= "fields" identifier_list ";"? ;
+
+entity_api_get_decl     ::= "get" ";"? ;
+
+entity_api_list_decl    ::= "list" Identifier? "{"
+                              entity_api_list_member*
+                            "}" ;
+
+entity_api_list_member  ::= "path" StringLiteral ";"?
+                          | "by" entity_api_list_selector ";"? ;
+
+entity_api_list_selector ::= Identifier ("," Identifier)*
+                          | identifier_list ;
+
+entity_api_update_status_decl ::= "update_status" ";"? ;
+
+entity_api_delete_decl  ::= "delete" ";"? ;
 
 
 (* ============================================================ *)

@@ -110,6 +110,13 @@ EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
             }
             consume(TokenKind::RightBrace, "expected '}' after indexes block", diagnostics);
         }
+        else if (check(TokenKind::KeywordApi))
+        {
+            entity.api = parse_entity_api_decl(diagnostics);
+            entity.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordApi}, entity.api->range}
+            );
+        }
         else
         {
             skip_unknown_declaration(diagnostics);
@@ -281,6 +288,120 @@ InvariantDecl Parser::parse_invariant_decl(DiagnosticBag& diagnostics)
     consume_optional_semicolon();
     invariant.range = SourceRange{start.range.begin, previous().range.end};
     return invariant;
+}
+
+EntityApiDecl Parser::parse_entity_api_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordApi, "expected entity api block", diagnostics);
+    EntityApiDecl api;
+
+    consume(TokenKind::LeftBrace, "expected '{' after entity api", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (is_named_identifier(peek(), SyntaxIdentifierResource))
+        {
+            advance();
+            api.resource = parse_simple_value(diagnostics, "entity API resource path");
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordCreate))
+        {
+            api.create = parse_entity_api_create_decl(diagnostics);
+        }
+        else if (is_named_identifier(peek(), SyntaxIdentifierGet))
+        {
+            advance();
+            api.get = true;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), SyntaxIdentifierList))
+        {
+            api.lists.push_back(parse_entity_api_list_decl(diagnostics));
+        }
+        else if (is_named_identifier(peek(), SyntaxIdentifierUpdateStatus))
+        {
+            advance();
+            api.update_status = true;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), SyntaxIdentifierDelete))
+        {
+            advance();
+            api.delete_ = true;
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after entity api block", diagnostics);
+
+    api.range = SourceRange{start.range.begin, previous().range.end};
+    return api;
+}
+
+EntityApiCreateDecl Parser::parse_entity_api_create_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordCreate, "expected create", diagnostics);
+    EntityApiCreateDecl create;
+
+    if (match(TokenKind::LeftBrace))
+    {
+        while (!check(TokenKind::RightBrace) && !is_at_end())
+        {
+            if (match(TokenKind::KeywordFields))
+            {
+                create.fields = parse_identifier_list(diagnostics);
+                consume_optional_semicolon();
+            }
+            else
+            {
+                skip_unknown_declaration(diagnostics);
+            }
+        }
+        consume(TokenKind::RightBrace, "expected '}' after create block", diagnostics);
+    }
+    consume_optional_semicolon();
+
+    create.range = SourceRange{start.range.begin, previous().range.end};
+    return create;
+}
+
+EntityApiListDecl Parser::parse_entity_api_list_decl(DiagnosticBag& diagnostics)
+{
+    const auto start =
+        consume(TokenKind::Identifier, "expected list declaration", diagnostics);
+    EntityApiListDecl list;
+
+    if (check(TokenKind::Identifier))
+    {
+        list.name = advance().lexeme;
+    }
+
+    consume(TokenKind::LeftBrace, "expected '{' after list declaration", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (match(TokenKind::KeywordPath))
+        {
+            list.path = parse_simple_value(diagnostics, "entity API list path");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), SyntaxIdentifierBy))
+        {
+            advance();
+            list.by = parse_identifier_list(diagnostics);
+            consume_optional_semicolon();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after list block", diagnostics);
+
+    list.range = SourceRange{start.range.begin, previous().range.end};
+    return list;
 }
 
 FieldDecl Parser::parse_field_decl(DiagnosticBag& diagnostics)

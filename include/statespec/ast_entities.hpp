@@ -81,6 +81,31 @@ struct InvariantDecl
     SourceRange range;
 };
 
+struct EntityApiCreateDecl
+{
+    std::vector<std::string> fields;
+    SourceRange range;
+};
+
+struct EntityApiListDecl
+{
+    std::optional<std::string> name;
+    std::optional<std::string> path;
+    std::vector<std::string> by;
+    SourceRange range;
+};
+
+struct EntityApiDecl
+{
+    std::optional<std::string> resource;
+    std::optional<EntityApiCreateDecl> create;
+    bool get = false;
+    std::vector<EntityApiListDecl> lists;
+    bool update_status = false;
+    bool delete_ = false;
+    SourceRange range;
+};
+
 struct EntityDecl
 {
     std::string name;
@@ -92,6 +117,7 @@ struct EntityDecl
     std::vector<ChildDecl> children;
     std::vector<InvariantDecl> invariants;
     std::optional<StateMachineDecl> state_machine;
+    std::optional<EntityApiDecl> api;
     std::vector<BlockMemberOrder> member_order;
     SourceRange range;
 };

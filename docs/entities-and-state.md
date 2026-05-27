@@ -292,6 +292,42 @@ indexes {
 Use indexes to make expected access patterns explicit. Runtime generators decide how to
 lower them into backend-specific metadata.
 
+## Entity-Owned API Intent
+
+Entities may declare canonical CRUD API intent inside an `api` block. This makes the
+entity the source of truth for routine create, get, list, status update, and delete
+contracts instead of requiring authors to hand-write repetitive API declarations.
+
+```statespec
+api {
+  resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+
+  create {
+    fields [display_name]
+  }
+
+  get
+
+  list {
+    path "/v1/tenants/{tenant_id}/accounts"
+    by tenant_id
+  }
+
+  list AccountProjects {
+    path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects"
+    by by_account_status
+  }
+
+  update_status
+  delete
+}
+```
+
+`list by` is deliberately constrained. It may reference only a valid entity key
+prefix, a declared index name, or a declared index field prefix. It may not reference
+arbitrary fields. List APIs therefore stay aligned with durable access paths that the
+backend can index and enforce.
+
 ## Authoring Checklist
 
 Before committing an entity:
@@ -304,3 +340,4 @@ Before committing an entity:
 - Parent-child relationships are durable, not implied.
 - Invariants are named and deterministic.
 - Index declarations match expected query patterns.
+- Entity-owned list APIs use only key or index-backed selectors.

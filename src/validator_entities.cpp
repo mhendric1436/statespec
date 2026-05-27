@@ -53,7 +53,11 @@ int entity_member_order_index(const std::string& kind)
     {
         return 8;
     }
-    return 9;
+    if (kind == "api")
+    {
+        return 9;
+    }
+    return 10;
 }
 
 void validate_entity_member_order(
@@ -71,7 +75,7 @@ void validate_entity_member_order(
                 member.range, diagnostic_codes::NoncanonicalEntityOrder,
                 "entity '" + entity.name +
                     "' members should use canonical order: key, ownership, version, fields, "
-                    "state_machine, relations, children, invariants, indexes"
+                    "state_machine, relations, children, invariants, indexes, api"
             );
             return;
         }
@@ -423,6 +427,66 @@ void validate_indexes(
     }
 }
 
+bool is_prefix(
+    const std::vector<std::string>& prefix,
+    const std::vector<std::string>& values
+)
+{
+    return !prefix.empty() && prefix.size() <= values.size() &&
+           std::equal(prefix.begin(), prefix.end(), values.begin());
+}
+
+bool entity_api_list_selector_is_allowed(
+    const EntityDecl& entity,
+    const EntityApiListDecl& list
+)
+{
+    if (is_prefix(list.by, entity.key_fields))
+    {
+        return true;
+    }
+
+    for (const auto& index : entity.indexes)
+    {
+        if (list.by.size() == 1 && list.by[0] == index.name)
+        {
+            return true;
+        }
+        if (is_prefix(list.by, index.fields))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void validate_entity_api(
+    const EntityDecl& entity,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!entity.api.has_value())
+    {
+        return;
+    }
+
+    for (const auto& list : entity.api->lists)
+    {
+        if (list.by.empty())
+        {
+            required_error(diagnostics, list.range, "entity api list", "by");
+            continue;
+        }
+        if (!entity_api_list_selector_is_allowed(entity, list))
+        {
+            unknown_reference_error(
+                diagnostics, list.range, "entity api list selector", list.by.front()
+            );
+        }
+    }
+}
+
 void validate_ownership(
     const EntityDecl& entity,
     DiagnosticBag& diagnostics
@@ -654,6 +718,7 @@ void validate_entities(
         validate_children(system, entity, diagnostics);
         validate_invariants(system, entity, diagnostics);
         validate_indexes(entity, fields, diagnostics);
+        validate_entity_api(entity, diagnostics);
         validate_state_machine(entity, diagnostics);
     }
 }

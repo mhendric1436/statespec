@@ -200,6 +200,84 @@ void parser_parses_entity_ownership_relations_children_and_invariants()
         !order.invariants[0].expression.empty(), "parser should parse invariant expression"
     );
 }
+
+void parser_parses_entity_owned_crud_api_block()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system AccountSystem {
+          entity Account {
+            key tenant_id, account_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+              display_name string
+            }
+            indexes {
+              index by_account_status on account_id, status
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+              create {
+                fields [display_name]
+              }
+              get
+              list {
+                path "/v1/tenants/{tenant_id}/accounts"
+                by tenant_id
+              }
+              list AccountProjects {
+                path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects"
+                by by_account_status
+              }
+              update_status
+              delete
+            }
+          }
+        }
+    )sspec");
+
+    statespec::test::require(spec.system.has_value(), "parser should parse system");
+    statespec::test::require(spec.system->entities.size() == 1, "parser should parse entity");
+    const auto& entity = spec.system->entities[0];
+    statespec::test::require(entity.api.has_value(), "parser should parse entity api block");
+    statespec::test::require(
+        entity.api->resource == "/v1/tenants/{tenant_id}/accounts/{account_id}",
+        "parser should parse entity api resource"
+    );
+    statespec::test::require(entity.api->create.has_value(), "parser should parse create intent");
+    statespec::test::require(
+        entity.api->create->fields.size() == 1 && entity.api->create->fields[0] == "display_name",
+        "parser should parse create fields"
+    );
+    statespec::test::require(entity.api->get, "parser should parse get intent");
+    statespec::test::require(entity.api->lists.size() == 2, "parser should parse list intents");
+    statespec::test::require(
+        !entity.api->lists[0].name.has_value(), "parser should parse anonymous list"
+    );
+    statespec::test::require(
+        entity.api->lists[0].by.size() == 1 && entity.api->lists[0].by[0] == "tenant_id",
+        "parser should parse list field selector"
+    );
+    statespec::test::require(
+        entity.api->lists[1].name == "AccountProjects", "parser should parse named list"
+    );
+    statespec::test::require(
+        entity.api->lists[1].by.size() == 1 &&
+            entity.api->lists[1].by[0] == "by_account_status",
+        "parser should parse list index selector"
+    );
+    statespec::test::require(
+        entity.api->update_status, "parser should parse update_status intent"
+    );
+    statespec::test::require(entity.api->delete_, "parser should parse delete intent");
+}
 } // namespace
 
 TEST_CASE("parser parses entity fields, indexes, and state machines")
@@ -210,4 +288,9 @@ TEST_CASE("parser parses entity fields, indexes, and state machines")
 TEST_CASE("parser parses entity ownership, relations, children, and invariants")
 {
     parser_parses_entity_ownership_relations_children_and_invariants();
+}
+
+TEST_CASE("parser parses entity-owned CRUD API block")
+{
+    parser_parses_entity_owned_crud_api_block();
 }

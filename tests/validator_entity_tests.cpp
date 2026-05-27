@@ -261,6 +261,106 @@ void validator_rejects_invalid_entity_indexes()
     );
 }
 
+void validator_accepts_entity_api_list_key_and_index_selectors()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system AccountSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          entity Account {
+            key tenant_id, account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+              display_name string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+            indexes {
+              index by_tenant_status on tenant_id, status
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+              create {
+                fields [display_name]
+              }
+              get
+              list {
+                path "/v1/tenants/{tenant_id}/accounts"
+                by tenant_id
+              }
+              list ByTenantStatus {
+                path "/v1/tenants/{tenant_id}/accounts/by-status"
+                by by_tenant_status
+              }
+              list TenantStatusPrefix {
+                path "/v1/tenants/{tenant_id}/accounts/status"
+                by tenant_id, status
+              }
+              update_status
+              delete
+            }
+          }
+        }
+    )sspec");
+
+    require(!diagnostics.has_errors(), "validator should accept canonical entity API list selectors");
+}
+
+void validator_rejects_entity_api_list_arbitrary_field_selector()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system AccountSystem {
+          entity Account {
+            key tenant_id, account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+              display_name string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+            indexes {
+              index by_tenant_status on tenant_id, status
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+              list {
+                path "/v1/accounts/by-display-name"
+                by display_name
+              }
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, dc::UnknownReference),
+        "validator should reject arbitrary entity API list selectors"
+    );
+}
+
 void validator_rejects_missing_entity_management_model()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -568,6 +668,16 @@ TEST_CASE("validator rejects missing entity key fields")
 TEST_CASE("validator rejects invalid entity indexes")
 {
     validator_rejects_invalid_entity_indexes();
+}
+
+TEST_CASE("validator accepts entity API list key and index selectors")
+{
+    validator_accepts_entity_api_list_key_and_index_selectors();
+}
+
+TEST_CASE("validator rejects entity API list arbitrary field selector")
+{
+    validator_rejects_entity_api_list_arbitrary_field_selector();
 }
 
 TEST_CASE("validator rejects missing entity management model")
