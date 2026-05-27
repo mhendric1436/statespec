@@ -988,7 +988,6 @@ std::string generate_descriptors_java(
     out << generate_java_feature_flag_descriptors(system);
     out << generate_java_declaration_descriptors(system);
     out << generate_java_external_system_descriptor_delegates();
-    out << generate_java_api_descriptors(system);
     out << generate_java_worker_descriptors(system);
     out << generate_java_policy_descriptors(system);
     out << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";

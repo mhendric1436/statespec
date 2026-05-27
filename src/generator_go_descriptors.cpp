@@ -857,7 +857,6 @@ std::string generate_descriptors_go(
     );
     out << generate_go_feature_flag_descriptors(system);
     out << generate_go_declaration_descriptors(system);
-    out << generate_go_api_descriptors(system);
     out << generate_go_worker_descriptors(system);
     out << generate_go_policy_descriptors(system);
     out << generate_go_observability_descriptors(system);

@@ -1,16 +1,16 @@
-{{api_descriptor_modules}}
+#[path = "descriptors/catalog.rs"]
+mod catalog;
 
 pub use crate::descriptors::{ApiDescriptor, ApiRouteDescriptor, ApiServerDescriptor};
 
 pub fn api_descriptors() -> Vec<ApiDescriptor> {
-    let mut descriptors = Vec::new();
-{{api_descriptor_aggregation}}    descriptors
+    catalog::api_descriptors()
 }
 
 pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {
-{{api_server_descriptors}}}
+    catalog::api_server_descriptors()
+}
 
 pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {
-    let mut descriptors = Vec::new();
-{{api_route_descriptor_aggregation}}    descriptors
+    catalog::api_route_descriptors()
 }

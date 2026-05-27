@@ -42,7 +42,6 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/memory/backend.rs", common},
             {"common/memory/transaction.rs", common},
             {"common/descriptors.rs", common},
-            {"common/descriptors/apis.rs", common},
             {"common/descriptors/core.rs", common},
             {"common/descriptors/events.rs", common},
             {"common/descriptors/external_systems.rs", common},
@@ -59,6 +58,7 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"api/api_descriptors.rs", api},
             {"api/api_handlers.rs", api},
             {"api/api_handler_registry.rs", api},
+            {"api/descriptors/catalog.rs", api},
             {"api/external_system_operator_metadata_api.rs", api},
             {"worker/worker_contexts.rs", worker},
             {"worker/worker_descriptors.rs", worker},
@@ -72,10 +72,6 @@ void test_rust_binding_generator_models_artifact_paths()
     const auto result = generate_rust_bindings_for_artifact_tests();
     require_generated_file_artifact_path(
         result, "descriptors.rs", "common/descriptors.rs", statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "descriptors/apis.rs", "common/descriptors/apis.rs",
-        statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "descriptors/core.rs", "common/descriptors/core.rs",
@@ -133,6 +129,10 @@ void test_rust_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "api/api_handler_registry.rs", "api/api_handler_registry.rs",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/descriptors/catalog.rs", "api/descriptors/catalog.rs",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(

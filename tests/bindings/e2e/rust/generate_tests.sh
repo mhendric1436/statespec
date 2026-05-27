@@ -35,6 +35,7 @@ api/codecs/provision_callback_request.rs
 api/codecs/provision_callback_response.rs
 api/codecs/start_provision_request.rs
 api/codecs/start_provision_response.rs
+api/descriptors/catalog.rs
 api/descriptors/report_provision_ready.rs
 api/descriptors/start_provision.rs
 api/external_system_operator_metadata_api.rs
@@ -42,7 +43,6 @@ api/handlers/operations.rs
 api/main.rs
 common/backend.rs
 common/descriptors.rs
-common/descriptors/apis.rs
 common/descriptors/core.rs
 common/descriptors/events.rs
 common/descriptors/external_systems.rs
@@ -109,9 +109,9 @@ worker/workflows/provision_service.rs
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$E2E_SPEC" --out "$TMPDIR/out-e2e-rust"
-assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "pub fn api_route_descriptors"
-assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"OperatorApi\""
-assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-rust/api/descriptors/catalog.rs" "pub fn api_route_descriptors"
+assert_file_contains "$TMPDIR/out-e2e-rust/api/descriptors/catalog.rs" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-rust/api/descriptors/catalog.rs" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors/external_systems.rs" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors/external_systems.rs" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-rust/common/descriptors.rs" "ExternalSystemOperatorMetadataApiHandler"
@@ -175,7 +175,7 @@ run_expect_status 0 make -C "$TMPDIR/out-api-entities-rust" check-api
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang rust "$APP_SPEC" --out "$TMPDIR/out-app-rust"
 assert_file_manifest_equals "$TMPDIR/out-app-rust" "$APP_MANIFEST"
-assert_file_contains "$TMPDIR/out-app-rust/common/descriptors.rs" "\"ProvisionApi.StartProvision\""
+assert_file_contains "$TMPDIR/out-app-rust/api/descriptors/start_provision.rs" "\"ProvisionApi.StartProvision\""
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors/workers/provision_worker.rs" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-rust/common/descriptors/workers/provision_worker.rs" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-rust/api/api_application.rs" "pub struct ApiApplication"

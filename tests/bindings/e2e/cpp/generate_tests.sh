@@ -36,6 +36,7 @@ api/codecs/provision_callback_request.hpp
 api/codecs/provision_callback_response.hpp
 api/codecs/start_provision_request.hpp
 api/codecs/start_provision_response.hpp
+api/descriptors/catalog.hpp
 api/descriptors/report_provision_ready.hpp
 api/descriptors/start_provision.hpp
 api/external_system_operator_metadata_api.hpp
@@ -43,7 +44,6 @@ api/handlers/operations.hpp
 api/main.cpp
 common/backend.hpp
 common/descriptors.hpp
-common/descriptors/apis.hpp
 common/descriptors/core.hpp
 common/descriptors/events.hpp
 common/descriptors/external_systems.hpp
@@ -108,9 +108,9 @@ worker/workflows/provision_service.hpp
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPDIR/out-e2e-cpp"
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "api_route_descriptors"
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"OperatorApi\""
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/api/descriptors/catalog.hpp" "api_route_descriptors"
+assert_file_contains "$TMPDIR/out-e2e-cpp/api/descriptors/catalog.hpp" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/api/descriptors/catalog.hpp" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/external_systems.hpp" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/external_systems.hpp" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "IExternalSystemOperatorMetadataApiHandler"
@@ -172,7 +172,7 @@ run_expect_status 0 "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$APP_SPEC" --out "$TMPDIR/out-app-cpp"
 assert_file_manifest_equals "$TMPDIR/out-app-cpp" "$APP_MANIFEST"
-assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors.hpp" "\"ProvisionApi.StartProvision\""
+assert_file_contains "$TMPDIR/out-app-cpp/api/descriptors/start_provision.hpp" "\"ProvisionApi.StartProvision\""
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors/workers/provision_worker.hpp" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors/workers/provision_worker.hpp" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_application.hpp" "class ApiApplication"

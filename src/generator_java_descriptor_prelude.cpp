@@ -14,7 +14,6 @@ namespace
 std::string java_descriptor_module_imports(const IrSystem& system)
 {
     std::ostringstream out;
-    out << "import com.statespec.generated.descriptors.ApiDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.CoreDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.EventDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.ExternalSystemDescriptorModule;\n";

@@ -45,7 +45,6 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/descriptors.go", common},
             {"common/backend/events.go", common},
             {"common/backend/external_systems.go", common},
-            {"common/backend/descriptors/apis.go", common},
             {"common/backend/descriptors/core.go", common},
             {"common/backend/descriptors/runtime.go", common},
             {"common/backend/descriptors/shapes.go", common},
@@ -59,6 +58,7 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"api/backend/api_handlers.go", api},
             {"api/backend/api_handler_registry.go", api},
             {"api/backend/codecs/api_codecs.go", api},
+            {"api/backend/descriptors/catalog.go", api},
             {"api/backend/external_system_operator_metadata_api.go", api},
             {"worker/backend/worker_contexts.go", worker},
             {"worker/backend/worker_descriptors.go", worker},
@@ -80,10 +80,6 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "backend/external_systems.go", "common/backend/external_systems.go",
-        statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "backend/descriptors/apis.go", "common/backend/descriptors/apis.go",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
@@ -130,6 +126,10 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "api/backend/codecs/api_codecs.go", "api/backend/codecs/api_codecs.go",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/backend/descriptors/catalog.go", "api/backend/descriptors/catalog.go",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(

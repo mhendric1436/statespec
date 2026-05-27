@@ -21,7 +21,6 @@ std::string generate_cpp_external_system_descriptors(
     const IrSystem& system,
     const std::string& external_system_call_adapters
 );
-std::string generate_cpp_api_descriptors(const IrSystem& system);
 std::string generate_cpp_worker_descriptors(const IrSystem& system);
 std::string generate_cpp_worker_descriptor_module(const IrWorker& worker);
 std::string generate_cpp_policy_descriptors(const IrSystem& system);

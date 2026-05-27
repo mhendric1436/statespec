@@ -42,7 +42,6 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/memory/backend.hpp", common},
             {"common/memory/transaction.hpp", common},
             {"common/descriptors.hpp", common},
-            {"common/descriptors/apis.hpp", common},
             {"common/descriptors/core.hpp", common},
             {"common/descriptors/events.hpp", common},
             {"common/descriptors/external_systems.hpp", common},
@@ -59,6 +58,7 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"api/api_handlers.hpp", api},
             {"api/api_handler_registry.hpp", api},
             {"api/api_handler_registry_support.hpp", api},
+            {"api/descriptors/catalog.hpp", api},
             {"api/external_system_operator_metadata_api.hpp", api},
             {"worker/worker_contexts.hpp", worker},
             {"worker/worker_descriptors.hpp", worker},
@@ -92,10 +92,6 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "shapes.hpp", "common/shapes.hpp", statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "descriptors/apis.hpp", "common/descriptors/apis.hpp",
-        statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "descriptors/workers.hpp", "common/descriptors/workers.hpp",
@@ -137,6 +133,10 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "api/api_handler_registry_support.hpp", "api/api_handler_registry_support.hpp",
+        statespec::GeneratedArtifactTier::Api
+    );
+    require_generated_file_artifact_path(
+        result, "api/descriptors/catalog.hpp", "api/descriptors/catalog.hpp",
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(

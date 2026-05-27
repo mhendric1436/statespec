@@ -1,9 +1,7 @@
 #pragma once
 
 #include "../common/descriptors.hpp"
-// clang-format off
-{{api_descriptor_includes}}
-// clang-format on
+#include "descriptors/catalog.hpp"
 
 namespace statespec_generated::api
 {
@@ -12,11 +10,7 @@ using ApiRouteDescriptor = ::statespec_generated::ApiRouteDescriptor;
 
 inline std::vector<ApiRouteDescriptor> api_route_descriptors()
 {
-    std::vector<ApiRouteDescriptor> descriptors;
-    // clang-format off
-{{api_route_descriptor_aggregation}}
-    // clang-format on
-    return descriptors;
+    return descriptors::api_route_descriptors();
 }
 
 } // namespace statespec_generated::api

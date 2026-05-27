@@ -1883,6 +1883,8 @@ std::string java_api_descriptor_module(
     return out.str();
 }
 
+std::string java_api_descriptor_catalog_file(const IrSystem& system);
+
 void add_java_api_descriptor_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1898,6 +1900,10 @@ void add_java_api_descriptor_artifacts(
             java_api_descriptor_module(system, api)
         );
     }
+    add_java_raw_api_file(
+        result, options, descriptor_path / "Catalog.java",
+        java_api_descriptor_catalog_file(system)
+    );
 }
 
 TemplateRenderer::Values java_api_descriptor_values(const IrSystem& system)
@@ -1938,6 +1944,33 @@ TemplateRenderer::Values java_api_descriptor_values(const IrSystem& system)
         {"api_route_descriptor_aggregation", route_aggregation.str()},
         {"api_server_descriptors", server_descriptors.str()},
     };
+}
+
+std::string java_api_descriptor_catalog_file(const IrSystem& system)
+{
+    const auto values = java_api_descriptor_values(system);
+    std::ostringstream out;
+    out << "package com.statespec.generated.descriptors;\n\n";
+    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import java.util.ArrayList;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class Catalog {\n";
+    out << "    private Catalog() {}\n\n";
+    out << "    public static List<Descriptors.ApiDescriptor> apiDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<Descriptors.ApiDescriptor>();\n";
+    out << values.at("api_descriptor_aggregation");
+    out << "        return List.copyOf(descriptors);\n";
+    out << "    }\n\n";
+    out << "    public static List<Descriptors.ApiServerDescriptor> apiServerDescriptors() {\n";
+    out << values.at("api_server_descriptors");
+    out << "    }\n\n";
+    out << "    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<Descriptors.ApiRouteDescriptor>();\n";
+    out << values.at("api_route_descriptor_aggregation");
+    out << "        return List.copyOf(descriptors);\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
 }
 
 void add_java_descriptor_module_artifact(
@@ -2078,10 +2111,6 @@ void add_java_descriptor_module_artifacts(
             diagnostics, GeneratedArtifactTier::Common, java_shape_descriptor_module_values(shape)
         );
     }
-    add_java_descriptor_module_artifact(
-        result, options, templates, descriptor_package_path / "ApiDescriptorModule.java",
-        descriptor_package, "ApiDescriptorModule", "API descriptors", diagnostics
-    );
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "WorkerDescriptorModule.java",
         descriptor_package, "WorkerDescriptorModule", "worker descriptors", diagnostics
@@ -2331,7 +2360,7 @@ void add_java_api_artifacts(
     add_java_api_descriptor_artifacts(result, options, system);
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiDescriptors.java"),
-        GeneratedArtifactTier::Api, diagnostics, java_api_descriptor_values(system)
+        GeneratedArtifactTier::Api, diagnostics
     );
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiCodecs.java"),

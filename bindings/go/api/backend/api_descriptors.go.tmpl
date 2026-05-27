@@ -9,9 +9,9 @@ type APITierDescriptor = common.ApiDescriptor
 type APITierServerDescriptor = common.ApiServerDescriptor
 
 func APITierDescriptors() []common.ApiDescriptor {
-	result := []common.ApiDescriptor{}
-{{api_descriptor_aggregation}}	return result
+	return descriptors.ApiDescriptors()
 }
 
 func APITierServerDescriptors() []common.ApiServerDescriptor {
-{{api_server_descriptors}}}
+	return descriptors.ApiServerDescriptors()
+}

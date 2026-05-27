@@ -36,13 +36,13 @@ api/backend/codecs/provision_callback_request.go
 api/backend/codecs/provision_callback_response.go
 api/backend/codecs/start_provision_request.go
 api/backend/codecs/start_provision_response.go
+api/backend/descriptors/catalog.go
 api/backend/descriptors/report_provision_ready.go
 api/backend/descriptors/start_provision.go
 api/backend/external_system_operator_metadata_api.go
 api/cmd/api/main.go
 common/backend/backend.go
 common/backend/descriptors.go
-common/backend/descriptors/apis.go
 common/backend/descriptors/core.go
 common/backend/descriptors/runtime.go
 common/backend/descriptors/shapes.go
@@ -109,9 +109,9 @@ worker/cmd/worker/main.go
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$E2E_SPEC" --out "$TMPDIR/out-e2e-go"
-assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "func ApiRouteDescriptors"
-assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"OperatorApi\""
-assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-go/api/backend/descriptors/catalog.go" "func ApiRouteDescriptors"
+assert_file_contains "$TMPDIR/out-e2e-go/api/backend/descriptors/catalog.go" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-go/api/backend/descriptors/catalog.go" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/external_systems.go" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/external_systems.go" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "ExternalSystemOperatorMetadataAPIHandler"
@@ -177,7 +177,7 @@ run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-api-enti
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"
 assert_file_manifest_equals "$TMPDIR/out-app-go" "$APP_MANIFEST"
-assert_file_contains "$TMPDIR/out-app-go/common/backend/descriptors.go" "\"ProvisionApi.StartProvision\""
+assert_file_contains "$TMPDIR/out-app-go/api/backend/descriptors/start_provision.go" "\"ProvisionApi.StartProvision\""
 assert_file_contains "$TMPDIR/out-app-go/common/backend/worker_descriptor_provision_worker.go" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-go/common/backend/worker_descriptor_provision_worker.go" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_application.go" "type APITierApplication struct"

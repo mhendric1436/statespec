@@ -1,9 +1,7 @@
 #pragma once
 
 #include "../common/descriptors.hpp"
-// clang-format off
-{{api_descriptor_includes}}
-// clang-format on
+#include "descriptors/catalog.hpp"
 
 namespace statespec_generated::api
 {
@@ -13,18 +11,12 @@ using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;
 
 inline std::vector<ApiDescriptor> api_descriptors()
 {
-    std::vector<ApiDescriptor> descriptors;
-    // clang-format off
-{{api_descriptor_aggregation}}
-    // clang-format on
-    return descriptors;
+    return descriptors::api_descriptors();
 }
 
 inline std::vector<ApiServerDescriptor> api_server_descriptors()
 {
-    // clang-format off
-{{api_server_descriptors}}
-    // clang-format on
+    return descriptors::api_server_descriptors();
 }
 
 } // namespace statespec_generated::api

@@ -1379,9 +1379,6 @@ void add_rust_descriptor_module_artifacts(
         );
     }
     add_rust_descriptor_module_artifact(
-        result, options, templates, "descriptors/apis.rs", "API descriptors", diagnostics
-    );
-    add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/workers.rs", "worker descriptors", diagnostics
     );
     for (const auto& worker : system.workers)
@@ -1607,7 +1604,7 @@ void add_rust_api_descriptor_artifacts(
     }
 }
 
-TemplateRenderer::Values rust_api_descriptor_values(const IrSystem& system)
+std::string rust_api_descriptor_catalog_file(const IrSystem& system)
 {
     std::ostringstream modules;
     std::ostringstream api_aggregation;
@@ -1616,7 +1613,7 @@ TemplateRenderer::Values rust_api_descriptor_values(const IrSystem& system)
     for (const auto& api : system.apis)
     {
         const auto module = rust_api_descriptor_module_name(api);
-        modules << "#[path = \"descriptors/" << snake_identifier(api.name) << ".rs\"]\n";
+        modules << "#[path = \"" << snake_identifier(api.name) << ".rs\"]\n";
         modules << "mod " << module << ";\n";
         api_aggregation << "    descriptors.extend(" << module
                         << "::" << rust_api_descriptor_function_name(api) << "());\n";
@@ -1644,12 +1641,23 @@ TemplateRenderer::Values rust_api_descriptor_values(const IrSystem& system)
         server_descriptors << "        },\n";
     }
     server_descriptors << "    ]\n";
-    return TemplateRenderer::Values{
-        {"api_descriptor_modules", modules.str()},
-        {"api_descriptor_aggregation", api_aggregation.str()},
-        {"api_route_descriptor_aggregation", route_aggregation.str()},
-        {"api_server_descriptors", server_descriptors.str()},
-    };
+    std::ostringstream out;
+    out << modules.str() << "\n";
+    out << "use crate::descriptors::{ApiDescriptor, ApiRouteDescriptor, ApiServerDescriptor};\n\n";
+    out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
+    out << "    let mut descriptors = Vec::new();\n";
+    out << api_aggregation.str();
+    out << "    descriptors\n";
+    out << "}\n\n";
+    out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
+    out << server_descriptors.str();
+    out << "}\n\n";
+    out << "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {\n";
+    out << "    let mut descriptors = Vec::new();\n";
+    out << route_aggregation.str();
+    out << "    descriptors\n";
+    out << "}\n";
+    return out.str();
 }
 
 } // namespace
@@ -1838,9 +1846,12 @@ void add_rust_api_artifacts(
     const auto include_api_composition = !system.api_servers.empty();
 
     add_rust_api_descriptor_artifacts(result, options, system);
+    add_rust_raw_api_file(
+        result, options, "api/descriptors/catalog.rs", rust_api_descriptor_catalog_file(system)
+    );
     add_rust_generated_template_file(
         result, options, templates, "api/api_descriptors.rs", GeneratedArtifactTier::Api,
-        diagnostics, rust_api_descriptor_values(system)
+        diagnostics
     );
     add_rust_generated_template_file(
         result, options, templates, "api/api_codecs.rs", GeneratedArtifactTier::Api, diagnostics,

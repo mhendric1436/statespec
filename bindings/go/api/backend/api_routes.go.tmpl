@@ -8,6 +8,5 @@ import (
 type APITierRouteDescriptor = common.ApiRouteDescriptor
 
 func APITierRouteDescriptors() []common.ApiRouteDescriptor {
-	result := []common.ApiRouteDescriptor{}
-{{api_route_descriptor_aggregation}}	return result
+	return descriptors.ApiRouteDescriptors()
 }

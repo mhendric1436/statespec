@@ -28,8 +28,6 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     out << "#[path = \"descriptors/shapes.rs\"]\n";
     out << "mod descriptor_shapes;\n";
     out << "pub use descriptor_shapes::*;\n";
-    out << "#[path = \"descriptors/apis.rs\"]\n";
-    out << "mod descriptor_apis;\n";
     out << "#[path = \"descriptors/workers.rs\"]\n";
     out << "mod descriptor_workers;\n";
     for (const auto& worker : system.workers)

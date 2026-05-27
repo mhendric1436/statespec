@@ -1566,10 +1566,6 @@ void add_go_descriptor_module_artifacts(
     );
     add_go_shape_descriptor_artifact(result, options, templates, system, diagnostics);
     add_go_descriptor_module_artifact(
-        result, options, templates, "backend/descriptors/apis.go", "descriptors", "API descriptors",
-        diagnostics
-    );
-    add_go_descriptor_module_artifact(
         result, options, templates, "backend/descriptors/workers.go", "descriptors",
         "worker descriptors", diagnostics
     );
@@ -1743,8 +1739,8 @@ TemplateRenderer::Values go_api_descriptor_values(const IrSystem& system)
     std::ostringstream server_descriptors;
     for (const auto& api : system.apis)
     {
-        api_aggregation << "\tresult = append(result, descriptors."
-                        << go_api_descriptor_function_name(api) << "()...)\n";
+        api_aggregation << "\tresult = append(result, " << go_api_descriptor_function_name(api)
+                        << "()...)\n";
     }
     server_descriptors << "\treturn []common.ApiServerDescriptor{\n";
     for (const auto& api_server : system.api_servers)
@@ -1776,12 +1772,35 @@ TemplateRenderer::Values go_api_route_values(const IrSystem& system)
     std::ostringstream route_aggregation;
     for (const auto& api : system.apis)
     {
-        route_aggregation << "\tresult = append(result, descriptors."
+        route_aggregation << "\tresult = append(result, "
                           << go_api_route_descriptor_function_name(api) << "()...)\n";
     }
     return TemplateRenderer::Values{
         {"api_route_descriptor_aggregation", route_aggregation.str()},
     };
+}
+
+std::string go_api_descriptor_catalog_file(const IrSystem& system)
+{
+    const auto descriptor_values = go_api_descriptor_values(system);
+    const auto route_values = go_api_route_values(system);
+    std::ostringstream out;
+    out << "package descriptors\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "func ApiDescriptors() []common.ApiDescriptor {\n";
+    out << "\tresult := []common.ApiDescriptor{}\n";
+    out << descriptor_values.at("api_descriptor_aggregation");
+    out << "\treturn result\n";
+    out << "}\n\n";
+    out << "func ApiServerDescriptors() []common.ApiServerDescriptor {\n";
+    out << descriptor_values.at("api_server_descriptors");
+    out << "}\n\n";
+    out << "func ApiRouteDescriptors() []common.ApiRouteDescriptor {\n";
+    out << "\tresult := []common.ApiRouteDescriptor{}\n";
+    out << route_values.at("api_route_descriptor_aggregation");
+    out << "\treturn result\n";
+    out << "}\n";
+    return out.str();
 }
 
 } // namespace
@@ -1972,9 +1991,13 @@ void add_go_api_artifacts(
     const auto include_api_composition = !system.api_servers.empty();
 
     add_go_api_descriptor_artifacts(result, options, system);
+    add_go_raw_api_file(
+        result, options, "api/backend/descriptors/catalog.go",
+        go_api_descriptor_catalog_file(system)
+    );
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_descriptors.go", GeneratedArtifactTier::Api,
-        diagnostics, go_api_descriptor_values(system)
+        diagnostics
     );
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_codecs.go", GeneratedArtifactTier::Api,
@@ -2047,7 +2070,7 @@ void add_go_api_artifacts(
         );
         add_go_generated_template_file(
             result, options, templates, "api/backend/api_routes.go", GeneratedArtifactTier::Api,
-            diagnostics, go_api_route_values(system)
+            diagnostics
         );
         add_go_generated_template_file(
             result, options, templates, "api/cmd/api/main.go", GeneratedArtifactTier::Api,

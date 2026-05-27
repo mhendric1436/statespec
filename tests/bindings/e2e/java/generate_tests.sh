@@ -37,6 +37,7 @@ api/com/statespec/generated/codecs/ApiCodecsProvisionCallbackRequest.java
 api/com/statespec/generated/codecs/ApiCodecsProvisionCallbackResponse.java
 api/com/statespec/generated/codecs/ApiCodecsStartProvisionRequest.java
 api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java
+api/com/statespec/generated/descriptors/Catalog.java
 api/com/statespec/generated/descriptors/ReportProvisionReadyDescriptorModule.java
 api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java
 common/com/statespec/backend/Backend.java
@@ -64,7 +65,6 @@ common/com/statespec/backend/runtime/WorkflowStore.java
 common/com/statespec/generated/ApiRequestContext.java
 common/com/statespec/generated/ApiResponse.java
 common/com/statespec/generated/Descriptors.java
-common/com/statespec/generated/descriptors/ApiDescriptorModule.java
 common/com/statespec/generated/descriptors/CoreDescriptorModule.java
 common/com/statespec/generated/descriptors/DescriptorCatalog.java
 common/com/statespec/generated/descriptors/EventDescriptorModule.java
@@ -133,9 +133,9 @@ worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$E2E_SPEC" --out "$TMPDIR/out-e2e-java"
-assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "apiRouteDescriptors"
-assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"OperatorApi\""
-assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-java/api/com/statespec/generated/descriptors/Catalog.java" "apiRouteDescriptors"
+assert_file_contains "$TMPDIR/out-e2e-java/api/com/statespec/generated/descriptors/Catalog.java" "\"OperatorApi\""
+assert_file_contains "$TMPDIR/out-e2e-java/api/com/statespec/generated/descriptors/Catalog.java" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java" "\"input.payment_id\""
 assert_file_not_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "ExternalSystemOperatorMetadataApiHandler"
@@ -199,7 +199,7 @@ run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-api-entities-java/build/cla
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang java "$APP_SPEC" --out "$TMPDIR/out-app-java"
 assert_file_manifest_equals "$TMPDIR/out-app-java" "$APP_MANIFEST"
-assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/Descriptors.java" "\"ProvisionApi.StartProvision\""
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java" "\"ProvisionApi.StartProvision\""
 assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java" "\"ProvisionCommands.CreateRemoteService\""
 assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiApplication.java" "class ApiApplication"
