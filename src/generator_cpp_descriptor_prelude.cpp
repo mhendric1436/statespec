@@ -46,6 +46,7 @@ std::string generate_cpp_descriptor_prelude(
     out << "#include \"metric.hpp\"\n";
     out << "#include \"queue.hpp\"\n";
     out << "#include \"workflow.hpp\"\n\n";
+    out << "#include \"descriptors/types.hpp\"\n\n";
     out << cpp_descriptor_module_includes(system) << "\n";
     out << "#include <chrono>\n";
     out << "#include <cstdint>\n";
@@ -58,6 +59,7 @@ std::string generate_cpp_descriptor_prelude(
     out << "namespace statespec_generated\n";
     out << "{\n\n";
     out << "#include \"descriptors/events.hpp\"\n\n";
+    out << "#ifndef STATESPEC_GENERATED_DESCRIPTOR_TYPES_DEFINED\n\n";
 
     out << "struct LeaseDefinition\n";
     out << "{\n";
@@ -479,6 +481,7 @@ std::string generate_cpp_descriptor_prelude(
     out << "    std::vector<std::string> terminal_states;\n";
     out << "};\n\n";
 
+    out << "#endif // STATESPEC_GENERATED_DESCRIPTOR_TYPES_DEFINED\n\n";
     out << entity_repository_runtime << "\n";
 
     return out.str();
