@@ -44,12 +44,72 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"common/com/statespec/generated/Descriptors.java", common},
             {"common/com/statespec/generated/descriptors/ApiDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/CoreDescriptorModule.java", common},
+            {"common/com/statespec/generated/descriptors/DescriptorCatalog.java", common},
             {"common/com/statespec/generated/descriptors/EventDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java",
              common},
             {"common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/ShapeDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/WorkerDescriptorModule.java", common},
+            {"common/com/statespec/generated/entities/DefaultEntityRepository.java", common},
+            {"common/com/statespec/generated/entities/EntityCreateRequest.java", common},
+            {"common/com/statespec/generated/entities/EntityDeleteRequest.java", common},
+            {"common/com/statespec/generated/entities/EntityGetRequest.java", common},
+            {"common/com/statespec/generated/entities/EntityKeyValue.java", common},
+            {"common/com/statespec/generated/entities/EntityListByIndexRequest.java", common},
+            {"common/com/statespec/generated/entities/EntityLookup.java", common},
+            {"common/com/statespec/generated/entities/EntityRepository.java", common},
+            {"common/com/statespec/generated/entities/EntityUpsertRequest.java", common},
+            {"common/com/statespec/generated/external/metadata/"
+             "DefaultExternalSystemMetadataMappingApplicator.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "DefaultExternalSystemOperatorMetadataRepository.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/ExternalSystemCallRequest.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/ExternalSystemCallResponse.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/ExternalSystemClient.java", common},
+            {"common/com/statespec/generated/external/metadata/ExternalSystemMetadata.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemMetadataMappingApplicator.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemMetadataMappingAssignment.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemMetadataMappingInputs.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemMetadataMappingOutput.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemMetadataMappingPlan.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemMetadataMissingMappingSource.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemOperatorMetadataApiHandler.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemOperatorMetadataDeleteRequest.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemOperatorMetadataDisableRequest.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemOperatorMetadataGetRequest.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemOperatorMetadataRepository.java",
+             common},
+            {"common/com/statespec/generated/external/metadata/"
+             "ExternalSystemOperatorMetadataUpsertRequest.java",
+             common},
+            {"common/com/statespec/generated/runtime/RuntimeRegistration.java", common},
             {"common/Makefile", common},
             {"api/com/statespec/generated/ApiCodecs.java", api},
             {"api/com/statespec/generated/ApiDescriptors.java", api},
@@ -103,6 +163,20 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "com/statespec/generated/descriptors/WorkerDescriptorModule.java",
         "common/com/statespec/generated/descriptors/WorkerDescriptorModule.java",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result,
+        "com/statespec/generated/external/metadata/ExternalSystemMetadata.java",
+        "common/com/statespec/generated/external/metadata/ExternalSystemMetadata.java",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result,
+        "com/statespec/generated/external/metadata/"
+        "ExternalSystemOperatorMetadataRepository.java",
+        "common/com/statespec/generated/external/metadata/"
+        "ExternalSystemOperatorMetadataRepository.java",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

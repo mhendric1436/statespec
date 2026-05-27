@@ -7,10 +7,7 @@
 namespace statespec
 {
 
-std::string generate_java_external_system_descriptors(
-    const IrSystem& system,
-    const std::string& external_system_call_adapters
-)
+std::string generate_java_external_system_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
     out << "    public static List<ExternalSystemDescriptor> externalSystemDescriptors() {\n";
@@ -88,7 +85,12 @@ std::string generate_java_external_system_descriptors(
     }
     out << "        );\n";
     out << "    }\n\n";
+    return out.str();
+}
 
+std::string generate_java_external_system_metadata_runtime(const IrSystem&)
+{
+    std::ostringstream out;
     out << "    public static ExternalSystemMetadataMappingPlan "
            "externalSystemMetadataMappingPlan(\n";
     out << "        ExternalSystemDescriptor descriptor\n";
@@ -163,7 +165,8 @@ std::string generate_java_external_system_descriptors(
     out << "        String externalSystem,\n";
     out << "        List<ExternalSystem.MetadataKeyValue> keyValues\n";
     out << "    ) {\n";
-    out << "        for (ExternalSystemDescriptor descriptor : externalSystemDescriptors()) {\n";
+    out << "        for (ExternalSystemDescriptor descriptor : "
+           "ExternalSystemDescriptorModule.externalSystemDescriptors()) {\n";
     out << "            if (descriptor.name().equals(externalSystem)) {\n";
     out << "                return externalSystemMetadataLookup(descriptor, keyValues);\n";
     out << "            }\n";
@@ -209,7 +212,51 @@ std::string generate_java_external_system_descriptors(
     out << "        return resolver.resolveMetadataTx(tx, resolvedLookup);\n";
     out << "    }\n\n";
 
-    out << external_system_call_adapters << "\n";
+    out << "    public static ExternalSystemCallRequest buildExternalSystemCallRequest(\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        Descriptors.ExternalSystemDescriptor descriptor,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        ExternalSystemMetadataMappingOutput mapped = "
+           "applicator.applyExternalSystemMetadataMappings(\n";
+    out << "            externalSystemMetadataMappingPlan(descriptor), inputs\n";
+    out << "        );\n";
+    out << "        if (!mapped.missingSources().isEmpty()) {\n";
+    out << "            throw new Backend.BackendException(\n";
+    out << "                \"external system mapping incomplete for \" + descriptor.name()\n";
+    out << "            );\n";
+    out << "        }\n";
+    out << "        return new ExternalSystemCallRequest(\n";
+    out << "            descriptor.name(), mapped.clientConfig(), mapped.requestPayload()\n";
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static ExternalSystemCallResponse callExternalSystem(\n";
+    out << "        ExternalSystemClient client,\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        Descriptors.ExternalSystemDescriptor descriptor,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        return client.callExternalSystem(\n";
+    out << "            buildExternalSystemCallRequest(applicator, descriptor, inputs)\n";
+    out << "        );\n";
+    out << "    }\n\n";
+
+    out << "    public static Optional<ExternalSystemCallResponse> callExternalSystem(\n";
+    out << "        ExternalSystemClient client,\n";
+    out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
+    out << "        String externalSystem,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) throws Exception {\n";
+    out << "        for (Descriptors.ExternalSystemDescriptor descriptor : "
+           "ExternalSystemDescriptorModule.externalSystemDescriptors()) {\n";
+    out << "            if (descriptor.name().equals(externalSystem)) {\n";
+    out << "                return Optional.of(callExternalSystem(client, applicator, descriptor, "
+           "inputs));\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return Optional.empty();\n";
+    out << "    }\n\n";
 
     return out.str();
 }

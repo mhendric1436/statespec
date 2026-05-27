@@ -87,6 +87,24 @@ common/com/statespec/generated/entities/EntityListByIndexRequest.java
 common/com/statespec/generated/entities/EntityLookup.java
 common/com/statespec/generated/entities/EntityRepository.java
 common/com/statespec/generated/entities/EntityUpsertRequest.java
+common/com/statespec/generated/external/metadata/DefaultExternalSystemMetadataMappingApplicator.java
+common/com/statespec/generated/external/metadata/DefaultExternalSystemOperatorMetadataRepository.java
+common/com/statespec/generated/external/metadata/ExternalSystemCallRequest.java
+common/com/statespec/generated/external/metadata/ExternalSystemCallResponse.java
+common/com/statespec/generated/external/metadata/ExternalSystemClient.java
+common/com/statespec/generated/external/metadata/ExternalSystemMetadata.java
+common/com/statespec/generated/external/metadata/ExternalSystemMetadataMappingApplicator.java
+common/com/statespec/generated/external/metadata/ExternalSystemMetadataMappingAssignment.java
+common/com/statespec/generated/external/metadata/ExternalSystemMetadataMappingInputs.java
+common/com/statespec/generated/external/metadata/ExternalSystemMetadataMappingOutput.java
+common/com/statespec/generated/external/metadata/ExternalSystemMetadataMappingPlan.java
+common/com/statespec/generated/external/metadata/ExternalSystemMetadataMissingMappingSource.java
+common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataApiHandler.java
+common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataDeleteRequest.java
+common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataDisableRequest.java
+common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataGetRequest.java
+common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataRepository.java
+common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataUpsertRequest.java
 common/com/statespec/generated/runtime/RuntimeRegistration.java
 common/com/statespec/generated/shapes/ProvisionCallbackRequest.java
 common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
@@ -118,7 +136,8 @@ assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descri
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java" "\"input.payment_id\""
-assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "ExternalSystemOperatorMetadataApiHandler"
+assert_file_not_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "ExternalSystemOperatorMetadataApiHandler"
+assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataApiHandler.java" "ExternalSystemOperatorMetadataApiHandler"
 cp "$SCRIPT_DIR/ApiProcessFixture.java" "$TMPDIR/out-e2e-java/api/com/statespec/generated/ApiProcessFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-e2e-java" build-api
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-e2e-java/build/classes" com.statespec.generated.ApiProcessFixture

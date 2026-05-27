@@ -158,16 +158,13 @@ std::string java_external_system_descriptor_module_file(
 {
     std::ostringstream out;
     out << "package com.statespec.generated.descriptors;\n\n";
-    out << "import com.statespec.backend.Backend;\n";
-    out << "import com.statespec.backend.ExternalSystem;\n";
     out << "import com.statespec.generated.Descriptors.*;\n";
     out << "import java.util.List;\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class ExternalSystemDescriptorModule {\n";
     out << "    private ExternalSystemDescriptorModule() {}\n\n";
-    out << generate_java_external_system_descriptors(
-        system, templates.load("generated/ExternalSystemCallAdapters.java.tmpl")
-    );
+    (void)templates;
+    out << generate_java_external_system_descriptors(system);
     out << "}\n";
     return out.str();
 }
@@ -1284,6 +1281,474 @@ void add_java_workflow_descriptor_artifacts(
     }
 }
 
+std::string java_external_metadata_runtime_file()
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.external.metadata;\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.backend.ExternalSystem;\n";
+    out << "import com.statespec.backend.Json;\n";
+    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import com.statespec.generated.Descriptors.*;\n";
+    out << "import com.statespec.generated.descriptors.ExternalSystemDescriptorModule;\n";
+    out << "import java.util.List;\n";
+    out << "import java.util.Map;\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class ExternalSystemMetadata {\n";
+    out << "    private ExternalSystemMetadata() {}\n\n";
+    out << "    public static List<ExternalSystemMetadataMissingMappingSource> "
+           "missingExternalSystemMetadataMappingSources(\n";
+    out << "        ExternalSystemMetadataMappingPlan plan,\n";
+    out << "        ExternalSystemMetadataMappingInputs inputs\n";
+    out << "    ) {\n";
+    out << "        java.util.ArrayList<ExternalSystemMetadataMissingMappingSource> "
+           "missing = new java.util.ArrayList<>();\n";
+    out << "        for (ExternalSystemMetadataMappingAssignment assignment : "
+           "plan.allMappings()) {\n";
+    out << "            if (inputs.assignmentValue(assignment).isEmpty()) {\n";
+    out << "                missing.add(new ExternalSystemMetadataMissingMappingSource(\n";
+    out << "                    assignment.source(),\n";
+    out << "                    assignment.sourceRoot(),\n";
+    out << "                    assignment.sourceField(),\n";
+    out << "                    assignment.targetRoot(),\n";
+    out << "                    assignment.field()\n";
+    out << "                ));\n";
+    out << "            }\n";
+    out << "        }\n";
+    out << "        return List.copyOf(missing);\n";
+    out << "    }\n\n";
+    out << "    public static Optional<String> "
+           "externalSystemMetadataKey(ExternalSystem.MetadataLookup lookup) {\n";
+    out << "        if (!lookup.keyComplete()) {\n";
+    out << "            return Optional.empty();\n";
+    out << "        }\n";
+    out << "        java.util.HashMap<String, Json> values = new java.util.HashMap<>();\n";
+    out << "        for (ExternalSystem.MetadataKeyValue keyValue : lookup.keyValues()) {\n";
+    out << "            values.put(keyValue.field(), keyValue.value());\n";
+    out << "        }\n";
+    out << "        StringBuilder key = new StringBuilder();\n";
+    out << "        for (String keyField : lookup.keyFields()) {\n";
+    out << "            Json value = values.get(keyField);\n";
+    out << "            if (value == null) {\n";
+    out << "                return Optional.empty();\n";
+    out << "            }\n";
+    out << "            key.append(keyField).append('=').append(value.canonicalString()).append('\\n');\n";
+    out << "        }\n";
+    out << "        return Optional.of(key.toString());\n";
+    out << "    }\n\n";
+    out << "    public static Json externalSystemMetadataDocumentWithKeys(\n";
+    out << "        Json document,\n";
+    out << "        ExternalSystem.MetadataLookup lookup\n";
+    out << "    ) {\n";
+    out << "        java.util.HashMap<String, Json> values = new java.util.HashMap<>();\n";
+    out << "        if (document instanceof Json.ObjectValue object) {\n";
+    out << "            values.putAll(object.values());\n";
+    out << "        }\n";
+    out << "        for (ExternalSystem.MetadataKeyValue keyValue : lookup.keyValues()) {\n";
+    out << "            values.put(keyValue.field(), keyValue.value());\n";
+    out << "        }\n";
+    out << "        return Json.object(values);\n";
+    out << "    }\n\n";
+    out << generate_java_external_system_metadata_runtime({});
+    out << "}\n";
+    return out.str();
+}
+
+void add_java_external_metadata_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options
+)
+{
+    const auto metadata_path =
+        join_artifact_path(GeneratedJavaOutputPackagePath, "external", "metadata");
+    auto add_file = [&](std::string_view filename, std::string content)
+    {
+        add_java_raw_common_file(result, options, metadata_path / filename, std::move(content));
+    };
+    auto package_header = []()
+    {
+        return std::string{"package com.statespec.generated.external.metadata;\n\n"};
+    };
+
+    add_file(
+        "ExternalSystemMetadataMappingAssignment.java",
+        package_header() +
+            "public record ExternalSystemMetadataMappingAssignment(\n"
+            "    String source,\n"
+            "    String sourceRoot,\n"
+            "    String sourceField,\n"
+            "    String targetRoot,\n"
+            "    String field\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemMetadataMappingPlan.java",
+        package_header() +
+            "import java.util.List;\n\n"
+            "public record ExternalSystemMetadataMappingPlan(\n"
+            "    List<ExternalSystemMetadataMappingAssignment> allMappings,\n"
+            "    List<ExternalSystemMetadataMappingAssignment> clientMappings,\n"
+            "    List<ExternalSystemMetadataMappingAssignment> requestMappings\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemMetadataMissingMappingSource.java",
+        package_header() +
+            "public record ExternalSystemMetadataMissingMappingSource(\n"
+            "    String source,\n"
+            "    String sourceRoot,\n"
+            "    String sourceField,\n"
+            "    String targetRoot,\n"
+            "    String field\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemMetadataMappingInputs.java",
+        package_header() +
+            "import com.statespec.backend.Json;\n"
+            "import java.util.Map;\n"
+            "import java.util.Optional;\n\n"
+            "public record ExternalSystemMetadataMappingInputs(\n"
+            "    Map<String, Json> input,\n"
+            "    Map<String, Json> entity,\n"
+            "    Map<String, Json> workflow,\n"
+            "    Map<String, Json> metadata\n"
+            ") {\n"
+            "    public Optional<Json> sourceValue(String sourceRoot, String sourceField) {\n"
+            "        Map<String, Json> values = switch (sourceRoot) {\n"
+            "            case \"input\" -> input;\n"
+            "            case \"entity\" -> entity;\n"
+            "            case \"workflow\" -> workflow;\n"
+            "            case \"metadata\" -> metadata;\n"
+            "            default -> null;\n"
+            "        };\n"
+            "        if (values == null) {\n"
+            "            return Optional.empty();\n"
+            "        }\n"
+            "        return Optional.ofNullable(values.get(sourceField));\n"
+            "    }\n\n"
+            "    public Optional<Json> assignmentValue(\n"
+            "        ExternalSystemMetadataMappingAssignment assignment\n"
+            "    ) {\n"
+            "        return sourceValue(assignment.sourceRoot(), assignment.sourceField());\n"
+            "    }\n"
+            "}\n"
+    );
+    add_file(
+        "ExternalSystemMetadataMappingOutput.java",
+        package_header() +
+            "import com.statespec.backend.Json;\n"
+            "import java.util.List;\n"
+            "import java.util.Map;\n\n"
+            "public record ExternalSystemMetadataMappingOutput(\n"
+            "    Map<String, Json> clientConfig,\n"
+            "    Map<String, Json> requestPayload,\n"
+            "    List<ExternalSystemMetadataMissingMappingSource> missingSources\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemMetadataMappingApplicator.java",
+        package_header() +
+            "public interface ExternalSystemMetadataMappingApplicator {\n"
+            "    ExternalSystemMetadataMappingOutput applyExternalSystemMetadataMappings(\n"
+            "        ExternalSystemMetadataMappingPlan plan,\n"
+            "        ExternalSystemMetadataMappingInputs inputs\n"
+            "    ) throws Exception;\n"
+            "}\n"
+    );
+    add_file(
+        "DefaultExternalSystemMetadataMappingApplicator.java",
+        package_header() +
+            "import com.statespec.backend.Json;\n"
+            "import java.util.Map;\n\n"
+            "public final class DefaultExternalSystemMetadataMappingApplicator\n"
+            "    implements ExternalSystemMetadataMappingApplicator {\n"
+            "    @Override public ExternalSystemMetadataMappingOutput "
+            "applyExternalSystemMetadataMappings(\n"
+            "        ExternalSystemMetadataMappingPlan plan,\n"
+            "        ExternalSystemMetadataMappingInputs inputs\n"
+            "    ) {\n"
+            "        java.util.HashMap<String, Json> clientConfig = new java.util.HashMap<>();\n"
+            "        java.util.HashMap<String, Json> requestPayload = new java.util.HashMap<>();\n"
+            "        for (ExternalSystemMetadataMappingAssignment assignment : "
+            "plan.clientMappings()) {\n"
+            "            inputs.assignmentValue(assignment)\n"
+            "                .ifPresent(value -> clientConfig.put(assignment.field(), value));\n"
+            "        }\n"
+            "        for (ExternalSystemMetadataMappingAssignment assignment : "
+            "plan.requestMappings()) {\n"
+            "            inputs.assignmentValue(assignment)\n"
+            "                .ifPresent(value -> requestPayload.put(assignment.field(), value));\n"
+            "        }\n"
+            "        return new ExternalSystemMetadataMappingOutput(\n"
+            "            Map.copyOf(clientConfig),\n"
+            "            Map.copyOf(requestPayload),\n"
+            "            ExternalSystemMetadata.missingExternalSystemMetadataMappingSources(\n"
+            "                plan, inputs\n"
+            "            )\n"
+            "        );\n"
+            "    }\n"
+            "}\n"
+    );
+    add_file(
+        "ExternalSystemOperatorMetadataUpsertRequest.java",
+        package_header() +
+            "import com.statespec.backend.ExternalSystem;\n"
+            "import com.statespec.backend.Json;\n"
+            "import java.util.Optional;\n\n"
+            "public record ExternalSystemOperatorMetadataUpsertRequest(\n"
+            "    ExternalSystem.MetadataLookup lookup,\n"
+            "    Json document,\n"
+            "    Optional<Long> expectedVersion\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemOperatorMetadataGetRequest.java",
+        package_header() +
+            "import com.statespec.backend.ExternalSystem;\n\n"
+            "public record ExternalSystemOperatorMetadataGetRequest(\n"
+            "    ExternalSystem.MetadataLookup lookup\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemOperatorMetadataDisableRequest.java",
+        package_header() +
+            "import com.statespec.backend.ExternalSystem;\n"
+            "import java.util.Optional;\n\n"
+            "public record ExternalSystemOperatorMetadataDisableRequest(\n"
+            "    ExternalSystem.MetadataLookup lookup,\n"
+            "    Optional<Long> expectedVersion,\n"
+            "    String disabledStatus\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemOperatorMetadataDeleteRequest.java",
+        package_header() +
+            "import com.statespec.backend.ExternalSystem;\n"
+            "import java.util.Optional;\n\n"
+            "public record ExternalSystemOperatorMetadataDeleteRequest(\n"
+            "    ExternalSystem.MetadataLookup lookup,\n"
+            "    Optional<Long> expectedVersion,\n"
+            "    String deletedStatus\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemOperatorMetadataRepository.java",
+        package_header() +
+            "import com.statespec.backend.Backend;\n"
+            "import java.util.Optional;\n\n"
+            "public interface ExternalSystemOperatorMetadataRepository {\n"
+            "    Optional<Backend.VersionedRecord> upsertMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataUpsertRequest request\n"
+            "    ) throws Backend.BackendException;\n\n"
+            "    Optional<Backend.VersionedRecord> getMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataGetRequest request\n"
+            "    ) throws Backend.BackendException;\n\n"
+            "    Optional<Backend.VersionedRecord> disableMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataDisableRequest request\n"
+            "    ) throws Backend.BackendException;\n\n"
+            "    Optional<Backend.VersionedRecord> deleteMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataDeleteRequest request\n"
+            "    ) throws Backend.BackendException;\n"
+            "}\n"
+    );
+    add_file(
+        "DefaultExternalSystemOperatorMetadataRepository.java",
+        package_header() +
+            "import com.statespec.backend.Backend;\n"
+            "import com.statespec.backend.ExternalSystem;\n"
+            "import com.statespec.backend.Json;\n"
+            "import java.util.Optional;\n\n"
+            "public final class DefaultExternalSystemOperatorMetadataRepository implements\n"
+            "    ExternalSystemOperatorMetadataRepository,\n"
+            "    ExternalSystem {\n"
+            "    @Override public Optional<Backend.VersionedRecord> upsertMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataUpsertRequest request\n"
+            "    ) throws Backend.BackendException {\n"
+            "        Optional<String> key = "
+            "ExternalSystemMetadata.externalSystemMetadataKey(request.lookup());\n"
+            "        if (key.isEmpty()) {\n"
+            "            return Optional.empty();\n"
+            "        }\n"
+            "        Optional<Backend.VersionedRecord> existing =\n"
+            "            tx.get(request.lookup().metadataEntity(), key.orElseThrow());\n"
+            "        assertExpectedVersion(existing, request.expectedVersion());\n"
+            "        tx.put(\n"
+            "            request.lookup().metadataEntity(),\n"
+            "            key.orElseThrow(),\n"
+            "            ExternalSystemMetadata.externalSystemMetadataDocumentWithKeys(\n"
+            "                request.document(), request.lookup()\n"
+            "            )\n"
+            "        );\n"
+            "        return tx.get(request.lookup().metadataEntity(), key.orElseThrow());\n"
+            "    }\n\n"
+            "    @Override public Optional<Backend.VersionedRecord> getMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataGetRequest request\n"
+            "    ) throws Backend.BackendException {\n"
+            "        Optional<String> key = "
+            "ExternalSystemMetadata.externalSystemMetadataKey(request.lookup());\n"
+            "        return key.isPresent()\n"
+            "            ? tx.get(request.lookup().metadataEntity(), key.orElseThrow())\n"
+            "            : Optional.empty();\n"
+            "    }\n\n"
+            "    @Override public Optional<Backend.VersionedRecord> disableMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataDisableRequest request\n"
+            "    ) throws Backend.BackendException {\n"
+            "        return updateStatusTx(\n"
+            "            tx, request.lookup(), request.expectedVersion(), "
+            "request.disabledStatus()\n"
+            "        );\n"
+            "    }\n\n"
+            "    @Override public Optional<Backend.VersionedRecord> deleteMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataDeleteRequest request\n"
+            "    ) throws Backend.BackendException {\n"
+            "        return updateStatusTx(\n"
+            "            tx, request.lookup(), request.expectedVersion(), request.deletedStatus()\n"
+            "        );\n"
+            "    }\n\n"
+            "    @Override public Optional<ExternalSystem.MetadataResolution> resolveMetadata(\n"
+            "        Backend backend,\n"
+            "        ExternalSystem.MetadataLookup lookup\n"
+            "    ) throws Backend.BackendException {\n"
+            "        Backend.Transaction tx = backend.begin();\n"
+            "        try {\n"
+            "            Optional<ExternalSystem.MetadataResolution> resolved = "
+            "resolveMetadataTx(tx, lookup);\n"
+            "            backend.commit(tx);\n"
+            "            return resolved;\n"
+            "        } catch (Backend.BackendException error) {\n"
+            "            tx.abort();\n"
+            "            throw error;\n"
+            "        }\n"
+            "    }\n\n"
+            "    @Override public Optional<ExternalSystem.MetadataResolution> "
+            "resolveMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystem.MetadataLookup lookup\n"
+            "    ) throws Backend.BackendException {\n"
+            "        Optional<Backend.VersionedRecord> record =\n"
+            "            getMetadataTx(tx, new ExternalSystemOperatorMetadataGetRequest(lookup));\n"
+            "        return record.map(value -> new ExternalSystem.MetadataResolution(\n"
+            "            value,\n"
+            "            ExternalSystem.missingRequiredMetadataFields(\n"
+            "                value.document(), lookup.requiredFields()\n"
+            "            )\n"
+            "        ));\n"
+            "    }\n\n"
+            "    private static void assertExpectedVersion(\n"
+            "        Optional<Backend.VersionedRecord> existing,\n"
+            "        Optional<Long> expectedVersion\n"
+            "    ) throws Backend.BackendException {\n"
+            "        if (expectedVersion.isEmpty()) {\n"
+            "            return;\n"
+            "        }\n"
+            "        if (existing.isEmpty() || existing.orElseThrow().version() != "
+            "expectedVersion.orElseThrow()) {\n"
+            "            throw new Backend.ConflictException(\n"
+            "                Backend.ConflictKind.VERSION_CONFLICT,\n"
+            "                \"external system metadata version conflict\"\n"
+            "            );\n"
+            "        }\n"
+            "    }\n\n"
+            "    private static Optional<Backend.VersionedRecord> updateStatusTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystem.MetadataLookup lookup,\n"
+            "        Optional<Long> expectedVersion,\n"
+            "        String status\n"
+            "    ) throws Backend.BackendException {\n"
+            "        Optional<String> key = "
+            "ExternalSystemMetadata.externalSystemMetadataKey(lookup);\n"
+            "        if (key.isEmpty()) {\n"
+            "            return Optional.empty();\n"
+            "        }\n"
+            "        Optional<Backend.VersionedRecord> existing =\n"
+            "            tx.get(lookup.metadataEntity(), key.orElseThrow());\n"
+            "        if (existing.isEmpty()) {\n"
+            "            return Optional.empty();\n"
+            "        }\n"
+            "        assertExpectedVersion(existing, expectedVersion);\n"
+            "        java.util.HashMap<String, Json> values = new java.util.HashMap<>();\n"
+            "        if (existing.orElseThrow().document() instanceof Json.ObjectValue object) {\n"
+            "            values.putAll(object.values());\n"
+            "        }\n"
+            "        for (ExternalSystem.MetadataKeyValue keyValue : lookup.keyValues()) {\n"
+            "            values.put(keyValue.field(), keyValue.value());\n"
+            "        }\n"
+            "        values.put(\"status\", Json.string(status));\n"
+            "        tx.put(lookup.metadataEntity(), key.orElseThrow(), Json.object(values));\n"
+            "        return tx.get(lookup.metadataEntity(), key.orElseThrow());\n"
+            "    }\n"
+            "}\n"
+    );
+    add_file(
+        "ExternalSystemOperatorMetadataApiHandler.java",
+        package_header() +
+            "import com.statespec.backend.Backend;\n"
+            "import com.statespec.generated.Descriptors.ApiResponse;\n\n"
+            "public interface ExternalSystemOperatorMetadataApiHandler {\n"
+            "    ApiResponse handleUpsertMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataRepository repository,\n"
+            "        ExternalSystemOperatorMetadataUpsertRequest request\n"
+            "    ) throws Exception;\n\n"
+            "    ApiResponse handleGetMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataRepository repository,\n"
+            "        ExternalSystemOperatorMetadataGetRequest request\n"
+            "    ) throws Exception;\n\n"
+            "    ApiResponse handleDisableMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataRepository repository,\n"
+            "        ExternalSystemOperatorMetadataDisableRequest request\n"
+            "    ) throws Exception;\n\n"
+            "    ApiResponse handleDeleteMetadataTx(\n"
+            "        Backend.Transaction tx,\n"
+            "        ExternalSystemOperatorMetadataRepository repository,\n"
+            "        ExternalSystemOperatorMetadataDeleteRequest request\n"
+            "    ) throws Exception;\n"
+            "}\n"
+    );
+    add_file(
+        "ExternalSystemCallRequest.java",
+        package_header() +
+            "import com.statespec.backend.Json;\n"
+            "import java.util.Map;\n\n"
+            "public record ExternalSystemCallRequest(\n"
+            "    String externalSystem,\n"
+            "    Map<String, Json> clientConfig,\n"
+            "    Map<String, Json> requestPayload\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemCallResponse.java",
+        package_header() +
+            "import com.statespec.backend.Json;\n"
+            "import java.util.Map;\n\n"
+            "public record ExternalSystemCallResponse(\n"
+            "    int statusCode,\n"
+            "    Json body,\n"
+            "    Map<String, Json> metadata\n"
+            ") {}\n"
+    );
+    add_file(
+        "ExternalSystemClient.java",
+        package_header() +
+            "public interface ExternalSystemClient {\n"
+            "    ExternalSystemCallResponse callExternalSystem(ExternalSystemCallRequest request)\n"
+            "        throws Exception;\n"
+            "}\n"
+    );
+    add_file("ExternalSystemMetadata.java", java_external_metadata_runtime_file());
+}
+
 std::string java_api_shape_import(const IrSystem& system)
 {
     for (const auto& api : system.apis)
@@ -1559,6 +2024,7 @@ void add_java_descriptor_module_artifacts(
             generate_java_runtime_registration(system, templates) +
             "}\n"
     );
+    add_java_external_metadata_artifacts(result, options);
 
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "CoreDescriptorModule.java",

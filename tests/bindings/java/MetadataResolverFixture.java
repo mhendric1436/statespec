@@ -3,6 +3,7 @@ package com.statespec.generated;
 import com.statespec.backend.Backend;
 import com.statespec.backend.ExternalSystem;
 import com.statespec.backend.Json;
+import com.statespec.generated.external.metadata.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,17 +88,17 @@ public final class MetadataResolverFixture
     }
 
     private static final class FixtureMappingApplicator
-        implements Descriptors.ExternalSystemMetadataMappingApplicator
+        implements ExternalSystemMetadataMappingApplicator
     {
         @Override
-        public Descriptors.ExternalSystemMetadataMappingOutput applyExternalSystemMetadataMappings(
-            Descriptors.ExternalSystemMetadataMappingPlan plan,
-            Descriptors.ExternalSystemMetadataMappingInputs inputs
+        public ExternalSystemMetadataMappingOutput applyExternalSystemMetadataMappings(
+            ExternalSystemMetadataMappingPlan plan,
+            ExternalSystemMetadataMappingInputs inputs
         )
         {
             java.util.HashMap<String, Json> clientConfig = new java.util.HashMap<>();
             java.util.HashMap<String, Json> requestPayload = new java.util.HashMap<>();
-            for (Descriptors.ExternalSystemMetadataMappingAssignment assignment :
+            for (ExternalSystemMetadataMappingAssignment assignment :
                  plan.allMappings())
             {
                 Optional<Json> value = inputs.assignmentValue(assignment);
@@ -114,20 +115,20 @@ public final class MetadataResolverFixture
                     requestPayload.put(assignment.field(), value.orElseThrow());
                 }
             }
-            return new Descriptors.ExternalSystemMetadataMappingOutput(
+            return new ExternalSystemMetadataMappingOutput(
                 clientConfig, requestPayload,
-                Descriptors.missingExternalSystemMetadataMappingSources(plan, inputs)
+                ExternalSystemMetadata.missingExternalSystemMetadataMappingSources(plan, inputs)
             );
         }
     }
 
     private static final class FixtureOperatorMetadataRepository
-        implements Descriptors.ExternalSystemOperatorMetadataRepository
+        implements ExternalSystemOperatorMetadataRepository
     {
         @Override
         public Optional<Backend.VersionedRecord> upsertMetadataTx(
             Backend.Transaction tx,
-            Descriptors.ExternalSystemOperatorMetadataUpsertRequest request
+            ExternalSystemOperatorMetadataUpsertRequest request
         )
         {
             return Optional.of(new Backend.VersionedRecord(
@@ -139,7 +140,7 @@ public final class MetadataResolverFixture
         @Override
         public Optional<Backend.VersionedRecord> getMetadataTx(
             Backend.Transaction tx,
-            Descriptors.ExternalSystemOperatorMetadataGetRequest request
+            ExternalSystemOperatorMetadataGetRequest request
         )
         {
             return Optional.of(new Backend.VersionedRecord(
@@ -151,7 +152,7 @@ public final class MetadataResolverFixture
         @Override
         public Optional<Backend.VersionedRecord> disableMetadataTx(
             Backend.Transaction tx,
-            Descriptors.ExternalSystemOperatorMetadataDisableRequest request
+            ExternalSystemOperatorMetadataDisableRequest request
         )
         {
             return Optional.of(new Backend.VersionedRecord(
@@ -164,7 +165,7 @@ public final class MetadataResolverFixture
         @Override
         public Optional<Backend.VersionedRecord> deleteMetadataTx(
             Backend.Transaction tx,
-            Descriptors.ExternalSystemOperatorMetadataDeleteRequest request
+            ExternalSystemOperatorMetadataDeleteRequest request
         )
         {
             return Optional.of(new Backend.VersionedRecord(
@@ -176,13 +177,13 @@ public final class MetadataResolverFixture
     }
 
     private static final class FixtureOperatorMetadataApiHandler
-        implements Descriptors.ExternalSystemOperatorMetadataApiHandler
+        implements ExternalSystemOperatorMetadataApiHandler
     {
         @Override
         public Descriptors.ApiResponse handleUpsertMetadataTx(
             Backend.Transaction tx,
-            Descriptors.ExternalSystemOperatorMetadataRepository repository,
-            Descriptors.ExternalSystemOperatorMetadataUpsertRequest request
+            ExternalSystemOperatorMetadataRepository repository,
+            ExternalSystemOperatorMetadataUpsertRequest request
         ) throws Exception
         {
             Optional<Backend.VersionedRecord> record = repository.upsertMetadataTx(tx, request);
@@ -195,8 +196,8 @@ public final class MetadataResolverFixture
         @Override
         public Descriptors.ApiResponse handleGetMetadataTx(
             Backend.Transaction tx,
-            Descriptors.ExternalSystemOperatorMetadataRepository repository,
-            Descriptors.ExternalSystemOperatorMetadataGetRequest request
+            ExternalSystemOperatorMetadataRepository repository,
+            ExternalSystemOperatorMetadataGetRequest request
         ) throws Exception
         {
             Optional<Backend.VersionedRecord> record = repository.getMetadataTx(tx, request);
@@ -208,8 +209,8 @@ public final class MetadataResolverFixture
         @Override
         public Descriptors.ApiResponse handleDisableMetadataTx(
             Backend.Transaction tx,
-            Descriptors.ExternalSystemOperatorMetadataRepository repository,
-            Descriptors.ExternalSystemOperatorMetadataDisableRequest request
+            ExternalSystemOperatorMetadataRepository repository,
+            ExternalSystemOperatorMetadataDisableRequest request
         ) throws Exception
         {
             Optional<Backend.VersionedRecord> record = repository.disableMetadataTx(tx, request);
@@ -222,8 +223,8 @@ public final class MetadataResolverFixture
         @Override
         public Descriptors.ApiResponse handleDeleteMetadataTx(
             Backend.Transaction tx,
-            Descriptors.ExternalSystemOperatorMetadataRepository repository,
-            Descriptors.ExternalSystemOperatorMetadataDeleteRequest request
+            ExternalSystemOperatorMetadataRepository repository,
+            ExternalSystemOperatorMetadataDeleteRequest request
         ) throws Exception
         {
             Optional<Backend.VersionedRecord> record = repository.deleteMetadataTx(tx, request);
@@ -238,8 +239,8 @@ public final class MetadataResolverFixture
     {
         FixtureResolver resolver = new FixtureResolver();
         FixtureTx tx = new FixtureTx();
-        Descriptors.ExternalSystemMetadataMappingPlan plan =
-            Descriptors.externalSystemMetadataMappingPlan(
+        ExternalSystemMetadataMappingPlan plan =
+            ExternalSystemMetadata.externalSystemMetadataMappingPlan(
                 Descriptors.externalSystemDescriptors().get(0)
             );
         if (plan.allMappings().size() != 4 || plan.clientMappings().size() != 3 ||
@@ -255,11 +256,11 @@ public final class MetadataResolverFixture
         {
             throw new AssertionError("unexpected metadata mapping plan");
         }
-        Descriptors.ExternalSystemMetadataMappingApplicator applicator =
+        ExternalSystemMetadataMappingApplicator applicator =
             new FixtureMappingApplicator();
-        Descriptors.ExternalSystemMetadataMappingOutput mapped =
+        ExternalSystemMetadataMappingOutput mapped =
             applicator.applyExternalSystemMetadataMappings(
-                plan, new Descriptors.ExternalSystemMetadataMappingInputs(
+                plan, new ExternalSystemMetadataMappingInputs(
                           Map.of("order_id", Json.string("order-1")), Map.of(), Map.of(),
                           Map.of(
                               "base_url", Json.string("https://api.stripe.test"), "auth_ref",
@@ -272,9 +273,9 @@ public final class MetadataResolverFixture
         {
             throw new AssertionError("unexpected mapped metadata output");
         }
-        Descriptors.ExternalSystemMetadataMappingOutput missingMapped =
+        ExternalSystemMetadataMappingOutput missingMapped =
             applicator.applyExternalSystemMetadataMappings(
-                plan, new Descriptors.ExternalSystemMetadataMappingInputs(
+                plan, new ExternalSystemMetadataMappingInputs(
                           Map.of("order_id", Json.string("order-1")), Map.of(), Map.of(),
                           Map.of(
                               "base_url", Json.string("https://api.stripe.test"), "auth_ref",
@@ -295,13 +296,13 @@ public final class MetadataResolverFixture
             new ExternalSystem.MetadataKeyValue("profile", Json.string("default"))
         );
         ExternalSystem.MetadataLookup lookup =
-            Descriptors.externalSystemMetadataLookup("Stripe", keys).orElseThrow();
-        Descriptors.ExternalSystemOperatorMetadataRepository repository =
+            ExternalSystemMetadata.externalSystemMetadataLookup("Stripe", keys).orElseThrow();
+        ExternalSystemOperatorMetadataRepository repository =
             new FixtureOperatorMetadataRepository();
         Backend.VersionedRecord upserted =
             repository
                 .upsertMetadataTx(
-                    tx, new Descriptors.ExternalSystemOperatorMetadataUpsertRequest(
+                    tx, new ExternalSystemOperatorMetadataUpsertRequest(
                             lookup, Json.object(Map.of("tenant_id", Json.string("tenant-a"))),
                             Optional.of(1L)
                         )
@@ -309,12 +310,12 @@ public final class MetadataResolverFixture
                 .orElseThrow();
         Backend.VersionedRecord loaded =
             repository
-                .getMetadataTx(tx, new Descriptors.ExternalSystemOperatorMetadataGetRequest(lookup))
+                .getMetadataTx(tx, new ExternalSystemOperatorMetadataGetRequest(lookup))
                 .orElseThrow();
         Backend.VersionedRecord disabled =
             repository
                 .disableMetadataTx(
-                    tx, new Descriptors.ExternalSystemOperatorMetadataDisableRequest(
+                    tx, new ExternalSystemOperatorMetadataDisableRequest(
                             lookup, Optional.of(upserted.version()), "Disabled"
                         )
                 )
@@ -322,7 +323,7 @@ public final class MetadataResolverFixture
         Backend.VersionedRecord deleted =
             repository
                 .deleteMetadataTx(
-                    tx, new Descriptors.ExternalSystemOperatorMetadataDeleteRequest(
+                    tx, new ExternalSystemOperatorMetadataDeleteRequest(
                             lookup, Optional.of(disabled.version()), "Deleted"
                         )
                 )
@@ -332,11 +333,11 @@ public final class MetadataResolverFixture
         {
             throw new AssertionError("unexpected metadata repository result");
         }
-        Descriptors.ExternalSystemOperatorMetadataApiHandler metadataApiHandler =
+        ExternalSystemOperatorMetadataApiHandler metadataApiHandler =
             new FixtureOperatorMetadataApiHandler();
         Descriptors.ApiResponse metadataApiResponse = metadataApiHandler.handleUpsertMetadataTx(
             tx, repository,
-            new Descriptors.ExternalSystemOperatorMetadataUpsertRequest(
+            new ExternalSystemOperatorMetadataUpsertRequest(
                 lookup, Json.object(Map.of("tenant_id", Json.string("tenant-a"))),
                 Optional.of(deleted.version())
             )
@@ -346,14 +347,14 @@ public final class MetadataResolverFixture
             throw new AssertionError("unexpected operator metadata API response");
         }
         Optional<ExternalSystem.MetadataResolution> resolved =
-            Descriptors.resolveExternalSystemMetadataTx(resolver, tx, "Stripe", keys);
+            ExternalSystemMetadata.resolveExternalSystemMetadataTx(resolver, tx, "Stripe", keys);
         if (resolved.isEmpty() || resolved.orElseThrow().complete() || resolver.calls != 1)
         {
             throw new AssertionError("expected incomplete metadata resolution through resolver");
         }
 
         Optional<ExternalSystem.MetadataResolution> skipped =
-            Descriptors.resolveExternalSystemMetadataTx(resolver, tx, "Stripe", keys.subList(0, 2));
+            ExternalSystemMetadata.resolveExternalSystemMetadataTx(resolver, tx, "Stripe", keys.subList(0, 2));
         if (skipped.isPresent() || resolver.calls != 1)
         {
             throw new AssertionError("expected incomplete key to skip resolver");

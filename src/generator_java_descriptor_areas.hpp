@@ -17,10 +17,8 @@ std::string generate_java_descriptor_prelude(
 );
 std::string generate_java_feature_flag_descriptors(const IrSystem& system);
 std::string generate_java_declaration_descriptors(const IrSystem& system);
-std::string generate_java_external_system_descriptors(
-    const IrSystem& system,
-    const std::string& external_system_call_adapters
-);
+std::string generate_java_external_system_descriptors(const IrSystem& system);
+std::string generate_java_external_system_metadata_runtime(const IrSystem& system);
 std::string generate_java_api_descriptors(const IrSystem& system);
 std::string generate_java_worker_descriptors(const IrSystem& system);
 std::string generate_java_worker_descriptor_module(

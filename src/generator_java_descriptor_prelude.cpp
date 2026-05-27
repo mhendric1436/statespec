@@ -33,8 +33,8 @@ std::string java_descriptor_module_imports(const IrSystem& system)
 
 std::string generate_java_descriptor_prelude(
     const IrSystem& system,
-    const std::string& external_system_runtime,
-    const std::string& external_system_metadata_runtime,
+    const std::string&,
+    const std::string&,
     const std::string& entity_repository_runtime
 )
 {
@@ -136,85 +136,6 @@ std::string generate_java_descriptor_prelude(
     out << "        String source,\n";
     out << "        String target\n";
     out << "    ) {}\n\n";
-    out << "    public record ExternalSystemMetadataMappingAssignment(\n";
-    out << "        String source,\n";
-    out << "        String sourceRoot,\n";
-    out << "        String sourceField,\n";
-    out << "        String targetRoot,\n";
-    out << "        String field\n";
-    out << "    ) {}\n\n";
-    out << "    public record ExternalSystemMetadataMappingPlan(\n";
-    out << "        List<ExternalSystemMetadataMappingAssignment> allMappings,\n";
-    out << "        List<ExternalSystemMetadataMappingAssignment> clientMappings,\n";
-    out << "        List<ExternalSystemMetadataMappingAssignment> requestMappings\n";
-    out << "    ) {}\n\n";
-    out << "    public record ExternalSystemMetadataMissingMappingSource(\n";
-    out << "        String source,\n";
-    out << "        String sourceRoot,\n";
-    out << "        String sourceField,\n";
-    out << "        String targetRoot,\n";
-    out << "        String field\n";
-    out << "    ) {}\n\n";
-    out << "    public record ExternalSystemMetadataMappingInputs(\n";
-    out << "        Map<String, Json> input,\n";
-    out << "        Map<String, Json> entity,\n";
-    out << "        Map<String, Json> workflow,\n";
-    out << "        Map<String, Json> metadata\n";
-    out << "    ) {\n";
-    out << "        public Optional<Json> sourceValue(String sourceRoot, String sourceField) "
-           "{\n";
-    out << "            Map<String, Json> values = switch (sourceRoot) {\n";
-    out << "                case \"input\" -> input;\n";
-    out << "                case \"entity\" -> entity;\n";
-    out << "                case \"workflow\" -> workflow;\n";
-    out << "                case \"metadata\" -> metadata;\n";
-    out << "                default -> null;\n";
-    out << "            };\n";
-    out << "            if (values == null) {\n";
-    out << "                return Optional.empty();\n";
-    out << "            }\n";
-    out << "            return Optional.ofNullable(values.get(sourceField));\n";
-    out << "        }\n\n";
-    out << "        public Optional<Json> assignmentValue(\n";
-    out << "            ExternalSystemMetadataMappingAssignment assignment\n";
-    out << "        ) {\n";
-    out << "            return sourceValue(assignment.sourceRoot(), "
-           "assignment.sourceField());\n";
-    out << "        }\n";
-    out << "    }\n\n";
-    out << "    public record ExternalSystemMetadataMappingOutput(\n";
-    out << "        Map<String, Json> clientConfig,\n";
-    out << "        Map<String, Json> requestPayload,\n";
-    out << "        List<ExternalSystemMetadataMissingMappingSource> missingSources\n";
-    out << "    ) {}\n\n";
-    out << "    public static List<ExternalSystemMetadataMissingMappingSource> "
-           "missingExternalSystemMetadataMappingSources(\n";
-    out << "        ExternalSystemMetadataMappingPlan plan,\n";
-    out << "        ExternalSystemMetadataMappingInputs inputs\n";
-    out << "    ) {\n";
-    out << "        java.util.ArrayList<ExternalSystemMetadataMissingMappingSource> "
-           "missing = new java.util.ArrayList<>();\n";
-    out << "        for (ExternalSystemMetadataMappingAssignment assignment : "
-           "plan.allMappings()) {\n";
-    out << "            if (inputs.assignmentValue(assignment).isEmpty()) {\n";
-    out << "                missing.add(new ExternalSystemMetadataMissingMappingSource(\n";
-    out << "                    assignment.source(),\n";
-    out << "                    assignment.sourceRoot(),\n";
-    out << "                    assignment.sourceField(),\n";
-    out << "                    assignment.targetRoot(),\n";
-    out << "                    assignment.field()\n";
-    out << "                ));\n";
-    out << "            }\n";
-    out << "        }\n";
-    out << "        return List.copyOf(missing);\n";
-    out << "    }\n\n";
-    out << "    public interface ExternalSystemMetadataMappingApplicator {\n";
-    out << "        ExternalSystemMetadataMappingOutput applyExternalSystemMetadataMappings(\n";
-    out << "            ExternalSystemMetadataMappingPlan plan,\n";
-    out << "            ExternalSystemMetadataMappingInputs inputs\n";
-    out << "        ) throws Exception;\n";
-    out << "    }\n\n";
-    out << external_system_runtime << "\n";
     out << "    public record ExternalSystemMetadataDescriptor(\n";
     out << "        String entity,\n";
     out << "        Optional<String> tenantField,\n";
@@ -223,43 +144,6 @@ std::string generate_java_descriptor_prelude(
     out << "        List<String> requiredFields,\n";
     out << "        List<ExternalSystemMetadataMappingDescriptor> mappings\n";
     out << "    ) {}\n\n";
-    out << "    public record ExternalSystemOperatorMetadataUpsertRequest(\n";
-    out << "        ExternalSystem.MetadataLookup lookup,\n";
-    out << "        Json document,\n";
-    out << "        Optional<Long> expectedVersion\n";
-    out << "    ) {}\n\n";
-    out << "    public record ExternalSystemOperatorMetadataGetRequest(\n";
-    out << "        ExternalSystem.MetadataLookup lookup\n";
-    out << "    ) {}\n\n";
-    out << "    public record ExternalSystemOperatorMetadataDisableRequest(\n";
-    out << "        ExternalSystem.MetadataLookup lookup,\n";
-    out << "        Optional<Long> expectedVersion,\n";
-    out << "        String disabledStatus\n";
-    out << "    ) {}\n\n";
-    out << "    public record ExternalSystemOperatorMetadataDeleteRequest(\n";
-    out << "        ExternalSystem.MetadataLookup lookup,\n";
-    out << "        Optional<Long> expectedVersion,\n";
-    out << "        String deletedStatus\n";
-    out << "    ) {}\n\n";
-    out << "    public interface ExternalSystemOperatorMetadataRepository {\n";
-    out << "        Optional<Backend.VersionedRecord> upsertMetadataTx(\n";
-    out << "            Backend.Transaction tx,\n";
-    out << "            ExternalSystemOperatorMetadataUpsertRequest request\n";
-    out << "        ) throws Backend.BackendException;\n";
-    out << "        Optional<Backend.VersionedRecord> getMetadataTx(\n";
-    out << "            Backend.Transaction tx,\n";
-    out << "            ExternalSystemOperatorMetadataGetRequest request\n";
-    out << "        ) throws Backend.BackendException;\n";
-    out << "        Optional<Backend.VersionedRecord> disableMetadataTx(\n";
-    out << "            Backend.Transaction tx,\n";
-    out << "            ExternalSystemOperatorMetadataDisableRequest request\n";
-    out << "        ) throws Backend.BackendException;\n";
-    out << "        Optional<Backend.VersionedRecord> deleteMetadataTx(\n";
-    out << "            Backend.Transaction tx,\n";
-    out << "            ExternalSystemOperatorMetadataDeleteRequest request\n";
-    out << "        ) throws Backend.BackendException;\n";
-    out << "    }\n\n";
-    out << external_system_metadata_runtime << "\n";
     out << "    public record ExternalSystemDescriptor(\n";
     out << "        String name,\n";
     out << "        List<ExternalSystemPropertyDescriptor> properties,\n";
@@ -301,28 +185,6 @@ std::string generate_java_descriptor_prelude(
     out << "        int statusCode,\n";
     out << "        Json body\n";
     out << "    ) {}\n\n";
-    out << "    public interface ExternalSystemOperatorMetadataApiHandler {\n";
-    out << "        ApiResponse handleUpsertMetadataTx(\n";
-    out << "            Backend.Transaction tx,\n";
-    out << "            ExternalSystemOperatorMetadataRepository repository,\n";
-    out << "            ExternalSystemOperatorMetadataUpsertRequest request\n";
-    out << "        ) throws Exception;\n";
-    out << "        ApiResponse handleGetMetadataTx(\n";
-    out << "            Backend.Transaction tx,\n";
-    out << "            ExternalSystemOperatorMetadataRepository repository,\n";
-    out << "            ExternalSystemOperatorMetadataGetRequest request\n";
-    out << "        ) throws Exception;\n";
-    out << "        ApiResponse handleDisableMetadataTx(\n";
-    out << "            Backend.Transaction tx,\n";
-    out << "            ExternalSystemOperatorMetadataRepository repository,\n";
-    out << "            ExternalSystemOperatorMetadataDisableRequest request\n";
-    out << "        ) throws Exception;\n";
-    out << "        ApiResponse handleDeleteMetadataTx(\n";
-    out << "            Backend.Transaction tx,\n";
-    out << "            ExternalSystemOperatorMetadataRepository repository,\n";
-    out << "            ExternalSystemOperatorMetadataDeleteRequest request\n";
-    out << "        ) throws Exception;\n";
-    out << "    }\n\n";
     out << "    public record WorkerDescriptor(\n";
     out << "        String name,\n";
     out << "        boolean singleton,\n";
