@@ -448,6 +448,21 @@ bool go_api_uses_shapes(const IrSystem& system)
     return false;
 }
 
+bool go_api_uses_shape(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const auto& api)
+        {
+            return (api.input.has_value() && *api.input == shape_name) ||
+                   (api.output.has_value() && *api.output == shape_name);
+        }
+    );
+}
+
 bool go_api_default_handlers_use_shapes(const IrSystem& system)
 {
     for (const auto& api : system.apis)
@@ -466,7 +481,7 @@ std::string go_api_shape_import(const IrSystem& system)
     {
         return {};
     }
-    return "\tshapes \"statespec-generated/common/backend/shapes\"\n";
+    return "\tshapes \"statespec-generated/api/backend/shapes\"\n";
 }
 
 std::string go_api_default_handler_shape_import(const IrSystem& system)
@@ -475,7 +490,7 @@ std::string go_api_default_handler_shape_import(const IrSystem& system)
     {
         return {};
     }
-    return "\tshapes \"statespec-generated/common/backend/shapes\"\n";
+    return "\tshapes \"statespec-generated/api/backend/shapes\"\n";
 }
 
 struct ApiHandlerDomain
@@ -1440,8 +1455,38 @@ void add_go_shape_type_artifacts(
 {
     for (const auto& shape : system.shapes)
     {
+        if (go_api_uses_shape(system, shape.name))
+        {
+            continue;
+        }
         add_go_raw_common_file(
             result, options, "backend/shapes/" + snake_identifier(shape.name) + ".go",
+            go_shape_type_file(shape)
+        );
+    }
+}
+
+void add_go_raw_api_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+);
+
+void add_go_api_shape_type_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    for (const auto& shape : system.shapes)
+    {
+        if (!go_api_uses_shape(system, shape.name))
+        {
+            continue;
+        }
+        add_go_raw_api_file(
+            result, options, "api/backend/shapes/" + snake_identifier(shape.name) + ".go",
             go_shape_type_file(shape)
         );
     }
@@ -2051,6 +2096,7 @@ void add_go_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
+    add_go_api_shape_type_artifacts(result, options, system);
     add_go_api_descriptor_artifacts(result, options, system);
     add_go_raw_api_file(
         result, options, "api/backend/descriptors/catalog.go",
@@ -2065,6 +2111,7 @@ void add_go_api_artifacts(
         diagnostics,
         TemplateRenderer::Values{
             {"api_codec_helpers", generate_api_codec_helpers_go()},
+            {"api_shape_import", go_api_shape_import(system)},
             {"api_codec_delegates", go_api_codec_delegates(system)}
         }
     );

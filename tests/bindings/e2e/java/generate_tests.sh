@@ -40,6 +40,10 @@ api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java
 api/com/statespec/generated/descriptors/Catalog.java
 api/com/statespec/generated/descriptors/ReportProvisionReadyDescriptorModule.java
 api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java
+api/com/statespec/generated/shapes/ProvisionCallbackRequest.java
+api/com/statespec/generated/shapes/ProvisionCallbackResponse.java
+api/com/statespec/generated/shapes/StartProvisionRequest.java
+api/com/statespec/generated/shapes/StartProvisionResponse.java
 common/com/statespec/backend/Backend.java
 common/com/statespec/backend/ExternalSystem.java
 common/com/statespec/backend/FeatureFlag.java
@@ -109,10 +113,6 @@ common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataG
 common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataRepository.java
 common/com/statespec/generated/external/metadata/ExternalSystemOperatorMetadataUpsertRequest.java
 common/com/statespec/generated/runtime/RuntimeRegistration.java
-common/com/statespec/generated/shapes/ProvisionCallbackRequest.java
-common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
-common/com/statespec/generated/shapes/StartProvisionRequest.java
-common/com/statespec/generated/shapes/StartProvisionResponse.java
 common/com/statespec/generated/workflows/ProvisionServiceDescriptorModule.java
 worker/com/statespec/generated/WorkerApplication.java
 worker/com/statespec/generated/WorkerContexts.java

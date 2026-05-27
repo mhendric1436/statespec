@@ -40,6 +40,10 @@ api/backend/descriptors/catalog.go
 api/backend/descriptors/report_provision_ready.go
 api/backend/descriptors/start_provision.go
 api/backend/external_system_operator_metadata_api.go
+api/backend/shapes/provision_callback_request.go
+api/backend/shapes/provision_callback_response.go
+api/backend/shapes/start_provision_request.go
+api/backend/shapes/start_provision_response.go
 api/cmd/api/main.go
 common/backend/backend.go
 common/backend/descriptors.go
@@ -76,10 +80,6 @@ common/backend/runtime_registration_queues.go
 common/backend/runtime_registration_workflows.go
 common/backend/schema_compatibility.go
 common/backend/shape_descriptors.go
-common/backend/shapes/provision_callback_request.go
-common/backend/shapes/provision_callback_response.go
-common/backend/shapes/start_provision_request.go
-common/backend/shapes/start_provision_response.go
 common/backend/start_provision_request_shape_descriptors.go
 common/backend/start_provision_response_shape_descriptors.go
 common/backend/workflow.go

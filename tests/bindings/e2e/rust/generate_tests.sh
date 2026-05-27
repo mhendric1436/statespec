@@ -41,6 +41,11 @@ api/descriptors/start_provision.rs
 api/external_system_operator_metadata_api.rs
 api/handlers/operations.rs
 api/main.rs
+api/shapes.rs
+api/shapes/provision_callback_request.rs
+api/shapes/provision_callback_response.rs
+api/shapes/start_provision_request.rs
+api/shapes/start_provision_response.rs
 common/backend.rs
 common/descriptors.rs
 common/descriptors/core.rs
@@ -82,11 +87,6 @@ common/runtime/queues.rs
 common/runtime/workflows.rs
 common/runtime_registration.rs
 common/schema_compatibility.rs
-common/shapes.rs
-common/shapes/provision_callback_request.rs
-common/shapes/provision_callback_response.rs
-common/shapes/start_provision_request.rs
-common/shapes/start_provision_response.rs
 common/workflow.rs
 common/workflows/provision_service.rs
 lib.rs

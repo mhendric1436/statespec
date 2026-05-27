@@ -47,7 +47,6 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors/shapes.hpp", common},
             {"common/entity_repository.hpp", common},
             {"common/runtime_registration.hpp", common},
-            {"common/shapes.hpp", common},
             {"common/Makefile", common},
             {"api/api_codecs.hpp", api},
             {"api/api_codec_support.hpp", api},
@@ -83,9 +82,6 @@ void test_cpp_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "descriptors/shapes.hpp", "common/descriptors/shapes.hpp",
         statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "shapes.hpp", "common/shapes.hpp", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "descriptors/runtime.hpp", "common/descriptors/runtime.hpp",

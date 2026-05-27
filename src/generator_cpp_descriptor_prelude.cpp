@@ -45,7 +45,6 @@ std::string generate_cpp_descriptor_prelude(
     out << "#include \"log.hpp\"\n";
     out << "#include \"metric.hpp\"\n";
     out << "#include \"queue.hpp\"\n";
-    out << "#include \"shapes.hpp\"\n";
     out << "#include \"workflow.hpp\"\n\n";
     out << cpp_descriptor_module_includes(system) << "\n";
     out << "#include <chrono>\n";

@@ -24,6 +24,12 @@ namespace
 
 std::string java_api_default_handler_shape_import(const IrSystem& system);
 std::string java_api_shape_import(const IrSystem& system);
+void add_java_raw_api_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const std::filesystem::path& relative_output_path,
+    std::string content
+);
 std::string java_workflow_worker_module_class_name(const IrWorkflow& workflow);
 std::filesystem::path java_worker_generated_path(std::string_view filename);
 
@@ -1253,6 +1259,21 @@ std::string java_shape_type_file(const IrShape& shape)
     return out.str();
 }
 
+bool java_api_uses_shape(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const auto& api)
+        {
+            return (api.input.has_value() && *api.input == shape_name) ||
+                   (api.output.has_value() && *api.output == shape_name);
+        }
+    );
+}
+
 void add_java_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1262,7 +1283,31 @@ void add_java_shape_type_artifacts(
     const auto shape_path = join_artifact_path(GeneratedJavaOutputPackagePath, "shapes");
     for (const auto& shape : system.shapes)
     {
+        if (java_api_uses_shape(system, shape.name))
+        {
+            continue;
+        }
         add_java_raw_common_file(
+            result, options, shape_path / (pascal_identifier(shape.name) + ".java"),
+            java_shape_type_file(shape)
+        );
+    }
+}
+
+void add_java_api_shape_type_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    const auto shape_path = java_api_generated_path("shapes");
+    for (const auto& shape : system.shapes)
+    {
+        if (!java_api_uses_shape(system, shape.name))
+        {
+            continue;
+        }
+        add_java_raw_api_file(
             result, options, shape_path / (pascal_identifier(shape.name) + ".java"),
             java_shape_type_file(shape)
         );
@@ -2379,6 +2424,7 @@ void add_java_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
+    add_java_api_shape_type_artifacts(result, options, system);
     add_java_api_descriptor_artifacts(result, options, system);
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiDescriptors.java"),

@@ -114,6 +114,38 @@ TemplateRenderer::Values rust_runtime_registration_module_values(
     };
 }
 
+bool rust_api_uses_shape(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const auto& api)
+        {
+            return (api.input.has_value() && *api.input == shape_name) ||
+                   (api.output.has_value() && *api.output == shape_name);
+        }
+    );
+}
+
+IrSystem rust_shapes_matching(
+    const IrSystem& system,
+    bool api_contract_shapes
+)
+{
+    auto filtered = system;
+    filtered.shapes.clear();
+    for (const auto& shape : system.shapes)
+    {
+        if (rust_api_uses_shape(system, shape.name) == api_contract_shapes)
+        {
+            filtered.shapes.push_back(shape);
+        }
+    }
+    return filtered;
+}
+
 TemplateRenderer::Values rust_lib_values(
     BindingGenerationTier tier,
     const IrSystem& system
@@ -132,8 +164,11 @@ TemplateRenderer::Values rust_lib_values(
     std::ostringstream runtime_modules;
     std::ostringstream api_modules;
     std::ostringstream worker_modules;
-    runtime_modules << "#[path = \"common/shapes.rs\"]\n";
-    runtime_modules << "pub mod shapes;\n";
+    if (!rust_shapes_matching(system, false).shapes.empty())
+    {
+        runtime_modules << "#[path = \"common/shapes.rs\"]\n";
+        runtime_modules << "pub mod common_shapes;\n";
+    }
     runtime_modules << "#[path = \"common/entity_repository.rs\"]\n";
     runtime_modules << "pub mod entity_repository;\n";
     runtime_modules << "#[path = \"common/runtime_registration.rs\"]\n";
@@ -190,6 +225,11 @@ TemplateRenderer::Values rust_lib_values(
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
     {
+        if (!rust_shapes_matching(system, true).shapes.empty())
+        {
+            api_modules << "#[path = \"api/shapes.rs\"]\n";
+            api_modules << "pub mod api_shapes;\n";
+        }
         api_modules << "#[path = \"api/api_descriptors.rs\"]\n";
         api_modules << "pub mod api_descriptors;\n";
         api_modules << "#[path = \"api/api_codecs.rs\"]\n";
@@ -1330,14 +1370,56 @@ void add_rust_shape_type_artifacts(
     const IrSystem& system
 )
 {
-    add_rust_raw_common_file(result, options, "shapes.rs", rust_shapes_module(system));
-    for (const auto& shape : system.shapes)
+    const auto shared_shapes = rust_shapes_matching(system, false);
+    if (shared_shapes.shapes.empty())
+    {
+        return;
+    }
+    add_rust_raw_common_file(result, options, "shapes.rs", rust_shapes_module(shared_shapes));
+    for (const auto& shape : shared_shapes.shapes)
     {
         add_rust_raw_common_file(
             result, options, "shapes/" + snake_identifier(shape.name) + ".rs",
             rust_shape_type_file(shape)
         );
     }
+}
+
+void add_rust_raw_api_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+);
+
+void add_rust_api_shape_type_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    const auto api_shapes = rust_shapes_matching(system, true);
+    if (api_shapes.shapes.empty())
+    {
+        return;
+    }
+    add_rust_raw_api_file(result, options, "api/shapes.rs", rust_shapes_module(api_shapes));
+    for (const auto& shape : api_shapes.shapes)
+    {
+        add_rust_raw_api_file(
+            result, options, "api/shapes/" + snake_identifier(shape.name) + ".rs",
+            rust_shape_type_file(shape)
+        );
+    }
+}
+
+std::string rust_api_shape_import(const IrSystem& system)
+{
+    if (rust_shapes_matching(system, true).shapes.empty())
+    {
+        return {};
+    }
+    return "#[allow(unused_imports)]\nuse crate::api_shapes as shapes;\n";
 }
 
 void add_rust_descriptor_module_artifact(
@@ -1881,6 +1963,7 @@ void add_rust_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
+    add_rust_api_shape_type_artifacts(result, options, system);
     add_rust_api_descriptor_artifacts(result, options, system);
     add_rust_raw_api_file(
         result, options, "api/descriptors/catalog.rs", rust_api_descriptor_catalog_file(system)
@@ -1893,7 +1976,8 @@ void add_rust_api_artifacts(
         result, options, templates, "api/api_codecs.rs", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_codec_modules", rust_api_codec_modules(api_codec_shapes(system))},
-            {"api_codec_helpers", generate_api_codec_helpers_rs()}
+            {"api_codec_helpers", generate_api_codec_helpers_rs()},
+            {"api_shape_import", rust_api_shape_import(system)}
         }
     );
     for (const auto& shape : api_codec_shapes(system))
@@ -1924,7 +2008,8 @@ void add_rust_api_artifacts(
             {"api_operation_default_handler_methods",
              rust_api_handler_registry_delegates(handler_domains)},
             {"api_handler_registry_domain_modules",
-             rust_api_handler_registry_domain_modules(handler_domains)}
+             rust_api_handler_registry_domain_modules(handler_domains)},
+            {"api_shape_import", rust_api_shape_import(system)}
         }
     );
     add_rust_generated_template_file(

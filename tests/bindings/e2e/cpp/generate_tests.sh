@@ -42,6 +42,11 @@ api/descriptors/start_provision.hpp
 api/external_system_operator_metadata_api.hpp
 api/handlers/operations.hpp
 api/main.cpp
+api/shapes.hpp
+api/shapes/provision_callback_request.hpp
+api/shapes/provision_callback_response.hpp
+api/shapes/start_provision_request.hpp
+api/shapes/start_provision_response.hpp
 common/backend.hpp
 common/descriptors.hpp
 common/descriptors/core.hpp
@@ -82,11 +87,6 @@ common/runtime/queue_store.hpp
 common/runtime/workflow_store.hpp
 common/runtime_registration.hpp
 common/schema_compatibility.hpp
-common/shapes.hpp
-common/shapes/provision_callback_request.hpp
-common/shapes/provision_callback_response.hpp
-common/shapes/start_provision_request.hpp
-common/shapes/start_provision_response.hpp
 common/workflow.hpp
 common/workflows/provision_service.hpp
 worker/descriptors/catalog.hpp

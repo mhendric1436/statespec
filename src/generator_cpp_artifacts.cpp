@@ -689,6 +689,38 @@ std::vector<IrShape> api_codec_shapes(const IrSystem& system)
     return shapes;
 }
 
+bool is_api_contract_shape(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const auto& api)
+        {
+            return (api.input.has_value() && *api.input == shape_name) ||
+                   (api.output.has_value() && *api.output == shape_name);
+        }
+    );
+}
+
+IrSystem with_shapes_matching(
+    const IrSystem& system,
+    bool api_contract_shapes
+)
+{
+    auto filtered = system;
+    filtered.shapes.clear();
+    for (const auto& shape : system.shapes)
+    {
+        if (is_api_contract_shape(system, shape.name) == api_contract_shapes)
+        {
+            filtered.shapes.push_back(shape);
+        }
+    }
+    return filtered;
+}
+
 IrSystem with_codec_shape_apis(
     const IrSystem& system,
     std::string_view shape_name
@@ -1295,11 +1327,21 @@ void add_cpp_raw_common_file(
     );
 }
 
-std::string cpp_shape_type_header(const IrShape& shape)
+void add_cpp_raw_api_file(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    std::string_view relative_output_path,
+    std::string content
+);
+
+std::string cpp_shape_type_header(
+    const IrShape& shape,
+    std::string_view backend_include
+)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"../backend.hpp\"\n\n";
+    out << "#include \"" << backend_include << "\"\n\n";
     out << "#include <cstdint>\n";
     out << "#include <optional>\n";
     out << "#include <string>\n\n";
@@ -1333,12 +1375,39 @@ void add_cpp_shape_type_artifacts(
     const IrSystem& system
 )
 {
-    add_cpp_raw_common_file(result, options, "shapes.hpp", cpp_shapes_umbrella_header(system));
-    for (const auto& shape : system.shapes)
+    const auto shared_shapes = with_shapes_matching(system, false);
+    if (!shared_shapes.shapes.empty())
+    {
+        add_cpp_raw_common_file(
+            result, options, "shapes.hpp", cpp_shapes_umbrella_header(shared_shapes)
+        );
+    }
+    for (const auto& shape : shared_shapes.shapes)
     {
         add_cpp_raw_common_file(
             result, options, "shapes/" + snake_identifier(shape.name) + ".hpp",
-            cpp_shape_type_header(shape)
+            cpp_shape_type_header(shape, "../backend.hpp")
+        );
+    }
+}
+
+void add_cpp_api_shape_type_artifacts(
+    GenerationResult& result,
+    const BindingGeneratorOptions& options,
+    const IrSystem& system
+)
+{
+    const auto api_shapes = with_shapes_matching(system, true);
+    if (api_shapes.shapes.empty())
+    {
+        return;
+    }
+    add_cpp_raw_api_file(result, options, "api/shapes.hpp", cpp_shapes_umbrella_header(api_shapes));
+    for (const auto& shape : api_shapes.shapes)
+    {
+        add_cpp_raw_api_file(
+            result, options, "api/shapes/" + snake_identifier(shape.name) + ".hpp",
+            cpp_shape_type_header(shape, "../../common/backend.hpp")
         );
     }
 }
@@ -1907,6 +1976,7 @@ void add_cpp_api_artifacts(
 {
     const auto include_api_composition = !system.api_servers.empty();
 
+    add_cpp_api_shape_type_artifacts(result, options, system);
     add_cpp_api_descriptor_artifacts(result, options, system);
     add_cpp_raw_api_file(
         result, options, "api/descriptors/catalog.hpp", cpp_api_descriptor_catalog_file(system)
@@ -1923,7 +1993,11 @@ void add_cpp_api_artifacts(
     );
     add_cpp_generated_template_file(
         result, options, templates, "api/api_codec_support.hpp", GeneratedArtifactTier::Api,
-        diagnostics, TemplateRenderer::Values{{"api_codec_helpers", generate_api_codec_helpers()}}
+        diagnostics,
+        TemplateRenderer::Values{
+            {"api_codec_helpers", generate_api_codec_helpers()},
+            {"api_shape_include", api_codec_shapes(system).empty() ? "" : "#include \"shapes.hpp\"\n"}
+        }
     );
     for (const auto& shape : api_codec_shapes(system))
     {
