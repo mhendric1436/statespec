@@ -1,12 +1,13 @@
 package com.statespec.generated;
 
+import com.statespec.generated.descriptors.types.WorkerDescriptor;
 import com.statespec.generated.worker.descriptors.Catalog;
 import java.util.List;
 
 public final class WorkerDescriptors {
     private WorkerDescriptors() {}
 
-    public static List<Descriptors.WorkerDescriptor> workerDescriptors() {
+    public static List<WorkerDescriptor> workerDescriptors() {
         return Catalog.workerDescriptors();
     }
 }

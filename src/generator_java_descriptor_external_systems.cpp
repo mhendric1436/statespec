@@ -214,7 +214,7 @@ std::string generate_java_external_system_metadata_runtime(const IrSystem&)
 
     out << "    public static ExternalSystemCallRequest buildExternalSystemCallRequest(\n";
     out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
-    out << "        Descriptors.ExternalSystemDescriptor descriptor,\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
     out << "        ExternalSystemMetadataMappingInputs inputs\n";
     out << "    ) throws Exception {\n";
     out << "        ExternalSystemMetadataMappingOutput mapped = "
@@ -234,7 +234,7 @@ std::string generate_java_external_system_metadata_runtime(const IrSystem&)
     out << "    public static ExternalSystemCallResponse callExternalSystem(\n";
     out << "        ExternalSystemClient client,\n";
     out << "        ExternalSystemMetadataMappingApplicator applicator,\n";
-    out << "        Descriptors.ExternalSystemDescriptor descriptor,\n";
+    out << "        ExternalSystemDescriptor descriptor,\n";
     out << "        ExternalSystemMetadataMappingInputs inputs\n";
     out << "    ) throws Exception {\n";
     out << "        return client.callExternalSystem(\n";
@@ -248,7 +248,7 @@ std::string generate_java_external_system_metadata_runtime(const IrSystem&)
     out << "        String externalSystem,\n";
     out << "        ExternalSystemMetadataMappingInputs inputs\n";
     out << "    ) throws Exception {\n";
-    out << "        for (Descriptors.ExternalSystemDescriptor descriptor : "
+    out << "        for (ExternalSystemDescriptor descriptor : "
            "ExternalSystemDescriptorModule.externalSystemDescriptors()) {\n";
     out << "            if (descriptor.name().equals(externalSystem)) {\n";
     out << "                return Optional.of(callExternalSystem(client, applicator, descriptor, "

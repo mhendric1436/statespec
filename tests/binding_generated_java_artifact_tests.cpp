@@ -49,6 +49,46 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
              common},
             {"common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/ShapeDescriptorModule.java", common},
+            {"common/com/statespec/generated/descriptors/types/ApiDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/ApiRouteDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/ApiServerDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/EntityChildDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/EntityDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/EntityInvariantDescriptor.java",
+             common},
+            {"common/com/statespec/generated/descriptors/types/EntityOwnershipDescriptor.java",
+             common},
+            {"common/com/statespec/generated/descriptors/types/EntityRelationDescriptor.java",
+             common},
+            {"common/com/statespec/generated/descriptors/types/EntityStateDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/EnumDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/EnumMemberDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/EventDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/EventEnvelope.java", common},
+            {"common/com/statespec/generated/descriptors/types/ExternalSystemDescriptor.java",
+             common},
+            {"common/com/statespec/generated/descriptors/types/"
+             "ExternalSystemMetadataDescriptor.java",
+             common},
+            {"common/com/statespec/generated/descriptors/types/"
+             "ExternalSystemMetadataMappingDescriptor.java",
+             common},
+            {"common/com/statespec/generated/descriptors/types/"
+             "ExternalSystemPropertyDescriptor.java",
+             common},
+            {"common/com/statespec/generated/descriptors/types/FeatureFlagDefinition.java", common},
+            {"common/com/statespec/generated/descriptors/types/GarbageCollectionPolicy.java",
+             common},
+            {"common/com/statespec/generated/descriptors/types/LeaseDefinition.java", common},
+            {"common/com/statespec/generated/descriptors/types/LogDefinition.java", common},
+            {"common/com/statespec/generated/descriptors/types/MetricDefinition.java", common},
+            {"common/com/statespec/generated/descriptors/types/PolicyDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/PolicyRuleDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/QuotaDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/ShapeDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/ValueDescriptor.java", common},
+            {"common/com/statespec/generated/descriptors/types/WorkerContext.java", common},
+            {"common/com/statespec/generated/descriptors/types/WorkerDescriptor.java", common},
             {"common/com/statespec/generated/entities/DefaultEntityRepository.java", common},
             {"common/com/statespec/generated/entities/EntityCreateRequest.java", common},
             {"common/com/statespec/generated/entities/EntityDeleteRequest.java", common},
@@ -159,6 +199,16 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "com/statespec/generated/descriptors/ShapeDescriptorModule.java",
         "common/com/statespec/generated/descriptors/ShapeDescriptorModule.java",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "com/statespec/generated/descriptors/types/ApiDescriptor.java",
+        "common/com/statespec/generated/descriptors/types/ApiDescriptor.java",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "com/statespec/generated/descriptors/types/WorkerDescriptor.java",
+        "common/com/statespec/generated/descriptors/types/WorkerDescriptor.java",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

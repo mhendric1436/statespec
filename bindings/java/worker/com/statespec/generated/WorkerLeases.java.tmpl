@@ -2,13 +2,14 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.Lease;
+import com.statespec.generated.descriptors.types.LeaseDefinition;
 import com.statespec.generated.runtime.RuntimeRegistration;
 import java.util.List;
 
 public final class WorkerLeases {
     private WorkerLeases() {}
 
-    public static List<Descriptors.LeaseDefinition> leaseDefinitions() {
+    public static List<LeaseDefinition> leaseDefinitions() {
         return Descriptors.leaseDefinitions();
     }
 

@@ -16,8 +16,8 @@ std::string generate_java_worker_descriptor_module(
 {
     std::ostringstream out;
     out << "package " << package_name << ";\n\n";
-    out << "import com.statespec.generated.Descriptors.WorkerContext;\n";
-    out << "import com.statespec.generated.Descriptors.WorkerDescriptor;\n\n";
+    out << "import com.statespec.generated.descriptors.types.WorkerContext;\n";
+    out << "import com.statespec.generated.descriptors.types.WorkerDescriptor;\n\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class " << class_name << " {\n";
     out << "    private " << class_name << "() {}\n\n";

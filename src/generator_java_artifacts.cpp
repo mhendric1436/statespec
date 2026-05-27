@@ -53,7 +53,7 @@ std::string java_event_descriptor_module_file(const IrSystem& system)
     std::ostringstream out;
     out << "package com.statespec.generated.descriptors;\n\n";
     out << "import com.statespec.backend.Json;\n";
-    out << "import com.statespec.generated.Descriptors.EventEnvelope;\n";
+    out << "import com.statespec.generated.descriptors.types.EventEnvelope;\n";
     out << "import java.util.Map;\n\n";
     out << "public final class EventDescriptorModule {\n";
     out << "    private EventDescriptorModule() {}\n\n";
@@ -86,6 +86,264 @@ std::string java_event_descriptor_module_file(const IrSystem& system)
     return out.str();
 }
 
+std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
+{
+    const std::string package_line = "package com.statespec.generated.descriptors.types;\n\n";
+    auto file = [&](std::string filename, std::string imports, std::string body)
+    {
+        return std::pair<std::string, std::string>{
+            std::move(filename), package_line + std::move(imports) + std::move(body)
+        };
+    };
+    std::vector<std::pair<std::string, std::string>> files;
+    files.push_back(file(
+        "EventEnvelope.java",
+        "import com.statespec.backend.Json;\nimport java.util.Map;\n\n",
+        "public record EventEnvelope(String name, Map<String, Json> fields) {}\n"
+    ));
+    files.push_back(file(
+        "LeaseDefinition.java",
+        "import java.time.Duration;\nimport java.util.Optional;\n\n",
+        "public record LeaseDefinition(\n"
+        "    String name,\n"
+        "    Optional<String> resource,\n"
+        "    Duration ttl,\n"
+        "    Optional<Duration> renewEvery,\n"
+        "    Optional<String> holder,\n"
+        "    boolean fencingToken,\n"
+        "    Optional<Duration> maxTtl\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "FeatureFlagDefinition.java",
+        "import java.util.Optional;\n\n",
+        "public record FeatureFlagDefinition(\n"
+        "    String name,\n"
+        "    String type,\n"
+        "    String defaultValue,\n"
+        "    String scope,\n"
+        "    Optional<String> owner,\n"
+        "    Optional<String> description,\n"
+        "    Optional<String> expires\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "ValueDescriptor.java",
+        "import java.util.Optional;\n\n",
+        "public record ValueDescriptor(String name, String type, Optional<String> constraint) {}\n"
+    ));
+    files.push_back(file(
+        "EnumMemberDescriptor.java",
+        "import java.util.Optional;\n\n",
+        "public record EnumMemberDescriptor(String name, Optional<String> value) {}\n"
+    ));
+    files.push_back(file(
+        "EnumDescriptor.java",
+        "import java.util.List;\n\n",
+        "public record EnumDescriptor(String name, List<EnumMemberDescriptor> members) {}\n"
+    ));
+    files.push_back(file(
+        "EventDescriptor.java",
+        "import com.statespec.backend.Backend.FieldDescriptor;\n"
+        "import java.util.List;\n\n",
+        "public record EventDescriptor(String name, List<FieldDescriptor> fields) {}\n"
+    ));
+    files.push_back(file(
+        "ExternalSystemPropertyDescriptor.java", "",
+        "public record ExternalSystemPropertyDescriptor(String name, String value) {}\n"
+    ));
+    files.push_back(file(
+        "ExternalSystemMetadataMappingDescriptor.java", "",
+        "public record ExternalSystemMetadataMappingDescriptor(String source, String target) {}\n"
+    ));
+    files.push_back(file(
+        "ExternalSystemMetadataDescriptor.java",
+        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "public record ExternalSystemMetadataDescriptor(\n"
+        "    String entity,\n"
+        "    Optional<String> tenantField,\n"
+        "    String profileField,\n"
+        "    List<String> keyFields,\n"
+        "    List<String> requiredFields,\n"
+        "    List<ExternalSystemMetadataMappingDescriptor> mappings\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "ExternalSystemDescriptor.java",
+        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "public record ExternalSystemDescriptor(\n"
+        "    String name,\n"
+        "    List<ExternalSystemPropertyDescriptor> properties,\n"
+        "    Optional<ExternalSystemMetadataDescriptor> metadata\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "ApiDescriptor.java",
+        "import java.util.Optional;\n\n",
+        "public record ApiDescriptor(\n"
+        "    String name,\n"
+        "    Optional<String> method,\n"
+        "    Optional<String> path,\n"
+        "    Optional<String> input,\n"
+        "    Optional<String> output,\n"
+        "    Optional<String> error,\n"
+        "    Optional<String> startsWorkflow,\n"
+        "    Optional<String> enqueues\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "ApiServerDescriptor.java",
+        "import java.util.List;\n\n",
+        "public record ApiServerDescriptor(String name, List<String> serves, int concurrency) {}\n"
+    ));
+    files.push_back(file(
+        "ApiRouteDescriptor.java",
+        "import java.util.Optional;\n\n",
+        "public record ApiRouteDescriptor(\n"
+        "    String name,\n"
+        "    String serverName,\n"
+        "    String apiName,\n"
+        "    Optional<String> method,\n"
+        "    Optional<String> path,\n"
+        "    Optional<String> input,\n"
+        "    Optional<String> output,\n"
+        "    Optional<String> error\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "WorkerDescriptor.java",
+        "import java.util.Optional;\n\n",
+        "public record WorkerDescriptor(\n"
+        "    String name,\n"
+        "    boolean singleton,\n"
+        "    Optional<String> lease,\n"
+        "    Optional<String> polls,\n"
+        "    Optional<String> executes,\n"
+        "    int concurrency\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "WorkerContext.java",
+        "import java.util.Optional;\n\n",
+        "public record WorkerContext(\n"
+        "    String workerName,\n"
+        "    boolean singleton,\n"
+        "    Optional<String> lease,\n"
+        "    Optional<String> polls,\n"
+        "    Optional<String> executes,\n"
+        "    int concurrency\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "PolicyRuleDescriptor.java", "",
+        "public record PolicyRuleDescriptor(String action, String condition) {}\n"
+    ));
+    files.push_back(file(
+        "QuotaDescriptor.java", "",
+        "public record QuotaDescriptor(String name, String expression) {}\n"
+    ));
+    files.push_back(file(
+        "PolicyDescriptor.java",
+        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "public record PolicyDescriptor(\n"
+        "    String name,\n"
+        "    Optional<String> tenantScopedBy,\n"
+        "    List<PolicyRuleDescriptor> allows,\n"
+        "    List<PolicyRuleDescriptor> denies,\n"
+        "    List<QuotaDescriptor> quotas,\n"
+        "    List<String> audits\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "ShapeDescriptor.java",
+        "import com.statespec.backend.Backend.FieldDescriptor;\n"
+        "import java.util.List;\n\n",
+        "public record ShapeDescriptor(String name, List<FieldDescriptor> fields) {}\n"
+    ));
+    files.push_back(file(
+        "LogDefinition.java",
+        "import com.statespec.backend.Backend.FieldDescriptor;\n"
+        "import java.util.List;\n\n",
+        "public record LogDefinition(\n"
+        "    String name,\n"
+        "    String level,\n"
+        "    String eventName,\n"
+        "    List<FieldDescriptor> fields\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "MetricDefinition.java",
+        "import com.statespec.backend.Backend.FieldDescriptor;\n"
+        "import java.util.List;\n\n",
+        "public record MetricDefinition(\n"
+        "    String name,\n"
+        "    String kind,\n"
+        "    String backendName,\n"
+        "    String unit,\n"
+        "    List<FieldDescriptor> labels\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "GarbageCollectionPolicy.java", "",
+        "public record GarbageCollectionPolicy(String after, String mode) {}\n"
+    ));
+    files.push_back(file(
+        "EntityStateDescriptor.java",
+        "import java.util.Optional;\n\n",
+        "public record EntityStateDescriptor(\n"
+        "    String name,\n"
+        "    boolean terminal,\n"
+        "    Optional<GarbageCollectionPolicy> garbageCollection\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "EntityOwnershipDescriptor.java", "",
+        "public record EntityOwnershipDescriptor(\n"
+        "    String authority,\n"
+        "    String systemOfRecord,\n"
+        "    String lifecycle\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "EntityRelationDescriptor.java",
+        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "public record EntityRelationDescriptor(\n"
+        "    String kind,\n"
+        "    String name,\n"
+        "    String target,\n"
+        "    boolean optional,\n"
+        "    Optional<String> relationKind,\n"
+        "    Optional<String> onParentDelete,\n"
+        "    List<String> parentMustBeIn,\n"
+        "    List<String> uniqueWithinParent\n"
+        ") {}\n"
+    ));
+    files.push_back(file(
+        "EntityChildDescriptor.java", "",
+        "public record EntityChildDescriptor(String name, String targetEntity, String relation) {}\n"
+    ));
+    files.push_back(file(
+        "EntityInvariantDescriptor.java", "",
+        "public record EntityInvariantDescriptor(String name, String expression) {}\n"
+    ));
+    files.push_back(file(
+        "EntityDescriptor.java",
+        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "public record EntityDescriptor(\n"
+        "    String name,\n"
+        "    List<String> keyFields,\n"
+        "    Optional<EntityOwnershipDescriptor> ownership,\n"
+        "    List<EntityRelationDescriptor> relations,\n"
+        "    List<EntityChildDescriptor> children,\n"
+        "    List<EntityInvariantDescriptor> invariants,\n"
+        "    List<EntityStateDescriptor> states,\n"
+        "    Optional<String> initialState,\n"
+        "    List<String> terminalStates\n"
+        ") {}\n"
+    ));
+    return files;
+}
+
 std::string java_worker_registry_module_file(
     const IrWorker& worker,
     std::string_view package_name,
@@ -94,13 +352,14 @@ std::string java_worker_registry_module_file(
 {
     std::ostringstream out;
     out << "package " << package_name << ";\n\n";
-    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import com.statespec.generated.descriptors.types.WorkerContext;\n";
+    out << "import com.statespec.generated.descriptors.types.WorkerDescriptor;\n";
     out << "import com.statespec.generated.worker.descriptors."
         << java_worker_descriptor_module_class_name(worker.name) << ";\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class " << class_name << " {\n";
     out << "    private " << class_name << "() {}\n\n";
-    out << "    public static Optional<Descriptors.WorkerDescriptor> findWorkerDescriptor(String "
+    out << "    public static Optional<WorkerDescriptor> findWorkerDescriptor(String "
            "workerName) {\n";
     out << "        if (" << java_string(worker.name) << ".equals(workerName)) {\n";
     out << "            return Optional.of("
@@ -108,7 +367,7 @@ std::string java_worker_registry_module_file(
     out << "        }\n";
     out << "        return Optional.empty();\n";
     out << "    }\n\n";
-    out << "    public static Optional<Descriptors.WorkerContext> findWorkerContext(String "
+    out << "    public static Optional<WorkerContext> findWorkerContext(String "
            "workerName) {\n";
     out << "        if (" << java_string(worker.name) << ".equals(workerName)) {\n";
     out << "            return Optional.of("
@@ -124,10 +383,12 @@ std::string java_worker_registry_facade_file(const IrSystem& system)
 {
     std::ostringstream out;
     out << "package com.statespec.generated;\n\n";
+    out << "import com.statespec.generated.descriptors.types.WorkerContext;\n";
+    out << "import com.statespec.generated.descriptors.types.WorkerDescriptor;\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class WorkerRegistry {\n";
     out << "    private WorkerRegistry() {}\n\n";
-    out << "    public static Optional<Descriptors.WorkerDescriptor> findWorkerDescriptor(String "
+    out << "    public static Optional<WorkerDescriptor> findWorkerDescriptor(String "
            "workerName) {\n";
     for (const auto& worker : system.workers)
     {
@@ -140,7 +401,7 @@ std::string java_worker_registry_facade_file(const IrSystem& system)
     }
     out << "        return Optional.empty();\n";
     out << "    }\n\n";
-    out << "    public static Optional<Descriptors.WorkerContext> findWorkerContext(String "
+    out << "    public static Optional<WorkerContext> findWorkerContext(String "
            "workerName) {\n";
     for (const auto& worker : system.workers)
     {
@@ -164,7 +425,7 @@ std::string java_external_system_descriptor_module_file(
 {
     std::ostringstream out;
     out << "package com.statespec.generated.descriptors;\n\n";
-    out << "import com.statespec.generated.Descriptors.*;\n";
+    out << "import com.statespec.generated.descriptors.types.*;\n";
     out << "import java.util.List;\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class ExternalSystemDescriptorModule {\n";
@@ -215,6 +476,7 @@ std::string java_runtime_registration_module_file(
     out << "import com.statespec.backend.Metric;\n";
     out << "import com.statespec.backend.Queue;\n";
     out << "import com.statespec.backend.Workflow;\n";
+    out << "import com.statespec.generated.descriptors.types.*;\n";
     out << "import java.time.Duration;\n";
     out << "import java.util.Locale;\n\n";
     out << "import static com.statespec.generated.Descriptors.*;\n\n";
@@ -605,7 +867,7 @@ TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
         worker_run_once
             << "    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> "
                "runOnce(\n"
-            << "        Descriptors.WorkerContext context,\n"
+            << "        com.statespec.generated.descriptors.types.WorkerContext context,\n"
             << "        WorkflowStepHandlers.Handler handler,\n"
             << "        String workflowExecutionId\n"
             << "    ) throws Exception {\n"
@@ -626,7 +888,7 @@ TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
         worker_run_once
             << "    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> "
                "runOnce(\n"
-            << "        Descriptors.WorkerContext context,\n"
+            << "        com.statespec.generated.descriptors.types.WorkerContext context,\n"
             << "        WorkflowStepHandlers.Handler handler,\n"
             << "        String workflowExecutionId\n"
             << "    ) {\n"
@@ -1031,9 +1293,9 @@ std::string java_entity_centered_facade_file(
         out << "            java.util.List.copyOf(keyValues)\n";
         out << "        );\n";
         out << "    }\n\n";
-        out << "    public static com.statespec.generated.Descriptors.EntityDescriptor "
+        out << "    public static com.statespec.generated.descriptors.types.EntityDescriptor "
             << lower_camel_identifier(entity.name) << "EntityDescriptor() {\n";
-        out << "        return new com.statespec.generated.Descriptors.EntityDescriptor(\n";
+        out << "        return new com.statespec.generated.descriptors.types.EntityDescriptor(\n";
         out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
         out << "            java.util.List.of(";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
@@ -1339,9 +1601,8 @@ std::string java_external_metadata_runtime_file()
     out << "import com.statespec.backend.Backend;\n";
     out << "import com.statespec.backend.ExternalSystem;\n";
     out << "import com.statespec.backend.Json;\n";
-    out << "import com.statespec.generated.Descriptors;\n";
-    out << "import com.statespec.generated.Descriptors.*;\n";
     out << "import com.statespec.generated.descriptors.ExternalSystemDescriptorModule;\n";
+    out << "import com.statespec.generated.descriptors.types.*;\n";
     out << "import java.util.List;\n";
     out << "import java.util.Map;\n";
     out << "import java.util.Optional;\n\n";
@@ -1882,14 +2143,15 @@ std::string java_api_descriptor_module(
 {
     std::ostringstream out;
     out << "package com.statespec.generated.descriptors;\n\n";
-    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import com.statespec.generated.descriptors.types.ApiDescriptor;\n";
+    out << "import com.statespec.generated.descriptors.types.ApiRouteDescriptor;\n";
     out << "import java.util.List;\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class " << java_api_descriptor_module_class_name(api.name) << " {\n";
     out << "    private " << java_api_descriptor_module_class_name(api.name) << "() {}\n\n";
-    out << "    public static List<Descriptors.ApiDescriptor> apiDescriptors() {\n";
+    out << "    public static List<ApiDescriptor> apiDescriptors() {\n";
     out << "        return List.of(\n";
-    out << "            new Descriptors.ApiDescriptor(\n";
+    out << "            new ApiDescriptor(\n";
     out << "                " << java_string(api.name) << ",\n";
     out << "                " << java_optional_string_expr(api.method) << ",\n";
     out << "                " << java_optional_string_expr(api.path) << ",\n";
@@ -1901,7 +2163,7 @@ std::string java_api_descriptor_module(
     out << "            )\n";
     out << "        );\n";
     out << "    }\n\n";
-    out << "    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {\n";
+    out << "    public static List<ApiRouteDescriptor> apiRouteDescriptors() {\n";
     out << "        return List.of(\n";
     bool first_route = true;
     for (const auto& api_server : system.api_servers)
@@ -1915,7 +2177,7 @@ std::string java_api_descriptor_module(
             out << ",\n";
         }
         first_route = false;
-        out << "            new Descriptors.ApiRouteDescriptor(\n";
+        out << "            new ApiRouteDescriptor(\n";
         out << "                " << java_string(api_server.name + "." + api.name) << ",\n";
         out << "                " << java_string(api_server.name) << ",\n";
         out << "                " << java_string(api.name) << ",\n";
@@ -1972,7 +2234,7 @@ TemplateRenderer::Values java_api_descriptor_values(const IrSystem& system)
     for (std::size_t server_index = 0; server_index < system.api_servers.size(); ++server_index)
     {
         const auto& api_server = system.api_servers[server_index];
-        server_descriptors << "            new Descriptors.ApiServerDescriptor(\n";
+        server_descriptors << "            new ApiServerDescriptor(\n";
         server_descriptors << "                " << java_string(api_server.name) << ",\n";
         server_descriptors << "                List.of(";
         for (std::size_t i = 0; i < api_server.serves.size(); ++i)
@@ -2001,21 +2263,23 @@ std::string java_api_descriptor_catalog_file(const IrSystem& system)
     const auto values = java_api_descriptor_values(system);
     std::ostringstream out;
     out << "package com.statespec.generated.descriptors;\n\n";
-    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import com.statespec.generated.descriptors.types.ApiDescriptor;\n";
+    out << "import com.statespec.generated.descriptors.types.ApiRouteDescriptor;\n";
+    out << "import com.statespec.generated.descriptors.types.ApiServerDescriptor;\n";
     out << "import java.util.ArrayList;\n";
     out << "import java.util.List;\n\n";
     out << "public final class Catalog {\n";
     out << "    private Catalog() {}\n\n";
-    out << "    public static List<Descriptors.ApiDescriptor> apiDescriptors() {\n";
-    out << "        var descriptors = new ArrayList<Descriptors.ApiDescriptor>();\n";
+    out << "    public static List<ApiDescriptor> apiDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<ApiDescriptor>();\n";
     out << values.at("api_descriptor_aggregation");
     out << "        return List.copyOf(descriptors);\n";
     out << "    }\n\n";
-    out << "    public static List<Descriptors.ApiServerDescriptor> apiServerDescriptors() {\n";
+    out << "    public static List<ApiServerDescriptor> apiServerDescriptors() {\n";
     out << values.at("api_server_descriptors");
     out << "    }\n\n";
-    out << "    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {\n";
-    out << "        var descriptors = new ArrayList<Descriptors.ApiRouteDescriptor>();\n";
+    out << "    public static List<ApiRouteDescriptor> apiRouteDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<ApiRouteDescriptor>();\n";
     out << values.at("api_route_descriptor_aggregation");
     out << "        return List.copyOf(descriptors);\n";
     out << "    }\n";
@@ -2027,13 +2291,14 @@ std::string java_worker_descriptor_catalog_file(const IrSystem& system)
 {
     std::ostringstream out;
     out << "package com.statespec.generated.worker.descriptors;\n\n";
-    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import com.statespec.generated.descriptors.types.WorkerContext;\n";
+    out << "import com.statespec.generated.descriptors.types.WorkerDescriptor;\n";
     out << "import java.util.ArrayList;\n";
     out << "import java.util.List;\n\n";
     out << "public final class Catalog {\n";
     out << "    private Catalog() {}\n\n";
-    out << "    public static List<Descriptors.WorkerDescriptor> workerDescriptors() {\n";
-    out << "        var descriptors = new ArrayList<Descriptors.WorkerDescriptor>();\n";
+    out << "    public static List<WorkerDescriptor> workerDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<WorkerDescriptor>();\n";
     for (const auto& worker : system.workers)
     {
         out << "        descriptors.add(" << java_worker_descriptor_module_class_name(worker.name)
@@ -2041,8 +2306,8 @@ std::string java_worker_descriptor_catalog_file(const IrSystem& system)
     }
     out << "        return List.copyOf(descriptors);\n";
     out << "    }\n\n";
-    out << "    public static List<Descriptors.WorkerContext> workerContexts() {\n";
-    out << "        var contexts = new ArrayList<Descriptors.WorkerContext>();\n";
+    out << "    public static List<WorkerContext> workerContexts() {\n";
+    out << "        var contexts = new ArrayList<WorkerContext>();\n";
     for (const auto& worker : system.workers)
     {
         out << "        contexts.add(" << java_worker_descriptor_module_class_name(worker.name)
@@ -2089,6 +2354,7 @@ void add_java_descriptor_module_artifacts(
         join_artifact_path(GeneratedJavaOutputPackagePath, "descriptors");
     const auto entity_descriptor_package_path = descriptor_package_path / "entities";
     const auto shape_descriptor_package_path = descriptor_package_path / "shapes";
+    const auto descriptor_type_package_path = descriptor_package_path / "types";
     const std::string descriptor_package = "com.statespec.generated.descriptors";
     const std::string entity_descriptor_package = descriptor_package + ".entities";
     const auto generated_package_path = artifact_path(GeneratedJavaOutputPackagePath);
@@ -2100,6 +2366,12 @@ void add_java_descriptor_module_artifacts(
         "    private DescriptorCatalog() {}\n"
         "}\n"
     );
+    for (const auto& [filename, content] : java_descriptor_type_files())
+    {
+        add_java_raw_common_file(
+            result, options, descriptor_type_package_path / filename, content
+        );
+    }
     const auto entity_runtime_package_path = generated_package_path / "entities";
     const std::array<std::string_view, 9> entity_runtime_files{
         "EntityKeyValue.java",
@@ -2131,7 +2403,7 @@ void add_java_descriptor_module_artifacts(
         "import com.statespec.backend.Metric;\n"
         "import com.statespec.backend.Queue;\n"
         "import com.statespec.backend.Workflow;\n"
-        "import com.statespec.generated.Descriptors.*;\n"
+        "import com.statespec.generated.descriptors.types.*;\n"
         "import java.util.List;\n\n"
         "import static com.statespec.generated.Descriptors.*;\n\n"
         "public final class RuntimeRegistration {\n"

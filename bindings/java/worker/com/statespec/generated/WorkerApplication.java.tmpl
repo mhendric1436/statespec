@@ -1,12 +1,14 @@
 package com.statespec.generated;
 
+import com.statespec.generated.descriptors.types.WorkerContext;
+
 public final class WorkerApplication {
-    private final Descriptors.WorkerContext context;
+    private final WorkerContext context;
     private final WorkerRuntime runtime;
     private final WorkflowStepHandlers.Handler handler;
 
     public WorkerApplication(
-        Descriptors.WorkerContext context,
+        WorkerContext context,
         WorkerRuntime runtime,
         WorkflowStepHandlers.Handler handler
     ) {
@@ -15,7 +17,7 @@ public final class WorkerApplication {
         this.handler = handler;
     }
 
-    public Descriptors.WorkerContext context() {
+    public WorkerContext context() {
         return context;
     }
 

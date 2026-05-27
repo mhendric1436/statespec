@@ -3,6 +3,7 @@ package com.statespec.generated;
 import com.statespec.backend.Backend;
 import com.statespec.backend.Json;
 import com.statespec.backend.memory.InMemoryBackend;
+import com.statespec.generated.descriptors.types.ApiServerDescriptor;
 import java.util.Map;
 import java.util.Optional;
 
@@ -46,7 +47,7 @@ public final class ApiLinkingFixture
 
     public static void main(String[] args) throws Exception
     {
-        Descriptors.ApiServerDescriptor descriptor =
+        ApiServerDescriptor descriptor =
             ApiServer.findApiServer("ProvisionApi")
                 .orElseThrow(() -> new IllegalStateException("ProvisionApi descriptor not found"));
         ApiServer server = new ApiServer(descriptor, new LinkingHandler());

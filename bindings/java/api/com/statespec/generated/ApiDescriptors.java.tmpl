@@ -1,20 +1,23 @@
 package com.statespec.generated;
 
 import com.statespec.generated.descriptors.*;
+import com.statespec.generated.descriptors.types.ApiDescriptor;
+import com.statespec.generated.descriptors.types.ApiRouteDescriptor;
+import com.statespec.generated.descriptors.types.ApiServerDescriptor;
 import java.util.List;
 
 public final class ApiDescriptors {
     private ApiDescriptors() {}
 
-    public static List<Descriptors.ApiDescriptor> apiDescriptors() {
+    public static List<ApiDescriptor> apiDescriptors() {
         return Catalog.apiDescriptors();
     }
 
-    public static List<Descriptors.ApiServerDescriptor> apiServerDescriptors() {
+    public static List<ApiServerDescriptor> apiServerDescriptors() {
         return Catalog.apiServerDescriptors();
     }
 
-    public static List<Descriptors.ApiRouteDescriptor> apiRouteDescriptors() {
+    public static List<ApiRouteDescriptor> apiRouteDescriptors() {
         return Catalog.apiRouteDescriptors();
     }
 }

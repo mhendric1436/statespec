@@ -1,12 +1,13 @@
 package com.statespec.generated;
 
+import com.statespec.generated.descriptors.types.ApiRouteDescriptor;
 import java.util.Optional;
 
 public final class ApiDispatcher {
     private ApiDispatcher() {}
 
-    public static Optional<Descriptors.ApiRouteDescriptor> findApiRoute(String routeName) {
-        for (Descriptors.ApiRouteDescriptor route : ApiRoutes.apiRouteDescriptors()) {
+    public static Optional<ApiRouteDescriptor> findApiRoute(String routeName) {
+        for (ApiRouteDescriptor route : ApiRoutes.apiRouteDescriptors()) {
             if (route.name().equals(routeName)) {
                 return Optional.of(route);
             }
@@ -19,7 +20,7 @@ public final class ApiDispatcher {
         String routeName,
         ApiRequestContext context
     ) throws Exception {
-        Optional<Descriptors.ApiRouteDescriptor> route = findApiRoute(routeName);
+        Optional<ApiRouteDescriptor> route = findApiRoute(routeName);
         if (!route.isPresent()) {
             return Optional.empty();
         }

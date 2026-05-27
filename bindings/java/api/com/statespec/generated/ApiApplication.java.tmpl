@@ -1,6 +1,7 @@
 package com.statespec.generated;
 
 import com.statespec.backend.Backend;
+import com.statespec.generated.descriptors.types.ApiServerDescriptor;
 import com.statespec.generated.runtime.RuntimeRegistration;
 {{runtime_store_imports}}
 
@@ -10,7 +11,7 @@ public final class ApiApplication {
     private final ApiServer server;
 
     public ApiApplication(Backend backend, String serverName, ApiHandlers.Handler handler) {
-        Descriptors.ApiServerDescriptor descriptor =
+        ApiServerDescriptor descriptor =
             ApiServer.findApiServer(serverName)
                 .orElseThrow(() -> new IllegalArgumentException("unknown generated API server"));
         this.backend = backend;

@@ -1,12 +1,14 @@
 package com.statespec.generated;
 
+import com.statespec.generated.descriptors.types.WorkerContext;
+import com.statespec.generated.descriptors.types.WorkerDescriptor;
 import java.util.Optional;
 
 public final class WorkerRegistry {
     private WorkerRegistry() {}
 
-    public static Optional<Descriptors.WorkerDescriptor> findWorkerDescriptor(String workerName) {
-        for (Descriptors.WorkerDescriptor worker : WorkerDescriptors.workerDescriptors()) {
+    public static Optional<WorkerDescriptor> findWorkerDescriptor(String workerName) {
+        for (WorkerDescriptor worker : WorkerDescriptors.workerDescriptors()) {
             if (worker.name().equals(workerName)) {
                 return Optional.of(worker);
             }
@@ -14,8 +16,8 @@ public final class WorkerRegistry {
         return Optional.empty();
     }
 
-    public static Optional<Descriptors.WorkerContext> findWorkerContext(String workerName) {
-        for (Descriptors.WorkerContext context : WorkerContexts.workerContexts()) {
+    public static Optional<WorkerContext> findWorkerContext(String workerName) {
+        for (WorkerContext context : WorkerContexts.workerContexts()) {
             if (context.workerName().equals(workerName)) {
                 return Optional.of(context);
             }
