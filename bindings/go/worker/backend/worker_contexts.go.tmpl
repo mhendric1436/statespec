@@ -1,10 +1,10 @@
 package backend
 
-import common "statespec-generated/common/backend"
+import descriptortypes "statespec-generated/common/backend/descriptortypes"
 import "statespec-generated/worker/backend/descriptors"
 
-type WorkerTierContext = common.WorkerContext
+type WorkerTierContext = descriptortypes.WorkerContext
 
-func WorkerTierContexts() []common.WorkerContext {
+func WorkerTierContexts() []descriptortypes.WorkerContext {
 	return descriptors.WorkerContexts()
 }

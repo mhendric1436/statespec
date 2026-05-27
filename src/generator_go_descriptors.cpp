@@ -960,7 +960,8 @@ std::string generate_api_operation_handler_methods_go(const IrSystem& system)
     for (const auto& api : system.apis)
     {
         out << "\tHandle" << pascal_identifier(api.name)
-            << "(context.Context, common.APIRequestContext) (common.APIResponse, error)\n";
+            << "(context.Context, descriptortypes.APIRequestContext) "
+               "(descriptortypes.APIResponse, error)\n";
     }
     return out.str();
 }
@@ -974,7 +975,7 @@ std::string generate_api_operation_dispatch_cases_go(const IrSystem& system)
         out << "\t\tresponse, err := handler.Handle" << pascal_identifier(api.name)
             << "(ctx, request)\n";
         out << "\t\tif err != nil {\n";
-        out << "\t\t\treturn common.APIResponse{}, true, err\n";
+        out << "\t\t\treturn descriptortypes.APIResponse{}, true, err\n";
         out << "\t\t}\n";
         out << "\t\treturn response, true, nil\n";
     }

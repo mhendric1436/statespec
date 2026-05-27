@@ -4,11 +4,11 @@ import (
 	"context"
 	"sync"
 
-	common "statespec-generated/common/backend"
+	descriptortypes "statespec-generated/common/backend/descriptortypes"
 )
 
 type APITierTransport interface {
-	Handle(ctx context.Context, server APITierServer, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error)
+	Handle(ctx context.Context, server APITierServer, routeName string, request descriptortypes.APIRequestContext) (descriptortypes.APIResponse, bool, error)
 	Run(ctx context.Context) error
 	RequestStop()
 }
@@ -24,7 +24,7 @@ func NewLocalBlockingAPITierTransport() *LocalBlockingAPITierTransport {
 	}
 }
 
-func (transport *LocalBlockingAPITierTransport) Handle(ctx context.Context, server APITierServer, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
+func (transport *LocalBlockingAPITierTransport) Handle(ctx context.Context, server APITierServer, routeName string, request descriptortypes.APIRequestContext) (descriptortypes.APIResponse, bool, error) {
 	return server.Handle(ctx, routeName, request)
 }
 

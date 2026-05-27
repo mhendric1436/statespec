@@ -1,12 +1,12 @@
 package backend
 
 import (
-	common "statespec-generated/common/backend"
+	descriptortypes "statespec-generated/common/backend/descriptortypes"
 	descriptors "statespec-generated/api/backend/descriptors"
 )
 
-type APITierRouteDescriptor = common.ApiRouteDescriptor
+type APITierRouteDescriptor = descriptortypes.ApiRouteDescriptor
 
-func APITierRouteDescriptors() []common.ApiRouteDescriptor {
+func APITierRouteDescriptors() []descriptortypes.ApiRouteDescriptor {
 	return descriptors.ApiRouteDescriptors()
 }

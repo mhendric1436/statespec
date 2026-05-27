@@ -3,24 +3,24 @@ package backend
 import (
 	"context"
 
-	common "statespec-generated/common/backend"
+	descriptortypes "statespec-generated/common/backend/descriptortypes"
 )
 
-func FindAPITierRoute(routeName string) (common.ApiRouteDescriptor, bool) {
+func FindAPITierRoute(routeName string) (descriptortypes.ApiRouteDescriptor, bool) {
 	for _, route := range APITierRouteDescriptors() {
 		if route.Name == routeName {
 			return route, true
 		}
 	}
-	return common.ApiRouteDescriptor{}, false
+	return descriptortypes.ApiRouteDescriptor{}, false
 }
 
-func DispatchAPITierRoute(ctx context.Context, handler APITierHandler, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
+func DispatchAPITierRoute(ctx context.Context, handler APITierHandler, routeName string, request descriptortypes.APIRequestContext) (descriptortypes.APIResponse, bool, error) {
 	route, ok := FindAPITierRoute(routeName)
 	if !ok {
-		return common.APIResponse{}, false, nil
+		return descriptortypes.APIResponse{}, false, nil
 	}
 	switch route.ApiName {
 {{api_operation_dispatch_cases}}	}
-	return common.APIResponse{}, false, nil
+	return descriptortypes.APIResponse{}, false, nil
 }

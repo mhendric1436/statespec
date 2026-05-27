@@ -3,13 +3,13 @@ package backend
 import (
 	"context"
 
-	common "statespec-generated/common/backend"
+	descriptortypes "statespec-generated/common/backend/descriptortypes"
 )
 
 var _ = context.Background
 
-type APITierRequestContext = common.APIRequestContext
-type APITierResponse = common.APIResponse
+type APITierRequestContext = descriptortypes.APIRequestContext
+type APITierResponse = descriptortypes.APIResponse
 
 type APITierHandler interface {
 {{api_operation_handler_methods}}}

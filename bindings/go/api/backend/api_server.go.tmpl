@@ -3,27 +3,27 @@ package backend
 import (
 	"context"
 
-	common "statespec-generated/common/backend"
+	descriptortypes "statespec-generated/common/backend/descriptortypes"
 )
 
 type APITierServer struct {
-	Descriptor common.ApiServerDescriptor
+	Descriptor descriptortypes.ApiServerDescriptor
 	Handler    APITierHandler
 }
 
-func FindAPITierServer(serverName string) (common.ApiServerDescriptor, bool) {
+func FindAPITierServer(serverName string) (descriptortypes.ApiServerDescriptor, bool) {
 	for _, server := range APITierServerDescriptors() {
 		if server.Name == serverName {
 			return server, true
 		}
 	}
-	return common.ApiServerDescriptor{}, false
+	return descriptortypes.ApiServerDescriptor{}, false
 }
 
-func (server APITierServer) Handle(ctx context.Context, routeName string, request common.APIRequestContext) (common.APIResponse, bool, error) {
+func (server APITierServer) Handle(ctx context.Context, routeName string, request descriptortypes.APIRequestContext) (descriptortypes.APIResponse, bool, error) {
 	route, ok := FindAPITierRoute(routeName)
 	if !ok || route.ServerName != server.Descriptor.Name {
-		return common.APIResponse{}, false, nil
+		return descriptortypes.APIResponse{}, false, nil
 	}
 	return DispatchAPITierRoute(ctx, server.Handler, routeName, request)
 }

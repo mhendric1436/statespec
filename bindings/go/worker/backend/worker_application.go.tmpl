@@ -4,10 +4,11 @@ import (
 	"context"
 
 	common "statespec-generated/common/backend"
+	descriptortypes "statespec-generated/common/backend/descriptortypes"
 )
 
 type WorkerTierApplication struct {
-	Context common.WorkerContext
+	Context descriptortypes.WorkerContext
 	Runtime *WorkerTierRuntime
 	Handler WorkflowStepHandler
 }

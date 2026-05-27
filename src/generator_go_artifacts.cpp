@@ -218,7 +218,7 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     {
         worker_run_once
             << "func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext "
-               "common.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) "
+               "descriptortypes.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) "
                "(*common.WorkflowExecutionRecord, error) {\n"
             << "\tif workerContext.Executes == nil {\n"
             << "\t\treturn nil, nil\n"
@@ -238,7 +238,7 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     {
         worker_run_once
             << "func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext "
-               "common.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) "
+               "descriptortypes.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) "
                "(*common.WorkflowExecutionRecord, error) {\n"
             << "\treturn nil, nil\n"
             << "}\n";
@@ -297,22 +297,22 @@ std::string go_worker_registry_module(const IrWorker& worker)
     std::ostringstream out;
     out << "package registry\n\n";
     out << "import (\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << "\tdescriptortypes \"statespec-generated/common/backend/descriptortypes\"\n";
     out << "\tdescriptors \"statespec-generated/worker/backend/descriptors\"\n";
     out << ")\n\n";
     out << "func Find" << pascal
-        << "WorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {\n";
+        << "WorkerTierDescriptor(workerName string) (descriptortypes.WorkerDescriptor, bool) {\n";
     out << "\tif workerName == " << go_string(worker.name) << " {\n";
     out << "\t\treturn descriptors." << pascal << "WorkerDescriptor(), true\n";
     out << "\t}\n";
-    out << "\treturn common.WorkerDescriptor{}, false\n";
+    out << "\treturn descriptortypes.WorkerDescriptor{}, false\n";
     out << "}\n\n";
     out << "func Find" << pascal
-        << "WorkerTierContext(workerName string) (common.WorkerContext, bool) {\n";
+        << "WorkerTierContext(workerName string) (descriptortypes.WorkerContext, bool) {\n";
     out << "\tif workerName == " << go_string(worker.name) << " {\n";
     out << "\t\treturn descriptors." << pascal << "WorkerContext(), true\n";
     out << "\t}\n";
-    out << "\treturn common.WorkerContext{}, false\n";
+    out << "\treturn descriptortypes.WorkerContext{}, false\n";
     out << "}\n";
     return out.str();
 }
@@ -322,13 +322,13 @@ std::string go_worker_registry_facade(const IrSystem& system)
     std::ostringstream out;
     out << "package backend\n\n";
     out << "import (\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << "\tdescriptortypes \"statespec-generated/common/backend/descriptortypes\"\n";
     if (!system.workers.empty())
     {
         out << "\tregistry \"statespec-generated/worker/backend/registry\"\n";
     }
     out << ")\n\n";
-    out << "func FindWorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {\n";
+    out << "func FindWorkerTierDescriptor(workerName string) (descriptortypes.WorkerDescriptor, bool) {\n";
     for (const auto& worker : system.workers)
     {
         out << "\tif worker, ok := registry.Find" << pascal_identifier(worker.name)
@@ -336,9 +336,9 @@ std::string go_worker_registry_facade(const IrSystem& system)
         out << "\t\treturn worker, true\n";
         out << "\t}\n";
     }
-    out << "\treturn common.WorkerDescriptor{}, false\n";
+    out << "\treturn descriptortypes.WorkerDescriptor{}, false\n";
     out << "}\n\n";
-    out << "func FindWorkerTierContext(workerName string) (common.WorkerContext, bool) {\n";
+    out << "func FindWorkerTierContext(workerName string) (descriptortypes.WorkerContext, bool) {\n";
     for (const auto& worker : system.workers)
     {
         out << "\tif context, ok := registry.Find" << pascal_identifier(worker.name)
@@ -346,7 +346,7 @@ std::string go_worker_registry_facade(const IrSystem& system)
         out << "\t\treturn context, true\n";
         out << "\t}\n";
     }
-    out << "\treturn common.WorkerContext{}, false\n";
+    out << "\treturn descriptortypes.WorkerContext{}, false\n";
     out << "}\n";
     return out.str();
 }
@@ -902,6 +902,94 @@ TemplateRenderer::Values go_descriptor_module_values(
         {"descriptor_module_package", std::string{package_name}},
         {"descriptor_module_name", std::string{module_name}},
     };
+}
+
+std::string go_descriptor_types_file()
+{
+    std::ostringstream out;
+    out << "package descriptortypes\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "type LeaseDescriptor = common.LeaseDescriptor\n";
+    out << "type FeatureFlagDescriptor = common.FeatureFlagDescriptor\n";
+    out << "type ValueDescriptor = common.ValueDescriptor\n";
+    out << "type EnumMemberDescriptor = common.EnumMemberDescriptor\n";
+    out << "type EnumDescriptor = common.EnumDescriptor\n";
+    out << "type EventDescriptor = common.EventDescriptor\n";
+    out << "type EventEnvelope = common.EventEnvelope\n";
+    out << "type ExternalSystemPropertyDescriptor = common.ExternalSystemPropertyDescriptor\n";
+    out << "type ExternalSystemMetadataMappingDescriptor = common.ExternalSystemMetadataMappingDescriptor\n";
+    out << "type ExternalSystemMetadataMappingAssignment = common.ExternalSystemMetadataMappingAssignment\n";
+    out << "type ExternalSystemMetadataMappingPlan = common.ExternalSystemMetadataMappingPlan\n";
+    out << "type ExternalSystemMetadataMissingMappingSource = common.ExternalSystemMetadataMissingMappingSource\n";
+    out << "type ExternalSystemMetadataMappingInputs = common.ExternalSystemMetadataMappingInputs\n";
+    out << "type ExternalSystemMetadataMappingOutput = common.ExternalSystemMetadataMappingOutput\n";
+    out << "type ExternalSystemMetadataMappingApplicator = common.ExternalSystemMetadataMappingApplicator\n";
+    out << "type ExternalSystemMetadataDescriptor = common.ExternalSystemMetadataDescriptor\n";
+    out << "type ExternalSystemOperatorMetadataUpsertRequest = common.ExternalSystemOperatorMetadataUpsertRequest\n";
+    out << "type ExternalSystemOperatorMetadataGetRequest = common.ExternalSystemOperatorMetadataGetRequest\n";
+    out << "type ExternalSystemOperatorMetadataDisableRequest = common.ExternalSystemOperatorMetadataDisableRequest\n";
+    out << "type ExternalSystemOperatorMetadataDeleteRequest = common.ExternalSystemOperatorMetadataDeleteRequest\n";
+    out << "type ExternalSystemOperatorMetadataRepository = common.ExternalSystemOperatorMetadataRepository\n";
+    out << "type ExternalSystemDescriptor = common.ExternalSystemDescriptor\n";
+    out << "type ExternalSystemClient = common.ExternalSystemClient\n";
+    out << "type ExternalSystemCallRequest = common.ExternalSystemCallRequest\n";
+    out << "type ExternalSystemCallResponse = common.ExternalSystemCallResponse\n";
+    out << "type ApiDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tMethod *string\n";
+    out << "\tPath *string\n";
+    out << "\tInput *string\n";
+    out << "\tOutput *string\n";
+    out << "\tError *string\n";
+    out << "\tStartsWorkflow *string\n";
+    out << "\tEnqueues *string\n";
+    out << "}\n";
+    out << "type ApiServerDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tServes []string\n";
+    out << "\tConcurrency int\n";
+    out << "}\n";
+    out << "type ApiRouteDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tServerName string\n";
+    out << "\tApiName string\n";
+    out << "\tMethod *string\n";
+    out << "\tPath *string\n";
+    out << "\tInput *string\n";
+    out << "\tOutput *string\n";
+    out << "\tError *string\n";
+    out << "}\n";
+    out << "type APIRequestContext = common.APIRequestContext\n";
+    out << "type APIResponse = common.APIResponse\n";
+    out << "type ExternalSystemOperatorMetadataAPIHandler = common.ExternalSystemOperatorMetadataAPIHandler\n";
+    out << "type WorkerDescriptor struct {\n";
+    out << "\tName string\n";
+    out << "\tSingleton bool\n";
+    out << "\tLease *string\n";
+    out << "\tPolls *string\n";
+    out << "\tExecutes *string\n";
+    out << "\tConcurrency int\n";
+    out << "}\n";
+    out << "type WorkerContext struct {\n";
+    out << "\tWorkerName string\n";
+    out << "\tSingleton bool\n";
+    out << "\tLease *string\n";
+    out << "\tPolls *string\n";
+    out << "\tExecutes *string\n";
+    out << "\tConcurrency int\n";
+    out << "}\n";
+    out << "type PolicyRuleDescriptor = common.PolicyRuleDescriptor\n";
+    out << "type QuotaDescriptor = common.QuotaDescriptor\n";
+    out << "type PolicyDescriptor = common.PolicyDescriptor\n";
+    out << "type ShapeDescriptor = common.ShapeDescriptor\n";
+    out << "type GarbageCollectionPolicy = common.GarbageCollectionPolicy\n";
+    out << "type EntityStateDescriptor = common.EntityStateDescriptor\n";
+    out << "type EntityOwnershipDescriptor = common.EntityOwnershipDescriptor\n";
+    out << "type EntityRelationDescriptor = common.EntityRelationDescriptor\n";
+    out << "type EntityChildDescriptor = common.EntityChildDescriptor\n";
+    out << "type EntityInvariantDescriptor = common.EntityInvariantDescriptor\n";
+    out << "type EntityDescriptor = common.EntityDescriptor\n";
+    return out.str();
 }
 
 std::string replace_all_copy(
@@ -1722,10 +1810,10 @@ std::string go_api_descriptor_module(
     auto optional_string = [&](const std::optional<std::string>& value)
     { return value.has_value() ? string_ptr + "(" + go_string(*value) + ")" : "nil"; };
     out << "package descriptors\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "import descriptortypes \"statespec-generated/common/backend/descriptortypes\"\n\n";
     out << "func " << string_ptr << "(value string) *string { return &value }\n\n";
-    out << "func " << go_api_descriptor_function_name(api) << "() []common.ApiDescriptor {\n";
-    out << "\treturn []common.ApiDescriptor{\n";
+    out << "func " << go_api_descriptor_function_name(api) << "() []descriptortypes.ApiDescriptor {\n";
+    out << "\treturn []descriptortypes.ApiDescriptor{\n";
     out << "\t\t{\n";
     out << "\t\t\tName: " << go_string(api.name) << ",\n";
     out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
@@ -1739,8 +1827,8 @@ std::string go_api_descriptor_module(
     out << "\t}\n";
     out << "}\n\n";
     out << "func " << go_api_route_descriptor_function_name(api)
-        << "() []common.ApiRouteDescriptor {\n";
-    out << "\treturn []common.ApiRouteDescriptor{\n";
+        << "() []descriptortypes.ApiRouteDescriptor {\n";
+    out << "\treturn []descriptortypes.ApiRouteDescriptor{\n";
     for (const auto& api_server : system.api_servers)
     {
         if (!go_api_server_serves(api_server, api.name))
@@ -1787,7 +1875,7 @@ TemplateRenderer::Values go_api_descriptor_values(const IrSystem& system)
         api_aggregation << "\tresult = append(result, " << go_api_descriptor_function_name(api)
                         << "()...)\n";
     }
-    server_descriptors << "\treturn []common.ApiServerDescriptor{\n";
+    server_descriptors << "\treturn []descriptortypes.ApiServerDescriptor{\n";
     for (const auto& api_server : system.api_servers)
     {
         server_descriptors << "\t\t{\n";
@@ -1831,17 +1919,17 @@ std::string go_api_descriptor_catalog_file(const IrSystem& system)
     const auto route_values = go_api_route_values(system);
     std::ostringstream out;
     out << "package descriptors\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "func ApiDescriptors() []common.ApiDescriptor {\n";
-    out << "\tresult := []common.ApiDescriptor{}\n";
+    out << "import descriptortypes \"statespec-generated/common/backend/descriptortypes\"\n\n";
+    out << "func ApiDescriptors() []descriptortypes.ApiDescriptor {\n";
+    out << "\tresult := []descriptortypes.ApiDescriptor{}\n";
     out << descriptor_values.at("api_descriptor_aggregation");
     out << "\treturn result\n";
     out << "}\n\n";
-    out << "func ApiServerDescriptors() []common.ApiServerDescriptor {\n";
+    out << "func ApiServerDescriptors() []descriptortypes.ApiServerDescriptor {\n";
     out << descriptor_values.at("api_server_descriptors");
     out << "}\n\n";
-    out << "func ApiRouteDescriptors() []common.ApiRouteDescriptor {\n";
-    out << "\tresult := []common.ApiRouteDescriptor{}\n";
+    out << "func ApiRouteDescriptors() []descriptortypes.ApiRouteDescriptor {\n";
+    out << "\tresult := []descriptortypes.ApiRouteDescriptor{}\n";
     out << route_values.at("api_route_descriptor_aggregation");
     out << "\treturn result\n";
     out << "}\n";
@@ -1858,9 +1946,9 @@ std::string go_worker_descriptor_module_file(const IrWorker& worker)
     const auto pascal = pascal_identifier(worker.name);
     std::ostringstream out;
     out << "package descriptors\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "func " << pascal << "WorkerDescriptor() common.WorkerDescriptor {\n";
-    out << "\treturn common.WorkerDescriptor{\n";
+    out << "import descriptortypes \"statespec-generated/common/backend/descriptortypes\"\n\n";
+    out << "func " << pascal << "WorkerDescriptor() descriptortypes.WorkerDescriptor {\n";
+    out << "\treturn descriptortypes.WorkerDescriptor{\n";
     out << "\t\tName: " << go_string(worker.name) << ",\n";
     out << "\t\tSingleton: " << (worker.singleton.value_or(false) ? "true" : "false") << ",\n";
     out << "\t\tLease: " << worker_descriptor_string_ptr_expr(worker.lease) << ",\n";
@@ -1869,8 +1957,8 @@ std::string go_worker_descriptor_module_file(const IrWorker& worker)
     out << "\t\tConcurrency: " << worker.concurrency.value_or(1) << ",\n";
     out << "\t}\n";
     out << "}\n\n";
-    out << "func " << pascal << "WorkerContext() common.WorkerContext {\n";
-    out << "\treturn common.WorkerContext{\n";
+    out << "func " << pascal << "WorkerContext() descriptortypes.WorkerContext {\n";
+    out << "\treturn descriptortypes.WorkerContext{\n";
     out << "\t\tWorkerName: " << go_string(worker.name) << ",\n";
     out << "\t\tSingleton: " << (worker.singleton.value_or(false) ? "true" : "false") << ",\n";
     out << "\t\tLease: " << worker_descriptor_string_ptr_expr(worker.lease) << ",\n";
@@ -1886,10 +1974,10 @@ std::string go_worker_descriptor_catalog_file(const IrSystem& system)
 {
     std::ostringstream out;
     out << "package descriptors\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "import descriptortypes \"statespec-generated/common/backend/descriptortypes\"\n\n";
     out << "func workerDescriptorStringPtr(value string) *string { return &value }\n\n";
-    out << "func WorkerDescriptors() []common.WorkerDescriptor {\n";
-    out << "\tdescriptors := []common.WorkerDescriptor{}\n";
+    out << "func WorkerDescriptors() []descriptortypes.WorkerDescriptor {\n";
+    out << "\tdescriptors := []descriptortypes.WorkerDescriptor{}\n";
     for (const auto& worker : system.workers)
     {
         out << "\tdescriptors = append(descriptors, " << pascal_identifier(worker.name)
@@ -1897,8 +1985,8 @@ std::string go_worker_descriptor_catalog_file(const IrSystem& system)
     }
     out << "\treturn descriptors\n";
     out << "}\n\n";
-    out << "func WorkerContexts() []common.WorkerContext {\n";
-    out << "\tcontexts := []common.WorkerContext{}\n";
+    out << "func WorkerContexts() []descriptortypes.WorkerContext {\n";
+    out << "\tcontexts := []descriptortypes.WorkerContext{}\n";
     for (const auto& worker : system.workers)
     {
         out << "\tcontexts = append(contexts, " << pascal_identifier(worker.name)
@@ -1965,6 +2053,9 @@ void add_go_common_runtime_artifacts(
         result, options, "backend/runtime_registration.go",
         std::string{"package backend\n\nimport \"context\"\n\n"} +
             generate_go_runtime_registration(system, templates)
+    );
+    add_go_raw_common_file(
+        result, options, "backend/descriptortypes/types.go", go_descriptor_types_file()
     );
 
     if (diagnostics.has_errors())

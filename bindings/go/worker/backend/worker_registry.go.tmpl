@@ -1,21 +1,21 @@
 package backend
 
-import common "statespec-generated/common/backend"
+import descriptortypes "statespec-generated/common/backend/descriptortypes"
 
-func FindWorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {
+func FindWorkerTierDescriptor(workerName string) (descriptortypes.WorkerDescriptor, bool) {
 	for _, worker := range WorkerTierDescriptors() {
 		if worker.Name == workerName {
 			return worker, true
 		}
 	}
-	return common.WorkerDescriptor{}, false
+	return descriptortypes.WorkerDescriptor{}, false
 }
 
-func FindWorkerTierContext(workerName string) (common.WorkerContext, bool) {
+func FindWorkerTierContext(workerName string) (descriptortypes.WorkerContext, bool) {
 	for _, workerContext := range WorkerTierContexts() {
 		if workerContext.WorkerName == workerName {
 			return workerContext, true
 		}
 	}
-	return common.WorkerContext{}, false
+	return descriptortypes.WorkerContext{}, false
 }

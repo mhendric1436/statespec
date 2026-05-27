@@ -41,6 +41,7 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/shape_descriptors.go", common},
             {"common/backend/workflow.go", common},
             {"common/backend/descriptors.go", common},
+            {"common/backend/descriptortypes/types.go", common},
             {"common/backend/events.go", common},
             {"common/backend/external_systems.go", common},
             {"common/backend/descriptors/core.go", common},
@@ -66,6 +67,10 @@ void test_go_binding_generator_models_artifact_paths()
     const auto result = generate_go_bindings_for_artifact_tests();
     require_generated_file_artifact_path(
         result, "backend/descriptors.go", "common/backend/descriptors.go",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "backend/descriptortypes/types.go", "common/backend/descriptortypes/types.go",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

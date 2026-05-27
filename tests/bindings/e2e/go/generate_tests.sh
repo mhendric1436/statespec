@@ -50,6 +50,7 @@ common/backend/descriptors.go
 common/backend/descriptors/core.go
 common/backend/descriptors/runtime.go
 common/backend/descriptors/shapes.go
+common/backend/descriptortypes/types.go
 common/backend/entity_repository.go
 common/backend/events.go
 common/backend/external_system.go
