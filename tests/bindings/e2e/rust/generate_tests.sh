@@ -60,6 +60,7 @@ common/descriptors/shapes/provision_callback_request.rs
 common/descriptors/shapes/provision_callback_response.rs
 common/descriptors/shapes/start_provision_request.rs
 common/descriptors/shapes/start_provision_response.rs
+common/descriptors/types.rs
 common/entities/service_instance/mod.rs
 common/entities/service_instance/model.rs
 common/entities/service_instance/persistence.rs

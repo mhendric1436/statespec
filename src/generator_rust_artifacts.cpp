@@ -400,7 +400,7 @@ std::string rust_workflow_module_name(const IrWorkflow& workflow)
 std::string rust_worker_registry_module(const IrWorker& worker)
 {
     std::ostringstream out;
-    out << "use crate::descriptors::{WorkerContext, WorkerDescriptor};\n";
+    out << "use crate::descriptor_types::{WorkerContext, WorkerDescriptor};\n";
     out << "use crate::worker_contexts;\n";
     out << "use crate::worker_descriptors;\n\n";
     out << "pub fn find_worker_descriptor(worker_name: &str) -> Option<WorkerDescriptor> {\n";
@@ -430,7 +430,7 @@ std::string rust_worker_registry_facade(const IrSystem& system)
         out << "#[path = \"registry/" << snake_identifier(worker.name) << ".rs\"]\n";
         out << "mod registry_" << snake_identifier(worker.name) << ";\n";
     }
-    out << "\npub use crate::descriptors::{WorkerContext, WorkerDescriptor};\n\n";
+    out << "\npub use crate::descriptor_types::{WorkerContext, WorkerDescriptor};\n\n";
     out << "pub fn find_worker_descriptor(worker_name: &str) -> Option<WorkerDescriptor> {\n";
     for (const auto& worker : system.workers)
     {
@@ -1318,6 +1318,82 @@ TemplateRenderer::Values rust_shape_descriptor_module_values(const IrShape& shap
     };
 }
 
+std::string rust_descriptor_types_file()
+{
+    return
+        "use std::time::Duration;\n\n"
+        "use crate::json::Json;\n\n"
+        "#[derive(Debug, Clone)]\n"
+        "pub struct LeaseDefinition {\n"
+        "    pub name: String,\n"
+        "    pub resource: Option<String>,\n"
+        "    pub ttl: Duration,\n"
+        "    pub renew_every: Option<Duration>,\n"
+        "    pub holder: Option<String>,\n"
+        "    pub fencing_token: bool,\n"
+        "    pub max_ttl: Option<Duration>,\n"
+        "}\n\n"
+        "#[derive(Debug, Clone)]\n"
+        "pub struct ApiDescriptor {\n"
+        "    pub name: String,\n"
+        "    pub method: Option<String>,\n"
+        "    pub path: Option<String>,\n"
+        "    pub input: Option<String>,\n"
+        "    pub output: Option<String>,\n"
+        "    pub error: Option<String>,\n"
+        "    pub starts_workflow: Option<String>,\n"
+        "    pub enqueues: Option<String>,\n"
+        "}\n\n"
+        "#[derive(Debug, Clone)]\n"
+        "pub struct ApiServerDescriptor {\n"
+        "    pub name: String,\n"
+        "    pub serves: Vec<String>,\n"
+        "    pub concurrency: i32,\n"
+        "}\n\n"
+        "#[derive(Debug, Clone)]\n"
+        "pub struct ApiRouteDescriptor {\n"
+        "    pub name: String,\n"
+        "    pub server_name: String,\n"
+        "    pub api_name: String,\n"
+        "    pub method: Option<String>,\n"
+        "    pub path: Option<String>,\n"
+        "    pub input: Option<String>,\n"
+        "    pub output: Option<String>,\n"
+        "    pub error: Option<String>,\n"
+        "}\n\n"
+        "#[derive(Debug, Clone)]\n"
+        "pub struct ApiRequestContext {\n"
+        "    pub server_name: String,\n"
+        "    pub api_name: String,\n"
+        "    pub method: Option<String>,\n"
+        "    pub path: Option<String>,\n"
+        "    pub body: Json,\n"
+        "}\n\n"
+        "#[derive(Debug, Clone)]\n"
+        "pub struct ApiResponse {\n"
+        "    pub status_code: i32,\n"
+        "    pub body: Json,\n"
+        "}\n\n"
+        "#[derive(Debug, Clone)]\n"
+        "pub struct WorkerDescriptor {\n"
+        "    pub name: String,\n"
+        "    pub singleton: bool,\n"
+        "    pub lease: Option<String>,\n"
+        "    pub polls: Option<String>,\n"
+        "    pub executes: Option<String>,\n"
+        "    pub concurrency: i32,\n"
+        "}\n\n"
+        "#[derive(Debug, Clone)]\n"
+        "pub struct WorkerContext {\n"
+        "    pub worker_name: String,\n"
+        "    pub singleton: bool,\n"
+        "    pub lease: Option<String>,\n"
+        "    pub polls: Option<String>,\n"
+        "    pub executes: Option<String>,\n"
+        "    pub concurrency: i32,\n"
+        "}\n";
+}
+
 void add_rust_raw_common_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1449,6 +1525,7 @@ void add_rust_descriptor_module_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    add_rust_raw_common_file(result, options, "descriptors/types.rs", rust_descriptor_types_file());
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/core.rs", "core descriptors", diagnostics
     );
@@ -1607,7 +1684,7 @@ std::string rust_worker_descriptor_catalog_file(const IrSystem& system)
     {
         out << "\n";
     }
-    out << "use crate::descriptors::{WorkerContext, WorkerDescriptor};\n\n";
+    out << "use crate::descriptor_types::{WorkerContext, WorkerDescriptor};\n\n";
     out << "pub fn worker_descriptors() -> Vec<WorkerDescriptor> {\n";
     out << "    let mut descriptors = Vec::new();\n";
     for (const auto& worker : system.workers)
@@ -1665,7 +1742,7 @@ std::string rust_api_descriptor_module(
 )
 {
     std::ostringstream out;
-    out << "use crate::descriptors::{ApiDescriptor, ApiRouteDescriptor};\n\n";
+    out << "use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor};\n\n";
     out << "pub fn " << rust_api_descriptor_function_name(api) << "() -> Vec<ApiDescriptor> {\n";
     out << "    vec![\n";
     out << "        ApiDescriptor {\n";
@@ -1761,7 +1838,7 @@ std::string rust_api_descriptor_catalog_file(const IrSystem& system)
     server_descriptors << "    ]\n";
     std::ostringstream out;
     out << modules.str() << "\n";
-    out << "use crate::descriptors::{ApiDescriptor, ApiRouteDescriptor, ApiServerDescriptor};\n\n";
+    out << "use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor, ApiServerDescriptor};\n\n";
     out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
     out << "    let mut descriptors = Vec::new();\n";
     out << api_aggregation.str();

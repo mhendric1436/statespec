@@ -11,7 +11,7 @@ namespace statespec
 std::string generate_rust_worker_descriptor_module(const IrWorker& worker)
 {
     std::ostringstream out;
-    out << "use super::{WorkerContext, WorkerDescriptor};\n\n";
+    out << "use crate::descriptor_types::{WorkerContext, WorkerDescriptor};\n\n";
     out << "pub fn worker_descriptor() -> WorkerDescriptor {\n";
     out << "    WorkerDescriptor {\n";
     out << "        name: " << rust_string(worker.name) << ".to_string(),\n";

@@ -1,7 +1,7 @@
 use crate::descriptors;
 
-pub use crate::descriptors::LeaseDefinition;
+pub use crate::descriptor_types::LeaseDefinition;
 
-pub fn lease_definitions() -> Vec<descriptors::LeaseDefinition> {
+pub fn lease_definitions() -> Vec<LeaseDefinition> {
     descriptors::lease_definitions()
 }

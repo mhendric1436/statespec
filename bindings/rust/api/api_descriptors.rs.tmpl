@@ -1,7 +1,7 @@
 #[path = "descriptors/catalog.rs"]
 mod catalog;
 
-pub use crate::descriptors::{ApiDescriptor, ApiRouteDescriptor, ApiServerDescriptor};
+pub use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor, ApiServerDescriptor};
 
 pub fn api_descriptors() -> Vec<ApiDescriptor> {
     catalog::api_descriptors()

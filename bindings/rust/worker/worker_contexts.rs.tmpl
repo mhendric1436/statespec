@@ -1,7 +1,7 @@
 #[path = "descriptors/catalog.rs"]
 mod catalog;
 
-pub use crate::descriptors::WorkerContext;
+pub use crate::descriptor_types::WorkerContext;
 
 pub fn worker_contexts() -> Vec<WorkerContext> {
     catalog::worker_contexts()

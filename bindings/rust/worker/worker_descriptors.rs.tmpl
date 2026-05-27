@@ -1,7 +1,7 @@
 #[path = "descriptors/catalog.rs"]
 mod catalog;
 
-pub use crate::descriptors::WorkerDescriptor;
+pub use crate::descriptor_types::WorkerDescriptor;
 
 pub fn worker_descriptors() -> Vec<WorkerDescriptor> {
     catalog::worker_descriptors()

@@ -1,7 +1,7 @@
 use crate::worker_contexts;
 use crate::worker_descriptors;
 
-pub use crate::descriptors::{WorkerContext, WorkerDescriptor};
+pub use crate::descriptor_types::{WorkerContext, WorkerDescriptor};
 
 pub fn find_worker_descriptor(worker_name: &str) -> Option<WorkerDescriptor> {
     worker_descriptors::worker_descriptors()
