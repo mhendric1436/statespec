@@ -350,20 +350,23 @@ std::string rust_workflow_module_name(const IrWorkflow& workflow)
 
 std::string rust_worker_registry_module(const IrWorker& worker)
 {
-    const auto snake = snake_identifier(worker.name);
     std::ostringstream out;
-    out << "use crate::descriptors::{WorkerContext, WorkerDescriptor};\n\n";
+    out << "use crate::descriptors::{WorkerContext, WorkerDescriptor};\n";
+    out << "use crate::worker_contexts;\n";
+    out << "use crate::worker_descriptors;\n\n";
     out << "pub fn find_worker_descriptor(worker_name: &str) -> Option<WorkerDescriptor> {\n";
     out << "    if worker_name == " << rust_string(worker.name) << " {\n";
-    out << "        return Some(crate::descriptors::descriptor_worker_" << snake
-        << "::worker_descriptor());\n";
+    out << "        return worker_descriptors::worker_descriptors()\n";
+    out << "            .into_iter()\n";
+    out << "            .find(|worker| worker.name == worker_name);\n";
     out << "    }\n";
     out << "    None\n";
     out << "}\n\n";
     out << "pub fn find_worker_context(worker_name: &str) -> Option<WorkerContext> {\n";
     out << "    if worker_name == " << rust_string(worker.name) << " {\n";
-    out << "        return Some(crate::descriptors::descriptor_worker_" << snake
-        << "::worker_context());\n";
+    out << "        return worker_contexts::worker_contexts()\n";
+    out << "            .into_iter()\n";
+    out << "            .find(|context| context.worker_name == worker_name);\n";
     out << "    }\n";
     out << "    None\n";
     out << "}\n";
@@ -1379,16 +1382,6 @@ void add_rust_descriptor_module_artifacts(
         );
     }
     add_rust_descriptor_module_artifact(
-        result, options, templates, "descriptors/workers.rs", "worker descriptors", diagnostics
-    );
-    for (const auto& worker : system.workers)
-    {
-        add_rust_raw_common_file(
-            result, options, "descriptors/workers/" + snake_identifier(worker.name) + ".rs",
-            generate_rust_worker_descriptor_module(worker)
-        );
-    }
-    add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/runtime.rs", "runtime descriptors", diagnostics
     );
     for (const auto& [name, label] : rust_runtime_registration_modules(system))
@@ -1509,6 +1502,40 @@ void add_rust_raw_worker_file(
             relative_path.generic_string(),
         }
     );
+}
+
+std::string rust_worker_descriptor_catalog_file(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& worker : system.workers)
+    {
+        out << "#[path = \"" << snake_identifier(worker.name) << ".rs\"]\n";
+        out << "mod descriptor_worker_" << snake_identifier(worker.name) << ";\n";
+    }
+    if (!system.workers.empty())
+    {
+        out << "\n";
+    }
+    out << "use crate::descriptors::{WorkerContext, WorkerDescriptor};\n\n";
+    out << "pub fn worker_descriptors() -> Vec<WorkerDescriptor> {\n";
+    out << "    let mut descriptors = Vec::new();\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "    descriptors.push(descriptor_worker_" << snake_identifier(worker.name)
+            << "::worker_descriptor());\n";
+    }
+    out << "    descriptors\n";
+    out << "}\n\n";
+    out << "pub fn worker_contexts() -> Vec<WorkerContext> {\n";
+    out << "    let mut contexts = Vec::new();\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "    contexts.push(descriptor_worker_" << snake_identifier(worker.name)
+            << "::worker_context());\n";
+    }
+    out << "    contexts\n";
+    out << "}\n";
+    return out.str();
 }
 
 std::string rust_api_descriptor_module_name(const IrApi& api)
@@ -1948,6 +1975,17 @@ void add_rust_worker_artifacts(
         result, options, templates, "worker/worker_contexts.rs", GeneratedArtifactTier::Worker,
         diagnostics
     );
+    add_rust_raw_worker_file(
+        result, options, "worker/descriptors/catalog.rs",
+        rust_worker_descriptor_catalog_file(system)
+    );
+    for (const auto& worker : system.workers)
+    {
+        add_rust_raw_worker_file(
+            result, options, "worker/descriptors/" + snake_identifier(worker.name) + ".rs",
+            generate_rust_worker_descriptor_module(worker)
+        );
+    }
     add_rust_raw_worker_file(
         result, options, "worker/worker_registry.rs", rust_worker_registry_facade(system)
     );

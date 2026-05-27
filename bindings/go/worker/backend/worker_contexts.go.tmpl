@@ -1,9 +1,10 @@
 package backend
 
 import common "statespec-generated/common/backend"
+import "statespec-generated/worker/backend/descriptors"
 
 type WorkerTierContext = common.WorkerContext
 
 func WorkerTierContexts() []common.WorkerContext {
-	return common.WorkerContexts()
+	return descriptors.WorkerContexts()
 }

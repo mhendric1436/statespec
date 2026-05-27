@@ -288,18 +288,21 @@ std::string go_worker_registry_module(const IrWorker& worker)
     const auto pascal = pascal_identifier(worker.name);
     std::ostringstream out;
     out << "package registry\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "import (\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << "\tdescriptors \"statespec-generated/worker/backend/descriptors\"\n";
+    out << ")\n\n";
     out << "func Find" << pascal
         << "WorkerTierDescriptor(workerName string) (common.WorkerDescriptor, bool) {\n";
     out << "\tif workerName == " << go_string(worker.name) << " {\n";
-    out << "\t\treturn common." << pascal << "WorkerDescriptor(), true\n";
+    out << "\t\treturn descriptors." << pascal << "WorkerDescriptor(), true\n";
     out << "\t}\n";
     out << "\treturn common.WorkerDescriptor{}, false\n";
     out << "}\n\n";
     out << "func Find" << pascal
         << "WorkerTierContext(workerName string) (common.WorkerContext, bool) {\n";
     out << "\tif workerName == " << go_string(worker.name) << " {\n";
-    out << "\t\treturn common." << pascal << "WorkerContext(), true\n";
+    out << "\t\treturn descriptors." << pascal << "WorkerContext(), true\n";
     out << "\t}\n";
     out << "\treturn common.WorkerContext{}, false\n";
     out << "}\n";
@@ -1566,17 +1569,6 @@ void add_go_descriptor_module_artifacts(
     );
     add_go_shape_descriptor_artifact(result, options, templates, system, diagnostics);
     add_go_descriptor_module_artifact(
-        result, options, templates, "backend/descriptors/workers.go", "descriptors",
-        "worker descriptors", diagnostics
-    );
-    for (const auto& worker : system.workers)
-    {
-        add_go_raw_common_file(
-            result, options, "backend/worker_descriptor_" + snake_identifier(worker.name) + ".go",
-            generate_go_worker_descriptor_module(worker)
-        );
-    }
-    add_go_descriptor_module_artifact(
         result, options, templates, "backend/descriptors/runtime.go", "descriptors",
         "runtime descriptors", diagnostics
     );
@@ -1799,6 +1791,67 @@ std::string go_api_descriptor_catalog_file(const IrSystem& system)
     out << "\tresult := []common.ApiRouteDescriptor{}\n";
     out << route_values.at("api_route_descriptor_aggregation");
     out << "\treturn result\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string worker_descriptor_string_ptr_expr(const std::optional<std::string>& value)
+{
+    return value.has_value() ? "workerDescriptorStringPtr(" + go_string(*value) + ")" : "nil";
+}
+
+std::string go_worker_descriptor_module_file(const IrWorker& worker)
+{
+    const auto pascal = pascal_identifier(worker.name);
+    std::ostringstream out;
+    out << "package descriptors\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "func " << pascal << "WorkerDescriptor() common.WorkerDescriptor {\n";
+    out << "\treturn common.WorkerDescriptor{\n";
+    out << "\t\tName: " << go_string(worker.name) << ",\n";
+    out << "\t\tSingleton: " << (worker.singleton.value_or(false) ? "true" : "false") << ",\n";
+    out << "\t\tLease: " << worker_descriptor_string_ptr_expr(worker.lease) << ",\n";
+    out << "\t\tPolls: " << worker_descriptor_string_ptr_expr(worker.polls) << ",\n";
+    out << "\t\tExecutes: " << worker_descriptor_string_ptr_expr(worker.executes) << ",\n";
+    out << "\t\tConcurrency: " << worker.concurrency.value_or(1) << ",\n";
+    out << "\t}\n";
+    out << "}\n\n";
+    out << "func " << pascal << "WorkerContext() common.WorkerContext {\n";
+    out << "\treturn common.WorkerContext{\n";
+    out << "\t\tWorkerName: " << go_string(worker.name) << ",\n";
+    out << "\t\tSingleton: " << (worker.singleton.value_or(false) ? "true" : "false") << ",\n";
+    out << "\t\tLease: " << worker_descriptor_string_ptr_expr(worker.lease) << ",\n";
+    out << "\t\tPolls: " << worker_descriptor_string_ptr_expr(worker.polls) << ",\n";
+    out << "\t\tExecutes: " << worker_descriptor_string_ptr_expr(worker.executes) << ",\n";
+    out << "\t\tConcurrency: " << worker.concurrency.value_or(1) << ",\n";
+    out << "\t}\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string go_worker_descriptor_catalog_file(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package descriptors\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "func workerDescriptorStringPtr(value string) *string { return &value }\n\n";
+    out << "func WorkerDescriptors() []common.WorkerDescriptor {\n";
+    out << "\tdescriptors := []common.WorkerDescriptor{}\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "\tdescriptors = append(descriptors, " << pascal_identifier(worker.name)
+            << "WorkerDescriptor())\n";
+    }
+    out << "\treturn descriptors\n";
+    out << "}\n\n";
+    out << "func WorkerContexts() []common.WorkerContext {\n";
+    out << "\tcontexts := []common.WorkerContext{}\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "\tcontexts = append(contexts, " << pascal_identifier(worker.name)
+            << "WorkerContext())\n";
+    }
+    out << "\treturn contexts\n";
     out << "}\n";
     return out.str();
 }
@@ -2099,6 +2152,17 @@ void add_go_worker_artifacts(
         result, options, templates, "worker/backend/worker_contexts.go",
         GeneratedArtifactTier::Worker, diagnostics
     );
+    add_go_raw_worker_file(
+        result, options, "worker/backend/descriptors/catalog.go",
+        go_worker_descriptor_catalog_file(system)
+    );
+    for (const auto& worker : system.workers)
+    {
+        add_go_raw_worker_file(
+            result, options, "worker/backend/descriptors/" + snake_identifier(worker.name) + ".go",
+            go_worker_descriptor_module_file(worker)
+        );
+    }
     add_go_raw_worker_file(
         result, options, "worker/backend/worker_registry.go", go_worker_registry_facade(system)
     );

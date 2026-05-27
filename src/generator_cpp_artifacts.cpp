@@ -387,7 +387,7 @@ std::string cpp_worker_registry_module(const IrWorker& worker)
     out << "{\n";
     out << "    if (worker_name == " << cpp_string(worker.name) << ")\n";
     out << "    {\n";
-    out << "        return ::statespec_generated::" << snake << "_worker_descriptor();\n";
+    out << "        return descriptors::" << snake << "_worker_descriptor();\n";
     out << "    }\n";
     out << "    return std::nullopt;\n";
     out << "}\n\n";
@@ -396,7 +396,7 @@ std::string cpp_worker_registry_module(const IrWorker& worker)
     out << "{\n";
     out << "    if (worker_name == " << cpp_string(worker.name) << ")\n";
     out << "    {\n";
-    out << "        return ::statespec_generated::" << snake << "_worker_context();\n";
+    out << "        return descriptors::" << snake << "_worker_context();\n";
     out << "    }\n";
     out << "    return std::nullopt;\n";
     out << "}\n\n";
@@ -1393,22 +1393,6 @@ void add_cpp_descriptor_module_artifacts(
         );
     }
     add_cpp_descriptor_module_artifact(
-        result, options, templates, "descriptors/workers.hpp", "worker descriptors", diagnostics
-    );
-    for (const auto& worker : system.workers)
-    {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            generated_template_path("descriptor_module.hpp.tmpl"),
-            common_artifact_path("descriptors/workers/" + snake_identifier(worker.name) + ".hpp"),
-            diagnostics, GeneratedArtifactTier::Common,
-            TemplateRenderer::Values{
-                {"descriptor_module_name", "worker descriptor " + worker.name},
-                {"descriptor_module_content", generate_cpp_worker_descriptor_module(worker)}
-            }
-        );
-    }
-    add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/runtime.hpp", "runtime descriptors", diagnostics
     );
     for (const auto& [name, label] : cpp_runtime_registration_modules(system))
@@ -1680,6 +1664,43 @@ std::string cpp_api_descriptor_catalog_file(const IrSystem& system)
     out << "    return descriptors;\n";
     out << "}\n\n";
     out << "} // namespace statespec_generated::api::descriptors\n";
+    return out.str();
+}
+
+std::string cpp_worker_descriptor_catalog_file(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../common/descriptors.hpp\"\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "#include \"" << snake_identifier(worker.name) << ".hpp\"\n";
+    }
+    out << "\nnamespace statespec_generated::worker::descriptors\n";
+    out << "{\n\n";
+    out << "using WorkerContext = ::statespec_generated::WorkerContext;\n";
+    out << "using WorkerDescriptor = ::statespec_generated::WorkerDescriptor;\n\n";
+    out << "inline std::vector<WorkerDescriptor> worker_descriptors()\n";
+    out << "{\n";
+    out << "    std::vector<WorkerDescriptor> descriptors;\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "    descriptors.push_back(" << snake_identifier(worker.name)
+            << "_worker_descriptor());\n";
+    }
+    out << "    return descriptors;\n";
+    out << "}\n\n";
+    out << "inline std::vector<WorkerContext> worker_contexts()\n";
+    out << "{\n";
+    out << "    std::vector<WorkerContext> contexts;\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "    contexts.push_back(" << snake_identifier(worker.name)
+            << "_worker_context());\n";
+    }
+    out << "    return contexts;\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::worker::descriptors\n";
     return out.str();
 }
 
@@ -1991,6 +2012,20 @@ void add_cpp_worker_artifacts(
         result, options, templates, "worker/worker_contexts.hpp", GeneratedArtifactTier::Worker,
         diagnostics
     );
+    add_cpp_raw_worker_file(
+        result, options, "worker/descriptors/catalog.hpp", cpp_worker_descriptor_catalog_file(system)
+    );
+    for (const auto& worker : system.workers)
+    {
+        add_cpp_raw_worker_file(
+            result, options, "worker/descriptors/" + snake_identifier(worker.name) + ".hpp",
+            std::string{
+                "#pragma once\n\n#include \"../../common/descriptors.hpp\"\n\nnamespace "
+                "statespec_generated::worker::descriptors\n{\n\n"} +
+                generate_cpp_worker_descriptor_module(worker) +
+                "} // namespace statespec_generated::worker::descriptors\n"
+        );
+    }
     add_cpp_raw_worker_file(
         result, options, "worker/worker_registry.hpp", cpp_worker_registry_facade(system)
     );

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../common/descriptors.hpp"
+#include "descriptors/catalog.hpp"
 
 namespace statespec_generated::worker
 {
@@ -9,7 +10,7 @@ using WorkerContext = ::statespec_generated::WorkerContext;
 
 inline std::vector<WorkerContext> worker_contexts()
 {
-    return ::statespec_generated::worker_contexts();
+    return descriptors::worker_contexts();
 }
 
 } // namespace statespec_generated::worker

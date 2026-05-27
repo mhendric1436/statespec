@@ -47,7 +47,6 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors/external_systems.rs", common},
             {"common/descriptors/runtime.rs", common},
             {"common/descriptors/shapes.rs", common},
-            {"common/descriptors/workers.rs", common},
             {"common/entity_repository.rs", common},
             {"common/runtime_registration.rs", common},
             {"common/shapes.rs", common},
@@ -61,6 +60,7 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"api/descriptors/catalog.rs", api},
             {"api/external_system_operator_metadata_api.rs", api},
             {"worker/worker_contexts.rs", worker},
+            {"worker/descriptors/catalog.rs", worker},
             {"worker/worker_descriptors.rs", worker},
             {"worker/worker_registry.rs", worker},
         }
@@ -105,10 +105,6 @@ void test_rust_binding_generator_models_artifact_paths()
         result, "shapes.rs", "common/shapes.rs", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
-        result, "descriptors/workers.rs", "common/descriptors/workers.rs",
-        statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
         result, "Cargo.toml", "common/Cargo.toml", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
@@ -145,6 +141,10 @@ void test_rust_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/worker_contexts.rs", "worker/worker_contexts.rs",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/descriptors/catalog.rs", "worker/descriptors/catalog.rs",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(

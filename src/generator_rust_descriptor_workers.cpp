@@ -8,32 +8,6 @@
 namespace statespec
 {
 
-std::string generate_rust_worker_descriptors(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << "pub fn worker_descriptors() -> Vec<WorkerDescriptor> {\n";
-    out << "    let mut descriptors = Vec::new();\n";
-    for (const auto& worker : system.workers)
-    {
-        out << "    descriptors.push(descriptor_worker_" << snake_identifier(worker.name)
-            << "::worker_descriptor());\n";
-    }
-    out << "    descriptors\n";
-    out << "}\n\n";
-
-    out << "pub fn worker_contexts() -> Vec<WorkerContext> {\n";
-    out << "    let mut contexts = Vec::new();\n";
-    for (const auto& worker : system.workers)
-    {
-        out << "    contexts.push(descriptor_worker_" << snake_identifier(worker.name)
-            << "::worker_context());\n";
-    }
-    out << "    contexts\n";
-    out << "}\n\n";
-
-    return out.str();
-}
-
 std::string generate_rust_worker_descriptor_module(const IrWorker& worker)
 {
     std::ostringstream out;

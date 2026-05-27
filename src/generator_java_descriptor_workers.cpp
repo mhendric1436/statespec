@@ -8,36 +8,6 @@
 namespace statespec
 {
 
-std::string generate_java_worker_descriptors(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << "    public static List<WorkerDescriptor> workerDescriptors() {\n";
-    out << "        return List.of(\n";
-    for (std::size_t worker_index = 0; worker_index < system.workers.size(); ++worker_index)
-    {
-        const auto& worker = system.workers[worker_index];
-        out << "            com.statespec.generated.descriptors.workers."
-            << pascal_identifier(worker.name) << "DescriptorModule.workerDescriptor()"
-            << (worker_index + 1 < system.workers.size() ? "," : "") << "\n";
-    }
-    out << "        );\n";
-    out << "    }\n\n";
-
-    out << "    public static List<WorkerContext> workerContexts() {\n";
-    out << "        return List.of(\n";
-    for (std::size_t worker_index = 0; worker_index < system.workers.size(); ++worker_index)
-    {
-        const auto& worker = system.workers[worker_index];
-        out << "            com.statespec.generated.descriptors.workers."
-            << pascal_identifier(worker.name) << "DescriptorModule.workerContext()"
-            << (worker_index + 1 < system.workers.size() ? "," : "") << "\n";
-    }
-    out << "        );\n";
-    out << "    }\n\n";
-
-    return out.str();
-}
-
 std::string generate_java_worker_descriptor_module(
     const IrWorker& worker,
     std::string_view package_name,

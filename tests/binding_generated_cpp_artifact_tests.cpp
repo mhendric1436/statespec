@@ -47,7 +47,6 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors/external_systems.hpp", common},
             {"common/descriptors/runtime.hpp", common},
             {"common/descriptors/shapes.hpp", common},
-            {"common/descriptors/workers.hpp", common},
             {"common/entity_repository.hpp", common},
             {"common/runtime_registration.hpp", common},
             {"common/shapes.hpp", common},
@@ -61,6 +60,7 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"api/descriptors/catalog.hpp", api},
             {"api/external_system_operator_metadata_api.hpp", api},
             {"worker/worker_contexts.hpp", worker},
+            {"worker/descriptors/catalog.hpp", worker},
             {"worker/worker_descriptors.hpp", worker},
             {"worker/worker_registry.hpp", worker},
         }
@@ -92,10 +92,6 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "shapes.hpp", "common/shapes.hpp", statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "descriptors/workers.hpp", "common/descriptors/workers.hpp",
-        statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "descriptors/runtime.hpp", "common/descriptors/runtime.hpp",
@@ -149,6 +145,10 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "worker/worker_contexts.hpp", "worker/worker_contexts.hpp",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/descriptors/catalog.hpp", "worker/descriptors/catalog.hpp",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(

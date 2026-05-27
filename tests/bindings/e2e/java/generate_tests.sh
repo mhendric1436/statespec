@@ -74,12 +74,10 @@ common/com/statespec/generated/descriptors/RuntimeLeaseRegistrationModule.java
 common/com/statespec/generated/descriptors/RuntimeQueueRegistrationModule.java
 common/com/statespec/generated/descriptors/RuntimeWorkflowRegistrationModule.java
 common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
-common/com/statespec/generated/descriptors/WorkerDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/ProvisionCallbackRequestDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/ProvisionCallbackResponseDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/StartProvisionRequestDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/StartProvisionResponseDescriptorModule.java
-common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java
 common/com/statespec/generated/entities/DefaultEntityRepository.java
 common/com/statespec/generated/entities/EntityCreateRequest.java
 common/com/statespec/generated/entities/EntityDeleteRequest.java
@@ -129,6 +127,8 @@ worker/com/statespec/generated/WorkerWorkflows.java
 worker/com/statespec/generated/WorkflowRunner.java
 worker/com/statespec/generated/WorkflowStepHandlers.java
 worker/com/statespec/generated/registry/ProvisionWorkerRegistry.java
+worker/com/statespec/generated/worker/descriptors/Catalog.java
+worker/com/statespec/generated/worker/descriptors/ProvisionWorkerDescriptorModule.java
 worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java
 EOF
 
@@ -200,8 +200,8 @@ run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang java "$APP_SPEC" --out "$TMPDIR/out-app-java"
 assert_file_manifest_equals "$TMPDIR/out-app-java" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java" "\"ProvisionApi.StartProvision\""
-assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java" "\"ProvisionCommands.CreateRemoteService\""
-assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/worker/descriptors/ProvisionWorkerDescriptorModule.java" "\"ProvisionCommands.CreateRemoteService\""
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/worker/descriptors/ProvisionWorkerDescriptorModule.java" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiApplication.java" "class ApiApplication"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/codecs/ApiCodecsStartProvisionRequest.java" "decodeStartProvisionRequest"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java" "encodeStartProvisionResponse"

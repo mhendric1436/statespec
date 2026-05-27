@@ -56,8 +56,6 @@ common/descriptors/shapes/provision_callback_request.hpp
 common/descriptors/shapes/provision_callback_response.hpp
 common/descriptors/shapes/start_provision_request.hpp
 common/descriptors/shapes/start_provision_response.hpp
-common/descriptors/workers.hpp
-common/descriptors/workers/provision_worker.hpp
 common/entities/service_instance/model.hpp
 common/entities/service_instance/persistence.hpp
 common/entities/service_instance/schema.hpp
@@ -91,6 +89,8 @@ common/shapes/start_provision_request.hpp
 common/shapes/start_provision_response.hpp
 common/workflow.hpp
 common/workflows/provision_service.hpp
+worker/descriptors/catalog.hpp
+worker/descriptors/provision_worker.hpp
 worker/main.cpp
 worker/registry/provision_worker.hpp
 worker/worker_application.hpp
@@ -173,8 +173,8 @@ run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$APP_SPEC" --out "$TMPDIR/out-app-cpp"
 assert_file_manifest_equals "$TMPDIR/out-app-cpp" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-cpp/api/descriptors/start_provision.hpp" "\"ProvisionApi.StartProvision\""
-assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors/workers/provision_worker.hpp" "\"ProvisionCommands.CreateRemoteService\""
-assert_file_contains "$TMPDIR/out-app-cpp/common/descriptors/workers/provision_worker.hpp" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-cpp/worker/descriptors/provision_worker.hpp" "\"ProvisionCommands.CreateRemoteService\""
+assert_file_contains "$TMPDIR/out-app-cpp/worker/descriptors/provision_worker.hpp" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_application.hpp" "class ApiApplication"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "class ApiProcess"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "void request_stop()"

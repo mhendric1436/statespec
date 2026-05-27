@@ -1,11 +1,12 @@
 package com.statespec.generated;
 
+import com.statespec.generated.worker.descriptors.Catalog;
 import java.util.List;
 
 public final class WorkerContexts {
     private WorkerContexts() {}
 
     public static List<Descriptors.WorkerContext> workerContexts() {
-        return Descriptors.workerContexts();
+        return Catalog.workerContexts();
     }
 }

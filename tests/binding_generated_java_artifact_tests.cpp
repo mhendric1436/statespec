@@ -51,7 +51,6 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
              common},
             {"common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/ShapeDescriptorModule.java", common},
-            {"common/com/statespec/generated/descriptors/WorkerDescriptorModule.java", common},
             {"common/com/statespec/generated/entities/DefaultEntityRepository.java", common},
             {"common/com/statespec/generated/entities/EntityCreateRequest.java", common},
             {"common/com/statespec/generated/entities/EntityDeleteRequest.java", common},
@@ -119,6 +118,7 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"api/com/statespec/generated/descriptors/Catalog.java", api},
             {"api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", api},
             {"worker/com/statespec/generated/WorkerContexts.java", worker},
+            {"worker/com/statespec/generated/worker/descriptors/Catalog.java", worker},
             {"worker/com/statespec/generated/WorkerDescriptors.java", worker},
             {"worker/com/statespec/generated/WorkerRegistry.java", worker},
         }
@@ -165,11 +165,6 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "com/statespec/generated/descriptors/ShapeDescriptorModule.java",
         "common/com/statespec/generated/descriptors/ShapeDescriptorModule.java",
-        statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "com/statespec/generated/descriptors/WorkerDescriptorModule.java",
-        "common/com/statespec/generated/descriptors/WorkerDescriptorModule.java",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
@@ -223,6 +218,11 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "worker/com/statespec/generated/WorkerContexts.java",
         "worker/com/statespec/generated/WorkerContexts.java",
+        statespec::GeneratedArtifactTier::Worker
+    );
+    require_generated_file_artifact_path(
+        result, "worker/com/statespec/generated/worker/descriptors/Catalog.java",
+        "worker/com/statespec/generated/worker/descriptors/Catalog.java",
         statespec::GeneratedArtifactTier::Worker
     );
     require_generated_file_artifact_path(

@@ -8,32 +8,6 @@
 namespace statespec
 {
 
-std::string generate_go_worker_descriptors(const IrSystem& system)
-{
-    std::ostringstream out;
-    out << "func WorkerDescriptors() []WorkerDescriptor {\n";
-    out << "\tdescriptors := []WorkerDescriptor{}\n";
-    for (const auto& worker : system.workers)
-    {
-        out << "\tdescriptors = append(descriptors, " << pascal_identifier(worker.name)
-            << "WorkerDescriptor())\n";
-    }
-    out << "\treturn descriptors\n";
-    out << "}\n\n";
-
-    out << "func WorkerContexts() []WorkerContext {\n";
-    out << "\tcontexts := []WorkerContext{}\n";
-    for (const auto& worker : system.workers)
-    {
-        out << "\tcontexts = append(contexts, " << pascal_identifier(worker.name)
-            << "WorkerContext())\n";
-    }
-    out << "\treturn contexts\n";
-    out << "}\n\n";
-
-    return out.str();
-}
-
 std::string generate_go_worker_descriptor_module(const IrWorker& worker)
 {
     std::ostringstream out;

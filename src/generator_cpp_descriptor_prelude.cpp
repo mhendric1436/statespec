@@ -15,7 +15,6 @@ std::string cpp_descriptor_module_includes(const IrSystem& system)
 {
     std::ostringstream out;
     out << "#include \"descriptors/core.hpp\"\n";
-    out << "#include \"descriptors/workers.hpp\"\n";
     out << "#include \"descriptors/runtime.hpp\"\n";
     for (const auto& entity : system.entities)
     {

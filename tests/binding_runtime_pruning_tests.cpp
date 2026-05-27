@@ -331,9 +331,9 @@ bool is_entity_descriptor_module_path(std::string_view artifact_path)
 
 bool is_worker_descriptor_module_path(std::string_view artifact_path)
 {
-    return artifact_path.find("/descriptors/workers/") != std::string_view::npos ||
-           (artifact_path.find("common/backend/worker_descriptor_") == 0 &&
-            artifact_path.ends_with(".go"));
+    return artifact_path.find("worker/descriptors/") == 0 ||
+           artifact_path.find("worker/backend/descriptors/") == 0 ||
+           artifact_path.find("worker/com/statespec/generated/worker/descriptors/") == 0;
 }
 
 std::string descriptor_content(

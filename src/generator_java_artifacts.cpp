@@ -89,7 +89,7 @@ std::string java_worker_registry_module_file(
     std::ostringstream out;
     out << "package " << package_name << ";\n\n";
     out << "import com.statespec.generated.Descriptors;\n";
-    out << "import com.statespec.generated.descriptors.workers."
+    out << "import com.statespec.generated.worker.descriptors."
         << java_worker_descriptor_module_class_name(worker.name) << ";\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class " << class_name << " {\n";
@@ -1973,6 +1973,37 @@ std::string java_api_descriptor_catalog_file(const IrSystem& system)
     return out.str();
 }
 
+std::string java_worker_descriptor_catalog_file(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.worker.descriptors;\n\n";
+    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import java.util.ArrayList;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class Catalog {\n";
+    out << "    private Catalog() {}\n\n";
+    out << "    public static List<Descriptors.WorkerDescriptor> workerDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<Descriptors.WorkerDescriptor>();\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "        descriptors.add(" << java_worker_descriptor_module_class_name(worker.name)
+            << ".workerDescriptor());\n";
+    }
+    out << "        return List.copyOf(descriptors);\n";
+    out << "    }\n\n";
+    out << "    public static List<Descriptors.WorkerContext> workerContexts() {\n";
+    out << "        var contexts = new ArrayList<Descriptors.WorkerContext>();\n";
+    for (const auto& worker : system.workers)
+    {
+        out << "        contexts.add(" << java_worker_descriptor_module_class_name(worker.name)
+            << ".workerContext());\n";
+    }
+    out << "        return List.copyOf(contexts);\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 void add_java_descriptor_module_artifact(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -2109,20 +2140,6 @@ void add_java_descriptor_module_artifacts(
                 (shape_descriptor_package_path / (class_name + ".java")).generic_string()
             ),
             diagnostics, GeneratedArtifactTier::Common, java_shape_descriptor_module_values(shape)
-        );
-    }
-    add_java_descriptor_module_artifact(
-        result, options, templates, descriptor_package_path / "WorkerDescriptorModule.java",
-        descriptor_package, "WorkerDescriptorModule", "worker descriptors", diagnostics
-    );
-    for (const auto& worker : system.workers)
-    {
-        const auto class_name = java_worker_descriptor_module_class_name(worker.name);
-        add_java_raw_common_file(
-            result, options, descriptor_package_path / "workers" / (class_name + ".java"),
-            generate_java_worker_descriptor_module(
-                worker, descriptor_package + ".workers", class_name
-            )
         );
     }
     add_java_descriptor_module_artifact(
@@ -2463,6 +2480,22 @@ void add_java_worker_artifacts(
         result, options, templates, java_worker_generated_path("WorkerContexts.java"),
         GeneratedArtifactTier::Worker, diagnostics
     );
+    add_java_raw_worker_file(
+        result, options,
+        java_worker_generated_path("worker/descriptors/Catalog.java"),
+        java_worker_descriptor_catalog_file(system)
+    );
+    for (const auto& worker : system.workers)
+    {
+        const auto class_name = java_worker_descriptor_module_class_name(worker.name);
+        add_java_raw_worker_file(
+            result, options,
+            java_worker_generated_path("worker/descriptors/" + class_name + ".java"),
+            generate_java_worker_descriptor_module(
+                worker, "com.statespec.generated.worker.descriptors", class_name
+            )
+        );
+    }
     add_java_raw_worker_file(
         result, options, java_worker_generated_path("WorkerRegistry.java"),
         java_worker_registry_facade_file(system)

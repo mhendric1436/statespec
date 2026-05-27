@@ -929,7 +929,6 @@ std::string generate_system_descriptors_header(
     out << generate_cpp_feature_flag_descriptors(system);
     out << generate_cpp_declaration_descriptors(system);
     out << "#include \"descriptors/external_systems.hpp\"\n\n";
-    out << generate_cpp_worker_descriptors(system);
     out << generate_cpp_policy_descriptors(system);
     out << "#include \"descriptors/shapes.hpp\"\n\n";
     out << generate_cpp_observability_descriptors(system);

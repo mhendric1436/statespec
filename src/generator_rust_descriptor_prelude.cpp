@@ -28,13 +28,6 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     out << "#[path = \"descriptors/shapes.rs\"]\n";
     out << "mod descriptor_shapes;\n";
     out << "pub use descriptor_shapes::*;\n";
-    out << "#[path = \"descriptors/workers.rs\"]\n";
-    out << "mod descriptor_workers;\n";
-    for (const auto& worker : system.workers)
-    {
-        out << "#[path = \"descriptors/workers/" << snake_identifier(worker.name) << ".rs\"]\n";
-        out << "pub(crate) mod descriptor_worker_" << snake_identifier(worker.name) << ";\n";
-    }
     out << "#[path = \"descriptors/runtime.rs\"]\n";
     out << "mod descriptor_runtime;\n";
     auto add_runtime_registration_module = [&](bool used, std::string_view module_name)

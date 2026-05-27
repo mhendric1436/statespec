@@ -46,7 +46,6 @@ common/backend/descriptors.go
 common/backend/descriptors/core.go
 common/backend/descriptors/runtime.go
 common/backend/descriptors/shapes.go
-common/backend/descriptors/workers.go
 common/backend/entity_repository.go
 common/backend/events.go
 common/backend/external_system.go
@@ -83,7 +82,6 @@ common/backend/shapes/start_provision_request.go
 common/backend/shapes/start_provision_response.go
 common/backend/start_provision_request_shape_descriptors.go
 common/backend/start_provision_response_shape_descriptors.go
-common/backend/worker_descriptor_provision_worker.go
 common/backend/workflow.go
 common/backend/workflows/provision_service.go
 common/backend/workflows/workflows.go
@@ -91,6 +89,8 @@ common/entities/service_instance/model.go
 common/entities/service_instance/persistence.go
 common/entities/service_instance/schema.go
 go.mod
+worker/backend/descriptors/catalog.go
+worker/backend/descriptors/provision_worker.go
 worker/backend/registry/provision_worker.go
 worker/backend/worker_application.go
 worker/backend/worker_contexts.go
@@ -178,8 +178,8 @@ run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"
 assert_file_manifest_equals "$TMPDIR/out-app-go" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/descriptors/start_provision.go" "\"ProvisionApi.StartProvision\""
-assert_file_contains "$TMPDIR/out-app-go/common/backend/worker_descriptor_provision_worker.go" "\"ProvisionCommands.CreateRemoteService\""
-assert_file_contains "$TMPDIR/out-app-go/common/backend/worker_descriptor_provision_worker.go" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/descriptors/provision_worker.go" "\"ProvisionCommands.CreateRemoteService\""
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/descriptors/provision_worker.go" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_application.go" "type APITierApplication struct"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "type APIProcess struct"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "func (process *APIProcess) RequestStop()"

@@ -55,8 +55,6 @@ common/descriptors/shapes/provision_callback_request.rs
 common/descriptors/shapes/provision_callback_response.rs
 common/descriptors/shapes/start_provision_request.rs
 common/descriptors/shapes/start_provision_response.rs
-common/descriptors/workers.rs
-common/descriptors/workers/provision_worker.rs
 common/entities/service_instance/mod.rs
 common/entities/service_instance/model.rs
 common/entities/service_instance/persistence.rs
@@ -92,6 +90,8 @@ common/shapes/start_provision_response.rs
 common/workflow.rs
 common/workflows/provision_service.rs
 lib.rs
+worker/descriptors/catalog.rs
+worker/descriptors/provision_worker.rs
 worker/main.rs
 worker/registry/provision_worker.rs
 worker/worker_application.rs
@@ -176,8 +176,8 @@ run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang rust "$APP_SPEC" --out "$TMPDIR/out-app-rust"
 assert_file_manifest_equals "$TMPDIR/out-app-rust" "$APP_MANIFEST"
 assert_file_contains "$TMPDIR/out-app-rust/api/descriptors/start_provision.rs" "\"ProvisionApi.StartProvision\""
-assert_file_contains "$TMPDIR/out-app-rust/common/descriptors/workers/provision_worker.rs" "\"ProvisionCommands.CreateRemoteService\""
-assert_file_contains "$TMPDIR/out-app-rust/common/descriptors/workers/provision_worker.rs" "\"ProvisionWorker\""
+assert_file_contains "$TMPDIR/out-app-rust/worker/descriptors/provision_worker.rs" "\"ProvisionCommands.CreateRemoteService\""
+assert_file_contains "$TMPDIR/out-app-rust/worker/descriptors/provision_worker.rs" "\"ProvisionWorker\""
 assert_file_contains "$TMPDIR/out-app-rust/api/api_application.rs" "pub struct ApiApplication"
 assert_file_contains "$TMPDIR/out-app-rust/api/codecs/start_provision_request.rs" "decode_start_provision_request"
 assert_file_contains "$TMPDIR/out-app-rust/api/codecs/start_provision_response.rs" "encode_start_provision_response"
