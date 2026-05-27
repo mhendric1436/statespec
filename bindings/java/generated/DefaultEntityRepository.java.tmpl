@@ -1,0 +1,113 @@
+package com.statespec.generated.entities;
+
+import com.statespec.backend.Backend;
+import java.util.List;
+import java.util.Optional;
+
+public
+final class DefaultEntityRepository implements EntityRepository
+{
+    @Override public Optional<Backend.VersionedRecord> createEntityTx(
+        Backend.Transaction tx,
+        EntityCreateRequest request
+    ) throws Backend.BackendException
+    {
+        Optional<String> key = EntityRepository.entityKey(request.lookup());
+        if (key.isEmpty())
+        {
+            return Optional.empty();
+        }
+        Optional<Backend.VersionedRecord> existing =
+            tx.get(request.lookup().entity(), key.orElseThrow());
+        if (existing.isPresent())
+        {
+            throw new Backend.ConflictException(
+                Backend.ConflictKind.VERSION_CONFLICT, "entity already exists"
+            );
+        }
+        tx.put(
+            request.lookup().entity(), key.orElseThrow(),
+            EntityRepository.entityDocumentWithKeys(request.document(), request.lookup())
+        );
+        return tx.get(request.lookup().entity(), key.orElseThrow());
+    }
+
+    @Override public Optional<Backend.VersionedRecord> upsertEntityTx(
+        Backend.Transaction tx,
+        EntityUpsertRequest request
+    ) throws Backend.BackendException
+    {
+        Optional<String> key = EntityRepository.entityKey(request.lookup());
+        if (key.isEmpty())
+        {
+            return Optional.empty();
+        }
+        Optional<Backend.VersionedRecord> existing =
+            tx.get(request.lookup().entity(), key.orElseThrow());
+        assertEntityExpectedVersion(existing, request.expectedVersion());
+        tx.put(
+            request.lookup().entity(), key.orElseThrow(),
+            EntityRepository.entityDocumentWithKeys(request.document(), request.lookup())
+        );
+        return tx.get(request.lookup().entity(), key.orElseThrow());
+    }
+
+    @Override public Optional<Backend.VersionedRecord> getEntityTx(
+        Backend.Transaction tx,
+        EntityGetRequest request
+    ) throws Backend.BackendException
+    {
+        Optional<String> key = EntityRepository.entityKey(request.lookup());
+        return key.isPresent() ? tx.get(request.lookup().entity(), key.orElseThrow())
+                               : Optional.empty();
+    }
+
+    @Override public Optional<Backend.VersionedRecord> deleteEntityTx(
+        Backend.Transaction tx,
+        EntityDeleteRequest request
+    ) throws Backend.BackendException
+    {
+        Optional<String> key = EntityRepository.entityKey(request.lookup());
+        if (key.isEmpty())
+        {
+            return Optional.empty();
+        }
+        Optional<Backend.VersionedRecord> existing =
+            tx.get(request.lookup().entity(), key.orElseThrow());
+        if (existing.isEmpty())
+        {
+            return Optional.empty();
+        }
+        assertEntityExpectedVersion(existing, request.expectedVersion());
+        tx.erase(request.lookup().entity(), key.orElseThrow());
+        return existing;
+    }
+
+    @Override public List<Backend.VersionedRecord> listEntitiesByIndexTx(
+        Backend.Transaction tx,
+        EntityListByIndexRequest request
+    ) throws Backend.BackendException
+    {
+        return tx.query(
+            request.entity(), new Backend.Query.IndexEquals(request.indexName(), request.values())
+        );
+    }
+
+  private
+    static void assertEntityExpectedVersion(
+        Optional<Backend.VersionedRecord> existing,
+        Optional<Long> expectedVersion
+    ) throws Backend.BackendException
+    {
+        if (expectedVersion.isEmpty())
+        {
+            return;
+        }
+        if (existing.isEmpty() || existing.orElseThrow().version() != expectedVersion.orElseThrow())
+        {
+            throw new Backend.ConflictException(
+                Backend.ConflictKind.VERSION_CONFLICT, "entity version conflict"
+            );
+        }
+    }
+}

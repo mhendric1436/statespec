@@ -1,0 +1,11 @@
+package com.statespec.generated.entities;
+
+import java.util.Optional;
+
+public
+record EntityDeleteRequest(
+    EntityLookup lookup,
+    Optional<Long> expectedVersion
+)
+{
+}

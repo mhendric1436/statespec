@@ -78,7 +78,15 @@ common/com/statespec/generated/descriptors/shapes/ProvisionCallbackResponseDescr
 common/com/statespec/generated/descriptors/shapes/StartProvisionRequestDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/StartProvisionResponseDescriptorModule.java
 common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java
+common/com/statespec/generated/entities/DefaultEntityRepository.java
+common/com/statespec/generated/entities/EntityCreateRequest.java
+common/com/statespec/generated/entities/EntityDeleteRequest.java
+common/com/statespec/generated/entities/EntityGetRequest.java
+common/com/statespec/generated/entities/EntityKeyValue.java
+common/com/statespec/generated/entities/EntityListByIndexRequest.java
+common/com/statespec/generated/entities/EntityLookup.java
 common/com/statespec/generated/entities/EntityRepository.java
+common/com/statespec/generated/entities/EntityUpsertRequest.java
 common/com/statespec/generated/runtime/RuntimeRegistration.java
 common/com/statespec/generated/shapes/ProvisionCallbackRequest.java
 common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
@@ -151,8 +159,8 @@ assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generat
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME = \"string\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "new FieldDescriptor(CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID, FieldType.STRING, CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME, true)"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Schema.java" "List.of(Model.ACCOUNT_FIELD_TENANT_ID, Model.ACCOUNT_FIELD_ACCOUNT_ID)"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/Descriptors.java" "key.append(keyField).append('=').append(value.canonicalString()).append('\\n')"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/Descriptors.java" "values.put(keyValue.field(), keyValue.value())"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/EntityRepository.java" "key.append(keyField).append('=').append(value.canonicalString()).append('\\n')"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/EntityRepository.java" "values.put(keyValue.field(), keyValue.value())"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "new Descriptors.ApiResponse(404"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "com.statespec.backend.Json.array(items)"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "repository.updateTx"

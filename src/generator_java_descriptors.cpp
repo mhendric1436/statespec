@@ -427,7 +427,7 @@ void write_java_parent_validation(
         {
             const auto& key_field = parent->key_fields[i];
             const auto* request_field = find_field(request, key_field);
-            out << "                        new Descriptors.EntityKeyValue("
+            out << "                        new com.statespec.generated.entities.EntityKeyValue("
                 << java_entity_field_expr(*parent, key_field) << ", ";
             if (request_field == nullptr)
             {
@@ -580,7 +580,7 @@ bool write_java_get_handler_body(
     for (std::size_t i = 0; i < entity->key_fields.size(); ++i)
     {
         const auto& key_field = entity->key_fields[i];
-        out << "                        new Descriptors.EntityKeyValue("
+        out << "                        new com.statespec.generated.entities.EntityKeyValue("
             << java_entity_field_expr(*entity, key_field) << ", pathParameterJson(pathParameters, "
             << java_entity_field_expr(*entity, key_field) << "))"
             << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
@@ -765,7 +765,7 @@ bool write_java_update_status_handler_body(
     {
         const auto& key_field = entity->key_fields[i];
         const auto* field = find_field(*request, key_field);
-        out << "                    new Descriptors.EntityKeyValue("
+        out << "                    new com.statespec.generated.entities.EntityKeyValue("
             << java_entity_field_expr(*entity, key_field) << ", "
             << java_api_json_expr(*field, "request." + key_field + "()") << ")"
             << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
@@ -896,7 +896,7 @@ bool write_java_delete_handler_body(
     for (std::size_t i = 0; i < entity->key_fields.size(); ++i)
     {
         const auto& key_field = entity->key_fields[i];
-        out << "                    new Descriptors.EntityKeyValue("
+        out << "                    new com.statespec.generated.entities.EntityKeyValue("
             << java_entity_field_expr(*entity, key_field) << ", pathParameterJson(pathParameters, "
             << java_entity_field_expr(*entity, key_field) << "))"
             << (i + 1 < entity->key_fields.size() ? "," : "") << "\n";
@@ -1059,8 +1059,7 @@ std::string generate_descriptors_java(
     std::ostringstream out;
     out << generate_java_descriptor_prelude(
         system, templates.load("generated/ExternalSystemRuntime.java.tmpl"),
-        templates.load("generated/ExternalSystemMetadataRuntime.java.tmpl"),
-        templates.load("generated/EntityRepository.java.tmpl")
+        templates.load("generated/ExternalSystemMetadataRuntime.java.tmpl"), {}
     );
     out << generate_java_feature_flag_descriptors(system);
     out << generate_java_declaration_descriptors(system);

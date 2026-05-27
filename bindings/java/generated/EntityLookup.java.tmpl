@@ -1,0 +1,33 @@
+package com.statespec.generated.entities;
+
+import java.util.List;
+
+public
+record EntityLookup(
+    String entity,
+    List<String> keyFields,
+    List<EntityKeyValue> keyValues
+)
+{
+  public
+    boolean keyComplete()
+    {
+        for (String keyField : keyFields)
+        {
+            boolean found = false;
+            for (EntityKeyValue keyValue : keyValues)
+            {
+                if (keyValue.field().equals(keyField))
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+}

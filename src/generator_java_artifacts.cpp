@@ -10,6 +10,7 @@
 #include "statespec/runtime_usage.hpp"
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <sstream>
 #include <string>
@@ -1001,12 +1002,12 @@ std::string java_entity_centered_facade_file(
     {
         const auto type_name = pascal_identifier(entity.name);
         out << "\n";
-        out << "    public static com.statespec.generated.Descriptors.EntityLookup build"
+        out << "    public static com.statespec.generated.entities.EntityLookup build"
             << type_name << "Lookup(\n";
-        out << "        java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+        out << "        java.util.List<com.statespec.generated.entities.EntityKeyValue> "
                "keyValues\n";
         out << "    ) {\n";
-        out << "        return new com.statespec.generated.Descriptors.EntityLookup(\n";
+        out << "        return new com.statespec.generated.entities.EntityLookup(\n";
         out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
         out << "            java.util.List.of(";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
@@ -1054,7 +1055,7 @@ std::string java_entity_centered_facade_file(
         out << "        ) throws com.statespec.backend.Backend.BackendException;\n";
         out << "        java.util.Optional<com.statespec.backend.Backend.VersionedRecord> getTx(\n";
         out << "            com.statespec.backend.Backend.Transaction tx,\n";
-        out << "            java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+        out << "            java.util.List<com.statespec.generated.entities.EntityKeyValue> "
                "keyValues\n";
         out << "        ) throws com.statespec.backend.Backend.BackendException;\n";
         out << "        java.util.List<com.statespec.backend.Backend.VersionedRecord> "
@@ -1074,7 +1075,7 @@ std::string java_entity_centered_facade_file(
         out << "        java.util.Optional<com.statespec.backend.Backend.VersionedRecord> "
                "updateTx(\n";
         out << "            com.statespec.backend.Backend.Transaction tx,\n";
-        out << "            java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+        out << "            java.util.List<com.statespec.generated.entities.EntityKeyValue> "
                "keyValues,\n";
         out << "            com.statespec.backend.Json document,\n";
         out << "            long expectedVersion\n";
@@ -1082,8 +1083,8 @@ std::string java_entity_centered_facade_file(
         out << "    }\n\n";
         out << "    public static class Default" << type_name << "Repository implements "
             << type_name << "Repository {\n";
-        out << "        private final com.statespec.generated.Descriptors.EntityRepository "
-               "entities = new com.statespec.generated.Descriptors.DefaultEntityRepository();\n\n";
+        out << "        private final com.statespec.generated.entities.EntityRepository "
+               "entities = new com.statespec.generated.entities.DefaultEntityRepository();\n\n";
         out << "        @Override public void registerDescriptor(com.statespec.backend.Backend "
                "backend)\n";
         out << "            throws com.statespec.backend.Backend.BackendException\n";
@@ -1099,8 +1100,8 @@ std::string java_entity_centered_facade_file(
         out << "        {\n";
         out << "            return entities.createEntityTx(\n";
         out << "                tx,\n";
-        out << "                new com.statespec.generated.Descriptors.EntityCreateRequest(\n";
-        out << "                    com.statespec.generated.Descriptors.entityLookupFromDocument("
+        out << "                new com.statespec.generated.entities.EntityCreateRequest(\n";
+        out << "                    com.statespec.generated.entities.EntityRepository.entityLookupFromDocument("
             << lower_camel_identifier(entity.name) << "EntityDescriptor(), document),\n";
         out << "                    document\n";
         out << "                )\n";
@@ -1109,12 +1110,12 @@ std::string java_entity_centered_facade_file(
         out << "        @Override public java.util.Optional<com.statespec.backend.Backend."
                "VersionedRecord> getTx(\n";
         out << "            com.statespec.backend.Backend.Transaction tx,\n";
-        out << "            java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+        out << "            java.util.List<com.statespec.generated.entities.EntityKeyValue> "
                "keyValues\n";
         out << "        ) throws com.statespec.backend.Backend.BackendException\n";
         out << "        {\n";
         out << "            return entities.getEntityTx(\n";
-        out << "                tx, new com.statespec.generated.Descriptors.EntityGetRequest("
+        out << "                tx, new com.statespec.generated.entities.EntityGetRequest("
                "build"
             << type_name << "Lookup(keyValues))\n";
         out << "            );\n";
@@ -1128,7 +1129,7 @@ std::string java_entity_centered_facade_file(
         out << "        {\n";
         out << "            return entities.listEntitiesByIndexTx(\n";
         out << "                tx,\n";
-        out << "                new com.statespec.generated.Descriptors.EntityListByIndexRequest("
+        out << "                new com.statespec.generated.entities.EntityListByIndexRequest("
                "Model."
             << java_entity_name_constant_name(entity.name) << ", indexName, values)\n";
         out << "            );\n";
@@ -1151,7 +1152,7 @@ std::string java_entity_centered_facade_file(
         out << "        @Override public java.util.Optional<com.statespec.backend.Backend."
                "VersionedRecord> updateTx(\n";
         out << "            com.statespec.backend.Backend.Transaction tx,\n";
-        out << "            java.util.List<com.statespec.generated.Descriptors.EntityKeyValue> "
+        out << "            java.util.List<com.statespec.generated.entities.EntityKeyValue> "
                "keyValues,\n";
         out << "            com.statespec.backend.Json document,\n";
         out << "            long expectedVersion\n";
@@ -1159,7 +1160,7 @@ std::string java_entity_centered_facade_file(
         out << "        {\n";
         out << "            return entities.upsertEntityTx(\n";
         out << "                tx,\n";
-        out << "                new com.statespec.generated.Descriptors.EntityUpsertRequest(\n";
+        out << "                new com.statespec.generated.entities.EntityUpsertRequest(\n";
         out << "                    build" << type_name << "Lookup(keyValues),\n";
         out << "                    document,\n";
         out << "                    java.util.Optional.of(expectedVersion)\n";
@@ -1519,13 +1520,27 @@ void add_java_descriptor_module_artifacts(
         "    private DescriptorCatalog() {}\n"
         "}\n"
     );
-    add_java_raw_common_file(
-        result, options, generated_package_path / "entities" / "EntityRepository.java",
-        "package com.statespec.generated.entities;\n\n"
-        "public final class EntityRepository {\n"
-        "    private EntityRepository() {}\n"
-        "}\n"
-    );
+    const auto entity_runtime_package_path = generated_package_path / "entities";
+    const std::array<std::string_view, 9> entity_runtime_files{
+        "EntityKeyValue.java",
+        "EntityLookup.java",
+        "EntityCreateRequest.java",
+        "EntityGetRequest.java",
+        "EntityUpsertRequest.java",
+        "EntityDeleteRequest.java",
+        "EntityListByIndexRequest.java",
+        "EntityRepository.java",
+        "DefaultEntityRepository.java",
+    };
+    for (const auto filename : entity_runtime_files)
+    {
+        const std::string template_filename = std::string{filename} + ".tmpl";
+        add_generated_template_file(
+            result, options.output_dir, templates, generated_template_path(template_filename),
+            common_artifact_path((entity_runtime_package_path / filename).generic_string()),
+            diagnostics, GeneratedArtifactTier::Common
+        );
+    }
     add_java_raw_common_file(
         result, options, generated_package_path / "runtime" / "RuntimeRegistration.java",
         "package com.statespec.generated.runtime;\n\n"

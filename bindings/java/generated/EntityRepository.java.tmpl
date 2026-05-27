@@ -1,77 +1,12 @@
-public
-record EntityKeyValue(
-    String field,
-    Json value
-)
-{
-}
+package com.statespec.generated.entities;
 
-public
-record EntityLookup(
-    String entity,
-    List<String> keyFields,
-    List<EntityKeyValue> keyValues
-)
-{
-  public
-    boolean keyComplete()
-    {
-        for (String keyField : keyFields)
-        {
-            boolean found = false;
-            for (EntityKeyValue keyValue : keyValues)
-            {
-                if (keyValue.field().equals(keyField))
-                {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-}
-
-public
-record EntityCreateRequest(
-    EntityLookup lookup,
-    Json document
-)
-{
-}
-
-public
-record EntityGetRequest(EntityLookup lookup) {}
-
-public
-record EntityUpsertRequest(
-    EntityLookup lookup,
-    Json document,
-    Optional<Long> expectedVersion
-)
-{
-}
-
-public
-record EntityDeleteRequest(
-    EntityLookup lookup,
-    Optional<Long> expectedVersion
-)
-{
-}
-
-public
-record EntityListByIndexRequest(
-    String entity,
-    String indexName,
-    List<Backend.IndexValue> values
-)
-{
-}
+import com.statespec.backend.Backend;
+import com.statespec.backend.Json;
+import com.statespec.generated.Descriptors.EntityDescriptor;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 
 public
 interface EntityRepository
@@ -94,176 +29,59 @@ interface EntityRepository
     List<Backend.VersionedRecord> listEntitiesByIndexTx(
         Backend.Transaction tx, EntityListByIndexRequest request
     ) throws Backend.BackendException;
-}
 
-public
-static Optional<String> entityKey(EntityLookup lookup)
-{
-    if (!lookup.keyComplete())
+    static Optional<String> entityKey(EntityLookup lookup)
     {
-        return Optional.empty();
-    }
-    java.util.HashMap<String, Json> values = new java.util.HashMap<>();
-    for (EntityKeyValue keyValue : lookup.keyValues())
-    {
-        values.put(keyValue.field(), keyValue.value());
-    }
-    StringBuilder key = new StringBuilder();
-    for (String keyField : lookup.keyFields())
-    {
-        Json value = values.get(keyField);
-        if (value == null)
+        if (!lookup.keyComplete())
         {
             return Optional.empty();
         }
-        key.append(keyField).append('=').append(value.canonicalString()).append('\n');
-    }
-    return Optional.of(key.toString());
-}
-
-public
-static EntityLookup entityLookupFromDocument(
-    EntityDescriptor entity,
-    Json document
-)
-{
-    java.util.ArrayList<EntityKeyValue> keyValues = new java.util.ArrayList<>();
-    if (document instanceof Json.ObjectValue object)
-    {
-        for (String keyField : entity.keyFields())
+        HashMap<String, Json> values = new HashMap<>();
+        for (EntityKeyValue keyValue : lookup.keyValues())
         {
-            Json value = object.values().get(keyField);
-            if (value != null)
+            values.put(keyValue.field(), keyValue.value());
+        }
+        StringBuilder key = new StringBuilder();
+        for (String keyField : lookup.keyFields())
+        {
+            Json value = values.get(keyField);
+            if (value == null)
             {
-                keyValues.add(new EntityKeyValue(keyField, value));
+                return Optional.empty();
+            }
+            key.append(keyField).append('=').append(value.canonicalString()).append('\n');
+        }
+        return Optional.of(key.toString());
+    }
+
+    static EntityLookup entityLookupFromDocument(EntityDescriptor entity, Json document)
+    {
+        ArrayList<EntityKeyValue> keyValues = new ArrayList<>();
+        if (document instanceof Json.ObjectValue object)
+        {
+            for (String keyField : entity.keyFields())
+            {
+                Json value = object.values().get(keyField);
+                if (value != null)
+                {
+                    keyValues.add(new EntityKeyValue(keyField, value));
+                }
             }
         }
-    }
-    return new EntityLookup(entity.name(), entity.keyFields(), List.copyOf(keyValues));
-}
-
-public
-static Json entityDocumentWithKeys(
-    Json document,
-    EntityLookup lookup
-)
-{
-    java.util.HashMap<String, Json> values = new java.util.HashMap<>();
-    if (document instanceof Json.ObjectValue object)
-    {
-        values.putAll(object.values());
-    }
-    for (EntityKeyValue keyValue : lookup.keyValues())
-    {
-        values.put(keyValue.field(), keyValue.value());
-    }
-    return Json.object(values);
-}
-
-public
-static final class DefaultEntityRepository implements EntityRepository
-{
-    @Override public Optional<Backend.VersionedRecord> createEntityTx(
-        Backend.Transaction tx,
-        EntityCreateRequest request
-    ) throws Backend.BackendException
-    {
-        Optional<String> key = entityKey(request.lookup());
-        if (key.isEmpty())
-        {
-            return Optional.empty();
-        }
-        Optional<Backend.VersionedRecord> existing =
-            tx.get(request.lookup().entity(), key.orElseThrow());
-        if (existing.isPresent())
-        {
-            throw new Backend.ConflictException(
-                Backend.ConflictKind.VERSION_CONFLICT, "entity already exists"
-            );
-        }
-        tx.put(
-            request.lookup().entity(), key.orElseThrow(),
-            entityDocumentWithKeys(request.document(), request.lookup())
-        );
-        return tx.get(request.lookup().entity(), key.orElseThrow());
+        return new EntityLookup(entity.name(), entity.keyFields(), List.copyOf(keyValues));
     }
 
-    @Override public Optional<Backend.VersionedRecord> upsertEntityTx(
-        Backend.Transaction tx,
-        EntityUpsertRequest request
-    ) throws Backend.BackendException
+    static Json entityDocumentWithKeys(Json document, EntityLookup lookup)
     {
-        Optional<String> key = entityKey(request.lookup());
-        if (key.isEmpty())
+        HashMap<String, Json> values = new HashMap<>();
+        if (document instanceof Json.ObjectValue object)
         {
-            return Optional.empty();
+            values.putAll(object.values());
         }
-        Optional<Backend.VersionedRecord> existing =
-            tx.get(request.lookup().entity(), key.orElseThrow());
-        assertEntityExpectedVersion(existing, request.expectedVersion());
-        tx.put(
-            request.lookup().entity(), key.orElseThrow(),
-            entityDocumentWithKeys(request.document(), request.lookup())
-        );
-        return tx.get(request.lookup().entity(), key.orElseThrow());
-    }
-
-    @Override public Optional<Backend.VersionedRecord> getEntityTx(
-        Backend.Transaction tx,
-        EntityGetRequest request
-    ) throws Backend.BackendException
-    {
-        Optional<String> key = entityKey(request.lookup());
-        return key.isPresent() ? tx.get(request.lookup().entity(), key.orElseThrow())
-                               : Optional.empty();
-    }
-
-    @Override public Optional<Backend.VersionedRecord> deleteEntityTx(
-        Backend.Transaction tx,
-        EntityDeleteRequest request
-    ) throws Backend.BackendException
-    {
-        Optional<String> key = entityKey(request.lookup());
-        if (key.isEmpty())
+        for (EntityKeyValue keyValue : lookup.keyValues())
         {
-            return Optional.empty();
+            values.put(keyValue.field(), keyValue.value());
         }
-        Optional<Backend.VersionedRecord> existing =
-            tx.get(request.lookup().entity(), key.orElseThrow());
-        if (existing.isEmpty())
-        {
-            return Optional.empty();
-        }
-        assertEntityExpectedVersion(existing, request.expectedVersion());
-        tx.erase(request.lookup().entity(), key.orElseThrow());
-        return existing;
-    }
-
-    @Override public List<Backend.VersionedRecord> listEntitiesByIndexTx(
-        Backend.Transaction tx,
-        EntityListByIndexRequest request
-    ) throws Backend.BackendException
-    {
-        return tx.query(
-            request.entity(), new Backend.Query.IndexEquals(request.indexName(), request.values())
-        );
-    }
-
-  private
-    static void assertEntityExpectedVersion(
-        Optional<Backend.VersionedRecord> existing,
-        Optional<Long> expectedVersion
-    ) throws Backend.BackendException
-    {
-        if (expectedVersion.isEmpty())
-        {
-            return;
-        }
-        if (existing.isEmpty() || existing.orElseThrow().version() != expectedVersion.orElseThrow())
-        {
-            throw new Backend.ConflictException(
-                Backend.ConflictKind.VERSION_CONFLICT, "entity version conflict"
-            );
-        }
+        return Json.object(values);
     }
 }

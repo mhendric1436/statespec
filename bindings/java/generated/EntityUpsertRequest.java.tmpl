@@ -1,0 +1,13 @@
+package com.statespec.generated.entities;
+
+import com.statespec.backend.Json;
+import java.util.Optional;
+
+public
+record EntityUpsertRequest(
+    EntityLookup lookup,
+    Json document,
+    Optional<Long> expectedVersion
+)
+{
+}

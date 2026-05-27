@@ -1,0 +1,13 @@
+package com.statespec.generated.entities;
+
+import com.statespec.backend.Backend;
+import java.util.List;
+
+public
+record EntityListByIndexRequest(
+    String entity,
+    String indexName,
+    List<Backend.IndexValue> values
+)
+{
+}
