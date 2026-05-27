@@ -74,7 +74,6 @@ common/backend/runtime_registration_leases.go
 common/backend/runtime_registration_queues.go
 common/backend/runtime_registration_workflows.go
 common/backend/schema_compatibility.go
-common/backend/service_instance_descriptors.go
 common/backend/shape_descriptors.go
 common/backend/shapes/provision_callback_request.go
 common/backend/shapes/provision_callback_response.go
@@ -119,6 +118,9 @@ run_expect_status 0 make -C "$TMPDIR/out-e2e-go" check-api
 run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-e2e-go" build-api
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-go"
+assert_file_not_exists "$TMPDIR/out-api-entities-go/common/backend/account_descriptors.go"
+assert_file_not_exists "$TMPDIR/out-api-entities-go/common/backend/project_descriptors.go"
+assert_file_not_exists "$TMPDIR/out-api-entities-go/common/backend/task_descriptors.go"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry_account.go" "repository := account.DefaultAccountRepository{}"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry_project.go" "repository := project.DefaultProjectRepository{}"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry_task.go" "repository := task.DefaultTaskRepository{}"

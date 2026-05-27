@@ -27,7 +27,6 @@ std::string generate_go_worker_descriptor_module(const IrWorker& worker);
 std::string generate_go_policy_descriptors(const IrSystem& system);
 std::string generate_go_shape_descriptors(const IrSystem& system);
 std::string generate_go_observability_descriptors(const IrSystem& system);
-std::string generate_go_entity_descriptors(const IrSystem& system);
 std::string generate_go_runtime_descriptors(const IrSystem& system);
 std::string generate_go_workflow_descriptor(const IrWorkflow& workflow);
 std::string generate_go_workflow_descriptor_umbrella(const IrSystem& system);

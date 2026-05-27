@@ -7,6 +7,7 @@ import (
 {{worker_runtime_time_import}}
 
 	common "statespec-generated/common/backend"
+{{entity_schema_imports}}
 {{runtime_store_import}}
 )
 
@@ -114,6 +115,7 @@ func (runtime *WorkerTierRuntime) RegisterDefinitions(ctx context.Context) error
 }
 
 func (runtime *WorkerTierRuntime) Bootstrap(ctx context.Context) error {
+{{entity_collection_bootstrap}}
 	return common.BootstrapRuntimeCatalog(ctx, runtime.Backend{{runtime_bootstrap_arguments}})
 }
 

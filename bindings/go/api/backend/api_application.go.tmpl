@@ -4,6 +4,7 @@ import (
 	"context"
 
 	common "statespec-generated/common/backend"
+{{entity_schema_imports}}
 {{runtime_store_import}}
 )
 
@@ -33,6 +34,7 @@ func NewDefaultAPITierApplication(backend common.Backend, serverName string) (*A
 }
 
 func (app *APITierApplication) Bootstrap(ctx context.Context) error {
+{{entity_collection_bootstrap}}
 	return common.BootstrapRuntimeCatalog(ctx, app.Backend{{runtime_bootstrap_arguments}})
 }
 

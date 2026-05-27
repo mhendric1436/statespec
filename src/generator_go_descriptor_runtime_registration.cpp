@@ -1,6 +1,5 @@
 #include "generator_go_descriptor_areas.hpp"
 
-#include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
@@ -38,14 +37,7 @@ std::string generate_go_runtime_registration(
     std::ostringstream args;
     std::ostringstream calls;
     std::ostringstream ensure_collections_body;
-    ensure_collections_body << "\tvar descriptors []CollectionDescriptor\n";
-    for (const auto& entity : system.entities)
-    {
-        ensure_collections_body << "\tdescriptors = append(descriptors, "
-                                << pascal_identifier(entity.name)
-                                << "CollectionDescriptors()...)\n";
-    }
-    ensure_collections_body << "\treturn backend.EnsureCollections(ctx, descriptors)\n";
+    ensure_collections_body << "\treturn backend.EnsureCollections(ctx, nil)\n";
     auto add = [&](std::string_view type, std::string_view name, std::string_view fn)
     {
         params << ", " << name << " " << type;

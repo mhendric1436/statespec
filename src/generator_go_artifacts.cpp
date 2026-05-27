@@ -161,6 +161,8 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     std::ostringstream arguments;
     std::ostringstream worker_run_once;
     std::ostringstream worker_time_import;
+    std::ostringstream entity_schema_imports;
+    std::ostringstream entity_collection_bootstrap;
 
     auto add = [&](bool used, std::string_view field, std::string_view type, std::string_view ctor)
     {
@@ -182,6 +184,27 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     add(usage.uses_workflows, "Workflows", "WorkflowStore", "NewWorkflowStore");
     add(usage.uses_logs, "Logs", "LogSink", "NewLogSink");
     add(usage.uses_metrics, "Metrics", "MetricSink", "NewMetricSink");
+    for (const auto& entity : system.entities)
+    {
+        const auto package_name = snake_identifier(entity.name);
+        entity_schema_imports << "\t" << package_name << " \"statespec-generated/common/entities/"
+                              << package_name << "\"\n";
+    }
+    if (!system.entities.empty())
+    {
+        entity_collection_bootstrap
+            << "\tif err := app.Backend.EnsureCollections(ctx, []common.CollectionDescriptor{\n";
+        for (const auto& entity : system.entities)
+        {
+            const auto package_name = snake_identifier(entity.name);
+            entity_collection_bootstrap << "\t\t" << package_name << "."
+                                        << pascal_identifier(entity.name)
+                                        << "CollectionDescriptor(),\n";
+        }
+        entity_collection_bootstrap << "\t}); err != nil {\n";
+        entity_collection_bootstrap << "\t\treturn err\n";
+        entity_collection_bootstrap << "\t}\n";
+    }
     worker_time_import << "\t\"time\"\n";
     if (usage.uses_workflows)
     {
@@ -219,6 +242,8 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
         {"runtime_bootstrap_arguments", arguments.str()},
         {"worker_runtime_time_import", worker_time_import.str()},
         {"worker_runtime_run_once", worker_run_once.str()},
+        {"entity_schema_imports", entity_schema_imports.str()},
+        {"entity_collection_bootstrap", entity_collection_bootstrap.str()},
     };
 }
 
@@ -226,10 +251,17 @@ TemplateRenderer::Values go_worker_runtime_bootstrap_values(const IrSystem& syst
 {
     auto values = go_runtime_bootstrap_values(system);
     auto& arguments = values["runtime_bootstrap_arguments"];
+    auto& entity_collection_bootstrap = values["entity_collection_bootstrap"];
     std::size_t pos = 0;
     while ((pos = arguments.find("app.", pos)) != std::string::npos)
     {
         arguments.replace(pos, 4, "runtime.");
+        pos += 8;
+    }
+    pos = 0;
+    while ((pos = entity_collection_bootstrap.find("app.", pos)) != std::string::npos)
+    {
+        entity_collection_bootstrap.replace(pos, 4, "runtime.");
         pos += 8;
     }
     return values;
@@ -861,18 +893,6 @@ std::string replace_all_copy(
     return value;
 }
 
-TemplateRenderer::Values go_entity_descriptor_values(const IrEntity& entity)
-{
-    IrSystem one_entity_system;
-    one_entity_system.entities.push_back(entity);
-    auto content = generate_go_entity_descriptors(one_entity_system);
-    const auto type_name = pascal_identifier(entity.name);
-    content = replace_all_copy(content, "EntityDescriptors()", type_name + "EntityDescriptors()");
-    content =
-        replace_all_copy(content, "CollectionDescriptors()", type_name + "CollectionDescriptors()");
-    return TemplateRenderer::Values{{"entity_descriptor_content", content}};
-}
-
 std::string go_entity_centered_facade_file(
     const IrEntity& entity,
     std::string_view area
@@ -959,14 +979,15 @@ std::string go_entity_centered_facade_file(
         }
         out << "\t}\n";
         out << "}\n\n";
-        out << "// Entity descriptor and repository construction still move in the next staged "
-               "split.\n";
-        out << "// The existing common/backend/" << snake_identifier(entity.name)
-            << "_descriptors.go module remains as the compatibility facade for repository users.\n";
+        out << "// Field, index, relationship, and state constants are rooted with the entity "
+               "model.\n";
     }
     else if (area == "schema")
     {
         out << "import backend \"statespec-generated/common/backend\"\n\n";
+        out << "func stringPtr(value string) *string {\n";
+        out << "\treturn &value\n";
+        out << "}\n\n";
         out << "const (\n";
         out << "\t" << pascal_identifier(entity.name) << "SchemaVersion uint64 = 1\n";
         if (entity.ownership.has_value())
@@ -1014,10 +1035,153 @@ std::string go_entity_centered_facade_file(
         out << "\t\tSchemaVersion: " << pascal_identifier(entity.name) << "SchemaVersion,\n";
         out << "\t}\n";
         out << "}\n\n";
+        out << "func " << pascal_identifier(entity.name)
+            << "CollectionDescriptors() []backend.CollectionDescriptor {\n";
+        out << "\treturn []backend.CollectionDescriptor{" << pascal_identifier(entity.name)
+            << "CollectionDescriptor()}\n";
+        out << "}\n\n";
+        out << "func " << pascal_identifier(entity.name)
+            << "EntityDescriptor() backend.EntityDescriptor {\n";
+        out << "\treturn backend.EntityDescriptor{\n";
+        out << "\t\tName: " << go_entity_name_constant_name(entity.name) << ",\n";
+        out << "\t\tKeyFields: []string{";
+        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
+        }
+        out << "},\n";
+        if (entity.ownership.has_value())
+        {
+            out << "\t\tOwnership: &backend.EntityOwnershipDescriptor{Authority: "
+                << pascal_identifier(entity.name)
+                << "OwnershipAuthority, SystemOfRecord: " << pascal_identifier(entity.name)
+                << "OwnershipSystemOfRecord, Lifecycle: " << pascal_identifier(entity.name)
+                << "OwnershipLifecycle},\n";
+        }
+        else
+        {
+            out << "\t\tOwnership: nil,\n";
+        }
+        out << "\t\tRelations: []backend.EntityRelationDescriptor{\n";
+        for (const auto& relation : entity.relations)
+        {
+            const auto relation_constant_prefix =
+                pascal_identifier(entity.name) + "Relation" + pascal_identifier(relation.name);
+            out << "\t\t\t{\n";
+            out << "\t\t\t\tKind: " << relation_constant_prefix << "Kind,\n";
+            out << "\t\t\t\tName: " << relation_constant_prefix << "Name,\n";
+            out << "\t\t\t\tTarget: " << relation_constant_prefix << "Target,\n";
+            out << "\t\t\t\tOptional: " << (relation.optional ? "true" : "false") << ",\n";
+            if (relation.relation_kind.has_value())
+            {
+                out << "\t\t\t\tRelationKind: stringPtr(" << relation_constant_prefix
+                    << "RelationKind),\n";
+            }
+            else
+            {
+                out << "\t\t\t\tRelationKind: nil,\n";
+            }
+            if (relation.on_parent_delete.has_value())
+            {
+                out << "\t\t\t\tOnParentDelete: stringPtr(" << relation_constant_prefix
+                    << "OnParentDelete),\n";
+            }
+            else
+            {
+                out << "\t\t\t\tOnParentDelete: nil,\n";
+            }
+            out << "\t\t\t\tParentMustBeIn: []string{";
+            for (std::size_t i = 0; i < relation.parent_must_be_in.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << go_string(relation.parent_must_be_in[i]);
+            }
+            out << "},\n";
+            out << "\t\t\t\tUniqueWithinParent: []string{";
+            for (std::size_t i = 0; i < relation.unique_within_parent.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << go_entity_field_constant_name(entity.name, relation.unique_within_parent[i]);
+            }
+            out << "},\n";
+            out << "\t\t\t},\n";
+        }
+        out << "\t\t},\n";
+        out << "\t\tChildren: []backend.EntityChildDescriptor{\n";
+        for (const auto& child : entity.children)
+        {
+            out << "\t\t\t{Name: " << go_string(child.name)
+                << ", TargetEntity: " << go_string(child.target_entity)
+                << ", Relation: " << go_string(child.relation) << "},\n";
+        }
+        out << "\t\t},\n";
+        out << "\t\tInvariants: []backend.EntityInvariantDescriptor{\n";
+        for (const auto& invariant : entity.invariants)
+        {
+            out << "\t\t\t{Name: " << go_string(invariant.name)
+                << ", Expression: " << go_string(invariant.expression) << "},\n";
+        }
+        out << "\t\t},\n";
+        out << "\t\tStates: []backend.EntityStateDescriptor{\n";
+        for (const auto& state : entity.states)
+        {
+            out << "\t\t\t{\n";
+            out << "\t\t\t\tName: " << go_entity_state_constant_name(entity.name, state.name)
+                << ",\n";
+            out << "\t\t\t\tTerminal: " << pascal_identifier(entity.name) << "State"
+                << pascal_identifier(state.name) << "Terminal,\n";
+            if (state.garbage_collection.has_value())
+            {
+                out << "\t\t\t\tGarbageCollection: &backend.GarbageCollectionPolicy{After: "
+                    << pascal_identifier(entity.name) << "State" << pascal_identifier(state.name)
+                    << "GcAfter, Mode: " << pascal_identifier(entity.name) << "State"
+                    << pascal_identifier(state.name) << "GcMode},\n";
+            }
+            else
+            {
+                out << "\t\t\t\tGarbageCollection: nil,\n";
+            }
+            out << "\t\t\t},\n";
+        }
+        out << "\t\t},\n";
+        if (entity.initial_state.has_value())
+        {
+            out << "\t\tInitialState: stringPtr("
+                << go_entity_state_constant_name(entity.name, *entity.initial_state) << "),\n";
+        }
+        else
+        {
+            out << "\t\tInitialState: nil,\n";
+        }
+        out << "\t\tTerminalStates: []string{";
+        for (std::size_t i = 0; i < entity.terminal_states.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << go_entity_state_constant_name(entity.name, entity.terminal_states[i]);
+        }
+        out << "},\n";
+        out << "\t}\n";
+        out << "}\n\n";
+        out << "func " << pascal_identifier(entity.name)
+            << "EntityDescriptors() []backend.EntityDescriptor {\n";
+        out << "\treturn []backend.EntityDescriptor{" << pascal_identifier(entity.name)
+            << "EntityDescriptor()}\n";
+        out << "}\n\n";
         out << "// Collection schema and compatibility metadata are rooted with the entity "
                "schema.\n";
-        out << "// The existing common/backend/" << snake_identifier(entity.name)
-            << "_descriptors.go module remains as the compatibility facade for repository users.\n";
     }
     else if (area == "persistence")
     {
@@ -1039,19 +1203,6 @@ std::string go_entity_centered_facade_file(
             out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "}, KeyValues: keyValues}\n";
-        out << "}\n\n";
-        out << "func " << type_name << "EntityDescriptor() backend.EntityDescriptor {\n";
-        out << "\treturn backend.EntityDescriptor{Name: "
-            << go_entity_name_constant_name(entity.name) << ", KeyFields: []string{";
-        for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << ", ";
-            }
-            out << go_entity_field_constant_name(entity.name, entity.key_fields[i]);
-        }
-        out << "}}\n";
         out << "}\n\n";
         out << "type " << type_name << "Repository interface {\n";
         out << "\tRegisterDescriptor(context.Context, backend.Backend) error\n";
@@ -1310,19 +1461,13 @@ void add_go_shape_descriptor_artifact(
 void add_go_entity_descriptor_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
-    const TemplatePackage& templates,
+    const TemplatePackage&,
     const IrSystem& system,
-    DiagnosticBag& diagnostics
+    DiagnosticBag&
 )
 {
     for (const auto& entity : system.entities)
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            generated_template_path("entity_descriptors.go.tmpl"),
-            common_artifact_path("backend/" + snake_identifier(entity.name) + "_descriptors.go"),
-            diagnostics, GeneratedArtifactTier::Common, go_entity_descriptor_values(entity)
-        );
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
         add_go_raw_common_file(
             result, options, entity_dir + "model.go",
