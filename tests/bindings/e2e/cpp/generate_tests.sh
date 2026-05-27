@@ -61,6 +61,7 @@ common/descriptors/workers/provision_worker.hpp
 common/entities/service_instance/model.hpp
 common/entities/service_instance/persistence.hpp
 common/entities/service_instance/schema.hpp
+common/entity_repository.hpp
 common/external_system.hpp
 common/feature_flag.hpp
 common/json.hpp
@@ -81,6 +82,7 @@ common/runtime/entity_gc_workers.hpp
 common/runtime/lease_store.hpp
 common/runtime/queue_store.hpp
 common/runtime/workflow_store.hpp
+common/runtime_registration.hpp
 common/schema_compatibility.hpp
 common/shapes.hpp
 common/shapes/provision_callback_request.hpp
@@ -151,8 +153,8 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/cre
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "inline constexpr const char* kCreateAccountRequestFieldTenantIdTypeName = \"string\""
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors/shapes/create_account_request.hpp" "FieldDescriptor{kCreateAccountRequestFieldTenantId, statespec::backend::FieldType::String, kCreateAccountRequestFieldTenantIdTypeName, true}"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/account/schema.hpp" "{kAccountFieldTenantId, kAccountFieldAccountId}"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "key += value->canonical_string()"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/common/descriptors.hpp" "object[key_value.field] = key_value.value"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entity_repository.hpp" "key += value->canonical_string()"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entity_repository.hpp" "object[key_value.field] = key_value.value"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "return ApiResponse{404"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "statespec::backend::Json::array(std::move(items))"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "repository.updateTx"

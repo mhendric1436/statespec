@@ -853,7 +853,7 @@ std::string generate_descriptors_go(
     out << generate_go_descriptor_prelude(
         system, templates.load("generated/external_system_runtime.go.tmpl"),
         templates.load("generated/external_system_metadata_runtime.go.tmpl"),
-        templates.load("generated/entity_repository.go.tmpl")
+        {}
     );
     out << generate_go_feature_flag_descriptors(system);
     out << generate_go_declaration_descriptors(system);
@@ -863,7 +863,6 @@ std::string generate_descriptors_go(
     out << generate_go_observability_descriptors(system);
     out << generate_go_runtime_descriptors(system);
     out << generate_go_observability_registration(system);
-    out << generate_go_runtime_registration(system, templates);
     return out.str();
 }
 

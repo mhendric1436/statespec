@@ -924,7 +924,7 @@ std::string generate_system_descriptors_header(
     out << generate_cpp_descriptor_prelude(
         system, templates.load("generated/external_system_runtime.hpp.tmpl"),
         templates.load("generated/external_system_metadata_runtime.hpp.tmpl"),
-        templates.load("generated/entity_repository.hpp.tmpl")
+        {}
     );
     out << generate_cpp_feature_flag_descriptors(system);
     out << generate_cpp_declaration_descriptors(system);
@@ -936,9 +936,8 @@ std::string generate_system_descriptors_header(
     out << generate_cpp_observability_descriptors(system);
     out << generate_cpp_runtime_descriptors(system);
     out << generate_cpp_observability_registration(system);
-    out << generate_cpp_runtime_registration_includes(system);
-    out << generate_cpp_runtime_registration(system, templates);
     out << "} // namespace statespec_generated\n";
+    out << "\n#include \"runtime_registration.hpp\"\n";
     return out.str();
 }
 

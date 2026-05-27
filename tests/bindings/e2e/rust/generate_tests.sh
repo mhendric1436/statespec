@@ -61,6 +61,7 @@ common/entities/service_instance/mod.rs
 common/entities/service_instance/model.rs
 common/entities/service_instance/persistence.rs
 common/entities/service_instance/schema.rs
+common/entity_repository.rs
 common/external_system.rs
 common/feature_flag.rs
 common/json.rs
@@ -81,6 +82,7 @@ common/runtime/entity_gc_workers.rs
 common/runtime/leases.rs
 common/runtime/queues.rs
 common/runtime/workflows.rs
+common/runtime_registration.rs
 common/schema_compatibility.rs
 common/shapes.rs
 common/shapes/provision_callback_request.rs
@@ -154,8 +156,8 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/cr
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME: &str = \"string\""
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "FieldDescriptor { name: CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID.to_string(), field_type: FieldType::String, type_name: CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME.to_string(), required: true }"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/schema.rs" "key_fields: vec![ACCOUNT_FIELD_TENANT_ID.to_string(), ACCOUNT_FIELD_ACCOUNT_ID.to_string()]"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors.rs" "key.push_str(&value.value.canonical_string())"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors.rs" "values.insert(key_value.field.clone(), key_value.value.clone())"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entity_repository.rs" "key.push_str(&value.value.canonical_string())"
+assert_file_contains "$TMPDIR/out-api-entities-rust/common/entity_repository.rs" "values.insert(key_value.field.clone(), key_value.value.clone())"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "status_code: 404"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "Json::Array(records.into_iter().map"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "update_tx"

@@ -1831,6 +1831,16 @@ void add_go_common_runtime_artifacts(
         result, options.output_dir, templates, "backend/workflow.go", "backend/workflow.go",
         diagnostics
     );
+    add_go_raw_common_file(
+        result, options, "backend/entity_repository.go",
+        std::string{"package backend\n\nimport (\n\t\"context\"\n\t\"strings\"\n)\n\n"} +
+            templates.load("generated/entity_repository.go.tmpl")
+    );
+    add_go_raw_common_file(
+        result, options, "backend/runtime_registration.go",
+        std::string{"package backend\n\nimport \"context\"\n\n"} +
+            generate_go_runtime_registration(system, templates)
+    );
 
     if (diagnostics.has_errors())
     {

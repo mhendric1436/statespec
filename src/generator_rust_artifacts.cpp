@@ -125,6 +125,10 @@ TemplateRenderer::Values rust_lib_values(
     std::ostringstream worker_modules;
     runtime_modules << "#[path = \"common/shapes.rs\"]\n";
     runtime_modules << "pub mod shapes;\n";
+    runtime_modules << "#[path = \"common/entity_repository.rs\"]\n";
+    runtime_modules << "pub mod entity_repository;\n";
+    runtime_modules << "#[path = \"common/runtime_registration.rs\"]\n";
+    runtime_modules << "pub mod runtime_registration;\n";
     if (usage.uses_any_runtime_domain)
     {
         runtime_modules << "#[path = \"common/runtime/codec.rs\"]\n";
@@ -1420,6 +1424,27 @@ void add_rust_descriptor_module_artifacts(
             rust_entity_centered_facade_file(entity, "schema")
         );
     }
+    add_rust_raw_common_file(
+        result, options, "entity_repository.rs",
+        "use std::collections::BTreeMap;\n\n"
+        "use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Transaction, "
+        "VersionedRecord};\n"
+        "use crate::descriptors::EntityDescriptor;\n"
+        "use crate::json::Json;\n\n" +
+            templates.load("generated/entity_repository.rs.tmpl")
+    );
+    add_rust_raw_common_file(
+        result, options, "runtime_registration.rs",
+        "use crate::backend::{Backend, BackendResult, Transaction};\n"
+        "use crate::descriptors::*;\n"
+        "use crate::feature_flag::FeatureFlagStore;\n"
+        "use crate::lease::LeaseStore;\n"
+        "use crate::log::LogSink;\n"
+        "use crate::metric::MetricSink;\n"
+        "use crate::queue::{QueueStore, RegisterQueueDefinitionRequest};\n"
+        "use crate::workflow::{RegisterWorkflowDefinitionRequest, WorkflowStore};\n\n" +
+            generate_rust_runtime_registration(system, templates)
+    );
 }
 
 void add_rust_workflow_descriptor_artifacts(

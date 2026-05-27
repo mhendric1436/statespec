@@ -89,6 +89,27 @@ cpp_runtime_registration_modules(const IrSystem& system)
     return modules;
 }
 
+std::string cpp_runtime_registration_includes(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    std::ostringstream out;
+    auto add = [&](bool used, std::string_view path)
+    {
+        if (used)
+        {
+            out << "#include \"" << path << "\"\n";
+        }
+    };
+    add(usage.uses_feature_flags, "descriptors/runtime/feature_flags.hpp");
+    add(usage.uses_queues, "descriptors/runtime/queues.hpp");
+    add(usage.uses_leases, "descriptors/runtime/leases.hpp");
+    add(usage.uses_logs, "descriptors/runtime/logs.hpp");
+    add(usage.uses_metrics, "descriptors/runtime/metrics.hpp");
+    add(usage.uses_logs && usage.uses_metrics, "descriptors/runtime/observability.hpp");
+    add(usage.uses_workflows, "descriptors/runtime/workflows.hpp");
+    return out.str();
+}
+
 TemplateRenderer::Values cpp_makefile_values(
     BindingGenerationTier tier,
     const IrSystem& system
@@ -842,7 +863,8 @@ std::string cpp_entity_centered_facade_header(
     {
         out << "#include \"model.hpp\"\n";
         out << "#include \"schema.hpp\"\n";
-        out << "#include \"../../descriptors.hpp\"\n\n";
+        out << "#include \"../../descriptors.hpp\"\n";
+        out << "#include \"../../entity_repository.hpp\"\n\n";
         out << "#include <optional>\n";
         out << "#include <string>\n";
         out << "#include <utility>\n";
@@ -1664,6 +1686,21 @@ void add_cpp_common_runtime_artifacts(
     );
     add_template_file(
         result, options.output_dir, templates, "workflow.hpp", "workflow.hpp", diagnostics
+    );
+    add_cpp_raw_common_file(
+        result, options, "entity_repository.hpp",
+        std::string{"#pragma once\n\n#include \"backend.hpp\"\n#include \"descriptors.hpp\"\n\n"
+                    "namespace statespec_generated\n{\n\n"} +
+            templates.load("generated/entity_repository.hpp.tmpl") +
+            "\n} // namespace statespec_generated\n"
+    );
+    add_cpp_raw_common_file(
+        result, options, "runtime_registration.hpp",
+        std::string{"#pragma once\n\n#include \"descriptors.hpp\"\n\n"
+                    "namespace statespec_generated\n{\n\n"} +
+            cpp_runtime_registration_includes(system) + "\n" +
+            generate_cpp_runtime_registration(system, templates) +
+            "\n} // namespace statespec_generated\n"
     );
     add_template_file(
         result, options.output_dir, templates, "memory/transaction.hpp", "memory/transaction.hpp",

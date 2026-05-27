@@ -907,9 +907,10 @@ std::string generate_descriptors_rs(
     std::ostringstream out;
     out << generate_rust_descriptor_prelude(
         system, templates.load("generated/external_system_runtime.rs.tmpl"),
-        templates.load("generated/external_system_metadata_runtime.rs.tmpl"),
-        templates.load("generated/entity_repository.rs.tmpl")
+        templates.load("generated/external_system_metadata_runtime.rs.tmpl"), {}
     );
+    out << "pub use crate::entity_repository::*;\n";
+    out << "pub use crate::runtime_registration::*;\n\n";
     out << generate_rust_feature_flag_descriptors(system);
     out << generate_rust_declaration_descriptors(system);
     out << generate_rust_api_descriptors(system);
@@ -918,7 +919,6 @@ std::string generate_descriptors_rs(
     out << generate_rust_observability_descriptors(system);
     out << generate_rust_runtime_descriptors(system);
     out << generate_rust_observability_registration(system);
-    out << generate_rust_runtime_registration(system, templates);
     return out.str();
 }
 
