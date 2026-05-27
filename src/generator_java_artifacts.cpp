@@ -1510,6 +1510,29 @@ void add_java_descriptor_module_artifacts(
     const auto shape_descriptor_package_path = descriptor_package_path / "shapes";
     const std::string descriptor_package = "com.statespec.generated.descriptors";
     const std::string entity_descriptor_package = descriptor_package + ".entities";
+    const auto generated_package_path = artifact_path(GeneratedJavaOutputPackagePath);
+
+    add_java_raw_common_file(
+        result, options, descriptor_package_path / "DescriptorCatalog.java",
+        "package com.statespec.generated.descriptors;\n\n"
+        "public final class DescriptorCatalog {\n"
+        "    private DescriptorCatalog() {}\n"
+        "}\n"
+    );
+    add_java_raw_common_file(
+        result, options, generated_package_path / "entities" / "EntityRepository.java",
+        "package com.statespec.generated.entities;\n\n"
+        "public final class EntityRepository {\n"
+        "    private EntityRepository() {}\n"
+        "}\n"
+    );
+    add_java_raw_common_file(
+        result, options, generated_package_path / "runtime" / "RuntimeRegistration.java",
+        "package com.statespec.generated.runtime;\n\n"
+        "public final class RuntimeRegistration {\n"
+        "    private RuntimeRegistration() {}\n"
+        "}\n"
+    );
 
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "CoreDescriptorModule.java",

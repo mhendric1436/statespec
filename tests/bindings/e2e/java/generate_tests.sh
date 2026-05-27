@@ -64,6 +64,7 @@ common/com/statespec/backend/runtime/WorkflowStore.java
 common/com/statespec/generated/Descriptors.java
 common/com/statespec/generated/descriptors/ApiDescriptorModule.java
 common/com/statespec/generated/descriptors/CoreDescriptorModule.java
+common/com/statespec/generated/descriptors/DescriptorCatalog.java
 common/com/statespec/generated/descriptors/EventDescriptorModule.java
 common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java
 common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
@@ -77,6 +78,8 @@ common/com/statespec/generated/descriptors/shapes/ProvisionCallbackResponseDescr
 common/com/statespec/generated/descriptors/shapes/StartProvisionRequestDescriptorModule.java
 common/com/statespec/generated/descriptors/shapes/StartProvisionResponseDescriptorModule.java
 common/com/statespec/generated/descriptors/workers/ProvisionWorkerDescriptorModule.java
+common/com/statespec/generated/entities/EntityRepository.java
+common/com/statespec/generated/runtime/RuntimeRegistration.java
 common/com/statespec/generated/shapes/ProvisionCallbackRequest.java
 common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
 common/com/statespec/generated/shapes/StartProvisionRequest.java
