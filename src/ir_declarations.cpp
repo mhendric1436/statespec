@@ -53,6 +53,47 @@ std::string field_type(
     return "string";
 }
 
+bool entity_has_field(
+    const SemanticEntity& entity,
+    const std::string& field_name
+)
+{
+    return std::any_of(
+        entity.fields.begin(), entity.fields.end(),
+        [&](const SemanticField& field) { return field.name == field_name; }
+    );
+}
+
+std::vector<std::string> path_parameters(const std::optional<std::string>& path)
+{
+    std::vector<std::string> parameters;
+    if (!path.has_value())
+    {
+        return parameters;
+    }
+
+    std::size_t cursor = 0;
+    while (cursor < path->size())
+    {
+        const auto open = path->find('{', cursor);
+        if (open == std::string::npos)
+        {
+            break;
+        }
+        const auto close = path->find('}', open + 1);
+        if (close == std::string::npos)
+        {
+            break;
+        }
+        if (close > open + 1)
+        {
+            parameters.push_back(path->substr(open + 1, close - open - 1));
+        }
+        cursor = close + 1;
+    }
+    return parameters;
+}
+
 bool contains_field(
     const std::vector<IrField>& fields,
     const std::string& name
@@ -78,14 +119,34 @@ void append_field(
 std::vector<IrField> entity_response_fields(const SemanticEntity& entity)
 {
     std::vector<IrField> fields;
+    for (const auto& key_field : entity.key_fields)
+    {
+        append_field(fields, entity, key_field);
+    }
+
     for (const auto& field : entity.fields)
     {
-        if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
+        if (contains_field(fields, field.name) || field.name == EntityCreatedAtFieldName ||
+            field.name == EntityUpdatedAtFieldName || field.name == EntityStatusFieldName)
         {
             continue;
         }
         fields.push_back(IrField{field.name, field.type});
     }
+
+    if (entity_has_field(entity, std::string{EntityStatusFieldName}))
+    {
+        append_field(fields, entity, std::string{EntityStatusFieldName});
+    }
+    if (entity_has_field(entity, std::string{EntityCreatedAtFieldName}))
+    {
+        append_field(fields, entity, std::string{EntityCreatedAtFieldName});
+    }
+    if (entity_has_field(entity, std::string{EntityUpdatedAtFieldName}))
+    {
+        append_field(fields, entity, std::string{EntityUpdatedAtFieldName});
+    }
+
     return fields;
 }
 
@@ -132,9 +193,14 @@ void append_entity_api_shapes(
         if (!has_shape(ir, request_name))
         {
             std::vector<IrField> fields;
+            const auto route_fields = path_parameters(entity.api->resource);
             for (const auto& key_field : entity.key_fields)
             {
-                append_field(fields, entity, key_field);
+                if (std::find(route_fields.begin(), route_fields.end(), key_field) ==
+                    route_fields.end())
+                {
+                    append_field(fields, entity, key_field);
+                }
             }
             for (const auto& field : entity.api->create->fields)
             {
@@ -152,9 +218,14 @@ void append_entity_api_shapes(
         if (!has_shape(ir, request_name))
         {
             std::vector<IrField> fields;
+            const auto route_fields = path_parameters(entity.api->resource);
             for (const auto& key_field : entity.key_fields)
             {
-                append_field(fields, entity, key_field);
+                if (std::find(route_fields.begin(), route_fields.end(), key_field) ==
+                    route_fields.end())
+                {
+                    append_field(fields, entity, key_field);
+                }
             }
             append_field(fields, entity, std::string{EntityStatusFieldName});
             ir.shapes.push_back(IrShape{request_name, std::move(fields)});

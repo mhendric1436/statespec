@@ -7,6 +7,31 @@
 namespace
 {
 
+const statespec::IrShape* find_shape(
+    const statespec::IrSystem& ir,
+    const std::string& name
+)
+{
+    for (const auto& shape : ir.shapes)
+    {
+        if (shape.name == name)
+        {
+            return &shape;
+        }
+    }
+    return nullptr;
+}
+
+std::vector<std::string> shape_field_names(const statespec::IrShape& shape)
+{
+    std::vector<std::string> names;
+    for (const auto& field : shape.fields)
+    {
+        names.push_back(field.name);
+    }
+    return names;
+}
+
 void ir_lowers_terminal_garbage_collection_policy()
 {
     const auto spec = statespec::test::parse_text(R"sspec(
@@ -251,18 +276,50 @@ void ir_lowers_entity_api_intent_to_synthetic_api_contracts()
         "IR should derive update_status path"
     );
 
-    bool found_account_response = false;
-    bool found_create_request = false;
-    bool found_list_response = false;
-    for (const auto& shape : ir.shapes)
-    {
-        found_account_response = found_account_response || shape.name == "AccountResponse";
-        found_create_request = found_create_request || shape.name == "CreateAccountRequest";
-        found_list_response = found_list_response || shape.name == "ListAccountsResponse";
-    }
-    statespec::test::require(found_account_response, "IR should synthesize response shape");
-    statespec::test::require(found_create_request, "IR should synthesize create request shape");
-    statespec::test::require(found_list_response, "IR should synthesize list response shape");
+    const auto* account_response = find_shape(ir, "AccountResponse");
+    statespec::test::require(account_response != nullptr, "IR should synthesize response shape");
+    statespec::test::require(
+        shape_field_names(*account_response) ==
+            std::vector<std::string>{
+                "tenant_id", "account_id", "display_name", "status", "created_at", "updated_at"
+            },
+        "IR should derive response shape from entity fields"
+    );
+
+    const auto* create_request = find_shape(ir, "CreateAccountRequest");
+    statespec::test::require(
+        create_request != nullptr, "IR should synthesize create request shape"
+    );
+    statespec::test::require(
+        shape_field_names(*create_request) == std::vector<std::string>{"display_name"},
+        "IR should exclude path keys from create request body"
+    );
+
+    const auto* update_status_request = find_shape(ir, "UpdateAccountStatusRequest");
+    statespec::test::require(
+        update_status_request != nullptr, "IR should synthesize update status request shape"
+    );
+    statespec::test::require(
+        shape_field_names(*update_status_request) == std::vector<std::string>{"status"},
+        "IR should exclude path keys from update status request body"
+    );
+
+    const auto* list_response = find_shape(ir, "ListAccountsResponse");
+    statespec::test::require(list_response != nullptr, "IR should synthesize list response shape");
+    statespec::test::require(
+        shape_field_names(*list_response) == std::vector<std::string>{"tenant_id", "accounts"},
+        "IR should derive list response from selector context and entity response array"
+    );
+
+    const auto* indexed_list_response = find_shape(ir, "ListAccountsByStatusResponse");
+    statespec::test::require(
+        indexed_list_response != nullptr, "IR should synthesize indexed list response shape"
+    );
+    statespec::test::require(
+        shape_field_names(*indexed_list_response) ==
+            std::vector<std::string>{"tenant_id", "status", "accounts"},
+        "IR should derive indexed list response from expanded index selector"
+    );
 }
 } // namespace
 

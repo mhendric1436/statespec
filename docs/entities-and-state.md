@@ -333,6 +333,15 @@ deterministic: `CreateAccount`, `GetAccount`, `ListAccounts`,
 `UpdateAccountStatus`, `DeleteAccount`, `CreateAccountRequest`, and
 `AccountResponse`.
 
+Derived shapes are entity-owned and route-aware. `Create<Entity>Request` contains
+only non-path key fields plus the explicit `create fields` allowlist; key fields
+already present in the route are not repeated in the request body.
+`Update<Entity>StatusRequest` follows the same rule and includes only `status`
+when all key fields are route parameters. `<Entity>Response` includes key fields,
+all non-foundational entity fields, `status`, and, by default, the foundational
+`created_at` and `updated_at` timestamps. `<Entity>ListResponse` includes the list
+selector context fields plus an array of `<Entity>Response`.
+
 `list by` is deliberately constrained. It may reference only a valid entity key
 prefix, a declared index name, or a declared index field prefix. It may not reference
 arbitrary fields. List APIs therefore stay aligned with durable access paths that the
