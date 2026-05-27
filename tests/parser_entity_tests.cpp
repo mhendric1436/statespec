@@ -224,10 +224,10 @@ void parser_parses_entity_owned_crud_api_block()
             }
             api {
               resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
-              create {
+              create CreateAccount {
                 fields [display_name]
               }
-              get
+              get GetAccount
               list {
                 path "/v1/tenants/{tenant_id}/accounts"
                 by tenant_id
@@ -236,8 +236,8 @@ void parser_parses_entity_owned_crud_api_block()
                 path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects"
                 by by_account_status
               }
-              update_status
-              delete
+              update_status UpdateAccountStatus
+              delete DeleteAccount
             }
           }
         }
@@ -253,10 +253,16 @@ void parser_parses_entity_owned_crud_api_block()
     );
     statespec::test::require(entity.api->create.has_value(), "parser should parse create intent");
     statespec::test::require(
+        entity.api->create->name == "CreateAccount", "parser should parse create override name"
+    );
+    statespec::test::require(
         entity.api->create->fields.size() == 1 && entity.api->create->fields[0] == "display_name",
         "parser should parse create fields"
     );
-    statespec::test::require(entity.api->get, "parser should parse get intent");
+    statespec::test::require(entity.api->get.has_value(), "parser should parse get intent");
+    statespec::test::require(
+        entity.api->get->name == "GetAccount", "parser should parse get override name"
+    );
     statespec::test::require(entity.api->lists.size() == 2, "parser should parse list intents");
     statespec::test::require(
         !entity.api->lists[0].name.has_value(), "parser should parse anonymous list"
@@ -274,9 +280,18 @@ void parser_parses_entity_owned_crud_api_block()
         "parser should parse list index selector"
     );
     statespec::test::require(
-        entity.api->update_status, "parser should parse update_status intent"
+        entity.api->update_status.has_value(), "parser should parse update_status intent"
     );
-    statespec::test::require(entity.api->delete_, "parser should parse delete intent");
+    statespec::test::require(
+        entity.api->update_status->name == "UpdateAccountStatus",
+        "parser should parse update_status override name"
+    );
+    statespec::test::require(
+        entity.api->delete_.has_value(), "parser should parse delete intent"
+    );
+    statespec::test::require(
+        entity.api->delete_->name == "DeleteAccount", "parser should parse delete override name"
+    );
 }
 } // namespace
 

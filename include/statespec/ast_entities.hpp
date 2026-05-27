@@ -83,7 +83,16 @@ struct InvariantDecl
 
 struct EntityApiCreateDecl
 {
+    std::optional<std::string> name;
     std::vector<std::string> fields;
+    std::vector<std::string> response_fields;
+    SourceRange range;
+};
+
+struct EntityApiOperationDecl
+{
+    std::optional<std::string> name;
+    std::vector<std::string> response_fields;
     SourceRange range;
 };
 
@@ -92,6 +101,7 @@ struct EntityApiListDecl
     std::optional<std::string> name;
     std::optional<std::string> path;
     std::vector<std::string> by;
+    std::vector<std::string> response_fields;
     SourceRange range;
 };
 
@@ -99,10 +109,10 @@ struct EntityApiDecl
 {
     std::optional<std::string> resource;
     std::optional<EntityApiCreateDecl> create;
-    bool get = false;
+    std::optional<EntityApiOperationDecl> get;
     std::vector<EntityApiListDecl> lists;
-    bool update_status = false;
-    bool delete_ = false;
+    std::optional<EntityApiOperationDecl> update_status;
+    std::optional<EntityApiOperationDecl> delete_;
     SourceRange range;
 };
 

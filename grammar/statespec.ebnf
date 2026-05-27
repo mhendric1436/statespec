@@ -362,11 +362,11 @@ entity_api_member       ::= entity_api_resource_decl
 
 entity_api_resource_decl ::= "resource" StringLiteral ";"? ;
 
-entity_api_create_decl  ::= "create" ("{" entity_api_create_member* "}")? ";"? ;
+entity_api_create_decl  ::= "create" Identifier? ("{" entity_api_create_member* "}")? ";"? ;
 
 entity_api_create_member ::= "fields" identifier_list ";"? ;
 
-entity_api_get_decl     ::= "get" ";"? ;
+entity_api_get_decl     ::= "get" Identifier? ";"? ;
 
 entity_api_list_decl    ::= "list" Identifier? "{"
                               entity_api_list_member*
@@ -378,9 +378,9 @@ entity_api_list_member  ::= "path" StringLiteral ";"?
 entity_api_list_selector ::= Identifier ("," Identifier)*
                           | identifier_list ;
 
-entity_api_update_status_decl ::= "update_status" ";"? ;
+entity_api_update_status_decl ::= "update_status" Identifier? ";"? ;
 
-entity_api_delete_decl  ::= "delete" ";"? ;
+entity_api_delete_decl  ::= "delete" Identifier? ";"? ;
 
 
 (* ============================================================ *)

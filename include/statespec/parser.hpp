@@ -5,6 +5,7 @@
 #include "statespec/parser_context.hpp"
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace statespec
@@ -54,6 +55,10 @@ class Parser : private ParserContext
     InvariantDecl parse_invariant_decl(DiagnosticBag& diagnostics);
     EntityApiDecl parse_entity_api_decl(DiagnosticBag& diagnostics);
     EntityApiCreateDecl parse_entity_api_create_decl(DiagnosticBag& diagnostics);
+    EntityApiOperationDecl parse_entity_api_operation_decl(
+        DiagnosticBag& diagnostics,
+        std::string_view operation
+    );
     EntityApiListDecl parse_entity_api_list_decl(DiagnosticBag& diagnostics);
     FieldDecl parse_field_decl(DiagnosticBag& diagnostics);
     IndexDecl parse_index_decl(DiagnosticBag& diagnostics);

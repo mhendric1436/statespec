@@ -310,9 +310,7 @@ EntityApiDecl Parser::parse_entity_api_decl(DiagnosticBag& diagnostics)
         }
         else if (is_named_identifier(peek(), SyntaxIdentifierGet))
         {
-            advance();
-            api.get = true;
-            consume_optional_semicolon();
+            api.get = parse_entity_api_operation_decl(diagnostics, SyntaxIdentifierGet);
         }
         else if (is_named_identifier(peek(), SyntaxIdentifierList))
         {
@@ -320,15 +318,12 @@ EntityApiDecl Parser::parse_entity_api_decl(DiagnosticBag& diagnostics)
         }
         else if (is_named_identifier(peek(), SyntaxIdentifierUpdateStatus))
         {
-            advance();
-            api.update_status = true;
-            consume_optional_semicolon();
+            api.update_status =
+                parse_entity_api_operation_decl(diagnostics, SyntaxIdentifierUpdateStatus);
         }
         else if (is_named_identifier(peek(), SyntaxIdentifierDelete))
         {
-            advance();
-            api.delete_ = true;
-            consume_optional_semicolon();
+            api.delete_ = parse_entity_api_operation_decl(diagnostics, SyntaxIdentifierDelete);
         }
         else
         {
@@ -345,6 +340,11 @@ EntityApiCreateDecl Parser::parse_entity_api_create_decl(DiagnosticBag& diagnost
 {
     const auto start = consume(TokenKind::KeywordCreate, "expected create", diagnostics);
     EntityApiCreateDecl create;
+
+    if (check(TokenKind::Identifier))
+    {
+        create.name = advance().lexeme;
+    }
 
     if (match(TokenKind::LeftBrace))
     {
@@ -366,6 +366,28 @@ EntityApiCreateDecl Parser::parse_entity_api_create_decl(DiagnosticBag& diagnost
 
     create.range = SourceRange{start.range.begin, previous().range.end};
     return create;
+}
+
+EntityApiOperationDecl Parser::parse_entity_api_operation_decl(
+    DiagnosticBag& diagnostics,
+    std::string_view operation
+)
+{
+    const auto start = consume(TokenKind::Identifier, "expected entity api operation", diagnostics);
+    EntityApiOperationDecl operation_decl;
+    if (start.lexeme != operation)
+    {
+        diagnostics.error(start.range, "SSPEC0200", "expected entity api operation");
+    }
+
+    if (check(TokenKind::Identifier))
+    {
+        operation_decl.name = advance().lexeme;
+    }
+    consume_optional_semicolon();
+
+    operation_decl.range = SourceRange{start.range.begin, previous().range.end};
+    return operation_decl;
 }
 
 EntityApiListDecl Parser::parse_entity_api_list_decl(DiagnosticBag& diagnostics)

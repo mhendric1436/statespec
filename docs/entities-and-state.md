@@ -302,11 +302,11 @@ contracts instead of requiring authors to hand-write repetitive API declarations
 api {
   resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
 
-  create {
+  create CreateAccount {
     fields [display_name]
   }
 
-  get
+  get GetAccount
 
   list {
     path "/v1/tenants/{tenant_id}/accounts"
@@ -318,10 +318,13 @@ api {
     by by_account_status
   }
 
-  update_status
-  delete
+  update_status UpdateAccountStatus
+  delete DeleteAccount
 }
 ```
+
+Operation names are optional overrides. If omitted, generators can derive canonical
+operation names from the entity name and operation kind.
 
 `list by` is deliberately constrained. It may reference only a valid entity key
 prefix, a declared index name, or a declared index field prefix. It may not reference
