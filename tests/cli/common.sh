@@ -73,6 +73,24 @@ assert_file_not_contains() {
     fi
 }
 
+assert_tree_files_not_contains() {
+    root="$1"
+    file_pattern="$2"
+    needle="$3"
+    if [ ! -d "$root" ]; then
+        echo "expected generated directory: $root" >&2
+        exit 1
+    fi
+    matches="$(
+        find "$root" -type f -name "$file_pattern" -exec grep -lF -- "$needle" {} + 2>/dev/null || true
+    )"
+    if [ -n "$matches" ]; then
+        echo "expected files under $root matching $file_pattern not to contain: $needle" >&2
+        printf '%s\n' "$matches" >&2
+        exit 1
+    fi
+}
+
 assert_file_manifest_equals() {
     require_test_tmpdir
     root="$1"
