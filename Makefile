@@ -5,6 +5,10 @@ PLANTUML_FLAGS ?= -DPLANTUML_LIMIT_SIZE=16384 -Xmx512m
 CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -Iinclude -Ithird_party
 LDFLAGS ?=
 CLI_FAST_JOBS ?= $(shell sysctl -n hw.logicalcpu 2>/dev/null || echo 1)
+EXAMPLE ?= order-system
+EXAMPLE_LANG ?= cpp
+EXAMPLE_SPEC ?=
+EXAMPLE_OUT ?=
 
 BUILD_DIR := build
 OBJ_DIR := $(BUILD_DIR)/obj
@@ -12,6 +16,7 @@ BIN_DIR := $(BUILD_DIR)/bin
 LIB := $(BUILD_DIR)/libstatespec.a
 CLI := $(BIN_DIR)/statespec
 TEST_BIN := $(BIN_DIR)/statespec_tests
+EXAMPLE_SPECS := $(wildcard examples/*.sspec)
 DIAGRAMS_DIR := diagrams
 PUML_FILES := $(wildcard $(DIAGRAMS_DIR)/*.puml)
 PNG_FILES := $(PUML_FILES:.puml=.png)
@@ -32,7 +37,7 @@ CATCH_OBJ := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CATCH_SRC))
 
 DEPS := $(OBJ:.o=.d) $(CLI_OBJ:.o=.d) $(TEST_OBJ:.o=.d) $(CATCH_OBJ:.o=.d)
 
-.PHONY: all build cli cli-fast check-build-tools ci test test-cli test-generated-apps test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check diagrams-png clean help print-files
+.PHONY: all build cli cli-fast check-build-tools ci test test-cli test-generated-apps test-bindings test-bindings-cpp test-bindings-go test-bindings-java test-bindings-rust list-examples generate-example generate-examples format format-bindings format-bindings-cpp format-bindings-go format-bindings-java format-bindings-rust format-check diagrams-png clean help print-files
 
 all: test cli
 
@@ -121,6 +126,49 @@ test-bindings-java:
 test-bindings-rust:
 	$(MAKE) -C bindings/rust test
 
+list-examples:
+	@printf '%s\n' $(EXAMPLE_SPECS)
+
+generate-example: $(CLI)
+	@set -eu; \
+	lang="$(EXAMPLE_LANG)"; \
+	case "$$lang" in \
+		cpp|c++|C++|CPP) lang="cpp" ;; \
+		go|Go) lang="go" ;; \
+		java|Java) lang="java" ;; \
+		rust|Rust) lang="rust" ;; \
+		*) echo "unsupported EXAMPLE_LANG=$$lang; expected cpp, go, java, or rust" >&2; exit 2 ;; \
+	esac; \
+	spec="$(EXAMPLE_SPEC)"; \
+	if [ -z "$$spec" ]; then spec="examples/$(EXAMPLE).sspec"; fi; \
+	if [ ! -f "$$spec" ]; then \
+		echo "missing example spec: $$spec" >&2; \
+		echo "Run 'make list-examples' to see available examples." >&2; \
+		exit 2; \
+	fi; \
+	name="$$(basename "$$spec" .sspec)"; \
+	out="$(EXAMPLE_OUT)"; \
+	if [ -z "$$out" ]; then out="$(BUILD_DIR)/generated/examples/$$name/$$lang"; fi; \
+	echo "Generating $$lang bindings from $$spec into $$out"; \
+	"$(abspath $(CLI))" generate bindings --lang "$$lang" "$$spec" --out "$$out"
+
+generate-examples: $(CLI)
+	@set -eu; \
+	lang="$(EXAMPLE_LANG)"; \
+	case "$$lang" in \
+		cpp|c++|C++|CPP) lang="cpp" ;; \
+		go|Go) lang="go" ;; \
+		java|Java) lang="java" ;; \
+		rust|Rust) lang="rust" ;; \
+		*) echo "unsupported EXAMPLE_LANG=$$lang; expected cpp, go, java, or rust" >&2; exit 2 ;; \
+	esac; \
+	for spec in $(EXAMPLE_SPECS); do \
+		name="$$(basename "$$spec" .sspec)"; \
+		out="$(BUILD_DIR)/generated/examples/$$name/$$lang"; \
+		echo "Generating $$lang bindings from $$spec into $$out"; \
+		"$(abspath $(CLI))" generate bindings --lang "$$lang" "$$spec" --out "$$out"; \
+	done
+
 format:
 	$(CLANG_FORMAT) -i $(FORMAT_FILES)
 	$(MAKE) -C tests format
@@ -180,6 +228,9 @@ help:
 	@echo "  make test-bindings-go    Run Go binding tests"
 	@echo "  make test-bindings-java  Run Java binding tests"
 	@echo "  make test-bindings-rust  Run Rust binding tests"
+	@echo "  make list-examples       List example .sspec files"
+	@echo "  make generate-example    Generate one example into build/generated/examples/<name>/<lang>"
+	@echo "  make generate-examples   Generate all examples for EXAMPLE_LANG into build/generated/examples"
 	@echo "  make format              Format core source and all language bindings"
 	@echo "  make format-bindings     Format all language bindings"
 	@echo "  make format-check        Check formatting without modifying files"
@@ -197,5 +248,15 @@ help:
 	@echo "  PLANTUML_FLAGS=$(PLANTUML_FLAGS)"
 	@echo "  CXXFLAGS=$(CXXFLAGS)"
 	@echo "  CLI_FAST_JOBS=$(CLI_FAST_JOBS)"
+	@echo "  EXAMPLE=$(EXAMPLE)"
+	@echo "  EXAMPLE_LANG=$(EXAMPLE_LANG)"
+	@echo "  EXAMPLE_SPEC=$(EXAMPLE_SPEC)"
+	@echo "  EXAMPLE_OUT=$(EXAMPLE_OUT)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make generate-example EXAMPLE=api-entities-only EXAMPLE_LANG=go"
+	@echo "  make generate-example EXAMPLE_SPEC=examples/order-system.sspec EXAMPLE_LANG=rust"
+	@echo "  make generate-example EXAMPLE=order-system EXAMPLE_LANG=C++ EXAMPLE_OUT=/tmp/order-cpp"
+	@echo "  make generate-examples EXAMPLE_LANG=java"
 
 -include $(DEPS)
