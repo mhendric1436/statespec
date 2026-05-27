@@ -71,8 +71,7 @@ TemplateRenderer::Values go_makefile_values(
         target_additions << "\nBUILD_TARGETS += build-api";
         target_additions << "\nPACKAGE_TARGETS += package-api";
         phony_targets << " check-api build-api package-api";
-        help_target_additions
-            << "\t@printf '%s\\n' '  check-api     build-api     package-api'\n";
+        help_target_additions << "\t@printf '%s\\n' '  check-api     build-api     package-api'\n";
         api_rules << "check-api:\n";
         api_rules << "\t$(GO) test $(API_PACKAGES)\n\n";
         api_rules << "build-api:" << api_build_dependency.str() << "\n";
@@ -218,7 +217,8 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     {
         worker_run_once
             << "func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext "
-               "descriptortypes.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) "
+               "descriptortypes.WorkerContext, handler WorkflowStepHandler, workflowExecutionID "
+               "string) "
                "(*common.WorkflowExecutionRecord, error) {\n"
             << "\tif workerContext.Executes == nil {\n"
             << "\t\treturn nil, nil\n"
@@ -238,7 +238,8 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     {
         worker_run_once
             << "func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext "
-               "descriptortypes.WorkerContext, handler WorkflowStepHandler, workflowExecutionID string) "
+               "descriptortypes.WorkerContext, handler WorkflowStepHandler, workflowExecutionID "
+               "string) "
                "(*common.WorkflowExecutionRecord, error) {\n"
             << "\treturn nil, nil\n"
             << "}\n";
@@ -328,7 +329,8 @@ std::string go_worker_registry_facade(const IrSystem& system)
         out << "\tregistry \"statespec-generated/worker/backend/registry\"\n";
     }
     out << ")\n\n";
-    out << "func FindWorkerTierDescriptor(workerName string) (descriptortypes.WorkerDescriptor, bool) {\n";
+    out << "func FindWorkerTierDescriptor(workerName string) (descriptortypes.WorkerDescriptor, "
+           "bool) {\n";
     for (const auto& worker : system.workers)
     {
         out << "\tif worker, ok := registry.Find" << pascal_identifier(worker.name)
@@ -338,7 +340,8 @@ std::string go_worker_registry_facade(const IrSystem& system)
     }
     out << "\treturn descriptortypes.WorkerDescriptor{}, false\n";
     out << "}\n\n";
-    out << "func FindWorkerTierContext(workerName string) (descriptortypes.WorkerContext, bool) {\n";
+    out << "func FindWorkerTierContext(workerName string) (descriptortypes.WorkerContext, bool) "
+           "{\n";
     for (const auto& worker : system.workers)
     {
         out << "\tif context, ok := registry.Find" << pascal_identifier(worker.name)
@@ -917,19 +920,30 @@ std::string go_descriptor_types_file()
     out << "type EventDescriptor = common.EventDescriptor\n";
     out << "type EventEnvelope = common.EventEnvelope\n";
     out << "type ExternalSystemPropertyDescriptor = common.ExternalSystemPropertyDescriptor\n";
-    out << "type ExternalSystemMetadataMappingDescriptor = common.ExternalSystemMetadataMappingDescriptor\n";
-    out << "type ExternalSystemMetadataMappingAssignment = common.ExternalSystemMetadataMappingAssignment\n";
+    out << "type ExternalSystemMetadataMappingDescriptor = "
+           "common.ExternalSystemMetadataMappingDescriptor\n";
+    out << "type ExternalSystemMetadataMappingAssignment = "
+           "common.ExternalSystemMetadataMappingAssignment\n";
     out << "type ExternalSystemMetadataMappingPlan = common.ExternalSystemMetadataMappingPlan\n";
-    out << "type ExternalSystemMetadataMissingMappingSource = common.ExternalSystemMetadataMissingMappingSource\n";
-    out << "type ExternalSystemMetadataMappingInputs = common.ExternalSystemMetadataMappingInputs\n";
-    out << "type ExternalSystemMetadataMappingOutput = common.ExternalSystemMetadataMappingOutput\n";
-    out << "type ExternalSystemMetadataMappingApplicator = common.ExternalSystemMetadataMappingApplicator\n";
+    out << "type ExternalSystemMetadataMissingMappingSource = "
+           "common.ExternalSystemMetadataMissingMappingSource\n";
+    out << "type ExternalSystemMetadataMappingInputs = "
+           "common.ExternalSystemMetadataMappingInputs\n";
+    out << "type ExternalSystemMetadataMappingOutput = "
+           "common.ExternalSystemMetadataMappingOutput\n";
+    out << "type ExternalSystemMetadataMappingApplicator = "
+           "common.ExternalSystemMetadataMappingApplicator\n";
     out << "type ExternalSystemMetadataDescriptor = common.ExternalSystemMetadataDescriptor\n";
-    out << "type ExternalSystemOperatorMetadataUpsertRequest = common.ExternalSystemOperatorMetadataUpsertRequest\n";
-    out << "type ExternalSystemOperatorMetadataGetRequest = common.ExternalSystemOperatorMetadataGetRequest\n";
-    out << "type ExternalSystemOperatorMetadataDisableRequest = common.ExternalSystemOperatorMetadataDisableRequest\n";
-    out << "type ExternalSystemOperatorMetadataDeleteRequest = common.ExternalSystemOperatorMetadataDeleteRequest\n";
-    out << "type ExternalSystemOperatorMetadataRepository = common.ExternalSystemOperatorMetadataRepository\n";
+    out << "type ExternalSystemOperatorMetadataUpsertRequest = "
+           "common.ExternalSystemOperatorMetadataUpsertRequest\n";
+    out << "type ExternalSystemOperatorMetadataGetRequest = "
+           "common.ExternalSystemOperatorMetadataGetRequest\n";
+    out << "type ExternalSystemOperatorMetadataDisableRequest = "
+           "common.ExternalSystemOperatorMetadataDisableRequest\n";
+    out << "type ExternalSystemOperatorMetadataDeleteRequest = "
+           "common.ExternalSystemOperatorMetadataDeleteRequest\n";
+    out << "type ExternalSystemOperatorMetadataRepository = "
+           "common.ExternalSystemOperatorMetadataRepository\n";
     out << "type ExternalSystemDescriptor = common.ExternalSystemDescriptor\n";
     out << "type ExternalSystemClient = common.ExternalSystemClient\n";
     out << "type ExternalSystemCallRequest = common.ExternalSystemCallRequest\n";
@@ -961,7 +975,8 @@ std::string go_descriptor_types_file()
     out << "}\n";
     out << "type APIRequestContext = common.APIRequestContext\n";
     out << "type APIResponse = common.APIResponse\n";
-    out << "type ExternalSystemOperatorMetadataAPIHandler = common.ExternalSystemOperatorMetadataAPIHandler\n";
+    out << "type ExternalSystemOperatorMetadataAPIHandler = "
+           "common.ExternalSystemOperatorMetadataAPIHandler\n";
     out << "type WorkerDescriptor struct {\n";
     out << "\tName string\n";
     out << "\tSingleton bool\n";
@@ -1812,7 +1827,8 @@ std::string go_api_descriptor_module(
     out << "package descriptors\n\n";
     out << "import descriptortypes \"statespec-generated/common/backend/descriptortypes\"\n\n";
     out << "func " << string_ptr << "(value string) *string { return &value }\n\n";
-    out << "func " << go_api_descriptor_function_name(api) << "() []descriptortypes.ApiDescriptor {\n";
+    out << "func " << go_api_descriptor_function_name(api)
+        << "() []descriptortypes.ApiDescriptor {\n";
     out << "\treturn []descriptortypes.ApiDescriptor{\n";
     out << "\t\t{\n";
     out << "\t\t\tName: " << go_string(api.name) << ",\n";

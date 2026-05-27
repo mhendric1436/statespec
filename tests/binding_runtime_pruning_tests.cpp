@@ -750,8 +750,8 @@ void runtime_pruning_covers_only_queues()
             concat(
                 {paths.feature_flag_paths, paths.lease_paths, paths.workflow_paths,
                  paths.observability_paths, paths.entity_gc_paths, paths.worker_queue_paths,
-                 paths.worker_lease_paths, paths.worker_workflow_paths, paths.worker_execution_paths,
-                 paths.api_app_paths, paths.worker_app_paths}
+                 paths.worker_lease_paths, paths.worker_workflow_paths,
+                 paths.worker_execution_paths, paths.api_app_paths, paths.worker_app_paths}
             ),
             paths.name + " queue-only"
         );

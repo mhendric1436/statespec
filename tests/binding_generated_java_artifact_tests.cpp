@@ -173,8 +173,7 @@ void test_java_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "com/statespec/generated/ApiResponse.java",
-        "common/com/statespec/generated/ApiResponse.java",
-        statespec::GeneratedArtifactTier::Common
+        "common/com/statespec/generated/ApiResponse.java", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "com/statespec/generated/descriptors/CoreDescriptorModule.java",
@@ -217,8 +216,7 @@ void test_java_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Api
     );
     require_generated_file_artifact_path(
-        result,
-        "com/statespec/generated/external/metadata/ExternalSystemMetadata.java",
+        result, "com/statespec/generated/external/metadata/ExternalSystemMetadata.java",
         "common/com/statespec/generated/external/metadata/ExternalSystemMetadata.java",
         statespec::GeneratedArtifactTier::Common
     );

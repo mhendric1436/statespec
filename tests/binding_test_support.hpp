@@ -438,7 +438,7 @@ sorted_expected_artifact_paths(const std::vector<ExpectedGeneratedArtifact>& exp
     require(
         !result_has_tier(worker_result, statespec::GeneratedArtifactTier::Worker),
         language_name + " worker tier should exclude worker artifacts when no workers or workflows "
-        "are declared"
+                        "are declared"
     );
 }
 

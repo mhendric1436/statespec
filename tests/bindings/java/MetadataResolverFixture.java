@@ -98,8 +98,7 @@ public final class MetadataResolverFixture
         {
             java.util.HashMap<String, Json> clientConfig = new java.util.HashMap<>();
             java.util.HashMap<String, Json> requestPayload = new java.util.HashMap<>();
-            for (ExternalSystemMetadataMappingAssignment assignment :
-                 plan.allMappings())
+            for (ExternalSystemMetadataMappingAssignment assignment : plan.allMappings())
             {
                 Optional<Json> value = inputs.assignmentValue(assignment);
                 if (value.isEmpty())
@@ -256,18 +255,16 @@ public final class MetadataResolverFixture
         {
             throw new AssertionError("unexpected metadata mapping plan");
         }
-        ExternalSystemMetadataMappingApplicator applicator =
-            new FixtureMappingApplicator();
-        ExternalSystemMetadataMappingOutput mapped =
-            applicator.applyExternalSystemMetadataMappings(
-                plan, new ExternalSystemMetadataMappingInputs(
-                          Map.of("order_id", Json.string("order-1")), Map.of(), Map.of(),
-                          Map.of(
-                              "base_url", Json.string("https://api.stripe.test"), "auth_ref",
-                              Json.string("secret:stripe"), "timeout_ms", Json.integer(5000)
-                          )
+        ExternalSystemMetadataMappingApplicator applicator = new FixtureMappingApplicator();
+        ExternalSystemMetadataMappingOutput mapped = applicator.applyExternalSystemMetadataMappings(
+            plan, new ExternalSystemMetadataMappingInputs(
+                      Map.of("order_id", Json.string("order-1")), Map.of(), Map.of(),
+                      Map.of(
+                          "base_url", Json.string("https://api.stripe.test"), "auth_ref",
+                          Json.string("secret:stripe"), "timeout_ms", Json.integer(5000)
                       )
-            );
+                  )
+        );
         if (mapped.clientConfig().size() != 3 || mapped.requestPayload().size() != 1 ||
             !mapped.missingSources().isEmpty())
         {
@@ -309,8 +306,7 @@ public final class MetadataResolverFixture
                 )
                 .orElseThrow();
         Backend.VersionedRecord loaded =
-            repository
-                .getMetadataTx(tx, new ExternalSystemOperatorMetadataGetRequest(lookup))
+            repository.getMetadataTx(tx, new ExternalSystemOperatorMetadataGetRequest(lookup))
                 .orElseThrow();
         Backend.VersionedRecord disabled =
             repository
@@ -354,7 +350,9 @@ public final class MetadataResolverFixture
         }
 
         Optional<ExternalSystem.MetadataResolution> skipped =
-            ExternalSystemMetadata.resolveExternalSystemMetadataTx(resolver, tx, "Stripe", keys.subList(0, 2));
+            ExternalSystemMetadata.resolveExternalSystemMetadataTx(
+                resolver, tx, "Stripe", keys.subList(0, 2)
+            );
         if (skipped.isPresent() || resolver.calls != 1)
         {
             throw new AssertionError("expected incomplete key to skip resolver");

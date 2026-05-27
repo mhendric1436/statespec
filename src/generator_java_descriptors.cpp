@@ -1266,8 +1266,7 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
             if (shape != nullptr)
             {
                 out << "    public static " << pascal_identifier(shape->name) << " decode"
-                    << pascal_identifier(api.name)
-                    << "Request(ApiRequestContext request) {\n";
+                    << pascal_identifier(api.name) << "Request(ApiRequestContext request) {\n";
                 out << "        return new " << pascal_identifier(shape->name) << "(\n";
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
@@ -1298,8 +1297,7 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
             if (shape != nullptr)
             {
                 out << "    public static " << pascal_identifier(shape->name) << " decode"
-                    << pascal_identifier(api.name)
-                    << "Response(ApiResponse response) {\n";
+                    << pascal_identifier(api.name) << "Response(ApiResponse response) {\n";
                 out << "        return new " << pascal_identifier(shape->name) << "(\n";
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
@@ -1323,14 +1321,13 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
                 out << "        );\n";
                 out << "    }\n\n";
 
-                out << "    public static ApiResponse encode"
-                    << pascal_identifier(api.name) << "Response(" << pascal_identifier(shape->name)
-                    << " response) {\n";
+                out << "    public static ApiResponse encode" << pascal_identifier(api.name)
+                    << "Response(" << pascal_identifier(shape->name) << " response) {\n";
                 out << "        return encode" << pascal_identifier(api.name)
                     << "Response(response, 200);\n";
                 out << "    }\n\n";
-                out << "    public static ApiResponse encode"
-                    << pascal_identifier(api.name) << "Response(" << pascal_identifier(shape->name)
+                out << "    public static ApiResponse encode" << pascal_identifier(api.name)
+                    << "Response(" << pascal_identifier(shape->name)
                     << " response, int statusCode) {\n";
                 out << "        Map<String, Json> body = new TreeMap<>();\n";
                 for (const auto& field : shape->fields)

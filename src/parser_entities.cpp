@@ -10,6 +10,25 @@ namespace statespec
 
 using parser_detail::is_named_identifier;
 
+namespace
+{
+
+bool is_entity_api_member_identifier(const Token& token)
+{
+    return is_named_identifier(token, SyntaxIdentifierResource) ||
+           is_named_identifier(token, SyntaxIdentifierGet) ||
+           is_named_identifier(token, SyntaxIdentifierList) ||
+           is_named_identifier(token, SyntaxIdentifierUpdateStatus) ||
+           is_named_identifier(token, SyntaxIdentifierDelete);
+}
+
+bool can_parse_entity_api_override_name(const Token& token)
+{
+    return token.kind == TokenKind::Identifier && !is_entity_api_member_identifier(token);
+}
+
+} // namespace
+
 EntityDecl Parser::parse_entity_decl(DiagnosticBag& diagnostics)
 {
     const auto start =
@@ -341,7 +360,7 @@ EntityApiCreateDecl Parser::parse_entity_api_create_decl(DiagnosticBag& diagnost
     const auto start = consume(TokenKind::KeywordCreate, "expected create", diagnostics);
     EntityApiCreateDecl create;
 
-    if (check(TokenKind::Identifier))
+    if (can_parse_entity_api_override_name(peek()))
     {
         create.name = advance().lexeme;
     }
@@ -380,7 +399,7 @@ EntityApiOperationDecl Parser::parse_entity_api_operation_decl(
         diagnostics.error(start.range, "SSPEC0200", "expected entity api operation");
     }
 
-    if (check(TokenKind::Identifier))
+    if (can_parse_entity_api_override_name(peek()))
     {
         operation_decl.name = advance().lexeme;
     }
@@ -392,11 +411,10 @@ EntityApiOperationDecl Parser::parse_entity_api_operation_decl(
 
 EntityApiListDecl Parser::parse_entity_api_list_decl(DiagnosticBag& diagnostics)
 {
-    const auto start =
-        consume(TokenKind::Identifier, "expected list declaration", diagnostics);
+    const auto start = consume(TokenKind::Identifier, "expected list declaration", diagnostics);
     EntityApiListDecl list;
 
-    if (check(TokenKind::Identifier))
+    if (can_parse_entity_api_override_name(peek()))
     {
         list.name = advance().lexeme;
     }

@@ -16,21 +16,18 @@ public final class ApiLinkingFixture
         private final InMemoryBackend backend = new InMemoryBackend();
 
         @Override
-        public ApiResponse handleStartProvision(ApiRequestContext context)
-            throws Exception
+        public ApiResponse handleStartProvision(ApiRequestContext context) throws Exception
         {
             return recordRequest(context);
         }
 
         @Override
-        public ApiResponse
-        handleReportProvisionReady(ApiRequestContext context) throws Exception
+        public ApiResponse handleReportProvisionReady(ApiRequestContext context) throws Exception
         {
             return recordRequest(context);
         }
 
-        private ApiResponse recordRequest(ApiRequestContext context)
-            throws Exception
+        private ApiResponse recordRequest(ApiRequestContext context) throws Exception
         {
             Backend.Transaction tx = backend.begin();
             backend.put(

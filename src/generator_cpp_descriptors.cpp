@@ -923,8 +923,7 @@ std::string generate_system_descriptors_header(
     std::ostringstream out;
     out << generate_cpp_descriptor_prelude(
         system, templates.load("generated/external_system_runtime.hpp.tmpl"),
-        templates.load("generated/external_system_metadata_runtime.hpp.tmpl"),
-        {}
+        templates.load("generated/external_system_metadata_runtime.hpp.tmpl"), {}
     );
     out << generate_cpp_feature_flag_descriptors(system);
     out << generate_cpp_declaration_descriptors(system);

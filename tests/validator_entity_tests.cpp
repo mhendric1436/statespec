@@ -294,7 +294,16 @@ void validator_accepts_entity_api_list_key_and_index_selectors()
             }
             state_machine {
               state Active
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
               initial Active
+              terminal [Deleted]
+              Active -> Deleted
             }
             indexes {
               index by_tenant_status on tenant_id, status
@@ -324,7 +333,9 @@ void validator_accepts_entity_api_list_key_and_index_selectors()
         }
     )sspec");
 
-    require(!diagnostics.has_errors(), "validator should accept canonical entity API list selectors");
+    require(
+        !diagnostics.has_errors(), "validator should accept canonical entity API list selectors"
+    );
 }
 
 void validator_rejects_entity_api_list_arbitrary_field_selector()

@@ -63,6 +63,37 @@ struct SemanticInvariant
     std::string expression;
 };
 
+struct SemanticEntityApiCreate
+{
+    std::optional<std::string> name;
+    std::vector<std::string> fields;
+    std::vector<std::string> response_fields;
+};
+
+struct SemanticEntityApiOperation
+{
+    std::optional<std::string> name;
+    std::vector<std::string> response_fields;
+};
+
+struct SemanticEntityApiList
+{
+    std::optional<std::string> name;
+    std::optional<std::string> path;
+    std::vector<std::string> by;
+    std::vector<std::string> response_fields;
+};
+
+struct SemanticEntityApi
+{
+    std::optional<std::string> resource;
+    std::optional<SemanticEntityApiCreate> create;
+    std::optional<SemanticEntityApiOperation> get;
+    std::vector<SemanticEntityApiList> lists;
+    std::optional<SemanticEntityApiOperation> update_status;
+    std::optional<SemanticEntityApiOperation> delete_;
+};
+
 struct SemanticEntity
 {
     std::string name;
@@ -77,6 +108,7 @@ struct SemanticEntity
     std::optional<std::string> initial_state;
     std::vector<std::string> terminal_states;
     std::vector<SemanticTransition> transitions;
+    std::optional<SemanticEntityApi> api;
 };
 
 } // namespace statespec

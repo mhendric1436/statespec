@@ -254,7 +254,8 @@ void test_cpp_makefile_matches_selected_tier()
     );
     require(
         worker_makefile.find("worker/worker_descriptors.hpp") == std::string::npos,
-        "worker Makefile excludes worker descriptors header when no workers or workflows are declared"
+        "worker Makefile excludes worker descriptors header when no workers or workflows are "
+        "declared"
     );
     require(
         worker_makefile.find("worker/worker_registry.hpp") == std::string::npos,

@@ -106,6 +106,53 @@ SemanticEntity resolve_entity(
         }
     }
 
+    if (entity.api.has_value())
+    {
+        SemanticEntityApi api;
+        api.resource = entity.api->resource;
+        if (entity.api->create.has_value())
+        {
+            api.create = SemanticEntityApiCreate{
+                entity.api->create->name,
+                entity.api->create->fields,
+                entity.api->create->response_fields,
+            };
+        }
+        if (entity.api->get.has_value())
+        {
+            api.get = SemanticEntityApiOperation{
+                entity.api->get->name,
+                entity.api->get->response_fields,
+            };
+        }
+        for (const auto& list : entity.api->lists)
+        {
+            api.lists.push_back(
+                SemanticEntityApiList{
+                    list.name,
+                    list.path,
+                    list.by,
+                    list.response_fields,
+                }
+            );
+        }
+        if (entity.api->update_status.has_value())
+        {
+            api.update_status = SemanticEntityApiOperation{
+                entity.api->update_status->name,
+                entity.api->update_status->response_fields,
+            };
+        }
+        if (entity.api->delete_.has_value())
+        {
+            api.delete_ = SemanticEntityApiOperation{
+                entity.api->delete_->name,
+                entity.api->delete_->response_fields,
+            };
+        }
+        resolved.api = std::move(api);
+    }
+
     return resolved;
 }
 

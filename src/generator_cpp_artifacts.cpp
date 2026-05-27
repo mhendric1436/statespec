@@ -137,8 +137,7 @@ TemplateRenderer::Values cpp_makefile_values(
         target_additions << "\nBUILD_TARGETS += build-api";
         target_additions << "\nPACKAGE_TARGETS += package-api";
         phony_targets << " check-api build-api package-api";
-        help_target_additions
-            << "\t@printf '%s\\n' '  check-api     build-api     package-api'\n";
+        help_target_additions << "\t@printf '%s\\n' '  check-api     build-api     package-api'\n";
         api_rules << "check-api: $(BUILD_DIR)/.dir\n";
         api_rules << "\tprintf '#include \"api/api_descriptors.hpp\"\\n"
                      "#include \"api/api_codecs.hpp\"\\n"
@@ -862,9 +861,7 @@ TemplateRenderer::Values cpp_descriptor_module_values(std::string_view module_na
     };
 }
 
-std::string cpp_descriptor_types_header(
-    const TemplatePackage& templates
-)
+std::string cpp_descriptor_types_header(const TemplatePackage& templates)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
@@ -2086,7 +2083,10 @@ TemplateRenderer::Values cpp_api_descriptor_values(
     };
 }
 
-TemplateRenderer::Values cpp_api_route_values(const IrSystem& system, std::string_view include_prefix)
+TemplateRenderer::Values cpp_api_route_values(
+    const IrSystem& system,
+    std::string_view include_prefix
+)
 {
     std::ostringstream includes;
     std::ostringstream route_aggregation;
@@ -2395,7 +2395,8 @@ void add_cpp_api_artifacts(
         diagnostics,
         TemplateRenderer::Values{
             {"api_codec_helpers", generate_api_codec_helpers()},
-            {"api_shape_include", api_codec_shapes(system).empty() ? "" : "#include \"shapes.hpp\"\n"}
+            {"api_shape_include",
+             api_codec_shapes(system).empty() ? "" : "#include \"shapes.hpp\"\n"}
         }
     );
     for (const auto& shape : api_codec_shapes(system))
@@ -2497,7 +2498,8 @@ void add_cpp_worker_artifacts(
         diagnostics
     );
     add_cpp_raw_worker_file(
-        result, options, "worker/descriptors/catalog.hpp", cpp_worker_descriptor_catalog_file(system)
+        result, options, "worker/descriptors/catalog.hpp",
+        cpp_worker_descriptor_catalog_file(system)
     );
     for (const auto& worker : system.workers)
     {
@@ -2505,8 +2507,8 @@ void add_cpp_worker_artifacts(
             result, options, "worker/descriptors/" + snake_identifier(worker.name) + ".hpp",
             std::string{
                 "#pragma once\n\n#include \"../../common/descriptors/types.hpp\"\n\nnamespace "
-                "statespec_generated::worker::descriptors\n{\n\n"} +
-                generate_cpp_worker_descriptor_module(worker) +
+                "statespec_generated::worker::descriptors\n{\n\n"
+            } + generate_cpp_worker_descriptor_module(worker) +
                 "} // namespace statespec_generated::worker::descriptors\n"
         );
     }

@@ -21,7 +21,10 @@ namespace statespec
 namespace
 {
 
-TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier, const IrSystem& system)
+TemplateRenderer::Values rust_makefile_values(
+    BindingGenerationTier tier,
+    const IrSystem& system
+)
 {
     const auto usage = runtime_domain_usage(system);
     const auto include_api =
@@ -41,8 +44,7 @@ TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier, const 
         target_additions << "\nBUILD_TARGETS += build-api";
         target_additions << "\nPACKAGE_TARGETS += package-api";
         phony_targets << " check-api build-api package-api";
-        help_target_additions
-            << "\t@printf '%s\\n' '  check-api     build-api     package-api'\n";
+        help_target_additions << "\t@printf '%s\\n' '  check-api     build-api     package-api'\n";
         api_rules << "check-api:\n";
         api_rules << "\t$(CARGO) test\n\n";
         api_rules << "build-api:\n";
@@ -1320,78 +1322,77 @@ TemplateRenderer::Values rust_shape_descriptor_module_values(const IrShape& shap
 
 std::string rust_descriptor_types_file()
 {
-    return
-        "use std::time::Duration;\n\n"
-        "use crate::json::Json;\n\n"
-        "#[derive(Debug, Clone)]\n"
-        "pub struct LeaseDefinition {\n"
-        "    pub name: String,\n"
-        "    pub resource: Option<String>,\n"
-        "    pub ttl: Duration,\n"
-        "    pub renew_every: Option<Duration>,\n"
-        "    pub holder: Option<String>,\n"
-        "    pub fencing_token: bool,\n"
-        "    pub max_ttl: Option<Duration>,\n"
-        "}\n\n"
-        "#[derive(Debug, Clone)]\n"
-        "pub struct ApiDescriptor {\n"
-        "    pub name: String,\n"
-        "    pub method: Option<String>,\n"
-        "    pub path: Option<String>,\n"
-        "    pub input: Option<String>,\n"
-        "    pub output: Option<String>,\n"
-        "    pub error: Option<String>,\n"
-        "    pub starts_workflow: Option<String>,\n"
-        "    pub enqueues: Option<String>,\n"
-        "}\n\n"
-        "#[derive(Debug, Clone)]\n"
-        "pub struct ApiServerDescriptor {\n"
-        "    pub name: String,\n"
-        "    pub serves: Vec<String>,\n"
-        "    pub concurrency: i32,\n"
-        "}\n\n"
-        "#[derive(Debug, Clone)]\n"
-        "pub struct ApiRouteDescriptor {\n"
-        "    pub name: String,\n"
-        "    pub server_name: String,\n"
-        "    pub api_name: String,\n"
-        "    pub method: Option<String>,\n"
-        "    pub path: Option<String>,\n"
-        "    pub input: Option<String>,\n"
-        "    pub output: Option<String>,\n"
-        "    pub error: Option<String>,\n"
-        "}\n\n"
-        "#[derive(Debug, Clone)]\n"
-        "pub struct ApiRequestContext {\n"
-        "    pub server_name: String,\n"
-        "    pub api_name: String,\n"
-        "    pub method: Option<String>,\n"
-        "    pub path: Option<String>,\n"
-        "    pub body: Json,\n"
-        "}\n\n"
-        "#[derive(Debug, Clone)]\n"
-        "pub struct ApiResponse {\n"
-        "    pub status_code: i32,\n"
-        "    pub body: Json,\n"
-        "}\n\n"
-        "#[derive(Debug, Clone)]\n"
-        "pub struct WorkerDescriptor {\n"
-        "    pub name: String,\n"
-        "    pub singleton: bool,\n"
-        "    pub lease: Option<String>,\n"
-        "    pub polls: Option<String>,\n"
-        "    pub executes: Option<String>,\n"
-        "    pub concurrency: i32,\n"
-        "}\n\n"
-        "#[derive(Debug, Clone)]\n"
-        "pub struct WorkerContext {\n"
-        "    pub worker_name: String,\n"
-        "    pub singleton: bool,\n"
-        "    pub lease: Option<String>,\n"
-        "    pub polls: Option<String>,\n"
-        "    pub executes: Option<String>,\n"
-        "    pub concurrency: i32,\n"
-        "}\n";
+    return "use std::time::Duration;\n\n"
+           "use crate::json::Json;\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct LeaseDefinition {\n"
+           "    pub name: String,\n"
+           "    pub resource: Option<String>,\n"
+           "    pub ttl: Duration,\n"
+           "    pub renew_every: Option<Duration>,\n"
+           "    pub holder: Option<String>,\n"
+           "    pub fencing_token: bool,\n"
+           "    pub max_ttl: Option<Duration>,\n"
+           "}\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct ApiDescriptor {\n"
+           "    pub name: String,\n"
+           "    pub method: Option<String>,\n"
+           "    pub path: Option<String>,\n"
+           "    pub input: Option<String>,\n"
+           "    pub output: Option<String>,\n"
+           "    pub error: Option<String>,\n"
+           "    pub starts_workflow: Option<String>,\n"
+           "    pub enqueues: Option<String>,\n"
+           "}\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct ApiServerDescriptor {\n"
+           "    pub name: String,\n"
+           "    pub serves: Vec<String>,\n"
+           "    pub concurrency: i32,\n"
+           "}\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct ApiRouteDescriptor {\n"
+           "    pub name: String,\n"
+           "    pub server_name: String,\n"
+           "    pub api_name: String,\n"
+           "    pub method: Option<String>,\n"
+           "    pub path: Option<String>,\n"
+           "    pub input: Option<String>,\n"
+           "    pub output: Option<String>,\n"
+           "    pub error: Option<String>,\n"
+           "}\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct ApiRequestContext {\n"
+           "    pub server_name: String,\n"
+           "    pub api_name: String,\n"
+           "    pub method: Option<String>,\n"
+           "    pub path: Option<String>,\n"
+           "    pub body: Json,\n"
+           "}\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct ApiResponse {\n"
+           "    pub status_code: i32,\n"
+           "    pub body: Json,\n"
+           "}\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct WorkerDescriptor {\n"
+           "    pub name: String,\n"
+           "    pub singleton: bool,\n"
+           "    pub lease: Option<String>,\n"
+           "    pub polls: Option<String>,\n"
+           "    pub executes: Option<String>,\n"
+           "    pub concurrency: i32,\n"
+           "}\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct WorkerContext {\n"
+           "    pub worker_name: String,\n"
+           "    pub singleton: bool,\n"
+           "    pub lease: Option<String>,\n"
+           "    pub polls: Option<String>,\n"
+           "    pub executes: Option<String>,\n"
+           "    pub concurrency: i32,\n"
+           "}\n";
 }
 
 void add_rust_raw_common_file(
@@ -1838,7 +1839,8 @@ std::string rust_api_descriptor_catalog_file(const IrSystem& system)
     server_descriptors << "    ]\n";
     std::ostringstream out;
     out << modules.str() << "\n";
-    out << "use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor, ApiServerDescriptor};\n\n";
+    out << "use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor, "
+           "ApiServerDescriptor};\n\n";
     out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
     out << "    let mut descriptors = Vec::new();\n";
     out << api_aggregation.str();

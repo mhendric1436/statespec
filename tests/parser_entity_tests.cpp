@@ -275,8 +275,7 @@ void parser_parses_entity_owned_crud_api_block()
         entity.api->lists[1].name == "AccountProjects", "parser should parse named list"
     );
     statespec::test::require(
-        entity.api->lists[1].by.size() == 1 &&
-            entity.api->lists[1].by[0] == "by_account_status",
+        entity.api->lists[1].by.size() == 1 && entity.api->lists[1].by[0] == "by_account_status",
         "parser should parse list index selector"
     );
     statespec::test::require(
@@ -286,11 +285,70 @@ void parser_parses_entity_owned_crud_api_block()
         entity.api->update_status->name == "UpdateAccountStatus",
         "parser should parse update_status override name"
     );
-    statespec::test::require(
-        entity.api->delete_.has_value(), "parser should parse delete intent"
-    );
+    statespec::test::require(entity.api->delete_.has_value(), "parser should parse delete intent");
     statespec::test::require(
         entity.api->delete_->name == "DeleteAccount", "parser should parse delete override name"
+    );
+}
+
+void parser_does_not_treat_next_crud_operation_as_override_name()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system AccountSystem {
+          entity Account {
+            key tenant_id, account_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+            }
+            state_machine {
+              state Active
+              state Deleted {
+                terminal: true
+              }
+              initial Active
+              terminal [Deleted]
+              Active -> Deleted
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+              create
+              get
+              list {
+                path "/v1/tenants/{tenant_id}/accounts"
+                by tenant_id
+              }
+              update_status
+              delete
+            }
+          }
+        }
+    )sspec");
+
+    const auto& api = spec.system->entities[0].api;
+    statespec::test::require(api.has_value(), "parser should parse entity api block");
+    statespec::test::require(api->create.has_value(), "parser should parse create intent");
+    statespec::test::require(
+        !api->create->name.has_value(), "parser should leave create name unset"
+    );
+    statespec::test::require(api->get.has_value(), "parser should parse get intent");
+    statespec::test::require(!api->get->name.has_value(), "parser should leave get name unset");
+    statespec::test::require(api->lists.size() == 1, "parser should parse list intent");
+    statespec::test::require(
+        !api->lists[0].name.has_value(), "parser should leave list name unset"
+    );
+    statespec::test::require(
+        api->update_status.has_value(), "parser should parse update_status intent"
+    );
+    statespec::test::require(
+        !api->update_status->name.has_value(), "parser should leave update_status name unset"
+    );
+    statespec::test::require(api->delete_.has_value(), "parser should parse delete intent");
+    statespec::test::require(
+        !api->delete_->name.has_value(), "parser should leave delete name unset"
     );
 }
 } // namespace
@@ -308,4 +366,9 @@ TEST_CASE("parser parses entity ownership, relations, children, and invariants")
 TEST_CASE("parser parses entity-owned CRUD API block")
 {
     parser_parses_entity_owned_crud_api_block();
+}
+
+TEST_CASE("parser does not treat next CRUD operation as override name")
+{
+    parser_does_not_treat_next_crud_operation_as_override_name();
 }

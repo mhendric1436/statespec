@@ -86,7 +86,10 @@ std::string java_event_descriptor_module_file(const IrSystem& system)
     return out.str();
 }
 
-std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
+std::vector<std::pair<
+    std::string,
+    std::string>>
+java_descriptor_type_files()
 {
     const std::string package_line = "package com.statespec.generated.descriptors.types;\n\n";
     auto file = [&](std::string filename, std::string imports, std::string body)
@@ -97,13 +100,11 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
     };
     std::vector<std::pair<std::string, std::string>> files;
     files.push_back(file(
-        "EventEnvelope.java",
-        "import com.statespec.backend.Json;\nimport java.util.Map;\n\n",
+        "EventEnvelope.java", "import com.statespec.backend.Json;\nimport java.util.Map;\n\n",
         "public record EventEnvelope(String name, Map<String, Json> fields) {}\n"
     ));
     files.push_back(file(
-        "LeaseDefinition.java",
-        "import java.time.Duration;\nimport java.util.Optional;\n\n",
+        "LeaseDefinition.java", "import java.time.Duration;\nimport java.util.Optional;\n\n",
         "public record LeaseDefinition(\n"
         "    String name,\n"
         "    Optional<String> resource,\n"
@@ -115,8 +116,7 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         ") {}\n"
     ));
     files.push_back(file(
-        "FeatureFlagDefinition.java",
-        "import java.util.Optional;\n\n",
+        "FeatureFlagDefinition.java", "import java.util.Optional;\n\n",
         "public record FeatureFlagDefinition(\n"
         "    String name,\n"
         "    String type,\n"
@@ -128,18 +128,15 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         ") {}\n"
     ));
     files.push_back(file(
-        "ValueDescriptor.java",
-        "import java.util.Optional;\n\n",
+        "ValueDescriptor.java", "import java.util.Optional;\n\n",
         "public record ValueDescriptor(String name, String type, Optional<String> constraint) {}\n"
     ));
     files.push_back(file(
-        "EnumMemberDescriptor.java",
-        "import java.util.Optional;\n\n",
+        "EnumMemberDescriptor.java", "import java.util.Optional;\n\n",
         "public record EnumMemberDescriptor(String name, Optional<String> value) {}\n"
     ));
     files.push_back(file(
-        "EnumDescriptor.java",
-        "import java.util.List;\n\n",
+        "EnumDescriptor.java", "import java.util.List;\n\n",
         "public record EnumDescriptor(String name, List<EnumMemberDescriptor> members) {}\n"
     ));
     files.push_back(file(
@@ -169,8 +166,7 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         ") {}\n"
     ));
     files.push_back(file(
-        "ExternalSystemDescriptor.java",
-        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "ExternalSystemDescriptor.java", "import java.util.List;\nimport java.util.Optional;\n\n",
         "public record ExternalSystemDescriptor(\n"
         "    String name,\n"
         "    List<ExternalSystemPropertyDescriptor> properties,\n"
@@ -178,8 +174,7 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         ") {}\n"
     ));
     files.push_back(file(
-        "ApiDescriptor.java",
-        "import java.util.Optional;\n\n",
+        "ApiDescriptor.java", "import java.util.Optional;\n\n",
         "public record ApiDescriptor(\n"
         "    String name,\n"
         "    Optional<String> method,\n"
@@ -192,13 +187,11 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         ") {}\n"
     ));
     files.push_back(file(
-        "ApiServerDescriptor.java",
-        "import java.util.List;\n\n",
+        "ApiServerDescriptor.java", "import java.util.List;\n\n",
         "public record ApiServerDescriptor(String name, List<String> serves, int concurrency) {}\n"
     ));
     files.push_back(file(
-        "ApiRouteDescriptor.java",
-        "import java.util.Optional;\n\n",
+        "ApiRouteDescriptor.java", "import java.util.Optional;\n\n",
         "public record ApiRouteDescriptor(\n"
         "    String name,\n"
         "    String serverName,\n"
@@ -211,8 +204,7 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         ") {}\n"
     ));
     files.push_back(file(
-        "WorkerDescriptor.java",
-        "import java.util.Optional;\n\n",
+        "WorkerDescriptor.java", "import java.util.Optional;\n\n",
         "public record WorkerDescriptor(\n"
         "    String name,\n"
         "    boolean singleton,\n"
@@ -223,8 +215,7 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         ") {}\n"
     ));
     files.push_back(file(
-        "WorkerContext.java",
-        "import java.util.Optional;\n\n",
+        "WorkerContext.java", "import java.util.Optional;\n\n",
         "public record WorkerContext(\n"
         "    String workerName,\n"
         "    boolean singleton,\n"
@@ -243,8 +234,7 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         "public record QuotaDescriptor(String name, String expression) {}\n"
     ));
     files.push_back(file(
-        "PolicyDescriptor.java",
-        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "PolicyDescriptor.java", "import java.util.List;\nimport java.util.Optional;\n\n",
         "public record PolicyDescriptor(\n"
         "    String name,\n"
         "    Optional<String> tenantScopedBy,\n"
@@ -288,8 +278,7 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         "public record GarbageCollectionPolicy(String after, String mode) {}\n"
     ));
     files.push_back(file(
-        "EntityStateDescriptor.java",
-        "import java.util.Optional;\n\n",
+        "EntityStateDescriptor.java", "import java.util.Optional;\n\n",
         "public record EntityStateDescriptor(\n"
         "    String name,\n"
         "    boolean terminal,\n"
@@ -305,8 +294,7 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
         ") {}\n"
     ));
     files.push_back(file(
-        "EntityRelationDescriptor.java",
-        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "EntityRelationDescriptor.java", "import java.util.List;\nimport java.util.Optional;\n\n",
         "public record EntityRelationDescriptor(\n"
         "    String kind,\n"
         "    String name,\n"
@@ -320,15 +308,15 @@ std::vector<std::pair<std::string, std::string>> java_descriptor_type_files()
     ));
     files.push_back(file(
         "EntityChildDescriptor.java", "",
-        "public record EntityChildDescriptor(String name, String targetEntity, String relation) {}\n"
+        "public record EntityChildDescriptor(String name, String targetEntity, String relation) "
+        "{}\n"
     ));
     files.push_back(file(
         "EntityInvariantDescriptor.java", "",
         "public record EntityInvariantDescriptor(String name, String expression) {}\n"
     ));
     files.push_back(file(
-        "EntityDescriptor.java",
-        "import java.util.List;\nimport java.util.Optional;\n\n",
+        "EntityDescriptor.java", "import java.util.List;\nimport java.util.Optional;\n\n",
         "public record EntityDescriptor(\n"
         "    String name,\n"
         "    List<String> keyFields,\n"
@@ -748,8 +736,7 @@ std::string java_api_codec_delegates(const IrSystem& system)
             if (api.input.has_value())
             {
                 out << "    public static " << pascal_identifier(*api.input) << " decode"
-                    << pascal_identifier(api.name)
-                    << "Request(ApiRequestContext request) {\n";
+                    << pascal_identifier(api.name) << "Request(ApiRequestContext request) {\n";
                 out << "        return " << class_name << ".decode" << pascal_identifier(api.name)
                     << "Request(request);\n";
                 out << "    }\n\n";
@@ -757,19 +744,17 @@ std::string java_api_codec_delegates(const IrSystem& system)
             if (api.output.has_value())
             {
                 out << "    public static " << pascal_identifier(*api.output) << " decode"
-                    << pascal_identifier(api.name)
-                    << "Response(ApiResponse response) {\n";
+                    << pascal_identifier(api.name) << "Response(ApiResponse response) {\n";
                 out << "        return " << class_name << ".decode" << pascal_identifier(api.name)
                     << "Response(response);\n";
                 out << "    }\n\n";
-                out << "    public static ApiResponse encode"
-                    << pascal_identifier(api.name) << "Response(" << pascal_identifier(*api.output)
-                    << " response) {\n";
+                out << "    public static ApiResponse encode" << pascal_identifier(api.name)
+                    << "Response(" << pascal_identifier(*api.output) << " response) {\n";
                 out << "        return " << class_name << ".encode" << pascal_identifier(api.name)
                     << "Response(response);\n";
                 out << "    }\n\n";
-                out << "    public static ApiResponse encode"
-                    << pascal_identifier(api.name) << "Response(" << pascal_identifier(*api.output)
+                out << "    public static ApiResponse encode" << pascal_identifier(api.name)
+                    << "Response(" << pascal_identifier(*api.output)
                     << " response, int statusCode) {\n";
                 out << "        return " << class_name << ".encode" << pascal_identifier(api.name)
                     << "Response(response, statusCode);\n";
@@ -1273,8 +1258,8 @@ std::string java_entity_centered_facade_file(
     {
         const auto type_name = pascal_identifier(entity.name);
         out << "\n";
-        out << "    public static com.statespec.generated.entities.EntityLookup build"
-            << type_name << "Lookup(\n";
+        out << "    public static com.statespec.generated.entities.EntityLookup build" << type_name
+            << "Lookup(\n";
         out << "        java.util.List<com.statespec.generated.entities.EntityKeyValue> "
                "keyValues\n";
         out << "    ) {\n";
@@ -1372,7 +1357,8 @@ std::string java_entity_centered_facade_file(
         out << "            return entities.createEntityTx(\n";
         out << "                tx,\n";
         out << "                new com.statespec.generated.entities.EntityCreateRequest(\n";
-        out << "                    com.statespec.generated.entities.EntityRepository.entityLookupFromDocument("
+        out << "                    "
+               "com.statespec.generated.entities.EntityRepository.entityLookupFromDocument("
             << lower_camel_identifier(entity.name) << "EntityDescriptor(), document),\n";
         out << "                    document\n";
         out << "                )\n";
@@ -1644,7 +1630,8 @@ std::string java_external_metadata_runtime_file()
     out << "            if (value == null) {\n";
     out << "                return Optional.empty();\n";
     out << "            }\n";
-    out << "            key.append(keyField).append('=').append(value.canonicalString()).append('\\n');\n";
+    out << "            "
+           "key.append(keyField).append('=').append(value.canonicalString()).append('\\n');\n";
     out << "        }\n";
     out << "        return Optional.of(key.toString());\n";
     out << "    }\n\n";
@@ -1674,45 +1661,38 @@ void add_java_external_metadata_artifacts(
     const auto metadata_path =
         join_artifact_path(GeneratedJavaOutputPackagePath, "external", "metadata");
     auto add_file = [&](std::string_view filename, std::string content)
-    {
-        add_java_raw_common_file(result, options, metadata_path / filename, std::move(content));
-    };
+    { add_java_raw_common_file(result, options, metadata_path / filename, std::move(content)); };
     auto package_header = []()
-    {
-        return std::string{"package com.statespec.generated.external.metadata;\n\n"};
-    };
+    { return std::string{"package com.statespec.generated.external.metadata;\n\n"}; };
 
     add_file(
         "ExternalSystemMetadataMappingAssignment.java",
-        package_header() +
-            "public record ExternalSystemMetadataMappingAssignment(\n"
-            "    String source,\n"
-            "    String sourceRoot,\n"
-            "    String sourceField,\n"
-            "    String targetRoot,\n"
-            "    String field\n"
-            ") {}\n"
+        package_header() + "public record ExternalSystemMetadataMappingAssignment(\n"
+                           "    String source,\n"
+                           "    String sourceRoot,\n"
+                           "    String sourceField,\n"
+                           "    String targetRoot,\n"
+                           "    String field\n"
+                           ") {}\n"
     );
     add_file(
         "ExternalSystemMetadataMappingPlan.java",
-        package_header() +
-            "import java.util.List;\n\n"
-            "public record ExternalSystemMetadataMappingPlan(\n"
-            "    List<ExternalSystemMetadataMappingAssignment> allMappings,\n"
-            "    List<ExternalSystemMetadataMappingAssignment> clientMappings,\n"
-            "    List<ExternalSystemMetadataMappingAssignment> requestMappings\n"
-            ") {}\n"
+        package_header() + "import java.util.List;\n\n"
+                           "public record ExternalSystemMetadataMappingPlan(\n"
+                           "    List<ExternalSystemMetadataMappingAssignment> allMappings,\n"
+                           "    List<ExternalSystemMetadataMappingAssignment> clientMappings,\n"
+                           "    List<ExternalSystemMetadataMappingAssignment> requestMappings\n"
+                           ") {}\n"
     );
     add_file(
         "ExternalSystemMetadataMissingMappingSource.java",
-        package_header() +
-            "public record ExternalSystemMetadataMissingMappingSource(\n"
-            "    String source,\n"
-            "    String sourceRoot,\n"
-            "    String sourceField,\n"
-            "    String targetRoot,\n"
-            "    String field\n"
-            ") {}\n"
+        package_header() + "public record ExternalSystemMetadataMissingMappingSource(\n"
+                           "    String source,\n"
+                           "    String sourceRoot,\n"
+                           "    String sourceField,\n"
+                           "    String targetRoot,\n"
+                           "    String field\n"
+                           ") {}\n"
     );
     add_file(
         "ExternalSystemMetadataMappingInputs.java",
@@ -1748,15 +1728,14 @@ void add_java_external_metadata_artifacts(
     );
     add_file(
         "ExternalSystemMetadataMappingOutput.java",
-        package_header() +
-            "import com.statespec.backend.Json;\n"
-            "import java.util.List;\n"
-            "import java.util.Map;\n\n"
-            "public record ExternalSystemMetadataMappingOutput(\n"
-            "    Map<String, Json> clientConfig,\n"
-            "    Map<String, Json> requestPayload,\n"
-            "    List<ExternalSystemMetadataMissingMappingSource> missingSources\n"
-            ") {}\n"
+        package_header() + "import com.statespec.backend.Json;\n"
+                           "import java.util.List;\n"
+                           "import java.util.Map;\n\n"
+                           "public record ExternalSystemMetadataMappingOutput(\n"
+                           "    Map<String, Json> clientConfig,\n"
+                           "    Map<String, Json> requestPayload,\n"
+                           "    List<ExternalSystemMetadataMissingMappingSource> missingSources\n"
+                           ") {}\n"
     );
     add_file(
         "ExternalSystemMetadataMappingApplicator.java",
@@ -1804,69 +1783,64 @@ void add_java_external_metadata_artifacts(
     );
     add_file(
         "ExternalSystemOperatorMetadataUpsertRequest.java",
-        package_header() +
-            "import com.statespec.backend.ExternalSystem;\n"
-            "import com.statespec.backend.Json;\n"
-            "import java.util.Optional;\n\n"
-            "public record ExternalSystemOperatorMetadataUpsertRequest(\n"
-            "    ExternalSystem.MetadataLookup lookup,\n"
-            "    Json document,\n"
-            "    Optional<Long> expectedVersion\n"
-            ") {}\n"
+        package_header() + "import com.statespec.backend.ExternalSystem;\n"
+                           "import com.statespec.backend.Json;\n"
+                           "import java.util.Optional;\n\n"
+                           "public record ExternalSystemOperatorMetadataUpsertRequest(\n"
+                           "    ExternalSystem.MetadataLookup lookup,\n"
+                           "    Json document,\n"
+                           "    Optional<Long> expectedVersion\n"
+                           ") {}\n"
     );
     add_file(
         "ExternalSystemOperatorMetadataGetRequest.java",
-        package_header() +
-            "import com.statespec.backend.ExternalSystem;\n\n"
-            "public record ExternalSystemOperatorMetadataGetRequest(\n"
-            "    ExternalSystem.MetadataLookup lookup\n"
-            ") {}\n"
+        package_header() + "import com.statespec.backend.ExternalSystem;\n\n"
+                           "public record ExternalSystemOperatorMetadataGetRequest(\n"
+                           "    ExternalSystem.MetadataLookup lookup\n"
+                           ") {}\n"
     );
     add_file(
         "ExternalSystemOperatorMetadataDisableRequest.java",
-        package_header() +
-            "import com.statespec.backend.ExternalSystem;\n"
-            "import java.util.Optional;\n\n"
-            "public record ExternalSystemOperatorMetadataDisableRequest(\n"
-            "    ExternalSystem.MetadataLookup lookup,\n"
-            "    Optional<Long> expectedVersion,\n"
-            "    String disabledStatus\n"
-            ") {}\n"
+        package_header() + "import com.statespec.backend.ExternalSystem;\n"
+                           "import java.util.Optional;\n\n"
+                           "public record ExternalSystemOperatorMetadataDisableRequest(\n"
+                           "    ExternalSystem.MetadataLookup lookup,\n"
+                           "    Optional<Long> expectedVersion,\n"
+                           "    String disabledStatus\n"
+                           ") {}\n"
     );
     add_file(
         "ExternalSystemOperatorMetadataDeleteRequest.java",
-        package_header() +
-            "import com.statespec.backend.ExternalSystem;\n"
-            "import java.util.Optional;\n\n"
-            "public record ExternalSystemOperatorMetadataDeleteRequest(\n"
-            "    ExternalSystem.MetadataLookup lookup,\n"
-            "    Optional<Long> expectedVersion,\n"
-            "    String deletedStatus\n"
-            ") {}\n"
+        package_header() + "import com.statespec.backend.ExternalSystem;\n"
+                           "import java.util.Optional;\n\n"
+                           "public record ExternalSystemOperatorMetadataDeleteRequest(\n"
+                           "    ExternalSystem.MetadataLookup lookup,\n"
+                           "    Optional<Long> expectedVersion,\n"
+                           "    String deletedStatus\n"
+                           ") {}\n"
     );
     add_file(
         "ExternalSystemOperatorMetadataRepository.java",
-        package_header() +
-            "import com.statespec.backend.Backend;\n"
-            "import java.util.Optional;\n\n"
-            "public interface ExternalSystemOperatorMetadataRepository {\n"
-            "    Optional<Backend.VersionedRecord> upsertMetadataTx(\n"
-            "        Backend.Transaction tx,\n"
-            "        ExternalSystemOperatorMetadataUpsertRequest request\n"
-            "    ) throws Backend.BackendException;\n\n"
-            "    Optional<Backend.VersionedRecord> getMetadataTx(\n"
-            "        Backend.Transaction tx,\n"
-            "        ExternalSystemOperatorMetadataGetRequest request\n"
-            "    ) throws Backend.BackendException;\n\n"
-            "    Optional<Backend.VersionedRecord> disableMetadataTx(\n"
-            "        Backend.Transaction tx,\n"
-            "        ExternalSystemOperatorMetadataDisableRequest request\n"
-            "    ) throws Backend.BackendException;\n\n"
-            "    Optional<Backend.VersionedRecord> deleteMetadataTx(\n"
-            "        Backend.Transaction tx,\n"
-            "        ExternalSystemOperatorMetadataDeleteRequest request\n"
-            "    ) throws Backend.BackendException;\n"
-            "}\n"
+        package_header() + "import com.statespec.backend.Backend;\n"
+                           "import java.util.Optional;\n\n"
+                           "public interface ExternalSystemOperatorMetadataRepository {\n"
+                           "    Optional<Backend.VersionedRecord> upsertMetadataTx(\n"
+                           "        Backend.Transaction tx,\n"
+                           "        ExternalSystemOperatorMetadataUpsertRequest request\n"
+                           "    ) throws Backend.BackendException;\n\n"
+                           "    Optional<Backend.VersionedRecord> getMetadataTx(\n"
+                           "        Backend.Transaction tx,\n"
+                           "        ExternalSystemOperatorMetadataGetRequest request\n"
+                           "    ) throws Backend.BackendException;\n\n"
+                           "    Optional<Backend.VersionedRecord> disableMetadataTx(\n"
+                           "        Backend.Transaction tx,\n"
+                           "        ExternalSystemOperatorMetadataDisableRequest request\n"
+                           "    ) throws Backend.BackendException;\n\n"
+                           "    Optional<Backend.VersionedRecord> deleteMetadataTx(\n"
+                           "        Backend.Transaction tx,\n"
+                           "        ExternalSystemOperatorMetadataDeleteRequest request\n"
+                           "    ) throws Backend.BackendException;\n"
+                           "}\n"
     );
     add_file(
         "DefaultExternalSystemOperatorMetadataRepository.java",
@@ -2002,53 +1976,50 @@ void add_java_external_metadata_artifacts(
     );
     add_file(
         "ExternalSystemOperatorMetadataApiHandler.java",
-        package_header() +
-            "import com.statespec.backend.Backend;\n"
-            "import com.statespec.generated.ApiResponse;\n\n"
-            "public interface ExternalSystemOperatorMetadataApiHandler {\n"
-            "    ApiResponse handleUpsertMetadataTx(\n"
-            "        Backend.Transaction tx,\n"
-            "        ExternalSystemOperatorMetadataRepository repository,\n"
-            "        ExternalSystemOperatorMetadataUpsertRequest request\n"
-            "    ) throws Exception;\n\n"
-            "    ApiResponse handleGetMetadataTx(\n"
-            "        Backend.Transaction tx,\n"
-            "        ExternalSystemOperatorMetadataRepository repository,\n"
-            "        ExternalSystemOperatorMetadataGetRequest request\n"
-            "    ) throws Exception;\n\n"
-            "    ApiResponse handleDisableMetadataTx(\n"
-            "        Backend.Transaction tx,\n"
-            "        ExternalSystemOperatorMetadataRepository repository,\n"
-            "        ExternalSystemOperatorMetadataDisableRequest request\n"
-            "    ) throws Exception;\n\n"
-            "    ApiResponse handleDeleteMetadataTx(\n"
-            "        Backend.Transaction tx,\n"
-            "        ExternalSystemOperatorMetadataRepository repository,\n"
-            "        ExternalSystemOperatorMetadataDeleteRequest request\n"
-            "    ) throws Exception;\n"
-            "}\n"
+        package_header() + "import com.statespec.backend.Backend;\n"
+                           "import com.statespec.generated.ApiResponse;\n\n"
+                           "public interface ExternalSystemOperatorMetadataApiHandler {\n"
+                           "    ApiResponse handleUpsertMetadataTx(\n"
+                           "        Backend.Transaction tx,\n"
+                           "        ExternalSystemOperatorMetadataRepository repository,\n"
+                           "        ExternalSystemOperatorMetadataUpsertRequest request\n"
+                           "    ) throws Exception;\n\n"
+                           "    ApiResponse handleGetMetadataTx(\n"
+                           "        Backend.Transaction tx,\n"
+                           "        ExternalSystemOperatorMetadataRepository repository,\n"
+                           "        ExternalSystemOperatorMetadataGetRequest request\n"
+                           "    ) throws Exception;\n\n"
+                           "    ApiResponse handleDisableMetadataTx(\n"
+                           "        Backend.Transaction tx,\n"
+                           "        ExternalSystemOperatorMetadataRepository repository,\n"
+                           "        ExternalSystemOperatorMetadataDisableRequest request\n"
+                           "    ) throws Exception;\n\n"
+                           "    ApiResponse handleDeleteMetadataTx(\n"
+                           "        Backend.Transaction tx,\n"
+                           "        ExternalSystemOperatorMetadataRepository repository,\n"
+                           "        ExternalSystemOperatorMetadataDeleteRequest request\n"
+                           "    ) throws Exception;\n"
+                           "}\n"
     );
     add_file(
-        "ExternalSystemCallRequest.java",
-        package_header() +
-            "import com.statespec.backend.Json;\n"
-            "import java.util.Map;\n\n"
-            "public record ExternalSystemCallRequest(\n"
-            "    String externalSystem,\n"
-            "    Map<String, Json> clientConfig,\n"
-            "    Map<String, Json> requestPayload\n"
-            ") {}\n"
+        "ExternalSystemCallRequest.java", package_header() +
+                                              "import com.statespec.backend.Json;\n"
+                                              "import java.util.Map;\n\n"
+                                              "public record ExternalSystemCallRequest(\n"
+                                              "    String externalSystem,\n"
+                                              "    Map<String, Json> clientConfig,\n"
+                                              "    Map<String, Json> requestPayload\n"
+                                              ") {}\n"
     );
     add_file(
-        "ExternalSystemCallResponse.java",
-        package_header() +
-            "import com.statespec.backend.Json;\n"
-            "import java.util.Map;\n\n"
-            "public record ExternalSystemCallResponse(\n"
-            "    int statusCode,\n"
-            "    Json body,\n"
-            "    Map<String, Json> metadata\n"
-            ") {}\n"
+        "ExternalSystemCallResponse.java", package_header() +
+                                               "import com.statespec.backend.Json;\n"
+                                               "import java.util.Map;\n\n"
+                                               "public record ExternalSystemCallResponse(\n"
+                                               "    int statusCode,\n"
+                                               "    Json body,\n"
+                                               "    Map<String, Json> metadata\n"
+                                               ") {}\n"
     );
     add_file(
         "ExternalSystemClient.java",
@@ -2213,8 +2184,7 @@ void add_java_api_descriptor_artifacts(
         );
     }
     add_java_raw_api_file(
-        result, options, descriptor_path / "Catalog.java",
-        java_api_descriptor_catalog_file(system)
+        result, options, descriptor_path / "Catalog.java", java_api_descriptor_catalog_file(system)
     );
 }
 
@@ -2368,21 +2338,13 @@ void add_java_descriptor_module_artifacts(
     );
     for (const auto& [filename, content] : java_descriptor_type_files())
     {
-        add_java_raw_common_file(
-            result, options, descriptor_type_package_path / filename, content
-        );
+        add_java_raw_common_file(result, options, descriptor_type_package_path / filename, content);
     }
     const auto entity_runtime_package_path = generated_package_path / "entities";
     const std::array<std::string_view, 9> entity_runtime_files{
-        "EntityKeyValue.java",
-        "EntityLookup.java",
-        "EntityCreateRequest.java",
-        "EntityGetRequest.java",
-        "EntityUpsertRequest.java",
-        "EntityDeleteRequest.java",
-        "EntityListByIndexRequest.java",
-        "EntityRepository.java",
-        "DefaultEntityRepository.java",
+        "EntityKeyValue.java",           "EntityLookup.java",        "EntityCreateRequest.java",
+        "EntityGetRequest.java",         "EntityUpsertRequest.java", "EntityDeleteRequest.java",
+        "EntityListByIndexRequest.java", "EntityRepository.java",    "DefaultEntityRepository.java",
     };
     for (const auto filename : entity_runtime_files)
     {
@@ -2408,8 +2370,7 @@ void add_java_descriptor_module_artifacts(
         "import static com.statespec.generated.Descriptors.*;\n\n"
         "public final class RuntimeRegistration {\n"
         "    private RuntimeRegistration() {}\n\n" +
-            generate_java_runtime_registration(system, templates) +
-            "}\n"
+            generate_java_runtime_registration(system, templates) + "}\n"
     );
     add_java_raw_common_file(
         result, options, generated_package_path / "ApiRequestContext.java",
@@ -2808,8 +2769,7 @@ void add_java_worker_artifacts(
         GeneratedArtifactTier::Worker, diagnostics
     );
     add_java_raw_worker_file(
-        result, options,
-        java_worker_generated_path("worker/descriptors/Catalog.java"),
+        result, options, java_worker_generated_path("worker/descriptors/Catalog.java"),
         java_worker_descriptor_catalog_file(system)
     );
     for (const auto& worker : system.workers)

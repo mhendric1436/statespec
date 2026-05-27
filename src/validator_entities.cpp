@@ -555,8 +555,7 @@ void validate_entity_api_resource_path(
     {
         diagnostics.error(
             api.range, diagnostic_codes::UnknownReference,
-            "entity api resource path for entity '" + entity.name +
-                "' must include all key fields"
+            "entity api resource path for entity '" + entity.name + "' must include all key fields"
         );
     }
 

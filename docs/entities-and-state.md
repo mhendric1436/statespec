@@ -326,6 +326,13 @@ api {
 Operation names are optional overrides. If omitted, generators can derive canonical
 operation names from the entity name and operation kind.
 
+During IR lowering, entity-owned API intent becomes ordinary canonical API IR. The
+lowering synthesizes request/response shapes, API declarations, route metadata,
+repository operation linkage, and API server membership. Default names are
+deterministic: `CreateAccount`, `GetAccount`, `ListAccounts`,
+`UpdateAccountStatus`, `DeleteAccount`, `CreateAccountRequest`, and
+`AccountResponse`.
+
 `list by` is deliberately constrained. It may reference only a valid entity key
 prefix, a declared index name, or a declared index field prefix. It may not reference
 arbitrary fields. List APIs therefore stay aligned with durable access paths that the

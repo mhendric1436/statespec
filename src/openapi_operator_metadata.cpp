@@ -137,6 +137,9 @@ void append_operator_metadata_apis(
                 std::nullopt,
                 std::nullopt,
                 std::nullopt,
+                std::nullopt,
+                std::nullopt,
+                {},
             }
         );
     }
@@ -152,6 +155,9 @@ void append_operator_metadata_apis(
                 std::nullopt,
                 std::nullopt,
                 std::nullopt,
+                std::nullopt,
+                std::nullopt,
+                {},
             }
         );
     }
@@ -168,6 +174,9 @@ void append_operator_metadata_apis(
                 std::nullopt,
                 std::nullopt,
                 std::nullopt,
+                std::nullopt,
+                std::nullopt,
+                {},
             }
         );
     }
@@ -183,6 +192,9 @@ void append_operator_metadata_apis(
                 std::nullopt,
                 std::nullopt,
                 std::nullopt,
+                std::nullopt,
+                std::nullopt,
+                {},
             }
         );
     }
