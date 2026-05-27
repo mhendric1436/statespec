@@ -313,6 +313,34 @@ Language bindings for C++, Go, Java, and Rust generate deployable artifact group
 - `api` contains API tier descriptors, route descriptors, handler contracts, dispatchers, operator metadata APIs, and API server shells.
 - `worker` contains worker descriptors, worker contexts, usage-pruned queue/lease/workflow views, workflow step handler contracts, worker registries, worker app shells, and workflow runners with keep-alive support.
 
+### Generated facade dependency rule
+
+Generated facade modules are for user imports, compatibility of top-level generated
+composition, and broad catalog access. Examples include:
+
+```text
+common/descriptors.hpp
+common/backend/descriptors.go
+common/com/statespec/generated/Descriptors.java
+common/descriptors.rs
+api/api_descriptors.*
+worker/worker_descriptors.*
+```
+
+Focused generated modules must not depend on those facades when a narrower dependency
+exists. Per-API descriptor modules, per-worker descriptor modules, per-entity modules,
+API codecs, API handlers, worker registries, and runtime clients should include or
+import exact descriptor type modules, entity modules, shape modules, backend interfaces,
+or runtime clients directly. This keeps generated dependency graphs scalable and keeps
+language compilers from loading large aggregate files for small focused artifacts.
+
+Common/API/Worker tier boundaries must remain explicit. API-only code belongs under the
+API tree, Worker-only code belongs under the Worker tree, and common code is limited to
+state and contracts genuinely shared by both tiers, such as entities, backend
+interfaces, descriptor types, runtime contracts, shape descriptors when shared, and
+schema/runtime registration helpers. Do not move tier-specific convenience code into
+`common` merely to make imports easier.
+
 The generator tier option controls emitted artifacts:
 
 ```bash

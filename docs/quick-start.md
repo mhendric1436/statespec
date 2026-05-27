@@ -353,5 +353,12 @@ The `memory/` paths contain concrete in-memory backend and transaction adapters.
 `runtime/` paths contain backend-neutral stores, sinks, and codecs for feature flags,
 queues, leases, workflows, logs, and metrics.
 
+Facade files such as `common/descriptors.*`, `api/api_descriptors.*`, and
+`worker/worker_descriptors.*` are convenience surfaces for users and generated
+composition roots. Focused generated files use direct imports/includes for the specific
+descriptor types, entity modules, shape modules, backend contracts, and runtime clients
+they need. This keeps common/API/Worker tier boundaries explicit and avoids making
+small generated modules depend on large aggregate facades.
+
 Generated files are disposable. Keep user-owned application code outside the generated
 output tree and import or include the generated contracts.

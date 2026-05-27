@@ -46,6 +46,27 @@ as focused files for descriptors, handlers, routes, and external-system operator
 metadata APIs. Worker-tier code is emitted under `worker/` as focused files for
 worker descriptors, contexts, handlers, queues, leases, and workflows.
 
+Generated facades are for users and top-level generated composition. They provide broad
+catalog access and stable import/include points for application code that wants the full
+generated surface. Focused generated modules must use direct dependencies instead of
+going through those facades. For example, per-API descriptor files should import the
+descriptor type package/header/module directly, per-worker descriptor files should
+import worker descriptor types directly, and entity repositories should import the
+entity and backend contracts they use directly.
+
+Tier boundaries are part of the generated contract:
+
+- `common` is for shared state, backend contracts, descriptor types, entity modules,
+  shared descriptors, runtime contracts, and generated registration helpers.
+- `api` is for API-only descriptors, routes, codecs, handlers, dispatchers, API process
+  lifecycle, and API entrypoints.
+- `worker` is for Worker-only descriptors, contexts, registries, workflow runners,
+  worker process lifecycle, and Worker entrypoints.
+
+Do not move API-only or Worker-only helpers into `common` to simplify imports. If a
+focused module needs a shared type, generate or import the focused shared type directly
+rather than depending on a common facade such as `common/descriptors.*`.
+
 Descriptor values are spec-driven. Generated descriptor files expose values for
 declarations that exist in the `.sspec` input, and unused declaration categories are
 absent or empty according to the target language's descriptor shape. A runtime helper

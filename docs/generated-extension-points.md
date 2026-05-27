@@ -20,6 +20,19 @@ backend and transaction contracts remain available as generic OCC primitives, bu
 runtime stores, sinks, codecs, imports, module declarations, and app wiring are emitted
 only when the spec or generated app needs them.
 
+Generated facade modules are intended for users and top-level composition code that need
+broad catalog access. Focused generated files should not depend on those facades when a
+direct dependency exists. Per-API descriptor modules, per-worker descriptor modules,
+entity repositories, API codecs, and handler implementations should import or include
+the exact descriptor type, entity, shape, backend, or runtime module they use.
+
+The `common`, `api`, and `worker` directory trees are deployment boundaries as well as
+source layout boundaries. Common artifacts must be genuinely shared by API and Worker
+tiers; API-only code stays in the API tree, and Worker-only code stays in the Worker
+tree. Production application code should treat those boundaries as stable import
+surfaces instead of reaching through a facade to avoid declaring the dependency it
+actually needs.
+
 For local generated app linking and handler tests, the generated common tier includes an
 in-memory backend that implements the same OCC backend interfaces. See
 [in-memory-backend.md](in-memory-backend.md).
