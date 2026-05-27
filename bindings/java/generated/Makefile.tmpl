@@ -24,8 +24,7 @@ help:
 	@printf '%s\n' ''
 	@printf '%s\n' 'Tier targets:'
 	@printf '%s\n' '  build-common  package-common'
-	@printf '%s\n' '  build-api     package-api     when API tier is generated'
-	@printf '%s\n' '  build-worker  package-worker  when Worker tier is generated'
+{{help_target_additions}}
 
 check: build
 

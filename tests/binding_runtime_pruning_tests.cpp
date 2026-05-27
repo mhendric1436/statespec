@@ -742,16 +742,16 @@ void runtime_pruning_covers_only_queues()
     {
         const auto result = generate_runtime_fixture(only_queues_spec(), paths, "queues");
         require_artifacts_present(
-            result, concat({paths.common_codec_paths, paths.queue_paths, paths.worker_queue_paths}),
+            result, concat({paths.common_codec_paths, paths.queue_paths}),
             paths.name + " queue-only"
         );
         require_artifacts_absent(
             result,
             concat(
                 {paths.feature_flag_paths, paths.lease_paths, paths.workflow_paths,
-                 paths.observability_paths, paths.entity_gc_paths, paths.worker_lease_paths,
-                 paths.worker_workflow_paths, paths.worker_execution_paths, paths.api_app_paths,
-                 paths.worker_app_paths}
+                 paths.observability_paths, paths.entity_gc_paths, paths.worker_queue_paths,
+                 paths.worker_lease_paths, paths.worker_workflow_paths, paths.worker_execution_paths,
+                 paths.api_app_paths, paths.worker_app_paths}
             ),
             paths.name + " queue-only"
         );
@@ -763,9 +763,10 @@ void runtime_pruning_covers_only_queues()
         if (paths.language == statespec::BindingLanguage::Rust)
         {
             require_rust_manifest_matches_runtime_usage(
-                result, {"runtime_queues", "worker_queues"},
+                result, {"runtime_queues"},
                 {"runtime_feature_flags", "runtime_leases", "runtime_workflows", "runtime_logs",
-                 "runtime_metrics", "worker_leases", "worker_workflows", "workflow_runner"},
+                 "runtime_metrics", "worker_queues", "worker_leases", "worker_workflows",
+                 "workflow_runner"},
                 "queue-only"
             );
         }

@@ -120,6 +120,10 @@ run_expect_status 0 make -C "$TMPDIR/out-e2e-go" check-api
 run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-e2e-go" build-api
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-go"
+assert_file_not_exists "$TMPDIR/out-api-entities-go/worker/backend/worker_descriptors.go"
+assert_file_not_exists "$TMPDIR/out-api-entities-go/worker/backend/worker_registry.go"
+assert_file_not_contains "$TMPDIR/out-api-entities-go/Makefile" "check-worker"
+assert_file_not_contains "$TMPDIR/out-api-entities-go/Makefile" "build-worker"
 assert_file_not_exists "$TMPDIR/out-api-entities-go/common/backend/account_descriptors.go"
 assert_file_not_exists "$TMPDIR/out-api-entities-go/common/backend/project_descriptors.go"
 assert_file_not_exists "$TMPDIR/out-api-entities-go/common/backend/task_descriptors.go"

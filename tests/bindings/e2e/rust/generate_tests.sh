@@ -120,6 +120,10 @@ cp "$SCRIPT_DIR/api_process_fixture.rs" "$TMPDIR/out-e2e-rust/tests/api_process_
 run_expect_status 0 make -C "$TMPDIR/out-e2e-rust" check-api
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-rust"
+assert_file_not_exists "$TMPDIR/out-api-entities-rust/worker/worker_descriptors.rs"
+assert_file_not_exists "$TMPDIR/out-api-entities-rust/worker/worker_registry.rs"
+assert_file_not_contains "$TMPDIR/out-api-entities-rust/Makefile" "check-worker"
+assert_file_not_contains "$TMPDIR/out-api-entities-rust/Makefile" "build-worker"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/account.rs" "let repository = crate::entity_account::persistence::DefaultAccountRepository;"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "let repository = crate::entity_project::persistence::DefaultProjectRepository;"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/task.rs" "let repository = crate::entity_task::persistence::DefaultTaskRepository;"

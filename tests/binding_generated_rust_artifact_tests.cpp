@@ -24,8 +24,6 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
 {
     const auto common = statespec::GeneratedArtifactTier::Common;
     const auto api = statespec::GeneratedArtifactTier::Api;
-    const auto worker = statespec::GeneratedArtifactTier::Worker;
-
     require_exact_generated_artifact_manifest(
         statespec::BindingLanguage::Rust, "rust",
         {
@@ -59,10 +57,6 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"api/api_handler_registry.rs", api},
             {"api/descriptors/catalog.rs", api},
             {"api/external_system_operator_metadata_api.rs", api},
-            {"worker/worker_contexts.rs", worker},
-            {"worker/descriptors/catalog.rs", worker},
-            {"worker/worker_descriptors.rs", worker},
-            {"worker/worker_registry.rs", worker},
         }
     );
 }
@@ -134,22 +128,6 @@ void test_rust_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "api/external_system_operator_metadata_api.rs",
         "api/external_system_operator_metadata_api.rs", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_descriptors.rs", "worker/worker_descriptors.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_contexts.rs", "worker/worker_contexts.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/descriptors/catalog.rs", "worker/descriptors/catalog.rs",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/worker_registry.rs", "worker/worker_registry.rs",
-        statespec::GeneratedArtifactTier::Worker
     );
 }
 

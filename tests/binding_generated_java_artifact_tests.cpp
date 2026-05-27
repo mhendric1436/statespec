@@ -24,8 +24,6 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
 {
     const auto common = statespec::GeneratedArtifactTier::Common;
     const auto api = statespec::GeneratedArtifactTier::Api;
-    const auto worker = statespec::GeneratedArtifactTier::Worker;
-
     require_exact_generated_artifact_manifest(
         statespec::BindingLanguage::Java, "java",
         {
@@ -117,10 +115,6 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api},
             {"api/com/statespec/generated/descriptors/Catalog.java", api},
             {"api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", api},
-            {"worker/com/statespec/generated/WorkerContexts.java", worker},
-            {"worker/com/statespec/generated/worker/descriptors/Catalog.java", worker},
-            {"worker/com/statespec/generated/WorkerDescriptors.java", worker},
-            {"worker/com/statespec/generated/WorkerRegistry.java", worker},
         }
     );
 }
@@ -209,26 +203,6 @@ void test_java_binding_generator_models_artifact_paths()
         result, "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
         "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
         statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerDescriptors.java",
-        "worker/com/statespec/generated/WorkerDescriptors.java",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerContexts.java",
-        "worker/com/statespec/generated/WorkerContexts.java",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/worker/descriptors/Catalog.java",
-        "worker/com/statespec/generated/worker/descriptors/Catalog.java",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/com/statespec/generated/WorkerRegistry.java",
-        "worker/com/statespec/generated/WorkerRegistry.java",
-        statespec::GeneratedArtifactTier::Worker
     );
 }
 

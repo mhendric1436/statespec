@@ -118,6 +118,10 @@ run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TM
 run_expect_status 0 "$TMPDIR/api-process-fixture-cpp"
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-cpp"
+assert_file_not_exists "$TMPDIR/out-api-entities-cpp/worker/worker_descriptors.hpp"
+assert_file_not_exists "$TMPDIR/out-api-entities-cpp/worker/worker_registry.hpp"
+assert_file_not_contains "$TMPDIR/out-api-entities-cpp/Makefile" "check-worker"
+assert_file_not_contains "$TMPDIR/out-api-entities-cpp/Makefile" "build-worker"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/account.hpp" "::statespec_generated::entities::account::DefaultAccountRepository repository"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "::statespec_generated::entities::project::DefaultProjectRepository repository"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/task.hpp" "::statespec_generated::entities::task::DefaultTaskRepository repository"

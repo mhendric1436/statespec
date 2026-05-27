@@ -23,10 +23,7 @@ help:
 	@printf '%s\n' ''
 	@printf '%s\n' 'Tier targets:'
 	@printf '%s\n' '  check-common  build-common  package-common'
-	@printf '%s\n' '  check-api     build-api     package-api     when API tier is generated'
-	@printf '%s\n' '  check-worker  build-worker  package-worker  when Worker tier is generated'
-	@printf '%s\n' ''
-	@printf '%s\n' 'Use make build-worker to compile worker/main.cpp into $(BUILD_DIR)/worker-main.'
+{{help_target_additions}}
 
 check: $(CHECK_TARGETS)
 

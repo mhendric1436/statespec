@@ -21,15 +21,18 @@ namespace statespec
 namespace
 {
 
-TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier)
+TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier, const IrSystem& system)
 {
+    const auto usage = runtime_domain_usage(system);
     const auto include_api =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
     const auto include_worker =
-        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+        (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker) &&
+        (!system.workers.empty() || usage.uses_workflows);
 
     std::ostringstream target_additions;
     std::ostringstream phony_targets;
+    std::ostringstream help_target_additions;
     std::ostringstream api_rules;
     std::ostringstream worker_rules;
     if (include_api)
@@ -38,6 +41,8 @@ TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier)
         target_additions << "\nBUILD_TARGETS += build-api";
         target_additions << "\nPACKAGE_TARGETS += package-api";
         phony_targets << " check-api build-api package-api";
+        help_target_additions
+            << "\t@printf '%s\\n' '  check-api     build-api     package-api'\n";
         api_rules << "check-api:\n";
         api_rules << "\t$(CARGO) test\n\n";
         api_rules << "build-api:\n";
@@ -52,6 +57,8 @@ TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier)
         target_additions << "\nBUILD_TARGETS += build-worker";
         target_additions << "\nPACKAGE_TARGETS += package-worker";
         phony_targets << " check-worker build-worker package-worker";
+        help_target_additions
+            << "\t@printf '%s\\n' '  check-worker  build-worker  package-worker'\n";
         worker_rules << "check-worker:\n";
         worker_rules << "\t$(CARGO) test\n\n";
         worker_rules << "build-worker:\n";
@@ -63,6 +70,7 @@ TemplateRenderer::Values rust_makefile_values(BindingGenerationTier tier)
     return TemplateRenderer::Values{
         {"target_additions", target_additions.str()},
         {"phony_targets", phony_targets.str()},
+        {"help_target_additions", help_target_additions.str()},
         {"api_rules", api_rules.str()},
         {"worker_rules", worker_rules.str()},
     };
@@ -116,7 +124,8 @@ TemplateRenderer::Values rust_lib_values(
         (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api) &&
         !system.api_servers.empty();
     const auto include_worker =
-        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+        (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker) &&
+        (!system.workers.empty() || usage.uses_workflows);
     const auto include_worker_composition = include_worker && !system.workers.empty();
     const auto include_worker_execution =
         include_worker && (include_worker_composition || usage.uses_workflows);
@@ -1858,7 +1867,7 @@ void add_rust_common_runtime_artifacts(
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("Makefile.tmpl"),
         artifact_path(GeneratedArtifactMakefile), diagnostics, GeneratedArtifactTier::Common,
-        rust_makefile_values(options.tier), common_artifact_path(GeneratedArtifactMakefile)
+        rust_makefile_values(options.tier, system), common_artifact_path(GeneratedArtifactMakefile)
     );
 }
 
@@ -1966,6 +1975,10 @@ void add_rust_worker_artifacts(
     const auto usage = runtime_domain_usage(system);
     const auto include_worker_composition = !system.workers.empty();
     const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
+    if (!include_worker_execution)
+    {
+        return;
+    }
 
     add_rust_generated_template_file(
         result, options, templates, "worker/worker_descriptors.rs", GeneratedArtifactTier::Worker,

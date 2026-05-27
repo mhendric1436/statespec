@@ -137,16 +137,16 @@ void test_rust_lib_rs_matches_selected_tier()
         "worker lib excludes API module"
     );
     require(
-        worker_lib.find("pub mod worker_descriptors;") != std::string::npos,
-        "worker lib declares worker descriptor module"
+        worker_lib.find("pub mod worker_descriptors;") == std::string::npos,
+        "worker lib excludes worker descriptor module when no workers or workflows are declared"
     );
     require(
-        worker_lib.find("pub mod worker_contexts;") != std::string::npos,
-        "worker lib declares worker context module"
+        worker_lib.find("pub mod worker_contexts;") == std::string::npos,
+        "worker lib excludes worker context module when no workers or workflows are declared"
     );
     require(
-        worker_lib.find("pub mod worker_registry;") != std::string::npos,
-        "worker lib declares worker registry module"
+        worker_lib.find("pub mod worker_registry;") == std::string::npos,
+        "worker lib excludes worker registry module when no workers or workflows are declared"
     );
     require(
         worker_lib.find("pub mod worker_application;") == std::string::npos,
@@ -253,12 +253,12 @@ void test_cpp_makefile_matches_selected_tier()
         "worker Makefile excludes API header"
     );
     require(
-        worker_makefile.find("worker/worker_descriptors.hpp") != std::string::npos,
-        "worker Makefile includes worker descriptors header"
+        worker_makefile.find("worker/worker_descriptors.hpp") == std::string::npos,
+        "worker Makefile excludes worker descriptors header when no workers or workflows are declared"
     );
     require(
-        worker_makefile.find("worker/worker_registry.hpp") != std::string::npos,
-        "worker Makefile includes worker registry header"
+        worker_makefile.find("worker/worker_registry.hpp") == std::string::npos,
+        "worker Makefile excludes worker registry header when no workers or workflows are declared"
     );
     require(
         worker_makefile.find("worker/worker_application.hpp") == std::string::npos,
@@ -278,12 +278,12 @@ void test_cpp_makefile_matches_selected_tier()
         "worker Makefile excludes worker workflows header when workflows are unused"
     );
     require(
-        worker_makefile.find("build-worker") != std::string::npos,
-        "worker Makefile includes worker build target"
+        worker_makefile.find("build-worker") == std::string::npos,
+        "worker Makefile excludes worker build target when no workers or workflows are declared"
     );
     require(
-        worker_makefile.find("package-worker") != std::string::npos,
-        "worker Makefile includes worker package target"
+        worker_makefile.find("package-worker") == std::string::npos,
+        "worker Makefile excludes worker package target when no workers or workflows are declared"
     );
 
     require(!diagnostics.has_errors(), "cpp tier-aware Makefile generation should not fail");

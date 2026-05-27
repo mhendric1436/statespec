@@ -145,6 +145,9 @@ run_expect_status 0 make -C "$TMPDIR/out-e2e-java" build-api
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-e2e-java/build/classes" com.statespec.generated.ApiProcessFixture
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$API_ENTITY_SPEC" --out "$TMPDIR/out-api-entities-java"
+assert_file_not_exists "$TMPDIR/out-api-entities-java/worker/com/statespec/generated/WorkerDescriptors.java"
+assert_file_not_exists "$TMPDIR/out-api-entities-java/worker/com/statespec/generated/WorkerRegistry.java"
+assert_file_not_contains "$TMPDIR/out-api-entities-java/Makefile" "build-worker"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "new com.statespec.generated.entities.account.Persistence.DefaultAccountRepository()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "new com.statespec.generated.entities.project.Persistence.DefaultProjectRepository()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryTask.java" "new com.statespec.generated.entities.task.Persistence.DefaultTaskRepository()"

@@ -24,8 +24,6 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
 {
     const auto common = statespec::GeneratedArtifactTier::Common;
     const auto api = statespec::GeneratedArtifactTier::Api;
-    const auto worker = statespec::GeneratedArtifactTier::Worker;
-
     require_exact_generated_artifact_manifest(
         statespec::BindingLanguage::Go, "go",
         {
@@ -59,10 +57,6 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"api/backend/codecs/api_codecs.go", api},
             {"api/backend/descriptors/catalog.go", api},
             {"api/backend/external_system_operator_metadata_api.go", api},
-            {"worker/backend/worker_contexts.go", worker},
-            {"worker/backend/descriptors/catalog.go", worker},
-            {"worker/backend/worker_descriptors.go", worker},
-            {"worker/backend/worker_registry.go", worker},
         }
     );
 }
@@ -140,22 +134,6 @@ void test_go_binding_generator_models_artifact_paths()
         result, "api/backend/external_system_operator_metadata_api.go",
         "api/backend/external_system_operator_metadata_api.go",
         statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "worker/backend/worker_descriptors.go", "worker/backend/worker_descriptors.go",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/backend/worker_contexts.go", "worker/backend/worker_contexts.go",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/backend/descriptors/catalog.go", "worker/backend/descriptors/catalog.go",
-        statespec::GeneratedArtifactTier::Worker
-    );
-    require_generated_file_artifact_path(
-        result, "worker/backend/worker_registry.go", "worker/backend/worker_registry.go",
-        statespec::GeneratedArtifactTier::Worker
     );
 }
 

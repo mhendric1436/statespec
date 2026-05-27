@@ -30,13 +30,16 @@ TemplateRenderer::Values go_makefile_values(
 {
     const auto include_api =
         tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
+    const auto usage = runtime_domain_usage(system);
     const auto include_worker =
-        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker;
+        (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker) &&
+        (!system.workers.empty() || usage.uses_workflows);
     const auto include_api_composition = include_api && !system.api_servers.empty();
     const auto include_worker_composition = include_worker && !system.workers.empty();
 
     std::ostringstream target_additions;
     std::ostringstream phony_targets;
+    std::ostringstream help_target_additions;
     std::ostringstream api_package_additions;
     std::ostringstream worker_package_additions;
     std::ostringstream api_build_dependency;
@@ -68,6 +71,8 @@ TemplateRenderer::Values go_makefile_values(
         target_additions << "\nBUILD_TARGETS += build-api";
         target_additions << "\nPACKAGE_TARGETS += package-api";
         phony_targets << " check-api build-api package-api";
+        help_target_additions
+            << "\t@printf '%s\\n' '  check-api     build-api     package-api'\n";
         api_rules << "check-api:\n";
         api_rules << "\t$(GO) test $(API_PACKAGES)\n\n";
         api_rules << "build-api:" << api_build_dependency.str() << "\n";
@@ -88,6 +93,8 @@ TemplateRenderer::Values go_makefile_values(
         target_additions << "\nBUILD_TARGETS += build-worker";
         target_additions << "\nPACKAGE_TARGETS += package-worker";
         phony_targets << " check-worker build-worker package-worker";
+        help_target_additions
+            << "\t@printf '%s\\n' '  check-worker  build-worker  package-worker'\n";
         worker_rules << "check-worker:\n";
         worker_rules << "\t$(GO) test $(WORKER_PACKAGES)\n\n";
         worker_rules << "build-worker:" << worker_build_dependency.str() << "\n";
@@ -101,6 +108,7 @@ TemplateRenderer::Values go_makefile_values(
     return TemplateRenderer::Values{
         {"target_additions", target_additions.str()},
         {"phony_targets", phony_targets.str()},
+        {"help_target_additions", help_target_additions.str()},
         {"api_package_additions", api_package_additions.str()},
         {"worker_package_additions", worker_package_additions.str()},
         {"api_rules", api_rules.str()},
@@ -2143,6 +2151,10 @@ void add_go_worker_artifacts(
     const auto usage = runtime_domain_usage(system);
     const auto include_worker_composition = !system.workers.empty();
     const auto include_worker_execution = include_worker_composition || usage.uses_workflows;
+    if (!include_worker_execution)
+    {
+        return;
+    }
 
     add_go_generated_template_file(
         result, options, templates, "worker/backend/worker_descriptors.go",
