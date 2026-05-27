@@ -1,6 +1,7 @@
 package com.statespec.generated;
 
 import com.statespec.backend.Backend;
+import com.statespec.generated.runtime.RuntimeRegistration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +48,7 @@ public final class WorkerRuntime {
     }
 
     public void bootstrap() throws Backend.BackendException {
-        Descriptors.bootstrapRuntimeCatalog(backend{{runtime_bootstrap_arguments}});
+        RuntimeRegistration.bootstrapRuntimeCatalog(backend{{runtime_bootstrap_arguments}});
     }
 
     public synchronized void addEntityGcWorker(EntityGcWorkerTask worker) {

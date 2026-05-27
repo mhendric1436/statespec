@@ -2,6 +2,7 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.Lease;
+import com.statespec.generated.runtime.RuntimeRegistration;
 import java.util.List;
 
 public final class WorkerLeases {
@@ -13,6 +14,6 @@ public final class WorkerLeases {
 
     public static void registerLeaseDefinitionsTx(Backend.Transaction tx, Lease leaseStore)
         throws Backend.BackendException {
-        Descriptors.registerLeaseDefinitionsTx(tx, leaseStore);
+        RuntimeRegistration.registerLeaseDefinitionsTx(tx, leaseStore);
     }
 }

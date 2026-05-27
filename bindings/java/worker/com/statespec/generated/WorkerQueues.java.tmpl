@@ -2,6 +2,7 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.Queue;
+import com.statespec.generated.runtime.RuntimeRegistration;
 import java.util.List;
 
 public final class WorkerQueues {
@@ -13,6 +14,6 @@ public final class WorkerQueues {
 
     public static void registerQueueDefinitionsTx(Backend.Transaction tx, Queue queueStore)
         throws Backend.BackendException {
-        Descriptors.registerQueueDefinitionsTx(tx, queueStore);
+        RuntimeRegistration.registerQueueDefinitionsTx(tx, queueStore);
     }
 }

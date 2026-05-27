@@ -2,6 +2,7 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.Workflow;
+import com.statespec.generated.runtime.RuntimeRegistration;
 import java.util.List;
 
 public final class WorkerWorkflows {
@@ -13,6 +14,6 @@ public final class WorkerWorkflows {
 
     public static void registerWorkflowDefinitionsTx(Backend.Transaction tx, Workflow workflowStore)
         throws Backend.BackendException {
-        Descriptors.registerWorkflowDefinitionsTx(tx, workflowStore);
+        RuntimeRegistration.registerWorkflowDefinitionsTx(tx, workflowStore);
     }
 }

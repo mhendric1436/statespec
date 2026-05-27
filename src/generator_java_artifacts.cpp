@@ -1544,9 +1544,20 @@ void add_java_descriptor_module_artifacts(
     add_java_raw_common_file(
         result, options, generated_package_path / "runtime" / "RuntimeRegistration.java",
         "package com.statespec.generated.runtime;\n\n"
+        "import com.statespec.backend.Backend;\n"
+        "import com.statespec.backend.FeatureFlag;\n"
+        "import com.statespec.backend.Lease;\n"
+        "import com.statespec.backend.Log;\n"
+        "import com.statespec.backend.Metric;\n"
+        "import com.statespec.backend.Queue;\n"
+        "import com.statespec.backend.Workflow;\n"
+        "import com.statespec.generated.Descriptors.*;\n"
+        "import java.util.List;\n\n"
+        "import static com.statespec.generated.Descriptors.*;\n\n"
         "public final class RuntimeRegistration {\n"
-        "    private RuntimeRegistration() {}\n"
-        "}\n"
+        "    private RuntimeRegistration() {}\n\n" +
+            generate_java_runtime_registration(system, templates) +
+            "}\n"
     );
 
     add_java_descriptor_module_artifact(
