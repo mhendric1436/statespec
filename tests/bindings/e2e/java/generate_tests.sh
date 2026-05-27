@@ -89,6 +89,9 @@ common/com/statespec/generated/entities/EntityListByIndexRequest.java
 common/com/statespec/generated/entities/EntityLookup.java
 common/com/statespec/generated/entities/EntityRepository.java
 common/com/statespec/generated/entities/EntityUpsertRequest.java
+common/com/statespec/generated/entities/service_instance/Model.java
+common/com/statespec/generated/entities/service_instance/Persistence.java
+common/com/statespec/generated/entities/service_instance/Schema.java
 common/com/statespec/generated/external/metadata/DefaultExternalSystemMetadataMappingApplicator.java
 common/com/statespec/generated/external/metadata/DefaultExternalSystemOperatorMetadataRepository.java
 common/com/statespec/generated/external/metadata/ExternalSystemCallRequest.java
@@ -113,9 +116,6 @@ common/com/statespec/generated/shapes/ProvisionCallbackResponse.java
 common/com/statespec/generated/shapes/StartProvisionRequest.java
 common/com/statespec/generated/shapes/StartProvisionResponse.java
 common/com/statespec/generated/workflows/ProvisionServiceDescriptorModule.java
-common/entities/service_instance/Model.java
-common/entities/service_instance/Persistence.java
-common/entities/service_instance/Schema.java
 worker/com/statespec/generated/WorkerApplication.java
 worker/com/statespec/generated/WorkerContexts.java
 worker/com/statespec/generated/WorkerDescriptors.java
@@ -162,24 +162,24 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "repository.listByTenantAccountTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "repository.listByAccountStatusTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryTask.java" "repository.listByProjectStatusTx"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Persistence.java" "listByTenantProjectTx"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/task/Persistence.java" "listByTenantTaskTx"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/task/Persistence.java" "listByAccountPriorityTx"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/project/Persistence.java" "listByTenantProjectTx"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/task/Persistence.java" "listByTenantTaskTx"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/task/Persistence.java" "listByAccountPriorityTx"
 assert_file_not_exists "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/AccountDescriptorModule.java"
 assert_file_not_exists "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/ProjectDescriptorModule.java"
 assert_file_not_exists "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/entities/TaskDescriptorModule.java"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_ENTITY_NAME = \"Account\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_FIELD_TENANT_ID = \"tenant_id\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_FIELD_CREATED_AT_TYPE_NAME = \"timestamp\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_FIELD_STATUS_TYPE_NAME = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "ACCOUNT_INDEX_BY_TENANT_ACCOUNT = \"by_tenant_account\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "new FieldDescriptor(ACCOUNT_FIELD_CREATED_AT, FieldType.TIMESTAMP, ACCOUNT_FIELD_CREATED_AT_TYPE_NAME, true)"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Model.java" "new FieldDescriptor(ACCOUNT_FIELD_STATUS, FieldType.STRING, ACCOUNT_FIELD_STATUS_TYPE_NAME, true)"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Model.java" "ACCOUNT_ENTITY_NAME = \"Account\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Model.java" "ACCOUNT_FIELD_TENANT_ID = \"tenant_id\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Model.java" "ACCOUNT_FIELD_CREATED_AT_TYPE_NAME = \"timestamp\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Model.java" "ACCOUNT_FIELD_STATUS_TYPE_NAME = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Model.java" "ACCOUNT_INDEX_BY_TENANT_ACCOUNT = \"by_tenant_account\""
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Model.java" "new FieldDescriptor(ACCOUNT_FIELD_CREATED_AT, FieldType.TIMESTAMP, ACCOUNT_FIELD_CREATED_AT_TYPE_NAME, true)"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Model.java" "new FieldDescriptor(ACCOUNT_FIELD_STATUS, FieldType.STRING, ACCOUNT_FIELD_STATUS_TYPE_NAME, true)"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_SHAPE_NAME = \"CreateAccountRequest\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID = \"tenant_id\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME = \"string\""
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "new FieldDescriptor(CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID, FieldType.STRING, CREATE_ACCOUNT_REQUEST_FIELD_TENANT_ID_TYPE_NAME, true)"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Schema.java" "List.of(Model.ACCOUNT_FIELD_TENANT_ID, Model.ACCOUNT_FIELD_ACCOUNT_ID)"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Schema.java" "List.of(Model.ACCOUNT_FIELD_TENANT_ID, Model.ACCOUNT_FIELD_ACCOUNT_ID)"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/EntityRepository.java" "key.append(keyField).append('=').append(value.canonicalString()).append('\\n')"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/EntityRepository.java" "values.put(keyValue.field(), keyValue.value())"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "new ApiResponse(404"
@@ -190,8 +190,8 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "var requestedStatus = com.statespec.generated.entities.project.Model.PROJECT_STATUS_DELETED"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "invalid entity delete transition"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "new ApiResponse(204"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Persistence.java" "updateTx"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Model.java" "PROJECT_STATUS_DELETED"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/project/Persistence.java" "updateTx"
+assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/project/Model.java" "PROJECT_STATUS_DELETED"
 cp "$SCRIPT_DIR/ApiPersistenceFixture.java" "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiPersistenceFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-java" build-api
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-api-entities-java/build/classes" com.statespec.generated.ApiPersistenceFixture

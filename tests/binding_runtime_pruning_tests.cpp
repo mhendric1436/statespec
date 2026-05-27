@@ -575,7 +575,8 @@ void require_descriptor_names(
     }
     for (const auto& file : result.files)
     {
-        if (file.path.find("common/entities/") != std::string::npos)
+        if (file.path.find("common/entities/") != std::string::npos ||
+            file.path.find("common/com/statespec/generated/entities/") != std::string::npos)
         {
             descriptors += "\n";
             descriptors += file.content;

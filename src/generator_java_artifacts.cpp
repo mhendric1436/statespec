@@ -2109,7 +2109,8 @@ void add_java_descriptor_module_artifacts(
     }
     for (const auto& entity : system.entities)
     {
-        const auto entity_path = std::filesystem::path{"entities"} / snake_identifier(entity.name);
+        const auto entity_path = std::filesystem::path{"com"} / "statespec" / "generated" /
+                                 "entities" / snake_identifier(entity.name);
         add_java_raw_common_file(
             result, options, entity_path / "Model.java",
             java_entity_centered_facade_file(entity, "Model", "model")
