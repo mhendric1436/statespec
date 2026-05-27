@@ -15,20 +15,20 @@ public final class ApiLinkingFixture
         private final InMemoryBackend backend = new InMemoryBackend();
 
         @Override
-        public Descriptors.ApiResponse handleStartProvision(Descriptors.ApiRequestContext context)
+        public ApiResponse handleStartProvision(ApiRequestContext context)
             throws Exception
         {
             return recordRequest(context);
         }
 
         @Override
-        public Descriptors.ApiResponse
-        handleReportProvisionReady(Descriptors.ApiRequestContext context) throws Exception
+        public ApiResponse
+        handleReportProvisionReady(ApiRequestContext context) throws Exception
         {
             return recordRequest(context);
         }
 
-        private Descriptors.ApiResponse recordRequest(Descriptors.ApiRequestContext context)
+        private ApiResponse recordRequest(ApiRequestContext context)
             throws Exception
         {
             Backend.Transaction tx = backend.begin();
@@ -40,7 +40,7 @@ public final class ApiLinkingFixture
                 ))
             );
             backend.commit(tx);
-            return new Descriptors.ApiResponse(202, Json.object(Map.of("linked", Json.bool(true))));
+            return new ApiResponse(202, Json.object(Map.of("linked", Json.bool(true))));
         }
     }
 
@@ -50,9 +50,9 @@ public final class ApiLinkingFixture
             ApiServer.findApiServer("ProvisionApi")
                 .orElseThrow(() -> new IllegalStateException("ProvisionApi descriptor not found"));
         ApiServer server = new ApiServer(descriptor, new LinkingHandler());
-        Optional<Descriptors.ApiResponse> response = server.handle(
+        Optional<ApiResponse> response = server.handle(
             "ProvisionApi.StartProvision",
-            new Descriptors.ApiRequestContext(
+            new ApiRequestContext(
                 "ProvisionApi", "StartProvision", Optional.of("POST"), Optional.of("/v1/provision"),
                 Json.object(Map.of("tenant_id", Json.string("tenant-1")))
             )

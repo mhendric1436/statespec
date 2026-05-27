@@ -180,55 +180,55 @@ public final class MetadataResolverFixture
         implements ExternalSystemOperatorMetadataApiHandler
     {
         @Override
-        public Descriptors.ApiResponse handleUpsertMetadataTx(
+        public ApiResponse handleUpsertMetadataTx(
             Backend.Transaction tx,
             ExternalSystemOperatorMetadataRepository repository,
             ExternalSystemOperatorMetadataUpsertRequest request
         ) throws Exception
         {
             Optional<Backend.VersionedRecord> record = repository.upsertMetadataTx(tx, request);
-            return new Descriptors.ApiResponse(
+            return new ApiResponse(
                 record.isPresent() ? 200 : 404,
                 Json.object(Map.of("operation", Json.string("upsert")))
             );
         }
 
         @Override
-        public Descriptors.ApiResponse handleGetMetadataTx(
+        public ApiResponse handleGetMetadataTx(
             Backend.Transaction tx,
             ExternalSystemOperatorMetadataRepository repository,
             ExternalSystemOperatorMetadataGetRequest request
         ) throws Exception
         {
             Optional<Backend.VersionedRecord> record = repository.getMetadataTx(tx, request);
-            return new Descriptors.ApiResponse(
+            return new ApiResponse(
                 record.isPresent() ? 200 : 404, Json.object(Map.of("operation", Json.string("get")))
             );
         }
 
         @Override
-        public Descriptors.ApiResponse handleDisableMetadataTx(
+        public ApiResponse handleDisableMetadataTx(
             Backend.Transaction tx,
             ExternalSystemOperatorMetadataRepository repository,
             ExternalSystemOperatorMetadataDisableRequest request
         ) throws Exception
         {
             Optional<Backend.VersionedRecord> record = repository.disableMetadataTx(tx, request);
-            return new Descriptors.ApiResponse(
+            return new ApiResponse(
                 record.isPresent() ? 200 : 404,
                 Json.object(Map.of("operation", Json.string("disable")))
             );
         }
 
         @Override
-        public Descriptors.ApiResponse handleDeleteMetadataTx(
+        public ApiResponse handleDeleteMetadataTx(
             Backend.Transaction tx,
             ExternalSystemOperatorMetadataRepository repository,
             ExternalSystemOperatorMetadataDeleteRequest request
         ) throws Exception
         {
             Optional<Backend.VersionedRecord> record = repository.deleteMetadataTx(tx, request);
-            return new Descriptors.ApiResponse(
+            return new ApiResponse(
                 record.isPresent() ? 200 : 404,
                 Json.object(Map.of("operation", Json.string("delete")))
             );
@@ -335,7 +335,7 @@ public final class MetadataResolverFixture
         }
         ExternalSystemOperatorMetadataApiHandler metadataApiHandler =
             new FixtureOperatorMetadataApiHandler();
-        Descriptors.ApiResponse metadataApiResponse = metadataApiHandler.handleUpsertMetadataTx(
+        ApiResponse metadataApiResponse = metadataApiHandler.handleUpsertMetadataTx(
             tx, repository,
             new ExternalSystemOperatorMetadataUpsertRequest(
                 lookup, Json.object(Map.of("tenant_id", Json.string("tenant-a"))),

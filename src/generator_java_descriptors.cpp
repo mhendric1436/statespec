@@ -540,13 +540,13 @@ bool write_java_create_handler_body(
         }
         else
         {
-            out << "                return new Descriptors.ApiResponse(201, "
+            out << "                return new ApiResponse(201, "
                    "com.statespec.backend.Json.object(java.util.Map.of()));\n";
         }
     }
     else
     {
-        out << "                return new Descriptors.ApiResponse(201, "
+        out << "                return new ApiResponse(201, "
                "com.statespec.backend.Json.object(java.util.Map.of()));\n";
     }
     out << "            } catch (Exception error) {\n";
@@ -589,7 +589,7 @@ bool write_java_get_handler_body(
     out << "                );\n";
     out << "                backend.commit(tx);\n";
     out << "                if (record.isEmpty()) {\n";
-    out << "                    return new Descriptors.ApiResponse(404, "
+    out << "                    return new ApiResponse(404, "
            "com.statespec.backend.Json.object(java.util.Map.of()));\n";
     out << "                }\n";
     if (api.output.has_value())
@@ -622,13 +622,13 @@ bool write_java_get_handler_body(
         }
         else
         {
-            out << "                return new Descriptors.ApiResponse(200, "
+            out << "                return new ApiResponse(200, "
                    "record.get().document());\n";
         }
     }
     else
     {
-        out << "                return new Descriptors.ApiResponse(200, "
+        out << "                return new ApiResponse(200, "
                "record.get().document());\n";
     }
     out << "            } catch (Exception error) {\n";
@@ -720,7 +720,7 @@ bool write_java_list_handler_body(
                 << java_entity_field_expr(*entity, field.name) << "));\n";
         }
     }
-    out << "                return new Descriptors.ApiResponse(200, "
+    out << "                return new ApiResponse(200, "
            "com.statespec.backend.Json.object(body));\n";
     out << "            } catch (Exception error) {\n";
     out << "                if (tx.isOpen()) {\n";
@@ -774,7 +774,7 @@ bool write_java_update_status_handler_body(
     out << "                var record = repository.getTx(tx, keyValues);\n";
     out << "                if (record.isEmpty()) {\n";
     out << "                    backend.commit(tx);\n";
-    out << "                    return new Descriptors.ApiResponse(404, "
+    out << "                    return new ApiResponse(404, "
            "com.statespec.backend.Json.object(java.util.Map.of()));\n";
     out << "                }\n";
     out << "                var currentStatus = ApiCodecs.decodeString(\n";
@@ -854,13 +854,13 @@ bool write_java_update_status_handler_body(
         }
         else
         {
-            out << "                return new Descriptors.ApiResponse(200, "
+            out << "                return new ApiResponse(200, "
                    "updated.get().document());\n";
         }
     }
     else
     {
-        out << "                return new Descriptors.ApiResponse(200, "
+        out << "                return new ApiResponse(200, "
                "updated.get().document());\n";
     }
     out << "            } catch (Exception error) {\n";
@@ -905,7 +905,7 @@ bool write_java_delete_handler_body(
     out << "                var record = repository.getTx(tx, keyValues);\n";
     out << "                if (record.isEmpty()) {\n";
     out << "                    backend.commit(tx);\n";
-    out << "                    return new Descriptors.ApiResponse(404, "
+    out << "                    return new ApiResponse(404, "
            "com.statespec.backend.Json.object(java.util.Map.of()));\n";
     out << "                }\n";
     out << "                var currentStatus = ApiCodecs.decodeString(\n";
@@ -955,7 +955,7 @@ bool write_java_delete_handler_body(
            "delete update failed\");\n";
     out << "                }\n";
     out << "                backend.commit(tx);\n";
-    out << "                return new Descriptors.ApiResponse(204, "
+    out << "                return new ApiResponse(204, "
            "com.statespec.backend.Json.object(java.util.Map.of()));\n";
     out << "            } catch (Exception error) {\n";
     out << "                if (tx.isOpen()) {\n";
@@ -996,7 +996,6 @@ std::string generate_descriptors_java(
     out << "    }\n\n";
     out << generate_java_observability_descriptors(system);
     out << generate_java_runtime_descriptors(system);
-    out << generate_java_observability_registration(system);
     out << "}\n";
     return out.str();
 }
@@ -1099,8 +1098,8 @@ std::string generate_api_operation_handler_methods_java(const IrSystem& system)
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
-        out << "        Descriptors.ApiResponse handle" << pascal_identifier(api.name)
-            << "(Descriptors.ApiRequestContext context) throws Exception;\n";
+        out << "        ApiResponse handle" << pascal_identifier(api.name)
+            << "(ApiRequestContext context) throws Exception;\n";
     }
     return out.str();
 }
@@ -1130,8 +1129,8 @@ std::string generate_api_operation_default_handler_methods_java_impl(
         {
             out << "        @Override\n";
         }
-        out << "        public Descriptors.ApiResponse handle" << pascal_identifier(api.name)
-            << "(Descriptors.ApiRequestContext context) throws Exception {\n";
+        out << "        public ApiResponse handle" << pascal_identifier(api.name)
+            << "(ApiRequestContext context) throws Exception {\n";
         if (write_java_create_handler_body(out, system, api))
         {
             out << "        }\n\n";
@@ -1191,13 +1190,13 @@ std::string generate_api_operation_default_handler_methods_java_impl(
             }
             else
             {
-                out << "            return new Descriptors.ApiResponse(" << status_code
+                out << "            return new ApiResponse(" << status_code
                     << ", com.statespec.backend.Json.object(java.util.Map.of()));\n";
             }
         }
         else
         {
-            out << "            return new Descriptors.ApiResponse(" << status_code
+            out << "            return new ApiResponse(" << status_code
                 << ", com.statespec.backend.Json.object(java.util.Map.of()));\n";
         }
         out << "        }\n\n";
@@ -1270,7 +1269,7 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
             {
                 out << "    public static " << pascal_identifier(shape->name) << " decode"
                     << pascal_identifier(api.name)
-                    << "Request(Descriptors.ApiRequestContext request) {\n";
+                    << "Request(ApiRequestContext request) {\n";
                 out << "        return new " << pascal_identifier(shape->name) << "(\n";
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
@@ -1302,7 +1301,7 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
             {
                 out << "    public static " << pascal_identifier(shape->name) << " decode"
                     << pascal_identifier(api.name)
-                    << "Response(Descriptors.ApiResponse response) {\n";
+                    << "Response(ApiResponse response) {\n";
                 out << "        return new " << pascal_identifier(shape->name) << "(\n";
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
@@ -1326,13 +1325,13 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
                 out << "        );\n";
                 out << "    }\n\n";
 
-                out << "    public static Descriptors.ApiResponse encode"
+                out << "    public static ApiResponse encode"
                     << pascal_identifier(api.name) << "Response(" << pascal_identifier(shape->name)
                     << " response) {\n";
                 out << "        return encode" << pascal_identifier(api.name)
                     << "Response(response, 200);\n";
                 out << "    }\n\n";
-                out << "    public static Descriptors.ApiResponse encode"
+                out << "    public static ApiResponse encode"
                     << pascal_identifier(api.name) << "Response(" << pascal_identifier(shape->name)
                     << " response, int statusCode) {\n";
                 out << "        Map<String, Json> body = new TreeMap<>();\n";
@@ -1351,7 +1350,7 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
                             << java_encode_expr(field, accessor) << ");\n";
                     }
                 }
-                out << "        return new Descriptors.ApiResponse(statusCode, "
+                out << "        return new ApiResponse(statusCode, "
                        "Json.object(body));\n";
                 out << "    }\n\n";
             }

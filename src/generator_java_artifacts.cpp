@@ -355,8 +355,8 @@ std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDoma
         for (const auto& api : domain.apis)
         {
             out << "        @Override\n";
-            out << "        public Descriptors.ApiResponse handle" << pascal_identifier(api.name)
-                << "(Descriptors.ApiRequestContext context) throws Exception {\n";
+            out << "        public ApiResponse handle" << pascal_identifier(api.name)
+                << "(ApiRequestContext context) throws Exception {\n";
             out << "            return new " << class_name << "(backend).handle"
                 << pascal_identifier(api.name) << "(context);\n";
             out << "        }\n\n";
@@ -455,7 +455,8 @@ std::string java_api_codec_shape_file(
     out << "package com.statespec.generated.codecs;\n\n";
     out << "import static com.statespec.generated.ApiCodecs.*;\n";
     out << "import com.statespec.backend.Json;\n";
-    out << "import com.statespec.generated.Descriptors;\n";
+    out << "import com.statespec.generated.ApiRequestContext;\n";
+    out << "import com.statespec.generated.ApiResponse;\n";
     out << java_api_shape_import(filtered);
     out << "import java.util.Map;\n";
     out << "import java.util.Optional;\n";
@@ -480,7 +481,7 @@ std::string java_api_codec_delegates(const IrSystem& system)
             {
                 out << "    public static " << pascal_identifier(*api.input) << " decode"
                     << pascal_identifier(api.name)
-                    << "Request(Descriptors.ApiRequestContext request) {\n";
+                    << "Request(ApiRequestContext request) {\n";
                 out << "        return " << class_name << ".decode" << pascal_identifier(api.name)
                     << "Request(request);\n";
                 out << "    }\n\n";
@@ -489,17 +490,17 @@ std::string java_api_codec_delegates(const IrSystem& system)
             {
                 out << "    public static " << pascal_identifier(*api.output) << " decode"
                     << pascal_identifier(api.name)
-                    << "Response(Descriptors.ApiResponse response) {\n";
+                    << "Response(ApiResponse response) {\n";
                 out << "        return " << class_name << ".decode" << pascal_identifier(api.name)
                     << "Response(response);\n";
                 out << "    }\n\n";
-                out << "    public static Descriptors.ApiResponse encode"
+                out << "    public static ApiResponse encode"
                     << pascal_identifier(api.name) << "Response(" << pascal_identifier(*api.output)
                     << " response) {\n";
                 out << "        return " << class_name << ".encode" << pascal_identifier(api.name)
                     << "Response(response);\n";
                 out << "    }\n\n";
-                out << "    public static Descriptors.ApiResponse encode"
+                out << "    public static ApiResponse encode"
                     << pascal_identifier(api.name) << "Response(" << pascal_identifier(*api.output)
                     << " response, int statusCode) {\n";
                 out << "        return " << class_name << ".encode" << pascal_identifier(api.name)
@@ -1692,7 +1693,7 @@ void add_java_external_metadata_artifacts(
         "ExternalSystemOperatorMetadataApiHandler.java",
         package_header() +
             "import com.statespec.backend.Backend;\n"
-            "import com.statespec.generated.Descriptors.ApiResponse;\n\n"
+            "import com.statespec.generated.ApiResponse;\n\n"
             "public interface ExternalSystemOperatorMetadataApiHandler {\n"
             "    ApiResponse handleUpsertMetadataTx(\n"
             "        Backend.Transaction tx,\n"
@@ -2023,6 +2024,28 @@ void add_java_descriptor_module_artifacts(
         "    private RuntimeRegistration() {}\n\n" +
             generate_java_runtime_registration(system, templates) +
             "}\n"
+    );
+    add_java_raw_common_file(
+        result, options, generated_package_path / "ApiRequestContext.java",
+        "package com.statespec.generated;\n\n"
+        "import com.statespec.backend.Json;\n"
+        "import java.util.Optional;\n\n"
+        "public record ApiRequestContext(\n"
+        "    String serverName,\n"
+        "    String apiName,\n"
+        "    Optional<String> method,\n"
+        "    Optional<String> path,\n"
+        "    Json body\n"
+        ") {}\n"
+    );
+    add_java_raw_common_file(
+        result, options, generated_package_path / "ApiResponse.java",
+        "package com.statespec.generated;\n\n"
+        "import com.statespec.backend.Json;\n\n"
+        "public record ApiResponse(\n"
+        "    int statusCode,\n"
+        "    Json body\n"
+        ") {}\n"
     );
     add_java_external_metadata_artifacts(result, options);
 

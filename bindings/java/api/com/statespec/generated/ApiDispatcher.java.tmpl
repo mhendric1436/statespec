@@ -14,10 +14,10 @@ public final class ApiDispatcher {
         return Optional.empty();
     }
 
-    public static Optional<Descriptors.ApiResponse> dispatchApiRoute(
+    public static Optional<ApiResponse> dispatchApiRoute(
         ApiHandlers.Handler handler,
         String routeName,
-        Descriptors.ApiRequestContext context
+        ApiRequestContext context
     ) throws Exception {
         Optional<Descriptors.ApiRouteDescriptor> route = findApiRoute(routeName);
         if (!route.isPresent()) {

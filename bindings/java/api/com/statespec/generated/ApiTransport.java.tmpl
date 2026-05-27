@@ -4,10 +4,10 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 
 public interface ApiTransport {
-    Optional<Descriptors.ApiResponse> handle(
+    Optional<ApiResponse> handle(
         ApiServer server,
         String routeName,
-        Descriptors.ApiRequestContext context
+        ApiRequestContext context
     ) throws Exception;
 
     int run() throws InterruptedException;
@@ -18,10 +18,10 @@ public interface ApiTransport {
         private final CountDownLatch stopRequested = new CountDownLatch(1);
 
         @Override
-        public Optional<Descriptors.ApiResponse> handle(
+        public Optional<ApiResponse> handle(
             ApiServer server,
             String routeName,
-            Descriptors.ApiRequestContext context
+            ApiRequestContext context
         ) throws Exception {
             return server.handle(routeName, context);
         }

@@ -24,9 +24,9 @@ public final class ApiServer {
         return Optional.empty();
     }
 
-    public Optional<Descriptors.ApiResponse> handle(
+    public Optional<ApiResponse> handle(
         String routeName,
-        Descriptors.ApiRequestContext context
+        ApiRequestContext context
     ) throws Exception {
         Optional<Descriptors.ApiRouteDescriptor> route = ApiDispatcher.findApiRoute(routeName);
         if (!route.isPresent() || !route.get().serverName().equals(descriptor.name())) {

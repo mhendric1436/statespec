@@ -61,6 +61,8 @@ common/com/statespec/backend/runtime/QueueCodec.java
 common/com/statespec/backend/runtime/QueueStore.java
 common/com/statespec/backend/runtime/WorkflowCodec.java
 common/com/statespec/backend/runtime/WorkflowStore.java
+common/com/statespec/generated/ApiRequestContext.java
+common/com/statespec/generated/ApiResponse.java
 common/com/statespec/generated/Descriptors.java
 common/com/statespec/generated/descriptors/ApiDescriptorModule.java
 common/com/statespec/generated/descriptors/CoreDescriptorModule.java
@@ -180,14 +182,14 @@ assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generat
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/account/Schema.java" "List.of(Model.ACCOUNT_FIELD_TENANT_ID, Model.ACCOUNT_FIELD_ACCOUNT_ID)"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/EntityRepository.java" "key.append(keyField).append('=').append(value.canonicalString()).append('\\n')"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/EntityRepository.java" "values.put(keyValue.field(), keyValue.value())"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "new Descriptors.ApiResponse(404"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "new ApiResponse(404"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryAccount.java" "com.statespec.backend.Json.array(items)"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "repository.updateTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "invalid entity status transition"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "document.put(com.statespec.generated.entities.project.Model.PROJECT_FIELD_UPDATED_AT"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "var requestedStatus = com.statespec.generated.entities.project.Model.PROJECT_STATUS_DELETED"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "invalid entity delete transition"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "new Descriptors.ApiResponse(204"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiHandlerRegistryProject.java" "new ApiResponse(204"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Persistence.java" "updateTx"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/entities/project/Model.java" "PROJECT_STATUS_DELETED"
 cp "$SCRIPT_DIR/ApiPersistenceFixture.java" "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiPersistenceFixture.java"

@@ -41,6 +41,8 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"common/com/statespec/backend/Workflow.java", common},
             {"common/com/statespec/backend/memory/InMemoryBackend.java", common},
             {"common/com/statespec/backend/memory/InMemoryTransaction.java", common},
+            {"common/com/statespec/generated/ApiRequestContext.java", common},
+            {"common/com/statespec/generated/ApiResponse.java", common},
             {"common/com/statespec/generated/Descriptors.java", common},
             {"common/com/statespec/generated/descriptors/ApiDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/CoreDescriptorModule.java", common},
@@ -129,6 +131,16 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "com/statespec/generated/Descriptors.java",
         "common/com/statespec/generated/Descriptors.java", statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "com/statespec/generated/ApiRequestContext.java",
+        "common/com/statespec/generated/ApiRequestContext.java",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "com/statespec/generated/ApiResponse.java",
+        "common/com/statespec/generated/ApiResponse.java",
+        statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "com/statespec/generated/descriptors/ApiDescriptorModule.java",
