@@ -122,12 +122,12 @@ const IrEntity* create_entity_for_api_rs(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Create";
-    if (api.method.value_or("") != "POST" || api.name.rfind(prefix, 0) != 0 || !api.input)
+    if (!api.repository_operation.has_value() || *api.repository_operation != "create" ||
+        !api.entity.has_value() || !api.input)
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 const IrEntity* get_entity_for_api_rs(
@@ -135,12 +135,12 @@ const IrEntity* get_entity_for_api_rs(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Get";
-    if (api.method.value_or("") != "GET" || api.name.rfind(prefix, 0) != 0)
+    if (!api.repository_operation.has_value() || *api.repository_operation != "get" ||
+        !api.entity.has_value())
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 bool ends_with_suffix_rs(
@@ -178,7 +178,8 @@ const IrEntity* list_entity_for_api_rs(
     const IrApi& api
 )
 {
-    if (api.method.value_or("") != "GET" || api.name.rfind("List", 0) != 0 || !api.output)
+    if (!api.repository_operation.has_value() || *api.repository_operation != "list" ||
+        !api.entity.has_value() || !api.output)
     {
         return nullptr;
     }
@@ -197,7 +198,8 @@ const IrEntity* list_entity_for_api_rs(
     {
         item_type = item_type.substr(0, item_type.size() - std::string_view{"Response"}.size());
     }
-    return find_entity(system, item_type);
+    const auto* entity = find_entity(system, *api.entity);
+    return entity != nullptr && entity->name == item_type ? entity : nullptr;
 }
 
 const IrEntity* update_status_entity_for_api_rs(
@@ -205,16 +207,12 @@ const IrEntity* update_status_entity_for_api_rs(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Update";
-    constexpr std::string_view suffix = "Status";
-    if (api.method.value_or("") != "PATCH" || api.name.rfind(prefix, 0) != 0 ||
-        !ends_with_suffix_rs(api.name, suffix) || !api.input)
+    if (!api.repository_operation.has_value() || *api.repository_operation != "update_status" ||
+        !api.entity.has_value() || !api.input)
     {
         return nullptr;
     }
-    return find_entity(
-        system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
-    );
+    return find_entity(system, *api.entity);
 }
 
 const IrEntity* delete_entity_for_api_rs(
@@ -222,12 +220,12 @@ const IrEntity* delete_entity_for_api_rs(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Delete";
-    if (api.method.value_or("") != "DELETE" || api.name.rfind(prefix, 0) != 0)
+    if (!api.repository_operation.has_value() || *api.repository_operation != "delete" ||
+        !api.entity.has_value())
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 const std::string* conventional_soft_delete_terminal_state_rs(const IrEntity& entity)
@@ -239,28 +237,15 @@ const std::string* conventional_soft_delete_terminal_state_rs(const IrEntity& en
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
-bool status_update_has_required_request_fields_rs(
-    const IrEntity& entity,
-    const IrShape& request
-)
+bool status_update_has_required_request_fields_rs(const IrShape& request)
 {
-    if (find_field(request, std::string{EntityStatusFieldName}) == nullptr)
-    {
-        return false;
-    }
-    for (const auto& key_field : entity.key_fields)
-    {
-        if (find_field(request, key_field) == nullptr)
-        {
-            return false;
-        }
-    }
-    return true;
+    return find_field(request, std::string{EntityStatusFieldName}) != nullptr;
 }
 
 bool create_api_has_required_request_fields_rs(
     const IrEntity& entity,
-    const IrShape& request
+    const IrShape& request,
+    const IrApi& api
 )
 {
     for (const auto& field : entity.fields)
@@ -270,7 +255,8 @@ bool create_api_has_required_request_fields_rs(
         {
             continue;
         }
-        if (find_field(request, field.name) == nullptr)
+        if (find_field(request, field.name) == nullptr &&
+            api.path.value_or("").find("{" + field.name + "}") == std::string::npos)
         {
             return false;
         }
@@ -331,6 +317,28 @@ std::string rust_encode_expr(
         return accessor + ".clone()";
     }
     return "Json::String(" + accessor + ".clone())";
+}
+
+std::string rust_path_json_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    return "path_parameter_json(&path_parameters, " + rust_entity_field_expr(entity, field_name) +
+           ")";
+}
+
+std::string rust_request_or_path_json_expr(
+    const IrEntity& entity,
+    const IrShape& request,
+    const std::string& field_name
+)
+{
+    if (const auto* request_field = find_field(request, field_name); request_field != nullptr)
+    {
+        return rust_encode_expr(*request_field, "request." + field_name);
+    }
+    return rust_path_json_expr(entity, field_name);
 }
 
 std::string rust_default_response_expr(
@@ -420,17 +428,9 @@ void write_rust_parent_validation(
         out << "                vec![\n";
         for (const auto& key_field : parent->key_fields)
         {
-            const auto* request_field = find_field(request, key_field);
             out << "                    EntityKeyValue { field: "
                 << rust_entity_field_string_expr(*parent, key_field) << ", value: ";
-            if (request_field == nullptr)
-            {
-                out << "Json::Null";
-            }
-            else
-            {
-                out << rust_encode_expr(*request_field, "request." + key_field);
-            }
+            out << rust_request_or_path_json_expr(entity, request, key_field);
             out << " },\n";
         }
         out << "                ],\n";
@@ -455,7 +455,7 @@ bool write_rust_create_handler_body(
     {
         return false;
     }
-    if (!create_api_has_required_request_fields_rs(*entity, *request))
+    if (!create_api_has_required_request_fields_rs(*entity, *request, api))
     {
         out << "        return Err(BackendError::InvalidSchema { message: "
             << rust_string(
@@ -469,6 +469,8 @@ bool write_rust_create_handler_body(
     const auto status = entity->initial_state.value_or("Created");
     out << "        let request = crate::api_codecs::decode_" << snake_identifier(api.name)
         << "_request(context)?;\n";
+    out << "        let path_parameters = extract_api_path_parameters("
+        << rust_string(api.path.value_or("")) << ", &context.path);\n";
     out << "        let repository = " << rust_entity_repository_type(*entity) << ";\n";
     out << "        <" << rust_entity_repository_type(*entity) << " as "
         << rust_entity_repository_trait(*entity)
@@ -494,6 +496,11 @@ bool write_rust_create_handler_body(
         {
             out << "        document.insert(" << rust_entity_field_string_expr(*entity, field.name)
                 << ", " << rust_encode_expr(*request_field, "request." + field.name) << ");\n";
+        }
+        else if (api.path.value_or("").find("{" + field.name + "}") != std::string::npos)
+        {
+            out << "        document.insert(" << rust_entity_field_string_expr(*entity, field.name)
+                << ", " << rust_path_json_expr(*entity, field.name) << ");\n";
         }
     }
     out << "        let record = <" << rust_entity_repository_type(*entity) << " as "
@@ -623,7 +630,17 @@ bool write_rust_list_handler_body(
     {
         return false;
     }
-    const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
+    const auto* index = select_entity_list_index_for_selector(*entity, api.list_selector);
+    if (index == nullptr)
+    {
+        out << "        return Err(BackendError::InvalidSchema { message: "
+            << rust_string(
+                   "generated list handler for " + api.name +
+                   " requires a key or index backed selector"
+               )
+            << ".to_string() });\n";
+        return true;
+    }
     out << "        let path_parameters = extract_api_path_parameters("
         << rust_string(api.path.value_or("")) << ", &context.path);\n";
     out << "        let repository = " << rust_entity_repository_type(*entity) << ";\n";
@@ -633,32 +650,15 @@ bool write_rust_list_handler_body(
     out << "        let mut tx = self.backend.begin()?;\n";
     out << "        let records = <" << rust_entity_repository_type(*entity) << " as "
         << rust_entity_repository_trait(*entity) << "<B>>::";
-    if (index == nullptr)
-    {
-        out << "list_by_index_tx(\n";
-    }
-    else
-    {
-        out << rust_entity_index_repository_method_name(index->name) << "(\n";
-    }
+    out << rust_entity_index_repository_method_name(index->name) << "(\n";
     out << "            &repository,\n";
     out << "            &mut tx,\n";
-    if (index == nullptr)
-    {
-        out << "            " << rust_string("") << ".to_string(),\n";
-    }
     out << "            vec![\n";
-    if (index != nullptr)
+    for (const auto& field_name : api.list_selector)
     {
-        for (const auto& field_name : index->fields)
-        {
-            if (api.path.value_or("").find("{" + field_name + "}") != std::string::npos)
-            {
-                out << "                IndexValue::String(path_parameters.get("
-                    << rust_entity_field_expr(*entity, field_name)
-                    << ").cloned().unwrap_or_else(String::new)),\n";
-            }
-        }
+        out << "                IndexValue::String(path_parameters.get("
+            << rust_entity_field_expr(*entity, field_name)
+            << ").cloned().unwrap_or_else(String::new)),\n";
     }
     out << "            ],\n";
     out << "        )?;\n";
@@ -697,7 +697,7 @@ bool write_rust_update_status_handler_body(
     {
         return false;
     }
-    if (!status_update_has_required_request_fields_rs(*entity, *request))
+    if (!status_update_has_required_request_fields_rs(*request))
     {
         out << "        return Err(BackendError::InvalidSchema { message: "
             << rust_string(
@@ -709,6 +709,8 @@ bool write_rust_update_status_handler_body(
     }
     out << "        let request = crate::api_codecs::decode_" << snake_identifier(api.name)
         << "_request(context)?;\n";
+    out << "        let path_parameters = extract_api_path_parameters("
+        << rust_string(api.path.value_or("")) << ", &context.path);\n";
     out << "        let repository = " << rust_entity_repository_type(*entity) << ";\n";
     out << "        <" << rust_entity_repository_type(*entity) << " as "
         << rust_entity_repository_trait(*entity)
@@ -717,10 +719,10 @@ bool write_rust_update_status_handler_body(
     out << "        let key_values = vec![\n";
     for (const auto& key_field : entity->key_fields)
     {
-        const auto* field = find_field(*request, key_field);
         out << "            EntityKeyValue { field: "
             << rust_entity_field_string_expr(*entity, key_field)
-            << ", value: " << rust_encode_expr(*field, "request." + key_field) << " },\n";
+            << ", value: " << rust_request_or_path_json_expr(*entity, *request, key_field)
+            << " },\n";
     }
     out << "        ];\n";
     out << "        let record = <" << rust_entity_repository_type(*entity) << " as "

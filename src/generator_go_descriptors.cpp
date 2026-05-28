@@ -103,17 +103,25 @@ std::string go_entity_repository_expr(const IrEntity& entity)
            "Repository{}";
 }
 
+bool api_repository_operation_is_go(
+    const IrApi& api,
+    std::string_view operation
+)
+{
+    return api.repository_operation.has_value() && *api.repository_operation == operation &&
+           api.entity.has_value();
+}
+
 const IrEntity* create_entity_for_api_go(
     const IrSystem& system,
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Create";
-    if (api.method.value_or("") != "POST" || api.name.rfind(prefix, 0) != 0 || !api.input)
+    if (!api_repository_operation_is_go(api, "create") || !api.input)
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 const IrEntity* get_entity_for_api_go(
@@ -121,12 +129,11 @@ const IrEntity* get_entity_for_api_go(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Get";
-    if (api.method.value_or("") != "GET" || api.name.rfind(prefix, 0) != 0)
+    if (!api_repository_operation_is_go(api, "get"))
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 bool ends_with_suffix_go(
@@ -164,7 +171,7 @@ const IrEntity* list_entity_for_api_go(
     const IrApi& api
 )
 {
-    if (api.method.value_or("") != "GET" || api.name.rfind("List", 0) != 0 || !api.output)
+    if (!api_repository_operation_is_go(api, "list") || !api.output)
     {
         return nullptr;
     }
@@ -183,7 +190,8 @@ const IrEntity* list_entity_for_api_go(
     {
         item_type = item_type.substr(0, item_type.size() - std::string_view{"Response"}.size());
     }
-    return find_entity(system, item_type);
+    const auto* entity = find_entity(system, *api.entity);
+    return entity != nullptr && entity->name == item_type ? entity : nullptr;
 }
 
 const IrEntity* update_status_entity_for_api_go(
@@ -191,16 +199,11 @@ const IrEntity* update_status_entity_for_api_go(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Update";
-    constexpr std::string_view suffix = "Status";
-    if (api.method.value_or("") != "PATCH" || api.name.rfind(prefix, 0) != 0 ||
-        !ends_with_suffix_go(api.name, suffix) || !api.input)
+    if (!api_repository_operation_is_go(api, "update_status") || !api.input)
     {
         return nullptr;
     }
-    return find_entity(
-        system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
-    );
+    return find_entity(system, *api.entity);
 }
 
 const IrEntity* delete_entity_for_api_go(
@@ -208,12 +211,11 @@ const IrEntity* delete_entity_for_api_go(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Delete";
-    if (api.method.value_or("") != "DELETE" || api.name.rfind(prefix, 0) != 0)
+    if (!api_repository_operation_is_go(api, "delete"))
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 const std::string* conventional_soft_delete_terminal_state_go(const IrEntity& entity)
@@ -225,28 +227,15 @@ const std::string* conventional_soft_delete_terminal_state_go(const IrEntity& en
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
-bool status_update_has_required_request_fields_go(
-    const IrEntity& entity,
-    const IrShape& request
-)
+bool status_update_has_required_request_fields_go(const IrShape& request)
 {
-    if (find_field(request, std::string{EntityStatusFieldName}) == nullptr)
-    {
-        return false;
-    }
-    for (const auto& key_field : entity.key_fields)
-    {
-        if (find_field(request, key_field) == nullptr)
-        {
-            return false;
-        }
-    }
-    return true;
+    return find_field(request, std::string{EntityStatusFieldName}) != nullptr;
 }
 
 bool create_api_has_required_request_fields_go(
     const IrEntity& entity,
-    const IrShape& request
+    const IrShape& request,
+    const IrApi& api
 )
 {
     for (const auto& field : entity.fields)
@@ -256,7 +245,8 @@ bool create_api_has_required_request_fields_go(
         {
             continue;
         }
-        if (find_field(request, field.name) == nullptr)
+        if (find_field(request, field.name) == nullptr &&
+            api.path.value_or("").find("{" + field.name + "}") == std::string::npos)
         {
             return false;
         }
@@ -317,6 +307,27 @@ std::string go_encode_expr(
         return accessor;
     }
     return "common.JSONString(" + accessor + ")";
+}
+
+std::string go_path_json_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    return "pathParameterJSON(pathParameters, " + go_entity_field_expr(entity, field_name) + ")";
+}
+
+std::string go_request_or_path_json_expr(
+    const IrEntity& entity,
+    const IrShape& request,
+    const std::string& field_name
+)
+{
+    if (const auto* request_field = find_field(request, field_name); request_field != nullptr)
+    {
+        return go_encode_expr(*request_field, "decodedRequest." + pascal_identifier(field_name));
+    }
+    return go_path_json_expr(entity, field_name);
 }
 
 std::string go_default_response_expr(
@@ -401,18 +412,8 @@ void write_go_parent_validation(
         out << "\t\tparentRecord, err := parent.GetTx(ctx, tx, []common.EntityKeyValue{\n";
         for (const auto& key_field : parent->key_fields)
         {
-            const auto* request_field = find_field(request, key_field);
             out << "\t\t\t{Field: " << go_entity_field_expr(*parent, key_field) << ", Value: ";
-            if (request_field == nullptr)
-            {
-                out << "common.JSONNull()";
-            }
-            else
-            {
-                out << go_encode_expr(
-                    *request_field, "decodedRequest." + pascal_identifier(key_field)
-                );
-            }
+            out << go_request_or_path_json_expr(entity, request, key_field);
             out << "},\n";
         }
         out << "\t\t})\n";
@@ -436,7 +437,7 @@ bool write_go_create_handler_body(
     {
         return false;
     }
-    if (!create_api_has_required_request_fields_go(*entity, *request))
+    if (!create_api_has_required_request_fields_go(*entity, *request, api))
     {
         out << "\treturn common.APIResponse{}, fmt.Errorf("
             << go_string(
@@ -450,6 +451,9 @@ bool write_go_create_handler_body(
     const auto status = entity->initial_state.value_or("Created");
     out << "\tdecodedRequest, err := Decode" << pascal_identifier(api.name) << "Request(request)\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
+        << ", request.Path)\n";
+    out << "\t_ = pathParameters\n";
     out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
@@ -476,6 +480,11 @@ bool write_go_create_handler_body(
             out << "\tdocument[" << go_entity_field_expr(*entity, field.name) << "] = "
                 << go_encode_expr(*request_field, "decodedRequest." + pascal_identifier(field.name))
                 << "\n";
+        }
+        else if (api.path.value_or("").find("{" + field.name + "}") != std::string::npos)
+        {
+            out << "\tdocument[" << go_entity_field_expr(*entity, field.name)
+                << "] = " << go_path_json_expr(*entity, field.name) << "\n";
         }
     }
     out << "\trecord, err := repository.CreateTx(ctx, tx, common.JSONObject(document))\n";
@@ -533,6 +542,7 @@ bool write_go_get_handler_body(
     }
     out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
         << ", request.Path)\n";
+    out << "\t_ = pathParameters\n";
     out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
@@ -597,9 +607,20 @@ bool write_go_list_handler_body(
     {
         return false;
     }
-    const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
+    const auto* index = select_entity_list_index_for_selector(*entity, api.list_selector);
+    if (index == nullptr)
+    {
+        out << "\treturn common.APIResponse{}, fmt.Errorf("
+            << go_string(
+                   "generated list handler for " + api.name +
+                   " requires a key or index backed selector"
+               )
+            << ")\n";
+        return true;
+    }
     out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
         << ", request.Path)\n";
+    out << "\t_ = pathParameters\n";
     out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
@@ -607,25 +628,12 @@ bool write_go_list_handler_body(
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
     out << "\tdefer func() { if tx.IsOpen() { _ = tx.Abort(ctx) } }()\n";
     out << "\trecords, err := repository.";
-    if (index == nullptr)
+    out << go_entity_index_repository_method_name(index->name)
+        << "(ctx, tx, []common.IndexValue{\n";
+    for (const auto& field_name : api.list_selector)
     {
-        out << "ListByIndexTx(ctx, tx, " << go_string("") << ", []common.IndexValue{\n";
-    }
-    else
-    {
-        out << go_entity_index_repository_method_name(index->name)
-            << "(ctx, tx, []common.IndexValue{\n";
-    }
-    if (index != nullptr)
-    {
-        for (const auto& field_name : index->fields)
-        {
-            if (api.path.value_or("").find("{" + field_name + "}") != std::string::npos)
-            {
-                out << "\t\tcommon.StringIndexValue(pathParameters["
-                    << go_entity_field_expr(*entity, field_name) << "]),\n";
-            }
-        }
+        out << "\t\tcommon.StringIndexValue(pathParameters["
+            << go_entity_field_expr(*entity, field_name) << "]),\n";
     }
     out << "\t})\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
@@ -662,7 +670,7 @@ bool write_go_update_status_handler_body(
     {
         return false;
     }
-    if (!status_update_has_required_request_fields_go(*entity, *request))
+    if (!status_update_has_required_request_fields_go(*request))
     {
         out << "\treturn common.APIResponse{}, fmt.Errorf("
             << go_string(
@@ -674,6 +682,9 @@ bool write_go_update_status_handler_body(
     }
     out << "\tdecodedRequest, err := Decode" << pascal_identifier(api.name) << "Request(request)\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
+    out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
+        << ", request.Path)\n";
+    out << "\t_ = pathParameters\n";
     out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";
@@ -683,9 +694,8 @@ bool write_go_update_status_handler_body(
     out << "\tkeyValues := []common.EntityKeyValue{\n";
     for (const auto& key_field : entity->key_fields)
     {
-        const auto* field = find_field(*request, key_field);
-        out << "\t\t{Field: " << go_entity_field_expr(*entity, key_field) << ", Value: "
-            << go_encode_expr(*field, "decodedRequest." + pascal_identifier(key_field)) << "},\n";
+        out << "\t\t{Field: " << go_entity_field_expr(*entity, key_field)
+            << ", Value: " << go_request_or_path_json_expr(*entity, *request, key_field) << "},\n";
     }
     out << "\t}\n";
     out << "\trecord, err := repository.GetTx(ctx, tx, keyValues)\n";
@@ -779,6 +789,7 @@ bool write_go_delete_handler_body(
     }
     out << "\tpathParameters := extractAPIPathParameters(" << go_string(api.path.value_or(""))
         << ", request.Path)\n";
+    out << "\t_ = pathParameters\n";
     out << "\trepository := " << go_entity_repository_expr(*entity) << "\n";
     out << "\tif err := repository.RegisterDescriptor(ctx, handler.Backend); err != nil { return "
            "common.APIResponse{}, err }\n";

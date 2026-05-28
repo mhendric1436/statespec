@@ -321,6 +321,97 @@ void ir_lowers_entity_api_intent_to_synthetic_api_contracts()
         "IR should derive indexed list response from expanded index selector"
     );
 }
+
+void ir_attaches_crud_repository_metadata_to_explicit_api_contracts()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system ExplicitCrudSystem {
+          shape CreateTaskRequest {
+            tenant_id string
+            project_id string
+            task_id string
+            title string
+          }
+
+          shape TaskResponse {
+            tenant_id string
+            project_id string
+            task_id string
+            title string
+            status string
+          }
+
+          shape TaskListResponse {
+            tenant_id string
+            project_id string
+            tasks TaskResponse[]
+          }
+
+          entity Task {
+            key tenant_id, task_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              project_id string
+              task_id string
+              title string
+            }
+            state_machine {
+              state Open
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
+              initial Open
+              terminal [Deleted]
+              Open -> Deleted
+            }
+            indexes {
+              unique by_tenant_task on tenant_id, task_id
+              index by_project_status on tenant_id, project_id, status
+            }
+          }
+
+          api ProvisionTask {
+            method POST
+            path "/v1/tenants/{tenant_id}/projects/{project_id}/tasks/{task_id}"
+            input CreateTaskRequest
+            output TaskResponse
+          }
+
+          api QueryProjectTasks {
+            method GET
+            path "/v1/tenants/{tenant_id}/projects/{project_id}/tasks"
+            output TaskListResponse
+          }
+        }
+    )sspec");
+
+    const auto ir = statespec::lower_to_ir(spec);
+
+    const auto& create = ir.apis[0];
+    statespec::test::require(create.name == "ProvisionTask", "IR should preserve API name");
+    statespec::test::require(
+        create.entity == "Task" && create.repository_operation == "create",
+        "IR should link explicit create-like API to entity repository create operation"
+    );
+
+    const auto& list = ir.apis[1];
+    statespec::test::require(list.name == "QueryProjectTasks", "IR should preserve list API name");
+    statespec::test::require(
+        list.entity == "Task" && list.repository_operation == "list",
+        "IR should link explicit list-like API to entity repository list operation"
+    );
+    statespec::test::require(
+        list.list_selector == std::vector<std::string>{"tenant_id", "project_id"},
+        "IR should derive explicit list selector from the key/index-backed route prefix"
+    );
+}
 } // namespace
 
 TEST_CASE("IR lowers terminal garbage collection policy")
@@ -336,4 +427,9 @@ TEST_CASE("IR lowers entity relationship metadata")
 TEST_CASE("IR lowers entity API intent to synthetic API contracts")
 {
     ir_lowers_entity_api_intent_to_synthetic_api_contracts();
+}
+
+TEST_CASE("IR attaches CRUD repository metadata to explicit API contracts")
+{
+    ir_attaches_crud_repository_metadata_to_explicit_api_contracts();
 }

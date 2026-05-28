@@ -105,17 +105,25 @@ std::string cpp_entity_repository_expr(const IrEntity& entity)
            pascal_identifier(entity.name) + "Repository";
 }
 
+bool api_repository_operation_is(
+    const IrApi& api,
+    std::string_view operation
+)
+{
+    return api.repository_operation.has_value() && *api.repository_operation == operation &&
+           api.entity.has_value();
+}
+
 const IrEntity* create_entity_for_api(
     const IrSystem& system,
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Create";
-    if (api.method.value_or("") != "POST" || api.name.rfind(prefix, 0) != 0 || !api.input)
+    if (!api_repository_operation_is(api, "create") || !api.input)
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 const IrEntity* get_entity_for_api(
@@ -123,12 +131,11 @@ const IrEntity* get_entity_for_api(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Get";
-    if (api.method.value_or("") != "GET" || api.name.rfind(prefix, 0) != 0)
+    if (!api_repository_operation_is(api, "get"))
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 bool ends_with_suffix(
@@ -166,7 +173,7 @@ const IrEntity* list_entity_for_api(
     const IrApi& api
 )
 {
-    if (api.method.value_or("") != "GET" || api.name.rfind("List", 0) != 0 || !api.output)
+    if (!api_repository_operation_is(api, "list") || !api.output)
     {
         return nullptr;
     }
@@ -185,7 +192,8 @@ const IrEntity* list_entity_for_api(
     {
         item_type = item_type.substr(0, item_type.size() - std::string_view{"Response"}.size());
     }
-    return find_entity(system, item_type);
+    const auto* entity = find_entity(system, *api.entity);
+    return entity != nullptr && entity->name == item_type ? entity : nullptr;
 }
 
 const IrEntity* update_status_entity_for_api(
@@ -193,16 +201,11 @@ const IrEntity* update_status_entity_for_api(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Update";
-    constexpr std::string_view suffix = "Status";
-    if (api.method.value_or("") != "PATCH" || api.name.rfind(prefix, 0) != 0 ||
-        !ends_with_suffix(api.name, suffix) || !api.input)
+    if (!api_repository_operation_is(api, "update_status") || !api.input)
     {
         return nullptr;
     }
-    return find_entity(
-        system, api.name.substr(prefix.size(), api.name.size() - prefix.size() - suffix.size())
-    );
+    return find_entity(system, *api.entity);
 }
 
 const IrEntity* delete_entity_for_api(
@@ -210,12 +213,11 @@ const IrEntity* delete_entity_for_api(
     const IrApi& api
 )
 {
-    constexpr std::string_view prefix = "Delete";
-    if (api.method.value_or("") != "DELETE" || api.name.rfind(prefix, 0) != 0)
+    if (!api_repository_operation_is(api, "delete"))
     {
         return nullptr;
     }
-    return find_entity(system, api.name.substr(prefix.size()));
+    return find_entity(system, *api.entity);
 }
 
 const std::string* conventional_soft_delete_terminal_state(const IrEntity& entity)
@@ -227,28 +229,15 @@ const std::string* conventional_soft_delete_terminal_state(const IrEntity& entit
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
-bool status_update_has_required_request_fields(
-    const IrEntity& entity,
-    const IrShape& request
-)
+bool status_update_has_required_request_fields(const IrShape& request)
 {
-    if (find_field(request, std::string{EntityStatusFieldName}) == nullptr)
-    {
-        return false;
-    }
-    for (const auto& key_field : entity.key_fields)
-    {
-        if (find_field(request, key_field) == nullptr)
-        {
-            return false;
-        }
-    }
-    return true;
+    return find_field(request, std::string{EntityStatusFieldName}) != nullptr;
 }
 
 bool create_api_has_required_request_fields(
     const IrEntity& entity,
-    const IrShape& request
+    const IrShape& request,
+    const IrApi& api
 )
 {
     for (const auto& field : entity.fields)
@@ -258,7 +247,8 @@ bool create_api_has_required_request_fields(
         {
             continue;
         }
-        if (find_field(request, field.name) == nullptr)
+        if (find_field(request, field.name) == nullptr &&
+            api.path.value_or("").find("{" + field.name + "}") == std::string::npos)
         {
             return false;
         }
@@ -398,6 +388,19 @@ std::string cpp_path_value(
            ")";
 }
 
+std::string cpp_request_or_path_json_expr(
+    const IrEntity& entity,
+    const IrShape& request,
+    const std::string& field_name
+)
+{
+    if (const auto* request_field = find_field(request, field_name); request_field != nullptr)
+    {
+        return cpp_json_expr(*request_field, "request." + field_name);
+    }
+    return cpp_path_value(entity, field_name);
+}
+
 void write_cpp_parent_validation(
     std::ostringstream& out,
     const IrSystem& system,
@@ -423,19 +426,9 @@ void write_cpp_parent_validation(
         out << "                {\n";
         for (const auto& key_field : parent->key_fields)
         {
-            const auto* request_field = find_field(request, key_field);
-            if (request_field == nullptr)
-            {
-                out << "                    EntityKeyValue{"
-                    << cpp_entity_field_expr(*parent, key_field)
-                    << ", statespec::backend::Json::null()},\n";
-            }
-            else
-            {
-                out << "                    EntityKeyValue{"
-                    << cpp_entity_field_expr(*parent, key_field) << ", "
-                    << cpp_json_expr(*request_field, "request." + key_field) << "},\n";
-            }
+            out << "                    EntityKeyValue{"
+                << cpp_entity_field_expr(*parent, key_field) << ", "
+                << cpp_request_or_path_json_expr(entity, request, key_field) << "},\n";
         }
         out << "                }\n";
         out << "            );\n";
@@ -460,7 +453,7 @@ bool write_cpp_create_handler_body(
     {
         return false;
     }
-    if (!create_api_has_required_request_fields(*entity, *request))
+    if (!create_api_has_required_request_fields(*entity, *request, api))
     {
         out << "        throw statespec::backend::BackendError("
             << cpp_string(
@@ -475,6 +468,8 @@ bool write_cpp_create_handler_body(
     const auto status = entity->initial_state.value_or("Created");
     out << "        const auto request = decode_" << snake_identifier(api.name)
         << "_request(context);\n";
+    out << "        const auto path_parameters = extract_api_path_parameters("
+        << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
     out << "        " << cpp_entity_repository_expr(*entity) << " repository;\n";
     out << "        repository.register_descriptor(backend_);\n";
     out << "        auto tx = backend_.begin();\n";
@@ -500,6 +495,11 @@ bool write_cpp_create_handler_body(
         {
             out << "            document[" << cpp_entity_field_expr(*entity, field.name)
                 << "] = " << cpp_json_expr(*request_field, "request." + field.name) << ";\n";
+        }
+        else if (api.path.value_or("").find("{" + field.name + "}") != std::string::npos)
+        {
+            out << "            document[" << cpp_entity_field_expr(*entity, field.name)
+                << "] = " << cpp_path_value(*entity, field.name) << ";\n";
         }
     }
     out << "            const auto record = repository.createTx(\n";
@@ -620,7 +620,17 @@ bool write_cpp_list_handler_body(
     {
         return false;
     }
-    const auto* index = select_entity_list_index(*entity, api.path.value_or(""));
+    const auto* index = select_entity_list_index_for_selector(*entity, api.list_selector);
+    if (index == nullptr)
+    {
+        out << "        throw statespec::backend::BackendError("
+            << cpp_string(
+                   "generated list handler for " + api.name +
+                   " requires a key or index backed selector"
+               )
+            << ");\n";
+        return true;
+    }
     out << "        const auto path_parameters = extract_api_path_parameters("
         << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
     out << "        " << cpp_entity_repository_expr(*entity) << " repository;\n";
@@ -629,31 +639,14 @@ bool write_cpp_list_handler_body(
     out << "        try\n";
     out << "        {\n";
     out << "            const auto records = repository.";
-    if (index == nullptr)
-    {
-        out << "listByIndexTx(\n";
-    }
-    else
-    {
-        out << entity_index_repository_method_name(index->name) << "(\n";
-    }
+    out << entity_index_repository_method_name(index->name) << "(\n";
     out << "                *tx,\n";
-    if (index == nullptr)
-    {
-        out << "                " << cpp_string("") << ",\n";
-    }
     out << "                {\n";
-    if (index != nullptr)
+    for (const auto& field_name : api.list_selector)
     {
-        for (const auto& field_name : index->fields)
-        {
-            if (api.path.value_or("").find("{" + field_name + "}") != std::string::npos)
-            {
-                out << "                    statespec::backend::IndexValue::string_value("
-                       "path_parameter_json(path_parameters, "
-                    << cpp_entity_field_expr(*entity, field_name) << ").as_string()),\n";
-            }
-        }
+        out << "                    statespec::backend::IndexValue::string_value("
+               "path_parameter_json(path_parameters, "
+            << cpp_entity_field_expr(*entity, field_name) << ").as_string()),\n";
     }
     out << "                }\n";
     out << "            );\n";
@@ -700,7 +693,7 @@ bool write_cpp_update_status_handler_body(
     {
         return false;
     }
-    if (!status_update_has_required_request_fields(*entity, *request))
+    if (!status_update_has_required_request_fields(*request))
     {
         out << "        throw statespec::backend::BackendError("
             << cpp_string(
@@ -713,6 +706,8 @@ bool write_cpp_update_status_handler_body(
 
     out << "        const auto request = decode_" << snake_identifier(api.name)
         << "_request(context);\n";
+    out << "        const auto path_parameters = extract_api_path_parameters("
+        << cpp_string(api.path.value_or("")) << ", context.path.value_or(std::string{}));\n";
     out << "        " << cpp_entity_repository_expr(*entity) << " repository;\n";
     out << "        repository.register_descriptor(backend_);\n";
     out << "        auto tx = backend_.begin();\n";
@@ -721,9 +716,8 @@ bool write_cpp_update_status_handler_body(
     out << "            std::vector<EntityKeyValue> key_values{\n";
     for (const auto& key_field : entity->key_fields)
     {
-        const auto* field = find_field(*request, key_field);
         out << "                EntityKeyValue{" << cpp_entity_field_expr(*entity, key_field)
-            << ", " << cpp_json_expr(*field, "request." + key_field) << "},\n";
+            << ", " << cpp_request_or_path_json_expr(*entity, *request, key_field) << "},\n";
     }
     out << "            };\n";
     out << "            const auto record = repository.getTx(*tx, key_values);\n";

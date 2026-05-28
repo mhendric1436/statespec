@@ -333,6 +333,13 @@ deterministic: `CreateAccount`, `GetAccount`, `ListAccounts`,
 `UpdateAccountStatus`, `DeleteAccount`, `CreateAccountRequest`, and
 `AccountResponse`.
 
+Generated default handlers consume this CRUD IR metadata instead of re-inferring
+behavior from API names. List handlers are intentionally limited to selectors backed
+by the entity key or a declared index prefix. For example, a list selector that
+lowers to `by_project_status` calls the generated `listByProjectStatusTx`-style
+repository method and passes only the selector prefix values available from the
+route. Generators must not emit arbitrary scan-by-field list handlers.
+
 Derived shapes are entity-owned and route-aware. `Create<Entity>Request` contains
 only non-path key fields plus the explicit `create fields` allowlist; key fields
 already present in the route are not repeated in the request body.

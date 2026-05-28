@@ -2,6 +2,7 @@
 
 #include "identifier_case.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <string_view>
 
@@ -67,6 +68,26 @@ const IrIndex* select_entity_list_index(
         return selected;
     }
     return entity.indexes.empty() ? nullptr : &entity.indexes.front();
+}
+
+const IrIndex* select_entity_list_index_for_selector(
+    const IrEntity& entity,
+    const std::vector<std::string>& selector
+)
+{
+    if (selector.empty())
+    {
+        return nullptr;
+    }
+    for (const auto& index : entity.indexes)
+    {
+        if (selector.size() <= index.fields.size() &&
+            std::equal(selector.begin(), selector.end(), index.fields.begin()))
+        {
+            return &index;
+        }
+    }
+    return nullptr;
 }
 
 } // namespace statespec
