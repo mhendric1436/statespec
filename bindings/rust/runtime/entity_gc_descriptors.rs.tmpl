@@ -15,7 +15,8 @@ pub struct EntityGcDescriptor {
     pub terminal_states: Vec<EntityGcTerminalStateDescriptor>,
 }
 
+{{entity_gc_descriptor_functions}}
 pub fn entity_gc_descriptors() -> Vec<EntityGcDescriptor> {
     vec![
-{{entity_gc_descriptors}}    ]
+{{entity_gc_descriptor_calls}}    ]
 }

@@ -907,7 +907,8 @@ TemplateRenderer::Values rust_api_runtime_bootstrap_values(const IrSystem& syste
 TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system)
 {
     std::ostringstream imports;
-    std::ostringstream descriptors;
+    std::ostringstream descriptor_functions;
+    std::ostringstream descriptor_calls;
     for (const auto& entity : system.entities)
     {
         std::ostringstream terminal_states;
@@ -938,19 +939,23 @@ TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system
                 << snake_identifier(entity.name) << "_model;\n";
         imports << "use crate::entity_" << snake_identifier(entity.name) << "::schema as "
                 << snake_identifier(entity.name) << "_schema;\n";
-        descriptors << "        EntityGcDescriptor {\n"
-                    << "            entity: " << snake_identifier(entity.name)
-                    << "_model::" << rust_entity_name_constant_name(entity.name)
-                    << ".to_string(),\n"
-                    << "            collection: " << snake_identifier(entity.name)
-                    << "_model::" << rust_entity_name_constant_name(entity.name)
-                    << ".to_string(),\n"
-                    << "            status_field: " << snake_identifier(entity.name)
-                    << "_model::" << rust_entity_field_constant_name(entity.name, "status")
-                    << ".to_string(),\n"
-                    << "            terminal_states: vec![\n"
-                    << terminal_states.str() << "            ],\n"
-                    << "        },\n";
+        const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
+        descriptor_functions << "pub fn " << descriptor_function << "() -> EntityGcDescriptor {\n"
+                             << "    EntityGcDescriptor {\n"
+                             << "        entity: " << snake_identifier(entity.name)
+                             << "_model::" << rust_entity_name_constant_name(entity.name)
+                             << ".to_string(),\n"
+                             << "        collection: " << snake_identifier(entity.name)
+                             << "_model::" << rust_entity_name_constant_name(entity.name)
+                             << ".to_string(),\n"
+                             << "        status_field: " << snake_identifier(entity.name)
+                             << "_model::" << rust_entity_field_constant_name(entity.name, "status")
+                             << ".to_string(),\n"
+                             << "        terminal_states: vec![\n"
+                             << terminal_states.str() << "        ],\n"
+                             << "    }\n"
+                             << "}\n\n";
+        descriptor_calls << "        " << descriptor_function << "(),\n";
     }
     if (!imports.str().empty())
     {
@@ -958,7 +963,8 @@ TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system
     }
     return TemplateRenderer::Values{
         {"entity_gc_entity_imports", imports.str()},
-        {"entity_gc_descriptors", descriptors.str()},
+        {"entity_gc_descriptor_functions", descriptor_functions.str()},
+        {"entity_gc_descriptor_calls", descriptor_calls.str()},
     };
 }
 
