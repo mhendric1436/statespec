@@ -297,11 +297,16 @@ be treated as a backend feature.
 
 Generated entity garbage collection is a shared common-tier runtime feature, not an
 API-only or Worker-only feature. API and Worker apps may both compose the same generated
-entity GC workers. The baseline is one low-resource stop-aware worker per GC-enabled
-entity, with per-entity polling no faster than one tenth of the GC expiration duration,
-bounded batches, OCC revalidation, and generated lifecycle start/stop/join wiring.
+entity GC workers. The baseline is one registered task per generated entity GC
+descriptor, bounded batches, OCC revalidation, and generated lifecycle start/stop/join
+wiring owned by `ApiProcess` or `WorkerProcess`.
 Generated API process and Worker runtime configs must include explicit GC enablement
 flags so mixed deployments can choose exactly one active GC host.
+
+Do not introduce a scheduler abstraction for entity GC yet. GC registration must remain
+a simple loop over generated GC descriptors, and GC implementations must use only the
+generic OCC backend/transaction boundary. GC must not depend on leases, queues,
+workflows, feature flags, logs, or metrics.
 
 ---
 

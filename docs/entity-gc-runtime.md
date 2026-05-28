@@ -13,11 +13,12 @@ Generated common-tier runtime artifacts own:
 
 - entity GC descriptors derived from terminal state metadata
 - backend-neutral repository helper contracts for eligibility scans and finalization
-- one lightweight GC worker model per GC-enabled entity
-- shared defaults for polling, jitter, batch size, and stack size
+- one reusable GC worker model that is registered once per generated entity GC descriptor
+- shared defaults for polling and batch size
 
 Generated API and Worker tiers own lifecycle wiring:
 
+- register generated GC tasks before process start
 - start GC workers when the process/runtime starts and GC is enabled
 - request stop on GC workers during shutdown
 - join GC workers before process/runtime shutdown completes
@@ -42,29 +43,26 @@ background GC scans.
 
 ## Worker Shape
 
-The baseline generated design is one low-resource background worker per GC-enabled
-entity. Each worker:
+The baseline generated design is one low-resource registered task per generated entity
+GC descriptor. Each registered task:
 
-- sleeps on a stop-aware timed wait
-- polls no faster than one tenth of that entity's GC expiration duration
-- applies a minimum polling floor
-- adds randomized jitter to reduce synchronized work across replicas
-- scans a bounded number of eligible rows through an indexed backend lookup
-- revalidates terminal state and expiration inside the transaction that finalizes or
-  removes the entity
+- scans a bounded number of eligible rows through the generic OCC query path
+- revalidates terminal state inside the transaction that finalizes or removes the entity
+- uses only generic `Backend` / `Transaction` APIs
+
+The generated `ApiProcess` or `WorkerProcess` owns the stop-aware timed wait, polling
+interval, start, stop, and join behavior for those tasks.
 
 Default runtime values:
 
 | Setting | Default |
 |---|---:|
 | Minimum poll interval | 60 seconds |
-| Jitter | 0-25% of poll interval |
 | Batch size | 100 records |
-| Java/Rust thread stack size | 256 KiB |
 
-Go uses goroutines, whose stacks start small and grow. C++ keeps the stack-size setting
-for configuration parity, but portable `std::thread` does not expose stack sizing; a
-platform-specific thread builder can apply it later.
+No scheduler abstraction is generated for v0. The generated API process and Worker
+runtime own the stop-aware loop, and the common GC registration helper only registers
+plain tasks with those lifecycle owners.
 
 ## API And Worker Composition
 
@@ -94,8 +92,9 @@ Duplicate GC attempts must still be harmless:
 - OCC conflicts cause the current batch item to be skipped or retried later
 - jitter reduces lockstep scans across replicas
 
-Lease coordination is intentionally not part of the baseline. It can be added later if
-large deployments show measurable GC contention.
+Lease coordination and a dedicated scheduler abstraction are intentionally not part of
+the baseline. They can be added later if large deployments show measurable GC
+contention.
 
 Entity GC must not depend on leases, queues, workflows, feature flags, logs, or metrics
 for correctness. It is limited to the generic OCC backend and transaction primitives.
@@ -106,14 +105,16 @@ while lease records themselves require GC.
 
 The shared artifact model reserves common-tier generated files for all languages:
 
-| Language | Descriptor artifact | Repository contract | Worker artifact |
-|---|---|---|---|
-| C++ | `common/runtime/entity_gc_descriptors.hpp` | `common/runtime/entity_gc_repository.hpp` | `common/runtime/entity_gc_workers.hpp` |
-| Go | `common/backend/runtime/entity_gc_descriptors.go` | `common/backend/runtime/entity_gc_repository.go` | `common/backend/runtime/entity_gc_workers.go` |
-| Java | `common/com/statespec/backend/runtime/EntityGcDescriptors.java` | `common/com/statespec/backend/runtime/EntityGcRepository.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` |
-| Rust | `common/runtime/entity_gc_descriptors.rs` | `common/runtime/entity_gc_repository.rs` | `common/runtime/entity_gc_workers.rs` |
+| Language | Descriptor artifact | Repository contract | Worker artifact | Registration artifact |
+|---|---|---|---|---|
+| C++ | `common/runtime/entity_gc_descriptors.hpp` | `common/runtime/entity_gc_repository.hpp` | `common/runtime/entity_gc_workers.hpp` | `common/runtime/entity_gc_registration.hpp` |
+| Go | `common/backend/runtime/entity_gc_descriptors.go` | `common/backend/runtime/entity_gc_repository.go` | `common/backend/runtime/entity_gc_workers.go` | `common/backend/runtime/entity_gc_registration.go` |
+| Java | `common/com/statespec/backend/runtime/EntityGcDescriptors.java` | `common/com/statespec/backend/runtime/EntityGcRepository.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` | `common/com/statespec/backend/runtime/EntityGcRegistration.java` |
+| Rust | `common/runtime/entity_gc_descriptors.rs` | `common/runtime/entity_gc_repository.rs` | `common/runtime/entity_gc_workers.rs` | `common/runtime/entity_gc_registration.rs` |
 
-These artifacts are shared by generated API and Worker apps. The common worker exposes
+These artifacts are shared by generated API and Worker apps. The registration artifact
+iterates the generated descriptor list, creates an OCC-backed repository and worker for
+each descriptor, and registers one plain task per descriptor. The common worker exposes
 a small `runOnce`/`run_once` surface for one entity descriptor and leaves lifecycle
 thread ownership to the generated API or Worker app composition layer.
 

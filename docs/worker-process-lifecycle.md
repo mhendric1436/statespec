@@ -54,8 +54,10 @@ Worker-hosted GC workers through the same lifecycle as workflow polling loops. W
 GC is enabled by default for standalone Worker apps. In mixed API + Worker deployments,
 enable GC on only one tier to avoid duplicate background scans.
 
-GC remains limited to generic OCC backend and transaction primitives. It must not depend
-on workflows, queues, leases, feature flags, logs, or metrics.
+Generated Worker startup registers one GC task per generated entity GC descriptor before
+`WorkerProcess.start()`. GC remains limited to generic OCC backend and transaction
+primitives. It must not depend on workflows, queues, leases, feature flags, logs,
+metrics, or a separate scheduler abstraction.
 
 ## Runtime Ownership
 

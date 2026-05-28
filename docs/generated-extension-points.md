@@ -111,10 +111,10 @@ bootstrap-on-start is enabled, `request_stop()` is idempotent and safe before st
 `join()` waits for completion, and starting the same process twice must be rejected
 deterministically.
 
-If entity garbage collection metadata is present, generated API process config also
-controls whether API-hosted GC workers are started. API-only deployments can leave this
-enabled; mixed API + Worker deployments should disable it when Worker is the selected GC
-host.
+If entity garbage collection metadata is present, generated API startup registers one
+GC task per generated entity GC descriptor before `start()`. `ApiProcess` owns the
+background lifecycle after that point. API-only deployments can leave API GC enabled;
+mixed API + Worker deployments should disable it when Worker is the selected GC host.
 
 ## External System Client Extension Point
 
@@ -261,9 +261,10 @@ Use workflow step handlers for business logic. Production adapters may wrap or r
 the generated process entrypoint, but persisted StateSpec resources must still be
 accessed through generated backend transaction interfaces.
 
-Worker runtime config controls whether Worker-hosted entity GC workers are started.
-Worker-only deployments can leave this enabled; mixed deployments should enable GC on
-only one tier.
+Generated Worker startup registers one GC task per generated entity GC descriptor
+before `WorkerProcess.start()`. `WorkerRuntime` stores those tasks and `WorkerProcess`
+owns their lifecycle. Worker-only deployments can leave GC enabled; mixed deployments
+should enable GC on only one tier.
 
 See [worker-process-lifecycle.md](worker-process-lifecycle.md) for the cross-language
 Worker process contract.

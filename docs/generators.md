@@ -123,6 +123,7 @@ Typed runtime artifacts are generated only when used by the spec or generated ap
 | `runtime_entity_gc_descriptors` | Shared entity GC descriptors derived from terminal state metadata |
 | `runtime_entity_gc_repository` | Backend-neutral transactional repository contract for GC scans/finalization |
 | `runtime_entity_gc_workers` | Shared low-resource entity GC workers composed by API and Worker apps |
+| `runtime_entity_gc_registration` | Common helper that registers one GC task per generated descriptor |
 
 Entity GC runtime artifacts are common-tier artifacts. API and Worker apps may both
 compose them, and deployments should configure which tier hosts GC when both are
@@ -134,7 +135,8 @@ Runtime domain dependencies must follow the acyclic table in
 [runtime-store-contract.md](runtime-store-contract.md). Workflows may use queues,
 leases, feature flags, logs, metrics, and workflows, but queue, lease, feature flag,
 observability, and GC implementations must not depend on workflows. Entity GC must use
-only the generic OCC backend/transaction boundary.
+only the generic OCC backend/transaction boundary and must not introduce a scheduler
+abstraction in the baseline generated runtime.
 
 The API application artifact responsibilities are:
 
