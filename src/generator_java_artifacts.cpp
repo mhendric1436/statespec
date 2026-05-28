@@ -26,6 +26,7 @@ namespace
 
 std::string java_api_default_handler_shape_import(const IrSystem& system);
 std::string java_api_shape_import(const IrSystem& system);
+std::filesystem::path java_api_generated_path(std::string_view filename);
 void add_java_raw_api_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -790,6 +791,62 @@ std::filesystem::path java_api_codec_shape_path(std::string_view shape_name)
            (java_api_codec_shape_class_name(shape_name) + ".java");
 }
 
+std::filesystem::path java_entity_api_codec_path(std::string_view entity_name)
+{
+    return java_api_generated_path("entities") / snake_identifier(std::string{entity_name}) /
+           "Codecs.java";
+}
+
+bool java_api_has_non_entity_codec_shapes(const IrSystem& system)
+{
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        if (!java_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string java_api_codec_imports(const IrSystem& system)
+{
+    return java_api_has_non_entity_codec_shapes(system)
+               ? "import com.statespec.generated.codecs.*;\n"
+               : "";
+}
+
+IrSystem with_codec_shapes_apis(
+    const IrSystem& system,
+    const std::vector<IrShape>& shapes
+)
+{
+    auto filtered = system;
+    filtered.apis.clear();
+    std::set<std::string> shape_names;
+    for (const auto& shape : shapes)
+    {
+        shape_names.insert(shape.name);
+    }
+    for (const auto& api : system.apis)
+    {
+        IrApi scoped = api;
+        if (!scoped.input.has_value() || shape_names.count(*scoped.input) == 0)
+        {
+            scoped.input.reset();
+        }
+        if (!scoped.output.has_value() || shape_names.count(*scoped.output) == 0)
+        {
+            scoped.output.reset();
+        }
+        if (scoped.input.has_value() || scoped.output.has_value())
+        {
+            filtered.apis.push_back(std::move(scoped));
+        }
+    }
+    return filtered;
+}
+
 std::string java_api_codec_shape_file(
     const IrSystem& system,
     const IrShape& shape
@@ -813,13 +870,41 @@ std::string java_api_codec_shape_file(
     return out.str();
 }
 
+std::string java_entity_api_codec_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = java_entity_api_shapes(system, entity.name);
+    const auto filtered = with_codec_shapes_apis(system, shapes);
+    std::ostringstream out;
+    out << "package com.statespec.generated.entities." << snake_identifier(entity.name) << ";\n\n";
+    out << "import static com.statespec.generated.ApiCodecs.*;\n";
+    out << "import static com.statespec.generated.entities." << snake_identifier(entity.name)
+        << ".Shapes.*;\n";
+    out << "import com.statespec.backend.Json;\n";
+    out << "import com.statespec.generated.ApiRequestContext;\n";
+    out << "import com.statespec.generated.ApiResponse;\n";
+    out << "import java.util.Map;\n";
+    out << "import java.util.Optional;\n";
+    out << "import java.util.TreeMap;\n\n";
+    out << "public final class Codecs {\n";
+    out << "    private Codecs() {}\n\n";
+    out << generate_api_codec_operations_java(filtered);
+    out << "}\n";
+    return out.str();
+}
+
 std::string java_api_codec_delegates(const IrSystem& system)
 {
     std::ostringstream out;
     for (const auto& shape : api_codec_shapes(system))
     {
         const auto filtered = with_codec_shape_apis(system, shape.name);
-        const auto class_name = java_api_codec_shape_class_name(shape.name);
+        const auto owner = java_entity_api_shape_owner(system, shape.name);
+        const auto class_name = owner.has_value() ? "com.statespec.generated.entities." +
+                                                        snake_identifier(*owner) + ".Codecs"
+                                                  : java_api_codec_shape_class_name(shape.name);
         for (const auto& api : filtered.apis)
         {
             if (api.input.has_value())
@@ -3099,6 +3184,7 @@ void add_java_api_artifacts(
         result, options, templates, java_api_generated_path("ApiCodecs.java"),
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
+            {"api_codec_imports", java_api_codec_imports(system)},
             {"api_shape_import", java_api_shape_import(system)},
             {"api_codec_helpers", generate_api_codec_helpers_java()},
             {"api_codec_delegates", java_api_codec_delegates(system)}
@@ -3106,9 +3192,24 @@ void add_java_api_artifacts(
     );
     for (const auto& shape : api_codec_shapes(system))
     {
+        if (java_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         add_java_raw_api_file(
             result, options, java_api_codec_shape_path(shape.name),
             java_api_codec_shape_file(system, shape)
+        );
+    }
+    for (const auto& entity : system.entities)
+    {
+        if (java_entity_api_shapes(system, entity.name).empty())
+        {
+            continue;
+        }
+        add_java_raw_api_file(
+            result, options, java_entity_api_codec_path(entity.name),
+            java_entity_api_codec_file(system, entity)
         );
     }
     add_java_generated_template_file(

@@ -8,6 +8,7 @@
 #include "generator_support.hpp"
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
+#include "string_utils.hpp"
 #include "type_syntax.hpp"
 
 #include <algorithm>
@@ -23,6 +24,18 @@ namespace statespec
 
 namespace
 {
+
+std::string replace_all_copy(
+    std::string value,
+    std::string_view from,
+    std::string_view to
+);
+
+std::string go_exported_api_codec_operations(
+    std::string content,
+    std::string_view helper_package,
+    bool strip_shape_package
+);
 
 TemplateRenderer::Values go_makefile_values(
     BindingGenerationTier tier,
@@ -869,14 +882,92 @@ IrSystem with_codec_shape_apis(
     return filtered;
 }
 
+IrSystem with_codec_shapes_apis(
+    const IrSystem& system,
+    const std::vector<IrShape>& shapes
+)
+{
+    auto filtered = system;
+    filtered.apis.clear();
+    std::set<std::string> shape_names;
+    for (const auto& shape : shapes)
+    {
+        shape_names.insert(shape.name);
+    }
+    for (const auto& api : system.apis)
+    {
+        IrApi scoped = api;
+        if (!scoped.input.has_value() || shape_names.count(*scoped.input) == 0)
+        {
+            scoped.input.reset();
+        }
+        if (!scoped.output.has_value() || shape_names.count(*scoped.output) == 0)
+        {
+            scoped.output.reset();
+        }
+        if (scoped.input.has_value() || scoped.output.has_value())
+        {
+            filtered.apis.push_back(std::move(scoped));
+        }
+    }
+    return filtered;
+}
+
 std::string go_api_codec_shape_path(std::string_view shape_name)
 {
     return "api/backend/codecs/" + snake_identifier(std::string{shape_name}) + ".go";
 }
 
+std::string go_entity_api_codec_path(std::string_view entity_name)
+{
+    return "api/backend/entities/" + snake_identifier(std::string{entity_name}) + "/codecs.go";
+}
+
 std::string go_api_codec_support_path()
 {
-    return "api/backend/codecs/api_codecs.go";
+    return "api/backend/codecsupport/api_codecs.go";
+}
+
+bool go_api_has_non_entity_codec_shapes(const IrSystem& system)
+{
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        if (!go_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string go_api_codec_imports(const IrSystem& system)
+{
+    std::ostringstream out;
+    if (go_api_has_non_entity_codec_shapes(system))
+    {
+        out << "\tcodecs \"statespec-generated/api/backend/codecs\"\n";
+    }
+    std::set<std::string> imported_entities;
+    for (const auto& shape : api_codec_shapes(system))
+    {
+        const auto owner = go_entity_api_shape_owner(system, shape.name);
+        if (owner.has_value() && imported_entities.insert(*owner).second)
+        {
+            out << "\t" << snake_identifier(*owner)
+                << " \"statespec-generated/api/backend/entities/" << snake_identifier(*owner)
+                << "\"\n";
+        }
+    }
+    return out.str();
+}
+
+std::string go_api_codec_delegate_package(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    const auto owner = go_entity_api_shape_owner(system, shape_name);
+    return owner.has_value() ? snake_identifier(*owner) : "codecs";
 }
 
 std::string go_api_codec_shape_file(
@@ -889,21 +980,89 @@ std::string go_api_codec_shape_file(
     out << "package codecs\n\n";
     out << "import (\n";
     out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << "\tcodecsupport \"statespec-generated/api/backend/codecsupport\"\n";
     out << go_api_shape_import(filtered);
     out << ")\n\n";
-    out << generate_api_codec_operations_go(filtered);
+    out << go_exported_api_codec_operations(
+        generate_api_codec_operations_go(filtered), "codecsupport", false
+    );
+    return out.str();
+}
+
+std::string go_exported_api_codec_operations(
+    std::string content,
+    std::string_view helper_package,
+    bool strip_shape_package
+)
+{
+    const auto prefix = std::string{helper_package} + ".";
+    content = replace_all_copy(content, "requireMember", prefix + "RequireMember");
+    content = replace_all_copy(content, "decodeString", prefix + "DecodeString");
+    content = replace_all_copy(content, "decodeBool", prefix + "DecodeBool");
+    content = replace_all_copy(content, "decodeInt64", prefix + "DecodeInt64");
+    content = replace_all_copy(content, "decodeInt32", prefix + "DecodeInt32");
+    content = replace_all_copy(content, "decodeFloat64", prefix + "DecodeFloat64");
+    content = replace_all_copy(content, "decodeJSON", prefix + "DecodeJSON");
+    content = replace_all_copy(content, "mustJSONFloat", prefix + "MustJSONFloat");
+    if (strip_shape_package)
+    {
+        content = replace_all_copy(content, "shapes.", "");
+    }
+    return content;
+}
+
+std::string go_entity_api_codec_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = go_entity_api_shapes(system, entity.name);
+    const auto filtered = with_codec_shapes_apis(system, shapes);
+    std::ostringstream out;
+    out << "package " << snake_identifier(entity.name) << "\n\n";
+    out << "import (\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << "\tcodecsupport \"statespec-generated/api/backend/codecsupport\"\n";
+    out << ")\n\n";
+    out << go_exported_api_codec_operations(
+        generate_api_codec_operations_go(filtered), "codecsupport", true
+    );
     return out.str();
 }
 
 std::string go_api_codec_support_file()
 {
     std::ostringstream out;
-    out << "package codecs\n\n";
+    out << "package codecsupport\n\n";
     out << "import (\n";
     out << "\t\"fmt\"\n\n";
     out << "\tcommon \"statespec-generated/common/backend\"\n";
     out << ")\n\n";
     out << generate_api_codec_helpers_go();
+    out << "func RequireMember(value common.JSON, fieldName string) (common.JSON, error) {\n";
+    out << "\treturn requireMember(value, fieldName)\n";
+    out << "}\n\n";
+    out << "func DecodeString(value common.JSON, fieldName string) (string, error) {\n";
+    out << "\treturn decodeString(value, fieldName)\n";
+    out << "}\n\n";
+    out << "func DecodeBool(value common.JSON, fieldName string) (bool, error) {\n";
+    out << "\treturn decodeBool(value, fieldName)\n";
+    out << "}\n\n";
+    out << "func DecodeInt64(value common.JSON, fieldName string) (int64, error) {\n";
+    out << "\treturn decodeInt64(value, fieldName)\n";
+    out << "}\n\n";
+    out << "func DecodeInt32(value common.JSON, fieldName string) (int32, error) {\n";
+    out << "\treturn decodeInt32(value, fieldName)\n";
+    out << "}\n\n";
+    out << "func DecodeFloat64(value common.JSON, fieldName string) (float64, error) {\n";
+    out << "\treturn decodeFloat64(value, fieldName)\n";
+    out << "}\n\n";
+    out << "func DecodeJSON(value common.JSON, fieldName string) (common.JSON, error) {\n";
+    out << "\treturn decodeJSON(value, fieldName)\n";
+    out << "}\n\n";
+    out << "func MustJSONFloat(value float64) common.JSON {\n";
+    out << "\treturn mustJSONFloat(value)\n";
+    out << "}\n\n";
     return out.str();
 }
 
@@ -932,8 +1091,8 @@ std::string go_api_codec_delegates(const IrSystem& system)
                 out << "func Decode" << pascal_identifier(api.name)
                     << "Request(request common.APIRequestContext) (shapes."
                     << pascal_identifier(shape->name) << ", error) {\n";
-                out << "\treturn codecs.Decode" << pascal_identifier(api.name)
-                    << "Request(request)\n";
+                out << "\treturn " << go_api_codec_delegate_package(system, shape->name)
+                    << ".Decode" << pascal_identifier(api.name) << "Request(request)\n";
                 out << "}\n\n";
             }
         }
@@ -945,24 +1104,25 @@ std::string go_api_codec_delegates(const IrSystem& system)
                 out << "func Decode" << pascal_identifier(api.name)
                     << "Response(response common.APIResponse) (shapes."
                     << pascal_identifier(shape->name) << ", error) {\n";
-                out << "\treturn codecs.Decode" << pascal_identifier(api.name)
-                    << "Response(response)\n";
+                out << "\treturn " << go_api_codec_delegate_package(system, shape->name)
+                    << ".Decode" << pascal_identifier(api.name) << "Response(response)\n";
                 out << "}\n\n";
                 out << "func Decode" << pascal_identifier(api.name)
                     << "ResponseBody(request common.APIRequestContext) (shapes."
                     << pascal_identifier(shape->name) << ", error) {\n";
-                out << "\treturn codecs.Decode" << pascal_identifier(api.name)
-                    << "ResponseBody(request)\n";
+                out << "\treturn " << go_api_codec_delegate_package(system, shape->name)
+                    << ".Decode" << pascal_identifier(api.name) << "ResponseBody(request)\n";
                 out << "}\n\n";
                 out << "func Encode" << pascal_identifier(api.name) << "Response(response shapes."
                     << pascal_identifier(shape->name) << ") common.APIResponse {\n";
-                out << "\treturn codecs.Encode" << pascal_identifier(api.name)
-                    << "Response(response)\n";
+                out << "\treturn " << go_api_codec_delegate_package(system, shape->name)
+                    << ".Encode" << pascal_identifier(api.name) << "Response(response)\n";
                 out << "}\n\n";
                 out << "func Encode" << pascal_identifier(api.name)
                     << "ResponseWithStatus(response shapes." << pascal_identifier(shape->name)
                     << ", statusCode int) common.APIResponse {\n";
-                out << "\treturn codecs.Encode" << pascal_identifier(api.name)
+                out << "\treturn " << go_api_codec_delegate_package(system, shape->name)
+                    << ".Encode" << pascal_identifier(api.name)
                     << "ResponseWithStatus(response, statusCode)\n";
                 out << "}\n\n";
             }
@@ -2745,15 +2905,31 @@ void add_go_api_artifacts(
         TemplateRenderer::Values{
             {"api_codec_helpers", generate_api_codec_helpers_go()},
             {"api_shape_import", go_api_shape_import(system)},
+            {"api_codec_imports", go_api_codec_imports(system)},
             {"api_codec_delegates", go_api_codec_delegates(system)}
         }
     );
     add_go_raw_api_file(result, options, go_api_codec_support_path(), go_api_codec_support_file());
     for (const auto& shape : api_codec_shapes(system))
     {
+        if (go_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         add_go_raw_api_file(
             result, options, go_api_codec_shape_path(shape.name),
             go_api_codec_shape_file(system, shape)
+        );
+    }
+    for (const auto& entity : system.entities)
+    {
+        if (go_entity_api_shapes(system, entity.name).empty())
+        {
+            continue;
+        }
+        add_go_raw_api_file(
+            result, options, go_entity_api_codec_path(entity.name),
+            go_entity_api_codec_file(system, entity)
         );
     }
     add_go_generated_template_file(

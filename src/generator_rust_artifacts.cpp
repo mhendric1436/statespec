@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string_view>
 #include <utility>
@@ -907,11 +908,63 @@ std::string rust_api_codec_shape_path(std::string_view shape_name)
     return "api/codecs/" + snake_identifier(std::string{shape_name}) + ".rs";
 }
 
-std::string rust_api_codec_modules(const std::vector<IrShape>& shapes)
+std::string rust_entity_api_codec_path(std::string_view entity_name)
 {
-    std::ostringstream out;
+    return "api/entities/" + snake_identifier(std::string{entity_name}) + "/codecs.rs";
+}
+
+IrSystem with_codec_shapes_apis(
+    const IrSystem& system,
+    const std::vector<IrShape>& shapes
+)
+{
+    auto filtered = system;
+    filtered.apis.clear();
+    std::set<std::string> shape_names;
     for (const auto& shape : shapes)
     {
+        shape_names.insert(shape.name);
+    }
+    for (const auto& api : system.apis)
+    {
+        IrApi scoped = api;
+        if (!scoped.input.has_value() || shape_names.count(*scoped.input) == 0)
+        {
+            scoped.input.reset();
+        }
+        if (!scoped.output.has_value() || shape_names.count(*scoped.output) == 0)
+        {
+            scoped.output.reset();
+        }
+        if (scoped.input.has_value() || scoped.output.has_value())
+        {
+            filtered.apis.push_back(std::move(scoped));
+        }
+    }
+    return filtered;
+}
+
+std::string rust_api_codec_modules(
+    const IrSystem& system,
+    const std::vector<IrShape>& shapes
+)
+{
+    std::ostringstream out;
+    std::set<std::string> included_entities;
+    for (const auto& shape : shapes)
+    {
+        const auto owner = rust_entity_api_shape_owner(system, shape.name);
+        if (owner.has_value())
+        {
+            if (included_entities.insert(*owner).second)
+            {
+                const auto module_name = "api_codecs_entity_" + snake_identifier(*owner);
+                out << "#[path = \"entities/" << snake_identifier(*owner) << "/codecs.rs\"]\n";
+                out << "mod " << module_name << ";\n";
+                out << "pub use " << module_name << "::*;\n";
+            }
+            continue;
+        }
         out << "#[path = \"codecs/" << snake_identifier(shape.name) << ".rs\"]\n";
         out << "mod " << rust_api_codec_shape_module_name(shape.name) << ";\n";
         out << "pub use " << rust_api_codec_shape_module_name(shape.name) << "::*;\n";
@@ -927,6 +980,25 @@ std::string rust_api_codec_shape_file(
     const auto filtered = with_codec_shape_apis(system, shape.name);
     std::ostringstream out;
     out << "use super::*;\n\n";
+    out << generate_api_codec_operations_rs(filtered);
+    return out.str();
+}
+
+std::string rust_entity_api_codec_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = rust_entity_api_shapes(system, entity.name);
+    const auto filtered = with_codec_shapes_apis(system, shapes);
+    std::ostringstream out;
+    out << "use crate::api_shapes::entity_" << snake_identifier(entity.name)
+        << "_shapes as shapes;\n";
+    out << "use crate::api_codecs::*;\n";
+    out << "use crate::backend::{BackendError, BackendResult};\n";
+    out << "use crate::descriptor_types::{ApiRequestContext, ApiResponse};\n";
+    out << "use crate::json::Json;\n";
+    out << "use std::collections::BTreeMap;\n\n";
     out << generate_api_codec_operations_rs(filtered);
     return out.str();
 }
@@ -2425,16 +2497,31 @@ void add_rust_api_artifacts(
     add_rust_generated_template_file(
         result, options, templates, "api/api_codecs.rs", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_codec_modules", rust_api_codec_modules(api_codec_shapes(system))},
+            {"api_codec_modules", rust_api_codec_modules(system, api_codec_shapes(system))},
             {"api_codec_helpers", generate_api_codec_helpers_rs()},
             {"api_shape_import", rust_api_shape_import(system)}
         }
     );
     for (const auto& shape : api_codec_shapes(system))
     {
+        if (rust_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         add_rust_raw_api_file(
             result, options, rust_api_codec_shape_path(shape.name),
             rust_api_codec_shape_file(system, shape)
+        );
+    }
+    for (const auto& entity : system.entities)
+    {
+        if (rust_entity_api_shapes(system, entity.name).empty())
+        {
+            continue;
+        }
+        add_rust_raw_api_file(
+            result, options, rust_entity_api_codec_path(entity.name),
+            rust_entity_api_codec_file(system, entity)
         );
     }
     add_rust_generated_template_file(

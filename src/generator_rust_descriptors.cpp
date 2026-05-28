@@ -1137,10 +1137,11 @@ std::string generate_api_operation_default_handler_domain_methods_rs(const IrSys
 std::string generate_api_codec_helpers_rs()
 {
     std::ostringstream out;
-    out << "fn codec_error(message: impl Into<String>) -> BackendError {\n";
+    out << "pub(crate) fn codec_error(message: impl Into<String>) -> BackendError {\n";
     out << "    BackendError::Unsupported { message: message.into() }\n";
     out << "}\n\n";
-    out << "fn require_member<'a>(value: &'a Json, field_name: &str) -> BackendResult<&'a Json> "
+    out << "pub(crate) fn require_member<'a>(value: &'a Json, field_name: &str) -> "
+           "BackendResult<&'a Json> "
            "{\n";
     out << "    match value.find(field_name) {\n";
     out << "        Some(Json::Null) | None => Err(codec_error(format!(\"missing required API "
@@ -1148,28 +1149,29 @@ std::string generate_api_codec_helpers_rs()
     out << "        Some(member) => Ok(member),\n";
     out << "    }\n";
     out << "}\n\n";
-    out << "fn decode_string(value: &Json, field_name: &str) -> BackendResult<String> {\n";
+    out << "pub(crate) fn decode_string(value: &Json, field_name: &str) -> BackendResult<String> "
+           "{\n";
     out << "    match value { Json::String(value) => Ok(value.clone()), _ => "
            "Err(codec_error(format!(\"API field {} must be a string\", field_name))) }\n";
     out << "}\n\n";
-    out << "fn decode_bool(value: &Json, field_name: &str) -> BackendResult<bool> {\n";
+    out << "pub(crate) fn decode_bool(value: &Json, field_name: &str) -> BackendResult<bool> {\n";
     out << "    match value { Json::Bool(value) => Ok(*value), _ => Err(codec_error(format!(\"API "
            "field {} must be a bool\", field_name))) }\n";
     out << "}\n\n";
-    out << "fn decode_i64(value: &Json, field_name: &str) -> BackendResult<i64> {\n";
+    out << "pub(crate) fn decode_i64(value: &Json, field_name: &str) -> BackendResult<i64> {\n";
     out << "    match value { Json::Integer(value) => Ok(*value), _ => "
            "Err(codec_error(format!(\"API field {} must be an integer\", field_name))) }\n";
     out << "}\n\n";
-    out << "fn decode_i32(value: &Json, field_name: &str) -> BackendResult<i32> {\n";
+    out << "pub(crate) fn decode_i32(value: &Json, field_name: &str) -> BackendResult<i32> {\n";
     out << "    i32::try_from(decode_i64(value, field_name)?).map_err(|_| "
            "codec_error(format!(\"API field {} exceeds i32 range\", field_name)))\n";
     out << "}\n\n";
-    out << "fn decode_f64(value: &Json, field_name: &str) -> BackendResult<f64> {\n";
+    out << "pub(crate) fn decode_f64(value: &Json, field_name: &str) -> BackendResult<f64> {\n";
     out << "    match value { Json::Decimal(value) => Ok(*value), Json::Integer(value) => "
            "Ok(*value as f64), _ => Err(codec_error(format!(\"API field {} must be a number\", "
            "field_name))) }\n";
     out << "}\n\n";
-    out << "fn decode_json(value: &Json, _field_name: &str) -> BackendResult<Json> {\n";
+    out << "pub(crate) fn decode_json(value: &Json, _field_name: &str) -> BackendResult<Json> {\n";
     out << "    Ok(value.clone())\n";
     out << "}\n\n";
     return out.str();

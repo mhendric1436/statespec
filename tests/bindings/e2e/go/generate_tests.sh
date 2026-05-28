@@ -31,11 +31,11 @@ api/backend/api_process.go
 api/backend/api_routes.go
 api/backend/api_server.go
 api/backend/api_transport.go
-api/backend/codecs/api_codecs.go
 api/backend/codecs/provision_callback_request.go
 api/backend/codecs/provision_callback_response.go
 api/backend/codecs/start_provision_request.go
 api/backend/codecs/start_provision_response.go
+api/backend/codecsupport/api_codecs.go
 api/backend/descriptors/catalog.go
 api/backend/descriptors/report_provision_ready.go
 api/backend/descriptors/start_provision.go
@@ -162,9 +162,13 @@ assert_file_contains "$TMPDIR/out-api-entities-go/common/entities/account/model.
 assert_file_contains "$TMPDIR/out-api-entities-go/common/entities/account/model.go" "{Name: AccountFieldCreatedAt, Type: backend.FieldTypeTimestamp, TypeName: AccountFieldCreatedAtTypeName, Required: true}"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/entities/account/model.go" "{Name: AccountFieldStatus, Type: backend.FieldTypeString, TypeName: AccountFieldStatusTypeName, Required: true}"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/account/shapes.go"
+assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/account/codecs.go"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/project/shapes.go"
+assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/project/codecs.go"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/task/shapes.go"
+assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/task/codecs.go"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/shapes.go" "type CreateAccountRequest struct"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/codecs.go" "func DecodeCreateAccountRequest"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/shapes.go" "type AccountResponse struct"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/shapes/entities.go" "type CreateAccountRequest = account.CreateAccountRequest"
 assert_file_not_exists "$TMPDIR/out-api-entities-go/api/backend/shapes/create_account_request.go"

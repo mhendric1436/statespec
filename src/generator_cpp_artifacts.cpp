@@ -869,12 +869,58 @@ std::string cpp_api_codec_shape_path(std::string_view shape_name)
     return "api/codecs/" + snake_identifier(std::string{shape_name}) + ".hpp";
 }
 
-std::string cpp_api_codec_includes(const std::vector<IrShape>& shapes)
+std::string cpp_entity_api_codec_path(std::string_view entity_name)
+{
+    return "api/entities/" + snake_identifier(std::string{entity_name}) + "/codecs.hpp";
+}
+
+IrSystem with_codec_shapes_apis(
+    const IrSystem& system,
+    const std::vector<IrShape>& shapes
+)
+{
+    auto filtered = system;
+    filtered.apis.clear();
+    std::set<std::string> shape_names;
+    for (const auto& shape : shapes)
+    {
+        shape_names.insert(shape.name);
+    }
+    for (const auto& api : system.apis)
+    {
+        IrApi scoped = api;
+        if (!scoped.input.has_value() || shape_names.count(*scoped.input) == 0)
+        {
+            scoped.input.reset();
+        }
+        if (!scoped.output.has_value() || shape_names.count(*scoped.output) == 0)
+        {
+            scoped.output.reset();
+        }
+        if (scoped.input.has_value() || scoped.output.has_value())
+        {
+            filtered.apis.push_back(std::move(scoped));
+        }
+    }
+    return filtered;
+}
+
+std::string cpp_api_codec_includes(const IrSystem& system)
 {
     std::ostringstream out;
     out << "#include \"api_codec_support.hpp\"\n";
-    for (const auto& shape : shapes)
+    std::set<std::string> included_entities;
+    for (const auto& shape : api_codec_shapes(system))
     {
+        const auto owner = entity_api_shape_owner(system, shape.name);
+        if (owner.has_value())
+        {
+            if (included_entities.insert(*owner).second)
+            {
+                out << "#include \"entities/" << snake_identifier(*owner) << "/codecs.hpp\"\n";
+            }
+            continue;
+        }
         out << "#include \"codecs/" << snake_identifier(shape.name) << ".hpp\"\n";
     }
     return out.str();
@@ -888,7 +934,26 @@ std::string cpp_api_codec_shape_file(
     const auto filtered = with_codec_shape_apis(system, shape.name);
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"../api_codec_support.hpp\"\n\n";
+    out << "#include \"../api_codec_support.hpp\"\n";
+    out << "#include \"../shapes/" << snake_identifier(shape.name) << ".hpp\"\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << generate_api_codec_operations(filtered);
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
+std::string cpp_entity_api_codec_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = entity_api_shapes(system, entity.name);
+    const auto filtered = with_codec_shapes_apis(system, shapes);
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../api_codec_support.hpp\"\n";
+    out << "#include \"shapes.hpp\"\n\n";
     out << "namespace statespec_generated::api\n";
     out << "{\n\n";
     out << generate_api_codec_operations(filtered);
@@ -2811,9 +2876,7 @@ void add_cpp_api_artifacts(
     );
     add_cpp_generated_template_file(
         result, options, templates, "api/api_codecs.hpp", GeneratedArtifactTier::Api, diagnostics,
-        TemplateRenderer::Values{
-            {"api_codec_includes", cpp_api_codec_includes(api_codec_shapes(system))}
-        }
+        TemplateRenderer::Values{{"api_codec_includes", cpp_api_codec_includes(system)}}
     );
     add_cpp_generated_template_file(
         result, options, templates, "api/api_codec_support.hpp", GeneratedArtifactTier::Api,
@@ -2826,9 +2889,24 @@ void add_cpp_api_artifacts(
     );
     for (const auto& shape : api_codec_shapes(system))
     {
+        if (entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         add_cpp_raw_api_file(
             result, options, cpp_api_codec_shape_path(shape.name),
             cpp_api_codec_shape_file(system, shape)
+        );
+    }
+    for (const auto& entity : system.entities)
+    {
+        if (entity_api_shapes(system, entity.name).empty())
+        {
+            continue;
+        }
+        add_cpp_raw_api_file(
+            result, options, cpp_entity_api_codec_path(entity.name),
+            cpp_entity_api_codec_file(system, entity)
         );
     }
     add_cpp_generated_template_file(
