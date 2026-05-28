@@ -131,6 +131,14 @@ void require_crud_contract_failure(
     );
 }
 
+void require_all_binding_generators_reject_crud_contract(const statespec::IrSystem& system)
+{
+    require_crud_contract_failure(statespec::BindingLanguage::Cpp, system);
+    require_crud_contract_failure(statespec::BindingLanguage::Go, system);
+    require_crud_contract_failure(statespec::BindingLanguage::Java, system);
+    require_crud_contract_failure(statespec::BindingLanguage::Rust, system);
+}
+
 void test_binding_generators_reject_partial_crud_metadata()
 {
     auto system = crud_contract_system();
@@ -150,10 +158,7 @@ void test_binding_generators_reject_partial_crud_metadata()
         }
     );
 
-    require_crud_contract_failure(statespec::BindingLanguage::Cpp, system);
-    require_crud_contract_failure(statespec::BindingLanguage::Go, system);
-    require_crud_contract_failure(statespec::BindingLanguage::Java, system);
-    require_crud_contract_failure(statespec::BindingLanguage::Rust, system);
+    require_all_binding_generators_reject_crud_contract(system);
 }
 
 void test_binding_generators_reject_missing_crud_shapes()
@@ -175,7 +180,7 @@ void test_binding_generators_reject_missing_crud_shapes()
         }
     );
 
-    require_crud_contract_failure(statespec::BindingLanguage::Cpp, system);
+    require_all_binding_generators_reject_crud_contract(system);
 }
 
 void test_binding_generators_reject_list_selector_without_route_parameters()
@@ -197,7 +202,7 @@ void test_binding_generators_reject_list_selector_without_route_parameters()
         }
     );
 
-    require_crud_contract_failure(statespec::BindingLanguage::Cpp, system);
+    require_all_binding_generators_reject_crud_contract(system);
 }
 
 } // namespace
