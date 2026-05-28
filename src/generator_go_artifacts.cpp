@@ -973,6 +973,41 @@ std::string go_api_entity_gc_catalog_file(const IrSystem& system)
     return out.str();
 }
 
+std::string go_worker_entity_gc_catalog_file(const IrSystem& system)
+{
+    std::ostringstream imports;
+    std::ostringstream descriptor_calls;
+    for (const auto& entity : system.entities)
+    {
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
+        if (!entity_uses_gc)
+        {
+            continue;
+        }
+        imports << "\t" << snake_identifier(entity.name)
+                << " \"statespec-generated/common/entities/" << snake_identifier(entity.name)
+                << "\"\n";
+        descriptor_calls << "\t\t" << snake_identifier(entity.name) << "."
+                         << pascal_identifier(entity.name) << "EntityGCDescriptor(),\n";
+    }
+
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\truntime \"statespec-generated/common/backend/runtime\"\n";
+    out << imports.str();
+    out << ")\n\n";
+    out << "func WorkerEntityGCDescriptors() []runtime.EntityGCDescriptor {\n";
+    out << "\treturn []runtime.EntityGCDescriptor{\n";
+    out << descriptor_calls.str();
+    out << "\t}\n";
+    out << "}\n";
+    return out.str();
+}
+
 TemplateRenderer::Values go_api_main_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
@@ -1010,10 +1045,10 @@ TemplateRenderer::Values go_worker_main_values(const IrSystem& system)
         {"worker_main_entity_gc_import",
          "\truntimegc \"statespec-generated/common/backend/runtime\"\n"},
         {"worker_main_entity_gc_registration",
-         "\tif err := runtimegc.RegisterEntityGCWorkers(func(gcWorker func(context.Context, "
-         "string) error) error {\n"
+         "\tif err := runtimegc.RegisterEntityGCWorkersForDescriptors(func(gcWorker "
+         "func(context.Context, string) error) error {\n"
          "\t\treturn runtime.AddEntityGCWorker(worker.WorkerEntityGCWorkerFunc(gcWorker))\n"
-         "\t}, backend); err != nil {\n"
+         "\t}, backend, worker.WorkerEntityGCDescriptors()); err != nil {\n"
          "\t\tfmt.Fprintf(os.Stderr, \"statespec generated Worker process failed: %v\\n\", err)\n"
          "\t\tos.Exit(1)\n"
          "\t}\n\n"},
@@ -2537,6 +2572,13 @@ void add_go_worker_artifacts(
             result, options, templates, "worker/backend/worker_runtime.go",
             GeneratedArtifactTier::Worker, diagnostics, go_worker_runtime_bootstrap_values(system)
         );
+        if (usage.uses_entity_gc)
+        {
+            add_go_raw_worker_file(
+                result, options, "worker/backend/entity_gc_catalog.go",
+                go_worker_entity_gc_catalog_file(system)
+            );
+        }
         add_go_generated_template_file(
             result, options, templates, "worker/cmd/worker/main.go", GeneratedArtifactTier::Worker,
             diagnostics, go_worker_main_values(system)

@@ -149,6 +149,7 @@ common/com/statespec/generated/workflows/ProvisionServiceDescriptorModule.java
 worker/com/statespec/generated/WorkerApplication.java
 worker/com/statespec/generated/WorkerContexts.java
 worker/com/statespec/generated/WorkerDescriptors.java
+worker/com/statespec/generated/WorkerEntityGcCatalog.java
 worker/com/statespec/generated/WorkerLeases.java
 worker/com/statespec/generated/WorkerMain.java
 worker/com/statespec/generated/WorkerProcess.java
@@ -239,6 +240,7 @@ run_expect_status 0 "$CLI" generate bindings --lang java "$WORKFLOW_ENTITY_SPEC"
 assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/ApiMain.java"
 assert_file_contains "$TMPDIR/out-workflow-entities-java/worker/com/statespec/generated/WorkerMain.java" "import com.statespec.backend.runtime.EntityGcRegistration"
 assert_file_contains "$TMPDIR/out-workflow-entities-java/worker/com/statespec/generated/WorkerMain.java" "EntityGcRegistration.registerEntityGcWorkers"
+assert_file_contains "$TMPDIR/out-workflow-entities-java/worker/com/statespec/generated/WorkerMain.java" "WorkerEntityGcCatalog.descriptors()"
 assert_file_contains "$TMPDIR/out-workflow-entities-java/worker/com/statespec/generated/WorkerMain.java" "runtime.addEntityGcWorker"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
@@ -304,6 +306,8 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Worker
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkerProcess"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkflowStepHandlers.DefaultHandler"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "EntityGcRegistration.registerEntityGcWorkers"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkerEntityGcCatalog.descriptors()"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerEntityGcCatalog.java" "entities.service_instance.Gc.descriptor()"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "addShutdownHook"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "process.start()"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "process.join()"

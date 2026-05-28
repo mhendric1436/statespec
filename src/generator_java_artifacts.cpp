@@ -1116,6 +1116,47 @@ std::string java_api_entity_gc_catalog_file(const IrSystem& system)
     return out.str();
 }
 
+std::string java_worker_entity_gc_catalog_file(const IrSystem& system)
+{
+    std::vector<std::string> descriptor_calls;
+    for (const auto& entity : system.entities)
+    {
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
+        if (!entity_uses_gc)
+        {
+            continue;
+        }
+        descriptor_calls.push_back(
+            "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Gc.descriptor()"
+        );
+    }
+
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import com.statespec.backend.runtime.EntityGcTypes;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class WorkerEntityGcCatalog {\n";
+    out << "    private WorkerEntityGcCatalog() {}\n\n";
+    out << "    public static List<EntityGcTypes.Descriptor> descriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t i = 0; i < descriptor_calls.size(); ++i)
+    {
+        out << "            " << descriptor_calls[i];
+        if (i + 1 < descriptor_calls.size())
+        {
+            out << ",";
+        }
+        out << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 TemplateRenderer::Values java_api_main_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
@@ -1152,7 +1193,8 @@ TemplateRenderer::Values java_worker_main_values(const IrSystem& system)
          "import com.statespec.backend.runtime.EntityGcRegistration;\n"},
         {"worker_main_entity_gc_registration",
          "            EntityGcRegistration.registerEntityGcWorkers(\n"
-         "                task -> runtime.addEntityGcWorker(task::run), backend\n"
+         "                task -> runtime.addEntityGcWorker(task::run), backend, "
+         "WorkerEntityGcCatalog.descriptors()\n"
          "            );\n\n"},
     };
 }
@@ -2955,6 +2997,13 @@ void add_java_worker_artifacts(
             result, options, templates, java_worker_generated_path("WorkerRuntime.java"),
             GeneratedArtifactTier::Worker, diagnostics, java_runtime_bootstrap_values(system)
         );
+        if (usage.uses_entity_gc)
+        {
+            add_java_raw_worker_file(
+                result, options, java_worker_generated_path("WorkerEntityGcCatalog.java"),
+                java_worker_entity_gc_catalog_file(system)
+            );
+        }
         add_java_generated_template_file(
             result, options, templates, java_worker_generated_path("WorkerMain.java"),
             GeneratedArtifactTier::Worker, diagnostics, java_worker_main_values(system)

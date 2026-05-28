@@ -96,6 +96,7 @@ common/entities/service_instance/schema.go
 go.mod
 worker/backend/descriptors/catalog.go
 worker/backend/descriptors/provision_worker.go
+worker/backend/entity_gc_catalog.go
 worker/backend/registry/provision_worker.go
 worker/backend/worker_application.go
 worker/backend/worker_contexts.go
@@ -190,7 +191,8 @@ run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-api-enti
 run_expect_status 0 "$CLI" generate bindings --lang go "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-go"
 assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/cmd/api/main.go"
 assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtimegc \"statespec-generated/common/backend/runtime\""
-assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtimegc.RegisterEntityGCWorkers"
+assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtimegc.RegisterEntityGCWorkersForDescriptors"
+assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "worker.WorkerEntityGCDescriptors()"
 assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtime.AddEntityGCWorker"
 run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-workflow-entities-go" check-worker
 
@@ -257,7 +259,9 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_process.go" "func
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "signal.NotifyContext"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "worker.NewWorkerProcess"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "worker.DefaultWorkflowStepHandler"
-assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "runtimegc.RegisterEntityGCWorkers"
+assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "runtimegc.RegisterEntityGCWorkersForDescriptors"
+assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "worker.WorkerEntityGCDescriptors()"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/entity_gc_catalog.go" "ServiceInstanceEntityGCDescriptor()"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "process.Start(ctx)"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "process.Join()"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "KeepAliveStep"

@@ -117,11 +117,16 @@ TemplateRenderer::Values rust_worker_main_values(const IrSystem& system)
     }
     return TemplateRenderer::Values{
         {"worker_main_entity_gc_import",
-         "use crate::runtime_entity_gc_registration::register_entity_gc_workers;\n"},
+         "use crate::runtime_entity_gc_registration::register_entity_gc_workers_with_descriptors;\n"
+         "use crate::worker_entity_gc_catalog::entity_gc_descriptors as "
+         "worker_entity_gc_descriptors;\n"},
         {"worker_main_entity_gc_backend_clone", "    let gc_backend = backend.clone();\n"},
         {"worker_main_entity_gc_registration",
-         "    register_entity_gc_workers(|task| process.runtime.add_entity_gc_worker(task), "
-         "std::sync::Arc::new(gc_backend))?;\n"},
+         "    register_entity_gc_workers_with_descriptors(\n"
+         "        |task| process.runtime.add_entity_gc_worker(task),\n"
+         "        std::sync::Arc::new(gc_backend),\n"
+         "        worker_entity_gc_descriptors(),\n"
+         "    )?;\n"},
     };
 }
 
@@ -339,6 +344,11 @@ TemplateRenderer::Values rust_lib_values(
         }
         if (include_worker_composition)
         {
+            if (usage.uses_entity_gc)
+            {
+                worker_modules << "#[path = \"worker/entity_gc_catalog.rs\"]\n";
+                worker_modules << "pub mod worker_entity_gc_catalog;\n";
+            }
             worker_modules << "#[path = \"worker/worker_application.rs\"]\n";
             worker_modules << "pub mod worker_application;\n";
             worker_modules << "#[path = \"worker/worker_process.rs\"]\n";
@@ -961,6 +971,34 @@ std::string rust_entity_gc_descriptor_file(const IrEntity& entity)
 }
 
 std::string rust_api_entity_gc_catalog_file(const IrSystem& system)
+{
+    std::ostringstream descriptor_calls;
+    for (const auto& entity : system.entities)
+    {
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
+        if (!entity_uses_gc)
+        {
+            continue;
+        }
+        descriptor_calls << "        crate::entity_" << snake_identifier(entity.name)
+                         << "::gc::" << snake_identifier(entity.name)
+                         << "_entity_gc_descriptor(),\n";
+    }
+
+    std::ostringstream out;
+    out << "pub fn entity_gc_descriptors() -> "
+           "Vec<crate::runtime_entity_gc_types::EntityGcDescriptor> {\n";
+    out << "    vec![\n";
+    out << descriptor_calls.str();
+    out << "    ]\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string rust_worker_entity_gc_catalog_file(const IrSystem& system)
 {
     std::ostringstream descriptor_calls;
     for (const auto& entity : system.entities)
@@ -2334,6 +2372,13 @@ void add_rust_worker_artifacts(
             result, options, templates, "worker/worker_runtime.rs", GeneratedArtifactTier::Worker,
             diagnostics, rust_runtime_bootstrap_values(system)
         );
+        if (usage.uses_entity_gc)
+        {
+            add_rust_raw_worker_file(
+                result, options, "worker/entity_gc_catalog.rs",
+                rust_worker_entity_gc_catalog_file(system)
+            );
+        }
         add_rust_generated_template_file(
             result, options, templates, "worker/main.rs", GeneratedArtifactTier::Worker,
             diagnostics, rust_worker_main_values(system)

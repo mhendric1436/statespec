@@ -95,6 +95,7 @@ common/workflow.hpp
 common/workflows/provision_service.hpp
 worker/descriptors/catalog.hpp
 worker/descriptors/provision_worker.hpp
+worker/entity_gc_catalog.hpp
 worker/main.cpp
 worker/registry/provision_worker.hpp
 worker/worker_application.hpp
@@ -183,7 +184,8 @@ run_expect_status 0 "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-cpp"
 assert_file_not_exists "$TMPDIR/out-workflow-entities-cpp/api/main.cpp"
 assert_file_contains "$TMPDIR/out-workflow-entities-cpp/worker/main.cpp" "../common/runtime/entity_gc_registration.hpp"
-assert_file_contains "$TMPDIR/out-workflow-entities-cpp/worker/main.cpp" "statespec::backend::runtime::register_entity_gc_workers(runtime, backend)"
+assert_file_contains "$TMPDIR/out-workflow-entities-cpp/worker/main.cpp" "entity_gc_catalog.hpp"
+assert_file_contains "$TMPDIR/out-workflow-entities-cpp/worker/main.cpp" "worker_entity_gc_descriptors()"
 run_expect_status 0 make -C "$TMPDIR/out-workflow-entities-cpp" check-worker
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
@@ -245,7 +247,8 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_process.hpp" "void reque
 assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_process.hpp" "start_worker_loops"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "WorkerProcess"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "DefaultWorkflowStepHandler"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "register_entity_gc_workers(runtime, backend)"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "worker_entity_gc_descriptors()"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/entity_gc_catalog.hpp" "service_instance_entity_gc_descriptor()"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "std::signal(SIGTERM"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "process.start()"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "process.join()"

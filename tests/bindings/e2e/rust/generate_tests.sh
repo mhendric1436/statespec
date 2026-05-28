@@ -96,6 +96,7 @@ common/workflows/provision_service.rs
 lib.rs
 worker/descriptors/catalog.rs
 worker/descriptors/provision_worker.rs
+worker/entity_gc_catalog.rs
 worker/main.rs
 worker/registry/provision_worker.rs
 worker/worker_application.rs
@@ -185,8 +186,9 @@ run_expect_status 0 make -C "$TMPDIR/out-api-entities-rust" check-api
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-rust"
 assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/main.rs"
-assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::runtime_entity_gc_registration::register_entity_gc_workers"
-assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "register_entity_gc_workers(|task| process.runtime.add_entity_gc_worker(task)"
+assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::runtime_entity_gc_registration::register_entity_gc_workers_with_descriptors"
+assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::worker_entity_gc_catalog::entity_gc_descriptors"
+assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "worker_entity_gc_descriptors()"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang rust "$APP_SPEC" --out "$TMPDIR/out-app-rust"
@@ -249,7 +251,9 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/worker_process.rs" "pub fn req
 assert_file_contains "$TMPDIR/out-app-rust/worker/worker_process.rs" "fn start_worker_loops"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "WorkerProcess::new"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "DefaultWorkflowStepHandler"
-assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "register_entity_gc_workers"
+assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "register_entity_gc_workers_with_descriptors"
+assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "worker_entity_gc_descriptors()"
+assert_file_contains "$TMPDIR/out-app-rust/worker/entity_gc_catalog.rs" "service_instance_entity_gc_descriptor()"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "install_signal_handling"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "process.start()"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "process.join()"
