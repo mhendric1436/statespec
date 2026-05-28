@@ -184,6 +184,18 @@ bool rust_api_uses_shape(
     );
 }
 
+const IrShape* rust_find_shape(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    const auto it = std::find_if(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape) { return shape.name == shape_name; }
+    );
+    return it == system.shapes.end() ? nullptr : &*it;
+}
+
 IrSystem rust_shapes_matching(
     const IrSystem& system,
     bool api_contract_shapes
@@ -282,11 +294,8 @@ TemplateRenderer::Values rust_lib_values(
     }
     if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
     {
-        if (!rust_shapes_matching(system, true).shapes.empty())
-        {
-            api_modules << "#[path = \"api/shapes.rs\"]\n";
-            api_modules << "pub mod api_shapes;\n";
-        }
+        api_modules << "#[path = \"api/shapes.rs\"]\n";
+        api_modules << "pub mod api_shapes;\n";
         api_modules << "#[path = \"api/api_descriptors.rs\"]\n";
         api_modules << "pub mod api_descriptors;\n";
         api_modules << "#[path = \"api/api_codecs.rs\"]\n";
@@ -1632,6 +1641,25 @@ std::string rust_shape_type_file(const IrShape& shape)
     return out.str();
 }
 
+std::string rust_api_shape_type_file(const IrShape& shape)
+{
+    IrSystem one_shape_system;
+    one_shape_system.shapes.push_back(shape);
+    auto descriptors = generate_rust_shape_descriptors(one_shape_system);
+    descriptors = replace_all_copy(
+        descriptors, "shape_descriptors()", snake_identifier(shape.name) + "_shape_descriptors()"
+    );
+
+    std::ostringstream out;
+    out << "#[allow(unused_imports)]\n";
+    out << "use crate::json::Json;\n\n";
+    out << "use crate::backend::{FieldDescriptor, FieldType};\n";
+    out << "use crate::shape_types::ShapeDescriptor;\n\n";
+    out << rust_shape_type_declaration(shape) << "\n";
+    out << descriptors;
+    return out.str();
+}
+
 std::string rust_shape_type_declaration(const IrShape& shape)
 {
     std::ostringstream out;
@@ -1659,7 +1687,7 @@ std::string rust_shapes_module(
         }
         const auto module_name = "shape_" + snake_identifier(shape.name);
         out << "#[path = \"shapes/" << snake_identifier(shape.name) << ".rs\"]\n";
-        out << "mod " << module_name << ";\n";
+        out << (api_shapes ? "pub mod " : "mod ") << module_name << ";\n";
         out << "pub use " << module_name << "::*;\n";
     }
     if (api_shapes)
@@ -1672,16 +1700,29 @@ std::string rust_shapes_module(
             }
             const auto module_name = "entity_" + snake_identifier(entity.name) + "_shapes";
             out << "#[path = \"entities/" << snake_identifier(entity.name) << "/shapes.rs\"]\n";
-            out << "mod " << module_name << ";\n";
+            out << "pub mod " << module_name << ";\n";
             out << "pub use " << module_name << "::*;\n";
         }
-        if (!system.shapes.empty())
+        out << "\n";
+        out << "use crate::shape_types::ShapeDescriptor;\n\n";
+        out << "pub fn shape_descriptors() -> Vec<ShapeDescriptor> {\n";
+        out << "    let mut descriptors = Vec::new();\n";
+        for (const auto& shape : system.shapes)
         {
-            out << "\n";
-            out << "use crate::backend::{FieldDescriptor, FieldType};\n";
-            out << "use crate::shape_types::ShapeDescriptor;\n\n";
-            out << generate_rust_shape_descriptors(system);
+            const auto owner = rust_entity_api_shape_owner(system, shape.name);
+            if (owner.has_value())
+            {
+                out << "    descriptors.extend(entity_" << snake_identifier(*owner)
+                    << "_shapes::" << snake_identifier(shape.name) << "_shape_descriptors());\n";
+            }
+            else
+            {
+                out << "    descriptors.extend(shape_" << snake_identifier(shape.name)
+                    << "::" << snake_identifier(shape.name) << "_shape_descriptors());\n";
+            }
         }
+        out << "    descriptors\n";
+        out << "}\n";
     }
     return out.str();
 }
@@ -1691,9 +1732,19 @@ std::string rust_entity_api_shapes_file(const std::vector<IrShape>& shapes)
     std::ostringstream out;
     out << "#[allow(unused_imports)]\n";
     out << "use crate::json::Json;\n\n";
+    out << "use crate::backend::{FieldDescriptor, FieldType};\n";
+    out << "use crate::shape_types::ShapeDescriptor;\n\n";
     for (const auto& shape : shapes)
     {
         out << rust_shape_type_declaration(shape) << "\n";
+        IrSystem one_shape_system;
+        one_shape_system.shapes.push_back(shape);
+        auto descriptors = generate_rust_shape_descriptors(one_shape_system);
+        descriptors = replace_all_copy(
+            descriptors, "shape_descriptors()",
+            snake_identifier(shape.name) + "_shape_descriptors()"
+        );
+        out << descriptors;
     }
     return out.str();
 }
@@ -1742,7 +1793,7 @@ void add_rust_api_shape_type_artifacts(
         }
         add_rust_raw_api_file(
             result, options, "api/shapes/" + snake_identifier(shape.name) + ".rs",
-            rust_shape_type_file(shape)
+            rust_api_shape_type_file(shape)
         );
     }
     for (const auto& entity : system.entities)
@@ -2004,6 +2055,36 @@ std::string rust_api_route_descriptor_function_name(const IrApi& api)
     return snake_identifier(api.name) + "_api_route_descriptors";
 }
 
+std::string rust_api_shape_module_for(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    const auto owner = rust_entity_api_shape_owner(system, shape_name);
+    if (owner.has_value())
+    {
+        return "crate::api_shapes::entity_" + snake_identifier(*owner) + "_shapes";
+    }
+    return "crate::api_shapes::shape_" + snake_identifier(std::string{shape_name});
+}
+
+std::string rust_api_optional_shape_expr(
+    const IrSystem& system,
+    const std::optional<std::string>& value
+)
+{
+    if (!value.has_value())
+    {
+        return "None";
+    }
+    if (rust_find_shape(system, *value) == nullptr)
+    {
+        return rust_optional_string_expr(value);
+    }
+    return "Some(" + rust_api_shape_module_for(system, *value) +
+           "::" + rust_shape_name_constant_name(*value) + ".to_string())";
+}
+
 bool rust_api_server_serves(
     const IrApiServer& api_server,
     const std::string& api_name
@@ -2032,8 +2113,8 @@ std::string rust_api_descriptor_module(
     out << "            name: " << rust_string(api.name) << ".to_string(),\n";
     out << "            method: " << rust_optional_string_expr(api.method) << ",\n";
     out << "            path: " << rust_optional_string_expr(api.path) << ",\n";
-    out << "            input: " << rust_optional_string_expr(api.input) << ",\n";
-    out << "            output: " << rust_optional_string_expr(api.output) << ",\n";
+    out << "            input: " << rust_api_optional_shape_expr(system, api.input) << ",\n";
+    out << "            output: " << rust_api_optional_shape_expr(system, api.output) << ",\n";
     out << "            error: " << rust_optional_string_expr(api.error) << ",\n";
     out << "            starts_workflow: " << rust_optional_string_expr(api.starts_workflow)
         << ",\n";
@@ -2057,8 +2138,8 @@ std::string rust_api_descriptor_module(
         out << "            api_name: " << rust_string(api.name) << ".to_string(),\n";
         out << "            method: " << rust_optional_string_expr(api.method) << ",\n";
         out << "            path: " << rust_optional_string_expr(api.path) << ",\n";
-        out << "            input: " << rust_optional_string_expr(api.input) << ",\n";
-        out << "            output: " << rust_optional_string_expr(api.output) << ",\n";
+        out << "            input: " << rust_api_optional_shape_expr(system, api.input) << ",\n";
+        out << "            output: " << rust_api_optional_shape_expr(system, api.output) << ",\n";
         out << "            error: " << rust_optional_string_expr(api.error) << ",\n";
         out << "        },\n";
     }
@@ -2121,8 +2202,12 @@ std::string rust_api_descriptor_catalog_file(const IrSystem& system)
     server_descriptors << "    ]\n";
     std::ostringstream out;
     out << modules.str() << "\n";
+    out << "use crate::api_shapes;\n";
     out << "use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor, "
            "ApiServerDescriptor};\n\n";
+    out << "pub fn shape_descriptors() -> Vec<crate::shape_types::ShapeDescriptor> {\n";
+    out << "    api_shapes::shape_descriptors()\n";
+    out << "}\n\n";
     out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
     out << "    let mut descriptors = Vec::new();\n";
     out << api_aggregation.str();

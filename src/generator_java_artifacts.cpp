@@ -13,6 +13,7 @@
 #include <array>
 #include <filesystem>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -1703,9 +1704,18 @@ std::string java_shape_type_file(
     std::string_view package_name
 )
 {
+    IrSystem one_shape_system;
+    one_shape_system.shapes.push_back(shape);
     std::ostringstream out;
     out << "package " << package_name << ";\n\n";
     out << "import com.statespec.backend.Json;\n";
+    if (package_name == "com.statespec.generated.shapes")
+    {
+        out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
+        out << "import com.statespec.backend.Backend.FieldType;\n";
+        out << "import com.statespec.generated.descriptors.types.ShapeDescriptor;\n";
+        out << "import java.util.List;\n";
+    }
     out << "import java.util.Optional;\n\n";
     out << "public record " << pascal_identifier(shape.name) << "(\n";
     for (std::size_t i = 0; i < shape.fields.size(); ++i)
@@ -1714,7 +1724,13 @@ std::string java_shape_type_file(
         out << "    " << java_shape_type(field.type) << " " << field.name;
         out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
     }
-    out << ") {}\n";
+    out << ") {\n";
+    if (package_name == "com.statespec.generated.shapes")
+    {
+        auto descriptors = generate_java_shape_descriptors(one_shape_system);
+        out << "\n" << descriptors;
+    }
+    out << "}\n";
     return out.str();
 }
 
@@ -1726,6 +1742,10 @@ std::string java_entity_api_shapes_file(
     std::ostringstream out;
     out << "package " << package_name << ";\n\n";
     out << "import com.statespec.backend.Json;\n";
+    out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
+    out << "import com.statespec.backend.Backend.FieldType;\n";
+    out << "import com.statespec.generated.descriptors.types.ShapeDescriptor;\n";
+    out << "import java.util.List;\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class Shapes {\n";
     out << "    private Shapes() {}\n\n";
@@ -1740,6 +1760,9 @@ std::string java_entity_api_shapes_file(
         }
         out << "    ) {}\n\n";
     }
+    IrSystem shape_system;
+    shape_system.shapes = shapes;
+    out << generate_java_shape_descriptors(shape_system);
     out << "}\n";
     return out.str();
 }
@@ -1757,6 +1780,18 @@ bool java_api_uses_shape(
                    (api.output.has_value() && *api.output == shape_name);
         }
     );
+}
+
+const IrShape* java_find_shape(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    const auto it = std::find_if(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape) { return shape.name == shape_name; }
+    );
+    return it == system.shapes.end() ? nullptr : &*it;
 }
 
 IrSystem java_shapes_matching(
@@ -1780,13 +1815,32 @@ std::string java_api_shape_catalog_file(const IrSystem& system)
 {
     std::ostringstream out;
     out << "package com.statespec.generated.shapes;\n\n";
-    out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
-    out << "import com.statespec.backend.Backend.FieldType;\n";
     out << "import com.statespec.generated.descriptors.types.ShapeDescriptor;\n";
+    out << "import java.util.ArrayList;\n";
     out << "import java.util.List;\n\n";
     out << "public final class ShapeCatalog {\n";
     out << "    private ShapeCatalog() {}\n\n";
-    out << generate_java_shape_descriptors(java_shapes_matching(system, true));
+    out << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<ShapeDescriptor>();\n";
+    std::set<std::string> added_entities;
+    for (const auto& shape : java_shapes_matching(system, true).shapes)
+    {
+        const auto owner = java_entity_api_shape_owner(system, shape.name);
+        if (owner.has_value())
+        {
+            if (!added_entities.insert(*owner).second)
+            {
+                continue;
+            }
+            out << "        descriptors.addAll(com.statespec.generated.entities."
+                << snake_identifier(*owner) << ".Shapes.shapeDescriptors());\n";
+            continue;
+        }
+        out << "        descriptors.addAll(" << pascal_identifier(shape.name)
+            << ".shapeDescriptors());\n";
+    }
+    out << "        return List.copyOf(descriptors);\n";
+    out << "    }\n";
     out << "}\n";
     return out.str();
 }
@@ -2415,6 +2469,28 @@ bool java_api_server_serves(
     return false;
 }
 
+std::string java_api_optional_shape_name_expr(
+    const IrSystem& system,
+    const std::optional<std::string>& value
+)
+{
+    if (!value.has_value())
+    {
+        return "Optional.empty()";
+    }
+    if (java_find_shape(system, *value) == nullptr)
+    {
+        return java_optional_string_expr(value);
+    }
+    const auto owner = java_entity_api_shape_owner(system, *value);
+    if (owner.has_value())
+    {
+        return "Optional.of(Shapes." + java_shape_name_constant_name(*value) + ")";
+    }
+    return "Optional.of(" + pascal_identifier(*value) + "." +
+           java_shape_name_constant_name(*value) + ")";
+}
+
 std::string java_api_descriptor_module(
     const IrSystem& system,
     const IrApi& api
@@ -2424,6 +2500,33 @@ std::string java_api_descriptor_module(
     out << "package com.statespec.generated.descriptors;\n\n";
     out << "import com.statespec.generated.descriptors.types.ApiDescriptor;\n";
     out << "import com.statespec.generated.descriptors.types.ApiRouteDescriptor;\n";
+    std::set<std::string> imports;
+    auto add_shape_import = [&](const std::optional<std::string>& shape_name)
+    {
+        if (!shape_name.has_value() || java_find_shape(system, *shape_name) == nullptr)
+        {
+            return;
+        }
+        const auto owner = java_entity_api_shape_owner(system, *shape_name);
+        if (owner.has_value())
+        {
+            imports.insert(
+                "import com.statespec.generated.entities." + snake_identifier(*owner) + ".Shapes;"
+            );
+        }
+        else
+        {
+            imports.insert(
+                "import com.statespec.generated.shapes." + pascal_identifier(*shape_name) + ";"
+            );
+        }
+    };
+    add_shape_import(api.input);
+    add_shape_import(api.output);
+    for (const auto& import : imports)
+    {
+        out << import << "\n";
+    }
     out << "import java.util.List;\n";
     out << "import java.util.Optional;\n\n";
     out << "public final class " << java_api_descriptor_module_class_name(api.name) << " {\n";
@@ -2434,8 +2537,8 @@ std::string java_api_descriptor_module(
     out << "                " << java_string(api.name) << ",\n";
     out << "                " << java_optional_string_expr(api.method) << ",\n";
     out << "                " << java_optional_string_expr(api.path) << ",\n";
-    out << "                " << java_optional_string_expr(api.input) << ",\n";
-    out << "                " << java_optional_string_expr(api.output) << ",\n";
+    out << "                " << java_api_optional_shape_name_expr(system, api.input) << ",\n";
+    out << "                " << java_api_optional_shape_name_expr(system, api.output) << ",\n";
     out << "                " << java_optional_string_expr(api.error) << ",\n";
     out << "                " << java_optional_string_expr(api.starts_workflow) << ",\n";
     out << "                " << java_optional_string_expr(api.enqueues) << "\n";
@@ -2462,8 +2565,8 @@ std::string java_api_descriptor_module(
         out << "                " << java_string(api.name) << ",\n";
         out << "                " << java_optional_string_expr(api.method) << ",\n";
         out << "                " << java_optional_string_expr(api.path) << ",\n";
-        out << "                " << java_optional_string_expr(api.input) << ",\n";
-        out << "                " << java_optional_string_expr(api.output) << ",\n";
+        out << "                " << java_api_optional_shape_name_expr(system, api.input) << ",\n";
+        out << "                " << java_api_optional_shape_name_expr(system, api.output) << ",\n";
         out << "                " << java_optional_string_expr(api.error) << "\n";
         out << "            )";
     }
@@ -2541,13 +2644,18 @@ std::string java_api_descriptor_catalog_file(const IrSystem& system)
     const auto values = java_api_descriptor_values(system);
     std::ostringstream out;
     out << "package com.statespec.generated.descriptors;\n\n";
+    out << "import com.statespec.generated.shapes.ShapeCatalog;\n";
     out << "import com.statespec.generated.descriptors.types.ApiDescriptor;\n";
     out << "import com.statespec.generated.descriptors.types.ApiRouteDescriptor;\n";
     out << "import com.statespec.generated.descriptors.types.ApiServerDescriptor;\n";
+    out << "import com.statespec.generated.descriptors.types.ShapeDescriptor;\n";
     out << "import java.util.ArrayList;\n";
     out << "import java.util.List;\n\n";
     out << "public final class Catalog {\n";
     out << "    private Catalog() {}\n\n";
+    out << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";
+    out << "        return ShapeCatalog.shapeDescriptors();\n";
+    out << "    }\n\n";
     out << "    public static List<ApiDescriptor> apiDescriptors() {\n";
     out << "        var descriptors = new ArrayList<ApiDescriptor>();\n";
     out << values.at("api_descriptor_aggregation");

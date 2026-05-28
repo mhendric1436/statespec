@@ -467,6 +467,18 @@ bool go_api_uses_shape(
     );
 }
 
+const IrShape* go_find_shape(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    const auto it = std::find_if(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape) { return shape.name == shape_name; }
+    );
+    return it == system.shapes.end() ? nullptr : &*it;
+}
+
 bool go_api_default_handlers_use_shapes(const IrSystem& system)
 {
     for (const auto& api : system.apis)
@@ -1795,6 +1807,55 @@ std::string go_shape_type_file(
     return out.str();
 }
 
+std::string go_api_shape_descriptor_content(
+    const IrShape& shape,
+    std::string_view function_name
+)
+{
+    IrSystem one_shape_system;
+    one_shape_system.shapes.push_back(shape);
+    auto content = generate_go_shape_descriptors(one_shape_system);
+    content = replace_all_copy(content, "ShapeDescriptors()", std::string{function_name});
+    content = replace_all_copy(content, "[]ShapeDescriptor", "[]common.ShapeDescriptor");
+    content = replace_all_copy(content, "[]FieldDescriptor", "[]common.FieldDescriptor");
+    content = replace_all_copy(content, "FieldType", "common.FieldType");
+    return content;
+}
+
+std::string go_api_shape_type_file(const IrShape& shape)
+{
+    std::ostringstream out;
+    out << go_shape_type_file(shape);
+    out << "\n";
+    if (!go_shape_uses_json(shape))
+    {
+        out = std::ostringstream{};
+        out << "package shapes\n\n";
+        out << "import common \"statespec-generated/common/backend\"\n\n";
+        out << "type " << pascal_identifier(shape.name) << " struct {\n";
+        for (const auto& field : shape.fields)
+        {
+            out << "\t" << pascal_identifier(field.name) << " " << go_shape_field_type(field.type)
+                << " `json:\"" << field.name << "\"`\n";
+        }
+        out << "}\n\n";
+    }
+    else
+    {
+        auto content = out.str();
+        content = replace_all_copy(
+            content, "import common \"statespec-generated/common/backend\"",
+            "import common \"statespec-generated/common/backend\""
+        );
+        out = std::ostringstream{};
+        out << content << "\n";
+    }
+    out << go_api_shape_descriptor_content(
+        shape, pascal_identifier(shape.name) + "ShapeDescriptors()"
+    );
+    return out.str();
+}
+
 std::string go_entity_api_shapes_file(
     const std::vector<IrShape>& shapes,
     std::string_view package_name
@@ -1809,6 +1870,10 @@ std::string go_entity_api_shapes_file(
     {
         out << "import common \"statespec-generated/common/backend\"\n\n";
     }
+    else
+    {
+        out << "import common \"statespec-generated/common/backend\"\n\n";
+    }
     for (const auto& shape : shapes)
     {
         out << "type " << pascal_identifier(shape.name) << " struct {\n";
@@ -1818,6 +1883,9 @@ std::string go_entity_api_shapes_file(
                 << " `json:\"" << field.name << "\"`\n";
         }
         out << "}\n\n";
+        out << go_api_shape_descriptor_content(
+            shape, pascal_identifier(shape.name) + "ShapeDescriptors()"
+        );
     }
     return out.str();
 }
@@ -1851,11 +1919,41 @@ std::string go_api_shape_alias_file(const IrSystem& system)
 
 std::string go_api_shape_descriptor_catalog_file(const IrSystem& system)
 {
-    auto content = generate_go_shape_descriptors(go_shapes_matching(system, true));
-    content = replace_all_copy(content, "[]ShapeDescriptor", "[]common.ShapeDescriptor");
-    content = replace_all_copy(content, "[]FieldDescriptor", "[]common.FieldDescriptor");
-    content = replace_all_copy(content, "FieldType", "common.FieldType");
-    return "package shapes\n\nimport common \"statespec-generated/common/backend\"\n\n" + content;
+    std::ostringstream imports;
+    std::ostringstream aggregation;
+    std::set<std::string> imported_entities;
+    for (const auto& shape : go_shapes_matching(system, true).shapes)
+    {
+        const auto owner = go_entity_api_shape_owner(system, shape.name);
+        if (owner.has_value())
+        {
+            const auto package_alias = snake_identifier(*owner);
+            if (imported_entities.insert(package_alias).second)
+            {
+                imports << "\t" << package_alias << " \"statespec-generated/api/backend/entities/"
+                        << package_alias << "\"\n";
+            }
+            aggregation << "\tdescriptors = append(descriptors, " << package_alias << "."
+                        << pascal_identifier(shape.name) << "ShapeDescriptors()...)\n";
+        }
+        else
+        {
+            aggregation << "\tdescriptors = append(descriptors, " << pascal_identifier(shape.name)
+                        << "ShapeDescriptors()...)\n";
+        }
+    }
+    std::ostringstream out;
+    out << "package shapes\n\n";
+    out << "import (\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << imports.str();
+    out << ")\n\n";
+    out << "func ShapeDescriptors() []common.ShapeDescriptor {\n";
+    out << "\tvar descriptors []common.ShapeDescriptor\n";
+    out << aggregation.str();
+    out << "\treturn descriptors\n";
+    out << "}\n";
+    return out.str();
 }
 
 void add_go_shape_type_artifacts(
@@ -1902,7 +2000,7 @@ void add_go_api_shape_type_artifacts(
         }
         add_go_raw_api_file(
             result, options, "api/backend/shapes/" + snake_identifier(shape.name) + ".go",
-            go_shape_type_file(shape)
+            go_api_shape_type_file(shape)
         );
     }
     const auto aliases = go_api_shape_alias_file(system);
@@ -2148,6 +2246,37 @@ std::string go_api_route_descriptor_function_name(const IrApi& api)
     return pascal_identifier(api.name) + "ApiRouteDescriptors";
 }
 
+std::string go_api_shape_package_for(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    const auto owner = go_entity_api_shape_owner(system, shape_name);
+    if (owner.has_value())
+    {
+        return snake_identifier(*owner);
+    }
+    return "shapes";
+}
+
+std::string go_api_optional_shape_expr(
+    const IrSystem& system,
+    const std::optional<std::string>& value,
+    std::string_view string_ptr
+)
+{
+    if (!value.has_value())
+    {
+        return "nil";
+    }
+    if (go_find_shape(system, *value) == nullptr)
+    {
+        return std::string{string_ptr} + "(" + go_string(*value) + ")";
+    }
+    return std::string{string_ptr} + "(" + go_api_shape_package_for(system, *value) + "." +
+           go_shape_name_constant_name(*value) + ")";
+}
+
 bool go_api_server_serves(
     const IrApiServer& api_server,
     const std::string& api_name
@@ -2173,7 +2302,36 @@ std::string go_api_descriptor_module(
     auto optional_string = [&](const std::optional<std::string>& value)
     { return value.has_value() ? string_ptr + "(" + go_string(*value) + ")" : "nil"; };
     out << "package descriptors\n\n";
-    out << "import descriptortypes \"statespec-generated/common/backend/descriptortypes\"\n\n";
+    out << "import (\n";
+    out << "\tdescriptortypes \"statespec-generated/common/backend/descriptortypes\"\n";
+    std::set<std::string> imports;
+    auto add_shape_import = [&](const std::optional<std::string>& shape_name)
+    {
+        if (!shape_name.has_value() || go_find_shape(system, *shape_name) == nullptr)
+        {
+            return;
+        }
+        const auto owner = go_entity_api_shape_owner(system, *shape_name);
+        if (owner.has_value())
+        {
+            const auto package_alias = snake_identifier(*owner);
+            imports.insert(
+                "\t" + package_alias + " \"statespec-generated/api/backend/entities/" +
+                package_alias + "\""
+            );
+        }
+        else
+        {
+            imports.insert("\tshapes \"statespec-generated/api/backend/shapes\"");
+        }
+    };
+    add_shape_import(api.input);
+    add_shape_import(api.output);
+    for (const auto& import : imports)
+    {
+        out << import << "\n";
+    }
+    out << ")\n\n";
     out << "func " << string_ptr << "(value string) *string { return &value }\n\n";
     out << "func " << go_api_descriptor_function_name(api)
         << "() []descriptortypes.ApiDescriptor {\n";
@@ -2182,8 +2340,8 @@ std::string go_api_descriptor_module(
     out << "\t\t\tName: " << go_string(api.name) << ",\n";
     out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
     out << "\t\t\tPath: " << optional_string(api.path) << ",\n";
-    out << "\t\t\tInput: " << optional_string(api.input) << ",\n";
-    out << "\t\t\tOutput: " << optional_string(api.output) << ",\n";
+    out << "\t\t\tInput: " << go_api_optional_shape_expr(system, api.input, string_ptr) << ",\n";
+    out << "\t\t\tOutput: " << go_api_optional_shape_expr(system, api.output, string_ptr) << ",\n";
     out << "\t\t\tError: " << optional_string(api.error) << ",\n";
     out << "\t\t\tStartsWorkflow: " << optional_string(api.starts_workflow) << ",\n";
     out << "\t\t\tEnqueues: " << optional_string(api.enqueues) << ",\n";
@@ -2205,8 +2363,10 @@ std::string go_api_descriptor_module(
         out << "\t\t\tApiName: " << go_string(api.name) << ",\n";
         out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
         out << "\t\t\tPath: " << optional_string(api.path) << ",\n";
-        out << "\t\t\tInput: " << optional_string(api.input) << ",\n";
-        out << "\t\t\tOutput: " << optional_string(api.output) << ",\n";
+        out << "\t\t\tInput: " << go_api_optional_shape_expr(system, api.input, string_ptr)
+            << ",\n";
+        out << "\t\t\tOutput: " << go_api_optional_shape_expr(system, api.output, string_ptr)
+            << ",\n";
         out << "\t\t\tError: " << optional_string(api.error) << ",\n";
         out << "\t\t},\n";
     }

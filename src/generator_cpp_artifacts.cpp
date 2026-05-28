@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -823,6 +824,18 @@ IrSystem api_contract_shape_system(const IrSystem& system)
 IrSystem common_shape_system(const IrSystem& system)
 {
     return with_shapes_matching(system, false);
+}
+
+const IrShape* find_shape(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    const auto it = std::find_if(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape) { return shape.name == shape_name; }
+    );
+    return it == system.shapes.end() ? nullptr : &*it;
 }
 
 IrSystem with_codec_shape_apis(
@@ -1971,6 +1984,42 @@ std::string cpp_shape_type_header(
     return out.str();
 }
 
+std::string cpp_api_shape_descriptor_declarations(
+    const IrSystem& system,
+    std::string_view function_name
+)
+{
+    auto descriptors = generate_cpp_shape_descriptors(system);
+    descriptors = replace_all_copy(descriptors, "shape_descriptors()", std::string{function_name});
+    return descriptors;
+}
+
+std::string cpp_api_shape_type_header(
+    const IrShape& shape,
+    std::string_view backend_include,
+    std::string_view shape_types_include
+)
+{
+    IrSystem one_shape_system;
+    one_shape_system.shapes.push_back(shape);
+
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"" << backend_include << "\"\n";
+    out << "#include \"" << shape_types_include << "\"\n\n";
+    out << "#include <cstdint>\n";
+    out << "#include <optional>\n";
+    out << "#include <string>\n\n";
+    out << "namespace statespec_generated\n";
+    out << "{\n\n";
+    out << cpp_shape_type_declaration(shape);
+    out << cpp_api_shape_descriptor_declarations(
+        one_shape_system, snake_identifier(shape.name) + "_shape_descriptors()"
+    );
+    out << "} // namespace statespec_generated\n";
+    return out.str();
+}
+
 std::string cpp_shape_type_declaration(const IrShape& shape)
 {
     std::ostringstream out;
@@ -2006,6 +2055,7 @@ std::string cpp_shapes_umbrella_header(
     if (api_shapes)
     {
         out << "#include \"../common/shape_types.hpp\"\n";
+        out << "#include <utility>\n";
         for (const auto& entity : system.entities)
         {
             if (!entity_api_shapes(system, entity.name).empty())
@@ -2013,17 +2063,23 @@ std::string cpp_shapes_umbrella_header(
                 out << "#include \"entities/" << snake_identifier(entity.name) << "/shapes.hpp\"\n";
             }
         }
-        if (!system.shapes.empty())
+        out << "\n";
+        out << "namespace statespec_generated\n";
+        out << "{\n\n";
+        out << "inline std::vector<ShapeDescriptor> api_shape_descriptors()\n";
+        out << "{\n";
+        out << "    std::vector<ShapeDescriptor> descriptors;\n";
+        for (const auto& shape : system.shapes)
         {
-            out << "\n";
-            auto descriptors = generate_cpp_shape_descriptors(system);
-            descriptors =
-                replace_all_copy(descriptors, "shape_descriptors()", "api_shape_descriptors()");
-            out << "namespace statespec_generated\n";
-            out << "{\n\n";
-            out << descriptors;
-            out << "} // namespace statespec_generated\n";
+            out << "    for (auto descriptor : " << snake_identifier(shape.name)
+                << "_shape_descriptors())\n";
+            out << "    {\n";
+            out << "        descriptors.push_back(std::move(descriptor));\n";
+            out << "    }\n";
         }
+        out << "    return descriptors;\n";
+        out << "}\n\n";
+        out << "} // namespace statespec_generated\n";
     }
     return out.str();
 }
@@ -2032,7 +2088,8 @@ std::string cpp_entity_api_shapes_header(const std::vector<IrShape>& shapes)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"../../../common/backend.hpp\"\n\n";
+    out << "#include \"../../../common/backend.hpp\"\n";
+    out << "#include \"../../../common/shape_types.hpp\"\n\n";
     out << "#include <cstdint>\n";
     out << "#include <optional>\n";
     out << "#include <string>\n\n";
@@ -2041,6 +2098,11 @@ std::string cpp_entity_api_shapes_header(const std::vector<IrShape>& shapes)
     for (const auto& shape : shapes)
     {
         out << cpp_shape_type_declaration(shape);
+        IrSystem one_shape_system;
+        one_shape_system.shapes.push_back(shape);
+        out << cpp_api_shape_descriptor_declarations(
+            one_shape_system, snake_identifier(shape.name) + "_shape_descriptors()"
+        );
     }
     out << "} // namespace statespec_generated\n";
     return out.str();
@@ -2086,7 +2148,9 @@ void add_cpp_api_shape_type_artifacts(
         }
         add_cpp_raw_api_file(
             result, options, "api/shapes/" + snake_identifier(shape.name) + ".hpp",
-            cpp_shape_type_header(shape, "../../common/backend.hpp")
+            cpp_api_shape_type_header(
+                shape, "../../common/backend.hpp", "../../common/shape_types.hpp"
+            )
         );
     }
     for (const auto& entity : system.entities)
@@ -2275,6 +2339,35 @@ std::string cpp_api_route_descriptor_function_name(const IrApi& api)
     return snake_identifier(api.name) + "_api_route_descriptors";
 }
 
+std::string cpp_api_shape_include_for(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    const auto owner = entity_api_shape_owner(system, shape_name);
+    if (owner.has_value())
+    {
+        return "../entities/" + snake_identifier(*owner) + "/shapes.hpp";
+    }
+    return "../shapes/" + snake_identifier(std::string{shape_name}) + ".hpp";
+}
+
+std::string cpp_api_optional_shape_name_expr(
+    const IrSystem& system,
+    const std::optional<std::string>& value
+)
+{
+    if (!value.has_value())
+    {
+        return "std::nullopt";
+    }
+    if (find_shape(system, *value) == nullptr)
+    {
+        return optional_string_expr(value);
+    }
+    return "std::optional<std::string>{" + cpp_shape_name_constant_name(*value) + "}";
+}
+
 std::string cpp_api_descriptor_module(
     const IrSystem& system,
     const IrApi& api
@@ -2283,6 +2376,23 @@ std::string cpp_api_descriptor_module(
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"../../common/descriptors/types.hpp\"\n\n";
+    std::set<std::string> shape_includes;
+    if (api.input.has_value() && find_shape(system, *api.input) != nullptr)
+    {
+        shape_includes.insert(cpp_api_shape_include_for(system, *api.input));
+    }
+    if (api.output.has_value() && find_shape(system, *api.output) != nullptr)
+    {
+        shape_includes.insert(cpp_api_shape_include_for(system, *api.output));
+    }
+    for (const auto& include : shape_includes)
+    {
+        out << "#include \"" << include << "\"\n";
+    }
+    if (!shape_includes.empty())
+    {
+        out << "\n";
+    }
     out << "namespace statespec_generated::api::descriptors\n";
     out << "{\n\n";
     out << "inline std::vector<::statespec_generated::ApiDescriptor> "
@@ -2293,8 +2403,8 @@ std::string cpp_api_descriptor_module(
     out << "            " << cpp_string(api.name) << ",\n";
     out << "            " << optional_string_expr(api.method) << ",\n";
     out << "            " << optional_string_expr(api.path) << ",\n";
-    out << "            " << optional_string_expr(api.input) << ",\n";
-    out << "            " << optional_string_expr(api.output) << ",\n";
+    out << "            " << cpp_api_optional_shape_name_expr(system, api.input) << ",\n";
+    out << "            " << cpp_api_optional_shape_name_expr(system, api.output) << ",\n";
     out << "            " << optional_string_expr(api.error) << ",\n";
     out << "            " << optional_string_expr(api.starts_workflow) << ",\n";
     out << "            " << optional_string_expr(api.enqueues) << ",\n";
@@ -2318,8 +2428,8 @@ std::string cpp_api_descriptor_module(
         out << "            " << cpp_string(api.name) << ",\n";
         out << "            " << optional_string_expr(api.method) << ",\n";
         out << "            " << optional_string_expr(api.path) << ",\n";
-        out << "            " << optional_string_expr(api.input) << ",\n";
-        out << "            " << optional_string_expr(api.output) << ",\n";
+        out << "            " << cpp_api_optional_shape_name_expr(system, api.input) << ",\n";
+        out << "            " << cpp_api_optional_shape_name_expr(system, api.output) << ",\n";
         out << "            " << optional_string_expr(api.error) << ",\n";
         out << "        },\n";
     }
@@ -2418,12 +2528,18 @@ std::string cpp_api_descriptor_catalog_file(const IrSystem& system)
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"../../common/descriptors/types.hpp\"\n";
+    out << "#include \"../../common/shape_types.hpp\"\n";
+    out << "#include \"../shapes.hpp\"\n";
     out << descriptor_values.at("api_descriptor_includes") << "\n\n";
     out << "namespace statespec_generated::api::descriptors\n";
     out << "{\n\n";
     out << "using ApiDescriptor = ::statespec_generated::ApiDescriptor;\n";
     out << "using ApiRouteDescriptor = ::statespec_generated::ApiRouteDescriptor;\n";
     out << "using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;\n\n";
+    out << "inline std::vector<::statespec_generated::ShapeDescriptor> api_shape_descriptors()\n";
+    out << "{\n";
+    out << "    return ::statespec_generated::api_shape_descriptors();\n";
+    out << "}\n\n";
     out << "inline std::vector<ApiDescriptor> api_descriptors()\n";
     out << "{\n";
     out << "    std::vector<ApiDescriptor> descriptors;\n";
