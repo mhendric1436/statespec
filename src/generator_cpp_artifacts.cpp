@@ -666,17 +666,23 @@ std::vector<ApiHandlerDomain> crud_api_handler_domains(const std::vector<ApiHand
     std::vector<ApiHandlerDomain> result;
     for (const auto& domain : domains)
     {
-        ApiHandlerDomain filtered{domain.name, {}};
         for (const auto& api : domain.apis)
         {
             if (is_entity_crud_api(api))
             {
-                filtered.apis.push_back(api);
+                auto target = std::find_if(
+                    result.begin(), result.end(),
+                    [&](const auto& candidate) { return candidate.name == *api.entity; }
+                );
+                if (target == result.end())
+                {
+                    result.push_back(ApiHandlerDomain{*api.entity, {api}});
+                }
+                else
+                {
+                    target->apis.push_back(api);
+                }
             }
-        }
-        if (!filtered.apis.empty())
-        {
-            result.push_back(std::move(filtered));
         }
     }
     return result;
@@ -2215,6 +2221,7 @@ std::string cpp_entity_api_catalog_header(
     out << "#include \"../../../common/descriptors/types.hpp\"\n";
     out << "#include \"../../../common/shape_types.hpp\"\n";
     out << "#include \"codecs.hpp\"\n";
+    out << "#include \"handlers.hpp\"\n";
     out << "#include \"registry.hpp\"\n";
     out << "#include \"shapes.hpp\"\n";
     for (const auto& api : apis)

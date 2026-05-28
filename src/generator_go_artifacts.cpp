@@ -723,17 +723,23 @@ crud_api_handler_domains_go(const std::vector<ApiHandlerDomain>& domains)
     std::vector<ApiHandlerDomain> result;
     for (const auto& domain : domains)
     {
-        ApiHandlerDomain filtered{domain.name, {}};
         for (const auto& api : domain.apis)
         {
             if (is_entity_crud_api_go(api))
             {
-                filtered.apis.push_back(api);
+                auto target = std::find_if(
+                    result.begin(), result.end(),
+                    [&](const auto& candidate) { return candidate.name == *api.entity; }
+                );
+                if (target == result.end())
+                {
+                    result.push_back(ApiHandlerDomain{*api.entity, {api}});
+                }
+                else
+                {
+                    target->apis.push_back(api);
+                }
             }
-        }
-        if (!filtered.apis.empty())
-        {
-            result.push_back(std::move(filtered));
         }
     }
     return result;

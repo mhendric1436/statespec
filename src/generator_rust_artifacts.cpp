@@ -768,17 +768,23 @@ crud_api_handler_domains_rs(const std::vector<ApiHandlerDomain>& domains)
     std::vector<ApiHandlerDomain> result;
     for (const auto& domain : domains)
     {
-        ApiHandlerDomain filtered{domain.name, {}};
         for (const auto& api : domain.apis)
         {
             if (is_entity_crud_api_rs(api))
             {
-                filtered.apis.push_back(api);
+                auto target = std::find_if(
+                    result.begin(), result.end(),
+                    [&](const auto& candidate) { return candidate.name == *api.entity; }
+                );
+                if (target == result.end())
+                {
+                    result.push_back(ApiHandlerDomain{*api.entity, {api}});
+                }
+                else
+                {
+                    target->apis.push_back(api);
+                }
             }
-        }
-        if (!filtered.apis.empty())
-        {
-            result.push_back(std::move(filtered));
         }
     }
     return result;
@@ -1870,8 +1876,14 @@ std::string rust_entity_api_catalog_file(
     std::ostringstream out;
     out << "use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor};\n";
     out << "use crate::shape_types::ShapeDescriptor;\n";
-    out << "use crate::api_shapes::entity_" << snake_identifier(entity.name)
-        << "_shapes as shapes;\n";
+    out << "#[path = \"codecs.rs\"]\n";
+    out << "mod codecs;\n";
+    out << "#[path = \"handlers.rs\"]\n";
+    out << "mod handlers;\n";
+    out << "#[path = \"registry.rs\"]\n";
+    out << "mod registry;\n";
+    out << "#[path = \"shapes.rs\"]\n";
+    out << "mod shapes;\n";
     for (const auto& api : apis)
     {
         out << "#[path = \"../../descriptors/" << snake_identifier(api.name) << ".rs\"]\n";
