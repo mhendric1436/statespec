@@ -16,4 +16,12 @@ class IApiOperationHandler
 {{api_operation_handler_methods}} // clang-format on
 };
 
+class IBusinessApiOperationHandler
+{
+  public:
+    virtual ~IBusinessApiOperationHandler() = default;
+    // clang-format off
+{{business_api_operation_handler_methods}} // clang-format on
+};
+
 } // namespace statespec_generated::api

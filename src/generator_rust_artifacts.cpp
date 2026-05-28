@@ -670,6 +670,55 @@ std::string rust_api_handler_registry_delegates(const std::vector<ApiHandlerDoma
     return out.str();
 }
 
+bool is_entity_crud_api_rs(const IrApi& api)
+{
+    return api.entity.has_value() && api.repository_operation.has_value();
+}
+
+std::vector<ApiHandlerDomain>
+crud_api_handler_domains_rs(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::vector<ApiHandlerDomain> result;
+    for (const auto& domain : domains)
+    {
+        ApiHandlerDomain filtered{domain.name, {}};
+        for (const auto& api : domain.apis)
+        {
+            if (is_entity_crud_api_rs(api))
+            {
+                filtered.apis.push_back(api);
+            }
+        }
+        if (!filtered.apis.empty())
+        {
+            result.push_back(std::move(filtered));
+        }
+    }
+    return result;
+}
+
+std::string rust_business_api_handler_delegates(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        if (is_entity_crud_api_rs(api))
+        {
+            continue;
+        }
+        out << "    fn handle_" << snake_identifier(api.name)
+            << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
+        out << "        match &self.business_handler {\n";
+        out << "            Some(handler) => handler.handle_" << snake_identifier(api.name)
+            << "(context),\n";
+        out << "            None => Ok(ApiResponse { status_code: 501, body: "
+               "crate::json::Json::Object(std::collections::BTreeMap::new()) }),\n";
+        out << "        }\n";
+        out << "    }\n\n";
+    }
+    return out.str();
+}
+
 std::string rust_api_handler_domain_file(
     const IrSystem& system,
     const ApiHandlerDomain& domain
@@ -2069,10 +2118,12 @@ void add_rust_api_artifacts(
     add_rust_generated_template_file(
         result, options, templates, "api/api_handlers.rs", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_handler_methods", generate_api_operation_handler_methods_rs(system)}
+            {"api_operation_handler_methods", generate_api_operation_handler_methods_rs(system)},
+            {"business_api_operation_handler_methods",
+             generate_business_api_operation_handler_methods_rs(system)}
         }
     );
-    const auto handler_domains = api_handler_domains(system);
+    const auto handler_domains = crud_api_handler_domains_rs(api_handler_domains(system));
     for (const auto& domain : handler_domains)
     {
         add_rust_raw_api_file(
@@ -2085,7 +2136,8 @@ void add_rust_api_artifacts(
         diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             rust_api_handler_registry_delegates(handler_domains)},
+             rust_api_handler_registry_delegates(handler_domains) +
+                 rust_business_api_handler_delegates(system)},
             {"api_handler_registry_domain_modules",
              rust_api_handler_registry_domain_modules(handler_domains)},
             {"api_shape_import", rust_api_shape_import(system)}

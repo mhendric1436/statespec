@@ -621,6 +621,56 @@ std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDoma
     return out.str();
 }
 
+bool is_entity_crud_api_java(const IrApi& api)
+{
+    return api.entity.has_value() && api.repository_operation.has_value();
+}
+
+std::vector<ApiHandlerDomain>
+crud_api_handler_domains_java(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::vector<ApiHandlerDomain> result;
+    for (const auto& domain : domains)
+    {
+        ApiHandlerDomain filtered{domain.name, {}};
+        for (const auto& api : domain.apis)
+        {
+            if (is_entity_crud_api_java(api))
+            {
+                filtered.apis.push_back(api);
+            }
+        }
+        if (!filtered.apis.empty())
+        {
+            result.push_back(std::move(filtered));
+        }
+    }
+    return result;
+}
+
+std::string java_business_api_handler_delegates(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        if (is_entity_crud_api_java(api))
+        {
+            continue;
+        }
+        out << "        @Override\n";
+        out << "        public ApiResponse handle" << pascal_identifier(api.name)
+            << "(ApiRequestContext context) throws Exception {\n";
+        out << "            if (businessHandler == null) {\n";
+        out << "                return new ApiResponse(501, "
+               "com.statespec.backend.Json.object(java.util.Map.of()));\n";
+        out << "            }\n";
+        out << "            return businessHandler.handle" << pascal_identifier(api.name)
+            << "(context);\n";
+        out << "        }\n\n";
+    }
+    return out.str();
+}
+
 std::string java_api_handler_domain_file(
     const IrSystem& system,
     const ApiHandlerDomain& domain
@@ -2683,10 +2733,12 @@ void add_java_api_artifacts(
         result, options, templates, java_api_generated_path("ApiHandlers.java"),
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_handler_methods", generate_api_operation_handler_methods_java(system)}
+            {"api_operation_handler_methods", generate_api_operation_handler_methods_java(system)},
+            {"business_api_operation_handler_methods",
+             generate_business_api_operation_handler_methods_java(system)}
         }
     );
-    const auto handler_domains = api_handler_domains(system);
+    const auto handler_domains = crud_api_handler_domains_java(api_handler_domains(system));
     for (const auto& domain : handler_domains)
     {
         add_java_raw_api_file(
@@ -2699,7 +2751,8 @@ void add_java_api_artifacts(
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             java_api_handler_registry_delegates(handler_domains)},
+             java_api_handler_registry_delegates(handler_domains) +
+                 java_business_api_handler_delegates(system)},
             {"api_shape_import", {}}
         }
     );

@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use crate::api_handlers::{ApiHandler, ApiRequestContext, ApiResponse};
+use crate::api_handlers::{ApiHandler, ApiRequestContext, ApiResponse, BusinessApiHandler};
 #[allow(unused_imports)]
 use crate::backend::{Backend, BackendError, BackendResult, IndexValue};
 #[allow(unused_imports)]
@@ -10,9 +10,29 @@ use crate::json::Json;
 
 {{api_handler_registry_domain_modules}}
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct DefaultApiHandler<B: Backend> {
     pub backend: B,
+    pub business_handler: Option<std::sync::Arc<dyn BusinessApiHandler + Send + Sync>>,
+}
+
+impl<B: Backend> DefaultApiHandler<B> {
+    pub fn new(backend: B) -> Self {
+        Self {
+            backend,
+            business_handler: None,
+        }
+    }
+
+    pub fn with_business_handler(
+        backend: B,
+        business_handler: std::sync::Arc<dyn BusinessApiHandler + Send + Sync>,
+    ) -> Self {
+        Self {
+            backend,
+            business_handler: Some(business_handler),
+        }
+    }
 }
 
 #[allow(dead_code)]

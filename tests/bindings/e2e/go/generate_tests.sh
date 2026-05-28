@@ -25,7 +25,6 @@ api/backend/api_codecs.go
 api/backend/api_descriptors.go
 api/backend/api_dispatcher.go
 api/backend/api_handler_registry.go
-api/backend/api_handler_registry_operations.go
 api/backend/api_handlers.go
 api/backend/api_process.go
 api/backend/api_routes.go
@@ -209,6 +208,10 @@ assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewLocalBlock
 assert_file_contains "$TMPDIR/out-app-go/api/backend/codecs/start_provision_request.go" "func DecodeStartProvisionRequest"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/codecs/start_provision_response.go" "func EncodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "type DefaultAPITierHandler struct"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handlers.go" "type BusinessAPITierHandler interface"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "BusinessHandler BusinessAPITierHandler"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "handler.BusinessHandler.HandleStartProvision"
+assert_file_not_exists "$TMPDIR/out-app-go/api/backend/api_handler_registry_operations.go"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "signal.NotifyContext"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewAPIProcess"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "process.Start(ctx)"

@@ -25,7 +25,6 @@ api/com/statespec/generated/ApiCodecs.java
 api/com/statespec/generated/ApiDescriptors.java
 api/com/statespec/generated/ApiDispatcher.java
 api/com/statespec/generated/ApiHandlerRegistry.java
-api/com/statespec/generated/ApiHandlerRegistryOperations.java
 api/com/statespec/generated/ApiHandlers.java
 api/com/statespec/generated/ApiMain.java
 api/com/statespec/generated/ApiProcess.java
@@ -243,6 +242,10 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiApplic
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/codecs/ApiCodecsStartProvisionRequest.java" "decodeStartProvisionRequest"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java" "encodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistry.java" "class DefaultHandler"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlers.java" "interface BusinessHandler"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistry.java" "ApiHandlers.BusinessHandler businessHandler"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistry.java" "businessHandler.handleStartProvision"
+assert_file_not_exists "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistryOperations.java"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiProcess.Config.allServers"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "addShutdownHook"
 assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiApplication.createDefault"

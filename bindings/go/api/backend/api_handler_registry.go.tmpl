@@ -48,7 +48,8 @@ func pathParameterJSON(parameters map[string]string, name string) common.JSON {
 }
 
 type DefaultAPITierHandler struct {
-	Backend common.Backend
+	Backend          common.Backend
+	BusinessHandler BusinessAPITierHandler
 }
 
 {{api_operation_default_handler_methods}}

@@ -13,9 +13,7 @@ pub fn main() {
 
 pub fn run() -> BackendResult<()> {
     let backend = InMemoryBackend::new();
-    let handler = DefaultApiHandler {
-        backend: backend.clone(),
-    };
+    let handler = DefaultApiHandler::new(backend.clone());
     let transport = LocalBlockingApiTransport::new();
     let config = ApiProcessConfig::all_servers();
     let process = std::sync::Arc::new(ApiProcess::new(config, backend, handler, transport)?);

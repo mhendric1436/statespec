@@ -28,6 +28,8 @@ std::string generate_workflow_step_next_cases_go(const IrSystem& system);
 
 std::string generate_api_operation_handler_methods_go(const IrSystem& system);
 
+std::string generate_business_api_operation_handler_methods_go(const IrSystem& system);
+
 std::string generate_api_operation_dispatch_cases_go(const IrSystem& system);
 
 std::string generate_api_operation_default_handler_methods_go(const IrSystem& system);

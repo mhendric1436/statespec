@@ -633,6 +633,55 @@ std::string cpp_api_handler_registry_delegates(const std::vector<ApiHandlerDomai
     return out.str();
 }
 
+bool is_entity_crud_api(const IrApi& api)
+{
+    return api.entity.has_value() && api.repository_operation.has_value();
+}
+
+std::vector<ApiHandlerDomain> crud_api_handler_domains(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::vector<ApiHandlerDomain> result;
+    for (const auto& domain : domains)
+    {
+        ApiHandlerDomain filtered{domain.name, {}};
+        for (const auto& api : domain.apis)
+        {
+            if (is_entity_crud_api(api))
+            {
+                filtered.apis.push_back(api);
+            }
+        }
+        if (!filtered.apis.empty())
+        {
+            result.push_back(std::move(filtered));
+        }
+    }
+    return result;
+}
+
+std::string cpp_business_api_handler_delegates(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        if (is_entity_crud_api(api))
+        {
+            continue;
+        }
+        out << "    ApiResponse handle_" << snake_identifier(api.name)
+            << "(const ApiRequestContext& context) override\n";
+        out << "    {\n";
+        out << "        if (business_handler_ == nullptr)\n";
+        out << "        {\n";
+        out << "            return ApiResponse{501, statespec::backend::Json::object({})};\n";
+        out << "        }\n";
+        out << "        return business_handler_->handle_" << snake_identifier(api.name)
+            << "(context);\n";
+        out << "    }\n\n";
+    }
+    return out.str();
+}
+
 std::string cpp_api_handler_domain_file(
     const IrSystem& system,
     const ApiHandlerDomain& domain
@@ -2409,14 +2458,16 @@ void add_cpp_api_artifacts(
     add_cpp_generated_template_file(
         result, options, templates, "api/api_handlers.hpp", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_handler_methods", generate_api_operation_handler_methods(system)}
+            {"api_operation_handler_methods", generate_api_operation_handler_methods(system)},
+            {"business_api_operation_handler_methods",
+             generate_business_api_operation_handler_methods(system)}
         }
     );
     add_cpp_generated_template_file(
         result, options, templates, "api/api_handler_registry_support.hpp",
         GeneratedArtifactTier::Api, diagnostics
     );
-    const auto handler_domains = api_handler_domains(system);
+    const auto handler_domains = crud_api_handler_domains(api_handler_domains(system));
     for (const auto& domain : handler_domains)
     {
         add_cpp_raw_api_file(
@@ -2429,7 +2480,8 @@ void add_cpp_api_artifacts(
         diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             cpp_api_handler_registry_delegates(handler_domains)},
+             cpp_api_handler_registry_delegates(handler_domains) +
+                 cpp_business_api_handler_delegates(system)},
             {"api_handler_registry_domain_includes",
              cpp_api_handler_registry_domain_includes(handler_domains)}
         }

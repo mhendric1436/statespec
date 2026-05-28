@@ -47,14 +47,31 @@ public final class ApiHandlerRegistry {
 
     public static final class DefaultHandler implements ApiHandlers.Handler {
         private final com.statespec.backend.Backend backend;
+        private final ApiHandlers.BusinessHandler businessHandler;
 
         public DefaultHandler(com.statespec.backend.Backend backend) {
             this.backend = backend;
+            this.businessHandler = null;
+        }
+
+        public DefaultHandler(
+            com.statespec.backend.Backend backend,
+            ApiHandlers.BusinessHandler businessHandler
+        ) {
+            this.backend = backend;
+            this.businessHandler = businessHandler;
         }
 
 {{api_operation_default_handler_methods}}    }
 
     public static ApiHandlers.Handler defaultHandler(com.statespec.backend.Backend backend) {
         return new DefaultHandler(backend);
+    }
+
+    public static ApiHandlers.Handler defaultHandler(
+        com.statespec.backend.Backend backend,
+        ApiHandlers.BusinessHandler businessHandler
+    ) {
+        return new DefaultHandler(backend, businessHandler);
     }
 }

@@ -272,7 +272,7 @@ impl<B: Backend + Clone> ApiProcess<B, DefaultApiHandler<B>, LocalBlockingApiTra
         Self::new(
             ApiProcessConfig::all_servers(),
             backend.clone(),
-            DefaultApiHandler { backend },
+            DefaultApiHandler::new(backend),
             LocalBlockingApiTransport::new(),
         )
     }

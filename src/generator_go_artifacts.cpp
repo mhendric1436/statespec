@@ -678,6 +678,56 @@ std::string go_api_handler_registry_delegates(const std::vector<ApiHandlerDomain
     return out.str();
 }
 
+bool is_entity_crud_api_go(const IrApi& api)
+{
+    return api.entity.has_value() && api.repository_operation.has_value();
+}
+
+std::vector<ApiHandlerDomain>
+crud_api_handler_domains_go(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::vector<ApiHandlerDomain> result;
+    for (const auto& domain : domains)
+    {
+        ApiHandlerDomain filtered{domain.name, {}};
+        for (const auto& api : domain.apis)
+        {
+            if (is_entity_crud_api_go(api))
+            {
+                filtered.apis.push_back(api);
+            }
+        }
+        if (!filtered.apis.empty())
+        {
+            result.push_back(std::move(filtered));
+        }
+    }
+    return result;
+}
+
+std::string go_business_api_handler_delegates(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        if (is_entity_crud_api_go(api))
+        {
+            continue;
+        }
+        out << "func (handler DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
+            << "(ctx context.Context, request common.APIRequestContext) "
+               "(common.APIResponse, error) {\n";
+        out << "\tif handler.BusinessHandler == nil {\n";
+        out << "\t\treturn common.APIResponse{StatusCode: 501, Body: common.JSONObject(map[string]"
+               "common.JSON{})}, nil\n";
+        out << "\t}\n";
+        out << "\treturn handler.BusinessHandler.Handle" << pascal_identifier(api.name)
+            << "(ctx, request)\n";
+        out << "}\n\n";
+    }
+    return out.str();
+}
+
 std::string go_api_handler_domain_file(
     const IrSystem& system,
     const ApiHandlerDomain& domain
@@ -2255,10 +2305,12 @@ void add_go_api_artifacts(
         result, options, templates, "api/backend/api_handlers.go", GeneratedArtifactTier::Api,
         diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_handler_methods", generate_api_operation_handler_methods_go(system)}
+            {"api_operation_handler_methods", generate_api_operation_handler_methods_go(system)},
+            {"business_api_operation_handler_methods",
+             generate_business_api_operation_handler_methods_go(system)}
         }
     );
-    const auto handler_domains = api_handler_domains(system);
+    const auto handler_domains = crud_api_handler_domains_go(api_handler_domains(system));
     for (const auto& domain : handler_domains)
     {
         add_go_raw_api_file(
@@ -2271,7 +2323,8 @@ void add_go_api_artifacts(
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
             {"api_operation_default_handler_methods",
-             go_api_handler_registry_delegates(handler_domains)},
+             go_api_handler_registry_delegates(handler_domains) +
+                 go_business_api_handler_delegates(system)},
             {"api_shape_import", {}}
         }
     );

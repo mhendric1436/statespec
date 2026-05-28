@@ -8,9 +8,7 @@ use statespec_generated::memory_backend::InMemoryBackend;
 #[test]
 fn generated_api_process_constructs_multiple_servers_and_stops() {
     let backend = InMemoryBackend::new();
-    let handler = DefaultApiHandler {
-        backend: backend.clone(),
-    };
+    let handler = DefaultApiHandler::new(backend.clone());
     let transport = LocalBlockingApiTransport::new();
     let config = ApiProcessConfig::all_servers();
     assert_eq!(config.server_names.len(), 2);

@@ -1102,6 +1102,21 @@ std::string generate_api_operation_handler_methods_java(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_business_api_operation_handler_methods_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        if (api.entity.has_value() && api.repository_operation.has_value())
+        {
+            continue;
+        }
+        out << "        ApiResponse handle" << pascal_identifier(api.name)
+            << "(ApiRequestContext context) throws Exception;\n";
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_dispatch_cases_java(const IrSystem& system)
 {
     std::ostringstream out;

@@ -16,11 +16,21 @@ class DefaultApiHandler final : public IApiOperationHandler
     {
     }
 
+    DefaultApiHandler(
+        statespec::backend::IBackend& backend,
+        IBusinessApiOperationHandler& business_handler
+    )
+        : backend_(backend),
+          business_handler_(&business_handler)
+    {
+    }
+
     // clang-format off
 {{api_operation_default_handler_methods}} // clang-format on
 
   private:
     [[maybe_unused]] statespec::backend::IBackend& backend_;
+    IBusinessApiOperationHandler* business_handler_ = nullptr;
 };
 
 } // namespace statespec_generated::api

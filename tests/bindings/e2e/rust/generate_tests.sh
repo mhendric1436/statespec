@@ -39,7 +39,6 @@ api/descriptors/catalog.rs
 api/descriptors/report_provision_ready.rs
 api/descriptors/start_provision.rs
 api/external_system_operator_metadata_api.rs
-api/handlers/operations.rs
 api/main.rs
 api/shapes.rs
 api/shapes/provision_callback_request.rs
@@ -192,6 +191,10 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_application.rs" "pub struct A
 assert_file_contains "$TMPDIR/out-app-rust/api/codecs/start_provision_request.rs" "decode_start_provision_request"
 assert_file_contains "$TMPDIR/out-app-rust/api/codecs/start_provision_response.rs" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "pub struct DefaultApiHandler"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_handlers.rs" "pub trait BusinessApiHandler"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "business_handler: Option<std::sync::Arc<dyn BusinessApiHandler + Send + Sync>>"
+assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "handler.handle_start_provision"
+assert_file_not_exists "$TMPDIR/out-app-rust/api/handlers/operations.rs"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiProcessConfig::all_servers"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "install_signal_handling"
 assert_file_not_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiApplication::new_default"

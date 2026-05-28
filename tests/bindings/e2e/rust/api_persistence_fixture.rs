@@ -62,9 +62,7 @@ fn require_array_size(body: &Json, field: &str, expected: usize) {
 
 #[test]
 fn generated_api_persistence_handlers_round_trip_entities() {
-    let handler = DefaultApiHandler {
-        backend: InMemoryBackend::new(),
-    };
+    let handler = DefaultApiHandler::new(InMemoryBackend::new());
 
     let account = handler
         .handle_create_account(&api_request(

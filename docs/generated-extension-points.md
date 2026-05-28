@@ -171,6 +171,21 @@ must emit concrete create, get, list, status update, and delete behavior for tho
 Manual user handler implementations remain the extension point for top-level business
 APIs that do not have entity repository metadata.
 
+The generated handler registry composes these two paths. Entity CRUD operations
+delegate to generated repository-backed handler modules. Top-level business APIs
+delegate to a user-supplied business handler interface:
+
+| Language | Business API handler surface |
+|---|---|
+| C++ | `statespec_generated::api::IBusinessApiOperationHandler` |
+| Go | `api/backend.BusinessAPITierHandler` |
+| Java | `ApiHandlers.BusinessHandler` |
+| Rust | `api_handlers::BusinessApiHandler` |
+
+If no business handler is supplied, generated default handlers return `501` for manual
+business APIs. This keeps generated application shells linkable without pretending to
+implement domain-specific behavior.
+
 Generated constants are the canonical spelling source for entity metadata in binding
 output. Entity names, field names, state values, and index names are emitted once and
 then reused by descriptors, repository helpers, generated API handlers, GC metadata, and
@@ -196,15 +211,10 @@ Generated API codec files provide the canonical conversion between the framework
 | Java | `ApiCodecs.java` |
 | Rust | `api_codecs.rs` |
 
-The generated default API handler uses these codecs for every declared API operation.
-For entity-owned CRUD operations, the default handler is production-shaped generated
-persistence behavior built on the generated entity repository and caller-owned backend.
+The generated default API handler uses these codecs for entity-owned CRUD operations.
 For top-level business APIs with a primary action model such as `starts workflow` or
-`enqueues`, the default handler remains a linking/test skeleton that returns an accepted
-response shape with deterministic action identifiers when the output shape includes
-fields such as `workflow_execution_id` or `message_id`. Production systems should
-replace or wrap business API handlers when they need domain-specific persistence,
-authorization, or runtime side effects beyond the generated transport/action skeleton.
+`enqueues`, users provide the business handler implementation that performs
+domain-specific persistence, authorization, and runtime side effects.
 
 When testing API handlers locally, inject the generated in-memory backend through the
 same application-owned dependency path that production code uses for its durable

@@ -976,6 +976,22 @@ std::string generate_api_operation_handler_methods_go(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_business_api_operation_handler_methods_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        if (api.entity.has_value() && api.repository_operation.has_value())
+        {
+            continue;
+        }
+        out << "\tHandle" << pascal_identifier(api.name)
+            << "(context.Context, descriptortypes.APIRequestContext) "
+               "(descriptortypes.APIResponse, error)\n";
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_dispatch_cases_go(const IrSystem& system)
 {
     std::ostringstream out;

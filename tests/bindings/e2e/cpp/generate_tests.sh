@@ -40,7 +40,6 @@ api/descriptors/catalog.hpp
 api/descriptors/report_provision_ready.hpp
 api/descriptors/start_provision.hpp
 api/external_system_operator_metadata_api.hpp
-api/handlers/operations.hpp
 api/main.cpp
 api/shapes.hpp
 api/shapes/provision_callback_request.hpp
@@ -204,6 +203,10 @@ assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "LocalBlockingApiTranspo
 assert_file_contains "$TMPDIR/out-app-cpp/api/codecs/start_provision_request.hpp" "decode_start_provision_request"
 assert_file_contains "$TMPDIR/out-app-cpp/api/codecs/start_provision_response.hpp" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "class DefaultApiHandler"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_handlers.hpp" "class IBusinessApiOperationHandler"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "IBusinessApiOperationHandler& business_handler"
+assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "business_handler_->handle_start_provision"
+assert_file_not_exists "$TMPDIR/out-app-cpp/api/handlers/operations.hpp"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "ApiProcess"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "std::signal(SIGTERM"
 assert_file_not_contains "$TMPDIR/out-app-cpp/api/main.cpp" "ApiApplication app"
