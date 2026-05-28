@@ -51,7 +51,6 @@ common/backend/backend.go
 common/backend/descriptors.go
 common/backend/descriptors/core.go
 common/backend/descriptors/runtime.go
-common/backend/descriptors/shapes.go
 common/backend/descriptortypes/types.go
 common/backend/entity_repository.go
 common/backend/events.go
@@ -82,7 +81,6 @@ common/backend/runtime_registration_leases.go
 common/backend/runtime_registration_queues.go
 common/backend/runtime_registration_workflows.go
 common/backend/schema_compatibility.go
-common/backend/shape_descriptors.go
 common/backend/shape_types.go
 common/backend/workflow.go
 common/backend/workflows/provision_service.go

@@ -56,7 +56,6 @@ common/descriptors/runtime.rs
 common/descriptors/runtime/leases.rs
 common/descriptors/runtime/queues.rs
 common/descriptors/runtime/workflows.rs
-common/descriptors/shapes.rs
 common/descriptors/types.rs
 common/entities/service_instance/gc.rs
 common/entities/service_instance/mod.rs

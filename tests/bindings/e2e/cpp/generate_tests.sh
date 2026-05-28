@@ -57,7 +57,6 @@ common/descriptors/runtime.hpp
 common/descriptors/runtime/leases.hpp
 common/descriptors/runtime/queues.hpp
 common/descriptors/runtime/workflows.hpp
-common/descriptors/shapes.hpp
 common/descriptors/types.hpp
 common/entities/service_instance/gc.hpp
 common/entities/service_instance/model.hpp

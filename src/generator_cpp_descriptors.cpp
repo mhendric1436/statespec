@@ -32,6 +32,29 @@ const IrShape* find_shape(
     return nullptr;
 }
 
+bool shape_is_api_contract(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const auto& api)
+        {
+            return (api.input.has_value() && *api.input == shape_name) ||
+                   (api.output.has_value() && *api.output == shape_name);
+        }
+    );
+}
+
+bool has_common_shapes(const IrSystem& system)
+{
+    return std::any_of(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape) { return !shape_is_api_contract(system, shape.name); }
+    );
+}
+
 const IrEntity* find_entity(
     const IrSystem& system,
     const std::string& name
@@ -923,7 +946,10 @@ std::string generate_system_descriptors_header(
     out << generate_cpp_declaration_descriptors(system);
     out << "#include \"descriptors/external_systems.hpp\"\n\n";
     out << generate_cpp_policy_descriptors(system);
-    out << "#include \"descriptors/shapes.hpp\"\n\n";
+    if (has_common_shapes(system))
+    {
+        out << "#include \"descriptors/shapes.hpp\"\n\n";
+    }
     out << generate_cpp_observability_descriptors(system);
     out << generate_cpp_runtime_descriptors(system);
     out << generate_cpp_observability_registration(system);

@@ -3,6 +3,7 @@
 #include "generator_cpp_descriptor_support.hpp"
 #include "identifier_case.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 namespace statespec
@@ -11,11 +12,38 @@ namespace statespec
 namespace
 {
 
+bool cpp_shape_is_api_contract(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const auto& api)
+        {
+            return (api.input.has_value() && *api.input == shape_name) ||
+                   (api.output.has_value() && *api.output == shape_name);
+        }
+    );
+}
+
+bool cpp_has_common_shapes(const IrSystem& system)
+{
+    return std::any_of(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape) { return !cpp_shape_is_api_contract(system, shape.name); }
+    );
+}
+
 std::string cpp_descriptor_module_includes(const IrSystem& system)
 {
     std::ostringstream out;
     out << "#include \"descriptors/core.hpp\"\n";
     out << "#include \"descriptors/runtime.hpp\"\n";
+    if (cpp_has_common_shapes(system))
+    {
+        out << "#include \"descriptors/shapes.hpp\"\n";
+    }
     for (const auto& entity : system.entities)
     {
         out << "#include \"entities/" << snake_identifier(entity.name) << "/schema.hpp\"\n";

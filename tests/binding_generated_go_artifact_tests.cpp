@@ -39,7 +39,6 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/queue.go", common},
             {"common/backend/schema_compatibility.go", common},
             {"common/backend/shape_types.go", common},
-            {"common/backend/shape_descriptors.go", common},
             {"common/backend/workflow.go", common},
             {"common/backend/descriptors.go", common},
             {"common/backend/descriptortypes/types.go", common},
@@ -47,7 +46,6 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/external_systems.go", common},
             {"common/backend/descriptors/core.go", common},
             {"common/backend/descriptors/runtime.go", common},
-            {"common/backend/descriptors/shapes.go", common},
             {"common/backend/entity_repository.go", common},
             {"common/backend/runtime_registration.go", common},
             {"common/go.mod", common},
@@ -101,14 +99,6 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "backend/runtime_registration.go", "common/backend/runtime_registration.go",
-        statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "backend/descriptors/shapes.go", "common/backend/descriptors/shapes.go",
-        statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "backend/shape_descriptors.go", "common/backend/shape_descriptors.go",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

@@ -45,7 +45,6 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors/events.hpp", common},
             {"common/descriptors/external_systems.hpp", common},
             {"common/descriptors/runtime.hpp", common},
-            {"common/descriptors/shapes.hpp", common},
             {"common/descriptors/types.hpp", common},
             {"common/entity_repository.hpp", common},
             {"common/runtime_registration.hpp", common},
@@ -80,10 +79,6 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "descriptors/external_systems.hpp", "common/descriptors/external_systems.hpp",
-        statespec::GeneratedArtifactTier::Common
-    );
-    require_generated_file_artifact_path(
-        result, "descriptors/shapes.hpp", "common/descriptors/shapes.hpp",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

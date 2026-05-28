@@ -4,6 +4,7 @@
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <string_view>
 
@@ -16,6 +17,20 @@ namespace
 std::string rust_descriptor_module_declarations(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
+    const auto has_common_shapes = std::any_of(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape)
+        {
+            return !std::any_of(
+                system.apis.begin(), system.apis.end(),
+                [&](const auto& api)
+                {
+                    return (api.input.has_value() && *api.input == shape.name) ||
+                           (api.output.has_value() && *api.output == shape.name);
+                }
+            );
+        }
+    );
     std::ostringstream out;
     out << "#[path = \"descriptors/core.rs\"]\n";
     out << "mod descriptor_core;\n";
@@ -25,9 +40,12 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     out << "#[path = \"descriptors/external_systems.rs\"]\n";
     out << "mod descriptor_external_systems;\n";
     out << "pub use descriptor_external_systems::*;\n";
-    out << "#[path = \"descriptors/shapes.rs\"]\n";
-    out << "mod descriptor_shapes;\n";
-    out << "pub use descriptor_shapes::*;\n";
+    if (has_common_shapes)
+    {
+        out << "#[path = \"descriptors/shapes.rs\"]\n";
+        out << "mod descriptor_shapes;\n";
+        out << "pub use descriptor_shapes::*;\n";
+    }
     out << "#[path = \"descriptors/runtime.rs\"]\n";
     out << "mod descriptor_runtime;\n";
     auto add_runtime_registration_module = [&](bool used, std::string_view module_name)

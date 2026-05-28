@@ -2241,6 +2241,10 @@ void add_go_shape_descriptor_artifact(
 )
 {
     const auto common_shapes = go_shapes_matching(system, false);
+    if (common_shapes.shapes.empty())
+    {
+        return;
+    }
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("shape_descriptors.go.tmpl"),
         common_artifact_path("backend/shape_descriptors.go"), diagnostics,
@@ -2371,10 +2375,14 @@ void add_go_descriptor_module_artifacts(
     add_go_raw_common_file(
         result, options, "backend/external_systems.go", go_external_systems_file(system, templates)
     );
-    add_go_descriptor_module_artifact(
-        result, options, templates, "backend/descriptors/shapes.go", "descriptors",
-        "shape descriptors", diagnostics
-    );
+    const auto common_shapes = go_shapes_matching(system, false);
+    if (!common_shapes.shapes.empty())
+    {
+        add_go_descriptor_module_artifact(
+            result, options, templates, "backend/descriptors/shapes.go", "descriptors",
+            "shape descriptors", diagnostics
+        );
+    }
     add_go_shape_descriptor_artifact(result, options, templates, system, diagnostics);
     add_go_descriptor_module_artifact(
         result, options, templates, "backend/descriptors/runtime.go", "descriptors",

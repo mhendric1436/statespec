@@ -80,7 +80,6 @@ common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
 common/com/statespec/generated/descriptors/RuntimeLeaseRegistrationModule.java
 common/com/statespec/generated/descriptors/RuntimeQueueRegistrationModule.java
 common/com/statespec/generated/descriptors/RuntimeWorkflowRegistrationModule.java
-common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
 common/com/statespec/generated/descriptors/types/ApiDescriptor.java
 common/com/statespec/generated/descriptors/types/ApiRouteDescriptor.java
 common/com/statespec/generated/descriptors/types/ApiServerDescriptor.java

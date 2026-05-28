@@ -2289,18 +2289,22 @@ void add_cpp_descriptor_module_artifacts(
         "external system descriptors", diagnostics,
         cpp_external_system_descriptor_module_values(system, templates)
     );
-    add_cpp_descriptor_module_artifact(
-        result, options, templates, "descriptors/shapes.hpp", "shape descriptors", diagnostics,
-        cpp_shape_descriptor_module_values(common_shapes)
-    );
-    for (const auto& shape : common_shapes.shapes)
+    if (!common_shapes.shapes.empty())
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            generated_template_path("descriptor_module.hpp.tmpl"),
-            common_artifact_path("descriptors/shapes/" + snake_identifier(shape.name) + ".hpp"),
-            diagnostics, GeneratedArtifactTier::Common, cpp_shape_descriptor_module_values(shape)
+        add_cpp_descriptor_module_artifact(
+            result, options, templates, "descriptors/shapes.hpp", "shape descriptors", diagnostics,
+            cpp_shape_descriptor_module_values(common_shapes)
         );
+        for (const auto& shape : common_shapes.shapes)
+        {
+            add_generated_template_file(
+                result, options.output_dir, templates,
+                generated_template_path("descriptor_module.hpp.tmpl"),
+                common_artifact_path("descriptors/shapes/" + snake_identifier(shape.name) + ".hpp"),
+                diagnostics, GeneratedArtifactTier::Common,
+                cpp_shape_descriptor_module_values(shape)
+            );
+        }
     }
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/runtime.hpp", "runtime descriptors", diagnostics

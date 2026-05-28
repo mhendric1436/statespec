@@ -3,6 +3,7 @@
 #include "generator_java_descriptor_support.hpp"
 #include "identifier_case.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 namespace statespec
@@ -11,6 +12,29 @@ namespace statespec
 namespace
 {
 
+bool java_shape_is_api_contract(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const auto& api)
+        {
+            return (api.input.has_value() && *api.input == shape_name) ||
+                   (api.output.has_value() && *api.output == shape_name);
+        }
+    );
+}
+
+bool java_has_common_shapes(const IrSystem& system)
+{
+    return std::any_of(
+        system.shapes.begin(), system.shapes.end(),
+        [&](const auto& shape) { return !java_shape_is_api_contract(system, shape.name); }
+    );
+}
+
 std::string java_descriptor_module_imports(const IrSystem& system)
 {
     std::ostringstream out;
@@ -18,7 +42,10 @@ std::string java_descriptor_module_imports(const IrSystem& system)
     out << "import com.statespec.generated.descriptors.EventDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.ExternalSystemDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.RuntimeDescriptorModule;\n";
-    out << "import com.statespec.generated.descriptors.ShapeDescriptorModule;\n";
+    if (java_has_common_shapes(system))
+    {
+        out << "import com.statespec.generated.descriptors.ShapeDescriptorModule;\n";
+    }
     for (const auto& workflow : system.workflows)
     {
         out << "import com.statespec.generated.workflows." << pascal_identifier(workflow.name)

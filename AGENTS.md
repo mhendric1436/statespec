@@ -419,6 +419,12 @@ common/com/statespec/generated/Descriptors.java
 common/descriptors.rs
 ```
 
+These common descriptor facades are for shared descriptor types and common system catalogs.
+They must not expose API shape descriptor lists or worker catalogs. API shape catalogs
+belong in the API tier, and worker catalogs belong in the Worker tier. A common shape
+descriptor catalog should be emitted only for shapes that are truly shared and not API
+contracts.
+
 ---
 
 ## Generator Template Architecture

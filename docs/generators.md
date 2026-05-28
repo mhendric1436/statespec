@@ -67,6 +67,11 @@ Do not move API-only or Worker-only helpers into `common` to simplify imports. I
 focused module needs a shared type, generate or import the focused shared type directly
 rather than depending on a common facade such as `common/descriptors.*`.
 
+API contract shapes are API-tier artifacts. Generated API shape catalogs live under the
+API tree, and `common/descriptors.*` must not expose API shape descriptor lists. Common
+descriptor facades may expose shared shape descriptors only when the spec declares shapes
+that are not API contracts.
+
 Descriptor values are spec-driven. Generated descriptor files expose values for
 declarations that exist in the `.sspec` input, and unused declaration categories are
 absent or empty according to the target language's descriptor shape. A runtime helper
@@ -432,12 +437,12 @@ to register feature flag definitions into a backend-provided feature flag store.
 
 The generated domain descriptor APIs are:
 
-| Language | Values | Enums | Events | External systems | Shapes | APIs | API servers | Workers | Policies |
+| Language | Values | Enums | Events | External systems | Shared shapes | APIs | API servers | Workers | Policies |
 |---|---|---|---|---|---|---|---|---|---|
-| C++ | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
-| Go | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` | `ApiDescriptors()` | `ApiServerDescriptors()`, `ApiRouteDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
-| Java | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` | `apiDescriptors()` | `apiServerDescriptors()`, `apiRouteDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
-| Rust | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| C++ | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` only for non-API shapes | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
+| Go | `ValueDescriptors()` | `EnumDescriptors()` | `EventDescriptors()` | `ExternalSystemDescriptors()` | `ShapeDescriptors()` only for non-API shapes | `ApiDescriptors()` | `ApiServerDescriptors()`, `ApiRouteDescriptors()` | `WorkerDescriptors()` | `PolicyDescriptors()` |
+| Java | `valueDescriptors()` | `enumDescriptors()` | `eventDescriptors()` | `externalSystemDescriptors()` | `shapeDescriptors()` only for non-API shapes | `apiDescriptors()` | `apiServerDescriptors()`, `apiRouteDescriptors()` | `workerDescriptors()` | `policyDescriptors()` |
+| Rust | `value_descriptors()` | `enum_descriptors()` | `event_descriptors()` | `external_system_descriptors()` | `shape_descriptors()` only for non-API shapes | `api_descriptors()` | `api_server_descriptors()`, `api_route_descriptors()` | `worker_descriptors()` | `policy_descriptors()` |
 
 Generated log metadata includes:
 

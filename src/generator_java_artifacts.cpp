@@ -2938,24 +2938,28 @@ void add_java_descriptor_module_artifacts(
         java_external_system_descriptor_module_file(system, templates)
     );
     const auto common_shapes = java_shapes_matching(system, false);
-    add_java_descriptor_module_artifact(
-        result, options, templates, descriptor_package_path / "ShapeDescriptorModule.java",
-        descriptor_package, "ShapeDescriptorModule", "shape descriptors", diagnostics,
-        java_shape_descriptor_module_values(
-            descriptor_package, "ShapeDescriptorModule", common_shapes
-        )
-    );
-    for (const auto& shape : common_shapes.shapes)
+    if (!common_shapes.shapes.empty())
     {
-        const auto class_name = java_shape_descriptor_module_class_name(shape.name);
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            generated_template_path("DescriptorModule.java.tmpl"),
-            common_artifact_path(
-                (shape_descriptor_package_path / (class_name + ".java")).generic_string()
-            ),
-            diagnostics, GeneratedArtifactTier::Common, java_shape_descriptor_module_values(shape)
+        add_java_descriptor_module_artifact(
+            result, options, templates, descriptor_package_path / "ShapeDescriptorModule.java",
+            descriptor_package, "ShapeDescriptorModule", "shape descriptors", diagnostics,
+            java_shape_descriptor_module_values(
+                descriptor_package, "ShapeDescriptorModule", common_shapes
+            )
         );
+        for (const auto& shape : common_shapes.shapes)
+        {
+            const auto class_name = java_shape_descriptor_module_class_name(shape.name);
+            add_generated_template_file(
+                result, options.output_dir, templates,
+                generated_template_path("DescriptorModule.java.tmpl"),
+                common_artifact_path(
+                    (shape_descriptor_package_path / (class_name + ".java")).generic_string()
+                ),
+                diagnostics, GeneratedArtifactTier::Common,
+                java_shape_descriptor_module_values(shape)
+            );
+        }
     }
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "RuntimeDescriptorModule.java",

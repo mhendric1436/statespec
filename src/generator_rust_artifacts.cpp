@@ -1951,18 +1951,22 @@ void add_rust_descriptor_module_artifacts(
         result, options, "descriptors/external_systems.rs",
         rust_external_system_descriptor_module(system, templates)
     );
-    add_rust_descriptor_module_artifact(
-        result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics,
-        rust_shape_descriptor_module_values(common_shapes)
-    );
-    for (const auto& shape : common_shapes.shapes)
+    if (!common_shapes.shapes.empty())
     {
-        add_generated_template_file(
-            result, options.output_dir, templates,
-            generated_template_path("descriptor_module.rs.tmpl"),
-            common_artifact_path("descriptors/shapes/" + snake_identifier(shape.name) + ".rs"),
-            diagnostics, GeneratedArtifactTier::Common, rust_shape_descriptor_module_values(shape)
+        add_rust_descriptor_module_artifact(
+            result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics,
+            rust_shape_descriptor_module_values(common_shapes)
         );
+        for (const auto& shape : common_shapes.shapes)
+        {
+            add_generated_template_file(
+                result, options.output_dir, templates,
+                generated_template_path("descriptor_module.rs.tmpl"),
+                common_artifact_path("descriptors/shapes/" + snake_identifier(shape.name) + ".rs"),
+                diagnostics, GeneratedArtifactTier::Common,
+                rust_shape_descriptor_module_values(shape)
+            );
+        }
     }
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/runtime.rs", "runtime descriptors", diagnostics
