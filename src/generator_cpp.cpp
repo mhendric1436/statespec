@@ -1,6 +1,7 @@
 #include "statespec/generator_cpp.hpp"
 
 #include "generator_cpp_artifacts.hpp"
+#include "generator_crud_contract.hpp"
 
 namespace statespec
 {
@@ -12,6 +13,11 @@ GenerationResult generate_cpp_bindings(
 )
 {
     GenerationResult result;
+    if (!validate_crud_handler_inputs(system, diagnostics))
+    {
+        return result;
+    }
+
     const TemplatePackage templates{resolve_binding_template_root(options)};
 
     add_cpp_common_runtime_artifacts(result, options, templates, system, diagnostics);
