@@ -22,6 +22,21 @@ const statespec::IrShape* find_shape(
     return nullptr;
 }
 
+const statespec::IrApi* find_api(
+    const statespec::IrSystem& ir,
+    const std::string& name
+)
+{
+    for (const auto& api : ir.apis)
+    {
+        if (api.name == name)
+        {
+            return &api;
+        }
+    }
+    return nullptr;
+}
+
 std::vector<std::string> shape_field_names(const statespec::IrShape& shape)
 {
     std::vector<std::string> names;
@@ -247,6 +262,18 @@ void ir_lowers_entity_api_intent_to_synthetic_api_contracts()
         "IR should link create API to repository operation"
     );
 
+    const auto* get = find_api(ir, "GetAccount");
+    statespec::test::require(get != nullptr, "IR should synthesize get API");
+    statespec::test::require(get->method == "GET", "IR should lower get method");
+    statespec::test::require(
+        get->path == "/v1/tenants/{tenant_id}/accounts/{account_id}",
+        "IR should lower get path from entity resource"
+    );
+    statespec::test::require(
+        get->entity == "Account" && get->repository_operation == "get",
+        "IR should link get API to repository operation"
+    );
+
     const auto& list = ir.apis[2];
     statespec::test::require(list.name == "ListAccounts", "IR should name default list API");
     statespec::test::require(
@@ -274,6 +301,23 @@ void ir_lowers_entity_api_intent_to_synthetic_api_contracts()
     statespec::test::require(
         update.path == "/v1/tenants/{tenant_id}/accounts/{account_id}/status",
         "IR should derive update_status path"
+    );
+    statespec::test::require(update.method == "PATCH", "IR should lower update_status method");
+    statespec::test::require(
+        update.entity == "Account" && update.repository_operation == "update_status",
+        "IR should link update_status API to repository operation"
+    );
+
+    const auto* delete_api = find_api(ir, "DeleteAccount");
+    statespec::test::require(delete_api != nullptr, "IR should synthesize delete API");
+    statespec::test::require(delete_api->method == "DELETE", "IR should lower delete method");
+    statespec::test::require(
+        delete_api->path == "/v1/tenants/{tenant_id}/accounts/{account_id}",
+        "IR should lower delete path from entity resource"
+    );
+    statespec::test::require(
+        delete_api->entity == "Account" && delete_api->repository_operation == "delete",
+        "IR should link delete API to repository operation"
     );
 
     const auto* account_response = find_shape(ir, "AccountResponse");

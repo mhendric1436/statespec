@@ -381,6 +381,48 @@ void validator_rejects_entity_api_list_arbitrary_field_selector()
     );
 }
 
+void validator_rejects_entity_api_list_index_fields_out_of_order()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system AccountSystem {
+          entity Account {
+            key tenant_id, account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+            indexes {
+              index by_tenant_status on tenant_id, status
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+              list {
+                path "/v1/accounts/by-status/{status}"
+                by status, tenant_id
+              }
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, dc::UnknownReference),
+        "validator should reject index field selectors that do not match index order"
+    );
+}
+
 void validator_rejects_invalid_entity_api_paths_and_create_fields()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -422,6 +464,85 @@ void validator_rejects_invalid_entity_api_paths_and_create_fields()
     require(
         has_error_code(diagnostics, dc::EntityDuplicateFieldName),
         "validator should reject foundational create fields"
+    );
+}
+
+void validator_rejects_entity_api_create_with_management_fields()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system AccountSystem {
+          entity Account {
+            key tenant_id, account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+              display_name string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+              create {
+                fields [created_at, updated_at, status, display_name]
+              }
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, dc::EntityDuplicateFieldName),
+        "validator should reject created_at, updated_at, and status in entity API create fields"
+    );
+}
+
+void validator_rejects_entity_api_resource_missing_key_field()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system AccountSystem {
+          entity Account {
+            key tenant_id, account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts"
+              get
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_code(diagnostics, dc::UnknownReference),
+        "validator should reject CRUD resource paths that do not include every key field"
+    );
+    require(
+        has_error_message_containing(diagnostics, "must include all key fields"),
+        "validator should explain that the CRUD resource path is missing a key field"
     );
 }
 
@@ -780,9 +901,24 @@ TEST_CASE("validator rejects entity API list arbitrary field selector")
     validator_rejects_entity_api_list_arbitrary_field_selector();
 }
 
+TEST_CASE("validator rejects entity API list index fields out of order")
+{
+    validator_rejects_entity_api_list_index_fields_out_of_order();
+}
+
 TEST_CASE("validator rejects invalid entity API paths and create fields")
 {
     validator_rejects_invalid_entity_api_paths_and_create_fields();
+}
+
+TEST_CASE("validator rejects entity API create with management fields")
+{
+    validator_rejects_entity_api_create_with_management_fields();
+}
+
+TEST_CASE("validator rejects entity API resource missing key field")
+{
+    validator_rejects_entity_api_resource_missing_key_field();
 }
 
 TEST_CASE("validator rejects entity API delete without Deleted terminal state")
