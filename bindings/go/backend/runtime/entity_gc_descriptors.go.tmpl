@@ -17,7 +17,9 @@ type EntityGCDescriptor struct {
 	TerminalStates []EntityGCTerminalStateDescriptor
 }
 
+// {{entity_gc_descriptor_functions}}
 func EntityGCDescriptors() []EntityGCDescriptor {
 	return []EntityGCDescriptor{
-		{{entity_gc_descriptors}}}
+		// {{entity_gc_descriptor_calls}}
+	}
 }

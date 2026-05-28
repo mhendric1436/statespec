@@ -907,7 +907,8 @@ std::string go_api_codec_delegates(const IrSystem& system)
 TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
 {
     std::ostringstream imports;
-    std::ostringstream descriptors;
+    std::ostringstream descriptor_functions;
+    std::ostringstream descriptor_calls;
     for (const auto& entity : system.entities)
     {
         std::ostringstream terminal_states;
@@ -933,20 +934,27 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
         imports << "\t" << snake_identifier(entity.name)
                 << " \"statespec-generated/common/entities/" << snake_identifier(entity.name)
                 << "\"\n";
-        descriptors << "\t\t{\n"
-                    << "\t\t\tEntity: " << snake_identifier(entity.name) << "."
-                    << go_entity_name_constant_name(entity.name) << ",\n"
-                    << "\t\t\tCollection: " << snake_identifier(entity.name) << "."
-                    << go_entity_name_constant_name(entity.name) << ",\n"
-                    << "\t\t\tStatusField: " << snake_identifier(entity.name) << "."
-                    << go_entity_field_constant_name(entity.name, "status") << ",\n"
-                    << "\t\t\tTerminalStates: []EntityGCTerminalStateDescriptor{\n"
-                    << terminal_states.str() << "\t\t\t},\n"
-                    << "\t\t},\n";
+        const auto descriptor_function = pascal_identifier(entity.name) + "EntityGCDescriptor";
+        descriptor_functions << "func " << descriptor_function << "() EntityGCDescriptor {\n"
+                             << "\treturn EntityGCDescriptor{\n"
+                             << "\t\tEntity: " << snake_identifier(entity.name) << "."
+                             << go_entity_name_constant_name(entity.name) << ",\n"
+                             << "\t\tCollection: " << snake_identifier(entity.name) << "."
+                             << go_entity_name_constant_name(entity.name) << ",\n"
+                             << "\t\tStatusField: " << snake_identifier(entity.name) << "."
+                             << go_entity_field_constant_name(entity.name, "status") << ",\n"
+                             << "\t\tTerminalStates: []EntityGCTerminalStateDescriptor{\n"
+                             << terminal_states.str() << "\t\t},\n"
+                             << "\t}\n"
+                             << "}\n\n";
+        descriptor_calls << "\t\t" << descriptor_function << "(),\n";
     }
     return TemplateRenderer::Values{
         {"entity_gc_entity_imports", imports.str().empty() ? "" : "\n" + imports.str()},
-        {"entity_gc_descriptors", descriptors.str()},
+        {"entity_gc_descriptor_functions",
+         descriptor_functions.str().empty() ? "" : "\n" + descriptor_functions.str()},
+        {"entity_gc_descriptor_calls",
+         descriptor_calls.str().empty() ? "" : "\n" + descriptor_calls.str()},
     };
 }
 
