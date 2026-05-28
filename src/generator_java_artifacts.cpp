@@ -2537,6 +2537,10 @@ void add_java_descriptor_module_artifacts(
     }
     for (const auto& entity : system.entities)
     {
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
         const auto entity_path = std::filesystem::path{"com"} / "statespec" / "generated" /
                                  "entities" / snake_identifier(entity.name);
         add_java_raw_common_file(
@@ -2551,6 +2555,20 @@ void add_java_descriptor_module_artifacts(
             result, options, entity_path / "Schema.java",
             java_entity_centered_facade_file(entity, "Schema", "schema")
         );
+        if (entity_uses_gc)
+        {
+            const auto package_name =
+                "com.statespec.generated.entities." + snake_identifier(entity.name);
+            add_java_raw_common_file(
+                result, options, entity_path / "Gc.java",
+                "package " + package_name +
+                    ";\n\n"
+                    "public final class Gc\n"
+                    "{\n"
+                    "    private Gc() {}\n"
+                    "}\n"
+            );
+        }
     }
 }
 

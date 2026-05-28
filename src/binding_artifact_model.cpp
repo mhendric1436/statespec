@@ -27,6 +27,8 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "runtime_metric_sink";
     case BindingAppArtifactKind::RuntimeEntityGcDescriptors:
         return "runtime_entity_gc_descriptors";
+    case BindingAppArtifactKind::RuntimeEntityGcDescriptorModule:
+        return "runtime_entity_gc_descriptor_module";
     case BindingAppArtifactKind::RuntimeEntityGcRepository:
         return "runtime_entity_gc_repository";
     case BindingAppArtifactKind::RuntimeEntityGcWorkers:

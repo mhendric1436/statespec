@@ -1667,11 +1667,17 @@ void add_rust_descriptor_module_artifacts(
     }
     for (const auto& entity : system.entities)
     {
-        const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
-        add_rust_raw_common_file(
-            result, options, entity_dir + "mod.rs",
-            "pub mod model;\npub mod persistence;\npub mod schema;\n"
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
         );
+        const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
+        std::string entity_mods = "pub mod model;\npub mod persistence;\npub mod schema;\n";
+        if (entity_uses_gc)
+        {
+            entity_mods += "pub mod gc;\n";
+        }
+        add_rust_raw_common_file(result, options, entity_dir + "mod.rs", entity_mods);
         add_rust_raw_common_file(
             result, options, entity_dir + "model.rs",
             rust_entity_centered_facade_file(entity, "model")
@@ -1684,6 +1690,10 @@ void add_rust_descriptor_module_artifacts(
             result, options, entity_dir + "schema.rs",
             rust_entity_centered_facade_file(entity, "schema")
         );
+        if (entity_uses_gc)
+        {
+            add_rust_raw_common_file(result, options, entity_dir + "gc.rs", "");
+        }
     }
     add_rust_raw_common_file(
         result, options, "entity_repository.rs",

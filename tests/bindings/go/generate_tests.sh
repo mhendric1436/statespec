@@ -45,6 +45,7 @@ assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_descriptors.
 assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_repository.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_workers.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_registration.go"
+assert_file_exists "$TMPDIR/out-go/common/entities/order/gc.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/descriptors.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/entity_repository.go"
 assert_file_exists "$TMPDIR/out-go/common/backend/runtime_registration.go"

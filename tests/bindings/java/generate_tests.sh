@@ -46,6 +46,7 @@ assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/Entity
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRepository.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcWorkers.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java"
+assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/entities/order/Gc.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/ApiDescriptor.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/ApiRouteDescriptor.java"

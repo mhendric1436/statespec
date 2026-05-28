@@ -62,6 +62,7 @@ common/descriptors/shapes/provision_callback_response.hpp
 common/descriptors/shapes/start_provision_request.hpp
 common/descriptors/shapes/start_provision_response.hpp
 common/descriptors/types.hpp
+common/entities/service_instance/gc.hpp
 common/entities/service_instance/model.hpp
 common/entities/service_instance/persistence.hpp
 common/entities/service_instance/schema.hpp

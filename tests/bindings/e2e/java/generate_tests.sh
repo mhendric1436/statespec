@@ -121,6 +121,7 @@ common/com/statespec/generated/entities/EntityListByIndexRequest.java
 common/com/statespec/generated/entities/EntityLookup.java
 common/com/statespec/generated/entities/EntityRepository.java
 common/com/statespec/generated/entities/EntityUpsertRequest.java
+common/com/statespec/generated/entities/service_instance/Gc.java
 common/com/statespec/generated/entities/service_instance/Model.java
 common/com/statespec/generated/entities/service_instance/Persistence.java
 common/com/statespec/generated/entities/service_instance/Schema.java

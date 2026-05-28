@@ -1753,6 +1753,14 @@ void add_go_entity_descriptor_artifacts(
     DiagnosticBag&
 )
 {
+    auto entity_uses_gc = [](const IrEntity& entity)
+    {
+        return std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
+    };
+
     for (const auto& entity : system.entities)
     {
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
@@ -1768,6 +1776,13 @@ void add_go_entity_descriptor_artifacts(
             result, options, entity_dir + "schema.go",
             go_entity_centered_facade_file(entity, "schema")
         );
+        if (entity_uses_gc(entity))
+        {
+            add_go_raw_common_file(
+                result, options, entity_dir + "gc.go",
+                "package " + snake_identifier(entity.name) + "\n"
+            );
+        }
     }
 }
 

@@ -58,6 +58,13 @@ void test_binding_app_artifact_kind_names()
     );
     require_string_equal(
         statespec::binding_app_artifact_kind_name(
+            statespec::BindingAppArtifactKind::RuntimeEntityGcDescriptorModule
+        ),
+        "runtime_entity_gc_descriptor_module",
+        "runtime entity GC descriptor module artifact kind name"
+    );
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(
             statespec::BindingAppArtifactKind::RuntimeEntityGcRepository
         ),
         "runtime_entity_gc_repository", "runtime entity GC repository artifact kind name"

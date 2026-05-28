@@ -90,6 +90,14 @@ cpp_runtime_registration_modules(const IrSystem& system)
     return modules;
 }
 
+bool cpp_entity_uses_gc(const IrEntity& entity)
+{
+    return std::any_of(
+        entity.states.begin(), entity.states.end(),
+        [](const IrState& state) { return state.garbage_collection.has_value(); }
+    );
+}
+
 std::string cpp_runtime_registration_includes(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
@@ -1984,6 +1992,21 @@ void add_cpp_descriptor_module_artifacts(
             result, options, entity_dir + "schema.hpp",
             cpp_entity_centered_facade_header(entity, "schema")
         );
+        if (cpp_entity_uses_gc(entity))
+        {
+            add_cpp_raw_common_file(
+                result, options, entity_dir + "gc.hpp",
+                "#pragma once\n\n"
+                "#include \"model.hpp\"\n"
+                "#include \"schema.hpp\"\n\n"
+                "namespace statespec_generated::entities::" +
+                    snake_identifier(entity.name) +
+                    "\n"
+                    "{\n\n"
+                    "} // namespace statespec_generated::entities::" +
+                    snake_identifier(entity.name) + "\n"
+            );
+        }
     }
 }
 
