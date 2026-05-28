@@ -156,7 +156,7 @@ assert_file_contains "$TMPDIR/out-go/api/backend/codecs/start_order_processing_r
 assert_file_contains "$TMPDIR/out-go/api/backend/codecs/start_order_processing_response.go" "func EncodeStartOrderProcessingResponse"
 assert_file_contains "$TMPDIR/out-go/api/backend/api_handlers.go" "type BusinessAPITierHandler interface"
 assert_file_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "handler.BusinessHandler.HandleStartOrderProcessing"
-assert_file_not_exists "$TMPDIR/out-go/api/backend/api_handler_registry_order.go"
+assert_file_not_exists "$TMPDIR/out-go/api/backend/entities/order/handlers.go"
 assert_file_not_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "handler_not_implemented"
 assert_file_contains "$TMPDIR/out-go/api/backend/api_dispatcher.go" "func FindAPITierRoute"
 assert_file_contains "$TMPDIR/out-go/api/backend/api_dispatcher.go" "func DispatchAPITierRoute"

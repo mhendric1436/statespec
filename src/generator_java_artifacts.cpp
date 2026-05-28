@@ -594,15 +594,16 @@ IrSystem with_domain_apis(
     return filtered;
 }
 
-std::string java_api_handler_domain_class_name(std::string_view domain_name)
-{
-    return "ApiHandlerRegistry" + pascal_identifier(std::string{domain_name});
-}
-
 std::filesystem::path java_api_handler_domain_path(std::string_view domain_name)
 {
-    return std::filesystem::path{"api/com/statespec/generated"} /
-           (java_api_handler_domain_class_name(domain_name) + ".java");
+    return java_api_generated_path("entities") / snake_identifier(std::string{domain_name}) /
+           "Handlers.java";
+}
+
+std::filesystem::path java_api_handler_domain_registry_path(std::string_view domain_name)
+{
+    return java_api_generated_path("entities") / snake_identifier(std::string{domain_name}) /
+           "Registry.java";
 }
 
 std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
@@ -610,14 +611,15 @@ std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDoma
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        const auto class_name = java_api_handler_domain_class_name(domain.name);
+        const auto registry_class =
+            "com.statespec.generated.entities." + snake_identifier(domain.name) + ".Registry";
         for (const auto& api : domain.apis)
         {
             out << "        @Override\n";
             out << "        public ApiResponse handle" << pascal_identifier(api.name)
                 << "(ApiRequestContext context) throws Exception {\n";
-            out << "            return new " << class_name << "(backend).handle"
-                << pascal_identifier(api.name) << "(context);\n";
+            out << "            return " << registry_class << ".handle"
+                << pascal_identifier(api.name) << "(backend, context);\n";
             out << "        }\n\n";
         }
     }
@@ -681,17 +683,43 @@ std::string java_api_handler_domain_file(
 {
     const auto filtered = with_domain_apis(system, domain.apis);
     std::ostringstream out;
-    out << "package com.statespec.generated;\n\n";
+    out << "package com.statespec.generated.entities." << snake_identifier(domain.name) << ";\n\n";
     out << "import static com.statespec.generated.ApiHandlerRegistry.*;\n";
+    out << "import com.statespec.generated.ApiCodecs;\n";
+    out << "import com.statespec.generated.ApiRequestContext;\n";
+    out << "import com.statespec.generated.ApiResponse;\n";
     out << java_api_default_handler_shape_import(filtered);
     out << "import java.util.Optional;\n\n";
-    out << "final class " << java_api_handler_domain_class_name(domain.name) << " {\n";
-    out << "    private final com.statespec.backend.Backend backend;\n\n";
-    out << "    " << java_api_handler_domain_class_name(domain.name)
-        << "(com.statespec.backend.Backend backend) {\n";
-    out << "        this.backend = backend;\n";
-    out << "    }\n\n";
+    out << "public final class Handlers {\n";
+    out << "    private Handlers() {}\n\n";
+    out << "    public static final class DefaultHandler {\n";
+    out << "        private final com.statespec.backend.Backend backend;\n\n";
+    out << "        public DefaultHandler(com.statespec.backend.Backend backend) {\n";
+    out << "            this.backend = backend;\n";
+    out << "        }\n\n";
     out << generate_api_operation_default_handler_domain_methods_java(filtered);
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string java_api_handler_domain_registry_file(const ApiHandlerDomain& domain)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.entities." << snake_identifier(domain.name) << ";\n\n";
+    out << "import com.statespec.generated.ApiRequestContext;\n";
+    out << "import com.statespec.generated.ApiResponse;\n\n";
+    out << "public final class Registry {\n";
+    out << "    private Registry() {}\n\n";
+    for (const auto& api : domain.apis)
+    {
+        out << "    public static ApiResponse handle" << pascal_identifier(api.name)
+            << "(com.statespec.backend.Backend backend, ApiRequestContext context) "
+               "throws Exception {\n";
+        out << "        return new Handlers.DefaultHandler(backend).handle"
+            << pascal_identifier(api.name) << "(context);\n";
+        out << "    }\n\n";
+    }
     out << "}\n";
     return out.str();
 }
@@ -3227,6 +3255,10 @@ void add_java_api_artifacts(
         add_java_raw_api_file(
             result, options, java_api_handler_domain_path(domain.name),
             java_api_handler_domain_file(system, domain)
+        );
+        add_java_raw_api_file(
+            result, options, java_api_handler_domain_registry_path(domain.name),
+            java_api_handler_domain_registry_file(domain)
         );
     }
     add_java_generated_template_file(

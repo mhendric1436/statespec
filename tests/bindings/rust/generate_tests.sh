@@ -159,7 +159,7 @@ assert_file_contains "$TMPDIR/out-rust/api/codecs/start_order_processing_request
 assert_file_contains "$TMPDIR/out-rust/api/codecs/start_order_processing_response.rs" "encode_start_order_processing_response"
 assert_file_contains "$TMPDIR/out-rust/api/api_handlers.rs" "pub trait BusinessApiHandler"
 assert_file_contains "$TMPDIR/out-rust/api/api_handler_registry.rs" "handler.handle_start_order_processing"
-assert_file_not_exists "$TMPDIR/out-rust/api/handlers/order.rs"
+assert_file_not_exists "$TMPDIR/out-rust/api/entities/order/handlers.rs"
 assert_file_not_contains "$TMPDIR/out-rust/api/api_handler_registry.rs" "handler_not_implemented"
 assert_file_contains "$TMPDIR/out-rust/api/api_dispatcher.rs" "pub fn find_api_route"
 assert_file_contains "$TMPDIR/out-rust/api/api_dispatcher.rs" "pub fn dispatch_api_route"

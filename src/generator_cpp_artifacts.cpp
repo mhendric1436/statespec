@@ -606,12 +606,17 @@ std::string cpp_api_handler_domain_class_name(std::string_view domain_name)
 
 std::string cpp_api_handler_domain_path(std::string_view domain_name)
 {
-    return "api/handlers/" + snake_identifier(std::string{domain_name}) + ".hpp";
+    return "api/entities/" + snake_identifier(std::string{domain_name}) + "/handlers.hpp";
+}
+
+std::string cpp_api_handler_domain_registry_path(std::string_view domain_name)
+{
+    return "api/entities/" + snake_identifier(std::string{domain_name}) + "/registry.hpp";
 }
 
 std::string cpp_api_handler_domain_include_path(std::string_view domain_name)
 {
-    return "handlers/" + snake_identifier(std::string{domain_name}) + ".hpp";
+    return "entities/" + snake_identifier(std::string{domain_name}) + "/registry.hpp";
 }
 
 std::string cpp_api_handler_registry_domain_includes(const std::vector<ApiHandlerDomain>& domains)
@@ -692,6 +697,14 @@ std::string cpp_business_api_handler_delegates(const IrSystem& system)
     return out.str();
 }
 
+std::string cpp_api_handler_domain_registry_file()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"handlers.hpp\"\n";
+    return out.str();
+}
+
 std::string cpp_api_handler_domain_file(
     const IrSystem& system,
     const ApiHandlerDomain& domain
@@ -700,11 +713,11 @@ std::string cpp_api_handler_domain_file(
     const auto filtered = with_domain_apis(system, domain.apis);
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"../api_codecs.hpp\"\n";
-    out << "#include \"../api_handler_registry_support.hpp\"\n";
+    out << "#include \"../../api_codecs.hpp\"\n";
+    out << "#include \"../../api_handler_registry_support.hpp\"\n";
     for (const auto& entity : system.entities)
     {
-        out << "#include \"../../common/entities/" << snake_identifier(entity.name)
+        out << "#include \"../../../common/entities/" << snake_identifier(entity.name)
             << "/persistence.hpp\"\n";
     }
     out << "\n";
@@ -2927,6 +2940,10 @@ void add_cpp_api_artifacts(
         add_cpp_raw_api_file(
             result, options, cpp_api_handler_domain_path(domain.name),
             cpp_api_handler_domain_file(system, domain)
+        );
+        add_cpp_raw_api_file(
+            result, options, cpp_api_handler_domain_registry_path(domain.name),
+            cpp_api_handler_domain_registry_file()
         );
     }
     add_cpp_generated_template_file(

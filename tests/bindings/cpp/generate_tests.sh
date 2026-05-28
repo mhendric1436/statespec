@@ -145,7 +145,7 @@ assert_file_contains "$TMPDIR/out-cpp/api/codecs/start_order_processing_request.
 assert_file_contains "$TMPDIR/out-cpp/api/codecs/start_order_processing_response.hpp" "encode_start_order_processing_response"
 assert_file_contains "$TMPDIR/out-cpp/api/api_handlers.hpp" "class IBusinessApiOperationHandler"
 assert_file_contains "$TMPDIR/out-cpp/api/api_handler_registry.hpp" "business_handler_->handle_start_order_processing"
-assert_file_not_exists "$TMPDIR/out-cpp/api/handlers/order.hpp"
+assert_file_not_exists "$TMPDIR/out-cpp/api/entities/order/handlers.hpp"
 assert_file_not_contains "$TMPDIR/out-cpp/api/api_handler_registry.hpp" "handler_not_implemented"
 assert_file_contains "$TMPDIR/out-cpp/api/api_dispatcher.hpp" "find_api_route"
 assert_file_contains "$TMPDIR/out-cpp/api/api_dispatcher.hpp" "dispatch_api_route"

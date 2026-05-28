@@ -163,7 +163,7 @@ assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlers.j
 assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlers.java" "handleStartOrderProcessing"
 assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlers.java" "interface BusinessHandler"
 assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistry.java" "businessHandler.handleStartOrderProcessing"
-assert_file_not_exists "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistryOrder.java"
+assert_file_not_exists "$TMPDIR/out-java/api/com/statespec/generated/entities/order/Handlers.java"
 assert_file_not_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistry.java" "handler_not_implemented"
 assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiDispatcher.java" "findApiRoute"
 assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiDispatcher.java" "dispatchApiRoute"

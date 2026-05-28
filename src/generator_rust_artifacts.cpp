@@ -711,7 +711,12 @@ std::string rust_api_handler_domain_type_name(std::string_view domain_name)
 
 std::string rust_api_handler_domain_path(std::string_view domain_name)
 {
-    return "api/handlers/" + snake_identifier(std::string{domain_name}) + ".rs";
+    return "api/entities/" + snake_identifier(std::string{domain_name}) + "/handlers.rs";
+}
+
+std::string rust_api_handler_domain_registry_path(std::string_view domain_name)
+{
+    return "api/entities/" + snake_identifier(std::string{domain_name}) + "/registry.rs";
 }
 
 std::string rust_api_handler_registry_domain_modules(const std::vector<ApiHandlerDomain>& domains)
@@ -719,7 +724,7 @@ std::string rust_api_handler_registry_domain_modules(const std::vector<ApiHandle
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        out << "#[path = \"handlers/" << snake_identifier(domain.name) << ".rs\"]\n";
+        out << "#[path = \"entities/" << snake_identifier(domain.name) << "/registry.rs\"]\n";
         out << "mod " << rust_api_handler_domain_module_name(domain.name) << ";\n";
     }
     return out.str();
@@ -731,14 +736,12 @@ std::string rust_api_handler_registry_delegates(const std::vector<ApiHandlerDoma
     for (const auto& domain : domains)
     {
         const auto module_name = rust_api_handler_domain_module_name(domain.name);
-        const auto type_name = rust_api_handler_domain_type_name(domain.name);
         for (const auto& api : domain.apis)
         {
             out << "    fn handle_" << snake_identifier(api.name)
                 << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
-            out << "        " << module_name << "::" << type_name
-                << " { backend: &self.backend }.handle_" << snake_identifier(api.name)
-                << "(context)\n";
+            out << "        " << module_name << "::handle_" << snake_identifier(api.name)
+                << "(&self.backend, context)\n";
             out << "    }\n\n";
         }
     }
@@ -790,6 +793,24 @@ std::string rust_business_api_handler_delegates(const IrSystem& system)
                "crate::json::Json::Object(std::collections::BTreeMap::new()) }),\n";
         out << "        }\n";
         out << "    }\n\n";
+    }
+    return out.str();
+}
+
+std::string rust_api_handler_domain_registry_file(const ApiHandlerDomain& domain)
+{
+    std::ostringstream out;
+    out << "use super::*;\n\n";
+    out << "#[path = \"handlers.rs\"]\n";
+    out << "mod handlers;\n\n";
+    for (const auto& api : domain.apis)
+    {
+        out << "pub(super) fn handle_" << snake_identifier(api.name)
+            << "<B: Backend>(backend: &B, context: &ApiRequestContext) -> "
+               "BackendResult<ApiResponse> {\n";
+        out << "    handlers::" << rust_api_handler_domain_type_name(domain.name)
+            << " { backend }.handle_" << snake_identifier(api.name) << "(context)\n";
+        out << "}\n\n";
     }
     return out.str();
 }
@@ -2538,6 +2559,10 @@ void add_rust_api_artifacts(
         add_rust_raw_api_file(
             result, options, rust_api_handler_domain_path(domain.name),
             rust_api_handler_domain_file(system, domain)
+        );
+        add_rust_raw_api_file(
+            result, options, rust_api_handler_domain_registry_path(domain.name),
+            rust_api_handler_domain_registry_file(domain)
         );
     }
     add_rust_generated_template_file(

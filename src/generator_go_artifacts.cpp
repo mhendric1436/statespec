@@ -492,30 +492,9 @@ const IrShape* go_find_shape(
     return it == system.shapes.end() ? nullptr : &*it;
 }
 
-bool go_api_default_handlers_use_shapes(const IrSystem& system)
-{
-    for (const auto& api : system.apis)
-    {
-        if (api.output.has_value())
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
 std::string go_api_shape_import(const IrSystem& system)
 {
     if (!go_api_uses_shapes(system))
-    {
-        return {};
-    }
-    return "\tshapes \"statespec-generated/api/backend/shapes\"\n";
-}
-
-std::string go_api_default_handler_shape_import(const IrSystem& system)
-{
-    if (!go_api_default_handlers_use_shapes(system))
     {
         return {};
     }
@@ -619,7 +598,12 @@ std::string go_api_handler_domain_type_name(std::string_view domain_name)
 
 std::string go_api_handler_domain_path(std::string_view domain_name)
 {
-    return "api/backend/api_handler_registry_" + snake_identifier(std::string{domain_name}) + ".go";
+    return "api/backend/entities/" + snake_identifier(std::string{domain_name}) + "/handlers.go";
+}
+
+std::string go_api_handler_domain_registry_path(std::string_view domain_name)
+{
+    return "api/backend/entities/" + snake_identifier(std::string{domain_name}) + "/registry.go";
 }
 
 std::string go_api_handler_entity_imports(
@@ -696,10 +680,22 @@ std::string go_api_handler_registry_delegates(const std::vector<ApiHandlerDomain
             out << "func (handler DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
                 << "(ctx context.Context, request common.APIRequestContext) "
                    "(common.APIResponse, error) {\n";
-            out << "\treturn " << type_name << "{Backend: handler.Backend}.Handle"
-                << pascal_identifier(api.name) << "(ctx, request)\n";
+            out << "\treturn " << snake_identifier(domain.name) << ".New" << type_name
+                << "(handler.Backend).Handle" << pascal_identifier(api.name) << "(ctx, request)\n";
             out << "}\n\n";
         }
+    }
+    return out.str();
+}
+
+std::string go_api_handler_registry_domain_imports(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        out << "\t" << snake_identifier(domain.name)
+            << " \"statespec-generated/api/backend/entities/" << snake_identifier(domain.name)
+            << "\"\n";
     }
     return out.str();
 }
@@ -761,23 +757,73 @@ std::string go_api_handler_domain_file(
 {
     const auto filtered = with_domain_apis(system, domain.apis);
     std::ostringstream out;
-    out << "package backend\n\n";
+    out << "package " << snake_identifier(domain.name) << "\n\n";
     out << "import (\n";
     out << "\t\"context\"\n";
     out << "\t\"fmt\"\n";
+    out << "\t\"strings\"\n";
     out << "\t\"time\"\n\n";
     out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << "\tcodecsupport \"statespec-generated/api/backend/codecsupport\"\n";
     out << go_api_handler_entity_imports(system, domain.apis);
-    out << go_api_default_handler_shape_import(filtered);
     out << ")\n\n";
     out << "var _ = fmt.Errorf\n";
     out << "var _ = time.Now\n\n";
+    out << "func extractAPIPathParameters(routeTemplate string, actualPath *string) "
+           "map[string]string "
+           "{\n";
+    out << "\tparameters := map[string]string{}\n";
+    out << "\tif actualPath == nil {\n";
+    out << "\t\treturn parameters\n";
+    out << "\t}\n";
+    out << "\ttemplateParts := splitAPIPath(routeTemplate)\n";
+    out << "\tactualParts := splitAPIPath(*actualPath)\n";
+    out << "\tfor i := 0; i < len(templateParts) && i < len(actualParts); i++ {\n";
+    out << "\t\tpart := templateParts[i]\n";
+    out << "\t\tif strings.HasPrefix(part, \"{\") && strings.HasSuffix(part, \"}\") && "
+           "len(part) > 2 {\n";
+    out << "\t\t\tparameters[part[1:len(part)-1]] = actualParts[i]\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn parameters\n";
+    out << "}\n\n";
+    out << "func splitAPIPath(path string) []string {\n";
+    out << "\tparts := []string{}\n";
+    out << "\tfor _, part := range strings.Split(path, \"/\") {\n";
+    out << "\t\tif part != \"\" {\n";
+    out << "\t\t\tparts = append(parts, part)\n";
+    out << "\t\t}\n";
+    out << "\t}\n";
+    out << "\treturn parts\n";
+    out << "}\n\n";
+    out << "func pathParameterJSON(parameters map[string]string, name string) common.JSON {\n";
+    out << "\tvalue, ok := parameters[name]\n";
+    out << "\tif !ok {\n";
+    out << "\t\treturn common.JSONNull()\n";
+    out << "\t}\n";
+    out << "\treturn common.JSONString(value)\n";
+    out << "}\n\n";
     out << "type " << go_api_handler_domain_type_name(domain.name) << " struct {\n";
     out << "\tBackend common.Backend\n";
     out << "}\n\n";
-    out << generate_api_operation_default_handler_methods_go_for_receiver(
-        filtered, go_api_handler_domain_type_name(domain.name)
+    out << go_exported_api_codec_operations(
+        generate_api_operation_default_handler_methods_go_for_receiver(
+            filtered, go_api_handler_domain_type_name(domain.name)
+        ),
+        "codecsupport", true
     );
+    return out.str();
+}
+
+std::string go_api_handler_domain_registry_file(const ApiHandlerDomain& domain)
+{
+    std::ostringstream out;
+    out << "package " << snake_identifier(domain.name) << "\n\n";
+    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "func New" << go_api_handler_domain_type_name(domain.name) << "(backend common.Backend) "
+        << go_api_handler_domain_type_name(domain.name) << " {\n";
+    out << "\treturn " << go_api_handler_domain_type_name(domain.name) << "{Backend: backend}\n";
+    out << "}\n";
     return out.str();
 }
 
@@ -2948,6 +2994,10 @@ void add_go_api_artifacts(
             result, options, go_api_handler_domain_path(domain.name),
             go_api_handler_domain_file(system, domain)
         );
+        add_go_raw_api_file(
+            result, options, go_api_handler_domain_registry_path(domain.name),
+            go_api_handler_domain_registry_file(domain)
+        );
     }
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_handler_registry.go",
@@ -2956,6 +3006,8 @@ void add_go_api_artifacts(
             {"api_operation_default_handler_methods",
              go_api_handler_registry_delegates(handler_domains) +
                  go_business_api_handler_delegates(system)},
+            {"api_handler_registry_domain_imports",
+             go_api_handler_registry_domain_imports(handler_domains)},
             {"api_shape_import", {}}
         }
     );
