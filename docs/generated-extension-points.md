@@ -111,10 +111,12 @@ bootstrap-on-start is enabled, `request_stop()` is idempotent and safe before st
 `join()` waits for completion, and starting the same process twice must be rejected
 deterministically.
 
-If entity garbage collection metadata is present, generated API startup registers one
+If entity `garbage_collection` metadata is present, generated API startup registers one
 GC task per generated entity GC descriptor before `start()`. `ApiProcess` owns the
-background lifecycle after that point. API-only deployments can leave API GC enabled;
-mixed API + Worker deployments should disable it when Worker is the selected GC host.
+background lifecycle after that point: start, polling, stop, and join. API GC is enabled
+by default through process config, so API-only deployments can leave it enabled; mixed
+API + Worker deployments should disable it when Worker is the selected GC host. The
+generated GC path uses only generic backend/OCC primitives.
 
 ## External System Client Extension Point
 
@@ -261,10 +263,13 @@ Use workflow step handlers for business logic. Production adapters may wrap or r
 the generated process entrypoint, but persisted StateSpec resources must still be
 accessed through generated backend transaction interfaces.
 
-Generated Worker startup registers one GC task per generated entity GC descriptor
-before `WorkerProcess.start()`. `WorkerRuntime` stores those tasks and `WorkerProcess`
-owns their lifecycle. Worker-only deployments can leave GC enabled; mixed deployments
-should enable GC on only one tier.
+When entity `garbage_collection` metadata is present, generated Worker startup
+registers one GC task per generated entity GC descriptor before `WorkerProcess.start()`.
+`WorkerRuntime` stores those tasks and `WorkerProcess` owns their lifecycle: start,
+polling, stop, and join. Worker GC is enabled by default through runtime config, so
+Worker-only deployments can leave it enabled; mixed deployments should enable GC on
+only one tier. The generated GC path uses only generic backend/OCC primitives and does
+not depend on leases, queues, workflows, feature flags, logs, or metrics.
 
 See [worker-process-lifecycle.md](worker-process-lifecycle.md) for the cross-language
 Worker process contract.

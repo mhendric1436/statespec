@@ -7,7 +7,9 @@ while API and Worker generated applications may both compose the same shared wor
 ## Runtime Model
 
 StateSpec generates entity GC runtime artifacts only when at least one entity declares a
-terminal state with `garbage_collection` metadata.
+terminal state with `garbage_collection` metadata. That metadata is the only source of
+generated GC workers; APIs, workflows, workers, queues, and leases do not create GC
+behavior on their own.
 
 Generated common-tier runtime artifacts own:
 
@@ -23,8 +25,8 @@ Generated API and Worker tiers own lifecycle wiring:
 - request stop on GC workers during shutdown
 - join GC workers before process/runtime shutdown completes
 
-GC is enabled by default in generated process/runtime config, but it is an explicit
-deployment choice:
+GC is enabled by default in generated process/runtime config, but process configuration
+owns the deployment choice:
 
 | Tier | Config |
 |---|---|
@@ -90,7 +92,6 @@ Duplicate GC attempts must still be harmless:
 - candidate records are revalidated transactionally
 - missing or already-collected records are treated as no-op outcomes
 - OCC conflicts cause the current batch item to be skipped or retried later
-- jitter reduces lockstep scans across replicas
 
 Lease coordination and a dedicated scheduler abstraction are intentionally not part of
 the baseline. They can be added later if large deployments show measurable GC
