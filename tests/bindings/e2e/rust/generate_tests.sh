@@ -197,6 +197,7 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "busines
 assert_file_contains "$TMPDIR/out-app-rust/api/api_handler_registry.rs" "handler.handle_start_provision"
 assert_file_not_exists "$TMPDIR/out-app-rust/api/handlers/operations.rs"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiProcessConfig::all_servers"
+assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "register_entity_gc_workers"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "install_signal_handling"
 assert_file_not_contains "$TMPDIR/out-app-rust/api/main.rs" "ApiApplication::new_default"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "pub struct ApiProcess"

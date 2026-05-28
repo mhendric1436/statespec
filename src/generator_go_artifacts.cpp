@@ -950,6 +950,29 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
     };
 }
 
+TemplateRenderer::Values go_api_main_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    if (!usage.uses_entity_gc)
+    {
+        return TemplateRenderer::Values{
+            {"api_main_entity_gc_import", ""},
+            {"api_main_entity_gc_registration", ""},
+        };
+    }
+    return TemplateRenderer::Values{
+        {"api_main_entity_gc_import", "\truntime \"statespec-generated/common/backend/runtime\"\n"},
+        {"api_main_entity_gc_registration",
+         "\tif err := runtime.RegisterEntityGCWorkers(func(worker func(context.Context, string) "
+         "error) error {\n"
+         "\t\treturn process.AddEntityGCWorker(api.EntityGCWorkerFunc(worker))\n"
+         "\t}, backend); err != nil {\n"
+         "\t\tfmt.Fprintf(os.Stderr, \"statespec generated API process failed: %v\\n\", err)\n"
+         "\t\tos.Exit(1)\n"
+         "\t}\n\n"},
+    };
+}
+
 void add_go_common_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -2368,7 +2391,7 @@ void add_go_api_artifacts(
         );
         add_go_generated_template_file(
             result, options, templates, "api/cmd/api/main.go", GeneratedArtifactTier::Api,
-            diagnostics
+            diagnostics, go_api_main_values(system)
         );
     }
 }

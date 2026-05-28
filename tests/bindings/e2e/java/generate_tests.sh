@@ -248,6 +248,7 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandle
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistry.java" "businessHandler.handleStartProvision"
 assert_file_not_exists "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistryOperations.java"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiProcess.Config.allServers"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "EntityGcRegistration.registerEntityGcWorkers"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "addShutdownHook"
 assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiApplication.createDefault"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public final class ApiProcess"

@@ -1091,6 +1091,26 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
     return TemplateRenderer::Values{{"entity_gc_descriptors", descriptors.str()}};
 }
 
+TemplateRenderer::Values java_api_main_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    if (!usage.uses_entity_gc)
+    {
+        return TemplateRenderer::Values{
+            {"api_main_entity_gc_import", ""},
+            {"api_main_entity_gc_registration", ""},
+        };
+    }
+    return TemplateRenderer::Values{
+        {"api_main_entity_gc_import",
+         "import com.statespec.backend.runtime.EntityGcRegistration;\n"},
+        {"api_main_entity_gc_registration",
+         "            EntityGcRegistration.registerEntityGcWorkers(\n"
+         "                task -> process.addEntityGcWorker(task::run), backend\n"
+         "            );\n\n"},
+    };
+}
+
 std::filesystem::path java_api_generated_path(std::string_view filename)
 {
     return api_artifact_path(
@@ -2799,7 +2819,7 @@ void add_java_api_artifacts(
         );
         add_java_generated_template_file(
             result, options, templates, java_api_generated_path("ApiMain.java"),
-            GeneratedArtifactTier::Api, diagnostics
+            GeneratedArtifactTier::Api, diagnostics, java_api_main_values(system)
         );
     }
 }

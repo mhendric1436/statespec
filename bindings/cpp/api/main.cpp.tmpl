@@ -1,4 +1,6 @@
 #include "../common/memory/backend.hpp"
+// clang-format off
+{{api_main_entity_gc_include}} // clang-format on
 #include "api_handler_registry.hpp"
 #include "api_process.hpp"
 #include "api_transport.hpp"
@@ -33,6 +35,8 @@ int main()
         auto config = statespec_generated::api::ApiProcessConfig::all_servers();
         statespec_generated::api::ApiProcess process{config, handler, backend, transport};
 
+        // clang-format off
+{{api_main_entity_gc_registration}} // clang-format on
         g_api_process = &process;
         std::signal(SIGINT, request_api_stop);
         std::signal(SIGTERM, request_api_stop);

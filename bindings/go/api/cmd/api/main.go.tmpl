@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	api "statespec-generated/api/backend"
 	"statespec-generated/common/backend/memory"
-	"syscall"
+{{api_main_entity_gc_import}}	"syscall"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := process.Start(ctx); err != nil {
+{{api_main_entity_gc_registration}}	if err := process.Start(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "statespec generated API process failed: %v\n", err)
 		os.Exit(1)
 	}

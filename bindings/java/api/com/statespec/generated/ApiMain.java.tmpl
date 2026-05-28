@@ -2,6 +2,7 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.memory.InMemoryBackend;
+{{api_main_entity_gc_import}}
 
 public final class ApiMain {
     private ApiMain() {}
@@ -23,7 +24,7 @@ public final class ApiMain {
         Runtime.getRuntime().addShutdownHook(new Thread(process::requestStop, "statespec-api-shutdown"));
 
         try {
-            process.start();
+{{api_main_entity_gc_registration}}            process.start();
             return process.join();
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt();

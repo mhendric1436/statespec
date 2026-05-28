@@ -3,6 +3,7 @@ use crate::api_process::{ApiProcess, ApiProcessConfig};
 use crate::api_transport::LocalBlockingApiTransport;
 use crate::backend::{Backend, BackendResult};
 use crate::memory_backend::InMemoryBackend;
+{{api_main_entity_gc_import}}
 
 pub fn main() {
     if let Err(error) = run() {
@@ -16,8 +17,8 @@ pub fn run() -> BackendResult<()> {
     let handler = DefaultApiHandler::new(backend.clone());
     let transport = LocalBlockingApiTransport::new();
     let config = ApiProcessConfig::all_servers();
-    let process = std::sync::Arc::new(ApiProcess::new(config, backend, handler, transport)?);
-    process.start()?;
+{{api_main_entity_gc_backend_clone}}    let process = std::sync::Arc::new(ApiProcess::new(config, backend, handler, transport)?);
+{{api_main_entity_gc_registration}}    process.start()?;
     install_signal_handling(process.clone());
     process.join()
 }

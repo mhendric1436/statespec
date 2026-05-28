@@ -215,6 +215,7 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "h
 assert_file_not_exists "$TMPDIR/out-app-go/api/backend/api_handler_registry_operations.go"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "signal.NotifyContext"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewAPIProcess"
+assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "runtime.RegisterEntityGCWorkers"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "process.Start(ctx)"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "process.Join()"
 assert_file_not_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "NewDefaultAPITierApplication"

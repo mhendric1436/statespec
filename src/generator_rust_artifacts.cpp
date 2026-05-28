@@ -78,6 +78,27 @@ TemplateRenderer::Values rust_makefile_values(
     };
 }
 
+TemplateRenderer::Values rust_api_main_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    if (!usage.uses_entity_gc)
+    {
+        return TemplateRenderer::Values{
+            {"api_main_entity_gc_import", ""},
+            {"api_main_entity_gc_backend_clone", ""},
+            {"api_main_entity_gc_registration", ""},
+        };
+    }
+    return TemplateRenderer::Values{
+        {"api_main_entity_gc_import",
+         "use crate::runtime_entity_gc_registration::register_entity_gc_workers;\n"},
+        {"api_main_entity_gc_backend_clone", "    let gc_backend = backend.clone();\n"},
+        {"api_main_entity_gc_registration",
+         "    register_entity_gc_workers(|task| process.add_entity_gc_worker(task), "
+         "std::sync::Arc::new(gc_backend))?;\n"},
+    };
+}
+
 std::vector<std::pair<
     std::string,
     std::string>>
@@ -2184,7 +2205,8 @@ void add_rust_api_artifacts(
             result, options, templates, "api/api_routes.rs", GeneratedArtifactTier::Api, diagnostics
         );
         add_rust_generated_template_file(
-            result, options, templates, "api/main.rs", GeneratedArtifactTier::Api, diagnostics
+            result, options, templates, "api/main.rs", GeneratedArtifactTier::Api, diagnostics,
+            rust_api_main_values(system)
         );
     }
 }
