@@ -40,6 +40,7 @@ api/codecs/start_provision_response.hpp
 api/descriptors/catalog.hpp
 api/descriptors/report_provision_ready.hpp
 api/descriptors/start_provision.hpp
+api/entity_gc_catalog.hpp
 api/external_system_operator_metadata_api.hpp
 api/main.cpp
 api/shapes.hpp
@@ -173,7 +174,8 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "re
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/project/persistence.hpp" "updateTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/project/model.hpp" "kProjectStatusDeleted"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/main.cpp" "../common/runtime/entity_gc_registration.hpp"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/main.cpp" "statespec::backend::runtime::register_entity_gc_workers(process, backend)"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/main.cpp" "entity_gc_catalog.hpp"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/main.cpp" "api_entity_gc_descriptors()"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-cpp" check-api
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-api-entities-cpp" -I"$TMPDIR/out-api-entities-cpp/common" "$SCRIPT_DIR/api_persistence_fixture.cpp" -o "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
 run_expect_status 0 "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
@@ -211,7 +213,8 @@ assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "virtual void r
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_transport.hpp" "void request_stop() override"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "transport_.request_stop()"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "LocalBlockingApiTransport transport"
-assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "register_entity_gc_workers(process, backend)"
+assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "api_entity_gc_descriptors()"
+assert_file_contains "$TMPDIR/out-app-cpp/api/entity_gc_catalog.hpp" "service_instance_entity_gc_descriptor()"
 assert_file_contains "$TMPDIR/out-app-cpp/common/entities/service_instance/gc.hpp" "inline ::statespec::backend::runtime::EntityGcDescriptor service_instance_entity_gc_descriptor()"
 assert_file_contains "$TMPDIR/out-app-cpp/common/runtime/entity_gc_types.hpp" "struct EntityGcDescriptor"
 assert_file_not_contains "$TMPDIR/out-app-cpp/common/runtime/entity_gc_types.hpp" "service_instance_entity_gc_descriptor"

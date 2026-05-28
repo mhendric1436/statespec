@@ -32,6 +32,7 @@ api/com/statespec/generated/ApiProcess.java
 api/com/statespec/generated/ApiRoutes.java
 api/com/statespec/generated/ApiServer.java
 api/com/statespec/generated/ApiTransport.java
+api/com/statespec/generated/EntityGcCatalog.java
 api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java
 api/com/statespec/generated/codecs/ApiCodecsProvisionCallbackRequest.java
 api/com/statespec/generated/codecs/ApiCodecsProvisionCallbackResponse.java
@@ -228,6 +229,7 @@ assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generat
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/project/Model.java" "PROJECT_STATUS_DELETED"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiMain.java" "import com.statespec.backend.runtime.EntityGcRegistration"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiMain.java" "EntityGcRegistration.registerEntityGcWorkers"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiMain.java" "EntityGcCatalog.descriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiMain.java" "process.addEntityGcWorker"
 cp "$SCRIPT_DIR/ApiPersistenceFixture.java" "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiPersistenceFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-java" build-api
@@ -260,6 +262,8 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandle
 assert_file_not_exists "$TMPDIR/out-app-java/api/com/statespec/generated/ApiHandlerRegistryOperations.java"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiProcess.Config.allServers"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "EntityGcRegistration.registerEntityGcWorkers"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "EntityGcCatalog.descriptors()"
+assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/EntityGcCatalog.java" "entities.service_instance.Gc.descriptor()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "addShutdownHook"
 assert_file_not_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "ApiApplication.createDefault"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "public final class ApiProcess"

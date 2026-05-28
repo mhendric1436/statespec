@@ -908,6 +908,30 @@ void gc_deployment_covers_api_only_app()
         require_artifacts_present(
             result, concat({paths.entity_gc_paths, paths.api_app_paths}), paths.name + " api-gc"
         );
+        switch (paths.language)
+        {
+        case statespec::BindingLanguage::Cpp:
+            require_artifacts_present(
+                result, {"api/entity_gc_catalog.hpp"}, paths.name + " api-gc catalog"
+            );
+            break;
+        case statespec::BindingLanguage::Go:
+            require_artifacts_present(
+                result, {"api/backend/entity_gc_catalog.go"}, paths.name + " api-gc catalog"
+            );
+            break;
+        case statespec::BindingLanguage::Java:
+            require_artifacts_present(
+                result, {"api/com/statespec/generated/EntityGcCatalog.java"},
+                paths.name + " api-gc catalog"
+            );
+            break;
+        case statespec::BindingLanguage::Rust:
+            require_artifacts_present(
+                result, {"api/entity_gc_catalog.rs"}, paths.name + " api-gc catalog"
+            );
+            break;
+        }
         require_artifacts_absent(result, paths.worker_app_paths, paths.name + " api-gc");
         require_descriptor_names(
             result, paths, {"GcTask", "TouchGcTask", "GcApi"}, {}, paths.name + " api-gc"
@@ -943,6 +967,12 @@ void gc_deployment_covers_worker_only_app()
             paths.name + " worker-gc"
         );
         require_artifacts_absent(result, paths.api_app_paths, paths.name + " worker-gc");
+        require_artifacts_absent(
+            result,
+            {"api/entity_gc_catalog.hpp", "api/backend/entity_gc_catalog.go",
+             "api/com/statespec/generated/EntityGcCatalog.java", "api/entity_gc_catalog.rs"},
+            paths.name + " worker-gc"
+        );
         require_descriptor_names(
             result, paths, {"GcTask", "QueueOnly", "LeaseOnly", "WorkflowOnly", "RuntimeWorker"},
             {"TouchGcTask", "GcApi"}, paths.name + " worker-gc"
@@ -977,6 +1007,30 @@ void gc_deployment_covers_mixed_app()
             ),
             paths.name + " mixed-gc"
         );
+        switch (paths.language)
+        {
+        case statespec::BindingLanguage::Cpp:
+            require_artifacts_present(
+                result, {"api/entity_gc_catalog.hpp"}, paths.name + " mixed-gc catalog"
+            );
+            break;
+        case statespec::BindingLanguage::Go:
+            require_artifacts_present(
+                result, {"api/backend/entity_gc_catalog.go"}, paths.name + " mixed-gc catalog"
+            );
+            break;
+        case statespec::BindingLanguage::Java:
+            require_artifacts_present(
+                result, {"api/com/statespec/generated/EntityGcCatalog.java"},
+                paths.name + " mixed-gc catalog"
+            );
+            break;
+        case statespec::BindingLanguage::Rust:
+            require_artifacts_present(
+                result, {"api/entity_gc_catalog.rs"}, paths.name + " mixed-gc catalog"
+            );
+            break;
+        }
         require_descriptor_names(
             result, paths,
             {"GcTask", "TouchGcTask", "GcApi", "QueueOnly", "LeaseOnly", "WorkflowOnly",

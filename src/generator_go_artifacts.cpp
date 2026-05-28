@@ -938,6 +938,41 @@ std::string go_entity_gc_descriptor_file(const IrEntity& entity)
     return out.str();
 }
 
+std::string go_api_entity_gc_catalog_file(const IrSystem& system)
+{
+    std::ostringstream imports;
+    std::ostringstream descriptor_calls;
+    for (const auto& entity : system.entities)
+    {
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
+        if (!entity_uses_gc)
+        {
+            continue;
+        }
+        imports << "\t" << snake_identifier(entity.name)
+                << " \"statespec-generated/common/entities/" << snake_identifier(entity.name)
+                << "\"\n";
+        descriptor_calls << "\t\t" << snake_identifier(entity.name) << "."
+                         << pascal_identifier(entity.name) << "EntityGCDescriptor(),\n";
+    }
+
+    std::ostringstream out;
+    out << "package backend\n\n";
+    out << "import (\n";
+    out << "\truntime \"statespec-generated/common/backend/runtime\"\n";
+    out << imports.str();
+    out << ")\n\n";
+    out << "func APIEntityGCDescriptors() []runtime.EntityGCDescriptor {\n";
+    out << "\treturn []runtime.EntityGCDescriptor{\n";
+    out << descriptor_calls.str();
+    out << "\t}\n";
+    out << "}\n";
+    return out.str();
+}
+
 TemplateRenderer::Values go_api_main_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
@@ -951,10 +986,10 @@ TemplateRenderer::Values go_api_main_values(const IrSystem& system)
     return TemplateRenderer::Values{
         {"api_main_entity_gc_import", "\truntime \"statespec-generated/common/backend/runtime\"\n"},
         {"api_main_entity_gc_registration",
-         "\tif err := runtime.RegisterEntityGCWorkers(func(worker func(context.Context, string) "
-         "error) error {\n"
+         "\tif err := runtime.RegisterEntityGCWorkersForDescriptors(func(worker "
+         "func(context.Context, string) error) error {\n"
          "\t\treturn process.AddEntityGCWorker(api.EntityGCWorkerFunc(worker))\n"
-         "\t}, backend); err != nil {\n"
+         "\t}, backend, api.APIEntityGCDescriptors()); err != nil {\n"
          "\t\tfmt.Fprintf(os.Stderr, \"statespec generated API process failed: %v\\n\", err)\n"
          "\t\tos.Exit(1)\n"
          "\t}\n\n"},
@@ -2429,6 +2464,13 @@ void add_go_api_artifacts(
             result, options, templates, "api/backend/api_routes.go", GeneratedArtifactTier::Api,
             diagnostics
         );
+        if (runtime_domain_usage(system).uses_entity_gc)
+        {
+            add_go_raw_api_file(
+                result, options, "api/backend/entity_gc_catalog.go",
+                go_api_entity_gc_catalog_file(system)
+            );
+        }
         add_go_generated_template_file(
             result, options, templates, "api/cmd/api/main.go", GeneratedArtifactTier::Api,
             diagnostics, go_api_main_values(system)

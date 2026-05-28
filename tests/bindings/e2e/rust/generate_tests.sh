@@ -39,6 +39,7 @@ api/codecs/start_provision_response.rs
 api/descriptors/catalog.rs
 api/descriptors/report_provision_ready.rs
 api/descriptors/start_provision.rs
+api/entity_gc_catalog.rs
 api/external_system_operator_metadata_api.rs
 api/main.rs
 api/shapes.rs
@@ -175,8 +176,9 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "in
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "status_code: 204"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/persistence.rs" "update_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/model.rs" "PROJECT_STATUS_DELETED"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "use crate::runtime_entity_gc_registration::register_entity_gc_workers"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "register_entity_gc_workers(|task| process.add_entity_gc_worker(task)"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "use crate::api_entity_gc_catalog::entity_gc_descriptors"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "register_entity_gc_workers_with_descriptors"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "api_entity_gc_descriptors()"
 mkdir -p "$TMPDIR/out-api-entities-rust/tests"
 cp "$SCRIPT_DIR/api_persistence_fixture.rs" "$TMPDIR/out-api-entities-rust/tests/api_persistence_fixture.rs"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-rust" check-api
@@ -223,6 +225,8 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "pub struct Loc
 assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "fn request_stop(&self)"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "self.transport.request_stop()"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "LocalBlockingApiTransport::new()"
+assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "api_entity_gc_descriptors()"
+assert_file_contains "$TMPDIR/out-app-rust/api/entity_gc_catalog.rs" "service_instance_entity_gc_descriptor()"
 assert_file_contains "$TMPDIR/out-app-rust/common/entities/service_instance/gc.rs" "pub fn service_instance_entity_gc_descriptor() -> crate::runtime_entity_gc_types::EntityGcDescriptor"
 assert_file_contains "$TMPDIR/out-app-rust/common/runtime/entity_gc_types.rs" "pub struct EntityGcDescriptor"
 assert_file_not_contains "$TMPDIR/out-app-rust/common/runtime/entity_gc_types.rs" "service_instance_entity_gc_descriptor"

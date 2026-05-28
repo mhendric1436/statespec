@@ -879,6 +879,41 @@ std::string cpp_entity_gc_descriptor_header(const IrEntity& entity)
     return out.str();
 }
 
+std::string cpp_api_entity_gc_catalog_header(const IrSystem& system)
+{
+    std::ostringstream includes;
+    std::ostringstream descriptor_calls;
+    for (const auto& entity : system.entities)
+    {
+        if (!cpp_entity_uses_gc(entity))
+        {
+            continue;
+        }
+        includes << "#include \"../common/entities/" << snake_identifier(entity.name)
+                 << "/gc.hpp\"\n";
+        descriptor_calls << "        ::statespec_generated::entities::"
+                         << snake_identifier(entity.name) << "::" << snake_identifier(entity.name)
+                         << "_entity_gc_descriptor(),\n";
+    }
+
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../common/runtime/entity_gc_types.hpp\"\n";
+    out << includes.str() << "\n";
+    out << "#include <vector>\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "inline std::vector<::statespec::backend::runtime::EntityGcDescriptor> "
+           "api_entity_gc_descriptors()\n";
+    out << "{\n";
+    out << "    return std::vector<::statespec::backend::runtime::EntityGcDescriptor>{\n";
+    out << descriptor_calls.str();
+    out << "    };\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api\n";
+    return out.str();
+}
+
 TemplateRenderer::Values cpp_api_runtime_values(const IrSystem& system)
 {
     auto values = cpp_runtime_bootstrap_values(system);
@@ -898,10 +933,12 @@ TemplateRenderer::Values cpp_api_main_values(const IrSystem& system)
         };
     }
     return TemplateRenderer::Values{
-        {"api_main_entity_gc_include",
-         "#include \"../common/runtime/entity_gc_registration.hpp\"\n"},
+        {"api_main_entity_gc_include", "#include \"../common/runtime/entity_gc_registration.hpp\"\n"
+                                       "#include \"entity_gc_catalog.hpp\"\n"},
         {"api_main_entity_gc_registration",
-         "        statespec::backend::runtime::register_entity_gc_workers(process, backend);\n\n"},
+         "        statespec::backend::runtime::register_entity_gc_workers(\n"
+         "            process, backend, statespec_generated::api::api_entity_gc_descriptors()\n"
+         "        );\n\n"},
     };
 }
 
@@ -2565,6 +2602,13 @@ void add_cpp_api_artifacts(
             result, options, templates, "api/api_routes.hpp", GeneratedArtifactTier::Api,
             diagnostics
         );
+        if (runtime_domain_usage(system).uses_entity_gc)
+        {
+            add_cpp_raw_api_file(
+                result, options, "api/entity_gc_catalog.hpp",
+                cpp_api_entity_gc_catalog_header(system)
+            );
+        }
         add_cpp_generated_template_file(
             result, options, templates, "api/main.cpp", GeneratedArtifactTier::Api, diagnostics,
             cpp_api_main_values(system)

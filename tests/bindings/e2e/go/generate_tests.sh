@@ -39,6 +39,7 @@ api/backend/codecs/start_provision_response.go
 api/backend/descriptors/catalog.go
 api/backend/descriptors/report_provision_ready.go
 api/backend/descriptors/start_provision.go
+api/backend/entity_gc_catalog.go
 api/backend/external_system_operator_metadata_api.go
 api/backend/shapes/provision_callback_request.go
 api/backend/shapes/provision_callback_response.go
@@ -179,7 +180,8 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_regist
 assert_file_contains "$TMPDIR/out-api-entities-go/common/entities/project/persistence.go" "UpdateTx"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/entities/project/model.go" "ProjectStatusDeleted"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/cmd/api/main.go" "runtime \"statespec-generated/common/backend/runtime\""
-assert_file_contains "$TMPDIR/out-api-entities-go/api/cmd/api/main.go" "runtime.RegisterEntityGCWorkers"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/cmd/api/main.go" "runtime.RegisterEntityGCWorkersForDescriptors"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/cmd/api/main.go" "api.APIEntityGCDescriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/cmd/api/main.go" "process.AddEntityGCWorker"
 cp "$SCRIPT_DIR/api_persistence_fixture_test.go" "$TMPDIR/out-api-entities-go/api/backend/api_persistence_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-go" check-api
@@ -232,7 +234,9 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "h
 assert_file_not_exists "$TMPDIR/out-app-go/api/backend/api_handler_registry_operations.go"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "signal.NotifyContext"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewAPIProcess"
-assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "runtime.RegisterEntityGCWorkers"
+assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "runtime.RegisterEntityGCWorkersForDescriptors"
+assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.APIEntityGCDescriptors()"
+assert_file_contains "$TMPDIR/out-app-go/api/backend/entity_gc_catalog.go" "ServiceInstanceEntityGCDescriptor()"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "process.Start(ctx)"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "process.Join()"
 assert_file_not_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "NewDefaultAPITierApplication"

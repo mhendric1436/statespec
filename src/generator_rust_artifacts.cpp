@@ -90,12 +90,17 @@ TemplateRenderer::Values rust_api_main_values(const IrSystem& system)
         };
     }
     return TemplateRenderer::Values{
-        {"api_main_entity_gc_import",
-         "use crate::runtime_entity_gc_registration::register_entity_gc_workers;\n"},
+        {"api_main_entity_gc_import", "use crate::api_entity_gc_catalog::entity_gc_descriptors as "
+                                      "api_entity_gc_descriptors;\n"
+                                      "use "
+                                      "crate::runtime_entity_gc_registration::register_entity_gc_"
+                                      "workers_with_descriptors;\n"},
         {"api_main_entity_gc_backend_clone", "    let gc_backend = backend.clone();\n"},
-        {"api_main_entity_gc_registration",
-         "    register_entity_gc_workers(|task| process.add_entity_gc_worker(task), "
-         "std::sync::Arc::new(gc_backend))?;\n"},
+        {"api_main_entity_gc_registration", "    register_entity_gc_workers_with_descriptors(\n"
+                                            "        |task| process.add_entity_gc_worker(task),\n"
+                                            "        std::sync::Arc::new(gc_backend),\n"
+                                            "        api_entity_gc_descriptors(),\n"
+                                            "    )?;\n"},
     };
 }
 
@@ -288,6 +293,11 @@ TemplateRenderer::Values rust_lib_values(
         api_modules << "pub mod external_system_operator_metadata_api;\n";
         if (include_api_composition)
         {
+            if (usage.uses_entity_gc)
+            {
+                api_modules << "#[path = \"api/entity_gc_catalog.rs\"]\n";
+                api_modules << "pub mod api_entity_gc_catalog;\n";
+            }
             api_modules << "#[path = \"api/api_application.rs\"]\n";
             api_modules << "pub mod api_application;\n";
             api_modules << "#[path = \"api/api_process.rs\"]\n";
@@ -946,6 +956,34 @@ std::string rust_entity_gc_descriptor_file(const IrEntity& entity)
     out << terminal_states.str();
     out << "        ],\n";
     out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string rust_api_entity_gc_catalog_file(const IrSystem& system)
+{
+    std::ostringstream descriptor_calls;
+    for (const auto& entity : system.entities)
+    {
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
+        if (!entity_uses_gc)
+        {
+            continue;
+        }
+        descriptor_calls << "        crate::entity_" << snake_identifier(entity.name)
+                         << "::gc::" << snake_identifier(entity.name)
+                         << "_entity_gc_descriptor(),\n";
+    }
+
+    std::ostringstream out;
+    out << "pub fn entity_gc_descriptors() -> "
+           "Vec<crate::runtime_entity_gc_types::EntityGcDescriptor> {\n";
+    out << "    vec![\n";
+    out << descriptor_calls.str();
+    out << "    ]\n";
     out << "}\n";
     return out.str();
 }
@@ -2224,6 +2262,12 @@ void add_rust_api_artifacts(
         add_rust_generated_template_file(
             result, options, templates, "api/api_routes.rs", GeneratedArtifactTier::Api, diagnostics
         );
+        if (runtime_domain_usage(system).uses_entity_gc)
+        {
+            add_rust_raw_api_file(
+                result, options, "api/entity_gc_catalog.rs", rust_api_entity_gc_catalog_file(system)
+            );
+        }
         add_rust_generated_template_file(
             result, options, templates, "api/main.rs", GeneratedArtifactTier::Api, diagnostics,
             rust_api_main_values(system)
