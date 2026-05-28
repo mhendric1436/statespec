@@ -1031,8 +1031,8 @@ TemplateRenderer::Values java_workflow_runner_values(const IrSystem& system)
 
 TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system)
 {
-    std::vector<std::string> descriptor_entries;
-    std::ostringstream descriptors;
+    std::vector<std::string> descriptor_calls;
+    std::ostringstream descriptor_methods;
     for (const auto& entity : system.entities)
     {
         std::ostringstream terminal_states;
@@ -1065,30 +1065,37 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
         }
         const auto model_class =
             "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Model";
-        std::ostringstream descriptor;
-        descriptor << "            new Descriptor(\n"
-                   << "                " << model_class << "."
-                   << java_entity_name_constant_name(entity.name) << ",\n"
-                   << "                " << model_class << "."
-                   << java_entity_name_constant_name(entity.name) << ",\n"
-                   << "                " << model_class << "."
-                   << java_entity_field_constant_name(entity.name, "status") << ",\n"
-                   << "                List.of(\n"
-                   << terminal_states.str() << "\n"
-                   << "                )\n"
-                   << "            )";
-        descriptor_entries.push_back(descriptor.str());
+        const auto descriptor_method = lower_camel_identifier(entity.name) + "Descriptor";
+        descriptor_methods << "    private static Descriptor " << descriptor_method << "()\n"
+                           << "    {\n"
+                           << "        return new Descriptor(\n"
+                           << "            " << model_class << "."
+                           << java_entity_name_constant_name(entity.name) << ",\n"
+                           << "            " << model_class << "."
+                           << java_entity_name_constant_name(entity.name) << ",\n"
+                           << "            " << model_class << "."
+                           << java_entity_field_constant_name(entity.name, "status") << ",\n"
+                           << "            List.of(\n"
+                           << terminal_states.str() << "\n"
+                           << "            )\n"
+                           << "        );\n"
+                           << "    }\n\n";
+        descriptor_calls.push_back(descriptor_method + "()");
     }
-    for (std::size_t i = 0; i < descriptor_entries.size(); ++i)
+    std::ostringstream calls;
+    for (std::size_t i = 0; i < descriptor_calls.size(); ++i)
     {
-        descriptors << descriptor_entries[i];
-        if (i + 1 < descriptor_entries.size())
+        calls << "            " << descriptor_calls[i];
+        if (i + 1 < descriptor_calls.size())
         {
-            descriptors << ",";
+            calls << ",";
         }
-        descriptors << "\n";
+        calls << "\n";
     }
-    return TemplateRenderer::Values{{"entity_gc_descriptors", descriptors.str()}};
+    return TemplateRenderer::Values{
+        {"entity_gc_descriptor_methods", descriptor_methods.str()},
+        {"entity_gc_descriptor_calls", calls.str()},
+    };
 }
 
 TemplateRenderer::Values java_api_main_values(const IrSystem& system)
