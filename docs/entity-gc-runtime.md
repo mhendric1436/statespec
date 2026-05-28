@@ -104,20 +104,32 @@ while lease records themselves require GC.
 
 ## Artifact Model
 
-The shared artifact model reserves common-tier generated files for all languages:
+The shared artifact model separates GC types, entity descriptor construction, and tier
+binding points. Common-tier runtime files define only reusable types, repository
+contracts, worker code, and registration helpers. Per-entity GC descriptor functions
+live with the generated entity modules. API and Worker tiers each generate their own
+catalog so the process entrypoint chooses the descriptor set explicitly.
 
-| Language | Descriptor artifact | Repository contract | Worker artifact | Registration artifact |
+| Language | Common GC types | Per-entity descriptor | API catalog | Worker catalog |
 |---|---|---|---|---|
-| C++ | `common/runtime/entity_gc_types.hpp` | `common/runtime/entity_gc_repository.hpp` | `common/runtime/entity_gc_workers.hpp` | `common/runtime/entity_gc_registration.hpp` |
-| Go | `common/backend/runtime/entity_gc_types.go` | `common/backend/runtime/entity_gc_repository.go` | `common/backend/runtime/entity_gc_workers.go` | `common/backend/runtime/entity_gc_registration.go` |
-| Java | `common/com/statespec/backend/runtime/EntityGcTypes.java` | `common/com/statespec/backend/runtime/EntityGcRepository.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` | `common/com/statespec/backend/runtime/EntityGcRegistration.java` |
-| Rust | `common/runtime/entity_gc_types.rs` | `common/runtime/entity_gc_repository.rs` | `common/runtime/entity_gc_workers.rs` | `common/runtime/entity_gc_registration.rs` |
+| C++ | `common/runtime/entity_gc_types.hpp` | `common/entities/<entity>/gc.hpp` | `api/entity_gc_catalog.hpp` | `worker/entity_gc_catalog.hpp` |
+| Go | `common/backend/runtime/entity_gc_types.go` and `common/backend/runtime/entitygc/types.go` | `common/entities/<entity>/gc.go` | `api/backend/entity_gc_catalog.go` | `worker/backend/entity_gc_catalog.go` |
+| Java | `common/com/statespec/backend/runtime/EntityGcTypes.java` | `common/com/statespec/generated/entities/<entity>/Gc.java` | `api/com/statespec/generated/EntityGcCatalog.java` | `worker/com/statespec/generated/WorkerEntityGcCatalog.java` |
+| Rust | `common/runtime/entity_gc_types.rs` | `common/entities/<entity>/gc.rs` | `api/entity_gc_catalog.rs` | `worker/entity_gc_catalog.rs` |
+
+| Language | Repository contract | Worker artifact | Registration artifact |
+|---|---|---|---|
+| C++ | `common/runtime/entity_gc_repository.hpp` | `common/runtime/entity_gc_workers.hpp` | `common/runtime/entity_gc_registration.hpp` |
+| Go | `common/backend/runtime/entity_gc_repository.go` | `common/backend/runtime/entity_gc_workers.go` | `common/backend/runtime/entity_gc_registration.go` |
+| Java | `common/com/statespec/backend/runtime/EntityGcRepository.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` | `common/com/statespec/backend/runtime/EntityGcRegistration.java` |
+| Rust | `common/runtime/entity_gc_repository.rs` | `common/runtime/entity_gc_workers.rs` | `common/runtime/entity_gc_registration.rs` |
 
 These artifacts are shared by generated API and Worker apps. The registration artifact
-iterates the generated descriptor list, creates an OCC-backed repository and worker for
-each descriptor, and registers one plain task per descriptor. The common worker exposes
-a small `runOnce`/`run_once` surface for one entity descriptor and leaves lifecycle
-thread ownership to the generated API or Worker app composition layer.
+accepts a descriptor list from the caller, creates an OCC-backed repository and worker
+for each descriptor, and registers one plain task per descriptor. It must not call a
+common global descriptor function internally. The common worker exposes a small
+`runOnce`/`run_once` surface for one entity descriptor and leaves lifecycle thread
+ownership to the generated API or Worker app composition layer.
 
 Generated API processes expose an entity GC worker registration hook and own the
 background lifecycle after `start()` is called. Generated API startup passes the
