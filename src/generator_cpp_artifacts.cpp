@@ -614,6 +614,14 @@ std::string cpp_api_handler_domain_registry_path(std::string_view domain_name)
     return "api/entities/" + snake_identifier(std::string{domain_name}) + "/registry.hpp";
 }
 
+std::string cpp_api_descriptor_function_name(const IrApi& api);
+std::string cpp_api_route_descriptor_function_name(const IrApi& api);
+
+std::string cpp_entity_api_catalog_path(std::string_view entity_name)
+{
+    return "api/entities/" + snake_identifier(std::string{entity_name}) + "/catalog.hpp";
+}
+
 std::string cpp_api_handler_domain_include_path(std::string_view domain_name)
 {
     return "entities/" + snake_identifier(std::string{domain_name}) + "/registry.hpp";
@@ -2186,6 +2194,95 @@ std::string cpp_entity_api_shapes_header(const std::vector<IrShape>& shapes)
     return out.str();
 }
 
+std::string cpp_entity_api_catalog_header(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = entity_api_shapes(system, entity.name);
+    std::vector<IrApi> apis;
+    for (const auto& domain : crud_api_handler_domains(api_handler_domains(system)))
+    {
+        if (domain.name == entity.name)
+        {
+            apis = domain.apis;
+            break;
+        }
+    }
+
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../../common/descriptors/types.hpp\"\n";
+    out << "#include \"../../../common/shape_types.hpp\"\n";
+    out << "#include \"codecs.hpp\"\n";
+    out << "#include \"registry.hpp\"\n";
+    out << "#include \"shapes.hpp\"\n";
+    for (const auto& api : apis)
+    {
+        out << "#include \"../../descriptors/" << snake_identifier(api.name) << ".hpp\"\n";
+    }
+    out << "\n#include <string>\n";
+    out << "#include <utility>\n";
+    out << "#include <vector>\n\n";
+    out << "namespace statespec_generated::api::entities::" << snake_identifier(entity.name)
+        << "\n";
+    out << "{\n\n";
+    out << "using HandlerRegistry = ::statespec_generated::api::"
+        << cpp_api_handler_domain_class_name(entity.name) << ";\n\n";
+    out << "inline std::vector<::statespec_generated::ShapeDescriptor> shape_descriptors()\n";
+    out << "{\n";
+    out << "    std::vector<::statespec_generated::ShapeDescriptor> descriptors;\n";
+    for (const auto& shape : shapes)
+    {
+        out << "    for (auto descriptor : ::statespec_generated::" << snake_identifier(shape.name)
+            << "_shape_descriptors())\n";
+        out << "    {\n";
+        out << "        descriptors.push_back(std::move(descriptor));\n";
+        out << "    }\n";
+    }
+    out << "    return descriptors;\n";
+    out << "}\n\n";
+    out << "inline std::vector<::statespec_generated::ApiDescriptor> api_descriptors()\n";
+    out << "{\n";
+    out << "    std::vector<::statespec_generated::ApiDescriptor> descriptors;\n";
+    for (const auto& api : apis)
+    {
+        out << "    {\n";
+        out << "        auto slice = ::statespec_generated::api::descriptors::"
+            << cpp_api_descriptor_function_name(api) << "();\n";
+        out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
+        out << "    }\n";
+    }
+    out << "    return descriptors;\n";
+    out << "}\n\n";
+    out << "inline std::vector<::statespec_generated::ApiRouteDescriptor> "
+           "api_route_descriptors()\n";
+    out << "{\n";
+    out << "    std::vector<::statespec_generated::ApiRouteDescriptor> descriptors;\n";
+    for (const auto& api : apis)
+    {
+        out << "    {\n";
+        out << "        auto slice = ::statespec_generated::api::descriptors::"
+            << cpp_api_route_descriptor_function_name(api) << "();\n";
+        out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
+        out << "    }\n";
+    }
+    out << "    return descriptors;\n";
+    out << "}\n\n";
+    out << "inline std::vector<std::string> handler_entrypoints()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& api : apis)
+    {
+        out << "        \"handle_" << snake_identifier(api.name) << "\",\n";
+    }
+    out << "    };\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api::entities::" << snake_identifier(entity.name)
+        << "\n";
+    return out.str();
+}
+
 void add_cpp_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -2241,6 +2338,10 @@ void add_cpp_api_shape_type_artifacts(
         add_cpp_raw_api_file(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.hpp",
             cpp_entity_api_shapes_header(shapes)
+        );
+        add_cpp_raw_api_file(
+            result, options, cpp_entity_api_catalog_path(entity.name),
+            cpp_entity_api_catalog_header(system, entity)
         );
     }
 }

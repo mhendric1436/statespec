@@ -606,6 +606,12 @@ std::filesystem::path java_api_handler_domain_registry_path(std::string_view dom
            "Registry.java";
 }
 
+std::filesystem::path java_entity_api_catalog_path(std::string_view entity_name)
+{
+    return java_api_generated_path("entities") / snake_identifier(std::string{entity_name}) /
+           "Catalog.java";
+}
+
 std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
 {
     std::ostringstream out;
@@ -1880,6 +1886,75 @@ std::string java_entity_api_shapes_file(
     return out.str();
 }
 
+std::string java_entity_api_catalog_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    std::vector<IrApi> apis;
+    for (const auto& domain : crud_api_handler_domains_java(api_handler_domains(system)))
+    {
+        if (domain.name == entity.name)
+        {
+            apis = domain.apis;
+            break;
+        }
+    }
+
+    std::ostringstream out;
+    out << "package com.statespec.generated.entities." << snake_identifier(entity.name) << ";\n\n";
+    out << "import com.statespec.generated.ApiRequestContext;\n";
+    out << "import com.statespec.generated.ApiResponse;\n";
+    out << "import com.statespec.generated.descriptors.types.ApiDescriptor;\n";
+    out << "import com.statespec.generated.descriptors.types.ApiRouteDescriptor;\n";
+    out << "import com.statespec.generated.descriptors.types.ShapeDescriptor;\n";
+    out << "import java.util.ArrayList;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class Catalog {\n";
+    out << "    private Catalog() {}\n\n";
+    out << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";
+    out << "        return Shapes.shapeDescriptors();\n";
+    out << "    }\n\n";
+    out << "    public static List<ApiDescriptor> apiDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<ApiDescriptor>();\n";
+    for (const auto& api : apis)
+    {
+        out << "        descriptors.addAll(com.statespec.generated.descriptors."
+            << java_api_descriptor_module_class_name(api.name) << ".apiDescriptors());\n";
+    }
+    out << "        return List.copyOf(descriptors);\n";
+    out << "    }\n\n";
+    out << "    public static List<ApiRouteDescriptor> apiRouteDescriptors() {\n";
+    out << "        var descriptors = new ArrayList<ApiRouteDescriptor>();\n";
+    for (const auto& api : apis)
+    {
+        out << "        descriptors.addAll(com.statespec.generated.descriptors."
+            << java_api_descriptor_module_class_name(api.name) << ".apiRouteDescriptors());\n";
+    }
+    out << "        return List.copyOf(descriptors);\n";
+    out << "    }\n\n";
+    out << "    public static List<String> handlerEntrypoints() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t i = 0; i < apis.size(); ++i)
+    {
+        out << "            \"handle" << pascal_identifier(apis[i].name) << "\"";
+        out << (i + 1 < apis.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+    for (const auto& api : apis)
+    {
+        out << "    public static ApiResponse handle" << pascal_identifier(api.name)
+            << "(com.statespec.backend.Backend backend, ApiRequestContext context) "
+               "throws Exception {\n";
+        out << "        return Registry.handle" << pascal_identifier(api.name)
+            << "(backend, context);\n";
+        out << "    }\n\n";
+    }
+    out << "}\n";
+    return out.str();
+}
+
 bool java_api_uses_shape(
     const IrSystem& system,
     std::string_view shape_name
@@ -2017,6 +2092,10 @@ void add_java_api_shape_type_artifacts(
             java_entity_api_shapes_file(
                 shapes, "com.statespec.generated.entities." + snake_identifier(entity.name)
             )
+        );
+        add_java_raw_api_file(
+            result, options, java_entity_api_catalog_path(entity.name),
+            java_entity_api_catalog_file(system, entity)
         );
     }
 }

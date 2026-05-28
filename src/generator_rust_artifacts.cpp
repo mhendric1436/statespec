@@ -719,6 +719,15 @@ std::string rust_api_handler_domain_registry_path(std::string_view domain_name)
     return "api/entities/" + snake_identifier(std::string{domain_name}) + "/registry.rs";
 }
 
+std::string rust_api_descriptor_module_name(const IrApi& api);
+std::string rust_api_descriptor_function_name(const IrApi& api);
+std::string rust_api_route_descriptor_function_name(const IrApi& api);
+
+std::string rust_entity_api_catalog_path(std::string_view entity_name)
+{
+    return "api/entities/" + snake_identifier(std::string{entity_name}) + "/catalog.rs";
+}
+
 std::string rust_api_handler_registry_domain_modules(const std::vector<ApiHandlerDomain>& domains)
 {
     std::ostringstream out;
@@ -1842,6 +1851,71 @@ std::string rust_entity_api_shapes_file(const std::vector<IrShape>& shapes)
     return out.str();
 }
 
+std::string rust_entity_api_catalog_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = rust_entity_api_shapes(system, entity.name);
+    std::vector<IrApi> apis;
+    for (const auto& domain : crud_api_handler_domains_rs(api_handler_domains(system)))
+    {
+        if (domain.name == entity.name)
+        {
+            apis = domain.apis;
+            break;
+        }
+    }
+
+    std::ostringstream out;
+    out << "use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor};\n";
+    out << "use crate::shape_types::ShapeDescriptor;\n";
+    out << "use crate::api_shapes::entity_" << snake_identifier(entity.name)
+        << "_shapes as shapes;\n";
+    for (const auto& api : apis)
+    {
+        out << "#[path = \"../../descriptors/" << snake_identifier(api.name) << ".rs\"]\n";
+        out << "mod " << rust_api_descriptor_module_name(api) << ";\n";
+    }
+    out << "\n";
+    out << "pub fn shape_descriptors() -> Vec<ShapeDescriptor> {\n";
+    out << "    let mut descriptors = Vec::new();\n";
+    for (const auto& shape : shapes)
+    {
+        out << "    descriptors.extend(shapes::" << snake_identifier(shape.name)
+            << "_shape_descriptors());\n";
+    }
+    out << "    descriptors\n";
+    out << "}\n\n";
+    out << "pub fn api_descriptors() -> Vec<ApiDescriptor> {\n";
+    out << "    let mut descriptors = Vec::new();\n";
+    for (const auto& api : apis)
+    {
+        out << "    descriptors.extend(" << rust_api_descriptor_module_name(api)
+            << "::" << rust_api_descriptor_function_name(api) << "());\n";
+    }
+    out << "    descriptors\n";
+    out << "}\n\n";
+    out << "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {\n";
+    out << "    let mut descriptors = Vec::new();\n";
+    for (const auto& api : apis)
+    {
+        out << "    descriptors.extend(" << rust_api_descriptor_module_name(api)
+            << "::" << rust_api_route_descriptor_function_name(api) << "());\n";
+    }
+    out << "    descriptors\n";
+    out << "}\n\n";
+    out << "pub fn handler_entrypoints() -> &'static [&'static str] {\n";
+    out << "    &[\n";
+    for (const auto& api : apis)
+    {
+        out << "        \"handle_" << snake_identifier(api.name) << "\",\n";
+    }
+    out << "    ]\n";
+    out << "}\n";
+    return out.str();
+}
+
 void add_rust_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1899,6 +1973,10 @@ void add_rust_api_shape_type_artifacts(
         add_rust_raw_api_file(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.rs",
             rust_entity_api_shapes_file(shapes)
+        );
+        add_rust_raw_api_file(
+            result, options, rust_entity_api_catalog_path(entity.name),
+            rust_entity_api_catalog_file(system, entity)
         );
     }
 }
