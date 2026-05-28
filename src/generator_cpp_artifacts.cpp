@@ -1343,11 +1343,6 @@ std::string cpp_descriptor_types_header(const TemplatePackage& templates)
     out << "    std::vector<QuotaDescriptor> quotas;\n";
     out << "    std::vector<std::string> audits;\n";
     out << "};\n\n";
-    out << "struct ShapeDescriptor\n";
-    out << "{\n";
-    out << "    std::string name;\n";
-    out << "    std::vector<statespec::backend::FieldDescriptor> fields;\n";
-    out << "};\n\n";
     out << "struct LogDefinition\n";
     out << "{\n";
     out << "    std::string name;\n";
@@ -1413,6 +1408,24 @@ std::string cpp_descriptor_types_header(const TemplatePackage& templates)
     out << "    std::vector<EntityStateDescriptor> states;\n";
     out << "    std::optional<std::string> initial_state;\n";
     out << "    std::vector<std::string> terminal_states;\n";
+    out << "};\n\n";
+    out << "} // namespace statespec_generated\n";
+    return out.str();
+}
+
+std::string cpp_shape_types_header()
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"backend.hpp\"\n\n";
+    out << "#include <string>\n";
+    out << "#include <vector>\n\n";
+    out << "namespace statespec_generated\n";
+    out << "{\n\n";
+    out << "struct ShapeDescriptor\n";
+    out << "{\n";
+    out << "    std::string name;\n";
+    out << "    std::vector<statespec::backend::FieldDescriptor> fields;\n";
     out << "};\n\n";
     out << "} // namespace statespec_generated\n";
     return out.str();
@@ -1834,6 +1847,7 @@ TemplateRenderer::Values cpp_shape_descriptor_module_values(const IrSystem& syst
         aggregation << "    }\n";
     }
     std::ostringstream content;
+    content << "#include \"../shape_types.hpp\"\n";
     content << includes.str();
     if (!includes.str().empty())
     {
@@ -1858,6 +1872,7 @@ TemplateRenderer::Values cpp_shape_descriptor_module_values(const IrShape& shape
     auto content = generate_cpp_shape_descriptors(one_shape_system);
     const auto prefix = snake_identifier(shape.name);
     content = replace_all_copy(content, "shape_descriptors()", prefix + "_shape_descriptors()");
+    content = "#include \"../../shape_types.hpp\"\n\n" + content;
     return TemplateRenderer::Values{
         {"descriptor_module_name", "shape descriptor " + shape.name},
         {"descriptor_module_content", content},
@@ -2380,6 +2395,7 @@ void add_cpp_common_runtime_artifacts(
     add_template_file(
         result, options.output_dir, templates, "workflow.hpp", "workflow.hpp", diagnostics
     );
+    add_cpp_raw_common_file(result, options, "shape_types.hpp", cpp_shape_types_header());
     add_cpp_raw_common_file(
         result, options, "descriptors/types.hpp", cpp_descriptor_types_header(templates)
     );

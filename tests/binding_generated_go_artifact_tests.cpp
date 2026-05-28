@@ -38,6 +38,7 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/metric.go", common},
             {"common/backend/queue.go", common},
             {"common/backend/schema_compatibility.go", common},
+            {"common/backend/shape_types.go", common},
             {"common/backend/shape_descriptors.go", common},
             {"common/backend/workflow.go", common},
             {"common/backend/descriptors.go", common},
@@ -71,6 +72,10 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "backend/descriptortypes/types.go", "common/backend/descriptortypes/types.go",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "backend/shape_types.go", "common/backend/shape_types.go",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

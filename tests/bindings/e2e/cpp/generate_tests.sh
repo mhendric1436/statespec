@@ -91,6 +91,7 @@ common/runtime/queue_store.hpp
 common/runtime/workflow_store.hpp
 common/runtime_registration.hpp
 common/schema_compatibility.hpp
+common/shape_types.hpp
 common/workflow.hpp
 common/workflows/provision_service.hpp
 worker/descriptors/catalog.hpp

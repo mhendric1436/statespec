@@ -36,6 +36,7 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/metric.rs", common},
             {"common/queue.rs", common},
             {"common/schema_compatibility.rs", common},
+            {"common/shape_types.rs", common},
             {"common/workflow.rs", common},
             {"common/memory/backend.rs", common},
             {"common/memory/transaction.rs", common},
@@ -70,6 +71,9 @@ void test_rust_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "descriptors/types.rs", "common/descriptors/types.rs",
         statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "shape_types.rs", "common/shape_types.rs", statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
         result, "descriptors/core.rs", "common/descriptors/core.rs",

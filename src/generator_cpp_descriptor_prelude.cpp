@@ -46,6 +46,7 @@ std::string generate_cpp_descriptor_prelude(
     out << "#include \"metric.hpp\"\n";
     out << "#include \"queue.hpp\"\n";
     out << "#include \"workflow.hpp\"\n\n";
+    out << "#include \"shape_types.hpp\"\n";
     out << "#include \"descriptors/types.hpp\"\n\n";
     out << cpp_descriptor_module_includes(system) << "\n";
     out << "#include <chrono>\n";
@@ -398,12 +399,6 @@ std::string generate_cpp_descriptor_prelude(
     out << "    std::vector<PolicyRuleDescriptor> denies;\n";
     out << "    std::vector<QuotaDescriptor> quotas;\n";
     out << "    std::vector<std::string> audits;\n";
-    out << "};\n\n";
-
-    out << "struct ShapeDescriptor\n";
-    out << "{\n";
-    out << "    std::string name;\n";
-    out << "    std::vector<statespec::backend::FieldDescriptor> fields;\n";
     out << "};\n\n";
 
     out << "struct LogDefinition\n";

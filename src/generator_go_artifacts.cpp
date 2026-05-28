@@ -1669,6 +1669,15 @@ std::string go_shape_descriptor_file(const IrShape& shape)
     return "package backend\n\n" + content;
 }
 
+std::string go_shape_types_file()
+{
+    return "package backend\n\n"
+           "type ShapeDescriptor struct {\n"
+           "\tName string\n"
+           "\tFields []FieldDescriptor\n"
+           "}\n";
+}
+
 void add_go_raw_common_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -2265,6 +2274,7 @@ void add_go_common_runtime_artifacts(
     add_go_raw_common_file(
         result, options, "backend/descriptortypes/types.go", go_descriptor_types_file()
     );
+    add_go_raw_common_file(result, options, "backend/shape_types.go", go_shape_types_file());
 
     if (diagnostics.has_errors())
     {

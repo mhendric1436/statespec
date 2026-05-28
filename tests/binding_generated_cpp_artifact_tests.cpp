@@ -36,6 +36,7 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/metric.hpp", common},
             {"common/queue.hpp", common},
             {"common/schema_compatibility.hpp", common},
+            {"common/shape_types.hpp", common},
             {"common/workflow.hpp", common},
             {"common/memory/backend.hpp", common},
             {"common/memory/transaction.hpp", common},
@@ -86,6 +87,10 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "descriptors/types.hpp", "common/descriptors/types.hpp",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "shape_types.hpp", "common/shape_types.hpp",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

@@ -88,6 +88,7 @@ std::string generate_rust_descriptor_prelude(
     out << "pub use crate::descriptor_types::{ApiDescriptor, ApiRequestContext, ApiResponse, "
            "ApiRouteDescriptor, ApiServerDescriptor, LeaseDefinition, WorkerContext, "
            "WorkerDescriptor};\n\n";
+    out << "pub use crate::shape_types::ShapeDescriptor;\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct FeatureFlagDefinition {\n";
     out << "    pub name: String,\n";
@@ -310,11 +311,6 @@ std::string generate_rust_descriptor_prelude(
     out << "    pub denies: Vec<PolicyRuleDescriptor>,\n";
     out << "    pub quotas: Vec<QuotaDescriptor>,\n";
     out << "    pub audits: Vec<String>,\n";
-    out << "}\n\n";
-    out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct ShapeDescriptor {\n";
-    out << "    pub name: String,\n";
-    out << "    pub fields: Vec<FieldDescriptor>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct LogDefinition {\n";

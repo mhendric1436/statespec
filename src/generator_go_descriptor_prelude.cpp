@@ -282,10 +282,6 @@ std::string generate_go_descriptor_prelude(
     out << "\tQuotas []QuotaDescriptor\n";
     out << "\tAudits []string\n";
     out << "}\n\n";
-    out << "type ShapeDescriptor struct {\n";
-    out << "\tName string\n";
-    out << "\tFields []FieldDescriptor\n";
-    out << "}\n\n";
     out << "type LogDefinition struct {\n";
     out << "\tName string\n";
     out << "\tLevel string\n";

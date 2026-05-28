@@ -91,6 +91,7 @@ common/runtime/queues.rs
 common/runtime/workflows.rs
 common/runtime_registration.rs
 common/schema_compatibility.rs
+common/shape_types.rs
 common/workflow.rs
 common/workflows/provision_service.rs
 lib.rs

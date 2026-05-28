@@ -1480,6 +1480,16 @@ TemplateRenderer::Values rust_shape_descriptor_module_values(const IrShape& shap
     };
 }
 
+std::string rust_shape_types_file()
+{
+    return "use crate::backend::FieldDescriptor;\n\n"
+           "#[derive(Debug, Clone)]\n"
+           "pub struct ShapeDescriptor {\n"
+           "    pub name: String,\n"
+           "    pub fields: Vec<FieldDescriptor>,\n"
+           "}\n";
+}
+
 std::string rust_descriptor_types_file()
 {
     return "use std::time::Duration;\n\n"
@@ -2063,6 +2073,7 @@ void add_rust_common_runtime_artifacts(
     add_template_file(
         result, options.output_dir, templates, "workflow.rs", "workflow.rs", diagnostics
     );
+    add_rust_raw_common_file(result, options, "shape_types.rs", rust_shape_types_file());
     add_template_file(
         result, options.output_dir, templates, "memory/backend.rs", "memory/backend.rs", diagnostics
     );

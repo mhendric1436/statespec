@@ -84,6 +84,7 @@ common/backend/runtime_registration_queues.go
 common/backend/runtime_registration_workflows.go
 common/backend/schema_compatibility.go
 common/backend/shape_descriptors.go
+common/backend/shape_types.go
 common/backend/start_provision_request_shape_descriptors.go
 common/backend/start_provision_response_shape_descriptors.go
 common/backend/workflow.go
