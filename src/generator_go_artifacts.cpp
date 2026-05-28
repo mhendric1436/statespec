@@ -938,6 +938,8 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
                     << go_entity_name_constant_name(entity.name) << ",\n"
                     << "\t\t\tCollection: " << snake_identifier(entity.name) << "."
                     << go_entity_name_constant_name(entity.name) << ",\n"
+                    << "\t\t\tStatusField: " << snake_identifier(entity.name) << "."
+                    << go_entity_field_constant_name(entity.name, "status") << ",\n"
                     << "\t\t\tTerminalStates: []EntityGCTerminalStateDescriptor{\n"
                     << terminal_states.str() << "\t\t\t},\n"
                     << "\t\t},\n";
@@ -2233,6 +2235,9 @@ void add_go_common_runtime_artifacts(
         );
         add_go_common_generated_template_file(
             result, options, templates, "backend/runtime/entity_gc_workers.go", diagnostics
+        );
+        add_go_common_generated_template_file(
+            result, options, templates, "backend/runtime/entity_gc_registration.go", diagnostics
         );
     }
     add_go_descriptor_module_artifacts(result, options, templates, system, diagnostics);

@@ -60,6 +60,7 @@ TemplateRenderer::Values cpp_common_runtime_values(const IrSystem& system)
         add("common/runtime/entity_gc_descriptors.hpp");
         add("common/runtime/entity_gc_repository.hpp");
         add("common/runtime/entity_gc_workers.hpp");
+        add("common/runtime/entity_gc_registration.hpp");
     }
     return TemplateRenderer::Values{{"common_runtime_includes", includes.str()}};
 }
@@ -864,6 +865,9 @@ TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
                     << "            ::statespec_generated::entities::"
                     << snake_identifier(entity.name)
                     << "::" << cpp_entity_name_constant_name(entity.name) << ",\n"
+                    << "            ::statespec_generated::entities::"
+                    << snake_identifier(entity.name)
+                    << "::" << cpp_entity_field_constant_name(entity.name, "status") << ",\n"
                     << "            std::vector<EntityGcTerminalStateDescriptor>{\n"
                     << terminal_states.str() << "            }\n"
                     << "        },\n";
@@ -2384,6 +2388,10 @@ void add_cpp_common_runtime_artifacts(
         add_template_file(
             result, options.output_dir, templates, "runtime/entity_gc_workers.hpp",
             "runtime/entity_gc_workers.hpp", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/entity_gc_registration.hpp",
+            "runtime/entity_gc_registration.hpp", diagnostics
         );
     }
 

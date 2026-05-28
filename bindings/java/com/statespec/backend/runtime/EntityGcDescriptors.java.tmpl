@@ -17,6 +17,7 @@ public final class EntityGcDescriptors
     public record Descriptor(
         String entity,
         String collection,
+        String statusField,
         List<TerminalState> terminalStates
     )
     {

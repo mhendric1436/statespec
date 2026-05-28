@@ -218,6 +218,8 @@ TemplateRenderer::Values rust_lib_values(
         runtime_modules << "pub mod runtime_entity_gc_repository;\n";
         runtime_modules << "#[path = \"common/runtime/entity_gc_workers.rs\"]\n";
         runtime_modules << "pub mod runtime_entity_gc_workers;\n";
+        runtime_modules << "#[path = \"common/runtime/entity_gc_registration.rs\"]\n";
+        runtime_modules << "pub mod runtime_entity_gc_registration;\n";
     }
     for (const auto& entity : system.entities)
     {
@@ -900,6 +902,9 @@ TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system
                     << ".to_string(),\n"
                     << "            collection: " << snake_identifier(entity.name)
                     << "_model::" << rust_entity_name_constant_name(entity.name)
+                    << ".to_string(),\n"
+                    << "            status_field: " << snake_identifier(entity.name)
+                    << "_model::" << rust_entity_field_constant_name(entity.name, "status")
                     << ".to_string(),\n"
                     << "            terminal_states: vec![\n"
                     << terminal_states.str() << "            ],\n"
@@ -2043,6 +2048,10 @@ void add_rust_common_runtime_artifacts(
         add_template_file(
             result, options.output_dir, templates, "runtime/entity_gc_workers.rs",
             "runtime/entity_gc_workers.rs", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates, "runtime/entity_gc_registration.rs",
+            "runtime/entity_gc_registration.rs", diagnostics
         );
     }
 

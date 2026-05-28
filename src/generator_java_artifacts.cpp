@@ -1071,6 +1071,8 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
                    << java_entity_name_constant_name(entity.name) << ",\n"
                    << "                " << model_class << "."
                    << java_entity_name_constant_name(entity.name) << ",\n"
+                   << "                " << model_class << "."
+                   << java_entity_field_constant_name(entity.name, "status") << ",\n"
                    << "                List.of(\n"
                    << terminal_states.str() << "\n"
                    << "                )\n"
@@ -2673,6 +2675,11 @@ void add_java_common_runtime_artifacts(
         add_template_file(
             result, options.output_dir, templates, output_root / "runtime" / "EntityGcWorkers.java",
             output_root / "runtime" / "EntityGcWorkers.java", diagnostics
+        );
+        add_template_file(
+            result, options.output_dir, templates,
+            output_root / "runtime" / "EntityGcRegistration.java",
+            output_root / "runtime" / "EntityGcRegistration.java", diagnostics
         );
     }
     add_java_descriptor_module_artifacts(result, options, templates, system, diagnostics);

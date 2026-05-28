@@ -80,6 +80,7 @@ common/runtime/codec_leases.rs
 common/runtime/codec_queues.rs
 common/runtime/codec_workflows.rs
 common/runtime/entity_gc_descriptors.rs
+common/runtime/entity_gc_registration.rs
 common/runtime/entity_gc_repository.rs
 common/runtime/entity_gc_workers.rs
 common/runtime/leases.rs

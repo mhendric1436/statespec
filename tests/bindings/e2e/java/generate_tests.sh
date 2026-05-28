@@ -57,6 +57,7 @@ common/com/statespec/backend/memory/InMemoryBackend.java
 common/com/statespec/backend/memory/InMemoryTransaction.java
 common/com/statespec/backend/runtime/Codec.java
 common/com/statespec/backend/runtime/EntityGcDescriptors.java
+common/com/statespec/backend/runtime/EntityGcRegistration.java
 common/com/statespec/backend/runtime/EntityGcRepository.java
 common/com/statespec/backend/runtime/EntityGcWorkers.java
 common/com/statespec/backend/runtime/LeaseCodec.java

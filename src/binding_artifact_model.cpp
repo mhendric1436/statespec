@@ -31,6 +31,8 @@ std::string binding_app_artifact_kind_name(BindingAppArtifactKind kind)
         return "runtime_entity_gc_repository";
     case BindingAppArtifactKind::RuntimeEntityGcWorkers:
         return "runtime_entity_gc_workers";
+    case BindingAppArtifactKind::RuntimeEntityGcRegistration:
+        return "runtime_entity_gc_registration";
     case BindingAppArtifactKind::ApiApplication:
         return "api_application";
     case BindingAppArtifactKind::ApiProcess:
@@ -114,6 +116,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral entity garbage collection repository contract"},
             {"common/runtime/entity_gc_workers.hpp", common, Kind::RuntimeEntityGcWorkers,
              "Shared entity garbage collection workers"},
+            {"common/runtime/entity_gc_registration.hpp", common, Kind::RuntimeEntityGcRegistration,
+             "Shared entity garbage collection worker registration"},
             {"api/api_application.hpp", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/api_process.hpp", api, Kind::ApiProcess, "API process lifecycle runtime", true},
@@ -185,6 +189,9 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral entity garbage collection repository contract"},
             {"common/backend/runtime/entity_gc_workers.go", common, Kind::RuntimeEntityGcWorkers,
              "Shared entity garbage collection workers"},
+            {"common/backend/runtime/entity_gc_registration.go", common,
+             Kind::RuntimeEntityGcRegistration,
+             "Shared entity garbage collection worker registration"},
             {"api/backend/api_application.go", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/backend/api_process.go", api, Kind::ApiProcess, "API process lifecycle runtime",
@@ -254,6 +261,9 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral entity garbage collection repository contract"},
             {"common/com/statespec/backend/runtime/EntityGcWorkers.java", common,
              Kind::RuntimeEntityGcWorkers, "Shared entity garbage collection workers"},
+            {"common/com/statespec/backend/runtime/EntityGcRegistration.java", common,
+             Kind::RuntimeEntityGcRegistration,
+             "Shared entity garbage collection worker registration"},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/com/statespec/generated/ApiProcess.java", api, Kind::ApiProcess,
@@ -322,6 +332,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral entity garbage collection repository contract"},
             {"common/runtime/entity_gc_workers.rs", common, Kind::RuntimeEntityGcWorkers,
              "Shared entity garbage collection workers"},
+            {"common/runtime/entity_gc_registration.rs", common, Kind::RuntimeEntityGcRegistration,
+             "Shared entity garbage collection worker registration"},
             {"api/api_application.rs", api, Kind::ApiApplication,
              "API application composition root"},
             {"api/api_process.rs", api, Kind::ApiProcess, "API process lifecycle runtime", true},

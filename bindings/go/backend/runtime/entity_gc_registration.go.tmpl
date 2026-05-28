@@ -1,0 +1,78 @@
+package runtime
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+)
+
+type EntityGCRegistrationFunc func(func(context.Context, string) error) error
+
+type DefaultEntityGCRepository struct{}
+
+func (DefaultEntityGCRepository) ListGCEligibleTx(
+	ctx context.Context,
+	tx common.Transaction,
+	request EntityGCEligibilityRequest,
+) ([]common.VersionedRecord, error) {
+	records, err := tx.Query(ctx, common.CollectionName(request.Descriptor.Collection), common.AllQuery())
+	if err != nil {
+		return nil, err
+	}
+	limit := request.Limit
+	if limit <= 0 {
+		limit = 100
+	}
+	eligible := make([]common.VersionedRecord, 0, limit)
+	for _, record := range records {
+		if len(eligible) >= limit {
+			break
+		}
+		status, ok := record.Document.Find(request.Descriptor.StatusField)
+		if !ok {
+			continue
+		}
+		statusValue, ok := status.AsString()
+		if !ok {
+			continue
+		}
+		if isEntityGCTerminalState(request.Descriptor, statusValue) {
+			eligible = append(eligible, record)
+		}
+	}
+	return eligible, nil
+}
+
+func (DefaultEntityGCRepository) FinalizeGCTx(
+	ctx context.Context,
+	tx common.Transaction,
+	request EntityGCFinalizeRequest,
+) error {
+	return tx.Erase(ctx, common.CollectionName(request.Descriptor.Collection), request.Key)
+}
+
+func RegisterEntityGCWorkers(register EntityGCRegistrationFunc, backend common.Backend) error {
+	for _, descriptor := range EntityGCDescriptors() {
+		worker := NewEntityGCWorker(
+			descriptor,
+			DefaultEntityGCRepository{},
+			EntityGCWorkerConfig{},
+		)
+		if err := register(func(ctx context.Context, now string) error {
+			_, err := worker.RunOnce(ctx, backend, now)
+			return err
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func isEntityGCTerminalState(descriptor EntityGCDescriptor, status string) bool {
+	for _, terminal := range descriptor.TerminalStates {
+		if terminal.State == status {
+			return true
+		}
+	}
+	return false
+}

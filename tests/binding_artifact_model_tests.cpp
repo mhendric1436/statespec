@@ -70,6 +70,12 @@ void test_binding_app_artifact_kind_names()
     );
     require_string_equal(
         statespec::binding_app_artifact_kind_name(
+            statespec::BindingAppArtifactKind::RuntimeEntityGcRegistration
+        ),
+        "runtime_entity_gc_registration", "runtime entity GC registration artifact kind name"
+    );
+    require_string_equal(
+        statespec::binding_app_artifact_kind_name(
             statespec::BindingAppArtifactKind::ApiApplication
         ),
         "api_application", "API application artifact kind name"
@@ -136,6 +142,8 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/runtime/entity_gc_descriptors.hpp", common, Kind::RuntimeEntityGcDescriptors},
             {"common/runtime/entity_gc_repository.hpp", common, Kind::RuntimeEntityGcRepository},
             {"common/runtime/entity_gc_workers.hpp", common, Kind::RuntimeEntityGcWorkers},
+            {"common/runtime/entity_gc_registration.hpp", common,
+             Kind::RuntimeEntityGcRegistration},
             {"api/api_application.hpp", api, Kind::ApiApplication},
             {"api/api_process.hpp", api, Kind::ApiProcess, true},
             {"api/api_server.hpp", api, Kind::ApiServer, true},
@@ -179,6 +187,8 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/backend/runtime/entity_gc_repository.go", common,
              Kind::RuntimeEntityGcRepository},
             {"common/backend/runtime/entity_gc_workers.go", common, Kind::RuntimeEntityGcWorkers},
+            {"common/backend/runtime/entity_gc_registration.go", common,
+             Kind::RuntimeEntityGcRegistration},
             {"api/backend/api_application.go", api, Kind::ApiApplication},
             {"api/backend/api_process.go", api, Kind::ApiProcess, true},
             {"api/backend/api_server.go", api, Kind::ApiServer, true},
@@ -230,6 +240,8 @@ void test_binding_app_artifact_models_define_application_filenames()
              Kind::RuntimeEntityGcRepository},
             {"common/com/statespec/backend/runtime/EntityGcWorkers.java", common,
              Kind::RuntimeEntityGcWorkers},
+            {"common/com/statespec/backend/runtime/EntityGcRegistration.java", common,
+             Kind::RuntimeEntityGcRegistration},
             {"api/com/statespec/generated/ApiApplication.java", api, Kind::ApiApplication},
             {"api/com/statespec/generated/ApiProcess.java", api, Kind::ApiProcess, true},
             {"api/com/statespec/generated/ApiServer.java", api, Kind::ApiServer, true},
@@ -275,6 +287,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/runtime/entity_gc_descriptors.rs", common, Kind::RuntimeEntityGcDescriptors},
             {"common/runtime/entity_gc_repository.rs", common, Kind::RuntimeEntityGcRepository},
             {"common/runtime/entity_gc_workers.rs", common, Kind::RuntimeEntityGcWorkers},
+            {"common/runtime/entity_gc_registration.rs", common, Kind::RuntimeEntityGcRegistration},
             {"api/api_application.rs", api, Kind::ApiApplication},
             {"api/api_process.rs", api, Kind::ApiProcess, true},
             {"api/api_server.rs", api, Kind::ApiServer, true},

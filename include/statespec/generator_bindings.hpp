@@ -43,6 +43,7 @@ enum class BindingAppArtifactKind
     RuntimeEntityGcDescriptors,
     RuntimeEntityGcRepository,
     RuntimeEntityGcWorkers,
+    RuntimeEntityGcRegistration,
     ApiApplication,
     ApiProcess,
     ApiServer,
