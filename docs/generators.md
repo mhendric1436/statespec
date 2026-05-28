@@ -249,6 +249,12 @@ parameters inferred from `{name}` path segments, JSON request bodies from `input
 shapes, JSON success responses from `output` shapes, and default error responses from
 `error` shapes when present.
 
+Entity-owned CRUD API intent is lowered to the same API and shape IR before OpenAPI
+rendering. OpenAPI therefore does not distinguish between manually declared APIs and
+derived CRUD APIs: derived create and update-status request bodies come from the
+synthesized request shapes, path parameters come from the resource/list paths, and
+entity/list responses come from the synthesized response shapes.
+
 Shape declarations become reusable `components.schemas` entries. Primitive StateSpec
 types are mapped to conservative JSON Schema types, while references to declared
 shapes become OpenAPI `$ref` schemas.

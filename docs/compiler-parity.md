@@ -55,7 +55,7 @@ Status meanings:
 | IR | complete | IR preserves metadata entity name, tenant field, profile field, metadata key fields, required fields, mapping source/target pairs, APIs, and API server route inputs. |
 | Formatter | partial | Token-preserving formatting handles the syntax and canonical-order warnings cover the containing declarations. Full AST-owned reordering for all nested metadata/API forms remains future work. |
 | Binding generators | complete | C++, Go, Java, and Rust emit external-system descriptors, mapping-plan helpers, default mapping applicators, missing-source diagnostics, generic external-system client interfaces and call adapters, metadata lookup helpers, transaction-scoped resolver helpers, OCC repository contracts plus default generic repository implementations, and operator metadata API handler contracts. |
-| OpenAPI generator | partial | OpenAPI emits declared API operations and metadata-derived operator routes when explicit routes are absent. It emits schema contracts, not framework glue. Protobuf generation is intentionally not implemented. |
+| OpenAPI generator | partial | OpenAPI emits declared API operations, entity-derived CRUD API operations, and metadata-derived operator routes when explicit routes are absent. It emits schema contracts, not framework glue. Protobuf generation is intentionally not implemented. |
 | Regression fixture | complete | `testdata/generators/external-system-metadata-e2e.sspec` validates the end-to-end pass across metadata, mappings, explicit operator APIs, API servers, OpenAPI, and generated bindings. |
 
 Runtime-owned responsibilities are intentionally outside the compiler contract:
