@@ -673,6 +673,188 @@ void require_worker_gc_config(
     }
 }
 
+void require_gc_common_has_no_aggregator(
+    const statespec::GenerationResult& result,
+    statespec::BindingLanguage language,
+    const std::string& context
+)
+{
+    require_artifacts_absent(
+        result,
+        {"common/runtime/entity_gc_descriptors.hpp",
+         "common/backend/runtime/entity_gc_descriptors.go",
+         "common/com/statespec/backend/runtime/EntityGcDescriptors.java",
+         "common/runtime/entity_gc_descriptors.rs"},
+        context + " common GC aggregator"
+    );
+
+    switch (language)
+    {
+    case statespec::BindingLanguage::Cpp:
+        require_not_contains(
+            artifact_content(result, "common/runtime/entity_gc_types.hpp"), "entity_gc_descriptors",
+            context + " C++ common GC types"
+        );
+        require_not_contains(
+            artifact_content(result, "common/runtime/entity_gc_types.hpp"),
+            "gc_task_entity_gc_descriptor", context + " C++ common GC types"
+        );
+        break;
+    case statespec::BindingLanguage::Go:
+        require_not_contains(
+            artifact_content(result, "common/backend/runtime/entity_gc_types.go"),
+            "EntityGCDescriptors", context + " Go common GC types"
+        );
+        require_not_contains(
+            artifact_content(result, "common/backend/runtime/entity_gc_types.go"),
+            "GcTaskEntityGCDescriptor", context + " Go common GC types"
+        );
+        require_not_contains(
+            artifact_content(result, "common/backend/runtime/entitygc/types.go"),
+            "GcTaskEntityGCDescriptor", context + " Go internal GC types"
+        );
+        break;
+    case statespec::BindingLanguage::Java:
+        require_not_contains(
+            artifact_content(result, "common/com/statespec/backend/runtime/EntityGcTypes.java"),
+            "EntityGcDescriptors", context + " Java common GC types"
+        );
+        require_not_contains(
+            artifact_content(result, "common/com/statespec/backend/runtime/EntityGcTypes.java"),
+            "Gc.descriptor()", context + " Java common GC types"
+        );
+        break;
+    case statespec::BindingLanguage::Rust:
+        require_not_contains(
+            artifact_content(result, "common/runtime/entity_gc_types.rs"), "entity_gc_descriptors",
+            context + " Rust common GC types"
+        );
+        require_not_contains(
+            artifact_content(result, "common/runtime/entity_gc_types.rs"),
+            "gc_task_entity_gc_descriptor", context + " Rust common GC types"
+        );
+        break;
+    }
+}
+
+void require_gc_entity_descriptor_function(
+    const statespec::GenerationResult& result,
+    statespec::BindingLanguage language,
+    const std::string& context
+)
+{
+    switch (language)
+    {
+    case statespec::BindingLanguage::Cpp:
+        require_contains(
+            artifact_content(result, "common/entities/gc_task/gc.hpp"),
+            "gc_task_entity_gc_descriptor()", context + " C++ entity GC descriptor"
+        );
+        break;
+    case statespec::BindingLanguage::Go:
+        require_contains(
+            artifact_content(result, "common/entities/gc_task/gc.go"),
+            "func GcTaskEntityGCDescriptor()", context + " Go entity GC descriptor"
+        );
+        break;
+    case statespec::BindingLanguage::Java:
+        require_contains(
+            artifact_content(result, "common/com/statespec/generated/entities/gc_task/Gc.java"),
+            "public static EntityGcTypes.Descriptor descriptor()",
+            context + " Java entity GC descriptor"
+        );
+        break;
+    case statespec::BindingLanguage::Rust:
+        require_contains(
+            artifact_content(result, "common/entities/gc_task/gc.rs"),
+            "pub fn gc_task_entity_gc_descriptor()", context + " Rust entity GC descriptor"
+        );
+        break;
+    }
+}
+
+void require_api_gc_catalog(
+    const statespec::GenerationResult& result,
+    statespec::BindingLanguage language,
+    const std::string& context
+)
+{
+    switch (language)
+    {
+    case statespec::BindingLanguage::Cpp:
+        require_artifacts_present(result, {"api/entity_gc_catalog.hpp"}, context);
+        require_contains(
+            artifact_content(result, "api/entity_gc_catalog.hpp"), "gc_task_entity_gc_descriptor()",
+            context + " C++ API GC catalog"
+        );
+        break;
+    case statespec::BindingLanguage::Go:
+        require_artifacts_present(result, {"api/backend/entity_gc_catalog.go"}, context);
+        require_contains(
+            artifact_content(result, "api/backend/entity_gc_catalog.go"),
+            "gc_task.GcTaskEntityGCDescriptor()", context + " Go API GC catalog"
+        );
+        break;
+    case statespec::BindingLanguage::Java:
+        require_artifacts_present(
+            result, {"api/com/statespec/generated/EntityGcCatalog.java"}, context
+        );
+        require_contains(
+            artifact_content(result, "api/com/statespec/generated/EntityGcCatalog.java"),
+            "entities.gc_task.Gc.descriptor()", context + " Java API GC catalog"
+        );
+        break;
+    case statespec::BindingLanguage::Rust:
+        require_artifacts_present(result, {"api/entity_gc_catalog.rs"}, context);
+        require_contains(
+            artifact_content(result, "api/entity_gc_catalog.rs"), "gc_task_entity_gc_descriptor()",
+            context + " Rust API GC catalog"
+        );
+        break;
+    }
+}
+
+void require_worker_gc_catalog(
+    const statespec::GenerationResult& result,
+    statespec::BindingLanguage language,
+    const std::string& context
+)
+{
+    switch (language)
+    {
+    case statespec::BindingLanguage::Cpp:
+        require_artifacts_present(result, {"worker/entity_gc_catalog.hpp"}, context);
+        require_contains(
+            artifact_content(result, "worker/entity_gc_catalog.hpp"),
+            "gc_task_entity_gc_descriptor()", context + " C++ Worker GC catalog"
+        );
+        break;
+    case statespec::BindingLanguage::Go:
+        require_artifacts_present(result, {"worker/backend/entity_gc_catalog.go"}, context);
+        require_contains(
+            artifact_content(result, "worker/backend/entity_gc_catalog.go"),
+            "gc_task.GcTaskEntityGCDescriptor()", context + " Go Worker GC catalog"
+        );
+        break;
+    case statespec::BindingLanguage::Java:
+        require_artifacts_present(
+            result, {"worker/com/statespec/generated/WorkerEntityGcCatalog.java"}, context
+        );
+        require_contains(
+            artifact_content(result, "worker/com/statespec/generated/WorkerEntityGcCatalog.java"),
+            "entities.gc_task.Gc.descriptor()", context + " Java Worker GC catalog"
+        );
+        break;
+    case statespec::BindingLanguage::Rust:
+        require_artifacts_present(result, {"worker/entity_gc_catalog.rs"}, context);
+        require_contains(
+            artifact_content(result, "worker/entity_gc_catalog.rs"),
+            "gc_task_entity_gc_descriptor()", context + " Rust Worker GC catalog"
+        );
+        break;
+    }
+}
+
 void runtime_pruning_covers_no_runtime_domains()
 {
     for (const auto& paths : language_runtime_paths())
@@ -908,30 +1090,7 @@ void gc_deployment_covers_api_only_app()
         require_artifacts_present(
             result, concat({paths.entity_gc_paths, paths.api_app_paths}), paths.name + " api-gc"
         );
-        switch (paths.language)
-        {
-        case statespec::BindingLanguage::Cpp:
-            require_artifacts_present(
-                result, {"api/entity_gc_catalog.hpp"}, paths.name + " api-gc catalog"
-            );
-            break;
-        case statespec::BindingLanguage::Go:
-            require_artifacts_present(
-                result, {"api/backend/entity_gc_catalog.go"}, paths.name + " api-gc catalog"
-            );
-            break;
-        case statespec::BindingLanguage::Java:
-            require_artifacts_present(
-                result, {"api/com/statespec/generated/EntityGcCatalog.java"},
-                paths.name + " api-gc catalog"
-            );
-            break;
-        case statespec::BindingLanguage::Rust:
-            require_artifacts_present(
-                result, {"api/entity_gc_catalog.rs"}, paths.name + " api-gc catalog"
-            );
-            break;
-        }
+        require_api_gc_catalog(result, paths.language, paths.name + " api-gc catalog");
         require_artifacts_absent(result, paths.worker_app_paths, paths.name + " api-gc");
         require_artifacts_absent(
             result,
@@ -940,6 +1099,8 @@ void gc_deployment_covers_api_only_app()
              "worker/entity_gc_catalog.rs"},
             paths.name + " api-gc"
         );
+        require_gc_common_has_no_aggregator(result, paths.language, paths.name + " api-gc");
+        require_gc_entity_descriptor_function(result, paths.language, paths.name + " api-gc");
         require_descriptor_names(
             result, paths, {"GcTask", "TouchGcTask", "GcApi"}, {}, paths.name + " api-gc"
         );
@@ -980,30 +1141,9 @@ void gc_deployment_covers_worker_only_app()
              "api/com/statespec/generated/EntityGcCatalog.java", "api/entity_gc_catalog.rs"},
             paths.name + " worker-gc"
         );
-        switch (paths.language)
-        {
-        case statespec::BindingLanguage::Cpp:
-            require_artifacts_present(
-                result, {"worker/entity_gc_catalog.hpp"}, paths.name + " worker-gc catalog"
-            );
-            break;
-        case statespec::BindingLanguage::Go:
-            require_artifacts_present(
-                result, {"worker/backend/entity_gc_catalog.go"}, paths.name + " worker-gc catalog"
-            );
-            break;
-        case statespec::BindingLanguage::Java:
-            require_artifacts_present(
-                result, {"worker/com/statespec/generated/WorkerEntityGcCatalog.java"},
-                paths.name + " worker-gc catalog"
-            );
-            break;
-        case statespec::BindingLanguage::Rust:
-            require_artifacts_present(
-                result, {"worker/entity_gc_catalog.rs"}, paths.name + " worker-gc catalog"
-            );
-            break;
-        }
+        require_worker_gc_catalog(result, paths.language, paths.name + " worker-gc catalog");
+        require_gc_common_has_no_aggregator(result, paths.language, paths.name + " worker-gc");
+        require_gc_entity_descriptor_function(result, paths.language, paths.name + " worker-gc");
         require_descriptor_names(
             result, paths, {"GcTask", "QueueOnly", "LeaseOnly", "WorkflowOnly", "RuntimeWorker"},
             {"TouchGcTask", "GcApi"}, paths.name + " worker-gc"
