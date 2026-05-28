@@ -65,11 +65,12 @@ backend, handler, local transport, config, and `ApiProcess`, then call `start()`
 configuration.
 
 If entity GC artifacts are generated, generated API startup registers one GC task per
-entity GC descriptor before `start()` is called. If API GC is enabled in process config,
-`start()` starts those registered GC workers. `request_stop()` stops both the transport
-and GC workers, and `join()` waits for both to finish. In mixed API + Worker
-deployments, the runtime should disable API GC when the Worker tier is selected as the
-GC host.
+descriptor from the API-owned GC catalog before `start()` is called. If API GC is
+enabled in process config, `start()` starts those registered GC workers.
+`request_stop()` stops both the transport and GC workers, and `join()` waits for both
+to finish. The API catalog is a deployment-tier binding artifact, not a common global
+descriptor list. In mixed API + Worker deployments, the runtime should disable API GC
+when the Worker tier is selected as the GC host.
 
 The cross-language startup flow is:
 

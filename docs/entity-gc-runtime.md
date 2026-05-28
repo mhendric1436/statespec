@@ -1,8 +1,9 @@
 # Entity Garbage Collection Runtime
 
 Entity garbage collection is a shared generated runtime feature. It is not API-only and
-it is not Worker-only. The common tier owns the descriptors and reusable GC worker model,
-while API and Worker generated applications may both compose the same shared workers.
+it is not Worker-only. The common tier owns GC primitives and entity-local descriptor
+facts, while API and Worker generated applications own GC lifecycle and descriptor
+binding through tier-local catalogs.
 
 ## Runtime Model
 
@@ -11,15 +12,17 @@ terminal state with `garbage_collection` metadata. That metadata is the only sou
 generated GC workers; APIs, workflows, workers, queues, and leases do not create GC
 behavior on their own.
 
-Generated common-tier runtime artifacts own:
+Generated common-tier artifacts own:
 
-- entity GC descriptors derived from terminal state metadata
+- GC descriptor types
+- per-entity GC descriptor functions derived from terminal state metadata
 - backend-neutral repository helper contracts for eligibility scans and finalization
 - one reusable GC worker model that is registered once per generated entity GC descriptor
 - shared defaults for polling and batch size
 
 Generated API and Worker tiers own lifecycle wiring:
 
+- tier-local GC descriptor catalogs
 - register generated GC tasks before process start
 - start GC workers when the process/runtime starts and GC is enabled
 - request stop on GC workers during shutdown
@@ -104,11 +107,12 @@ while lease records themselves require GC.
 
 ## Artifact Model
 
-The shared artifact model separates GC types, entity descriptor construction, and tier
-binding points. Common-tier runtime files define only reusable types, repository
-contracts, worker code, and registration helpers. Per-entity GC descriptor functions
-live with the generated entity modules. API and Worker tiers each generate their own
-catalog so the process entrypoint chooses the descriptor set explicitly.
+The shared artifact model separates GC primitives, entity-local descriptor facts, and
+deployment-tier binding points. Common-tier runtime files define only reusable types,
+repository contracts, worker code, and registration helpers. Per-entity GC descriptor
+functions live with the generated entity modules. API and Worker tiers each generate
+their own catalog so the process entrypoint chooses the descriptor set explicitly. GC
+descriptor catalogs are deployment-tier artifacts, not common global artifacts.
 
 | Language | Common GC types | Per-entity descriptor | API catalog | Worker catalog |
 |---|---|---|---|---|
@@ -130,6 +134,12 @@ for each descriptor, and registers one plain task per descriptor. It must not ca
 common global descriptor function internally. The common worker exposes a small
 `runOnce`/`run_once` surface for one entity descriptor and leaves lifecycle thread
 ownership to the generated API or Worker app composition layer.
+
+Keeping catalogs in the API and Worker tiers preserves the deployment binding point.
+The current generators usually bind the same GC-enabled entities into both catalogs for
+mixed deployments, but the structure intentionally allows API and Worker deployments to
+bind different GC subsets later without changing common runtime primitives or entity
+descriptor facts.
 
 Generated API processes expose an entity GC worker registration hook and own the
 background lifecycle after `start()` is called. Generated API startup passes the

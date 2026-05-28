@@ -236,14 +236,17 @@ Language packaging may add language-specific path prefixes, but it must not coll
 backend-neutral stores back into memory-specific packages.
 
 Generated entity GC types, repositories, registration helpers, and workers are shared
-common-tier runtime artifacts. Per-entity GC descriptor functions belong with generated
-entity modules. API process and Worker runtime code may both compose those workers, but
-each tier must bind GC workers from its own generated descriptor catalog. Shared GC
-registration helpers must accept an explicit descriptor list from the caller; they must
-not discover or call a common global descriptor function internally. Each tier must
-expose explicit config flags for enabling or disabling GC. Defaults should keep
-standalone generated apps working, while production deployments can disable GC on the
-tier that should not host background collection.
+common-tier runtime primitives. Per-entity GC descriptor functions belong with generated
+entity modules as entity-local descriptor facts. API process and Worker runtime code own
+GC lifecycle and descriptor binding. GC descriptor catalogs are deployment-tier
+artifacts, not common global artifacts: API emits an API catalog, Worker emits a Worker
+catalog, and each tier passes its chosen catalog into the shared registration helper.
+Shared GC registration helpers must accept an explicit descriptor list from the caller;
+they must not discover or call a common global descriptor function internally. This
+keeps the binding point tier-owned today and allows API and Worker deployments to bind
+different GC subsets later. Each tier must expose explicit config flags for enabling or
+disabling GC. Defaults should keep standalone generated apps working, while production
+deployments can disable GC on the tier that should not host background collection.
 
 Do not add domain-specific transaction staging fields such as queue message maps,
 workflow execution maps, lease maps, feature flag maps, log append buffers, or metric

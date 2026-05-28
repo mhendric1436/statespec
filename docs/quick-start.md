@@ -286,9 +286,11 @@ use the generated in-memory backend as the concrete backend adapter.
 
 When an entity declares terminal garbage collection metadata, generated common-tier GC
 workers can be composed by API-only apps, Worker-only apps, or mixed API + Worker apps.
-GC is enabled by default for standalone generated processes. In production mixed
-deployments, disable GC on one tier using the generated API process or Worker runtime
-config so only one tier performs background collection scans.
+The generated API and Worker tiers each bind workers through their own GC descriptor
+catalog; there is no common global catalog. GC is enabled by default for standalone
+generated processes. In production mixed deployments, disable GC on one tier using the
+generated API process or Worker runtime config so only one tier performs background
+collection scans.
 
 ## Worker App Design
 

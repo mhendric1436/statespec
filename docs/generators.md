@@ -125,11 +125,13 @@ Typed runtime artifacts are generated only when used by the spec or generated ap
 | `runtime_entity_gc_workers` | Shared low-resource entity GC workers composed by API and Worker apps |
 | `runtime_entity_gc_registration` | Common helper that registers one GC task per generated descriptor |
 
-Entity GC runtime artifacts are common-tier artifacts. API and Worker apps may both
-compose them, and deployments should configure which tier hosts GC when both are
-running. Generated API process and Worker runtime configs include explicit GC enablement
-flags, defaulting to enabled for standalone generated apps. See
-[entity-gc-runtime.md](entity-gc-runtime.md).
+Entity GC runtime primitives are common-tier artifacts, while GC descriptor catalogs are
+API/Worker deployment-tier artifacts. API and Worker apps may both compose the common
+primitives, but each tier binds GC workers through its own catalog. This keeps catalog
+selection out of common global state and leaves room for API and Worker deployments to
+bind different GC subsets later. Generated API process and Worker runtime configs
+include explicit GC enablement flags, defaulting to enabled for standalone generated
+apps. See [entity-gc-runtime.md](entity-gc-runtime.md).
 
 Runtime domain dependencies must follow the acyclic table in
 [runtime-store-contract.md](runtime-store-contract.md). Workflows may use queues,

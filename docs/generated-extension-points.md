@@ -113,8 +113,9 @@ deterministically.
 
 If entity `garbage_collection` metadata is present, generated API startup registers one
 GC task per descriptor from the API-owned GC catalog before `start()`. `ApiProcess`
-owns the background lifecycle after that point: start, polling, stop, and join. API GC
-is enabled by default through process config, so API-only deployments can leave it
+owns the background lifecycle after that point: start, polling, stop, and join. The API
+catalog is a deployment-tier binding artifact, not a common global descriptor list. API
+GC is enabled by default through process config, so API-only deployments can leave it
 enabled; mixed API + Worker deployments should disable it when Worker is the selected
 GC host. The generated GC path uses only generic backend/OCC primitives.
 
@@ -266,11 +267,12 @@ accessed through generated backend transaction interfaces.
 When entity `garbage_collection` metadata is present, generated Worker startup
 registers one GC task per descriptor from the Worker-owned GC catalog before
 `WorkerProcess.start()`. `WorkerRuntime` stores those tasks and `WorkerProcess` owns
-their lifecycle: start, polling, stop, and join. Worker GC is enabled by default through
-runtime config, so Worker-only deployments can leave it enabled; mixed deployments
-should enable GC on only one tier. The generated GC path uses only generic backend/OCC
-primitives and does not depend on leases, queues, workflows, feature flags, logs, or
-metrics.
+their lifecycle: start, polling, stop, and join. The Worker catalog is a
+deployment-tier binding artifact, not a common global descriptor list. Worker GC is
+enabled by default through runtime config, so Worker-only deployments can leave it
+enabled; mixed deployments should enable GC on only one tier. The generated GC path
+uses only generic backend/OCC primitives and does not depend on leases, queues,
+workflows, feature flags, logs, or metrics.
 
 See [worker-process-lifecycle.md](worker-process-lifecycle.md) for the cross-language
 Worker process contract.
