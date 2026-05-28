@@ -58,6 +58,7 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"api/api_handler_registry.rs", api},
             {"api/descriptors/catalog.rs", api},
             {"api/external_system_operator_metadata_api.rs", api},
+            {"api/shapes.rs", api},
         }
     );
 }

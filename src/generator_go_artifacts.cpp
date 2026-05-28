@@ -814,6 +814,23 @@ std::vector<IrShape> go_entity_api_shapes(
     return shapes;
 }
 
+IrSystem go_shapes_matching(
+    const IrSystem& system,
+    bool api_contract_shapes
+)
+{
+    auto filtered = system;
+    filtered.shapes.clear();
+    for (const auto& shape : system.shapes)
+    {
+        if (go_api_uses_shape(system, shape.name) == api_contract_shapes)
+        {
+            filtered.shapes.push_back(shape);
+        }
+    }
+    return filtered;
+}
+
 IrSystem with_codec_shape_apis(
     const IrSystem& system,
     std::string_view shape_name
@@ -1832,6 +1849,15 @@ std::string go_api_shape_alias_file(const IrSystem& system)
     return "package shapes\n\nimport (\n" + imports.str() + ")\n\n" + aliases.str();
 }
 
+std::string go_api_shape_descriptor_catalog_file(const IrSystem& system)
+{
+    auto content = generate_go_shape_descriptors(go_shapes_matching(system, true));
+    content = replace_all_copy(content, "[]ShapeDescriptor", "[]common.ShapeDescriptor");
+    content = replace_all_copy(content, "[]FieldDescriptor", "[]common.FieldDescriptor");
+    content = replace_all_copy(content, "FieldType", "common.FieldType");
+    return "package shapes\n\nimport common \"statespec-generated/common/backend\"\n\n" + content;
+}
+
 void add_go_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1884,6 +1910,10 @@ void add_go_api_shape_type_artifacts(
     {
         add_go_raw_api_file(result, options, "api/backend/shapes/entities.go", aliases);
     }
+    add_go_raw_api_file(
+        result, options, "api/backend/shapes/catalog.go",
+        go_api_shape_descriptor_catalog_file(system)
+    );
     for (const auto& entity : system.entities)
     {
         const auto shapes = go_entity_api_shapes(system, entity.name);
@@ -1906,12 +1936,13 @@ void add_go_shape_descriptor_artifact(
     DiagnosticBag& diagnostics
 )
 {
+    const auto common_shapes = go_shapes_matching(system, false);
     add_generated_template_file(
         result, options.output_dir, templates, generated_template_path("shape_descriptors.go.tmpl"),
         common_artifact_path("backend/shape_descriptors.go"), diagnostics,
-        GeneratedArtifactTier::Common, go_shape_descriptor_values(system)
+        GeneratedArtifactTier::Common, go_shape_descriptor_values(common_shapes)
     );
-    for (const auto& shape : system.shapes)
+    for (const auto& shape : common_shapes.shapes)
     {
         add_go_raw_common_file(
             result, options, "backend/" + snake_identifier(shape.name) + "_shape_descriptors.go",

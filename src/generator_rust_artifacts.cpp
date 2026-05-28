@@ -1675,6 +1675,13 @@ std::string rust_shapes_module(
             out << "mod " << module_name << ";\n";
             out << "pub use " << module_name << "::*;\n";
         }
+        if (!system.shapes.empty())
+        {
+            out << "\n";
+            out << "use crate::backend::{FieldDescriptor, FieldType};\n";
+            out << "use crate::shape_types::ShapeDescriptor;\n\n";
+            out << generate_rust_shape_descriptors(system);
+        }
     }
     return out.str();
 }
@@ -1726,10 +1733,6 @@ void add_rust_api_shape_type_artifacts(
 )
 {
     const auto api_shapes = rust_shapes_matching(system, true);
-    if (api_shapes.shapes.empty())
-    {
-        return;
-    }
     add_rust_raw_api_file(result, options, "api/shapes.rs", rust_shapes_module(api_shapes, true));
     for (const auto& shape : api_shapes.shapes)
     {
@@ -1792,6 +1795,7 @@ void add_rust_descriptor_module_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto common_shapes = rust_shapes_matching(system, false);
     add_rust_raw_common_file(result, options, "descriptors/types.rs", rust_descriptor_types_file());
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/core.rs", "core descriptors", diagnostics
@@ -1805,9 +1809,9 @@ void add_rust_descriptor_module_artifacts(
     );
     add_rust_descriptor_module_artifact(
         result, options, templates, "descriptors/shapes.rs", "shape descriptors", diagnostics,
-        rust_shape_descriptor_module_values(system)
+        rust_shape_descriptor_module_values(common_shapes)
     );
-    for (const auto& shape : system.shapes)
+    for (const auto& shape : common_shapes.shapes)
     {
         add_generated_template_file(
             result, options.output_dir, templates,

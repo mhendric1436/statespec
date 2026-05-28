@@ -154,6 +154,7 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"api/com/statespec/generated/ApiHandlers.java", api},
             {"api/com/statespec/generated/ApiHandlerRegistry.java", api},
             {"api/com/statespec/generated/descriptors/Catalog.java", api},
+            {"api/com/statespec/generated/shapes/ShapeCatalog.java", api},
             {"api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", api},
         }
     );

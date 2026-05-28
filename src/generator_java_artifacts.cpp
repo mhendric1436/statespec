@@ -1759,6 +1759,38 @@ bool java_api_uses_shape(
     );
 }
 
+IrSystem java_shapes_matching(
+    const IrSystem& system,
+    bool api_contract_shapes
+)
+{
+    auto filtered = system;
+    filtered.shapes.clear();
+    for (const auto& shape : system.shapes)
+    {
+        if (java_api_uses_shape(system, shape.name) == api_contract_shapes)
+        {
+            filtered.shapes.push_back(shape);
+        }
+    }
+    return filtered;
+}
+
+std::string java_api_shape_catalog_file(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.shapes;\n\n";
+    out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
+    out << "import com.statespec.backend.Backend.FieldType;\n";
+    out << "import com.statespec.generated.descriptors.types.ShapeDescriptor;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class ShapeCatalog {\n";
+    out << "    private ShapeCatalog() {}\n\n";
+    out << generate_java_shape_descriptors(java_shapes_matching(system, true));
+    out << "}\n";
+    return out.str();
+}
+
 void add_java_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -1786,6 +1818,9 @@ void add_java_api_shape_type_artifacts(
 )
 {
     const auto shape_path = java_api_generated_path("shapes");
+    add_java_raw_api_file(
+        result, options, shape_path / "ShapeCatalog.java", java_api_shape_catalog_file(system)
+    );
     for (const auto& shape : system.shapes)
     {
         if (!java_api_uses_shape(system, shape.name))
@@ -2681,12 +2716,15 @@ void add_java_descriptor_module_artifacts(
         result, options, descriptor_package_path / "ExternalSystemDescriptorModule.java",
         java_external_system_descriptor_module_file(system, templates)
     );
+    const auto common_shapes = java_shapes_matching(system, false);
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "ShapeDescriptorModule.java",
         descriptor_package, "ShapeDescriptorModule", "shape descriptors", diagnostics,
-        java_shape_descriptor_module_values(descriptor_package, "ShapeDescriptorModule", system)
+        java_shape_descriptor_module_values(
+            descriptor_package, "ShapeDescriptorModule", common_shapes
+        )
     );
-    for (const auto& shape : system.shapes)
+    for (const auto& shape : common_shapes.shapes)
     {
         const auto class_name = java_shape_descriptor_module_class_name(shape.name);
         add_generated_template_file(

@@ -41,6 +41,7 @@ api/backend/descriptors/report_provision_ready.go
 api/backend/descriptors/start_provision.go
 api/backend/entity_gc_catalog.go
 api/backend/external_system_operator_metadata_api.go
+api/backend/shapes/catalog.go
 api/backend/shapes/provision_callback_request.go
 api/backend/shapes/provision_callback_response.go
 api/backend/shapes/start_provision_request.go
@@ -63,8 +64,6 @@ common/backend/log.go
 common/backend/memory/backend.go
 common/backend/memory/transaction.go
 common/backend/metric.go
-common/backend/provision_callback_request_shape_descriptors.go
-common/backend/provision_callback_response_shape_descriptors.go
 common/backend/queue.go
 common/backend/runtime/codec.go
 common/backend/runtime/codec_leases.go
@@ -85,8 +84,6 @@ common/backend/runtime_registration_workflows.go
 common/backend/schema_compatibility.go
 common/backend/shape_descriptors.go
 common/backend/shape_types.go
-common/backend/start_provision_request_shape_descriptors.go
-common/backend/start_provision_response_shape_descriptors.go
 common/backend/workflow.go
 common/backend/workflows/provision_service.go
 common/backend/workflows/workflows.go
@@ -171,10 +168,11 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/s
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/shapes.go" "type AccountResponse struct"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/shapes/entities.go" "type CreateAccountRequest = account.CreateAccountRequest"
 assert_file_not_exists "$TMPDIR/out-api-entities-go/api/backend/shapes/create_account_request.go"
-assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go" "CreateAccountRequestShapeName = \"CreateAccountRequest\""
-assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go" "CreateAccountRequestFieldDisplayName = \"display_name\""
-assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go" "CreateAccountRequestFieldDisplayNameTypeName = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go" "{Name: CreateAccountRequestFieldDisplayName, Type: FieldTypeString, TypeName: CreateAccountRequestFieldDisplayNameTypeName, Required: true}"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/shapes/catalog.go" "CreateAccountRequestShapeName = \"CreateAccountRequest\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/shapes/catalog.go" "CreateAccountRequestFieldDisplayName = \"display_name\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/shapes/catalog.go" "CreateAccountRequestFieldDisplayNameTypeName = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/shapes/catalog.go" "{Name: CreateAccountRequestFieldDisplayName, Type: common.FieldTypeString, TypeName: CreateAccountRequestFieldDisplayNameTypeName, Required: true}"
+assert_file_not_exists "$TMPDIR/out-api-entities-go/common/backend/create_account_request_shape_descriptors.go"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/entities/account/schema.go" "KeyFields: []string{AccountFieldTenantId, AccountFieldAccountId}"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/descriptors.go" "builder.WriteString(value.CanonicalString())"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/backend/descriptors.go" "object[keyValue.Field] = keyValue.Value"

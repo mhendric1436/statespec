@@ -57,10 +57,6 @@ common/descriptors/runtime/leases.rs
 common/descriptors/runtime/queues.rs
 common/descriptors/runtime/workflows.rs
 common/descriptors/shapes.rs
-common/descriptors/shapes/provision_callback_request.rs
-common/descriptors/shapes/provision_callback_response.rs
-common/descriptors/shapes/start_provision_request.rs
-common/descriptors/shapes/start_provision_response.rs
 common/descriptors/types.rs
 common/entities/service_instance/gc.rs
 common/entities/service_instance/mod.rs
@@ -167,10 +163,11 @@ assert_file_exists "$TMPDIR/out-api-entities-rust/api/entities/task/shapes.rs"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/shapes.rs" "pub struct CreateAccountRequest"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/shapes.rs" "pub struct AccountResponse"
 assert_file_not_exists "$TMPDIR/out-api-entities-rust/api/shapes/create_account_request.rs"
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_SHAPE_NAME: &str = \"CreateAccountRequest\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME: &str = \"display_name\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "pub const CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME_TYPE_NAME: &str = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs" "FieldDescriptor { name: CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME.to_string(), field_type: FieldType::String, type_name: CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME_TYPE_NAME.to_string(), required: true }"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/shapes.rs" "CREATE_ACCOUNT_REQUEST_SHAPE_NAME"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/shapes.rs" "CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/shapes.rs" "CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME_TYPE_NAME"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/shapes.rs" "FieldDescriptor { name: CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME.to_string(), field_type: FieldType::String, type_name: CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME_TYPE_NAME.to_string(), required: true }"
+assert_file_not_exists "$TMPDIR/out-api-entities-rust/common/descriptors/shapes/create_account_request.rs"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/account/schema.rs" "key_fields: vec![ACCOUNT_FIELD_TENANT_ID.to_string(), ACCOUNT_FIELD_ACCOUNT_ID.to_string()]"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entity_repository.rs" "key.push_str(&value.value.canonical_string())"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entity_repository.rs" "values.insert(key_value.field.clone(), key_value.value.clone())"

@@ -58,6 +58,7 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"api/api_handler_registry_support.hpp", api},
             {"api/descriptors/catalog.hpp", api},
             {"api/external_system_operator_metadata_api.hpp", api},
+            {"api/shapes.hpp", api},
         }
     );
 }

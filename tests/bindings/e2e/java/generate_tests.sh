@@ -43,6 +43,7 @@ api/com/statespec/generated/descriptors/ReportProvisionReadyDescriptorModule.jav
 api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java
 api/com/statespec/generated/shapes/ProvisionCallbackRequest.java
 api/com/statespec/generated/shapes/ProvisionCallbackResponse.java
+api/com/statespec/generated/shapes/ShapeCatalog.java
 api/com/statespec/generated/shapes/StartProvisionRequest.java
 api/com/statespec/generated/shapes/StartProvisionResponse.java
 common/com/statespec/backend/Backend.java
@@ -80,10 +81,6 @@ common/com/statespec/generated/descriptors/RuntimeLeaseRegistrationModule.java
 common/com/statespec/generated/descriptors/RuntimeQueueRegistrationModule.java
 common/com/statespec/generated/descriptors/RuntimeWorkflowRegistrationModule.java
 common/com/statespec/generated/descriptors/ShapeDescriptorModule.java
-common/com/statespec/generated/descriptors/shapes/ProvisionCallbackRequestDescriptorModule.java
-common/com/statespec/generated/descriptors/shapes/ProvisionCallbackResponseDescriptorModule.java
-common/com/statespec/generated/descriptors/shapes/StartProvisionRequestDescriptorModule.java
-common/com/statespec/generated/descriptors/shapes/StartProvisionResponseDescriptorModule.java
 common/com/statespec/generated/descriptors/types/ApiDescriptor.java
 common/com/statespec/generated/descriptors/types/ApiRouteDescriptor.java
 common/com/statespec/generated/descriptors/types/ApiServerDescriptor.java
@@ -217,10 +214,11 @@ assert_file_exists "$TMPDIR/out-api-entities-java/api/com/statespec/generated/en
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Shapes.java" "record CreateAccountRequest"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Shapes.java" "record AccountResponse"
 assert_file_not_exists "$TMPDIR/out-api-entities-java/api/com/statespec/generated/shapes/CreateAccountRequest.java"
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_SHAPE_NAME = \"CreateAccountRequest\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME = \"display_name\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "public static final String CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME_TYPE_NAME = \"string\""
-assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java" "new FieldDescriptor(CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME, FieldType.STRING, CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME_TYPE_NAME, true)"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/shapes/ShapeCatalog.java" "CREATE_ACCOUNT_REQUEST_SHAPE_NAME = \"CreateAccountRequest\""
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/shapes/ShapeCatalog.java" "CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME = \"display_name\""
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/shapes/ShapeCatalog.java" "CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME_TYPE_NAME = \"string\""
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/shapes/ShapeCatalog.java" "new FieldDescriptor(CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME, FieldType.STRING, CREATE_ACCOUNT_REQUEST_FIELD_DISPLAY_NAME_TYPE_NAME, true)"
+assert_file_not_exists "$TMPDIR/out-api-entities-java/common/com/statespec/generated/descriptors/shapes/CreateAccountRequestDescriptorModule.java"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/account/Schema.java" "List.of(Model.ACCOUNT_FIELD_TENANT_ID, Model.ACCOUNT_FIELD_ACCOUNT_ID)"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/EntityRepository.java" "key.append(keyField).append('=').append(value.canonicalString()).append('\\n')"
 assert_file_contains "$TMPDIR/out-api-entities-java/common/com/statespec/generated/entities/EntityRepository.java" "values.put(keyValue.field(), keyValue.value())"

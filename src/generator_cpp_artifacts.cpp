@@ -815,6 +815,16 @@ IrSystem with_shapes_matching(
     return filtered;
 }
 
+IrSystem api_contract_shape_system(const IrSystem& system)
+{
+    return with_shapes_matching(system, true);
+}
+
+IrSystem common_shape_system(const IrSystem& system)
+{
+    return with_shapes_matching(system, false);
+}
+
 IrSystem with_codec_shape_apis(
     const IrSystem& system,
     std::string_view shape_name
@@ -1995,12 +2005,24 @@ std::string cpp_shapes_umbrella_header(
     }
     if (api_shapes)
     {
+        out << "#include \"../common/shape_types.hpp\"\n";
         for (const auto& entity : system.entities)
         {
             if (!entity_api_shapes(system, entity.name).empty())
             {
                 out << "#include \"entities/" << snake_identifier(entity.name) << "/shapes.hpp\"\n";
             }
+        }
+        if (!system.shapes.empty())
+        {
+            out << "\n";
+            auto descriptors = generate_cpp_shape_descriptors(system);
+            descriptors =
+                replace_all_copy(descriptors, "shape_descriptors()", "api_shape_descriptors()");
+            out << "namespace statespec_generated\n";
+            out << "{\n\n";
+            out << descriptors;
+            out << "} // namespace statespec_generated\n";
         }
     }
     return out.str();
@@ -2030,7 +2052,7 @@ void add_cpp_shape_type_artifacts(
     const IrSystem& system
 )
 {
-    const auto shared_shapes = with_shapes_matching(system, false);
+    const auto shared_shapes = common_shape_system(system);
     if (!shared_shapes.shapes.empty())
     {
         add_cpp_raw_common_file(
@@ -2052,11 +2074,7 @@ void add_cpp_api_shape_type_artifacts(
     const IrSystem& system
 )
 {
-    const auto api_shapes = with_shapes_matching(system, true);
-    if (api_shapes.shapes.empty())
-    {
-        return;
-    }
+    const auto api_shapes = api_contract_shape_system(system);
     add_cpp_raw_api_file(
         result, options, "api/shapes.hpp", cpp_shapes_umbrella_header(api_shapes, true)
     );
@@ -2113,6 +2131,7 @@ void add_cpp_descriptor_module_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto common_shapes = common_shape_system(system);
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/core.hpp", "core descriptors", diagnostics
     );
@@ -2130,9 +2149,9 @@ void add_cpp_descriptor_module_artifacts(
     );
     add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/shapes.hpp", "shape descriptors", diagnostics,
-        cpp_shape_descriptor_module_values(system)
+        cpp_shape_descriptor_module_values(common_shapes)
     );
-    for (const auto& shape : system.shapes)
+    for (const auto& shape : common_shapes.shapes)
     {
         add_generated_template_file(
             result, options.output_dir, templates,
