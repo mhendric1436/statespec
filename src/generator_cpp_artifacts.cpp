@@ -839,50 +839,17 @@ std::string cpp_api_codec_shape_file(
 TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
 {
     std::ostringstream includes;
-    std::ostringstream descriptor_functions;
     std::ostringstream descriptor_calls;
     for (const auto& entity : system.entities)
     {
-        std::ostringstream terminal_states;
-        for (const auto& state : entity.states)
-        {
-            if (!state.garbage_collection.has_value())
-            {
-                continue;
-            }
-            terminal_states << "                EntityGcTerminalStateDescriptor{"
-                            << "::statespec_generated::entities::" << snake_identifier(entity.name)
-                            << "::" << cpp_entity_state_constant_name(entity.name, state.name)
-                            << ", "
-                            << "::statespec_generated::entities::" << snake_identifier(entity.name)
-                            << "::k" << pascal_identifier(entity.name) << "State"
-                            << pascal_identifier(state.name) << "GcAfter, "
-                            << "::statespec_generated::entities::" << snake_identifier(entity.name)
-                            << "::k" << pascal_identifier(entity.name) << "State"
-                            << pascal_identifier(state.name) << "GcMode},\n";
-        }
-        if (terminal_states.str().empty())
+        if (!cpp_entity_uses_gc(entity))
         {
             continue;
         }
-        includes << "#include \"../entities/" << snake_identifier(entity.name) << "/model.hpp\"\n";
-        includes << "#include \"../entities/" << snake_identifier(entity.name) << "/schema.hpp\"\n";
+        includes << "#include \"../entities/" << snake_identifier(entity.name) << "/gc.hpp\"\n";
         const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
-        descriptor_functions
-            << "inline EntityGcDescriptor " << descriptor_function << "()\n"
-            << "{\n"
-            << "    return EntityGcDescriptor{\n"
-            << "        ::statespec_generated::entities::" << snake_identifier(entity.name)
-            << "::" << cpp_entity_name_constant_name(entity.name) << ",\n"
-            << "        ::statespec_generated::entities::" << snake_identifier(entity.name)
-            << "::" << cpp_entity_name_constant_name(entity.name) << ",\n"
-            << "        ::statespec_generated::entities::" << snake_identifier(entity.name)
-            << "::" << cpp_entity_field_constant_name(entity.name, "status") << ",\n"
-            << "        std::vector<EntityGcTerminalStateDescriptor>{\n"
-            << terminal_states.str() << "        }\n"
-            << "    };\n"
-            << "}\n\n";
-        descriptor_calls << "        " << descriptor_function << "(),\n";
+        descriptor_calls << "        ::statespec_generated::entities::"
+                         << snake_identifier(entity.name) << "::" << descriptor_function << "(),\n";
     }
     if (!includes.str().empty())
     {
@@ -890,9 +857,51 @@ TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
     }
     return TemplateRenderer::Values{
         {"entity_gc_entity_includes", includes.str()},
-        {"entity_gc_descriptor_functions", descriptor_functions.str()},
         {"entity_gc_descriptor_calls", descriptor_calls.str()},
     };
+}
+
+std::string cpp_entity_gc_descriptor_header(const IrEntity& entity)
+{
+    std::ostringstream terminal_states;
+    for (const auto& state : entity.states)
+    {
+        if (!state.garbage_collection.has_value())
+        {
+            continue;
+        }
+        terminal_states
+            << "                ::statespec::backend::runtime::EntityGcTerminalStateDescriptor{"
+            << cpp_entity_state_constant_name(entity.name, state.name) << ", "
+            << "k" << pascal_identifier(entity.name) << "State" << pascal_identifier(state.name)
+            << "GcAfter, "
+            << "k" << pascal_identifier(entity.name) << "State" << pascal_identifier(state.name)
+            << "GcMode},\n";
+    }
+
+    const auto entity_namespace = snake_identifier(entity.name);
+    const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"model.hpp\"\n";
+    out << "#include \"schema.hpp\"\n";
+    out << "#include \"../../runtime/entity_gc_descriptors.hpp\"\n\n";
+    out << "namespace statespec_generated::entities::" << entity_namespace << "\n";
+    out << "{\n\n";
+    out << "inline ::statespec::backend::runtime::EntityGcDescriptor " << descriptor_function
+        << "()\n";
+    out << "{\n";
+    out << "    return ::statespec::backend::runtime::EntityGcDescriptor{\n";
+    out << "        " << cpp_entity_name_constant_name(entity.name) << ",\n";
+    out << "        " << cpp_entity_name_constant_name(entity.name) << ",\n";
+    out << "        " << cpp_entity_field_constant_name(entity.name, "status") << ",\n";
+    out << "        std::vector<::statespec::backend::runtime::EntityGcTerminalStateDescriptor>{\n";
+    out << terminal_states.str();
+    out << "        }\n";
+    out << "    };\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::entities::" << entity_namespace << "\n";
+    return out.str();
 }
 
 TemplateRenderer::Values cpp_api_runtime_values(const IrSystem& system)
@@ -1995,16 +2004,7 @@ void add_cpp_descriptor_module_artifacts(
         if (cpp_entity_uses_gc(entity))
         {
             add_cpp_raw_common_file(
-                result, options, entity_dir + "gc.hpp",
-                "#pragma once\n\n"
-                "#include \"model.hpp\"\n"
-                "#include \"schema.hpp\"\n\n"
-                "namespace statespec_generated::entities::" +
-                    snake_identifier(entity.name) +
-                    "\n"
-                    "{\n\n"
-                    "} // namespace statespec_generated::entities::" +
-                    snake_identifier(entity.name) + "\n"
+                result, options, entity_dir + "gc.hpp", cpp_entity_gc_descriptor_header(entity)
             );
         }
     }

@@ -1,7 +1,5 @@
 #pragma once
 
-{{entity_gc_entity_includes}}
-
 #include <string>
 #include <vector>
 
@@ -23,7 +21,13 @@ struct EntityGcDescriptor
     std::vector<EntityGcTerminalStateDescriptor> terminal_states;
 };
 
-{{entity_gc_descriptor_functions}}
+} // namespace statespec::backend::runtime
+
+{{entity_gc_entity_includes}}
+
+namespace statespec::backend::runtime
+{
+
 inline std::vector<EntityGcDescriptor> entity_gc_descriptors()
 {
     return std::vector<EntityGcDescriptor>{
