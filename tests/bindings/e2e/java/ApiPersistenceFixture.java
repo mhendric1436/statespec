@@ -16,30 +16,23 @@ public final class ApiPersistenceFixture
 
         ApiResponse account = handler.handleCreateAccount(request(
             "CreateAccount", "POST", "/v1/tenants/t1/accounts/a1",
-            Json.object(Map.of(
-                "tenant_id", Json.string("t1"), "account_id", Json.string("a1"), "display_name",
-                Json.string("Acme")
-            ))
+            Json.object(Map.of("display_name", Json.string("Acme")))
         ));
         requireStatus(account, 201);
         requireString(account.body(), "status", "Active");
 
         ApiResponse project = handler.handleCreateProject(request(
-            "CreateProject", "POST", "/v1/tenants/t1/accounts/a1/projects/p1",
-            Json.object(Map.of(
-                "tenant_id", Json.string("t1"), "account_id", Json.string("a1"), "project_id",
-                Json.string("p1"), "name", Json.string("Core")
-            ))
+            "CreateProject", "POST", "/v1/tenants/t1/projects/p1",
+            Json.object(Map.of("account_id", Json.string("a1"), "name", Json.string("Core")))
         ));
         requireStatus(project, 201);
         requireString(project.body(), "status", "Planned");
 
         ApiResponse task = handler.handleCreateTask(request(
-            "CreateTask", "POST", "/v1/tenants/t1/projects/p1/tasks/t1",
+            "CreateTask", "POST", "/v1/tenants/t1/tasks/t1",
             Json.object(Map.of(
-                "tenant_id", Json.string("t1"), "account_id", Json.string("a1"), "project_id",
-                Json.string("p1"), "task_id", Json.string("t1"), "title", Json.string("Ship"),
-                "priority", Json.integer(7)
+                "account_id", Json.string("a1"), "project_id", Json.string("p1"), "title",
+                Json.string("Ship"), "priority", Json.integer(7)
             ))
         ));
         requireStatus(task, 201);
@@ -47,28 +40,21 @@ public final class ApiPersistenceFixture
 
         ApiResponse otherAccount = handler.handleCreateAccount(request(
             "CreateAccount", "POST", "/v1/tenants/t1/accounts/a2",
-            Json.object(Map.of(
-                "tenant_id", Json.string("t1"), "account_id", Json.string("a2"), "display_name",
-                Json.string("Other")
-            ))
+            Json.object(Map.of("display_name", Json.string("Other")))
         ));
         requireStatus(otherAccount, 201);
 
         ApiResponse otherProject = handler.handleCreateProject(request(
-            "CreateProject", "POST", "/v1/tenants/t1/accounts/a2/projects/p2",
-            Json.object(Map.of(
-                "tenant_id", Json.string("t1"), "account_id", Json.string("a2"), "project_id",
-                Json.string("p2"), "name", Json.string("Other")
-            ))
+            "CreateProject", "POST", "/v1/tenants/t1/projects/p2",
+            Json.object(Map.of("account_id", Json.string("a2"), "name", Json.string("Other")))
         ));
         requireStatus(otherProject, 201);
 
         ApiResponse otherTask = handler.handleCreateTask(request(
-            "CreateTask", "POST", "/v1/tenants/t1/projects/p2/tasks/t2",
+            "CreateTask", "POST", "/v1/tenants/t1/tasks/t2",
             Json.object(Map.of(
-                "tenant_id", Json.string("t1"), "account_id", Json.string("a2"), "project_id",
-                Json.string("p2"), "task_id", Json.string("t2"), "title", Json.string("Other"),
-                "priority", Json.integer(2)
+                "account_id", Json.string("a2"), "project_id", Json.string("p2"), "title",
+                Json.string("Other"), "priority", Json.integer(2)
             ))
         ));
         requireStatus(otherTask, 201);
@@ -110,20 +96,14 @@ public final class ApiPersistenceFixture
 
         ApiResponse activeProject = handler.handleUpdateProjectStatus(request(
             "UpdateProjectStatus", "PATCH", "/v1/tenants/t1/projects/p1/status",
-            Json.object(Map.of(
-                "tenant_id", Json.string("t1"), "account_id", Json.string("a1"), "project_id",
-                Json.string("p1"), "status", Json.string("Active")
-            ))
+            Json.object(Map.of("status", Json.string("Active")))
         ));
         requireStatus(activeProject, 200);
         requireString(activeProject.body(), "status", "Active");
 
         ApiResponse inProgressTask = handler.handleUpdateTaskStatus(request(
             "UpdateTaskStatus", "PATCH", "/v1/tenants/t1/tasks/t1/status",
-            Json.object(Map.of(
-                "tenant_id", Json.string("t1"), "account_id", Json.string("a1"), "project_id",
-                Json.string("p1"), "task_id", Json.string("t1"), "status", Json.string("InProgress")
-            ))
+            Json.object(Map.of("status", Json.string("InProgress")))
         ));
         requireStatus(inProgressTask, 200);
         requireString(inProgressTask.body(), "status", "InProgress");

@@ -71,11 +71,7 @@ fn generated_api_persistence_handlers_round_trip_entities() {
             "CreateAccount",
             "POST",
             "/v1/tenants/t1/accounts/a1",
-            object(vec![
-                ("tenant_id", Json::String("t1".to_string())),
-                ("account_id", Json::String("a1".to_string())),
-                ("display_name", Json::String("Acme".to_string())),
-            ]),
+            object(vec![("display_name", Json::String("Acme".to_string()))]),
         ))
         .expect("create account failed");
     require_status(&account, 201);
@@ -85,11 +81,9 @@ fn generated_api_persistence_handlers_round_trip_entities() {
         .handle_create_project(&api_request(
             "CreateProject",
             "POST",
-            "/v1/tenants/t1/accounts/a1/projects/p1",
+            "/v1/tenants/t1/projects/p1",
             object(vec![
-                ("tenant_id", Json::String("t1".to_string())),
                 ("account_id", Json::String("a1".to_string())),
-                ("project_id", Json::String("p1".to_string())),
                 ("name", Json::String("Core".to_string())),
             ]),
         ))
@@ -101,12 +95,10 @@ fn generated_api_persistence_handlers_round_trip_entities() {
         .handle_create_task(&api_request(
             "CreateTask",
             "POST",
-            "/v1/tenants/t1/projects/p1/tasks/t1",
+            "/v1/tenants/t1/tasks/t1",
             object(vec![
-                ("tenant_id", Json::String("t1".to_string())),
                 ("account_id", Json::String("a1".to_string())),
                 ("project_id", Json::String("p1".to_string())),
-                ("task_id", Json::String("t1".to_string())),
                 ("title", Json::String("Ship".to_string())),
                 ("priority", Json::Integer(7)),
             ]),
@@ -120,11 +112,7 @@ fn generated_api_persistence_handlers_round_trip_entities() {
             "CreateAccount",
             "POST",
             "/v1/tenants/t1/accounts/a2",
-            object(vec![
-                ("tenant_id", Json::String("t1".to_string())),
-                ("account_id", Json::String("a2".to_string())),
-                ("display_name", Json::String("Other".to_string())),
-            ]),
+            object(vec![("display_name", Json::String("Other".to_string()))]),
         ))
         .expect("create other account failed");
     require_status(&other_account, 201);
@@ -133,11 +121,9 @@ fn generated_api_persistence_handlers_round_trip_entities() {
         .handle_create_project(&api_request(
             "CreateProject",
             "POST",
-            "/v1/tenants/t1/accounts/a2/projects/p2",
+            "/v1/tenants/t1/projects/p2",
             object(vec![
-                ("tenant_id", Json::String("t1".to_string())),
                 ("account_id", Json::String("a2".to_string())),
-                ("project_id", Json::String("p2".to_string())),
                 ("name", Json::String("Other".to_string())),
             ]),
         ))
@@ -148,12 +134,10 @@ fn generated_api_persistence_handlers_round_trip_entities() {
         .handle_create_task(&api_request(
             "CreateTask",
             "POST",
-            "/v1/tenants/t1/projects/p2/tasks/t2",
+            "/v1/tenants/t1/tasks/t2",
             object(vec![
-                ("tenant_id", Json::String("t1".to_string())),
                 ("account_id", Json::String("a2".to_string())),
                 ("project_id", Json::String("p2".to_string())),
-                ("task_id", Json::String("t2".to_string())),
                 ("title", Json::String("Other".to_string())),
                 ("priority", Json::Integer(2)),
             ]),
@@ -235,12 +219,7 @@ fn generated_api_persistence_handlers_round_trip_entities() {
             "UpdateProjectStatus",
             "PATCH",
             "/v1/tenants/t1/projects/p1/status",
-            object(vec![
-                ("tenant_id", Json::String("t1".to_string())),
-                ("account_id", Json::String("a1".to_string())),
-                ("project_id", Json::String("p1".to_string())),
-                ("status", Json::String("Active".to_string())),
-            ]),
+            object(vec![("status", Json::String("Active".to_string()))]),
         ))
         .expect("update project failed");
     require_status(&active_project, 200);
@@ -251,13 +230,7 @@ fn generated_api_persistence_handlers_round_trip_entities() {
             "UpdateTaskStatus",
             "PATCH",
             "/v1/tenants/t1/tasks/t1/status",
-            object(vec![
-                ("tenant_id", Json::String("t1".to_string())),
-                ("account_id", Json::String("a1".to_string())),
-                ("project_id", Json::String("p1".to_string())),
-                ("task_id", Json::String("t1".to_string())),
-                ("status", Json::String("InProgress".to_string())),
-            ]),
+            object(vec![("status", Json::String("InProgress".to_string()))]),
         ))
         .expect("update task failed");
     require_status(&in_progress_task, 200);

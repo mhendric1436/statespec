@@ -604,6 +604,27 @@ std::string go_api_handler_entity_imports(
     std::set<std::string> entity_names;
     for (const auto& api : apis)
     {
+        if (api.entity.has_value())
+        {
+            entity_names.insert(*api.entity);
+            if (api.repository_operation == "create")
+            {
+                for (const auto& entity : system.entities)
+                {
+                    if (entity.name != *api.entity)
+                    {
+                        continue;
+                    }
+                    for (const auto& relation : entity.relations)
+                    {
+                        if (relation.kind == "parent")
+                        {
+                            entity_names.insert(relation.target);
+                        }
+                    }
+                }
+            }
+        }
         for (const auto& entity : system.entities)
         {
             const auto pascal = pascal_identifier(entity.name);

@@ -15,27 +15,21 @@ func TestGeneratedAPIPersistenceHandlers(t *testing.T) {
 	handler := api.DefaultAPITierHandler{Backend: backend}
 
 	account, err := handler.HandleCreateAccount(ctx, apiRequest("CreateAccount", "POST", "/v1/tenants/t1/accounts/a1", common.JSONObject(map[string]common.JSON{
-		"tenant_id":    common.JSONString("t1"),
-		"account_id":   common.JSONString("a1"),
 		"display_name": common.JSONString("Acme"),
 	})))
 	requireResponse(t, account, err, 201)
 	requireJSONString(t, account.Body, "status", "Active")
 
-	project, err := handler.HandleCreateProject(ctx, apiRequest("CreateProject", "POST", "/v1/tenants/t1/accounts/a1/projects/p1", common.JSONObject(map[string]common.JSON{
-		"tenant_id":  common.JSONString("t1"),
+	project, err := handler.HandleCreateProject(ctx, apiRequest("CreateProject", "POST", "/v1/tenants/t1/projects/p1", common.JSONObject(map[string]common.JSON{
 		"account_id": common.JSONString("a1"),
-		"project_id": common.JSONString("p1"),
 		"name":       common.JSONString("Core"),
 	})))
 	requireResponse(t, project, err, 201)
 	requireJSONString(t, project.Body, "status", "Planned")
 
-	task, err := handler.HandleCreateTask(ctx, apiRequest("CreateTask", "POST", "/v1/tenants/t1/projects/p1/tasks/t1", common.JSONObject(map[string]common.JSON{
-		"tenant_id":  common.JSONString("t1"),
+	task, err := handler.HandleCreateTask(ctx, apiRequest("CreateTask", "POST", "/v1/tenants/t1/tasks/t1", common.JSONObject(map[string]common.JSON{
 		"account_id": common.JSONString("a1"),
 		"project_id": common.JSONString("p1"),
-		"task_id":    common.JSONString("t1"),
 		"title":      common.JSONString("Ship"),
 		"priority":   common.JSONInt(7),
 	})))
@@ -43,25 +37,19 @@ func TestGeneratedAPIPersistenceHandlers(t *testing.T) {
 	requireJSONString(t, task.Body, "status", "Open")
 
 	otherAccount, err := handler.HandleCreateAccount(ctx, apiRequest("CreateAccount", "POST", "/v1/tenants/t1/accounts/a2", common.JSONObject(map[string]common.JSON{
-		"tenant_id":    common.JSONString("t1"),
-		"account_id":   common.JSONString("a2"),
 		"display_name": common.JSONString("Other"),
 	})))
 	requireResponse(t, otherAccount, err, 201)
 
-	otherProject, err := handler.HandleCreateProject(ctx, apiRequest("CreateProject", "POST", "/v1/tenants/t1/accounts/a2/projects/p2", common.JSONObject(map[string]common.JSON{
-		"tenant_id":  common.JSONString("t1"),
+	otherProject, err := handler.HandleCreateProject(ctx, apiRequest("CreateProject", "POST", "/v1/tenants/t1/projects/p2", common.JSONObject(map[string]common.JSON{
 		"account_id": common.JSONString("a2"),
-		"project_id": common.JSONString("p2"),
 		"name":       common.JSONString("Other"),
 	})))
 	requireResponse(t, otherProject, err, 201)
 
-	otherTask, err := handler.HandleCreateTask(ctx, apiRequest("CreateTask", "POST", "/v1/tenants/t1/projects/p2/tasks/t2", common.JSONObject(map[string]common.JSON{
-		"tenant_id":  common.JSONString("t1"),
+	otherTask, err := handler.HandleCreateTask(ctx, apiRequest("CreateTask", "POST", "/v1/tenants/t1/tasks/t2", common.JSONObject(map[string]common.JSON{
 		"account_id": common.JSONString("a2"),
 		"project_id": common.JSONString("p2"),
-		"task_id":    common.JSONString("t2"),
 		"title":      common.JSONString("Other"),
 		"priority":   common.JSONInt(2),
 	})))
@@ -95,20 +83,13 @@ func TestGeneratedAPIPersistenceHandlers(t *testing.T) {
 	requireJSONArraySize(t, tasks.Body, "tasks", 1)
 
 	activeProject, err := handler.HandleUpdateProjectStatus(ctx, apiRequest("UpdateProjectStatus", "PATCH", "/v1/tenants/t1/projects/p1/status", common.JSONObject(map[string]common.JSON{
-		"tenant_id":  common.JSONString("t1"),
-		"account_id": common.JSONString("a1"),
-		"project_id": common.JSONString("p1"),
-		"status":     common.JSONString("Active"),
+		"status": common.JSONString("Active"),
 	})))
 	requireResponse(t, activeProject, err, 200)
 	requireJSONString(t, activeProject.Body, "status", "Active")
 
 	inProgressTask, err := handler.HandleUpdateTaskStatus(ctx, apiRequest("UpdateTaskStatus", "PATCH", "/v1/tenants/t1/tasks/t1/status", common.JSONObject(map[string]common.JSON{
-		"tenant_id":  common.JSONString("t1"),
-		"account_id": common.JSONString("a1"),
-		"project_id": common.JSONString("p1"),
-		"task_id":    common.JSONString("t1"),
-		"status":     common.JSONString("InProgress"),
+		"status": common.JSONString("InProgress"),
 	})))
 	requireResponse(t, inProgressTask, err, 200)
 	requireJSONString(t, inProgressTask.Body, "status", "InProgress")

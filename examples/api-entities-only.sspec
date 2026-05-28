@@ -3,92 +3,6 @@ system ApiEntitiesOnly {
   tenant scoped_by tenant_id
   system_tenant configured
 
-  shape CreateAccountRequest {
-    tenant_id string
-    account_id string
-    display_name string
-  }
-
-  shape AccountResponse {
-    tenant_id string
-    account_id string
-    display_name string
-    status string
-  }
-
-  shape AccountListResponse {
-    tenant_id string
-    accounts AccountResponse[]
-  }
-
-  shape UpdateAccountStatusRequest {
-    tenant_id string
-    account_id string
-    status string
-  }
-
-  shape CreateProjectRequest {
-    tenant_id string
-    account_id string
-    project_id string
-    name string
-  }
-
-  shape ProjectResponse {
-    tenant_id string
-    account_id string
-    project_id string
-    name string
-    status string
-  }
-
-  shape ProjectListResponse {
-    tenant_id string
-    account_id string
-    projects ProjectResponse[]
-  }
-
-  shape UpdateProjectStatusRequest {
-    tenant_id string
-    account_id string
-    project_id string
-    status string
-  }
-
-  shape CreateTaskRequest {
-    tenant_id string
-    account_id string
-    project_id string
-    task_id string
-    title string
-    priority int
-  }
-
-  shape TaskResponse {
-    tenant_id string
-    account_id string
-    project_id string
-    task_id string
-    title string
-    priority int
-    status string
-  }
-
-  shape UpdateTaskStatusRequest {
-    tenant_id string
-    account_id string
-    project_id string
-    task_id string
-    status string
-  }
-
-  shape TaskListResponse {
-    tenant_id string
-    account_id string
-    project_id string
-    tasks TaskResponse[]
-  }
-
   entity Account {
     key tenant_id, account_id
     ownership {
@@ -127,6 +41,19 @@ system ApiEntitiesOnly {
     indexes {
       unique by_tenant_account on tenant_id, account_id
       index by_tenant_status on tenant_id, status
+    }
+    api {
+      resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+      create {
+        fields [display_name]
+      }
+      get
+      list {
+        path "/v1/tenants/{tenant_id}/accounts"
+        by tenant_id
+      }
+      update_status
+      delete
     }
   }
 
@@ -185,6 +112,19 @@ system ApiEntitiesOnly {
       unique by_tenant_project on tenant_id, project_id
       index by_account_status on tenant_id, account_id, status
     }
+    api {
+      resource "/v1/tenants/{tenant_id}/projects/{project_id}"
+      create {
+        fields [account_id, name]
+      }
+      get
+      list ListAccountProjects {
+        path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects"
+        by tenant_id, account_id
+      }
+      update_status
+      delete
+    }
   }
 
   entity Task {
@@ -222,12 +162,21 @@ system ApiEntitiesOnly {
           mode: tombstone
         }
       }
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P90D
+          mode: tombstone
+        }
+      }
       initial Open
-      terminal[Done, Cancelled]
+      terminal[Done, Cancelled, Deleted]
       Open -> InProgress
       InProgress -> Done
       Open -> Cancelled
       InProgress -> Cancelled
+      Open -> Deleted
+      InProgress -> Deleted
     }
     relations {
       parent project_id: ref<Project> {
@@ -246,117 +195,18 @@ system ApiEntitiesOnly {
       index by_project_status on tenant_id, project_id, status
       index by_account_priority on tenant_id, account_id, priority
     }
-  }
-
-  api CreateAccount {
-    method POST
-    path "/v1/tenants/{tenant_id}/accounts/{account_id}"
-    input CreateAccountRequest
-    output AccountResponse
-  }
-
-  api GetAccount {
-    method GET
-    path "/v1/tenants/{tenant_id}/accounts/{account_id}"
-    output AccountResponse
-  }
-
-  api ListAccounts {
-    method GET
-    path "/v1/tenants/{tenant_id}/accounts"
-    output AccountListResponse
-  }
-
-  api UpdateAccountStatus {
-    method PATCH
-    path "/v1/tenants/{tenant_id}/accounts/{account_id}/status"
-    input UpdateAccountStatusRequest
-    output AccountResponse
-  }
-
-  api DeleteAccount {
-    method DELETE
-    path "/v1/tenants/{tenant_id}/accounts/{account_id}"
-  }
-
-  api CreateProject {
-    method POST
-    path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects/{project_id}"
-    input CreateProjectRequest
-    output ProjectResponse
-  }
-
-  api GetProject {
-    method GET
-    path "/v1/tenants/{tenant_id}/projects/{project_id}"
-    output ProjectResponse
-  }
-
-  api ListAccountProjects {
-    method GET
-    path "/v1/tenants/{tenant_id}/accounts/{account_id}/projects"
-    output ProjectListResponse
-  }
-
-  api UpdateProjectStatus {
-    method PATCH
-    path "/v1/tenants/{tenant_id}/projects/{project_id}/status"
-    input UpdateProjectStatusRequest
-    output ProjectResponse
-  }
-
-  api DeleteProject {
-    method DELETE
-    path "/v1/tenants/{tenant_id}/projects/{project_id}"
-  }
-
-  api CreateTask {
-    method POST
-    path "/v1/tenants/{tenant_id}/projects/{project_id}/tasks/{task_id}"
-    input CreateTaskRequest
-    output TaskResponse
-  }
-
-  api GetTask {
-    method GET
-    path "/v1/tenants/{tenant_id}/tasks/{task_id}"
-    output TaskResponse
-  }
-
-  api UpdateTaskStatus {
-    method PATCH
-    path "/v1/tenants/{tenant_id}/tasks/{task_id}/status"
-    input UpdateTaskStatusRequest
-    output TaskResponse
-  }
-
-  api DeleteTask {
-    method DELETE
-    path "/v1/tenants/{tenant_id}/tasks/{task_id}"
-  }
-
-  api ListProjectTasks {
-    method GET
-    path "/v1/tenants/{tenant_id}/projects/{project_id}/tasks"
-    output TaskListResponse
-  }
-
-  api_server EntityApi {
-    serves CreateAccount
-    serves GetAccount
-    serves ListAccounts
-    serves UpdateAccountStatus
-    serves DeleteAccount
-    serves CreateProject
-    serves GetProject
-    serves ListAccountProjects
-    serves UpdateProjectStatus
-    serves DeleteProject
-    serves CreateTask
-    serves GetTask
-    serves UpdateTaskStatus
-    serves DeleteTask
-    serves ListProjectTasks
-    concurrency 32
+    api {
+      resource "/v1/tenants/{tenant_id}/tasks/{task_id}"
+      create {
+        fields [account_id, project_id, title, priority]
+      }
+      get
+      list ListProjectTasks {
+        path "/v1/tenants/{tenant_id}/projects/{project_id}/tasks"
+        by tenant_id, project_id
+      }
+      update_status
+      delete
+    }
   }
 }
