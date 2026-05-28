@@ -1,4 +1,6 @@
 #include "../common/memory/backend.hpp"
+// clang-format off
+{{worker_main_entity_gc_include}} // clang-format on
 #include "worker_process.hpp"
 #include "worker_runtime.hpp"
 #include "workflow_step_handlers.hpp"
@@ -32,6 +34,8 @@ int main()
         statespec_generated::worker::DefaultWorkflowStepHandler handler;
         statespec_generated::worker::WorkerProcess process{runtime, handler};
 
+        // clang-format off
+{{worker_main_entity_gc_registration}} // clang-format on
         g_worker_process = &process;
         std::signal(SIGINT, request_worker_stop);
         std::signal(SIGTERM, request_worker_stop);

@@ -1111,6 +1111,26 @@ TemplateRenderer::Values java_api_main_values(const IrSystem& system)
     };
 }
 
+TemplateRenderer::Values java_worker_main_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    if (!usage.uses_entity_gc)
+    {
+        return TemplateRenderer::Values{
+            {"worker_main_entity_gc_import", ""},
+            {"worker_main_entity_gc_registration", ""},
+        };
+    }
+    return TemplateRenderer::Values{
+        {"worker_main_entity_gc_import",
+         "import com.statespec.backend.runtime.EntityGcRegistration;\n"},
+        {"worker_main_entity_gc_registration",
+         "            EntityGcRegistration.registerEntityGcWorkers(\n"
+         "                task -> runtime.addEntityGcWorker(task::run), backend\n"
+         "            );\n\n"},
+    };
+}
+
 std::filesystem::path java_api_generated_path(std::string_view filename)
 {
     return api_artifact_path(
@@ -2896,7 +2916,7 @@ void add_java_worker_artifacts(
         );
         add_java_generated_template_file(
             result, options, templates, java_worker_generated_path("WorkerMain.java"),
-            GeneratedArtifactTier::Worker, diagnostics
+            GeneratedArtifactTier::Worker, diagnostics, java_worker_main_values(system)
         );
     }
     if (include_worker_execution)

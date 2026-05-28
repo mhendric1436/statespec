@@ -228,6 +228,7 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_process.hpp" "void reque
 assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_process.hpp" "start_worker_loops"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "WorkerProcess"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "DefaultWorkflowStepHandler"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "register_entity_gc_workers(runtime, backend)"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "std::signal(SIGTERM"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "process.start()"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/main.cpp" "process.join()"

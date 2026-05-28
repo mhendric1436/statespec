@@ -284,6 +284,7 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Worker
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerProcess.java" "startWorkerLoops"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkerProcess"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "WorkflowStepHandlers.DefaultHandler"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "EntityGcRegistration.registerEntityGcWorkers"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "addShutdownHook"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "process.start()"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerMain.java" "process.join()"

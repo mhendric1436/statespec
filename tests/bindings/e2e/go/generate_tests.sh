@@ -236,6 +236,7 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_process.go" "func
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "signal.NotifyContext"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "worker.NewWorkerProcess"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "worker.DefaultWorkflowStepHandler"
+assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "runtimegc.RegisterEntityGCWorkers"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "process.Start(ctx)"
 assert_file_contains "$TMPDIR/out-app-go/worker/cmd/worker/main.go" "process.Join()"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "KeepAliveStep"

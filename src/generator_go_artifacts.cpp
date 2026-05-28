@@ -973,6 +973,30 @@ TemplateRenderer::Values go_api_main_values(const IrSystem& system)
     };
 }
 
+TemplateRenderer::Values go_worker_main_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    if (!usage.uses_entity_gc)
+    {
+        return TemplateRenderer::Values{
+            {"worker_main_entity_gc_import", ""},
+            {"worker_main_entity_gc_registration", ""},
+        };
+    }
+    return TemplateRenderer::Values{
+        {"worker_main_entity_gc_import",
+         "\truntimegc \"statespec-generated/common/backend/runtime\"\n"},
+        {"worker_main_entity_gc_registration",
+         "\tif err := runtimegc.RegisterEntityGCWorkers(func(gcWorker func(context.Context, "
+         "string) error) error {\n"
+         "\t\treturn runtime.AddEntityGCWorker(worker.WorkerEntityGCWorkerFunc(gcWorker))\n"
+         "\t}, backend); err != nil {\n"
+         "\t\tfmt.Fprintf(os.Stderr, \"statespec generated Worker process failed: %v\\n\", err)\n"
+         "\t\tos.Exit(1)\n"
+         "\t}\n\n"},
+    };
+}
+
 void add_go_common_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -2457,7 +2481,7 @@ void add_go_worker_artifacts(
         );
         add_go_generated_template_file(
             result, options, templates, "worker/cmd/worker/main.go", GeneratedArtifactTier::Worker,
-            diagnostics
+            diagnostics, go_worker_main_values(system)
         );
     }
     if (include_worker_execution)

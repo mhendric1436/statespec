@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"statespec-generated/common/backend/memory"
-	worker "statespec-generated/worker/backend"
+{{worker_main_entity_gc_import}}	worker "statespec-generated/worker/backend"
 	"syscall"
 )
 
@@ -20,7 +20,7 @@ func main() {
 	handler := worker.DefaultWorkflowStepHandler{}
 	process := worker.NewWorkerProcess(runtime, handler)
 
-	if err := process.Start(ctx); err != nil {
+{{worker_main_entity_gc_registration}}	if err := process.Start(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "statespec generated Worker process failed: %v\n", err)
 		os.Exit(1)
 	}

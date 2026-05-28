@@ -908,6 +908,24 @@ TemplateRenderer::Values cpp_api_main_values(const IrSystem& system)
     };
 }
 
+TemplateRenderer::Values cpp_worker_main_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    if (!usage.uses_entity_gc)
+    {
+        return TemplateRenderer::Values{
+            {"worker_main_entity_gc_include", ""},
+            {"worker_main_entity_gc_registration", ""},
+        };
+    }
+    return TemplateRenderer::Values{
+        {"worker_main_entity_gc_include",
+         "#include \"../common/runtime/entity_gc_registration.hpp\"\n"},
+        {"worker_main_entity_gc_registration",
+         "        statespec::backend::runtime::register_entity_gc_workers(runtime, backend);\n\n"},
+    };
+}
+
 void add_cpp_common_generated_template_file(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
@@ -2617,7 +2635,7 @@ void add_cpp_worker_artifacts(
         );
         add_cpp_generated_template_file(
             result, options, templates, "worker/main.cpp", GeneratedArtifactTier::Worker,
-            diagnostics
+            diagnostics, cpp_worker_main_values(system)
         );
     }
     if (include_worker_execution)

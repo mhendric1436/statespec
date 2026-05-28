@@ -232,6 +232,7 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/worker_process.rs" "pub fn req
 assert_file_contains "$TMPDIR/out-app-rust/worker/worker_process.rs" "fn start_worker_loops"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "WorkerProcess::new"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "DefaultWorkflowStepHandler"
+assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "register_entity_gc_workers"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "install_signal_handling"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "process.start()"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "process.join()"

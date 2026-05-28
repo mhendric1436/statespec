@@ -99,6 +99,27 @@ TemplateRenderer::Values rust_api_main_values(const IrSystem& system)
     };
 }
 
+TemplateRenderer::Values rust_worker_main_values(const IrSystem& system)
+{
+    const auto usage = runtime_domain_usage(system);
+    if (!usage.uses_entity_gc)
+    {
+        return TemplateRenderer::Values{
+            {"worker_main_entity_gc_import", ""},
+            {"worker_main_entity_gc_backend_clone", ""},
+            {"worker_main_entity_gc_registration", ""},
+        };
+    }
+    return TemplateRenderer::Values{
+        {"worker_main_entity_gc_import",
+         "use crate::runtime_entity_gc_registration::register_entity_gc_workers;\n"},
+        {"worker_main_entity_gc_backend_clone", "    let gc_backend = backend.clone();\n"},
+        {"worker_main_entity_gc_registration",
+         "    register_entity_gc_workers(|task| process.runtime.add_entity_gc_worker(task), "
+         "std::sync::Arc::new(gc_backend))?;\n"},
+    };
+}
+
 std::vector<std::pair<
     std::string,
     std::string>>
@@ -2271,7 +2292,8 @@ void add_rust_worker_artifacts(
             diagnostics, rust_runtime_bootstrap_values(system)
         );
         add_rust_generated_template_file(
-            result, options, templates, "worker/main.rs", GeneratedArtifactTier::Worker, diagnostics
+            result, options, templates, "worker/main.rs", GeneratedArtifactTier::Worker,
+            diagnostics, rust_worker_main_values(system)
         );
     }
     if (include_worker_execution)
