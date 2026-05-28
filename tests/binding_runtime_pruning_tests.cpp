@@ -466,6 +466,7 @@ language_runtime_paths()
              "common/backend/runtime/codec_logs.go", "common/backend/runtime/logs.go",
              "common/backend/runtime/codec_metrics.go", "common/backend/runtime/metrics.go"},
             {"common/backend/runtime/entity_gc_descriptors.go",
+             "common/backend/runtime/entitygc/types.go",
              "common/backend/runtime/entity_gc_repository.go",
              "common/backend/runtime/entity_gc_workers.go",
              "common/backend/runtime/entity_gc_registration.go"},

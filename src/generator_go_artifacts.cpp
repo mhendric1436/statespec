@@ -907,27 +907,13 @@ std::string go_api_codec_delegates(const IrSystem& system)
 TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
 {
     std::ostringstream imports;
-    std::ostringstream descriptor_functions;
     std::ostringstream descriptor_calls;
     for (const auto& entity : system.entities)
     {
-        std::ostringstream terminal_states;
-        for (const auto& state : entity.states)
-        {
-            if (!state.garbage_collection.has_value())
-            {
-                continue;
-            }
-            terminal_states << "\t\t\t{State: " << snake_identifier(entity.name) << "."
-                            << go_entity_state_constant_name(entity.name, state.name)
-                            << ", After: " << snake_identifier(entity.name) << "."
-                            << pascal_identifier(entity.name) << "State"
-                            << pascal_identifier(state.name) << "GcAfter"
-                            << ", Mode: " << snake_identifier(entity.name) << "."
-                            << pascal_identifier(entity.name) << "State"
-                            << pascal_identifier(state.name) << "GcMode},\n";
-        }
-        if (terminal_states.str().empty())
+        if (!std::any_of(
+                entity.states.begin(), entity.states.end(),
+                [](const IrState& state) { return state.garbage_collection.has_value(); }
+            ))
         {
             continue;
         }
@@ -935,27 +921,48 @@ TemplateRenderer::Values go_entity_gc_descriptor_values(const IrSystem& system)
                 << " \"statespec-generated/common/entities/" << snake_identifier(entity.name)
                 << "\"\n";
         const auto descriptor_function = pascal_identifier(entity.name) + "EntityGCDescriptor";
-        descriptor_functions << "func " << descriptor_function << "() EntityGCDescriptor {\n"
-                             << "\treturn EntityGCDescriptor{\n"
-                             << "\t\tEntity: " << snake_identifier(entity.name) << "."
-                             << go_entity_name_constant_name(entity.name) << ",\n"
-                             << "\t\tCollection: " << snake_identifier(entity.name) << "."
-                             << go_entity_name_constant_name(entity.name) << ",\n"
-                             << "\t\tStatusField: " << snake_identifier(entity.name) << "."
-                             << go_entity_field_constant_name(entity.name, "status") << ",\n"
-                             << "\t\tTerminalStates: []EntityGCTerminalStateDescriptor{\n"
-                             << terminal_states.str() << "\t\t},\n"
-                             << "\t}\n"
-                             << "}\n\n";
-        descriptor_calls << "\t\t" << descriptor_function << "(),\n";
+        descriptor_calls << "\t\t" << snake_identifier(entity.name) << "." << descriptor_function
+                         << "(),\n";
     }
     return TemplateRenderer::Values{
         {"entity_gc_entity_imports", imports.str().empty() ? "" : "\n" + imports.str()},
-        {"entity_gc_descriptor_functions",
-         descriptor_functions.str().empty() ? "" : "\n" + descriptor_functions.str()},
         {"entity_gc_descriptor_calls",
          descriptor_calls.str().empty() ? "" : "\n" + descriptor_calls.str()},
     };
+}
+
+std::string go_entity_gc_descriptor_file(const IrEntity& entity)
+{
+    std::ostringstream terminal_states;
+    for (const auto& state : entity.states)
+    {
+        if (!state.garbage_collection.has_value())
+        {
+            continue;
+        }
+        terminal_states << "\t\t\t{State: "
+                        << go_entity_state_constant_name(entity.name, state.name)
+                        << ", After: " << pascal_identifier(entity.name) << "State"
+                        << pascal_identifier(state.name) << "GcAfter"
+                        << ", Mode: " << pascal_identifier(entity.name) << "State"
+                        << pascal_identifier(state.name) << "GcMode},\n";
+    }
+
+    const auto descriptor_function = pascal_identifier(entity.name) + "EntityGCDescriptor";
+    std::ostringstream out;
+    out << "package " << snake_identifier(entity.name) << "\n\n";
+    out << "import entitygc \"statespec-generated/common/backend/runtime/entitygc\"\n\n";
+    out << "func " << descriptor_function << "() entitygc.EntityGCDescriptor {\n";
+    out << "\treturn entitygc.EntityGCDescriptor{\n";
+    out << "\t\tEntity: " << go_entity_name_constant_name(entity.name) << ",\n";
+    out << "\t\tCollection: " << go_entity_name_constant_name(entity.name) << ",\n";
+    out << "\t\tStatusField: " << go_entity_field_constant_name(entity.name, "status") << ",\n";
+    out << "\t\tTerminalStates: []entitygc.EntityGCTerminalStateDescriptor{\n";
+    out << terminal_states.str();
+    out << "\t\t},\n";
+    out << "\t}\n";
+    out << "}\n";
+    return out.str();
 }
 
 TemplateRenderer::Values go_api_main_values(const IrSystem& system)
@@ -1779,8 +1786,7 @@ void add_go_entity_descriptor_artifacts(
         if (entity_uses_gc(entity))
         {
             add_go_raw_common_file(
-                result, options, entity_dir + "gc.go",
-                "package " + snake_identifier(entity.name) + "\n"
+                result, options, entity_dir + "gc.go", go_entity_gc_descriptor_file(entity)
             );
         }
     }
@@ -2296,6 +2302,21 @@ void add_go_common_runtime_artifacts(
     }
     if (usage.uses_entity_gc)
     {
+        add_go_raw_common_file(
+            result, options, "backend/runtime/entitygc/types.go",
+            "package entitygc\n\n"
+            "type EntityGCTerminalStateDescriptor struct {\n"
+            "\tState string\n"
+            "\tAfter string\n"
+            "\tMode  string\n"
+            "}\n\n"
+            "type EntityGCDescriptor struct {\n"
+            "\tEntity         string\n"
+            "\tCollection     string\n"
+            "\tStatusField    string\n"
+            "\tTerminalStates []EntityGCTerminalStateDescriptor\n"
+            "}\n"
+        );
         add_go_common_generated_template_file(
             result, options, templates, "backend/runtime/entity_gc_descriptors.go", diagnostics,
             go_entity_gc_descriptor_values(system)

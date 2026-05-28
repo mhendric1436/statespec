@@ -1,23 +1,13 @@
 package runtime
 
 import (
-// {{entity_gc_entity_imports}}
+	entitygc "statespec-generated/common/backend/runtime/entitygc"
+	// {{entity_gc_entity_imports}}
 )
 
-type EntityGCTerminalStateDescriptor struct {
-	State string
-	After string
-	Mode  string
-}
+type EntityGCTerminalStateDescriptor = entitygc.EntityGCTerminalStateDescriptor
+type EntityGCDescriptor = entitygc.EntityGCDescriptor
 
-type EntityGCDescriptor struct {
-	Entity         string
-	Collection     string
-	StatusField    string
-	TerminalStates []EntityGCTerminalStateDescriptor
-}
-
-// {{entity_gc_descriptor_functions}}
 func EntityGCDescriptors() []EntityGCDescriptor {
 	return []EntityGCDescriptor{
 		// {{entity_gc_descriptor_calls}}

@@ -186,6 +186,8 @@ std::vector<BindingAppArtifactModel> binding_app_artifact_model(BindingLanguage 
              "Backend-neutral metric sink"},
             {"common/backend/runtime/entity_gc_descriptors.go", common,
              Kind::RuntimeEntityGcDescriptors, "Shared entity garbage collection descriptors"},
+            {"common/backend/runtime/entitygc/types.go", common, Kind::RuntimeEntityGcDescriptors,
+             "Shared entity garbage collection descriptor types"},
             {"common/backend/runtime/entity_gc_repository.go", common,
              Kind::RuntimeEntityGcRepository,
              "Backend-neutral entity garbage collection repository contract"},

@@ -191,6 +191,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/backend/runtime/metrics.go", common, Kind::RuntimeMetricSink},
             {"common/backend/runtime/entity_gc_descriptors.go", common,
              Kind::RuntimeEntityGcDescriptors},
+            {"common/backend/runtime/entitygc/types.go", common, Kind::RuntimeEntityGcDescriptors},
             {"common/backend/runtime/entity_gc_repository.go", common,
              Kind::RuntimeEntityGcRepository},
             {"common/backend/runtime/entity_gc_workers.go", common, Kind::RuntimeEntityGcWorkers},
