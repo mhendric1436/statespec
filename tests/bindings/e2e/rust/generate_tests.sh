@@ -16,6 +16,7 @@ TESTS_DIR="$REPO_DIR/tests"
 APP_SPEC="$REPO_DIR/testdata/generators/canonical-api-worker-app.sspec"
 E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
 API_ENTITY_SPEC="$REPO_DIR/examples/api-entities-only.sspec"
+WORKFLOW_ENTITY_SPEC="$REPO_DIR/examples/workflow-entities-only.sspec"
 APP_MANIFEST="$TMPDIR/expected-rust-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
@@ -173,9 +174,16 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "in
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "status_code: 204"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/persistence.rs" "update_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/model.rs" "PROJECT_STATUS_DELETED"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "use crate::runtime_entity_gc_registration::register_entity_gc_workers"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "register_entity_gc_workers(|task| process.add_entity_gc_worker(task)"
 mkdir -p "$TMPDIR/out-api-entities-rust/tests"
 cp "$SCRIPT_DIR/api_persistence_fixture.rs" "$TMPDIR/out-api-entities-rust/tests/api_persistence_fixture.rs"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-rust" check-api
+
+run_expect_status 0 "$CLI" generate bindings --lang rust "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-rust"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/main.rs"
+assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::runtime_entity_gc_registration::register_entity_gc_workers"
+assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "register_entity_gc_workers(|task| process.runtime.add_entity_gc_worker(task)"
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang rust "$APP_SPEC" --out "$TMPDIR/out-app-rust"

@@ -16,6 +16,7 @@ TESTS_DIR="$REPO_DIR/tests"
 APP_SPEC="$REPO_DIR/testdata/generators/canonical-api-worker-app.sspec"
 E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
 API_ENTITY_SPEC="$REPO_DIR/examples/api-entities-only.sspec"
+WORKFLOW_ENTITY_SPEC="$REPO_DIR/examples/workflow-entities-only.sspec"
 APP_MANIFEST="$TMPDIR/expected-go-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
@@ -175,9 +176,19 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_regist
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_handler_registry_project.go" "StatusCode: 204"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/entities/project/persistence.go" "UpdateTx"
 assert_file_contains "$TMPDIR/out-api-entities-go/common/entities/project/model.go" "ProjectStatusDeleted"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/cmd/api/main.go" "runtime \"statespec-generated/common/backend/runtime\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/cmd/api/main.go" "runtime.RegisterEntityGCWorkers"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/cmd/api/main.go" "process.AddEntityGCWorker"
 cp "$SCRIPT_DIR/api_persistence_fixture_test.go" "$TMPDIR/out-api-entities-go/api/backend/api_persistence_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-go" check-api
 run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-api-entities-go" build-api
+
+run_expect_status 0 "$CLI" generate bindings --lang go "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/cmd/api/main.go"
+assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtimegc \"statespec-generated/common/backend/runtime\""
+assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtimegc.RegisterEntityGCWorkers"
+assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtime.AddEntityGCWorker"
+run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-workflow-entities-go" check-worker
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang go "$APP_SPEC" --out "$TMPDIR/out-app-go"

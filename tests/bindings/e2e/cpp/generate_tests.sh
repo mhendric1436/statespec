@@ -16,6 +16,7 @@ TESTS_DIR="$REPO_DIR/tests"
 APP_SPEC="$REPO_DIR/testdata/generators/canonical-api-worker-app.sspec"
 E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
 API_ENTITY_SPEC="$REPO_DIR/examples/api-entities-only.sspec"
+WORKFLOW_ENTITY_SPEC="$REPO_DIR/examples/workflow-entities-only.sspec"
 APP_MANIFEST="$TMPDIR/expected-cpp-manifest.txt"
 
 cat > "$APP_MANIFEST" <<'EOF'
@@ -170,9 +171,17 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "in
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/handlers/project.hpp" "return ApiResponse{204"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/project/persistence.hpp" "updateTx"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/common/entities/project/model.hpp" "kProjectStatusDeleted"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/main.cpp" "../common/runtime/entity_gc_registration.hpp"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/main.cpp" "statespec::backend::runtime::register_entity_gc_workers(process, backend)"
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-cpp" check-api
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-api-entities-cpp" -I"$TMPDIR/out-api-entities-cpp/common" "$SCRIPT_DIR/api_persistence_fixture.cpp" -o "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
 run_expect_status 0 "$TMPDIR/out-api-entities-cpp/build/api-persistence-fixture"
+
+run_expect_status 0 "$CLI" generate bindings --lang cpp "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-cpp"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-cpp/api/main.cpp"
+assert_file_contains "$TMPDIR/out-workflow-entities-cpp/worker/main.cpp" "../common/runtime/entity_gc_registration.hpp"
+assert_file_contains "$TMPDIR/out-workflow-entities-cpp/worker/main.cpp" "statespec::backend::runtime::register_entity_gc_workers(runtime, backend)"
+run_expect_status 0 make -C "$TMPDIR/out-workflow-entities-cpp" check-worker
 
 run_expect_status 0 "$CLI" validate "$APP_SPEC"
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$APP_SPEC" --out "$TMPDIR/out-app-cpp"
