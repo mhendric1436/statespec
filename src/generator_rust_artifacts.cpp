@@ -906,66 +906,70 @@ TemplateRenderer::Values rust_api_runtime_bootstrap_values(const IrSystem& syste
 
 TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system)
 {
-    std::ostringstream imports;
-    std::ostringstream descriptor_functions;
     std::ostringstream descriptor_calls;
     for (const auto& entity : system.entities)
     {
-        std::ostringstream terminal_states;
-        for (const auto& state : entity.states)
-        {
-            if (!state.garbage_collection.has_value())
-            {
-                continue;
-            }
-            terminal_states
-                << "            EntityGcTerminalStateDescriptor {\n"
-                << "                state: " << snake_identifier(entity.name)
-                << "_model::" << rust_entity_state_constant_name(entity.name, state.name)
-                << ".to_string(),\n"
-                << "                after: " << snake_identifier(entity.name) << "_schema::"
-                << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
-                << ".to_string(),\n"
-                << "                mode: " << snake_identifier(entity.name) << "_schema::"
-                << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode")
-                << ".to_string(),\n"
-                << "            },\n";
-        }
-        if (terminal_states.str().empty())
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
+        if (!entity_uses_gc)
         {
             continue;
         }
-        imports << "use crate::entity_" << snake_identifier(entity.name) << "::model as "
-                << snake_identifier(entity.name) << "_model;\n";
-        imports << "use crate::entity_" << snake_identifier(entity.name) << "::schema as "
-                << snake_identifier(entity.name) << "_schema;\n";
         const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
-        descriptor_functions << "pub fn " << descriptor_function << "() -> EntityGcDescriptor {\n"
-                             << "    EntityGcDescriptor {\n"
-                             << "        entity: " << snake_identifier(entity.name)
-                             << "_model::" << rust_entity_name_constant_name(entity.name)
-                             << ".to_string(),\n"
-                             << "        collection: " << snake_identifier(entity.name)
-                             << "_model::" << rust_entity_name_constant_name(entity.name)
-                             << ".to_string(),\n"
-                             << "        status_field: " << snake_identifier(entity.name)
-                             << "_model::" << rust_entity_field_constant_name(entity.name, "status")
-                             << ".to_string(),\n"
-                             << "        terminal_states: vec![\n"
-                             << terminal_states.str() << "        ],\n"
-                             << "    }\n"
-                             << "}\n\n";
-        descriptor_calls << "        " << descriptor_function << "(),\n";
-    }
-    if (!imports.str().empty())
-    {
-        imports << "\n";
+        descriptor_calls << "        crate::entity_" << snake_identifier(entity.name)
+                         << "::gc::" << descriptor_function << "(),\n";
     }
     return TemplateRenderer::Values{
-        {"entity_gc_entity_imports", imports.str()},
-        {"entity_gc_descriptor_functions", descriptor_functions.str()},
         {"entity_gc_descriptor_calls", descriptor_calls.str()},
     };
+}
+
+std::string rust_entity_gc_descriptor_file(const IrEntity& entity)
+{
+    std::ostringstream terminal_states;
+    for (const auto& state : entity.states)
+    {
+        if (!state.garbage_collection.has_value())
+        {
+            continue;
+        }
+        terminal_states << "            EntityGcTerminalStateDescriptor {\n"
+                        << "                state: model::"
+                        << rust_entity_state_constant_name(entity.name, state.name)
+                        << ".to_string(),\n"
+                        << "                after: schema::"
+                        << upper_snake_identifier(
+                               entity.name + "_state_" + state.name + "_gc_after"
+                           )
+                        << ".to_string(),\n"
+                        << "                mode: schema::"
+                        << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode")
+                        << ".to_string(),\n"
+                        << "            },\n";
+    }
+
+    const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
+    std::ostringstream out;
+    out << "use crate::runtime_entity_gc_descriptors::{EntityGcDescriptor, "
+           "EntityGcTerminalStateDescriptor};\n\n";
+    out << "use super::{model, schema};\n\n";
+    out << "pub fn " << descriptor_function
+        << "() -> crate::runtime_entity_gc_descriptors::EntityGcDescriptor {\n";
+    out << "    EntityGcDescriptor {\n";
+    out << "        entity: model::" << rust_entity_name_constant_name(entity.name)
+        << ".to_string(),\n";
+    out << "        collection: model::" << rust_entity_name_constant_name(entity.name)
+        << ".to_string(),\n";
+    out << "        status_field: model::" << rust_entity_field_constant_name(entity.name, "status")
+        << ".to_string(),\n";
+    out << "        terminal_states: vec![\n";
+    out << terminal_states.str();
+    out << "        ],\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
 }
 
 void add_rust_common_generated_template_file(
@@ -1692,7 +1696,9 @@ void add_rust_descriptor_module_artifacts(
         );
         if (entity_uses_gc)
         {
-            add_rust_raw_common_file(result, options, entity_dir + "gc.rs", "");
+            add_rust_raw_common_file(
+                result, options, entity_dir + "gc.rs", rust_entity_gc_descriptor_file(entity)
+            );
         }
     }
     add_rust_raw_common_file(
