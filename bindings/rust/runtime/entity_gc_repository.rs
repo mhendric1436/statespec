@@ -1,5 +1,5 @@
 use crate::backend::{BackendResult, Key, Transaction, VersionedRecord};
-use crate::runtime_entity_gc_descriptors::EntityGcDescriptor;
+use crate::runtime_entity_gc_types::EntityGcDescriptor;
 
 pub struct EntityGcEligibilityRequest {
     pub descriptor: EntityGcDescriptor,

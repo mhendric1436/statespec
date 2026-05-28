@@ -120,7 +120,7 @@ Typed runtime artifacts are generated only when used by the spec or generated ap
 | `runtime_workflow_store` | Workflow definition, execution, step claim, keep-alive, complete, and fail store |
 | `runtime_log_sink` | Transaction-scoped structured log sink with inspect support |
 | `runtime_metric_sink` | Transaction-scoped metric sink with inspect support |
-| `runtime_entity_gc_descriptors` | Shared entity GC descriptors derived from terminal state metadata |
+| `runtime_entity_gc_types` | Shared entity GC descriptor type definitions |
 | `runtime_entity_gc_repository` | Backend-neutral transactional repository contract for GC scans/finalization |
 | `runtime_entity_gc_workers` | Shared low-resource entity GC workers composed by API and Worker apps |
 | `runtime_entity_gc_registration` | Common helper that registers one GC task per generated descriptor |

@@ -14,7 +14,8 @@ TEST_OBJECTS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(TEST_SOURCES))
 GENERATED_FORMAT_TEMPLATES := $(filter-out generated/descriptor_module.hpp.tmpl generated/descriptors.hpp.tmpl generated/runtime_registration.hpp.tmpl,$(wildcard generated/*.hpp.tmpl))
 API_FORMAT_TEMPLATES := $(filter-out api/api_application.hpp.tmpl,$(wildcard api/*.hpp.tmpl))
 WORKER_FORMAT_TEMPLATES := $(filter-out worker/worker_runtime.hpp.tmpl,$(wildcard worker/*.hpp.tmpl))
-FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(GENERATED_FORMAT_TEMPLATES) $(API_FORMAT_TEMPLATES) $(wildcard api/*.cpp.tmpl) $(WORKER_FORMAT_TEMPLATES) $(wildcard worker/*.cpp.tmpl) $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp)
+RUNTIME_FORMAT_TEMPLATES := runtime/entity_gc_types.hpp.tmpl
+FORMAT_FILES := $(wildcard *.hpp) $(wildcard *.cpp) $(GENERATED_FORMAT_TEMPLATES) $(API_FORMAT_TEMPLATES) $(wildcard api/*.cpp.tmpl) $(WORKER_FORMAT_TEMPLATES) $(wildcard worker/*.cpp.tmpl) $(wildcard memory/*.hpp) $(wildcard runtime/*.hpp) $(RUNTIME_FORMAT_TEMPLATES)
 
 .PHONY: test build format clean help
 

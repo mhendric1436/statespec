@@ -81,9 +81,9 @@ common/runtime/codec_core.hpp
 common/runtime/codec_leases.hpp
 common/runtime/codec_queues.hpp
 common/runtime/codec_workflows.hpp
-common/runtime/entity_gc_descriptors.hpp
 common/runtime/entity_gc_registration.hpp
 common/runtime/entity_gc_repository.hpp
+common/runtime/entity_gc_types.hpp
 common/runtime/entity_gc_workers.hpp
 common/runtime/lease_store.hpp
 common/runtime/queue_store.hpp
@@ -213,9 +213,9 @@ assert_file_contains "$TMPDIR/out-app-cpp/api/api_process.hpp" "transport_.reque
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "LocalBlockingApiTransport transport"
 assert_file_contains "$TMPDIR/out-app-cpp/api/main.cpp" "register_entity_gc_workers(process, backend)"
 assert_file_contains "$TMPDIR/out-app-cpp/common/entities/service_instance/gc.hpp" "inline ::statespec::backend::runtime::EntityGcDescriptor service_instance_entity_gc_descriptor()"
-assert_file_contains "$TMPDIR/out-app-cpp/common/runtime/entity_gc_descriptors.hpp" "::statespec_generated::entities::service_instance::service_instance_entity_gc_descriptor(),"
-assert_file_not_contains "$TMPDIR/out-app-cpp/common/runtime/entity_gc_descriptors.hpp" "inline EntityGcDescriptor service_instance_entity_gc_descriptor()"
-assert_file_contains "$TMPDIR/out-app-cpp/common/runtime/entity_gc_registration.hpp" "for (const auto& descriptor : entity_gc_descriptors())"
+assert_file_contains "$TMPDIR/out-app-cpp/common/runtime/entity_gc_types.hpp" "struct EntityGcDescriptor"
+assert_file_not_contains "$TMPDIR/out-app-cpp/common/runtime/entity_gc_types.hpp" "service_instance_entity_gc_descriptor"
+assert_file_contains "$TMPDIR/out-app-cpp/common/runtime/entity_gc_registration.hpp" "for (const auto& descriptor : descriptors)"
 assert_file_contains "$TMPDIR/out-app-cpp/api/codecs/start_provision_request.hpp" "decode_start_provision_request"
 assert_file_contains "$TMPDIR/out-app-cpp/api/codecs/start_provision_response.hpp" "encode_start_provision_response"
 assert_file_contains "$TMPDIR/out-app-cpp/api/api_handler_registry.hpp" "class DefaultApiHandler"

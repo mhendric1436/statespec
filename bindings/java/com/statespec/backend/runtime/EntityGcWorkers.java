@@ -23,12 +23,12 @@ public final class EntityGcWorkers
 
     public static final class Worker
     {
-        private final EntityGcDescriptors.Descriptor descriptor;
+        private final EntityGcTypes.Descriptor descriptor;
         private final EntityGcRepository repository;
         private final WorkerConfig config;
 
         public Worker(
-            EntityGcDescriptors.Descriptor descriptor,
+            EntityGcTypes.Descriptor descriptor,
             EntityGcRepository repository,
             WorkerConfig config
         )
@@ -78,7 +78,7 @@ public final class EntityGcWorkers
             return new RunResult(records.size(), finalized);
         }
 
-        public EntityGcDescriptors.Descriptor descriptor()
+        public EntityGcTypes.Descriptor descriptor()
         {
             return descriptor;
         }

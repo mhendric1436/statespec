@@ -1029,38 +1029,6 @@ TemplateRenderer::Values java_workflow_runner_values(const IrSystem& system)
     };
 }
 
-TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system)
-{
-    std::vector<std::string> descriptor_calls;
-    for (const auto& entity : system.entities)
-    {
-        const auto entity_uses_gc = std::any_of(
-            entity.states.begin(), entity.states.end(),
-            [](const IrState& state) { return state.garbage_collection.has_value(); }
-        );
-        if (!entity_uses_gc)
-        {
-            continue;
-        }
-        descriptor_calls.push_back(
-            "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Gc.descriptor()"
-        );
-    }
-    std::ostringstream calls;
-    for (std::size_t i = 0; i < descriptor_calls.size(); ++i)
-    {
-        calls << "            " << descriptor_calls[i];
-        if (i + 1 < descriptor_calls.size())
-        {
-            calls << ",";
-        }
-        calls << "\n";
-    }
-    return TemplateRenderer::Values{
-        {"entity_gc_descriptor_calls", calls.str()},
-    };
-}
-
 std::string java_entity_gc_descriptor_file(const IrEntity& entity)
 {
     std::ostringstream terminal_states;
@@ -1076,7 +1044,7 @@ std::string java_entity_gc_descriptor_file(const IrEntity& entity)
             terminal_states << ",\n";
         }
         terminal_states
-            << "                new EntityGcDescriptors.TerminalState("
+            << "                new EntityGcTypes.TerminalState("
             << "Model." << java_entity_state_constant_name(entity.name, state.name) << ", Schema."
             << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
             << ", Schema."
@@ -1087,14 +1055,14 @@ std::string java_entity_gc_descriptor_file(const IrEntity& entity)
     const auto package_name = "com.statespec.generated.entities." + snake_identifier(entity.name);
     std::ostringstream out;
     out << "package " << package_name << ";\n\n";
-    out << "import com.statespec.backend.runtime.EntityGcDescriptors;\n";
+    out << "import com.statespec.backend.runtime.EntityGcTypes;\n";
     out << "import java.util.List;\n\n";
     out << "public final class Gc\n";
     out << "{\n";
     out << "    private Gc() {}\n\n";
-    out << "    public static EntityGcDescriptors.Descriptor descriptor()\n";
+    out << "    public static EntityGcTypes.Descriptor descriptor()\n";
     out << "    {\n";
-    out << "        return new EntityGcDescriptors.Descriptor(\n";
+    out << "        return new EntityGcTypes.Descriptor(\n";
     out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
     out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
     out << "            Model." << java_entity_field_constant_name(entity.name, "status") << ",\n";
@@ -2727,11 +2695,9 @@ void add_java_common_runtime_artifacts(
     {
         add_generated_template_file(
             result, options.output_dir, templates,
-            template_path_for_output(output_root / "runtime" / "EntityGcDescriptors.java"),
-            common_artifact_path(
-                (output_root / "runtime" / "EntityGcDescriptors.java").generic_string()
-            ),
-            diagnostics, GeneratedArtifactTier::Common, java_entity_gc_descriptor_values(system)
+            template_path_for_output(output_root / "runtime" / "EntityGcTypes.java"),
+            common_artifact_path((output_root / "runtime" / "EntityGcTypes.java").generic_string()),
+            diagnostics, GeneratedArtifactTier::Common
         );
         add_template_file(
             result, options.output_dir, templates,

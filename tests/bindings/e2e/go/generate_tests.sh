@@ -69,9 +69,9 @@ common/backend/runtime/codec.go
 common/backend/runtime/codec_leases.go
 common/backend/runtime/codec_queues.go
 common/backend/runtime/codec_workflows.go
-common/backend/runtime/entity_gc_descriptors.go
 common/backend/runtime/entity_gc_registration.go
 common/backend/runtime/entity_gc_repository.go
+common/backend/runtime/entity_gc_types.go
 common/backend/runtime/entity_gc_workers.go
 common/backend/runtime/entitygc/types.go
 common/backend/runtime/leases.go
@@ -220,9 +220,9 @@ assert_file_contains "$TMPDIR/out-app-go/api/backend/api_transport.go" "func (tr
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_process.go" "process.Transport.RequestStop()"
 assert_file_contains "$TMPDIR/out-app-go/api/cmd/api/main.go" "api.NewLocalBlockingAPITierTransport()"
 assert_file_contains "$TMPDIR/out-app-go/common/entities/service_instance/gc.go" "func ServiceInstanceEntityGCDescriptor() entitygc.EntityGCDescriptor"
-assert_file_contains "$TMPDIR/out-app-go/common/backend/runtime/entity_gc_descriptors.go" "service_instance.ServiceInstanceEntityGCDescriptor(),"
-assert_file_not_contains "$TMPDIR/out-app-go/common/backend/runtime/entity_gc_descriptors.go" "func ServiceInstanceEntityGCDescriptor() EntityGCDescriptor"
-assert_file_contains "$TMPDIR/out-app-go/common/backend/runtime/entity_gc_registration.go" "for _, descriptor := range EntityGCDescriptors()"
+assert_file_contains "$TMPDIR/out-app-go/common/backend/runtime/entity_gc_types.go" "type EntityGCDescriptor = entitygc.EntityGCDescriptor"
+assert_file_not_contains "$TMPDIR/out-app-go/common/backend/runtime/entity_gc_types.go" "ServiceInstanceEntityGCDescriptor"
+assert_file_contains "$TMPDIR/out-app-go/common/backend/runtime/entity_gc_registration.go" "for _, descriptor := range descriptors"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/codecs/start_provision_request.go" "func DecodeStartProvisionRequest"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/codecs/start_provision_response.go" "func EncodeStartProvisionResponse"
 assert_file_contains "$TMPDIR/out-app-go/api/backend/api_handler_registry.go" "type DefaultAPITierHandler struct"

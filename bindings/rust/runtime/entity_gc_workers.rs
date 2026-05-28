@@ -1,5 +1,5 @@
 use crate::backend::{Backend, BackendResult};
-use crate::runtime_entity_gc_descriptors::EntityGcDescriptor;
+use crate::runtime_entity_gc_types::EntityGcDescriptor;
 use crate::runtime_entity_gc_repository::{
     EntityGcEligibilityRequest, EntityGcFinalizeRequest, EntityGcRepository,
 };

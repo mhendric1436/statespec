@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../backend.hpp"
-#include "entity_gc_descriptors.hpp"
 #include "entity_gc_repository.hpp"
+#include "entity_gc_types.hpp"
 #include "entity_gc_workers.hpp"
 
 #include <algorithm>
@@ -65,10 +65,11 @@ class DefaultEntityGcRepository final : public IEntityGcRepository
 template <typename Registrar>
 void register_entity_gc_workers(
     Registrar& registrar,
-    IBackend& backend
+    IBackend& backend,
+    const std::vector<EntityGcDescriptor>& descriptors
 )
 {
-    for (const auto& descriptor : entity_gc_descriptors())
+    for (const auto& descriptor : descriptors)
     {
         auto repository = std::make_shared<DefaultEntityGcRepository>();
         auto worker =
@@ -81,6 +82,15 @@ void register_entity_gc_workers(
             }
         );
     }
+}
+
+template <typename Registrar>
+void register_entity_gc_workers(
+    Registrar& registrar,
+    IBackend& backend
+)
+{
+    register_entity_gc_workers(registrar, backend, std::vector<EntityGcDescriptor>{});
 }
 
 } // namespace statespec::backend::runtime

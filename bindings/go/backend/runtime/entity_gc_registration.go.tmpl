@@ -52,7 +52,11 @@ func (DefaultEntityGCRepository) FinalizeGCTx(
 }
 
 func RegisterEntityGCWorkers(register EntityGCRegistrationFunc, backend common.Backend) error {
-	for _, descriptor := range EntityGCDescriptors() {
+	return RegisterEntityGCWorkersForDescriptors(register, backend, nil)
+}
+
+func RegisterEntityGCWorkersForDescriptors(register EntityGCRegistrationFunc, backend common.Backend, descriptors []EntityGCDescriptor) error {
+	for _, descriptor := range descriptors {
 		worker := NewEntityGCWorker(
 			descriptor,
 			DefaultEntityGCRepository{},

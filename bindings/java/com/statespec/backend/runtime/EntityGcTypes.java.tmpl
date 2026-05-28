@@ -2,9 +2,9 @@ package com.statespec.backend.runtime;
 
 import java.util.List;
 
-public final class EntityGcDescriptors
+public final class EntityGcTypes
 {
-    private EntityGcDescriptors() {}
+    private EntityGcTypes() {}
 
     public record TerminalState(
         String state,
@@ -17,13 +17,9 @@ public final class EntityGcDescriptors
     public record Descriptor(
         String entity,
         String collection,
+        String statusField,
         List<TerminalState> terminalStates
     )
     {
-    }
-
-    public static List<Descriptor> descriptors()
-    {
-        return List.of();
     }
 }

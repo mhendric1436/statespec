@@ -2,6 +2,7 @@ CARGO ?= cargo
 CARGO_TARGET_DIR ?= ../../build/rust-target
 RUSTFMT ?= rustfmt
 GENERATED_FORMAT_TEMPLATES := $(filter-out generated/descriptor_module.rs.tmpl generated/descriptors.rs.tmpl generated/lib.rs.tmpl generated/runtime_registration.rs.tmpl,$(wildcard generated/*.rs.tmpl))
+RUNTIME_FORMAT_TEMPLATES := runtime/entity_gc_types.rs.tmpl
 
 .PHONY: test format clean help
 
@@ -10,7 +11,7 @@ test:
 
 format:
 	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) fmt
-	$(RUSTFMT) $(GENERATED_FORMAT_TEMPLATES)
+	$(RUSTFMT) $(GENERATED_FORMAT_TEMPLATES) $(RUNTIME_FORMAT_TEMPLATES)
 
 clean:
 	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) clean

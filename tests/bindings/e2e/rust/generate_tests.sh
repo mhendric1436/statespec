@@ -81,9 +81,9 @@ common/runtime/codec_core.rs
 common/runtime/codec_leases.rs
 common/runtime/codec_queues.rs
 common/runtime/codec_workflows.rs
-common/runtime/entity_gc_descriptors.rs
 common/runtime/entity_gc_registration.rs
 common/runtime/entity_gc_repository.rs
+common/runtime/entity_gc_types.rs
 common/runtime/entity_gc_workers.rs
 common/runtime/leases.rs
 common/runtime/queues.rs
@@ -223,10 +223,10 @@ assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "pub struct Loc
 assert_file_contains "$TMPDIR/out-app-rust/api/api_transport.rs" "fn request_stop(&self)"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_process.rs" "self.transport.request_stop()"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "LocalBlockingApiTransport::new()"
-assert_file_contains "$TMPDIR/out-app-rust/common/entities/service_instance/gc.rs" "pub fn service_instance_entity_gc_descriptor() -> crate::runtime_entity_gc_descriptors::EntityGcDescriptor"
-assert_file_contains "$TMPDIR/out-app-rust/common/runtime/entity_gc_descriptors.rs" "crate::entity_service_instance::gc::service_instance_entity_gc_descriptor(),"
-assert_file_not_contains "$TMPDIR/out-app-rust/common/runtime/entity_gc_descriptors.rs" "pub fn service_instance_entity_gc_descriptor() -> EntityGcDescriptor"
-assert_file_contains "$TMPDIR/out-app-rust/common/runtime/entity_gc_registration.rs" "for descriptor in entity_gc_descriptors()"
+assert_file_contains "$TMPDIR/out-app-rust/common/entities/service_instance/gc.rs" "pub fn service_instance_entity_gc_descriptor() -> crate::runtime_entity_gc_types::EntityGcDescriptor"
+assert_file_contains "$TMPDIR/out-app-rust/common/runtime/entity_gc_types.rs" "pub struct EntityGcDescriptor"
+assert_file_not_contains "$TMPDIR/out-app-rust/common/runtime/entity_gc_types.rs" "service_instance_entity_gc_descriptor"
+assert_file_contains "$TMPDIR/out-app-rust/common/runtime/entity_gc_registration.rs" "for descriptor in descriptors"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "process.start()"
 assert_file_contains "$TMPDIR/out-app-rust/api/main.rs" "process.join()"
 assert_file_contains "$TMPDIR/out-app-rust/api/api_server.rs" "pub struct ApiServer"

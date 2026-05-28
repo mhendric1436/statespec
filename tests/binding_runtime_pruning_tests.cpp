@@ -436,7 +436,7 @@ language_runtime_paths()
             {"common/runtime/codec_observability.hpp", "common/runtime/codec_logs.hpp",
              "common/runtime/log_sink.hpp", "common/runtime/codec_metrics.hpp",
              "common/runtime/metric_sink.hpp"},
-            {"common/runtime/entity_gc_descriptors.hpp", "common/runtime/entity_gc_repository.hpp",
+            {"common/runtime/entity_gc_types.hpp", "common/runtime/entity_gc_repository.hpp",
              "common/runtime/entity_gc_workers.hpp", "common/runtime/entity_gc_registration.hpp"},
             {"worker/worker_queues.hpp"},
             {"worker/worker_leases.hpp"},
@@ -465,7 +465,7 @@ language_runtime_paths()
             {"common/backend/runtime/codec_observability.go",
              "common/backend/runtime/codec_logs.go", "common/backend/runtime/logs.go",
              "common/backend/runtime/codec_metrics.go", "common/backend/runtime/metrics.go"},
-            {"common/backend/runtime/entity_gc_descriptors.go",
+            {"common/backend/runtime/entity_gc_types.go",
              "common/backend/runtime/entitygc/types.go",
              "common/backend/runtime/entity_gc_repository.go",
              "common/backend/runtime/entity_gc_workers.go",
@@ -503,7 +503,7 @@ language_runtime_paths()
              "common/com/statespec/backend/runtime/LogSink.java",
              "common/com/statespec/backend/runtime/MetricCodec.java",
              "common/com/statespec/backend/runtime/MetricSink.java"},
-            {"common/com/statespec/backend/runtime/EntityGcDescriptors.java",
+            {"common/com/statespec/backend/runtime/EntityGcTypes.java",
              "common/com/statespec/backend/runtime/EntityGcRepository.java",
              "common/com/statespec/backend/runtime/EntityGcWorkers.java",
              "common/com/statespec/backend/runtime/EntityGcRegistration.java"},
@@ -541,7 +541,7 @@ language_runtime_paths()
             {"common/runtime/codec_observability.rs", "common/runtime/codec_logs.rs",
              "common/runtime/logs.rs", "common/runtime/codec_metrics.rs",
              "common/runtime/metrics.rs"},
-            {"common/runtime/entity_gc_descriptors.rs", "common/runtime/entity_gc_repository.rs",
+            {"common/runtime/entity_gc_types.rs", "common/runtime/entity_gc_repository.rs",
              "common/runtime/entity_gc_workers.rs", "common/runtime/entity_gc_registration.rs"},
             {"worker/worker_queues.rs"},
             {"worker/worker_leases.rs"},
@@ -919,7 +919,7 @@ void gc_deployment_covers_api_only_app()
         {
             require_rust_manifest_matches_runtime_usage(
                 result,
-                {"runtime_entity_gc_descriptors", "runtime_entity_gc_repository",
+                {"runtime_entity_gc_types", "runtime_entity_gc_repository",
                  "runtime_entity_gc_workers", "runtime_entity_gc_registration"},
                 {"worker_runtime"}, "api-gc"
             );
@@ -955,7 +955,7 @@ void gc_deployment_covers_worker_only_app()
         {
             require_rust_manifest_matches_runtime_usage(
                 result,
-                {"runtime_entity_gc_descriptors", "runtime_entity_gc_repository",
+                {"runtime_entity_gc_types", "runtime_entity_gc_repository",
                  "runtime_entity_gc_workers", "runtime_entity_gc_registration", "worker_runtime"},
                 {}, "worker-gc"
             );
@@ -995,7 +995,7 @@ void gc_deployment_covers_mixed_app()
         {
             require_rust_manifest_matches_runtime_usage(
                 result,
-                {"runtime_entity_gc_descriptors", "runtime_entity_gc_repository",
+                {"runtime_entity_gc_types", "runtime_entity_gc_repository",
                  "runtime_entity_gc_workers", "runtime_entity_gc_registration", "worker_runtime"},
                 {}, "mixed-gc"
             );

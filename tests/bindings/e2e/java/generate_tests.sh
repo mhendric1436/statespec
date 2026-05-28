@@ -57,9 +57,9 @@ common/com/statespec/backend/Workflow.java
 common/com/statespec/backend/memory/InMemoryBackend.java
 common/com/statespec/backend/memory/InMemoryTransaction.java
 common/com/statespec/backend/runtime/Codec.java
-common/com/statespec/backend/runtime/EntityGcDescriptors.java
 common/com/statespec/backend/runtime/EntityGcRegistration.java
 common/com/statespec/backend/runtime/EntityGcRepository.java
+common/com/statespec/backend/runtime/EntityGcTypes.java
 common/com/statespec/backend/runtime/EntityGcWorkers.java
 common/com/statespec/backend/runtime/LeaseCodec.java
 common/com/statespec/backend/runtime/LeaseStore.java
@@ -277,10 +277,10 @@ assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransp
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiTransport.java" "stopRequested.await()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiProcess.java" "transport.requestStop()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "new ApiTransport.LocalBlocking()"
-assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/entities/service_instance/Gc.java" "public static EntityGcDescriptors.Descriptor descriptor()"
-assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/backend/runtime/EntityGcDescriptors.java" "com.statespec.generated.entities.service_instance.Gc.descriptor()"
-assert_file_not_contains "$TMPDIR/out-app-java/common/com/statespec/backend/runtime/EntityGcDescriptors.java" "private static Descriptor serviceInstanceDescriptor()"
-assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "for (var descriptor : EntityGcDescriptors.descriptors())"
+assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/generated/entities/service_instance/Gc.java" "public static EntityGcTypes.Descriptor descriptor()"
+assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/backend/runtime/EntityGcTypes.java" "record Descriptor"
+assert_file_not_contains "$TMPDIR/out-app-java/common/com/statespec/backend/runtime/EntityGcTypes.java" "Gc.descriptor()"
+assert_file_contains "$TMPDIR/out-app-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "for (var descriptor : descriptors)"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "process.start()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiMain.java" "process.join()"
 assert_file_contains "$TMPDIR/out-app-java/api/com/statespec/generated/ApiServer.java" "class ApiServer"

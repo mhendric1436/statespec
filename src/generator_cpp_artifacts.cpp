@@ -57,7 +57,7 @@ TemplateRenderer::Values cpp_common_runtime_values(const IrSystem& system)
     }
     if (usage.uses_entity_gc)
     {
-        add("common/runtime/entity_gc_descriptors.hpp");
+        add("common/runtime/entity_gc_types.hpp");
         add("common/runtime/entity_gc_repository.hpp");
         add("common/runtime/entity_gc_workers.hpp");
         add("common/runtime/entity_gc_registration.hpp");
@@ -836,31 +836,6 @@ std::string cpp_api_codec_shape_file(
     return out.str();
 }
 
-TemplateRenderer::Values cpp_entity_gc_descriptor_values(const IrSystem& system)
-{
-    std::ostringstream includes;
-    std::ostringstream descriptor_calls;
-    for (const auto& entity : system.entities)
-    {
-        if (!cpp_entity_uses_gc(entity))
-        {
-            continue;
-        }
-        includes << "#include \"../entities/" << snake_identifier(entity.name) << "/gc.hpp\"\n";
-        const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
-        descriptor_calls << "        ::statespec_generated::entities::"
-                         << snake_identifier(entity.name) << "::" << descriptor_function << "(),\n";
-    }
-    if (!includes.str().empty())
-    {
-        includes << "\n";
-    }
-    return TemplateRenderer::Values{
-        {"entity_gc_entity_includes", includes.str()},
-        {"entity_gc_descriptor_calls", descriptor_calls.str()},
-    };
-}
-
 std::string cpp_entity_gc_descriptor_header(const IrEntity& entity)
 {
     std::ostringstream terminal_states;
@@ -885,7 +860,7 @@ std::string cpp_entity_gc_descriptor_header(const IrEntity& entity)
     out << "#pragma once\n\n";
     out << "#include \"model.hpp\"\n";
     out << "#include \"schema.hpp\"\n";
-    out << "#include \"../../runtime/entity_gc_descriptors.hpp\"\n\n";
+    out << "#include \"../../runtime/entity_gc_types.hpp\"\n\n";
     out << "namespace statespec_generated::entities::" << entity_namespace << "\n";
     out << "{\n\n";
     out << "inline ::statespec::backend::runtime::EntityGcDescriptor " << descriptor_function
@@ -2442,8 +2417,7 @@ void add_cpp_common_runtime_artifacts(
     if (usage.uses_entity_gc)
     {
         add_cpp_common_generated_template_file(
-            result, options, templates, "runtime/entity_gc_descriptors.hpp", diagnostics,
-            cpp_entity_gc_descriptor_values(system)
+            result, options, templates, "runtime/entity_gc_types.hpp", diagnostics
         );
         add_template_file(
             result, options.output_dir, templates, "runtime/entity_gc_repository.hpp",

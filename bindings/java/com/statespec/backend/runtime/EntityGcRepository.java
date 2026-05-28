@@ -6,7 +6,7 @@ import java.util.List;
 public interface EntityGcRepository
 {
     record EligibilityRequest(
-        EntityGcDescriptors.Descriptor descriptor,
+        EntityGcTypes.Descriptor descriptor,
         String now,
         int limit
     )
@@ -14,7 +14,7 @@ public interface EntityGcRepository
     }
 
     record FinalizeRequest(
-        EntityGcDescriptors.Descriptor descriptor,
+        EntityGcTypes.Descriptor descriptor,
         String key,
         String now
     )

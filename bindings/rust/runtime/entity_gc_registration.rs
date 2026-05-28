@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use crate::backend::{Backend, BackendResult, Query, Transaction, VersionedRecord};
 use crate::json::Json;
-use crate::runtime_entity_gc_descriptors::{entity_gc_descriptors, EntityGcDescriptor};
 use crate::runtime_entity_gc_repository::{
     EntityGcEligibilityRequest, EntityGcFinalizeRequest, EntityGcRepository,
 };
+use crate::runtime_entity_gc_types::EntityGcDescriptor;
 use crate::runtime_entity_gc_workers::{EntityGcWorker, EntityGcWorkerConfig};
 
 #[derive(Debug, Clone, Default)]
@@ -46,14 +46,26 @@ impl<Tx: Transaction> EntityGcRepository<Tx> for DefaultEntityGcRepository {
 pub type EntityGcTask = Arc<dyn Fn(String) -> BackendResult<()> + Send + Sync>;
 
 pub fn register_entity_gc_workers<B, F>(
-    mut register: F,
+    register: F,
     backend: Arc<B>,
 ) -> BackendResult<()>
 where
     B: Backend + Send + Sync + 'static,
     F: FnMut(EntityGcTask) -> BackendResult<()>,
 {
-    for descriptor in entity_gc_descriptors() {
+    register_entity_gc_workers_with_descriptors(register, backend, Vec::new())
+}
+
+pub fn register_entity_gc_workers_with_descriptors<B, F>(
+    mut register: F,
+    backend: Arc<B>,
+    descriptors: Vec<EntityGcDescriptor>,
+) -> BackendResult<()>
+where
+    B: Backend + Send + Sync + 'static,
+    F: FnMut(EntityGcTask) -> BackendResult<()>,
+{
+    for descriptor in descriptors {
         let backend = Arc::clone(&backend);
         let worker = EntityGcWorker::new(
             descriptor,

@@ -108,10 +108,10 @@ The shared artifact model reserves common-tier generated files for all languages
 
 | Language | Descriptor artifact | Repository contract | Worker artifact | Registration artifact |
 |---|---|---|---|---|
-| C++ | `common/runtime/entity_gc_descriptors.hpp` | `common/runtime/entity_gc_repository.hpp` | `common/runtime/entity_gc_workers.hpp` | `common/runtime/entity_gc_registration.hpp` |
-| Go | `common/backend/runtime/entity_gc_descriptors.go` | `common/backend/runtime/entity_gc_repository.go` | `common/backend/runtime/entity_gc_workers.go` | `common/backend/runtime/entity_gc_registration.go` |
-| Java | `common/com/statespec/backend/runtime/EntityGcDescriptors.java` | `common/com/statespec/backend/runtime/EntityGcRepository.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` | `common/com/statespec/backend/runtime/EntityGcRegistration.java` |
-| Rust | `common/runtime/entity_gc_descriptors.rs` | `common/runtime/entity_gc_repository.rs` | `common/runtime/entity_gc_workers.rs` | `common/runtime/entity_gc_registration.rs` |
+| C++ | `common/runtime/entity_gc_types.hpp` | `common/runtime/entity_gc_repository.hpp` | `common/runtime/entity_gc_workers.hpp` | `common/runtime/entity_gc_registration.hpp` |
+| Go | `common/backend/runtime/entity_gc_types.go` | `common/backend/runtime/entity_gc_repository.go` | `common/backend/runtime/entity_gc_workers.go` | `common/backend/runtime/entity_gc_registration.go` |
+| Java | `common/com/statespec/backend/runtime/EntityGcTypes.java` | `common/com/statespec/backend/runtime/EntityGcRepository.java` | `common/com/statespec/backend/runtime/EntityGcWorkers.java` | `common/com/statespec/backend/runtime/EntityGcRegistration.java` |
+| Rust | `common/runtime/entity_gc_types.rs` | `common/runtime/entity_gc_repository.rs` | `common/runtime/entity_gc_workers.rs` | `common/runtime/entity_gc_registration.rs` |
 
 These artifacts are shared by generated API and Worker apps. The registration artifact
 iterates the generated descriptor list, creates an OCC-backed repository and worker for

@@ -40,7 +40,7 @@ enum class BindingAppArtifactKind
     RuntimeWorkflowStore,
     RuntimeLogSink,
     RuntimeMetricSink,
-    RuntimeEntityGcDescriptors,
+    RuntimeEntityGcTypes,
     RuntimeEntityGcDescriptorModule,
     RuntimeEntityGcRepository,
     RuntimeEntityGcWorkers,

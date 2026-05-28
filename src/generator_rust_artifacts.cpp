@@ -254,8 +254,8 @@ TemplateRenderer::Values rust_lib_values(
     }
     if (usage.uses_entity_gc)
     {
-        runtime_modules << "#[path = \"common/runtime/entity_gc_descriptors.rs\"]\n";
-        runtime_modules << "pub mod runtime_entity_gc_descriptors;\n";
+        runtime_modules << "#[path = \"common/runtime/entity_gc_types.rs\"]\n";
+        runtime_modules << "pub mod runtime_entity_gc_types;\n";
         runtime_modules << "#[path = \"common/runtime/entity_gc_repository.rs\"]\n";
         runtime_modules << "pub mod runtime_entity_gc_repository;\n";
         runtime_modules << "#[path = \"common/runtime/entity_gc_workers.rs\"]\n";
@@ -904,28 +904,6 @@ TemplateRenderer::Values rust_api_runtime_bootstrap_values(const IrSystem& syste
     return values;
 }
 
-TemplateRenderer::Values rust_entity_gc_descriptor_values(const IrSystem& system)
-{
-    std::ostringstream descriptor_calls;
-    for (const auto& entity : system.entities)
-    {
-        const auto entity_uses_gc = std::any_of(
-            entity.states.begin(), entity.states.end(),
-            [](const IrState& state) { return state.garbage_collection.has_value(); }
-        );
-        if (!entity_uses_gc)
-        {
-            continue;
-        }
-        const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
-        descriptor_calls << "        crate::entity_" << snake_identifier(entity.name)
-                         << "::gc::" << descriptor_function << "(),\n";
-    }
-    return TemplateRenderer::Values{
-        {"entity_gc_descriptor_calls", descriptor_calls.str()},
-    };
-}
-
 std::string rust_entity_gc_descriptor_file(const IrEntity& entity)
 {
     std::ostringstream terminal_states;
@@ -952,11 +930,11 @@ std::string rust_entity_gc_descriptor_file(const IrEntity& entity)
 
     const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
     std::ostringstream out;
-    out << "use crate::runtime_entity_gc_descriptors::{EntityGcDescriptor, "
+    out << "use crate::runtime_entity_gc_types::{EntityGcDescriptor, "
            "EntityGcTerminalStateDescriptor};\n\n";
     out << "use super::{model, schema};\n\n";
     out << "pub fn " << descriptor_function
-        << "() -> crate::runtime_entity_gc_descriptors::EntityGcDescriptor {\n";
+        << "() -> crate::runtime_entity_gc_types::EntityGcDescriptor {\n";
     out << "    EntityGcDescriptor {\n";
     out << "        entity: model::" << rust_entity_name_constant_name(entity.name)
         << ".to_string(),\n";
@@ -2102,8 +2080,7 @@ void add_rust_common_runtime_artifacts(
     if (usage.uses_entity_gc)
     {
         add_rust_common_generated_template_file(
-            result, options, templates, "runtime/entity_gc_descriptors.rs", diagnostics,
-            rust_entity_gc_descriptor_values(system)
+            result, options, templates, "runtime/entity_gc_types.rs", diagnostics
         );
         add_template_file(
             result, options.output_dir, templates, "runtime/entity_gc_repository.rs",

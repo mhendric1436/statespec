@@ -40,7 +40,7 @@ package "Generated common tier" {
   component "RuntimeWorkflowStore" as WorkflowStore
   component "RuntimeLogSink" as LogSink
   component "RuntimeMetricSink" as MetricSink
-  rectangle "EntityGcDescriptors\nterminal GC metadata" as EntityGcDescriptors
+  rectangle "EntityGcTypes\ncommon GC type definitions" as EntityGcDescriptors
   rectangle "EntityGcRepository\nindexed eligibility + finalize" as EntityGcRepository
   rectangle "EntityGcWorkers\nper-entity run_once workers" as EntityGcWorkers
 }

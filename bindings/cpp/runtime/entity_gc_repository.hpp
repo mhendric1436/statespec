@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../backend.hpp"
-#include "entity_gc_descriptors.hpp"
+#include "entity_gc_types.hpp"
 
 #include <cstddef>
 #include <string>

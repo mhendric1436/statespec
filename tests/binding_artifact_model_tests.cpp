@@ -52,9 +52,9 @@ void test_binding_app_artifact_kind_names()
     );
     require_string_equal(
         statespec::binding_app_artifact_kind_name(
-            statespec::BindingAppArtifactKind::RuntimeEntityGcDescriptors
+            statespec::BindingAppArtifactKind::RuntimeEntityGcTypes
         ),
-        "runtime_entity_gc_descriptors", "runtime entity GC descriptor artifact kind name"
+        "runtime_entity_gc_types", "runtime entity GC type artifact kind name"
     );
     require_string_equal(
         statespec::binding_app_artifact_kind_name(
@@ -146,7 +146,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/runtime/workflow_store.hpp", common, Kind::RuntimeWorkflowStore},
             {"common/runtime/log_sink.hpp", common, Kind::RuntimeLogSink},
             {"common/runtime/metric_sink.hpp", common, Kind::RuntimeMetricSink},
-            {"common/runtime/entity_gc_descriptors.hpp", common, Kind::RuntimeEntityGcDescriptors},
+            {"common/runtime/entity_gc_types.hpp", common, Kind::RuntimeEntityGcTypes},
             {"common/runtime/entity_gc_repository.hpp", common, Kind::RuntimeEntityGcRepository},
             {"common/runtime/entity_gc_workers.hpp", common, Kind::RuntimeEntityGcWorkers},
             {"common/runtime/entity_gc_registration.hpp", common,
@@ -189,9 +189,8 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/backend/runtime/workflows.go", common, Kind::RuntimeWorkflowStore},
             {"common/backend/runtime/logs.go", common, Kind::RuntimeLogSink},
             {"common/backend/runtime/metrics.go", common, Kind::RuntimeMetricSink},
-            {"common/backend/runtime/entity_gc_descriptors.go", common,
-             Kind::RuntimeEntityGcDescriptors},
-            {"common/backend/runtime/entitygc/types.go", common, Kind::RuntimeEntityGcDescriptors},
+            {"common/backend/runtime/entity_gc_types.go", common, Kind::RuntimeEntityGcTypes},
+            {"common/backend/runtime/entitygc/types.go", common, Kind::RuntimeEntityGcTypes},
             {"common/backend/runtime/entity_gc_repository.go", common,
              Kind::RuntimeEntityGcRepository},
             {"common/backend/runtime/entity_gc_workers.go", common, Kind::RuntimeEntityGcWorkers},
@@ -242,8 +241,8 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/com/statespec/backend/runtime/LogSink.java", common, Kind::RuntimeLogSink},
             {"common/com/statespec/backend/runtime/MetricSink.java", common,
              Kind::RuntimeMetricSink},
-            {"common/com/statespec/backend/runtime/EntityGcDescriptors.java", common,
-             Kind::RuntimeEntityGcDescriptors},
+            {"common/com/statespec/backend/runtime/EntityGcTypes.java", common,
+             Kind::RuntimeEntityGcTypes},
             {"common/com/statespec/backend/runtime/EntityGcRepository.java", common,
              Kind::RuntimeEntityGcRepository},
             {"common/com/statespec/backend/runtime/EntityGcWorkers.java", common,
@@ -292,7 +291,7 @@ void test_binding_app_artifact_models_define_application_filenames()
             {"common/runtime/workflows.rs", common, Kind::RuntimeWorkflowStore},
             {"common/runtime/logs.rs", common, Kind::RuntimeLogSink},
             {"common/runtime/metrics.rs", common, Kind::RuntimeMetricSink},
-            {"common/runtime/entity_gc_descriptors.rs", common, Kind::RuntimeEntityGcDescriptors},
+            {"common/runtime/entity_gc_types.rs", common, Kind::RuntimeEntityGcTypes},
             {"common/runtime/entity_gc_repository.rs", common, Kind::RuntimeEntityGcRepository},
             {"common/runtime/entity_gc_workers.rs", common, Kind::RuntimeEntityGcWorkers},
             {"common/runtime/entity_gc_registration.rs", common, Kind::RuntimeEntityGcRegistration},

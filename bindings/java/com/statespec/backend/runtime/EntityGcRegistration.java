@@ -63,7 +63,16 @@ public final class EntityGcRegistration
         Backend backend
     ) throws Backend.BackendException
     {
-        for (var descriptor : EntityGcDescriptors.descriptors())
+        registerEntityGcWorkers(registrar, backend, List.of());
+    }
+
+    public static void registerEntityGcWorkers(
+        Registrar registrar,
+        Backend backend,
+        List<EntityGcTypes.Descriptor> descriptors
+    ) throws Backend.BackendException
+    {
+        for (var descriptor : descriptors)
         {
             var worker = new EntityGcWorkers.Worker(
                 descriptor, new DefaultEntityGcRepository(), new EntityGcWorkers.WorkerConfig(0)
@@ -73,7 +82,7 @@ public final class EntityGcRegistration
     }
 
     private static boolean isTerminalGcState(
-        EntityGcDescriptors.Descriptor descriptor,
+        EntityGcTypes.Descriptor descriptor,
         String status
     )
     {
