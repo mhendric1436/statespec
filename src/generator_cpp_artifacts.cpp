@@ -761,6 +761,43 @@ bool is_api_contract_shape(
     );
 }
 
+std::optional<std::string> entity_api_shape_owner(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    for (const auto& api : system.apis)
+    {
+        if (!api.entity.has_value() || !api.repository_operation.has_value())
+        {
+            continue;
+        }
+        if ((api.input.has_value() && *api.input == shape_name) ||
+            (api.output.has_value() && *api.output == shape_name))
+        {
+            return *api.entity;
+        }
+    }
+    return std::nullopt;
+}
+
+std::vector<IrShape> entity_api_shapes(
+    const IrSystem& system,
+    std::string_view entity_name
+)
+{
+    std::vector<IrShape> shapes;
+    for (const auto& shape : system.shapes)
+    {
+        const auto owner = entity_api_shape_owner(system, shape.name);
+        if (owner.has_value() && *owner == entity_name)
+        {
+            shapes.push_back(shape);
+        }
+    }
+    return shapes;
+}
+
 IrSystem with_shapes_matching(
     const IrSystem& system,
     bool api_contract_shapes
@@ -1904,6 +1941,8 @@ void add_cpp_raw_api_file(
     std::string content
 );
 
+std::string cpp_shape_type_declaration(const IrShape& shape);
+
 std::string cpp_shape_type_header(
     const IrShape& shape,
     std::string_view backend_include
@@ -1917,6 +1956,14 @@ std::string cpp_shape_type_header(
     out << "#include <string>\n\n";
     out << "namespace statespec_generated\n";
     out << "{\n\n";
+    out << cpp_shape_type_declaration(shape);
+    out << "} // namespace statespec_generated\n";
+    return out.str();
+}
+
+std::string cpp_shape_type_declaration(const IrShape& shape)
+{
+    std::ostringstream out;
     out << "struct " << pascal_identifier(shape.name) << "\n";
     out << "{\n";
     for (const auto& field : shape.fields)
@@ -1924,18 +1971,56 @@ std::string cpp_shape_type_header(
         out << "    " << cpp_shape_type(field.type) << " " << field.name << "{};\n";
     }
     out << "};\n\n";
-    out << "} // namespace statespec_generated\n";
     return out.str();
 }
 
-std::string cpp_shapes_umbrella_header(const IrSystem& system)
+std::string cpp_shapes_umbrella_header(
+    const IrSystem& system,
+    bool api_shapes
+)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
     for (const auto& shape : system.shapes)
     {
+        if (api_shapes)
+        {
+            const auto owner = entity_api_shape_owner(system, shape.name);
+            if (owner.has_value())
+            {
+                continue;
+            }
+        }
         out << "#include \"shapes/" << snake_identifier(shape.name) << ".hpp\"\n";
     }
+    if (api_shapes)
+    {
+        for (const auto& entity : system.entities)
+        {
+            if (!entity_api_shapes(system, entity.name).empty())
+            {
+                out << "#include \"entities/" << snake_identifier(entity.name) << "/shapes.hpp\"\n";
+            }
+        }
+    }
+    return out.str();
+}
+
+std::string cpp_entity_api_shapes_header(const std::vector<IrShape>& shapes)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../../common/backend.hpp\"\n\n";
+    out << "#include <cstdint>\n";
+    out << "#include <optional>\n";
+    out << "#include <string>\n\n";
+    out << "namespace statespec_generated\n";
+    out << "{\n\n";
+    for (const auto& shape : shapes)
+    {
+        out << cpp_shape_type_declaration(shape);
+    }
+    out << "} // namespace statespec_generated\n";
     return out.str();
 }
 
@@ -1949,7 +2034,7 @@ void add_cpp_shape_type_artifacts(
     if (!shared_shapes.shapes.empty())
     {
         add_cpp_raw_common_file(
-            result, options, "shapes.hpp", cpp_shapes_umbrella_header(shared_shapes)
+            result, options, "shapes.hpp", cpp_shapes_umbrella_header(shared_shapes, false)
         );
     }
     for (const auto& shape : shared_shapes.shapes)
@@ -1972,12 +2057,30 @@ void add_cpp_api_shape_type_artifacts(
     {
         return;
     }
-    add_cpp_raw_api_file(result, options, "api/shapes.hpp", cpp_shapes_umbrella_header(api_shapes));
+    add_cpp_raw_api_file(
+        result, options, "api/shapes.hpp", cpp_shapes_umbrella_header(api_shapes, true)
+    );
     for (const auto& shape : api_shapes.shapes)
     {
+        if (entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         add_cpp_raw_api_file(
             result, options, "api/shapes/" + snake_identifier(shape.name) + ".hpp",
             cpp_shape_type_header(shape, "../../common/backend.hpp")
+        );
+    }
+    for (const auto& entity : system.entities)
+    {
+        const auto shapes = entity_api_shapes(system, entity.name);
+        if (shapes.empty())
+        {
+            continue;
+        }
+        add_cpp_raw_api_file(
+            result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.hpp",
+            cpp_entity_api_shapes_header(shapes)
         );
     }
 }

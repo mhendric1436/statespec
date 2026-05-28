@@ -10,6 +10,7 @@
 #include "statespec/runtime_usage.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <sstream>
 #include <string_view>
 #include <utility>
@@ -824,6 +825,43 @@ std::vector<IrShape> api_codec_shapes(const IrSystem& system)
     return shapes;
 }
 
+std::optional<std::string> rust_entity_api_shape_owner(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    for (const auto& api : system.apis)
+    {
+        if (!api.entity.has_value() || !api.repository_operation.has_value())
+        {
+            continue;
+        }
+        if ((api.input.has_value() && *api.input == shape_name) ||
+            (api.output.has_value() && *api.output == shape_name))
+        {
+            return *api.entity;
+        }
+    }
+    return std::nullopt;
+}
+
+std::vector<IrShape> rust_entity_api_shapes(
+    const IrSystem& system,
+    std::string_view entity_name
+)
+{
+    std::vector<IrShape> shapes;
+    for (const auto& shape : system.shapes)
+    {
+        const auto owner = rust_entity_api_shape_owner(system, shape.name);
+        if (owner.has_value() && *owner == entity_name)
+        {
+            shapes.push_back(shape);
+        }
+    }
+    return shapes;
+}
+
 IrSystem with_codec_shape_apis(
     const IrSystem& system,
     std::string_view shape_name
@@ -1583,11 +1621,20 @@ void add_rust_raw_common_file(
     );
 }
 
+std::string rust_shape_type_declaration(const IrShape& shape);
+
 std::string rust_shape_type_file(const IrShape& shape)
 {
     std::ostringstream out;
     out << "#[allow(unused_imports)]\n";
     out << "use crate::json::Json;\n\n";
+    out << rust_shape_type_declaration(shape);
+    return out.str();
+}
+
+std::string rust_shape_type_declaration(const IrShape& shape)
+{
+    std::ostringstream out;
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct " << pascal_identifier(shape.name) << " {\n";
     for (const auto& field : shape.fields)
@@ -1598,15 +1645,48 @@ std::string rust_shape_type_file(const IrShape& shape)
     return out.str();
 }
 
-std::string rust_shapes_module(const IrSystem& system)
+std::string rust_shapes_module(
+    const IrSystem& system,
+    bool api_shapes = false
+)
 {
     std::ostringstream out;
     for (const auto& shape : system.shapes)
     {
+        if (api_shapes && rust_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         const auto module_name = "shape_" + snake_identifier(shape.name);
         out << "#[path = \"shapes/" << snake_identifier(shape.name) << ".rs\"]\n";
         out << "mod " << module_name << ";\n";
         out << "pub use " << module_name << "::*;\n";
+    }
+    if (api_shapes)
+    {
+        for (const auto& entity : system.entities)
+        {
+            if (rust_entity_api_shapes(system, entity.name).empty())
+            {
+                continue;
+            }
+            const auto module_name = "entity_" + snake_identifier(entity.name) + "_shapes";
+            out << "#[path = \"entities/" << snake_identifier(entity.name) << "/shapes.rs\"]\n";
+            out << "mod " << module_name << ";\n";
+            out << "pub use " << module_name << "::*;\n";
+        }
+    }
+    return out.str();
+}
+
+std::string rust_entity_api_shapes_file(const std::vector<IrShape>& shapes)
+{
+    std::ostringstream out;
+    out << "#[allow(unused_imports)]\n";
+    out << "use crate::json::Json;\n\n";
+    for (const auto& shape : shapes)
+    {
+        out << rust_shape_type_declaration(shape) << "\n";
     }
     return out.str();
 }
@@ -1650,12 +1730,28 @@ void add_rust_api_shape_type_artifacts(
     {
         return;
     }
-    add_rust_raw_api_file(result, options, "api/shapes.rs", rust_shapes_module(api_shapes));
+    add_rust_raw_api_file(result, options, "api/shapes.rs", rust_shapes_module(api_shapes, true));
     for (const auto& shape : api_shapes.shapes)
     {
+        if (rust_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         add_rust_raw_api_file(
             result, options, "api/shapes/" + snake_identifier(shape.name) + ".rs",
             rust_shape_type_file(shape)
+        );
+    }
+    for (const auto& entity : system.entities)
+    {
+        const auto shapes = rust_entity_api_shapes(system, entity.name);
+        if (shapes.empty())
+        {
+            continue;
+        }
+        add_rust_raw_api_file(
+            result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.rs",
+            rust_entity_api_shapes_file(shapes)
         );
     }
 }

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <filesystem>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -707,6 +708,43 @@ std::vector<IrShape> api_codec_shapes(const IrSystem& system)
             }
         );
         if (used)
+        {
+            shapes.push_back(shape);
+        }
+    }
+    return shapes;
+}
+
+std::optional<std::string> java_entity_api_shape_owner(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    for (const auto& api : system.apis)
+    {
+        if (!api.entity.has_value() || !api.repository_operation.has_value())
+        {
+            continue;
+        }
+        if ((api.input.has_value() && *api.input == shape_name) ||
+            (api.output.has_value() && *api.output == shape_name))
+        {
+            return *api.entity;
+        }
+    }
+    return std::nullopt;
+}
+
+std::vector<IrShape> java_entity_api_shapes(
+    const IrSystem& system,
+    std::string_view entity_name
+)
+{
+    std::vector<IrShape> shapes;
+    for (const auto& shape : system.shapes)
+    {
+        const auto owner = java_entity_api_shape_owner(system, shape.name);
+        if (owner.has_value() && *owner == entity_name)
         {
             shapes.push_back(shape);
         }
@@ -1650,10 +1688,23 @@ void add_java_raw_common_file(
     );
 }
 
+std::string java_shape_type_file(
+    const IrShape& shape,
+    std::string_view package_name
+);
+
 std::string java_shape_type_file(const IrShape& shape)
 {
+    return java_shape_type_file(shape, "com.statespec.generated.shapes");
+}
+
+std::string java_shape_type_file(
+    const IrShape& shape,
+    std::string_view package_name
+)
+{
     std::ostringstream out;
-    out << "package com.statespec.generated.shapes;\n\n";
+    out << "package " << package_name << ";\n\n";
     out << "import com.statespec.backend.Json;\n";
     out << "import java.util.Optional;\n\n";
     out << "public record " << pascal_identifier(shape.name) << "(\n";
@@ -1664,6 +1715,32 @@ std::string java_shape_type_file(const IrShape& shape)
         out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
     }
     out << ") {}\n";
+    return out.str();
+}
+
+std::string java_entity_api_shapes_file(
+    const std::vector<IrShape>& shapes,
+    std::string_view package_name
+)
+{
+    std::ostringstream out;
+    out << "package " << package_name << ";\n\n";
+    out << "import com.statespec.backend.Json;\n";
+    out << "import java.util.Optional;\n\n";
+    out << "public final class Shapes {\n";
+    out << "    private Shapes() {}\n\n";
+    for (const auto& shape : shapes)
+    {
+        out << "    public record " << pascal_identifier(shape.name) << "(\n";
+        for (std::size_t i = 0; i < shape.fields.size(); ++i)
+        {
+            const auto& field = shape.fields[i];
+            out << "        " << java_shape_type(field.type) << " " << field.name;
+            out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
+        }
+        out << "    ) {}\n\n";
+    }
+    out << "}\n";
     return out.str();
 }
 
@@ -1715,9 +1792,29 @@ void add_java_api_shape_type_artifacts(
         {
             continue;
         }
+        if (java_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         add_java_raw_api_file(
             result, options, shape_path / (pascal_identifier(shape.name) + ".java"),
             java_shape_type_file(shape)
+        );
+    }
+    for (const auto& entity : system.entities)
+    {
+        const auto shapes = java_entity_api_shapes(system, entity.name);
+        if (shapes.empty())
+        {
+            continue;
+        }
+        const auto entity_package_path =
+            java_api_generated_path("entities") / snake_identifier(entity.name);
+        add_java_raw_api_file(
+            result, options, entity_package_path / "Shapes.java",
+            java_entity_api_shapes_file(
+                shapes, "com.statespec.generated.entities." + snake_identifier(entity.name)
+            )
         );
     }
 }
@@ -2194,26 +2291,42 @@ void add_java_external_metadata_artifacts(
 
 std::string java_api_shape_import(const IrSystem& system)
 {
+    std::ostringstream out;
+    bool has_shared_api_shapes = false;
     for (const auto& api : system.apis)
     {
-        if (api.input.has_value() || api.output.has_value())
+        const auto add_shape = [&](const std::optional<std::string>& shape_name)
         {
-            return "import com.statespec.generated.shapes.*;\n";
+            if (!shape_name.has_value())
+            {
+                return;
+            }
+            if (!java_entity_api_shape_owner(system, *shape_name).has_value())
+            {
+                has_shared_api_shapes = true;
+            }
+        };
+        add_shape(api.input);
+        add_shape(api.output);
+    }
+    if (has_shared_api_shapes)
+    {
+        out << "import com.statespec.generated.shapes.*;\n";
+    }
+    for (const auto& entity : system.entities)
+    {
+        if (!java_entity_api_shapes(system, entity.name).empty())
+        {
+            out << "import static com.statespec.generated.entities."
+                << snake_identifier(entity.name) << ".Shapes.*;\n";
         }
     }
-    return {};
+    return out.str();
 }
 
 std::string java_api_default_handler_shape_import(const IrSystem& system)
 {
-    for (const auto& api : system.apis)
-    {
-        if (api.output.has_value())
-        {
-            return "import com.statespec.generated.shapes.*;\n";
-        }
-    }
-    return {};
+    return java_api_shape_import(system);
 }
 
 void add_java_raw_api_file(

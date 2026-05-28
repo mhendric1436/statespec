@@ -11,6 +11,7 @@
 #include "type_syntax.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string_view>
@@ -769,6 +770,43 @@ std::vector<IrShape> api_codec_shapes(const IrSystem& system)
             }
         );
         if (used)
+        {
+            shapes.push_back(shape);
+        }
+    }
+    return shapes;
+}
+
+std::optional<std::string> go_entity_api_shape_owner(
+    const IrSystem& system,
+    std::string_view shape_name
+)
+{
+    for (const auto& api : system.apis)
+    {
+        if (!api.entity.has_value() || !api.repository_operation.has_value())
+        {
+            continue;
+        }
+        if ((api.input.has_value() && *api.input == shape_name) ||
+            (api.output.has_value() && *api.output == shape_name))
+        {
+            return *api.entity;
+        }
+    }
+    return std::nullopt;
+}
+
+std::vector<IrShape> go_entity_api_shapes(
+    const IrSystem& system,
+    std::string_view entity_name
+)
+{
+    std::vector<IrShape> shapes;
+    for (const auto& shape : system.shapes)
+    {
+        const auto owner = go_entity_api_shape_owner(system, shape.name);
+        if (owner.has_value() && *owner == entity_name)
         {
             shapes.push_back(shape);
         }
@@ -1719,10 +1757,13 @@ bool go_shape_uses_json(const IrShape& shape)
     return false;
 }
 
-std::string go_shape_type_file(const IrShape& shape)
+std::string go_shape_type_file(
+    const IrShape& shape,
+    std::string_view package_name = "shapes"
+)
 {
     std::ostringstream out;
-    out << "package shapes\n\n";
+    out << "package " << package_name << "\n\n";
     if (go_shape_uses_json(shape))
     {
         out << "import common \"statespec-generated/common/backend\"\n\n";
@@ -1735,6 +1776,60 @@ std::string go_shape_type_file(const IrShape& shape)
     }
     out << "}\n";
     return out.str();
+}
+
+std::string go_entity_api_shapes_file(
+    const std::vector<IrShape>& shapes,
+    std::string_view package_name
+)
+{
+    std::ostringstream out;
+    out << "package " << package_name << "\n\n";
+    const auto uses_json = std::any_of(
+        shapes.begin(), shapes.end(), [](const auto& shape) { return go_shape_uses_json(shape); }
+    );
+    if (uses_json)
+    {
+        out << "import common \"statespec-generated/common/backend\"\n\n";
+    }
+    for (const auto& shape : shapes)
+    {
+        out << "type " << pascal_identifier(shape.name) << " struct {\n";
+        for (const auto& field : shape.fields)
+        {
+            out << "\t" << pascal_identifier(field.name) << " " << go_shape_field_type(field.type)
+                << " `json:\"" << field.name << "\"`\n";
+        }
+        out << "}\n\n";
+    }
+    return out.str();
+}
+
+std::string go_api_shape_alias_file(const IrSystem& system)
+{
+    std::ostringstream imports;
+    std::ostringstream aliases;
+    for (const auto& entity : system.entities)
+    {
+        const auto shapes = go_entity_api_shapes(system, entity.name);
+        if (shapes.empty())
+        {
+            continue;
+        }
+        const auto package_alias = snake_identifier(entity.name);
+        imports << "\t" << package_alias << " \"statespec-generated/api/backend/entities/"
+                << snake_identifier(entity.name) << "\"\n";
+        for (const auto& shape : shapes)
+        {
+            aliases << "type " << pascal_identifier(shape.name) << " = " << package_alias << "."
+                    << pascal_identifier(shape.name) << "\n";
+        }
+    }
+    if (aliases.str().empty())
+    {
+        return {};
+    }
+    return "package shapes\n\nimport (\n" + imports.str() + ")\n\n" + aliases.str();
 }
 
 void add_go_shape_type_artifacts(
@@ -1775,9 +1870,30 @@ void add_go_api_shape_type_artifacts(
         {
             continue;
         }
+        if (go_entity_api_shape_owner(system, shape.name).has_value())
+        {
+            continue;
+        }
         add_go_raw_api_file(
             result, options, "api/backend/shapes/" + snake_identifier(shape.name) + ".go",
             go_shape_type_file(shape)
+        );
+    }
+    const auto aliases = go_api_shape_alias_file(system);
+    if (!aliases.empty())
+    {
+        add_go_raw_api_file(result, options, "api/backend/shapes/entities.go", aliases);
+    }
+    for (const auto& entity : system.entities)
+    {
+        const auto shapes = go_entity_api_shapes(system, entity.name);
+        if (shapes.empty())
+        {
+            continue;
+        }
+        add_go_raw_api_file(
+            result, options, "api/backend/entities/" + snake_identifier(entity.name) + "/shapes.go",
+            go_entity_api_shapes_file(shapes, snake_identifier(entity.name))
         );
     }
 }
