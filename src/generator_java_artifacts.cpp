@@ -1032,55 +1032,19 @@ TemplateRenderer::Values java_workflow_runner_values(const IrSystem& system)
 TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system)
 {
     std::vector<std::string> descriptor_calls;
-    std::ostringstream descriptor_methods;
     for (const auto& entity : system.entities)
     {
-        std::ostringstream terminal_states;
-        bool first_terminal_state = true;
-        for (const auto& state : entity.states)
-        {
-            if (!state.garbage_collection.has_value())
-            {
-                continue;
-            }
-            if (!first_terminal_state)
-            {
-                terminal_states << ",\n";
-            }
-            const auto model_class =
-                "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Model";
-            const auto schema_class =
-                "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Schema";
-            terminal_states
-                << "                new TerminalState(" << model_class << "."
-                << java_entity_state_constant_name(entity.name, state.name) << ", " << schema_class
-                << "." << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
-                << ", " << schema_class << "."
-                << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode") << ")";
-            first_terminal_state = false;
-        }
-        if (terminal_states.str().empty())
+        const auto entity_uses_gc = std::any_of(
+            entity.states.begin(), entity.states.end(),
+            [](const IrState& state) { return state.garbage_collection.has_value(); }
+        );
+        if (!entity_uses_gc)
         {
             continue;
         }
-        const auto model_class =
-            "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Model";
-        const auto descriptor_method = lower_camel_identifier(entity.name) + "Descriptor";
-        descriptor_methods << "    private static Descriptor " << descriptor_method << "()\n"
-                           << "    {\n"
-                           << "        return new Descriptor(\n"
-                           << "            " << model_class << "."
-                           << java_entity_name_constant_name(entity.name) << ",\n"
-                           << "            " << model_class << "."
-                           << java_entity_name_constant_name(entity.name) << ",\n"
-                           << "            " << model_class << "."
-                           << java_entity_field_constant_name(entity.name, "status") << ",\n"
-                           << "            List.of(\n"
-                           << terminal_states.str() << "\n"
-                           << "            )\n"
-                           << "        );\n"
-                           << "    }\n\n";
-        descriptor_calls.push_back(descriptor_method + "()");
+        descriptor_calls.push_back(
+            "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Gc.descriptor()"
+        );
     }
     std::ostringstream calls;
     for (std::size_t i = 0; i < descriptor_calls.size(); ++i)
@@ -1093,9 +1057,54 @@ TemplateRenderer::Values java_entity_gc_descriptor_values(const IrSystem& system
         calls << "\n";
     }
     return TemplateRenderer::Values{
-        {"entity_gc_descriptor_methods", descriptor_methods.str()},
         {"entity_gc_descriptor_calls", calls.str()},
     };
+}
+
+std::string java_entity_gc_descriptor_file(const IrEntity& entity)
+{
+    std::ostringstream terminal_states;
+    bool first_terminal_state = true;
+    for (const auto& state : entity.states)
+    {
+        if (!state.garbage_collection.has_value())
+        {
+            continue;
+        }
+        if (!first_terminal_state)
+        {
+            terminal_states << ",\n";
+        }
+        terminal_states
+            << "                new EntityGcDescriptors.TerminalState("
+            << "Model." << java_entity_state_constant_name(entity.name, state.name) << ", Schema."
+            << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
+            << ", Schema."
+            << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode") << ")";
+        first_terminal_state = false;
+    }
+
+    const auto package_name = "com.statespec.generated.entities." + snake_identifier(entity.name);
+    std::ostringstream out;
+    out << "package " << package_name << ";\n\n";
+    out << "import com.statespec.backend.runtime.EntityGcDescriptors;\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class Gc\n";
+    out << "{\n";
+    out << "    private Gc() {}\n\n";
+    out << "    public static EntityGcDescriptors.Descriptor descriptor()\n";
+    out << "    {\n";
+    out << "        return new EntityGcDescriptors.Descriptor(\n";
+    out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
+    out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
+    out << "            Model." << java_entity_field_constant_name(entity.name, "status") << ",\n";
+    out << "            List.of(\n";
+    out << terminal_states.str() << "\n";
+    out << "            )\n";
+    out << "        );\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
 }
 
 TemplateRenderer::Values java_api_main_values(const IrSystem& system)
@@ -2557,16 +2566,8 @@ void add_java_descriptor_module_artifacts(
         );
         if (entity_uses_gc)
         {
-            const auto package_name =
-                "com.statespec.generated.entities." + snake_identifier(entity.name);
             add_java_raw_common_file(
-                result, options, entity_path / "Gc.java",
-                "package " + package_name +
-                    ";\n\n"
-                    "public final class Gc\n"
-                    "{\n"
-                    "    private Gc() {}\n"
-                    "}\n"
+                result, options, entity_path / "Gc.java", java_entity_gc_descriptor_file(entity)
             );
         }
     }
