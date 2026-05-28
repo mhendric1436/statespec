@@ -178,6 +178,16 @@ fn generated_api_persistence_handlers_round_trip_entities() {
     require_status(&got_task, 200);
     require_string(&got_task.body, "title", "Ship");
 
+    let missing_account = handler
+        .handle_get_account(&api_request(
+            "GetAccount",
+            "GET",
+            "/v1/tenants/t1/accounts/missing",
+            Json::Object(BTreeMap::new()),
+        ))
+        .expect("get missing account failed");
+    require_status(&missing_account, 404);
+
     let accounts = handler
         .handle_list_accounts(&api_request(
             "ListAccounts",
@@ -236,6 +246,16 @@ fn generated_api_persistence_handlers_round_trip_entities() {
     require_status(&in_progress_task, 200);
     require_string(&in_progress_task.body, "status", "InProgress");
 
+    let missing_project_status = handler
+        .handle_update_project_status(&api_request(
+            "UpdateProjectStatus",
+            "PATCH",
+            "/v1/tenants/t1/projects/missing/status",
+            object(vec![("status", Json::String("Active".to_string()))]),
+        ))
+        .expect("update missing project failed");
+    require_status(&missing_project_status, 404);
+
     let deleted_project = handler
         .handle_delete_project(&api_request(
             "DeleteProject",
@@ -245,6 +265,16 @@ fn generated_api_persistence_handlers_round_trip_entities() {
         ))
         .expect("delete project failed");
     require_status(&deleted_project, 204);
+
+    let missing_project_delete = handler
+        .handle_delete_project(&api_request(
+            "DeleteProject",
+            "DELETE",
+            "/v1/tenants/t1/projects/missing",
+            Json::Object(BTreeMap::new()),
+        ))
+        .expect("delete missing project failed");
+    require_status(&missing_project_delete, 404);
 
     let got_deleted_project = handler
         .handle_get_project(&api_request(

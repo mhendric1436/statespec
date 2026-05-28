@@ -147,6 +147,10 @@ int main()
     require_status(got_task, 200);
     require_string(member(got_task.body, "title"), "Ship");
 
+    const auto missing_account =
+        handler.handle_get_account(request("GetAccount", "GET", "/v1/tenants/t1/accounts/missing"));
+    require_status(missing_account, 404);
+
     const auto accounts =
         handler.handle_list_accounts(request("ListAccounts", "GET", "/v1/tenants/t1/accounts"));
     require_status(accounts, 200);
@@ -181,10 +185,21 @@ int main()
     require_status(in_progress_task, 200);
     require_string(member(in_progress_task.body, "status"), "InProgress");
 
+    const auto missing_project_status = handler.handle_update_project_status(request(
+        "UpdateProjectStatus", "PATCH", "/v1/tenants/t1/projects/missing/status",
+        Json::object({{"status", "Active"}})
+    ));
+    require_status(missing_project_status, 404);
+
     const auto deleted_project = handler.handle_delete_project(
         request("DeleteProject", "DELETE", "/v1/tenants/t1/projects/p1")
     );
     require_status(deleted_project, 204);
+
+    const auto missing_project_delete = handler.handle_delete_project(
+        request("DeleteProject", "DELETE", "/v1/tenants/t1/projects/missing")
+    );
+    require_status(missing_project_delete, 404);
 
     const auto got_deleted_project =
         handler.handle_get_project(request("GetProject", "GET", "/v1/tenants/t1/projects/p1"));

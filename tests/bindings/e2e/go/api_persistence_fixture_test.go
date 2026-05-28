@@ -67,6 +67,9 @@ func TestGeneratedAPIPersistenceHandlers(t *testing.T) {
 	requireResponse(t, gotTask, err, 200)
 	requireJSONString(t, gotTask.Body, "title", "Ship")
 
+	missingAccount, err := handler.HandleGetAccount(ctx, apiRequest("GetAccount", "GET", "/v1/tenants/t1/accounts/missing", common.JSONNull()))
+	requireResponse(t, missingAccount, err, 404)
+
 	accounts, err := handler.HandleListAccounts(ctx, apiRequest("ListAccounts", "GET", "/v1/tenants/t1/accounts", common.JSONNull()))
 	requireResponse(t, accounts, err, 200)
 	requireJSONArrayNotEmpty(t, accounts.Body, "accounts")
@@ -94,8 +97,16 @@ func TestGeneratedAPIPersistenceHandlers(t *testing.T) {
 	requireResponse(t, inProgressTask, err, 200)
 	requireJSONString(t, inProgressTask.Body, "status", "InProgress")
 
+	missingProjectStatus, err := handler.HandleUpdateProjectStatus(ctx, apiRequest("UpdateProjectStatus", "PATCH", "/v1/tenants/t1/projects/missing/status", common.JSONObject(map[string]common.JSON{
+		"status": common.JSONString("Active"),
+	})))
+	requireResponse(t, missingProjectStatus, err, 404)
+
 	deletedProject, err := handler.HandleDeleteProject(ctx, apiRequest("DeleteProject", "DELETE", "/v1/tenants/t1/projects/p1", common.JSONNull()))
 	requireResponse(t, deletedProject, err, 204)
+
+	missingProjectDelete, err := handler.HandleDeleteProject(ctx, apiRequest("DeleteProject", "DELETE", "/v1/tenants/t1/projects/missing", common.JSONNull()))
+	requireResponse(t, missingProjectDelete, err, 404)
 
 	gotDeletedProject, err := handler.HandleGetProject(ctx, apiRequest("GetProject", "GET", "/v1/tenants/t1/projects/p1", common.JSONNull()))
 	requireResponse(t, gotDeletedProject, err, 200)

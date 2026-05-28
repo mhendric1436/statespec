@@ -74,6 +74,11 @@ public final class ApiPersistenceFixture
         requireStatus(gotTask, 200);
         requireString(gotTask.body(), "title", "Ship");
 
+        ApiResponse missingAccount = handler.handleGetAccount(
+            request("GetAccount", "GET", "/v1/tenants/t1/accounts/missing")
+        );
+        requireStatus(missingAccount, 404);
+
         ApiResponse accounts =
             handler.handleListAccounts(request("ListAccounts", "GET", "/v1/tenants/t1/accounts"));
         requireStatus(accounts, 200);
@@ -108,10 +113,21 @@ public final class ApiPersistenceFixture
         requireStatus(inProgressTask, 200);
         requireString(inProgressTask.body(), "status", "InProgress");
 
+        ApiResponse missingProjectStatus = handler.handleUpdateProjectStatus(request(
+            "UpdateProjectStatus", "PATCH", "/v1/tenants/t1/projects/missing/status",
+            Json.object(Map.of("status", Json.string("Active")))
+        ));
+        requireStatus(missingProjectStatus, 404);
+
         ApiResponse deletedProject = handler.handleDeleteProject(
             request("DeleteProject", "DELETE", "/v1/tenants/t1/projects/p1")
         );
         requireStatus(deletedProject, 204);
+
+        ApiResponse missingProjectDelete = handler.handleDeleteProject(
+            request("DeleteProject", "DELETE", "/v1/tenants/t1/projects/missing")
+        );
+        requireStatus(missingProjectDelete, 404);
 
         ApiResponse gotDeletedProject =
             handler.handleGetProject(request("GetProject", "GET", "/v1/tenants/t1/projects/p1"));
