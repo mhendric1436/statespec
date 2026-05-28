@@ -237,9 +237,12 @@ backend-neutral stores back into memory-specific packages.
 
 Generated entity GC descriptors and workers are shared common-tier runtime artifacts.
 API process and Worker runtime code may both compose those workers, but each tier must
-expose explicit config flags for enabling or disabling GC. Defaults should keep
-standalone generated apps working, while production deployments can disable GC on the
-tier that should not host background collection.
+bind GC workers from its own generated descriptor catalog. Shared GC registration
+helpers must accept an explicit descriptor list from the caller; they must not discover
+or call a common global descriptor function internally. Each tier must expose explicit
+config flags for enabling or disabling GC. Defaults should keep standalone generated
+apps working, while production deployments can disable GC on the tier that should not
+host background collection.
 
 Do not add domain-specific transaction staging fields such as queue message maps,
 workflow execution maps, lease maps, feature flag maps, log append buffers, or metric

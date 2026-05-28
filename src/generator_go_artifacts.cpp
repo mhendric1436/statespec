@@ -1021,7 +1021,7 @@ TemplateRenderer::Values go_api_main_values(const IrSystem& system)
     return TemplateRenderer::Values{
         {"api_main_entity_gc_import", "\truntime \"statespec-generated/common/backend/runtime\"\n"},
         {"api_main_entity_gc_registration",
-         "\tif err := runtime.RegisterEntityGCWorkersForDescriptors(func(worker "
+         "\tif err := runtime.RegisterEntityGCWorkers(func(worker "
          "func(context.Context, string) error) error {\n"
          "\t\treturn process.AddEntityGCWorker(api.EntityGCWorkerFunc(worker))\n"
          "\t}, backend, api.APIEntityGCDescriptors()); err != nil {\n"
@@ -1045,7 +1045,7 @@ TemplateRenderer::Values go_worker_main_values(const IrSystem& system)
         {"worker_main_entity_gc_import",
          "\truntimegc \"statespec-generated/common/backend/runtime\"\n"},
         {"worker_main_entity_gc_registration",
-         "\tif err := runtimegc.RegisterEntityGCWorkersForDescriptors(func(gcWorker "
+         "\tif err := runtimegc.RegisterEntityGCWorkers(func(gcWorker "
          "func(context.Context, string) error) error {\n"
          "\t\treturn runtime.AddEntityGCWorker(worker.WorkerEntityGCWorkerFunc(gcWorker))\n"
          "\t}, backend, worker.WorkerEntityGCDescriptors()); err != nil {\n"

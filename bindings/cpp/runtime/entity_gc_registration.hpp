@@ -84,13 +84,4 @@ void register_entity_gc_workers(
     }
 }
 
-template <typename Registrar>
-void register_entity_gc_workers(
-    Registrar& registrar,
-    IBackend& backend
-)
-{
-    register_entity_gc_workers(registrar, backend, std::vector<EntityGcDescriptor>{});
-}
-
 } // namespace statespec::backend::runtime

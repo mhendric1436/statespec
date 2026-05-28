@@ -261,6 +261,7 @@ assert_file_contains "$TMPDIR/out-cpp/common/runtime/entity_gc_workers.hpp" "cla
 assert_file_contains "$TMPDIR/out-cpp/common/runtime/entity_gc_registration.hpp" "class DefaultEntityGcRepository"
 assert_file_contains "$TMPDIR/out-cpp/common/runtime/entity_gc_registration.hpp" "register_entity_gc_workers"
 assert_file_contains "$TMPDIR/out-cpp/common/runtime/entity_gc_registration.hpp" "const std::vector<EntityGcDescriptor>& descriptors"
+assert_file_not_contains "$TMPDIR/out-cpp/common/runtime/entity_gc_registration.hpp" "std::vector<EntityGcDescriptor>{}"
 assert_file_contains "$TMPDIR/out-cpp/common/runtime/entity_gc_registration.hpp" "for (const auto& descriptor : descriptors)"
 assert_file_not_contains "$TMPDIR/out-cpp/common/runtime/entity_gc_registration.hpp" "Scheduler"
 assert_file_not_contains "$TMPDIR/out-cpp/common/runtime/entity_gc_registration.hpp" "lease"

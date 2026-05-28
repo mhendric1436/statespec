@@ -51,11 +51,7 @@ func (DefaultEntityGCRepository) FinalizeGCTx(
 	return tx.Erase(ctx, common.CollectionName(request.Descriptor.Collection), request.Key)
 }
 
-func RegisterEntityGCWorkers(register EntityGCRegistrationFunc, backend common.Backend) error {
-	return RegisterEntityGCWorkersForDescriptors(register, backend, nil)
-}
-
-func RegisterEntityGCWorkersForDescriptors(register EntityGCRegistrationFunc, backend common.Backend, descriptors []EntityGCDescriptor) error {
+func RegisterEntityGCWorkers(register EntityGCRegistrationFunc, backend common.Backend, descriptors []EntityGCDescriptor) error {
 	for _, descriptor := range descriptors {
 		worker := NewEntityGCWorker(
 			descriptor,

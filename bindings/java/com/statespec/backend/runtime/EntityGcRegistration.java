@@ -60,14 +60,6 @@ public final class EntityGcRegistration
 
     public static void registerEntityGcWorkers(
         Registrar registrar,
-        Backend backend
-    ) throws Backend.BackendException
-    {
-        registerEntityGcWorkers(registrar, backend, List.of());
-    }
-
-    public static void registerEntityGcWorkers(
-        Registrar registrar,
         Backend backend,
         List<EntityGcTypes.Descriptor> descriptors
     ) throws Backend.BackendException

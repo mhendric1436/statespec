@@ -178,7 +178,7 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/handlers/project.rs" "st
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/persistence.rs" "update_tx"
 assert_file_contains "$TMPDIR/out-api-entities-rust/common/entities/project/model.rs" "PROJECT_STATUS_DELETED"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "use crate::api_entity_gc_catalog::entity_gc_descriptors"
-assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "register_entity_gc_workers_with_descriptors"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "register_entity_gc_workers"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/main.rs" "api_entity_gc_descriptors()"
 mkdir -p "$TMPDIR/out-api-entities-rust/tests"
 cp "$SCRIPT_DIR/api_persistence_fixture.rs" "$TMPDIR/out-api-entities-rust/tests/api_persistence_fixture.rs"
@@ -186,7 +186,7 @@ run_expect_status 0 make -C "$TMPDIR/out-api-entities-rust" check-api
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-rust"
 assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/main.rs"
-assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::runtime_entity_gc_registration::register_entity_gc_workers_with_descriptors"
+assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::runtime_entity_gc_registration::register_entity_gc_workers"
 assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::worker_entity_gc_catalog::entity_gc_descriptors"
 assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "worker_entity_gc_descriptors()"
 
@@ -251,7 +251,7 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/worker_process.rs" "pub fn req
 assert_file_contains "$TMPDIR/out-app-rust/worker/worker_process.rs" "fn start_worker_loops"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "WorkerProcess::new"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "DefaultWorkflowStepHandler"
-assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "register_entity_gc_workers_with_descriptors"
+assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "register_entity_gc_workers"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "worker_entity_gc_descriptors()"
 assert_file_contains "$TMPDIR/out-app-rust/worker/entity_gc_catalog.rs" "service_instance_entity_gc_descriptor()"
 assert_file_contains "$TMPDIR/out-app-rust/worker/main.rs" "install_signal_handling"

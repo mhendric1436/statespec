@@ -46,17 +46,6 @@ impl<Tx: Transaction> EntityGcRepository<Tx> for DefaultEntityGcRepository {
 pub type EntityGcTask = Arc<dyn Fn(String) -> BackendResult<()> + Send + Sync>;
 
 pub fn register_entity_gc_workers<B, F>(
-    register: F,
-    backend: Arc<B>,
-) -> BackendResult<()>
-where
-    B: Backend + Send + Sync + 'static,
-    F: FnMut(EntityGcTask) -> BackendResult<()>,
-{
-    register_entity_gc_workers_with_descriptors(register, backend, Vec::new())
-}
-
-pub fn register_entity_gc_workers_with_descriptors<B, F>(
     mut register: F,
     backend: Arc<B>,
     descriptors: Vec<EntityGcDescriptor>,

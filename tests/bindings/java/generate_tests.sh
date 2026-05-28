@@ -279,6 +279,7 @@ assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/Enti
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "class DefaultEntityGcRepository"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "registerEntityGcWorkers"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "List<EntityGcTypes.Descriptor> descriptors"
+assert_file_not_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "List.of()"
 assert_file_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "for (var descriptor : descriptors)"
 assert_file_not_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "Scheduler"
 assert_file_not_contains "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java" "Lease"

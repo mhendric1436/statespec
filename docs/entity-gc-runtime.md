@@ -120,16 +120,19 @@ a small `runOnce`/`run_once` surface for one entity descriptor and leaves lifecy
 thread ownership to the generated API or Worker app composition layer.
 
 Generated API processes expose an entity GC worker registration hook and own the
-background lifecycle after `start()` is called. Registered GC workers run on generated
-background threads or goroutines, receive stop requests through the same process shutdown
-path as the API transport, and are joined before `join()` completes. The concrete
-repository implementation that supplies eligible rows remains backend/runtime-owned.
+background lifecycle after `start()` is called. Generated API startup passes the
+API-owned GC descriptor catalog into the shared registration helper; the helper does
+not discover descriptors globally. Registered GC workers run on generated background
+threads or goroutines, receive stop requests through the same process shutdown path as
+the API transport, and are joined before `join()` completes. The concrete repository
+implementation that supplies eligible rows remains backend/runtime-owned.
 
 Generated Worker processes use the same lifecycle shape. `WorkerProcess.start()` starts
-Worker-hosted entity GC when enabled, starts generated workflow polling loops, and
-`WorkerProcess.join()` waits for both GC workers and workflow loops to stop. This keeps
-GC usable in API-only, Worker-only, and mixed deployments without moving GC into
-workflow code.
+Worker-hosted entity GC when enabled after startup passes the Worker-owned GC descriptor
+catalog into the shared registration helper. It then starts generated workflow polling
+loops, and `WorkerProcess.join()` waits for both GC workers and workflow loops to stop.
+This keeps GC usable in API-only, Worker-only, and mixed deployments without moving GC
+into workflow code.
 
 The generated architecture diagrams show this composition:
 

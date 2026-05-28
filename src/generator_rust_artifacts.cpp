@@ -94,9 +94,9 @@ TemplateRenderer::Values rust_api_main_values(const IrSystem& system)
                                       "api_entity_gc_descriptors;\n"
                                       "use "
                                       "crate::runtime_entity_gc_registration::register_entity_gc_"
-                                      "workers_with_descriptors;\n"},
+                                      "workers;\n"},
         {"api_main_entity_gc_backend_clone", "    let gc_backend = backend.clone();\n"},
-        {"api_main_entity_gc_registration", "    register_entity_gc_workers_with_descriptors(\n"
+        {"api_main_entity_gc_registration", "    register_entity_gc_workers(\n"
                                             "        |task| process.add_entity_gc_worker(task),\n"
                                             "        std::sync::Arc::new(gc_backend),\n"
                                             "        api_entity_gc_descriptors(),\n"
@@ -117,12 +117,12 @@ TemplateRenderer::Values rust_worker_main_values(const IrSystem& system)
     }
     return TemplateRenderer::Values{
         {"worker_main_entity_gc_import",
-         "use crate::runtime_entity_gc_registration::register_entity_gc_workers_with_descriptors;\n"
+         "use crate::runtime_entity_gc_registration::register_entity_gc_workers;\n"
          "use crate::worker_entity_gc_catalog::entity_gc_descriptors as "
          "worker_entity_gc_descriptors;\n"},
         {"worker_main_entity_gc_backend_clone", "    let gc_backend = backend.clone();\n"},
         {"worker_main_entity_gc_registration",
-         "    register_entity_gc_workers_with_descriptors(\n"
+         "    register_entity_gc_workers(\n"
          "        |task| process.runtime.add_entity_gc_worker(task),\n"
          "        std::sync::Arc::new(gc_backend),\n"
          "        worker_entity_gc_descriptors(),\n"
