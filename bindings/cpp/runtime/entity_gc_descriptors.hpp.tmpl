@@ -23,10 +23,11 @@ struct EntityGcDescriptor
     std::vector<EntityGcTerminalStateDescriptor> terminal_states;
 };
 
+{{entity_gc_descriptor_functions}}
 inline std::vector<EntityGcDescriptor> entity_gc_descriptors()
 {
     return std::vector<EntityGcDescriptor>{
-{{entity_gc_descriptors}}    };
+{{entity_gc_descriptor_calls}}    };
 }
 
 } // namespace statespec::backend::runtime
