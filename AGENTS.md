@@ -361,14 +361,17 @@ Generated API apps own structural wiring, not business behavior:
   including unblocking when the generated process requests stop.
 - Route lookup and dispatch.
 - Per-action handler interfaces.
+- Concrete generated default handlers for entity-owned CRUD operations identified by
+  `api.entity` plus `api.repository_operation` in IR.
 - Operator metadata API contracts.
 - Descriptor views over APIs, routes, servers, shapes, and external-system metadata mappings.
 
 User-owned code supplies real network transport selection, HTTP/RPC framework adapters,
-authentication, authorization, tenancy policy, concrete handlers, validation beyond the
-spec, concrete backend adapter, and outbound clients. Generated local transports must
-not be treated as an opinionated HTTP backend; they own only local lifecycle
-blocking/unblocking until StateSpec intentionally adopts a concrete HTTP runtime.
+authentication, authorization, tenancy policy, concrete handlers for top-level business
+APIs, validation beyond the spec, concrete backend adapter, and outbound clients.
+Generated local transports must not be treated as an opinionated HTTP backend; they own
+only local lifecycle blocking/unblocking until StateSpec intentionally adopts a concrete
+HTTP runtime.
 
 Generated `main` functions and tests should not wrap `ApiProcess.run` in ad hoc
 threads. `ApiProcess` owns the background thread, goroutine, or task; callers start it,
@@ -529,6 +532,21 @@ entity Name {
 - State machine transitions must reference valid state members.
 - Terminal states must be marked `terminal: true`, listed in `terminal [...]`, and declare `garbage_collection`.
 - Workflows may not introduce undeclared state transitions; workflow state mutation must use declared transitions.
+
+### Entity-owned CRUD APIs
+
+Canonical CRUD is entity-owned. Standard create, get, list, status update, and delete
+operations must be declared inside the entity `api` block so they derive from the
+entity key, fields, indexes, state machine, and garbage-collection semantics.
+
+Do not hand-write duplicate top-level APIs for `Create<Entity>`, `Get<Entity>`,
+`List<Entity>`, `Update<Entity>Status`, or `Delete<Entity>` lifecycle operations.
+Top-level `api` declarations are for business actions that are not standard entity
+lifecycle operations, such as starting a workflow, enqueueing a command, or exposing a
+domain-specific operation.
+
+Entity-owned list APIs may use only key prefixes, declared index names, or declared
+index field prefixes in order. They must not imply arbitrary scan-by-field behavior.
 
 ---
 
@@ -922,6 +940,10 @@ Each generator should:
 - have golden tests
 - avoid hidden runtime assumptions
 - emit clear warnings for unsupported language features
+- derive canonical CRUD API, shape, repository, OpenAPI, and default handler surfaces
+  from entity-owned CRUD IR
+- use `api.entity` plus `api.repository_operation` as the source of truth for generated
+  entity CRUD handler behavior; do not infer CRUD behavior from operation names
 - emit tiered app artifacts into `common`, `api`, and `worker` paths where applicable
 - keep generated descriptor values spec-driven
 - prune generated runtime artifacts, imports, module declarations, and compile-check

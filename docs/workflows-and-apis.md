@@ -4,6 +4,11 @@ Workflows describe long-running orchestration. APIs describe external operations
 start workflows, enqueue messages, load entities, allocate entities, and return results.
 API servers describe runtime actors that host one or more declared APIs.
 
+Canonical CRUD is entity-owned. Use an entity `api` block for standard create, get,
+key/index-backed list, status update, and delete operations. Use top-level `api`
+declarations for business actions that are not standard entity lifecycle operations,
+such as starting a workflow, enqueueing a command, or exposing a domain-specific action.
+
 ## Workflow Skeleton
 
 ```statespec

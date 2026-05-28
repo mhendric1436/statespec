@@ -67,6 +67,9 @@ struct IrApi
     std::optional<std::string> error;
     std::optional<std::string> starts_workflow;
     std::optional<std::string> enqueues;
+    // Entity-owned CRUD APIs are identified by entity + repository_operation.
+    // Generators must use this metadata instead of operation-name heuristics when
+    // deciding whether to emit generated CRUD handlers.
     std::optional<std::string> entity;
     std::optional<std::string> repository_operation;
     std::vector<std::string> list_selector;

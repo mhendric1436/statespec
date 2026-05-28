@@ -164,6 +164,13 @@ rather than embedding raw index names in API code. The repository then translate
 typed generated surface into generic OCC backend queries within the caller-managed
 transaction.
 
+Entity-owned CRUD APIs always generate default handlers. The source of truth is IR
+metadata, not method-name conventions: an API with both `api.entity` and
+`api.repository_operation` set is a generated entity lifecycle operation. Generators
+must emit concrete create, get, list, status update, and delete behavior for those APIs.
+Manual user handler implementations remain the extension point for top-level business
+APIs that do not have entity repository metadata.
+
 Generated constants are the canonical spelling source for entity metadata in binding
 output. Entity names, field names, state values, and index names are emitted once and
 then reused by descriptors, repository helpers, generated API handlers, GC metadata, and
@@ -190,12 +197,14 @@ Generated API codec files provide the canonical conversion between the framework
 | Rust | `api_codecs.rs` |
 
 The generated default API handler uses these codecs for every declared API operation.
-For APIs with a primary action model such as `starts workflow` or `enqueues`, the default
-handler returns an accepted response shape with deterministic action identifiers when
-the output shape includes fields such as `workflow_execution_id` or `message_id`.
-Production systems should replace or wrap the default handler when they need
-domain-specific persistence, authorization, or runtime side effects beyond the generated
-transport/action skeleton.
+For entity-owned CRUD operations, the default handler is production-shaped generated
+persistence behavior built on the generated entity repository and caller-owned backend.
+For top-level business APIs with a primary action model such as `starts workflow` or
+`enqueues`, the default handler remains a linking/test skeleton that returns an accepted
+response shape with deterministic action identifiers when the output shape includes
+fields such as `workflow_execution_id` or `message_id`. Production systems should
+replace or wrap business API handlers when they need domain-specific persistence,
+authorization, or runtime side effects beyond the generated transport/action skeleton.
 
 When testing API handlers locally, inject the generated in-memory backend through the
 same application-owned dependency path that production code uses for its durable

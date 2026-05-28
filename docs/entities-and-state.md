@@ -294,6 +294,12 @@ lower them into backend-specific metadata.
 
 ## Entity-Owned API Intent
 
+Canonical CRUD is entity-owned. Standard entity lifecycle operations belong in the
+entity `api` block, not in hand-written top-level `api` declarations. Use top-level
+APIs for business actions that are not standard create, get, list, status update, or
+delete operations, such as starting a workflow, enqueueing a domain command, or invoking
+a domain-specific action.
+
 Entities may declare canonical CRUD API intent inside an `api` block. This makes the
 entity the source of truth for routine create, get, list, status update, and delete
 contracts instead of requiring authors to hand-write repetitive API declarations.
@@ -326,6 +332,11 @@ api {
 Operation names are optional overrides. If omitted, generators can derive canonical
 operation names from the entity name and operation kind.
 
+Avoid manually declaring duplicate `Create<Entity>`, `Get<Entity>`, `List<Entity>`,
+`Update<Entity>Status`, or `Delete<Entity>` APIs for the same entity. Those operations
+are derived from the entity and stay aligned with entity keys, indexes, state machine
+transitions, repository methods, OpenAPI schemas, and generated default handlers.
+
 During IR lowering, entity-owned API intent becomes ordinary canonical API IR. The
 lowering synthesizes request/response shapes, API declarations, route metadata,
 repository operation linkage, and API server membership. Default names are
@@ -334,11 +345,15 @@ deterministic: `CreateAccount`, `GetAccount`, `ListAccounts`,
 `AccountResponse`.
 
 Generated default handlers consume this CRUD IR metadata instead of re-inferring
-behavior from API names. List handlers are intentionally limited to selectors backed
-by the entity key or a declared index prefix. For example, a list selector that
-lowers to `by_project_status` calls the generated `listByProjectStatusTx`-style
-repository method and passes only the selector prefix values available from the
-route. Generators must not emit arbitrary scan-by-field list handlers.
+behavior from API names. The contract is explicit: `api.entity` plus
+`api.repository_operation` marks a generated entity lifecycle operation. Generators must
+emit concrete default handlers for those operations. Manual handler implementations are
+reserved for top-level business APIs that are not standard entity CRUD. List handlers
+are intentionally limited to selectors backed by the entity key or a declared index
+prefix. For example, a list selector that lowers to `by_project_status` calls the
+generated `listByProjectStatusTx`-style repository method and passes only the selector
+prefix values available from the route. Generators must not emit arbitrary scan-by-field
+list handlers.
 
 Derived shapes are entity-owned and route-aware. `Create<Entity>Request` contains
 only non-path key fields plus the explicit `create fields` allowlist; key fields

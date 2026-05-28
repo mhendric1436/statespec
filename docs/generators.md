@@ -255,6 +255,19 @@ derived CRUD APIs: derived create and update-status request bodies come from the
 synthesized request shapes, path parameters come from the resource/list paths, and
 entity/list responses come from the synthesized response shapes.
 
+The generator contract treats canonical CRUD as entity-owned. Binding and OpenAPI
+generators should derive standard create, get, list, status update, and delete surfaces
+from the entity `api` block and its keys, indexes, fields, and state machine. Top-level
+`api` declarations are reserved for business actions that are not standard entity
+lifecycle operations, such as starting a workflow, enqueueing a command, or exposing a
+domain-specific action.
+
+For binding generators, entity CRUD handler generation is mandatory. The handler
+decision boundary is the lowered API IR: `api.entity` plus `api.repository_operation`
+identifies an entity-owned lifecycle operation and must produce a concrete generated
+default handler. Top-level business APIs without that repository metadata continue to
+expose user-owned handler extension points.
+
 Shape declarations become reusable `components.schemas` entries. Primitive StateSpec
 types are mapped to conservative JSON Schema types, while references to declared
 shapes become OpenAPI `$ref` schemas.
@@ -348,6 +361,8 @@ Generated API metadata includes:
 - error type
 - workflow start target
 - queue enqueue target
+- entity repository target for generated CRUD APIs
+- repository operation for generated CRUD APIs
 
 Generated API server metadata includes:
 

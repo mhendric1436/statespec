@@ -76,6 +76,24 @@ OpenAPI output is written to:
 build/generated/order-system/openapi/openapi.json
 ```
 
+## Generate Entity-Owned CRUD APIs
+
+Canonical CRUD APIs are declared on entities. The `examples/api-entities-only.sspec`
+example shows `Account`, `Project`, and `Task` entities deriving create, get, list,
+status update, and delete operations from entity `api` blocks. Top-level `api`
+declarations should be used for business actions that are not standard entity lifecycle
+operations.
+
+Generate bindings and OpenAPI for the entity CRUD example:
+
+```sh
+./build/bin/statespec generate bindings --lang cpp examples/api-entities-only.sspec --out build/generated/api-entities-only/cpp
+./build/bin/statespec generate bindings --lang go examples/api-entities-only.sspec --out build/generated/api-entities-only/go
+./build/bin/statespec generate bindings --lang java examples/api-entities-only.sspec --out build/generated/api-entities-only/java
+./build/bin/statespec generate bindings --lang rust examples/api-entities-only.sspec --out build/generated/api-entities-only/rust
+./build/bin/statespec generate openapi examples/api-entities-only.sspec --out build/generated/api-entities-only/openapi
+```
+
 ## Generate The Other Examples
 
 Feature flag example:
