@@ -115,7 +115,7 @@ assert_file_contains "$TMPDIR/out-e2e-cpp/api/descriptors/catalog.hpp" "\"Operat
 assert_file_contains "$TMPDIR/out-e2e-cpp/api/descriptors/catalog.hpp" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/external_systems.hpp" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/external_systems.hpp" "\"input.payment_id\""
-assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors.hpp" "IExternalSystemOperatorMetadataApiHandler"
+assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/types.hpp" "IExternalSystemOperatorMetadataApiHandler"
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-e2e-cpp" -I"$TMPDIR/out-e2e-cpp/common" "$SCRIPT_DIR/api_process_fixture.cpp" -o "$TMPDIR/api-process-fixture-cpp"
 run_expect_status 0 "$TMPDIR/api-process-fixture-cpp"
 
