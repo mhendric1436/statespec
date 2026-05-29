@@ -1808,6 +1808,16 @@ std::string rust_entity_shape_field_descriptor_expr(
     auto expression = rust_shape_field_descriptor_expr(shape.name, field);
     if (rust_find_entity_field(entity, field.name) == nullptr)
     {
+        if (field.name == rust_entity_plural_api_field_name(entity.name))
+        {
+            return "FieldDescriptor { name: entity_constants::" +
+                   rust_entity_plural_name_constant_name(entity.name) +
+                   ".to_string(), field_type: " + rust_field_type_enum_expr(field.type) +
+                   ", type_name: " +
+                   rust_shape_field_type_name_constant_name(shape.name, field.name) +
+                   ".to_string(), required: " +
+                   (rust_field_required(field.type) ? "true" : "false") + " }";
+        }
         return expression;
     }
     expression = replace_all_copy(
@@ -1834,6 +1844,12 @@ std::string rust_entity_api_shape_descriptors(
     {
         if (rust_find_entity_field(entity, field.name) != nullptr)
         {
+            continue;
+        }
+        if (field.name == rust_entity_plural_api_field_name(entity.name))
+        {
+            out << "pub const " << rust_shape_field_type_name_constant_name(shape.name, field.name)
+                << ": &str = " << rust_string(field.type) << ";\n";
             continue;
         }
         out << "pub const " << rust_shape_field_constant_name(shape.name, field.name)

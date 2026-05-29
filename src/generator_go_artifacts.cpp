@@ -2084,6 +2084,16 @@ std::string go_entity_shape_field_descriptor_expr(
     expression = replace_all_copy(expression, "FieldType", "common.FieldType");
     if (go_find_entity_field(entity, field.name) == nullptr)
     {
+        if (field.name == go_entity_plural_api_field_name(entity.name))
+        {
+            const auto field_type = replace_all_copy(
+                go_field_type_enum_expr(field.type), "FieldType", "common.FieldType"
+            );
+            return "{Name: entityconstants." + go_entity_plural_name_constant_name(entity.name) +
+                   ", Type: " + field_type +
+                   ", TypeName: " + go_shape_field_type_name_constant_name(shape.name, field.name) +
+                   ", Required: " + (go_field_required(field.type) ? "true" : "false") + "}";
+        }
         return expression;
     }
     expression = replace_all_copy(
@@ -2111,6 +2121,12 @@ std::string go_entity_api_shape_descriptor_content(
     {
         if (go_find_entity_field(entity, field.name) != nullptr)
         {
+            continue;
+        }
+        if (field.name == go_entity_plural_api_field_name(entity.name))
+        {
+            out << "\t" << go_shape_field_type_name_constant_name(shape.name, field.name) << " = "
+                << go_string(field.type) << "\n";
             continue;
         }
         out << "\t" << go_shape_field_constant_name(shape.name, field.name) << " = "
@@ -2145,8 +2161,12 @@ bool go_entity_api_shapes_use_entity_constants(
         [&](const IrShape& shape)
         {
             return std::any_of(
-                shape.fields.begin(), shape.fields.end(), [&](const IrField& field)
-                { return go_find_entity_field(entity, field.name) != nullptr; }
+                shape.fields.begin(), shape.fields.end(),
+                [&](const IrField& field)
+                {
+                    return go_find_entity_field(entity, field.name) != nullptr ||
+                           field.name == go_entity_plural_api_field_name(entity.name);
+                }
             );
         }
     );
@@ -2223,8 +2243,12 @@ std::string go_entity_api_shapes_file(
         out << "type " << pascal_identifier(shape.name) << " struct {\n";
         for (const auto& field : shape.fields)
         {
-            out << "\t" << pascal_identifier(field.name) << " " << go_shape_field_type(field.type)
-                << " `json:\"" << field.name << "\"`\n";
+            out << "\t" << pascal_identifier(field.name) << " " << go_shape_field_type(field.type);
+            if (field.name != go_entity_plural_api_field_name(entity.name))
+            {
+                out << " `json:\"" << field.name << "\"`";
+            }
+            out << "\n";
         }
         out << "}\n\n";
         out << go_entity_api_shape_descriptor_content(

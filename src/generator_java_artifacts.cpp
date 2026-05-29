@@ -1927,6 +1927,14 @@ std::string java_entity_shape_field_descriptor_expr(
     auto expression = java_shape_field_descriptor_expr(shape.name, field);
     if (java_find_entity_field(entity, field.name) == nullptr)
     {
+        if (field.name == java_entity_plural_api_field_name(entity.name))
+        {
+            return "new FieldDescriptor(Constants." +
+                   java_entity_plural_name_constant_name(entity.name) + ", " +
+                   java_field_type_enum_expr(field.type) + ", " +
+                   java_shape_field_type_name_constant_name(shape.name, field.name) + ", " +
+                   (java_field_required(field.type) ? "true" : "false") + ")";
+        }
         return expression;
     }
     expression = replace_all_copy(
@@ -1954,6 +1962,13 @@ std::string java_entity_api_shape_descriptors(
         {
             if (java_find_entity_field(entity, field.name) != nullptr)
             {
+                continue;
+            }
+            if (field.name == java_entity_plural_api_field_name(entity.name))
+            {
+                out << "    public static final String "
+                    << java_shape_field_type_name_constant_name(shape.name, field.name) << " = "
+                    << java_string(field.type) << ";\n";
                 continue;
             }
             out << "    public static final String "

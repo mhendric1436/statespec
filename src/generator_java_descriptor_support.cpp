@@ -228,6 +228,16 @@ std::string java_field_descriptor_expr(const IrField& field)
            (is_required_descriptor_field(field.type) ? "true" : "false") + ")";
 }
 
+std::string java_field_type_enum_expr(const std::string& type)
+{
+    return java_field_type_expr(classify_field_descriptor_type(type));
+}
+
+bool java_field_required(const std::string& type)
+{
+    return is_required_descriptor_field(type);
+}
+
 std::string java_entity_field_descriptor_expr(
     const std::string& entity_name,
     const IrField& field

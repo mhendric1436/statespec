@@ -43,6 +43,8 @@ std::string java_shape_field_type_name_constant_name(
     const std::string& field_name
 );
 std::string java_field_descriptor_expr(const IrField& field);
+std::string java_field_type_enum_expr(const std::string& type);
+bool java_field_required(const std::string& type);
 std::string java_entity_field_descriptor_expr(
     const std::string& entity_name,
     const IrField& field

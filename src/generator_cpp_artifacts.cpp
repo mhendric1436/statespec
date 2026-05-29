@@ -2137,6 +2137,15 @@ std::string cpp_entity_shape_field_descriptor_expr(
     auto expression = cpp_shape_field_descriptor_expr(shape.name, field);
     if (cpp_find_entity_field(entity, field.name) == nullptr)
     {
+        if (field.name == cpp_entity_plural_api_field_name(entity.name))
+        {
+            return "statespec::backend::FieldDescriptor{entities::" +
+                   snake_identifier(entity.name) +
+                   "::constants::" + cpp_entity_plural_name_constant_name(entity.name) + ", " +
+                   cpp_field_type_enum_expr(field.type) + ", " +
+                   cpp_shape_field_type_name_constant_name(shape.name, field.name) + ", " +
+                   (cpp_field_required(field.type) ? "true" : "false") + "}";
+        }
         return expression;
     }
     expression = replace_all_copy(
@@ -2165,6 +2174,13 @@ std::string cpp_entity_api_shape_descriptor_declarations(
     {
         if (cpp_find_entity_field(entity, field.name) != nullptr)
         {
+            continue;
+        }
+        if (field.name == cpp_entity_plural_api_field_name(entity.name))
+        {
+            out << "inline constexpr const char* "
+                << cpp_shape_field_type_name_constant_name(shape.name, field.name) << " = "
+                << cpp_string(field.type) << ";\n";
             continue;
         }
         out << "inline constexpr const char* "
