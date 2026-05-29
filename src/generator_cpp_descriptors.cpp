@@ -968,7 +968,6 @@ std::string generate_system_descriptors_header(
     }
     out << generate_cpp_observability_descriptors(system);
     out << generate_cpp_runtime_descriptors(system);
-    out << generate_cpp_observability_registration(system);
     out << "} // namespace statespec_generated\n";
     out << "\n#include \"runtime_registration.hpp\"\n";
     return out.str();

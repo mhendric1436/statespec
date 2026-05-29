@@ -35,7 +35,6 @@ std::string generate_java_workflow_descriptor(
     std::string_view class_name
 );
 std::string generate_java_workflow_descriptor_umbrella(const IrSystem& system);
-std::string generate_java_observability_registration(const IrSystem& system);
 std::string generate_java_runtime_registration(
     const IrSystem& system,
     const TemplatePackage& templates

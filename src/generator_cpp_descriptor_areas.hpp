@@ -29,7 +29,6 @@ std::string generate_cpp_entity_descriptors(const IrSystem& system);
 std::string generate_cpp_runtime_descriptors(const IrSystem& system);
 std::string generate_cpp_workflow_descriptor(const IrWorkflow& workflow);
 std::string generate_cpp_workflow_descriptor_umbrella(const IrSystem& system);
-std::string generate_cpp_observability_registration(const IrSystem& system);
 std::string generate_cpp_runtime_registration(
     const IrSystem& system,
     const TemplatePackage& templates
