@@ -2058,6 +2058,96 @@ std::string go_api_shape_descriptor_content(
     return content;
 }
 
+const IrField* go_find_entity_field(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    const auto it = std::find_if(
+        entity.fields.begin(), entity.fields.end(),
+        [&](const IrField& field) { return field.name == field_name; }
+    );
+    return it == entity.fields.end() ? nullptr : &*it;
+}
+
+std::string go_entity_shape_field_descriptor_expr(
+    const IrEntity& entity,
+    const IrShape& shape,
+    const IrField& field
+)
+{
+    auto expression = go_shape_field_descriptor_expr(shape.name, field);
+    expression = replace_all_copy(expression, "FieldType", "common.FieldType");
+    if (go_find_entity_field(entity, field.name) == nullptr)
+    {
+        return expression;
+    }
+    expression = replace_all_copy(
+        expression, go_shape_field_constant_name(shape.name, field.name),
+        "entityconstants." + go_entity_field_constant_name(entity.name, field.name)
+    );
+    expression = replace_all_copy(
+        expression, go_shape_field_type_name_constant_name(shape.name, field.name),
+        "entityconstants." + go_entity_field_type_name_constant_name(entity.name, field.name)
+    );
+    return expression;
+}
+
+std::string go_entity_api_shape_descriptor_content(
+    const IrEntity& entity,
+    const IrShape& shape,
+    std::string_view function_name
+)
+{
+    std::ostringstream out;
+    out << "const (\n";
+    out << "\t" << go_shape_name_constant_name(shape.name) << " = " << go_string(shape.name)
+        << "\n";
+    for (const auto& field : shape.fields)
+    {
+        if (go_find_entity_field(entity, field.name) != nullptr)
+        {
+            continue;
+        }
+        out << "\t" << go_shape_field_constant_name(shape.name, field.name) << " = "
+            << go_string(field.name) << "\n";
+        out << "\t" << go_shape_field_type_name_constant_name(shape.name, field.name) << " = "
+            << go_string(field.type) << "\n";
+    }
+    out << ")\n\n";
+    out << "func " << function_name << " []common.ShapeDescriptor {\n";
+    out << "\treturn []common.ShapeDescriptor{\n";
+    out << "\t\t{\n";
+    out << "\t\t\tName: " << go_shape_name_constant_name(shape.name) << ",\n";
+    out << "\t\t\tFields: []common.FieldDescriptor{\n";
+    for (const auto& field : shape.fields)
+    {
+        out << "\t\t\t\t" << go_entity_shape_field_descriptor_expr(entity, shape, field) << ",\n";
+    }
+    out << "\t\t\t},\n";
+    out << "\t\t},\n";
+    out << "\t}\n";
+    out << "}\n\n";
+    return out.str();
+}
+
+bool go_entity_api_shapes_use_entity_constants(
+    const IrEntity& entity,
+    const std::vector<IrShape>& shapes
+)
+{
+    return std::any_of(
+        shapes.begin(), shapes.end(),
+        [&](const IrShape& shape)
+        {
+            return std::any_of(
+                shape.fields.begin(), shape.fields.end(), [&](const IrField& field)
+                { return go_find_entity_field(entity, field.name) != nullptr; }
+            );
+        }
+    );
+}
+
 std::string go_api_shape_type_file(const IrShape& shape)
 {
     std::ostringstream out;
@@ -2093,18 +2183,21 @@ std::string go_api_shape_type_file(const IrShape& shape)
 }
 
 std::string go_entity_api_shapes_file(
+    const IrEntity& entity,
     const std::vector<IrShape>& shapes,
     std::string_view package_name
 )
 {
     std::ostringstream out;
     out << "package " << package_name << "\n\n";
-    const auto uses_json = std::any_of(
-        shapes.begin(), shapes.end(), [](const auto& shape) { return go_shape_uses_json(shape); }
-    );
-    if (uses_json)
+    const auto uses_entity_constants = go_entity_api_shapes_use_entity_constants(entity, shapes);
+    if (uses_entity_constants)
     {
-        out << "import common \"statespec-generated/common/backend\"\n\n";
+        out << "import (\n";
+        out << "\tcommon \"statespec-generated/common/backend\"\n";
+        out << "\tentityconstants \"statespec-generated/common/entities/"
+            << snake_identifier(entity.name) << "\"\n";
+        out << ")\n\n";
     }
     else
     {
@@ -2119,8 +2212,8 @@ std::string go_entity_api_shapes_file(
                 << " `json:\"" << field.name << "\"`\n";
         }
         out << "}\n\n";
-        out << go_api_shape_descriptor_content(
-            shape, pascal_identifier(shape.name) + "ShapeDescriptors()"
+        out << go_entity_api_shape_descriptor_content(
+            entity, shape, pascal_identifier(shape.name) + "ShapeDescriptors()"
         );
     }
     return out.str();
@@ -2353,7 +2446,7 @@ void add_go_api_shape_type_artifacts(
         }
         add_go_raw_api_file(
             result, options, "api/backend/entities/" + snake_identifier(entity.name) + "/shapes.go",
-            go_entity_api_shapes_file(shapes, snake_identifier(entity.name))
+            go_entity_api_shapes_file(entity, shapes, snake_identifier(entity.name))
         );
     }
 }

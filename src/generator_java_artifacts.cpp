@@ -51,6 +51,21 @@ std::string java_shape_descriptor_module_class_name(std::string_view shape_name)
     return pascal_identifier(std::string{shape_name}) + "DescriptorModule";
 }
 
+std::string replace_all_copy(
+    std::string value,
+    std::string_view from,
+    std::string_view to
+)
+{
+    std::size_t pos = 0;
+    while ((pos = value.find(from, pos)) != std::string::npos)
+    {
+        value.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+    return value;
+}
+
 std::string java_event_descriptor_module_file(const IrSystem& system)
 {
     std::ostringstream out;
@@ -1887,7 +1902,94 @@ std::string java_shape_type_file(
     return out.str();
 }
 
+const IrField* java_find_entity_field(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    const auto it = std::find_if(
+        entity.fields.begin(), entity.fields.end(),
+        [&](const IrField& field) { return field.name == field_name; }
+    );
+    return it == entity.fields.end() ? nullptr : &*it;
+}
+
+std::string java_entity_shape_field_descriptor_expr(
+    const IrEntity& entity,
+    const IrShape& shape,
+    const IrField& field
+)
+{
+    auto expression = java_shape_field_descriptor_expr(shape.name, field);
+    if (java_find_entity_field(entity, field.name) == nullptr)
+    {
+        return expression;
+    }
+    expression = replace_all_copy(
+        expression, java_shape_field_constant_name(shape.name, field.name),
+        "Constants." + java_entity_field_constant_name(entity.name, field.name)
+    );
+    expression = replace_all_copy(
+        expression, java_shape_field_type_name_constant_name(shape.name, field.name),
+        "Constants." + java_entity_field_type_name_constant_name(entity.name, field.name)
+    );
+    return expression;
+}
+
+std::string java_entity_api_shape_descriptors(
+    const IrEntity& entity,
+    const std::vector<IrShape>& shapes
+)
+{
+    std::ostringstream out;
+    for (const auto& shape : shapes)
+    {
+        out << "    public static final String " << java_shape_name_constant_name(shape.name)
+            << " = " << java_string(shape.name) << ";\n";
+        for (const auto& field : shape.fields)
+        {
+            if (java_find_entity_field(entity, field.name) != nullptr)
+            {
+                continue;
+            }
+            out << "    public static final String "
+                << java_shape_field_constant_name(shape.name, field.name) << " = "
+                << java_string(field.name) << ";\n";
+            out << "    public static final String "
+                << java_shape_field_type_name_constant_name(shape.name, field.name) << " = "
+                << java_string(field.type) << ";\n";
+        }
+    }
+    if (!shapes.empty())
+    {
+        out << "\n";
+    }
+
+    out << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t shape_index = 0; shape_index < shapes.size(); ++shape_index)
+    {
+        const auto& shape = shapes[shape_index];
+        out << "            new ShapeDescriptor(\n";
+        out << "                " << java_shape_name_constant_name(shape.name) << ",\n";
+        out << "                List.of(\n";
+        for (std::size_t i = 0; i < shape.fields.size(); ++i)
+        {
+            const auto& field = shape.fields[i];
+            out << "                    "
+                << java_entity_shape_field_descriptor_expr(entity, shape, field);
+            out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
+        }
+        out << "                )\n";
+        out << "            )" << (shape_index + 1 < shapes.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
+    return out.str();
+}
+
 std::string java_entity_api_shapes_file(
+    const IrEntity& entity,
     const std::vector<IrShape>& shapes,
     std::string_view package_name
 )
@@ -1913,9 +2015,7 @@ std::string java_entity_api_shapes_file(
         }
         out << "    ) {}\n\n";
     }
-    IrSystem shape_system;
-    shape_system.shapes = shapes;
-    out << generate_java_shape_descriptors(shape_system);
+    out << java_entity_api_shape_descriptors(entity, shapes);
     out << "}\n";
     return out.str();
 }
@@ -2124,7 +2224,7 @@ void add_java_api_shape_type_artifacts(
         add_java_raw_api_file(
             result, options, entity_package_path / "Shapes.java",
             java_entity_api_shapes_file(
-                shapes, "com.statespec.generated.entities." + snake_identifier(entity.name)
+                entity, shapes, "com.statespec.generated.entities." + snake_identifier(entity.name)
             )
         );
     }

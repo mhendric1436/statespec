@@ -2112,6 +2112,83 @@ std::string cpp_api_shape_descriptor_declarations(
     return descriptors;
 }
 
+const IrField* cpp_find_entity_field(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    const auto it = std::find_if(
+        entity.fields.begin(), entity.fields.end(),
+        [&](const IrField& field) { return field.name == field_name; }
+    );
+    return it == entity.fields.end() ? nullptr : &*it;
+}
+
+std::string cpp_entity_shape_field_descriptor_expr(
+    const IrEntity& entity,
+    const IrShape& shape,
+    const IrField& field
+)
+{
+    auto expression = cpp_shape_field_descriptor_expr(shape.name, field);
+    if (cpp_find_entity_field(entity, field.name) == nullptr)
+    {
+        return expression;
+    }
+    expression = replace_all_copy(
+        expression, cpp_shape_field_constant_name(shape.name, field.name),
+        "entities::" + snake_identifier(entity.name) +
+            "::constants::" + cpp_entity_field_constant_name(entity.name, field.name)
+    );
+    expression = replace_all_copy(
+        expression, cpp_shape_field_type_name_constant_name(shape.name, field.name),
+        "entities::" + snake_identifier(entity.name) +
+            "::constants::" + cpp_entity_field_type_name_constant_name(entity.name, field.name)
+    );
+    return expression;
+}
+
+std::string cpp_entity_api_shape_descriptor_declarations(
+    const IrEntity& entity,
+    const IrShape& shape,
+    std::string_view function_name
+)
+{
+    std::ostringstream out;
+    out << "inline constexpr const char* " << cpp_shape_name_constant_name(shape.name) << " = "
+        << cpp_string(shape.name) << ";\n";
+    for (const auto& field : shape.fields)
+    {
+        if (cpp_find_entity_field(entity, field.name) != nullptr)
+        {
+            continue;
+        }
+        out << "inline constexpr const char* "
+            << cpp_shape_field_constant_name(shape.name, field.name) << " = "
+            << cpp_string(field.name) << ";\n";
+        out << "inline constexpr const char* "
+            << cpp_shape_field_type_name_constant_name(shape.name, field.name) << " = "
+            << cpp_string(field.type) << ";\n";
+    }
+    out << "\n";
+    out << "inline std::vector<ShapeDescriptor> " << function_name << "\n";
+    out << "{\n";
+    out << "    return {\n";
+    out << "        ShapeDescriptor{\n";
+    out << "            " << cpp_shape_name_constant_name(shape.name) << ",\n";
+    out << "            {\n";
+    for (const auto& field : shape.fields)
+    {
+        out << "                " << cpp_entity_shape_field_descriptor_expr(entity, shape, field)
+            << ",\n";
+    }
+    out << "            },\n";
+    out << "        },\n";
+    out << "    };\n";
+    out << "}\n\n";
+    return out.str();
+}
+
 std::string cpp_api_shape_type_header(
     const IrShape& shape,
     std::string_view backend_include,
@@ -2233,10 +2310,15 @@ std::string cpp_shapes_umbrella_header(
     return out.str();
 }
 
-std::string cpp_entity_api_shapes_header(const std::vector<IrShape>& shapes)
+std::string cpp_entity_api_shapes_header(
+    const IrEntity& entity,
+    const std::vector<IrShape>& shapes
+)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
+    out << "#include \"../../../common/entities/" << snake_identifier(entity.name)
+        << "/constants.hpp\"\n";
     out << "#include \"../../../common/backend.hpp\"\n";
     out << "#include \"../../../common/shape_types.hpp\"\n\n";
     out << "#include <cstdint>\n";
@@ -2247,10 +2329,8 @@ std::string cpp_entity_api_shapes_header(const std::vector<IrShape>& shapes)
     for (const auto& shape : shapes)
     {
         out << cpp_shape_type_declaration(shape);
-        IrSystem one_shape_system;
-        one_shape_system.shapes.push_back(shape);
-        out << cpp_api_shape_descriptor_declarations(
-            one_shape_system, snake_identifier(shape.name) + "_shape_descriptors()"
+        out << cpp_entity_api_shape_descriptor_declarations(
+            entity, shape, snake_identifier(shape.name) + "_shape_descriptors()"
         );
     }
     out << "} // namespace statespec_generated\n";
@@ -2401,7 +2481,7 @@ void add_cpp_api_shape_type_artifacts(
         }
         add_cpp_raw_api_file(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.hpp",
-            cpp_entity_api_shapes_header(shapes)
+            cpp_entity_api_shapes_header(entity, shapes)
         );
     }
 }
