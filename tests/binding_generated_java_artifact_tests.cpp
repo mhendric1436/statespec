@@ -249,6 +249,24 @@ void test_java_binding_generator_models_artifact_paths()
     );
 }
 
+void test_java_entity_api_catalog_artifacts_are_operation_owned()
+{
+    const auto result =
+        generate_entity_api_catalog_bindings(statespec::BindingLanguage::Java, "java");
+    require_generated_artifact_exists(
+        result, "api/com/statespec/generated/entities/account/Catalog.java"
+    );
+    require_generated_artifact_not_exists(
+        result, "api/com/statespec/generated/entities/audit_log/Catalog.java"
+    );
+    require_generated_artifact_exists(
+        result, "common/com/statespec/generated/entities/account/Model.java"
+    );
+    require_generated_artifact_exists(
+        result, "common/com/statespec/generated/entities/audit_log/Model.java"
+    );
+}
+
 } // namespace
 
 TEST_CASE("Java binding generator emits meaningful production filenames")
@@ -259,4 +277,9 @@ TEST_CASE("Java binding generator emits meaningful production filenames")
 TEST_CASE("Java binding generator models artifact paths")
 {
     test_java_binding_generator_models_artifact_paths();
+}
+
+TEST_CASE("Java entity API catalog artifacts are emitted only for API-owned operations")
+{
+    test_java_entity_api_catalog_artifacts_are_operation_owned();
 }

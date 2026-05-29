@@ -137,6 +137,16 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
 }
 
+void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
+{
+    const auto result =
+        generate_entity_api_catalog_bindings(statespec::BindingLanguage::Cpp, "cpp");
+    require_generated_artifact_exists(result, "api/entities/account/catalog.hpp");
+    require_generated_artifact_not_exists(result, "api/entities/audit_log/catalog.hpp");
+    require_generated_artifact_exists(result, "common/entities/account/model.hpp");
+    require_generated_artifact_exists(result, "common/entities/audit_log/model.hpp");
+}
+
 } // namespace
 
 TEST_CASE("C++ binding generator emits meaningful production filenames")
@@ -147,4 +157,9 @@ TEST_CASE("C++ binding generator emits meaningful production filenames")
 TEST_CASE("C++ binding generator models artifact paths")
 {
     test_cpp_binding_generator_models_artifact_paths();
+}
+
+TEST_CASE("C++ entity API catalog artifacts are emitted only for API-owned operations")
+{
+    test_cpp_entity_api_catalog_artifacts_are_operation_owned();
 }

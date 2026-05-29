@@ -2012,10 +2012,6 @@ void add_rust_api_shape_type_artifacts(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.rs",
             rust_entity_api_shapes_file(shapes)
         );
-        add_rust_raw_api_file(
-            result, options, rust_entity_api_catalog_path(entity.name),
-            rust_entity_api_catalog_file(system, entity)
-        );
     }
 }
 
@@ -2695,6 +2691,18 @@ void add_rust_api_artifacts(
     const auto handler_domains = crud_api_handler_domains_rs(api_handler_domains(system));
     for (const auto& domain : handler_domains)
     {
+        for (const auto& entity : system.entities)
+        {
+            if (entity.name != domain.name)
+            {
+                continue;
+            }
+            add_rust_raw_api_file(
+                result, options, rust_entity_api_catalog_path(domain.name),
+                rust_entity_api_catalog_file(system, entity)
+            );
+            break;
+        }
         add_rust_raw_api_file(
             result, options, rust_api_handler_domain_path(domain.name),
             rust_api_handler_domain_file(system, domain)

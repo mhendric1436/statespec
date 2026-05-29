@@ -132,6 +132,16 @@ void test_rust_binding_generator_models_artifact_paths()
     );
 }
 
+void test_rust_entity_api_catalog_artifacts_are_operation_owned()
+{
+    const auto result =
+        generate_entity_api_catalog_bindings(statespec::BindingLanguage::Rust, "rust");
+    require_generated_artifact_exists(result, "api/entities/account/catalog.rs");
+    require_generated_artifact_not_exists(result, "api/entities/audit_log/catalog.rs");
+    require_generated_artifact_exists(result, "common/entities/account/model.rs");
+    require_generated_artifact_exists(result, "common/entities/audit_log/model.rs");
+}
+
 } // namespace
 
 TEST_CASE("Rust binding generator emits meaningful production filenames")
@@ -142,4 +152,9 @@ TEST_CASE("Rust binding generator emits meaningful production filenames")
 TEST_CASE("Rust binding generator models artifact paths")
 {
     test_rust_binding_generator_models_artifact_paths();
+}
+
+TEST_CASE("Rust entity API catalog artifacts are emitted only for API-owned operations")
+{
+    test_rust_entity_api_catalog_artifacts_are_operation_owned();
 }

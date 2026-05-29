@@ -2099,10 +2099,6 @@ void add_java_api_shape_type_artifacts(
                 shapes, "com.statespec.generated.entities." + snake_identifier(entity.name)
             )
         );
-        add_java_raw_api_file(
-            result, options, java_entity_api_catalog_path(entity.name),
-            java_entity_api_catalog_file(system, entity)
-        );
     }
 }
 
@@ -3373,6 +3369,18 @@ void add_java_api_artifacts(
     const auto handler_domains = crud_api_handler_domains_java(api_handler_domains(system));
     for (const auto& domain : handler_domains)
     {
+        for (const auto& entity : system.entities)
+        {
+            if (entity.name != domain.name)
+            {
+                continue;
+            }
+            add_java_raw_api_file(
+                result, options, java_entity_api_catalog_path(domain.name),
+                java_entity_api_catalog_file(system, entity)
+            );
+            break;
+        }
         add_java_raw_api_file(
             result, options, java_api_handler_domain_path(domain.name),
             java_api_handler_domain_file(system, domain)

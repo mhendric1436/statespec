@@ -2378,10 +2378,6 @@ void add_cpp_api_shape_type_artifacts(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.hpp",
             cpp_entity_api_shapes_header(shapes)
         );
-        add_cpp_raw_api_file(
-            result, options, cpp_entity_api_catalog_path(entity.name),
-            cpp_entity_api_catalog_header(system, entity)
-        );
     }
 }
 
@@ -3111,6 +3107,18 @@ void add_cpp_api_artifacts(
     const auto handler_domains = crud_api_handler_domains(api_handler_domains(system));
     for (const auto& domain : handler_domains)
     {
+        for (const auto& entity : system.entities)
+        {
+            if (entity.name != domain.name)
+            {
+                continue;
+            }
+            add_cpp_raw_api_file(
+                result, options, cpp_entity_api_catalog_path(domain.name),
+                cpp_entity_api_catalog_header(system, entity)
+            );
+            break;
+        }
         add_cpp_raw_api_file(
             result, options, cpp_api_handler_domain_path(domain.name),
             cpp_api_handler_domain_file(system, domain)

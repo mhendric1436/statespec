@@ -138,6 +138,15 @@ void test_go_binding_generator_models_artifact_paths()
     );
 }
 
+void test_go_entity_api_catalog_artifacts_are_operation_owned()
+{
+    const auto result = generate_entity_api_catalog_bindings(statespec::BindingLanguage::Go, "go");
+    require_generated_artifact_exists(result, "api/backend/entities/account/catalog.go");
+    require_generated_artifact_not_exists(result, "api/backend/entities/audit_log/catalog.go");
+    require_generated_artifact_exists(result, "common/entities/account/model.go");
+    require_generated_artifact_exists(result, "common/entities/audit_log/model.go");
+}
+
 } // namespace
 
 TEST_CASE("Go binding generator emits meaningful production filenames")
@@ -148,4 +157,9 @@ TEST_CASE("Go binding generator emits meaningful production filenames")
 TEST_CASE("Go binding generator models artifact paths")
 {
     test_go_binding_generator_models_artifact_paths();
+}
+
+TEST_CASE("Go entity API catalog artifacts are emitted only for API-owned operations")
+{
+    test_go_entity_api_catalog_artifacts_are_operation_owned();
 }

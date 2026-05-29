@@ -1,6 +1,7 @@
 #pragma once
 
 #include "test_constants.hpp"
+#include "test_support.hpp"
 
 #include "catch2/catch_amalgamated.hpp"
 #include "statespec/binding_language.hpp"
@@ -173,6 +174,134 @@ sorted_expected_app_artifact_paths(const std::vector<ExpectedBindingAppArtifact>
     system.name = "EmptySystem";
     spec.system = system;
     return spec;
+}
+
+[[maybe_unused]] statespec::Spec entity_api_catalog_system_spec()
+{
+    return statespec::test::parse_text(R"sspec(
+        system CatalogSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          entity Account {
+            key tenant_id, account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id string
+              display_name string
+            }
+            state_machine {
+              state Active
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
+              initial Active
+              terminal [Deleted]
+              Active -> Deleted
+            }
+            api {
+              resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+              create {
+                fields [display_name]
+              }
+              get
+            }
+          }
+
+          entity AuditLog {
+            key tenant_id, audit_log_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              audit_log_id string
+              description string
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+        }
+    )sspec");
+}
+
+[[maybe_unused]] statespec::GenerationResult generate_entity_api_catalog_bindings(
+    statespec::BindingLanguage language,
+    const std::string& language_name
+)
+{
+    statespec::DiagnosticBag diagnostics;
+    const auto result = statespec::generate_bindings(
+        entity_api_catalog_system_spec(),
+        statespec::BindingGeneratorOptions{
+            language,
+            std::filesystem::path{statespec::test::ArtifactTierTestRoot} / language_name /
+                "entity-api-catalog",
+            statespec::BindingGenerationTier::All,
+            {},
+        },
+        diagnostics
+    );
+    require(
+        !diagnostics.has_errors(), language_name + " entity API catalog generation should not fail"
+    );
+    return result;
+}
+
+[[maybe_unused]] bool generated_artifact_exists(
+    const statespec::GenerationResult& result,
+    const std::string& artifact_path
+)
+{
+    for (const auto& file : result.files)
+    {
+        if (file.artifact_path == artifact_path)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+[[maybe_unused]] void require_generated_artifact_exists(
+    const statespec::GenerationResult& result,
+    const std::string& artifact_path
+)
+{
+    require(
+        generated_artifact_exists(result, artifact_path),
+        "expected generated artifact " + artifact_path
+    );
+}
+
+[[maybe_unused]] void require_generated_artifact_not_exists(
+    const statespec::GenerationResult& result,
+    const std::string& artifact_path
+)
+{
+    require(
+        !generated_artifact_exists(result, artifact_path),
+        "did not expect generated artifact " + artifact_path
+    );
 }
 
 [[maybe_unused]] void require_generated_files_have_tiered_artifact_paths(

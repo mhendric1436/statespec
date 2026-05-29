@@ -2343,10 +2343,6 @@ void add_go_api_shape_type_artifacts(
             result, options, "api/backend/entities/" + snake_identifier(entity.name) + "/shapes.go",
             go_entity_api_shapes_file(shapes, snake_identifier(entity.name))
         );
-        add_go_raw_api_file(
-            result, options, go_entity_api_catalog_path(entity.name),
-            go_entity_api_catalog_file(system, entity)
-        );
     }
 }
 
@@ -3141,6 +3137,18 @@ void add_go_api_artifacts(
     const auto handler_domains = crud_api_handler_domains_go(api_handler_domains(system));
     for (const auto& domain : handler_domains)
     {
+        for (const auto& entity : system.entities)
+        {
+            if (entity.name != domain.name)
+            {
+                continue;
+            }
+            add_go_raw_api_file(
+                result, options, go_entity_api_catalog_path(domain.name),
+                go_entity_api_catalog_file(system, entity)
+            );
+            break;
+        }
         add_go_raw_api_file(
             result, options, go_api_handler_domain_path(domain.name),
             go_api_handler_domain_file(system, domain)
