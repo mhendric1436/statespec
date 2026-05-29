@@ -2694,6 +2694,120 @@ std::string cpp_api_optional_shape_name_expr(
     return "std::optional<std::string>{" + cpp_shape_name_constant_name(*value) + "}";
 }
 
+const IrEntity* cpp_api_entity(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    if (!api.entity.has_value())
+    {
+        return nullptr;
+    }
+    const auto it = std::find_if(
+        system.entities.begin(), system.entities.end(),
+        [&](const IrEntity& entity) { return entity.name == *api.entity; }
+    );
+    return it == system.entities.end() ? nullptr : &*it;
+}
+
+bool cpp_entity_has_field(
+    const IrEntity& entity,
+    std::string_view field_name
+)
+{
+    return std::any_of(
+        entity.fields.begin(), entity.fields.end(),
+        [&](const IrField& field) { return field.name == field_name; }
+    );
+}
+
+bool cpp_api_path_uses_entity_constants(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = cpp_api_entity(system, api);
+    if (entity == nullptr || !api.path.has_value())
+    {
+        return false;
+    }
+    for (std::size_t pos = 0; (pos = api.path->find('{', pos)) != std::string::npos;)
+    {
+        const auto end = api.path->find('}', pos + 1);
+        if (end == std::string::npos)
+        {
+            return false;
+        }
+        if (cpp_entity_has_field(
+                *entity, std::string_view{*api.path}.substr(pos + 1, end - pos - 1)
+            ))
+        {
+            return true;
+        }
+        pos = end + 1;
+    }
+    return false;
+}
+
+std::string cpp_api_optional_path_expr(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    if (!api.path.has_value())
+    {
+        return "std::nullopt";
+    }
+    const auto* entity = cpp_api_entity(system, api);
+    if (entity == nullptr || !cpp_api_path_uses_entity_constants(system, api))
+    {
+        return optional_string_expr(api.path);
+    }
+
+    std::vector<std::string> parts;
+    std::size_t cursor = 0;
+    for (std::size_t pos = 0; (pos = api.path->find('{', cursor)) != std::string::npos;)
+    {
+        const auto end = api.path->find('}', pos + 1);
+        if (end == std::string::npos)
+        {
+            return optional_string_expr(api.path);
+        }
+        const auto field_name = api.path->substr(pos + 1, end - pos - 1);
+        parts.push_back(cpp_string(api.path->substr(cursor, pos - cursor + 1)));
+        if (cpp_entity_has_field(*entity, field_name))
+        {
+            parts.push_back(
+                "::statespec_generated::entities::" + snake_identifier(entity->name) +
+                "::constants::" + cpp_entity_field_constant_name(entity->name, field_name)
+            );
+        }
+        else
+        {
+            parts.push_back(cpp_string(field_name));
+        }
+        parts.push_back(cpp_string("}"));
+        cursor = end + 1;
+    }
+    if (cursor < api.path->size())
+    {
+        parts.push_back(cpp_string(api.path->substr(cursor)));
+    }
+    if (parts.empty())
+    {
+        return optional_string_expr(api.path);
+    }
+
+    std::ostringstream expr;
+    expr << "std::optional<std::string>{std::string{" << parts.front() << "}";
+    for (std::size_t i = 1; i < parts.size(); ++i)
+    {
+        expr << " + " << parts[i];
+    }
+    expr << "}";
+    return expr.str();
+}
+
 std::string cpp_api_descriptor_module(
     const IrSystem& system,
     const IrApi& api
@@ -2702,6 +2816,12 @@ std::string cpp_api_descriptor_module(
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"../../common/descriptors/types.hpp\"\n\n";
+    if (const auto* entity = cpp_api_entity(system, api);
+        entity != nullptr && cpp_api_path_uses_entity_constants(system, api))
+    {
+        out << "#include \"../../common/entities/" << snake_identifier(entity->name)
+            << "/constants.hpp\"\n";
+    }
     std::set<std::string> shape_includes;
     if (api.input.has_value() && find_shape(system, *api.input) != nullptr)
     {
@@ -2728,7 +2848,7 @@ std::string cpp_api_descriptor_module(
     out << "        ::statespec_generated::ApiDescriptor{\n";
     out << "            " << cpp_string(api.name) << ",\n";
     out << "            " << optional_string_expr(api.method) << ",\n";
-    out << "            " << optional_string_expr(api.path) << ",\n";
+    out << "            " << cpp_api_optional_path_expr(system, api) << ",\n";
     out << "            " << cpp_api_optional_shape_name_expr(system, api.input) << ",\n";
     out << "            " << cpp_api_optional_shape_name_expr(system, api.output) << ",\n";
     out << "            " << optional_string_expr(api.error) << ",\n";
@@ -2753,7 +2873,7 @@ std::string cpp_api_descriptor_module(
         out << "            " << cpp_string(api_server.name) << ",\n";
         out << "            " << cpp_string(api.name) << ",\n";
         out << "            " << optional_string_expr(api.method) << ",\n";
-        out << "            " << optional_string_expr(api.path) << ",\n";
+        out << "            " << cpp_api_optional_path_expr(system, api) << ",\n";
         out << "            " << cpp_api_optional_shape_name_expr(system, api.input) << ",\n";
         out << "            " << cpp_api_optional_shape_name_expr(system, api.output) << ",\n";
         out << "            " << optional_string_expr(api.error) << ",\n";

@@ -2813,6 +2813,118 @@ std::string java_api_optional_shape_name_expr(
            java_shape_name_constant_name(*value) + ")";
 }
 
+const IrEntity* java_api_entity(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    if (!api.entity.has_value())
+    {
+        return nullptr;
+    }
+    const auto it = std::find_if(
+        system.entities.begin(), system.entities.end(),
+        [&](const IrEntity& entity) { return entity.name == *api.entity; }
+    );
+    return it == system.entities.end() ? nullptr : &*it;
+}
+
+bool java_entity_has_field(
+    const IrEntity& entity,
+    std::string_view field_name
+)
+{
+    return std::any_of(
+        entity.fields.begin(), entity.fields.end(),
+        [&](const IrField& field) { return field.name == field_name; }
+    );
+}
+
+bool java_api_path_uses_entity_constants(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    const auto* entity = java_api_entity(system, api);
+    if (entity == nullptr || !api.path.has_value())
+    {
+        return false;
+    }
+    for (std::size_t pos = 0; (pos = api.path->find('{', pos)) != std::string::npos;)
+    {
+        const auto end = api.path->find('}', pos + 1);
+        if (end == std::string::npos)
+        {
+            return false;
+        }
+        if (java_entity_has_field(
+                *entity, std::string_view{*api.path}.substr(pos + 1, end - pos - 1)
+            ))
+        {
+            return true;
+        }
+        pos = end + 1;
+    }
+    return false;
+}
+
+std::string java_api_optional_path_expr(
+    const IrSystem& system,
+    const IrApi& api
+)
+{
+    if (!api.path.has_value())
+    {
+        return "Optional.empty()";
+    }
+    const auto* entity = java_api_entity(system, api);
+    if (entity == nullptr || !java_api_path_uses_entity_constants(system, api))
+    {
+        return java_optional_string_expr(api.path);
+    }
+
+    std::vector<std::string> parts;
+    std::size_t cursor = 0;
+    for (std::size_t pos = 0; (pos = api.path->find('{', cursor)) != std::string::npos;)
+    {
+        const auto end = api.path->find('}', pos + 1);
+        if (end == std::string::npos)
+        {
+            return java_optional_string_expr(api.path);
+        }
+        const auto field_name = api.path->substr(pos + 1, end - pos - 1);
+        parts.push_back(java_string(api.path->substr(cursor, pos - cursor + 1)));
+        if (java_entity_has_field(*entity, field_name))
+        {
+            parts.push_back(
+                "Constants." + java_entity_field_constant_name(entity->name, field_name)
+            );
+        }
+        else
+        {
+            parts.push_back(java_string(field_name));
+        }
+        parts.push_back(java_string("}"));
+        cursor = end + 1;
+    }
+    if (cursor < api.path->size())
+    {
+        parts.push_back(java_string(api.path->substr(cursor)));
+    }
+    std::ostringstream expr;
+    expr << "Optional.of(";
+    for (std::size_t i = 0; i < parts.size(); ++i)
+    {
+        if (i > 0)
+        {
+            expr << " + ";
+        }
+        expr << parts[i];
+    }
+    expr << ")";
+    return expr.str();
+}
+
 std::string java_api_descriptor_module(
     const IrSystem& system,
     const IrApi& api
@@ -2822,6 +2934,12 @@ std::string java_api_descriptor_module(
     out << "package com.statespec.generated.descriptors;\n\n";
     out << "import com.statespec.generated.descriptors.types.ApiDescriptor;\n";
     out << "import com.statespec.generated.descriptors.types.ApiRouteDescriptor;\n";
+    if (const auto* entity = java_api_entity(system, api);
+        entity != nullptr && java_api_path_uses_entity_constants(system, api))
+    {
+        out << "import com.statespec.generated.entities." << snake_identifier(entity->name)
+            << ".Constants;\n";
+    }
     std::set<std::string> imports;
     auto add_shape_import = [&](const std::optional<std::string>& shape_name)
     {
@@ -2858,7 +2976,7 @@ std::string java_api_descriptor_module(
     out << "            new ApiDescriptor(\n";
     out << "                " << java_string(api.name) << ",\n";
     out << "                " << java_optional_string_expr(api.method) << ",\n";
-    out << "                " << java_optional_string_expr(api.path) << ",\n";
+    out << "                " << java_api_optional_path_expr(system, api) << ",\n";
     out << "                " << java_api_optional_shape_name_expr(system, api.input) << ",\n";
     out << "                " << java_api_optional_shape_name_expr(system, api.output) << ",\n";
     out << "                " << java_optional_string_expr(api.error) << ",\n";
@@ -2886,7 +3004,7 @@ std::string java_api_descriptor_module(
         out << "                " << java_string(api_server.name) << ",\n";
         out << "                " << java_string(api.name) << ",\n";
         out << "                " << java_optional_string_expr(api.method) << ",\n";
-        out << "                " << java_optional_string_expr(api.path) << ",\n";
+        out << "                " << java_api_optional_path_expr(system, api) << ",\n";
         out << "                " << java_api_optional_shape_name_expr(system, api.input) << ",\n";
         out << "                " << java_api_optional_shape_name_expr(system, api.output) << ",\n";
         out << "                " << java_optional_string_expr(api.error) << "\n";
