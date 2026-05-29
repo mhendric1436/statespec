@@ -1,60 +1,3 @@
-inline statespec::backend::FeatureFlagType feature_flag_type_from_string(std::string_view type)
-{
-    if (type == "string")
-    {
-        return statespec::backend::FeatureFlagType::String;
-    }
-    if (type == "int")
-    {
-        return statespec::backend::FeatureFlagType::Integer;
-    }
-    if (type == "decimal")
-    {
-        return statespec::backend::FeatureFlagType::Decimal;
-    }
-    return statespec::backend::FeatureFlagType::Bool;
-}
-
-inline statespec::backend::FeatureFlagScopeKind
-feature_flag_scope_from_string(std::string_view scope)
-{
-    if (scope == "system")
-    {
-        return statespec::backend::FeatureFlagScopeKind::System;
-    }
-    if (scope == "user")
-    {
-        return statespec::backend::FeatureFlagScopeKind::User;
-    }
-    if (scope.rfind("entity ", 0) == 0)
-    {
-        return statespec::backend::FeatureFlagScopeKind::Entity;
-    }
-    return statespec::backend::FeatureFlagScopeKind::Tenant;
-}
-
-inline statespec::backend::FeatureFlagValue
-feature_flag_value_from_descriptor(const FeatureFlagDefinition& definition)
-{
-    if (definition.type == "string")
-    {
-        return statespec::backend::FeatureFlagValue::string_value(definition.default_value);
-    }
-    if (definition.type == "int")
-    {
-        return statespec::backend::FeatureFlagValue::integer_value(
-            std::stoll(definition.default_value)
-        );
-    }
-    if (definition.type == "decimal")
-    {
-        return statespec::backend::FeatureFlagValue::decimal_value(
-            std::stod(definition.default_value)
-        );
-    }
-    return statespec::backend::FeatureFlagValue::bool_value(definition.default_value == "true");
-}
-
 inline void register_feature_flag_definitionsTx(
     statespec::backend::ITransaction& tx,
     statespec::backend::IFeatureFlagStore& store
@@ -62,16 +5,6 @@ inline void register_feature_flag_definitionsTx(
 {
     for (const auto& definition : feature_flag_definitions())
     {
-        store.register_definitionTx(
-            tx, statespec::backend::FeatureFlagDefinition{
-                    definition.name,
-                    feature_flag_type_from_string(definition.type),
-                    feature_flag_value_from_descriptor(definition),
-                    feature_flag_scope_from_string(definition.scope),
-                    definition.owner,
-                    definition.description,
-                    definition.expires,
-                }
-        );
+        store.register_definitionTx(tx, definition);
     }
 }

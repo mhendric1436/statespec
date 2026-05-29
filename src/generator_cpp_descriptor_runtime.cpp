@@ -29,26 +29,26 @@ std::string generate_cpp_runtime_descriptors(const IrSystem& system)
     out << "    };\n";
     out << "}\n\n";
 
-    out << "inline std::vector<LeaseDefinition> lease_definitions()\n";
+    out << "inline std::vector<statespec::backend::LeaseDefinition> lease_definitions()\n";
     out << "{\n";
     out << "    return {\n";
     for (const auto& lease : system.leases)
     {
-        out << "        LeaseDefinition{\n";
-        out << "            " << cpp_string(lease.name) << ",\n";
-        out << "            " << optional_string_expr(lease.resource) << ",\n";
+        out << "        statespec::backend::LeaseDefinition{\n";
+        out << "            statespec::backend::LeaseDefinitionId{" << cpp_string(lease.name)
+            << ", 1},\n";
+        out << "            " << cpp_string(lease.resource.value_or(lease.name)) << ",\n";
         out << "            std::chrono::seconds{" << parse_duration_seconds(lease.ttl) << "},\n";
         if (lease.renew_every.has_value())
         {
-            out << "            std::optional<std::chrono::seconds>{std::chrono::seconds{"
-                << parse_duration_seconds(lease.renew_every) << "}},\n";
+            out << "            std::chrono::seconds{" << parse_duration_seconds(lease.renew_every)
+                << "},\n";
         }
         else
         {
-            out << "            std::nullopt,\n";
+            out << "            std::chrono::seconds{" << parse_duration_seconds(lease.ttl)
+                << "},\n";
         }
-        out << "            " << optional_string_expr(lease.holder) << ",\n";
-        out << "            " << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
         if (lease.max_ttl.has_value())
         {
             out << "            std::optional<std::chrono::seconds>{std::chrono::seconds{"
@@ -58,6 +58,7 @@ std::string generate_cpp_runtime_descriptors(const IrSystem& system)
         {
             out << "            std::nullopt,\n";
         }
+        out << "            " << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
         out << "        },\n";
     }
     out << "    };\n";
