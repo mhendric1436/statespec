@@ -513,13 +513,14 @@ bool write_cpp_create_handler_body(
     out << "        try\n";
     out << "        {\n";
     write_cpp_parent_validation(out, system, *entity, *request);
+    out << "            const auto create_timestamp = generated_api_timestamp();\n";
     out << "            statespec::backend::Json::Object document;\n";
     for (const auto& field : entity->fields)
     {
         if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "            document[" << cpp_entity_field_expr(*entity, field.name)
-                << "] = statespec::backend::Json{generated_api_timestamp()};\n";
+                << "] = statespec::backend::Json{create_timestamp};\n";
         }
         else if (field.name == EntityStatusFieldName)
         {

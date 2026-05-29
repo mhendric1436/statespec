@@ -489,13 +489,14 @@ bool write_rust_create_handler_body(
         << "<B>>::register_descriptor(&repository, &self.backend)?;\n";
     out << "        let mut tx = self.backend.begin()?;\n";
     write_rust_parent_validation(out, system, *entity, *request);
+    out << "        let create_timestamp = generated_api_timestamp();\n";
     out << "        let mut document = std::collections::BTreeMap::new();\n";
     for (const auto& field : entity->fields)
     {
         if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "        document.insert(" << rust_entity_field_string_expr(*entity, field.name)
-                << ", Json::String(generated_api_timestamp()));\n";
+                << ", Json::String(create_timestamp.clone()));\n";
         }
         else if (field.name == EntityStatusFieldName)
         {

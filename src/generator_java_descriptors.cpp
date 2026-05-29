@@ -519,6 +519,7 @@ bool write_java_create_handler_body(
     out << "            var tx = backend.begin();\n";
     out << "            try {\n";
     write_java_parent_validation(out, system, *entity, *request);
+    out << "                var createTimestamp = java.time.Instant.now().toString();\n";
     out << "                var document = new java.util.HashMap<String, "
            "com.statespec.backend.Json>();\n";
     for (const auto& field : entity->fields)
@@ -526,7 +527,7 @@ bool write_java_create_handler_body(
         if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "                document.put(" << java_entity_field_expr(*entity, field.name)
-                << ", com.statespec.backend.Json.string(java.time.Instant.now().toString()));\n";
+                << ", com.statespec.backend.Json.string(createTimestamp));\n";
         }
         else if (field.name == EntityStatusFieldName)
         {

@@ -473,13 +473,14 @@ bool write_go_create_handler_body(
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
     out << "\tdefer func() { if tx.IsOpen() { _ = tx.Abort(ctx) } }()\n";
     write_go_parent_validation(out, system, *entity, *request);
+    out << "\tcreateTimestamp := time.Now().UTC().Format(time.RFC3339)\n";
     out << "\tdocument := map[string]common.JSON{}\n";
     for (const auto& field : entity->fields)
     {
         if (field.name == EntityCreatedAtFieldName || field.name == EntityUpdatedAtFieldName)
         {
             out << "\tdocument[" << go_entity_field_expr(*entity, field.name)
-                << "] = common.JSONString(time.Now().UTC().Format(time.RFC3339))\n";
+                << "] = common.JSONString(createTimestamp)\n";
         }
         else if (field.name == EntityStatusFieldName)
         {
