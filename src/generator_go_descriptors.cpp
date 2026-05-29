@@ -1166,6 +1166,7 @@ std::string generate_api_codec_operations_go(const IrSystem& system)
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
+        const auto* entity = api.entity.has_value() ? find_entity(system, *api.entity) : nullptr;
         if (api.input.has_value())
         {
             const auto* shape = find_shape(system, *api.input);
@@ -1177,7 +1178,9 @@ std::string generate_api_codec_operations_go(const IrSystem& system)
                 out << "\tvar decoded shapes." << pascal_identifier(shape->name) << "\n";
                 for (const auto& field : shape->fields)
                 {
-                    const auto field_name = go_string(field.name);
+                    const auto field_name = entity != nullptr
+                                                ? go_api_codec_field_name_expr(*entity, field.name)
+                                                : go_string(field.name);
                     const auto field_var = lower_camel_identifier(field.name);
                     const auto field_access = pascal_identifier(field.name);
                     if (is_optional_type(field.type))
@@ -1228,7 +1231,9 @@ std::string generate_api_codec_operations_go(const IrSystem& system)
                 out << "\tvar decoded shapes." << pascal_identifier(shape->name) << "\n";
                 for (const auto& field : shape->fields)
                 {
-                    const auto field_name = go_string(field.name);
+                    const auto field_name = entity != nullptr
+                                                ? go_api_codec_field_name_expr(*entity, field.name)
+                                                : go_string(field.name);
                     const auto field_var = lower_camel_identifier(field.name);
                     const auto field_access = pascal_identifier(field.name);
                     if (is_optional_type(field.type))
@@ -1269,18 +1274,21 @@ std::string generate_api_codec_operations_go(const IrSystem& system)
                 out << "\tbody := map[string]common.JSON{}\n";
                 for (const auto& field : shape->fields)
                 {
+                    const auto field_name = entity != nullptr
+                                                ? go_api_codec_field_name_expr(*entity, field.name)
+                                                : go_string(field.name);
                     const auto access = "response." + pascal_identifier(field.name);
                     if (is_optional_type(field.type))
                     {
                         out << "\tif " << access << " != nil {\n";
-                        out << "\t\tbody[" << go_string(field.name)
+                        out << "\t\tbody[" << field_name
                             << "] = " << go_encode_expr(field, "*" + access) << "\n";
                         out << "\t}\n";
                     }
                     else
                     {
-                        out << "\tbody[" << go_string(field.name)
-                            << "] = " << go_encode_expr(field, access) << "\n";
+                        out << "\tbody[" << field_name << "] = " << go_encode_expr(field, access)
+                            << "\n";
                     }
                 }
                 out << "\treturn common.APIResponse{StatusCode: statusCode, Body: "

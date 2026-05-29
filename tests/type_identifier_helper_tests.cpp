@@ -105,7 +105,7 @@ TEST_CASE("API codec field helpers use entity constants for durable fields")
 
     REQUIRE(
         statespec::cpp_api_codec_field_name_expr(entity, "tenant_id") ==
-        "entities::project_task::constants::kProjectTaskFieldTenantId"
+        "::statespec_generated::entities::project_task::constants::kProjectTaskFieldTenantId"
     );
     REQUIRE(statespec::cpp_api_codec_field_name_expr(entity, "items") == "\"items\"");
 

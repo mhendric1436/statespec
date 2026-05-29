@@ -127,7 +127,7 @@ std::string cpp_api_codec_field_name_expr(
     {
         return cpp_string(field_name);
     }
-    return "entities::" + snake_identifier(entity.name) +
+    return "::statespec_generated::entities::" + snake_identifier(entity.name) +
            "::constants::" + cpp_entity_field_constant_name(entity.name, field_name);
 }
 

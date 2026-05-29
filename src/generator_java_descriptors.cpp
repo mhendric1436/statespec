@@ -1313,6 +1313,7 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
+        const auto* entity = api.entity.has_value() ? find_entity(system, *api.entity) : nullptr;
         if (api.input.has_value())
         {
             const auto* shape = find_shape(system, *api.input);
@@ -1324,19 +1325,22 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
                     const auto& field = shape->fields[i];
+                    const auto field_name =
+                        entity != nullptr ? java_api_codec_field_name_expr(*entity, field.name)
+                                          : java_string(field.name);
                     out << "            ";
                     if (is_optional_type(field.type))
                     {
-                        out << "request.body().find(" << java_string(field.name)
+                        out << "request.body().find(" << field_name
                             << ").filter(member -> !(member instanceof Json.NullValue)).map(member "
                                "-> Optional.of("
-                            << java_decode_func(field) << "(member, " << java_string(field.name)
+                            << java_decode_func(field) << "(member, " << field_name
                             << "))).orElse(Optional.empty())";
                     }
                     else
                     {
                         out << java_decode_func(field) << "(requireMember(request.body(), "
-                            << java_string(field.name) << "), " << java_string(field.name) << ")";
+                            << field_name << "), " << field_name << ")";
                     }
                     out << (i + 1 < shape->fields.size() ? "," : "") << "\n";
                 }
@@ -1355,19 +1359,22 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
                 for (std::size_t i = 0; i < shape->fields.size(); ++i)
                 {
                     const auto& field = shape->fields[i];
+                    const auto field_name =
+                        entity != nullptr ? java_api_codec_field_name_expr(*entity, field.name)
+                                          : java_string(field.name);
                     out << "            ";
                     if (is_optional_type(field.type))
                     {
-                        out << "response.body().find(" << java_string(field.name)
+                        out << "response.body().find(" << field_name
                             << ").filter(member -> !(member instanceof Json.NullValue)).map(member "
                                "-> Optional.of("
-                            << java_decode_func(field) << "(member, " << java_string(field.name)
+                            << java_decode_func(field) << "(member, " << field_name
                             << "))).orElse(Optional.empty())";
                     }
                     else
                     {
                         out << java_decode_func(field) << "(requireMember(response.body(), "
-                            << java_string(field.name) << "), " << java_string(field.name) << ")";
+                            << field_name << "), " << field_name << ")";
                     }
                     out << (i + 1 < shape->fields.size() ? "," : "") << "\n";
                 }
@@ -1385,16 +1392,18 @@ std::string generate_api_codec_operations_java(const IrSystem& system)
                 out << "        Map<String, Json> body = new TreeMap<>();\n";
                 for (const auto& field : shape->fields)
                 {
+                    const auto field_name =
+                        entity != nullptr ? java_api_codec_field_name_expr(*entity, field.name)
+                                          : java_string(field.name);
                     const auto accessor = "response." + field.name + "()";
                     if (is_optional_type(field.type))
                     {
                         out << "        " << accessor << ".ifPresent(value -> body.put("
-                            << java_string(field.name) << ", " << java_encode_expr(field, "value")
-                            << "));\n";
+                            << field_name << ", " << java_encode_expr(field, "value") << "));\n";
                     }
                     else
                     {
-                        out << "        body.put(" << java_string(field.name) << ", "
+                        out << "        body.put(" << field_name << ", "
                             << java_encode_expr(field, accessor) << ");\n";
                     }
                 }

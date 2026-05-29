@@ -1197,6 +1197,7 @@ std::string generate_api_codec_operations_rs(const IrSystem& system)
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
+        const auto* entity = api.entity.has_value() ? find_entity(system, *api.entity) : nullptr;
         if (api.input.has_value())
         {
             const auto* shape = find_shape(system, *api.input);
@@ -1208,20 +1209,22 @@ std::string generate_api_codec_operations_rs(const IrSystem& system)
                 out << "    Ok(shapes::" << pascal_identifier(shape->name) << " {\n";
                 for (const auto& field : shape->fields)
                 {
+                    const auto field_name =
+                        entity != nullptr ? rust_api_codec_field_name_expr(*entity, field.name)
+                                          : rust_string(field.name);
                     out << "        " << field.name << ": ";
                     if (is_optional_type(field.type))
                     {
-                        out << "match request.body.find(" << rust_string(field.name) << ") {\n";
+                        out << "match request.body.find(" << field_name << ") {\n";
                         out << "            Some(Json::Null) | None => None,\n";
                         out << "            Some(member) => Some(" << rust_decode_func(field)
-                            << "(member, " << rust_string(field.name) << ")?),\n";
+                            << "(member, " << field_name << ")?),\n";
                         out << "        },\n";
                     }
                     else
                     {
                         out << rust_decode_func(field) << "(require_member(&request.body, "
-                            << rust_string(field.name) << ")?, " << rust_string(field.name)
-                            << ")?,\n";
+                            << field_name << ")?, " << field_name << ")?,\n";
                     }
                 }
                 out << "    })\n";
@@ -1239,20 +1242,22 @@ std::string generate_api_codec_operations_rs(const IrSystem& system)
                 out << "    Ok(shapes::" << pascal_identifier(shape->name) << " {\n";
                 for (const auto& field : shape->fields)
                 {
+                    const auto field_name =
+                        entity != nullptr ? rust_api_codec_field_name_expr(*entity, field.name)
+                                          : rust_string(field.name);
                     out << "        " << field.name << ": ";
                     if (is_optional_type(field.type))
                     {
-                        out << "match response.body.find(" << rust_string(field.name) << ") {\n";
+                        out << "match response.body.find(" << field_name << ") {\n";
                         out << "            Some(Json::Null) | None => None,\n";
                         out << "            Some(member) => Some(" << rust_decode_func(field)
-                            << "(member, " << rust_string(field.name) << ")?),\n";
+                            << "(member, " << field_name << ")?),\n";
                         out << "        },\n";
                     }
                     else
                     {
                         out << rust_decode_func(field) << "(require_member(&response.body, "
-                            << rust_string(field.name) << ")?, " << rust_string(field.name)
-                            << ")?,\n";
+                            << field_name << ")?, " << field_name << ")?,\n";
                     }
                 }
                 out << "    })\n";
@@ -1270,6 +1275,9 @@ std::string generate_api_codec_operations_rs(const IrSystem& system)
                 out << "    let mut body = BTreeMap::new();\n";
                 for (const auto& field : shape->fields)
                 {
+                    const auto field_name =
+                        entity != nullptr ? rust_api_codec_field_name_expr(*entity, field.name)
+                                          : rust_string(field.name);
                     if (is_optional_type(field.type))
                     {
                         const auto base = strip_optional_type(field.type);
@@ -1279,13 +1287,13 @@ std::string generate_api_codec_operations_rs(const IrSystem& system)
                                                   ? "*value"
                                                   : "value";
                         out << "    if let Some(value) = &response." << field.name << " {\n";
-                        out << "        body.insert(" << rust_string(field.name) << ".to_string(), "
+                        out << "        body.insert(" << field_name << ".to_string(), "
                             << rust_encode_expr(field, accessor) << ");\n";
                         out << "    }\n";
                     }
                     else
                     {
-                        out << "    body.insert(" << rust_string(field.name) << ".to_string(), "
+                        out << "    body.insert(" << field_name << ".to_string(), "
                             << rust_encode_expr(field, "response." + field.name) << ");\n";
                     }
                 }

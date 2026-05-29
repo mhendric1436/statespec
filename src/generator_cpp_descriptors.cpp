@@ -321,14 +321,6 @@ std::string cpp_decode_expr(
     return "decode_string(" + value_expr + ", " + label_expr + ")";
 }
 
-std::string cpp_decode_expr(
-    const IrField& field,
-    std::string value_expr
-)
-{
-    return cpp_decode_expr(field, std::move(value_expr), cpp_string(field.name));
-}
-
 std::string cpp_json_expr(
     const IrField& field,
     const std::string& accessor
@@ -1245,6 +1237,7 @@ std::string generate_api_codec_operations(const IrSystem& system)
     std::ostringstream out;
     for (const auto& api : system.apis)
     {
+        const auto* entity = api.entity.has_value() ? find_entity(system, *api.entity) : nullptr;
         if (api.input.has_value())
         {
             const auto* shape = find_shape(system, *api.input);
@@ -1258,22 +1251,24 @@ std::string generate_api_codec_operations(const IrSystem& system)
                     << " decoded{};\n";
                 for (const auto& field : shape->fields)
                 {
+                    const auto field_name = entity != nullptr
+                                                ? cpp_api_codec_field_name_expr(*entity, field.name)
+                                                : cpp_string(field.name);
                     if (is_optional_type(field.type))
                     {
-                        out << "    if (const auto* member = context.body.find("
-                            << cpp_string(field.name)
+                        out << "    if (const auto* member = context.body.find(" << field_name
                             << "); member != nullptr && !member->is_null())\n";
                         out << "    {\n";
                         out << "        decoded." << field.name << " = "
-                            << cpp_decode_expr(field, "*member") << ";\n";
+                            << cpp_decode_expr(field, "*member", field_name) << ";\n";
                         out << "    }\n";
                     }
                     else
                     {
                         out << "    decoded." << field.name << " = "
                             << cpp_decode_expr(
-                                   field,
-                                   "require_member(context.body, " + cpp_string(field.name) + ")"
+                                   field, "require_member(context.body, " + field_name + ")",
+                                   field_name
                                )
                             << ";\n";
                     }
@@ -1294,17 +1289,20 @@ std::string generate_api_codec_operations(const IrSystem& system)
                 out << "    statespec::backend::Json::Object body;\n";
                 for (const auto& field : shape->fields)
                 {
+                    const auto field_name = entity != nullptr
+                                                ? cpp_api_codec_field_name_expr(*entity, field.name)
+                                                : cpp_string(field.name);
                     if (is_optional_type(field.type))
                     {
                         out << "    if (response." << field.name << ".has_value())\n";
                         out << "    {\n";
-                        out << "        body.emplace(" << cpp_string(field.name) << ", "
+                        out << "        body.emplace(" << field_name << ", "
                             << cpp_json_expr(field, "*response." + field.name) << ");\n";
                         out << "    }\n";
                     }
                     else
                     {
-                        out << "    body.emplace(" << cpp_string(field.name) << ", "
+                        out << "    body.emplace(" << field_name << ", "
                             << cpp_json_expr(field, "response." + field.name) << ");\n";
                     }
                 }
@@ -1320,22 +1318,24 @@ std::string generate_api_codec_operations(const IrSystem& system)
                     << " decoded{};\n";
                 for (const auto& field : shape->fields)
                 {
+                    const auto field_name = entity != nullptr
+                                                ? cpp_api_codec_field_name_expr(*entity, field.name)
+                                                : cpp_string(field.name);
                     if (is_optional_type(field.type))
                     {
-                        out << "    if (const auto* member = response.body.find("
-                            << cpp_string(field.name)
+                        out << "    if (const auto* member = response.body.find(" << field_name
                             << "); member != nullptr && !member->is_null())\n";
                         out << "    {\n";
                         out << "        decoded." << field.name << " = "
-                            << cpp_decode_expr(field, "*member") << ";\n";
+                            << cpp_decode_expr(field, "*member", field_name) << ";\n";
                         out << "    }\n";
                     }
                     else
                     {
                         out << "    decoded." << field.name << " = "
                             << cpp_decode_expr(
-                                   field,
-                                   "require_member(response.body, " + cpp_string(field.name) + ")"
+                                   field, "require_member(response.body, " + field_name + ")",
+                                   field_name
                                )
                             << ";\n";
                     }
