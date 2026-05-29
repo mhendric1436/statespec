@@ -1,61 +1,61 @@
 #!/bin/sh
 set -eu
 
-CLI="$1"
-TMPDIR="$(mktemp -d)"
-cleanup() {
-    rm -rf "$TMPDIR"
-}
-trap cleanup EXIT
-
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-TESTS_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
-. "$TESTS_DIR/cli/common.sh"
+. "$SCRIPT_DIR/../common.sh"
+binding_test_init "$1" "$0"
 
-SPEC="$TESTS_DIR/fixtures/bindings-full.sspec"
+OUT="$TMPDIR/out-go"
 
-run_expect_status 0 "$CLI" generate bindings --lang go "$SPEC" --out "$TMPDIR/out-go"
-assert_output_contains "generated $TMPDIR/out-go/common/backend/backend.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/json.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/backend.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/external_system.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/feature_flag.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/lease.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/log.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/metric.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/queue.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/workflow.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/backend.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/memory/transaction.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec_feature_flags.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec_queues.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec_leases.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec_workflows.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec_observability.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec_logs.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/codec_metrics.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/feature_flags.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/queues.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/leases.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/workflows.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/logs.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/metrics.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_types.go"
-assert_file_not_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_descriptors.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_repository.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_workers.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entity_gc_registration.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime/entitygc/types.go"
-assert_file_exists "$TMPDIR/out-go/common/entities/order/gc.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/descriptors.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/values_enums_descriptors.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/policy_descriptors.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime_definitions.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/observability_definitions.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/entity_repository.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/runtime_registration.go"
-assert_file_exists "$TMPDIR/out-go/common/backend/descriptortypes/types.go"
+generate_binding_fixture go "$OUT" "common/backend/backend.go"
+
+# Common runtime, descriptor, and entity artifacts.
+assert_generated_files_exist "$OUT" <<'EOF'
+common/backend/json.go
+common/backend/backend.go
+common/backend/external_system.go
+common/backend/feature_flag.go
+common/backend/lease.go
+common/backend/log.go
+common/backend/metric.go
+common/backend/queue.go
+common/backend/workflow.go
+common/backend/memory/backend.go
+common/backend/memory/transaction.go
+common/backend/runtime/codec.go
+common/backend/runtime/codec_feature_flags.go
+common/backend/runtime/codec_queues.go
+common/backend/runtime/codec_leases.go
+common/backend/runtime/codec_workflows.go
+common/backend/runtime/codec_observability.go
+common/backend/runtime/codec_logs.go
+common/backend/runtime/codec_metrics.go
+common/backend/runtime/feature_flags.go
+common/backend/runtime/queues.go
+common/backend/runtime/leases.go
+common/backend/runtime/workflows.go
+common/backend/runtime/logs.go
+common/backend/runtime/metrics.go
+common/backend/runtime/entity_gc_types.go
+common/backend/runtime/entity_gc_repository.go
+common/backend/runtime/entity_gc_workers.go
+common/backend/runtime/entity_gc_registration.go
+common/backend/runtime/entitygc/types.go
+common/entities/order/gc.go
+common/backend/descriptors.go
+common/backend/values_enums_descriptors.go
+common/backend/policy_descriptors.go
+common/backend/runtime_definitions.go
+common/backend/observability_definitions.go
+common/backend/entity_repository.go
+common/backend/runtime_registration.go
+common/backend/descriptortypes/types.go
+EOF
+
+# Legacy aggregate artifacts that should stay removed.
+assert_generated_files_absent "$OUT" <<'EOF'
+common/backend/runtime/entity_gc_descriptors.go
+EOF
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptortypes/types.go" "type ApiDescriptor struct"
 assert_file_contains "$TMPDIR/out-go/common/backend/descriptortypes/types.go" "type WorkerDescriptor struct"
 assert_file_exists "$TMPDIR/out-go/common/backend/shape_types.go"

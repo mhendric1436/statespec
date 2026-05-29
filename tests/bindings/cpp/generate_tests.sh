@@ -1,82 +1,84 @@
 #!/bin/sh
 set -eu
 
-CLI="$1"
-TMPDIR="$(mktemp -d)"
-cleanup() {
-    rm -rf "$TMPDIR"
-}
-trap cleanup EXIT
-
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-TESTS_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
-. "$TESTS_DIR/cli/common.sh"
+. "$SCRIPT_DIR/../common.sh"
+binding_test_init "$1" "$0"
 
-SPEC="$TESTS_DIR/fixtures/bindings-full.sspec"
+OUT="$TMPDIR/out-cpp"
 
-run_expect_status 0 "$CLI" generate bindings --lang cpp "$SPEC" --out "$TMPDIR/out-cpp"
-assert_output_contains "generated $TMPDIR/out-cpp/common/backend.hpp"
-assert_tree_files_not_contains "$TMPDIR/out-cpp" "*.hpp" "// clang-format off"
-assert_tree_files_not_contains "$TMPDIR/out-cpp" "*.hpp" "// clang-format on"
-assert_tree_files_not_contains "$TMPDIR/out-cpp" "*.cpp" "// clang-format off"
-assert_tree_files_not_contains "$TMPDIR/out-cpp" "*.cpp" "// clang-format on"
-assert_file_exists "$TMPDIR/out-cpp/common/json.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/backend.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/external_system.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/feature_flag.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/lease.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/log.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/metric.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/queue.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/workflow.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/memory/backend.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/memory/transaction.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec_core.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec_feature_flags.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec_queues.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec_leases.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec_workflows.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec_observability.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec_logs.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/codec_metrics.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/feature_flag_store.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/queue_store.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/lease_store.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/workflow_store.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/log_sink.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/metric_sink.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/entity_gc_types.hpp"
-assert_file_not_exists "$TMPDIR/out-cpp/common/runtime/entity_gc_descriptors.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/entity_gc_repository.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/entity_gc_workers.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime/entity_gc_registration.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/order/gc.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/descriptors.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entity_repository.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/runtime_registration.hpp"
-assert_file_exists "$TMPDIR/out-cpp/api/shapes.hpp"
-assert_file_exists "$TMPDIR/out-cpp/api/shapes/start_order_processing_request.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/descriptors/core.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/shape_types.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/descriptors/types.hpp"
-assert_file_not_exists "$TMPDIR/out-cpp/common/descriptors/shapes.hpp"
-assert_file_not_exists "$TMPDIR/out-cpp/common/descriptors/shapes/start_order_processing_request.hpp"
-assert_file_not_exists "$TMPDIR/out-cpp/common/descriptors/apis.hpp"
-assert_file_not_exists "$TMPDIR/out-cpp/common/descriptors/workers.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/descriptors/runtime.hpp"
-assert_file_exists "$TMPDIR/out-cpp/worker/descriptors/catalog.hpp"
-assert_file_exists "$TMPDIR/out-cpp/worker/descriptors/order_worker.hpp"
-assert_file_not_exists "$TMPDIR/out-cpp/common/descriptors/entities/account.hpp"
-assert_file_not_exists "$TMPDIR/out-cpp/common/descriptors/entities/order.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/account/model.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/account/constants.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/account/persistence.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/account/schema.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/order/model.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/order/constants.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/order/persistence.hpp"
-assert_file_exists "$TMPDIR/out-cpp/common/entities/order/schema.hpp"
+generate_binding_fixture cpp "$OUT" "common/backend.hpp"
+assert_generated_tree_has_no_format_guards "$OUT" hpp
+assert_generated_tree_has_no_format_guards "$OUT" cpp
+
+# Common runtime, descriptor, and entity artifacts.
+assert_generated_files_exist "$OUT" <<'EOF'
+common/json.hpp
+common/backend.hpp
+common/external_system.hpp
+common/feature_flag.hpp
+common/lease.hpp
+common/log.hpp
+common/metric.hpp
+common/queue.hpp
+common/workflow.hpp
+common/memory/backend.hpp
+common/memory/transaction.hpp
+common/runtime/codec.hpp
+common/runtime/codec_core.hpp
+common/runtime/codec_feature_flags.hpp
+common/runtime/codec_queues.hpp
+common/runtime/codec_leases.hpp
+common/runtime/codec_workflows.hpp
+common/runtime/codec_observability.hpp
+common/runtime/codec_logs.hpp
+common/runtime/codec_metrics.hpp
+common/runtime/feature_flag_store.hpp
+common/runtime/queue_store.hpp
+common/runtime/lease_store.hpp
+common/runtime/workflow_store.hpp
+common/runtime/log_sink.hpp
+common/runtime/metric_sink.hpp
+common/runtime/entity_gc_types.hpp
+common/runtime/entity_gc_repository.hpp
+common/runtime/entity_gc_workers.hpp
+common/runtime/entity_gc_registration.hpp
+common/entities/order/gc.hpp
+common/descriptors.hpp
+common/entity_repository.hpp
+common/runtime_registration.hpp
+common/descriptors/core.hpp
+common/shape_types.hpp
+common/descriptors/types.hpp
+common/descriptors/runtime.hpp
+common/entities/account/model.hpp
+common/entities/account/constants.hpp
+common/entities/account/persistence.hpp
+common/entities/account/schema.hpp
+common/entities/order/model.hpp
+common/entities/order/constants.hpp
+common/entities/order/persistence.hpp
+common/entities/order/schema.hpp
+EOF
+
+# API and Worker tier artifact boundaries.
+assert_generated_files_exist "$OUT" <<'EOF'
+api/shapes.hpp
+api/shapes/start_order_processing_request.hpp
+worker/descriptors/catalog.hpp
+worker/descriptors/order_worker.hpp
+EOF
+
+# Legacy aggregate artifacts that should stay removed.
+assert_generated_files_absent "$OUT" <<'EOF'
+common/runtime/entity_gc_descriptors.hpp
+common/descriptors/shapes.hpp
+common/descriptors/shapes/start_order_processing_request.hpp
+common/descriptors/apis.hpp
+common/descriptors/workers.hpp
+common/descriptors/entities/account.hpp
+common/descriptors/entities/order.hpp
+EOF
 assert_file_contains "$TMPDIR/out-cpp/common/entities/account/constants.hpp" "kAccountEntityName"
 assert_file_contains "$TMPDIR/out-cpp/common/entities/order/constants.hpp" "kOrderIndexByTenantStatus"
 assert_file_contains "$TMPDIR/out-cpp/common/entities/order/model.hpp" "order_field_descriptors"

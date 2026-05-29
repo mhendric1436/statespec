@@ -1,81 +1,80 @@
 #!/bin/sh
 set -eu
 
-CLI="$1"
-TMPDIR="$(mktemp -d)"
-cleanup() {
-    rm -rf "$TMPDIR"
-}
-trap cleanup EXIT
-
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-TESTS_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
-. "$TESTS_DIR/cli/common.sh"
+. "$SCRIPT_DIR/../common.sh"
+binding_test_init "$1" "$0"
 
-SPEC="$TESTS_DIR/fixtures/bindings-full.sspec"
+OUT="$TMPDIR/out-rust"
 
-# Positive generation: Rust.
-run_expect_status 0 "$CLI" generate bindings --lang rust "$SPEC" --out "$TMPDIR/out-rust"
-assert_output_contains "generated $TMPDIR/out-rust/common/backend.rs"
-assert_file_exists "$TMPDIR/out-rust/common/json.rs"
-assert_file_exists "$TMPDIR/out-rust/common/backend.rs"
-assert_file_exists "$TMPDIR/out-rust/common/external_system.rs"
-assert_file_exists "$TMPDIR/out-rust/common/feature_flag.rs"
-assert_file_exists "$TMPDIR/out-rust/common/lease.rs"
-assert_file_exists "$TMPDIR/out-rust/common/log.rs"
-assert_file_exists "$TMPDIR/out-rust/common/metric.rs"
-assert_file_exists "$TMPDIR/out-rust/common/queue.rs"
-assert_file_exists "$TMPDIR/out-rust/common/workflow.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/backend.rs"
-assert_file_exists "$TMPDIR/out-rust/common/memory/transaction.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec_core.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec_feature_flags.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec_queues.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec_leases.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec_workflows.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec_observability.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec_logs.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/codec_metrics.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/feature_flags.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/queues.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/leases.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/workflows.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/logs.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/metrics.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/entity_gc_types.rs"
-assert_file_not_exists "$TMPDIR/out-rust/common/runtime/entity_gc_descriptors.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/entity_gc_repository.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/entity_gc_workers.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime/entity_gc_registration.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/order/gc.rs"
-assert_file_exists "$TMPDIR/out-rust/common/descriptors.rs"
-assert_file_exists "$TMPDIR/out-rust/common/descriptors/types.rs"
-assert_file_exists "$TMPDIR/out-rust/common/shape_types.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entity_repository.rs"
-assert_file_exists "$TMPDIR/out-rust/common/runtime_registration.rs"
-assert_file_exists "$TMPDIR/out-rust/api/shapes.rs"
-assert_file_exists "$TMPDIR/out-rust/api/shapes/start_order_processing_request.rs"
-assert_file_exists "$TMPDIR/out-rust/common/descriptors/core.rs"
-assert_file_exists "$TMPDIR/out-rust/common/descriptors/policies.rs"
-assert_file_exists "$TMPDIR/out-rust/common/descriptors/observability.rs"
-assert_file_not_exists "$TMPDIR/out-rust/common/descriptors/shapes.rs"
-assert_file_not_exists "$TMPDIR/out-rust/common/descriptors/shapes/start_order_processing_request.rs"
-assert_file_not_exists "$TMPDIR/out-rust/common/descriptors/apis.rs"
-assert_file_not_exists "$TMPDIR/out-rust/common/descriptors/workers.rs"
-assert_file_exists "$TMPDIR/out-rust/common/descriptors/runtime.rs"
-assert_file_exists "$TMPDIR/out-rust/worker/descriptors/catalog.rs"
-assert_file_exists "$TMPDIR/out-rust/worker/descriptors/order_worker.rs"
-assert_file_not_exists "$TMPDIR/out-rust/common/descriptors/entities/account.rs"
-assert_file_not_exists "$TMPDIR/out-rust/common/descriptors/entities/order.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/account/model.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/account/constants.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/account/persistence.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/account/schema.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/order/model.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/order/constants.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/order/persistence.rs"
-assert_file_exists "$TMPDIR/out-rust/common/entities/order/schema.rs"
+generate_binding_fixture rust "$OUT" "common/backend.rs"
+
+# Common runtime, descriptor, and entity/API/Worker artifacts.
+assert_generated_files_exist "$OUT" <<'EOF'
+common/json.rs
+common/backend.rs
+common/external_system.rs
+common/feature_flag.rs
+common/lease.rs
+common/log.rs
+common/metric.rs
+common/queue.rs
+common/workflow.rs
+common/memory/backend.rs
+common/memory/transaction.rs
+common/runtime/codec.rs
+common/runtime/codec_core.rs
+common/runtime/codec_feature_flags.rs
+common/runtime/codec_queues.rs
+common/runtime/codec_leases.rs
+common/runtime/codec_workflows.rs
+common/runtime/codec_observability.rs
+common/runtime/codec_logs.rs
+common/runtime/codec_metrics.rs
+common/runtime/feature_flags.rs
+common/runtime/queues.rs
+common/runtime/leases.rs
+common/runtime/workflows.rs
+common/runtime/logs.rs
+common/runtime/metrics.rs
+common/runtime/entity_gc_types.rs
+common/runtime/entity_gc_repository.rs
+common/runtime/entity_gc_workers.rs
+common/runtime/entity_gc_registration.rs
+common/entities/order/gc.rs
+common/descriptors.rs
+common/descriptors/types.rs
+common/shape_types.rs
+common/entity_repository.rs
+common/runtime_registration.rs
+api/shapes.rs
+api/shapes/start_order_processing_request.rs
+common/descriptors/core.rs
+common/descriptors/policies.rs
+common/descriptors/observability.rs
+common/descriptors/runtime.rs
+worker/descriptors/catalog.rs
+worker/descriptors/order_worker.rs
+common/entities/account/model.rs
+common/entities/account/constants.rs
+common/entities/account/persistence.rs
+common/entities/account/schema.rs
+common/entities/order/model.rs
+common/entities/order/constants.rs
+common/entities/order/persistence.rs
+common/entities/order/schema.rs
+EOF
+
+# Legacy aggregate artifacts that should stay removed.
+assert_generated_files_absent "$OUT" <<'EOF'
+common/runtime/entity_gc_descriptors.rs
+common/descriptors/shapes.rs
+common/descriptors/shapes/start_order_processing_request.rs
+common/descriptors/apis.rs
+common/descriptors/workers.rs
+common/descriptors/entities/account.rs
+common/descriptors/entities/order.rs
+EOF
 assert_file_contains "$TMPDIR/out-rust/common/entities/account/constants.rs" "ACCOUNT_ENTITY_NAME: &str = \"Account\""
 assert_file_contains "$TMPDIR/out-rust/common/entities/order/constants.rs" "ORDER_INDEX_BY_TENANT_STATUS: &str = \"by_tenant_status\""
 assert_file_contains "$TMPDIR/out-rust/common/entities/order/model.rs" "pub fn order_field_descriptors() -> Vec<FieldDescriptor>"

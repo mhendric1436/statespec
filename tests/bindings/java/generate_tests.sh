@@ -1,66 +1,65 @@
 #!/bin/sh
 set -eu
 
-CLI="$1"
-TMPDIR="$(mktemp -d)"
-cleanup() {
-    rm -rf "$TMPDIR"
-}
-trap cleanup EXIT
-
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-TESTS_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
-. "$TESTS_DIR/cli/common.sh"
+. "$SCRIPT_DIR/../common.sh"
+binding_test_init "$1" "$0"
 
-SPEC="$TESTS_DIR/fixtures/bindings-full.sspec"
+OUT="$TMPDIR/out-java"
 
-# Positive generation: Java.
-run_expect_status 0 "$CLI" generate bindings --lang java "$SPEC" --out "$TMPDIR/out-java"
-assert_output_contains "generated $TMPDIR/out-java/common/com/statespec/backend/Backend.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Json.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Backend.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/ExternalSystem.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/FeatureFlag.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Lease.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Log.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Metric.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Queue.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/Workflow.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryBackend.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/memory/InMemoryTransaction.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/Codec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/FeatureFlagCodec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/QueueCodec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/LeaseCodec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/WorkflowCodec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/ObservabilityCodec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/LogCodec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/MetricCodec.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/FeatureFlagStore.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/QueueStore.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/LeaseStore.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/WorkflowStore.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/LogSink.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/MetricSink.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcTypes.java"
-assert_file_not_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcDescriptors.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRepository.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcWorkers.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/backend/runtime/EntityGcRegistration.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/entities/order/Gc.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/Descriptors.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/ApiDescriptor.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/ApiRouteDescriptor.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/ApiServerDescriptor.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/WorkerDescriptor.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/WorkerContext.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/EntityDescriptor.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/ExternalSystemDescriptor.java"
-assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/ShapeDescriptor.java"
-assert_file_not_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/FeatureFlagDefinition.java"
-assert_file_not_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/LeaseDefinition.java"
-assert_file_not_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/LogDefinition.java"
-assert_file_not_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/types/MetricDefinition.java"
+generate_binding_fixture java "$OUT" "common/com/statespec/backend/Backend.java"
+
+# Common runtime, descriptor, and entity artifacts.
+assert_generated_files_exist "$OUT" <<'EOF'
+common/com/statespec/backend/Json.java
+common/com/statespec/backend/Backend.java
+common/com/statespec/backend/ExternalSystem.java
+common/com/statespec/backend/FeatureFlag.java
+common/com/statespec/backend/Lease.java
+common/com/statespec/backend/Log.java
+common/com/statespec/backend/Metric.java
+common/com/statespec/backend/Queue.java
+common/com/statespec/backend/Workflow.java
+common/com/statespec/backend/memory/InMemoryBackend.java
+common/com/statespec/backend/memory/InMemoryTransaction.java
+common/com/statespec/backend/runtime/Codec.java
+common/com/statespec/backend/runtime/FeatureFlagCodec.java
+common/com/statespec/backend/runtime/QueueCodec.java
+common/com/statespec/backend/runtime/LeaseCodec.java
+common/com/statespec/backend/runtime/WorkflowCodec.java
+common/com/statespec/backend/runtime/ObservabilityCodec.java
+common/com/statespec/backend/runtime/LogCodec.java
+common/com/statespec/backend/runtime/MetricCodec.java
+common/com/statespec/backend/runtime/FeatureFlagStore.java
+common/com/statespec/backend/runtime/QueueStore.java
+common/com/statespec/backend/runtime/LeaseStore.java
+common/com/statespec/backend/runtime/WorkflowStore.java
+common/com/statespec/backend/runtime/LogSink.java
+common/com/statespec/backend/runtime/MetricSink.java
+common/com/statespec/backend/runtime/EntityGcTypes.java
+common/com/statespec/backend/runtime/EntityGcRepository.java
+common/com/statespec/backend/runtime/EntityGcWorkers.java
+common/com/statespec/backend/runtime/EntityGcRegistration.java
+common/com/statespec/generated/entities/order/Gc.java
+common/com/statespec/generated/Descriptors.java
+common/com/statespec/generated/descriptors/types/ApiDescriptor.java
+common/com/statespec/generated/descriptors/types/ApiRouteDescriptor.java
+common/com/statespec/generated/descriptors/types/ApiServerDescriptor.java
+common/com/statespec/generated/descriptors/types/WorkerDescriptor.java
+common/com/statespec/generated/descriptors/types/WorkerContext.java
+common/com/statespec/generated/descriptors/types/EntityDescriptor.java
+common/com/statespec/generated/descriptors/types/ExternalSystemDescriptor.java
+common/com/statespec/generated/descriptors/types/ShapeDescriptor.java
+EOF
+
+# Legacy aggregate artifacts that should stay removed.
+assert_generated_files_absent "$OUT" <<'EOF'
+common/com/statespec/backend/runtime/EntityGcDescriptors.java
+common/com/statespec/generated/descriptors/types/FeatureFlagDefinition.java
+common/com/statespec/generated/descriptors/types/LeaseDefinition.java
+common/com/statespec/generated/descriptors/types/LogDefinition.java
+common/com/statespec/generated/descriptors/types/MetricDefinition.java
+EOF
 assert_file_exists "$TMPDIR/out-java/api/com/statespec/generated/shapes/StartOrderProcessingRequest.java"
 assert_file_exists "$TMPDIR/out-java/api/com/statespec/generated/shapes/ShapeCatalog.java"
 assert_file_exists "$TMPDIR/out-java/common/com/statespec/generated/descriptors/CoreDescriptorModule.java"
