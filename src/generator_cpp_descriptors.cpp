@@ -122,6 +122,18 @@ std::string cpp_entity_state_expr(
            "::constants::" + cpp_entity_state_constant_name(entity.name, state_name);
 }
 
+std::string cpp_api_body_field_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    if (find_entity_field(entity, field_name) == nullptr)
+    {
+        return cpp_string(field_name);
+    }
+    return cpp_entity_field_expr(entity, field_name);
+}
+
 std::string cpp_entity_repository_expr(const IrEntity& entity)
 {
     return "::statespec_generated::entities::" + snake_identifier(entity.name) + "::Default" +
@@ -281,32 +293,40 @@ bool create_api_has_required_request_fields(
 
 std::string cpp_decode_expr(
     const IrField& field,
-    std::string value_expr
+    std::string value_expr,
+    std::string label_expr
 )
 {
     const auto base = strip_optional_type(field.type);
     if (base == "bool")
     {
-        return "decode_bool(" + value_expr + ", " + cpp_string(field.name) + ")";
+        return "decode_bool(" + value_expr + ", " + label_expr + ")";
     }
     if (base == "int" || base == "int32")
     {
-        return "static_cast<std::int32_t>(decode_int64(" + value_expr + ", " +
-               cpp_string(field.name) + "))";
+        return "static_cast<std::int32_t>(decode_int64(" + value_expr + ", " + label_expr + "))";
     }
     if (base == "int64" || base == "long")
     {
-        return "decode_int64(" + value_expr + ", " + cpp_string(field.name) + ")";
+        return "decode_int64(" + value_expr + ", " + label_expr + ")";
     }
     if (base == "double" || base == "decimal")
     {
-        return "decode_double(" + value_expr + ", " + cpp_string(field.name) + ")";
+        return "decode_double(" + value_expr + ", " + label_expr + ")";
     }
     if (base == "json")
     {
         return value_expr;
     }
-    return "decode_string(" + value_expr + ", " + cpp_string(field.name) + ")";
+    return "decode_string(" + value_expr + ", " + label_expr + ")";
+}
+
+std::string cpp_decode_expr(
+    const IrField& field,
+    std::string value_expr
+)
+{
+    return cpp_decode_expr(field, std::move(value_expr), cpp_string(field.name));
 }
 
 std::string cpp_json_expr(
@@ -397,8 +417,10 @@ std::string cpp_record_response_assignment(
 )
 {
     return cpp_decode_expr(
-        field, "require_member(" + record_expr + ".document, " +
-                   cpp_entity_field_expr(entity, field.name) + ")"
+        field,
+        "require_member(" + record_expr + ".document, " +
+            cpp_entity_field_expr(entity, field.name) + ")",
+        cpp_entity_field_expr(entity, field.name)
     );
 }
 
@@ -684,13 +706,13 @@ bool write_cpp_list_handler_body(
             out << "            {\n";
             out << "                items.push_back(record.document);\n";
             out << "            }\n";
-            out << "            body.emplace(" << cpp_string(field.name)
+            out << "            body.emplace(" << cpp_api_body_field_expr(*entity, field.name)
                 << ", statespec::backend::Json::array(std::move(items)));\n";
         }
         else
         {
-            out << "            body.emplace(" << cpp_string(field.name) << ", "
-                << cpp_path_value(*entity, field.name) << ");\n";
+            out << "            body.emplace(" << cpp_api_body_field_expr(*entity, field.name)
+                << ", " << cpp_path_value(*entity, field.name) << ");\n";
         }
     }
     out << "            return ApiResponse{200, "

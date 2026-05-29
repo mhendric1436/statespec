@@ -133,6 +133,18 @@ std::string java_entity_state_expr(
            java_entity_state_constant_name(entity.name, state_name);
 }
 
+std::string java_api_body_field_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    if (find_entity_field_java(entity, field_name) == nullptr)
+    {
+        return java_string(field_name);
+    }
+    return java_entity_field_expr(entity, field_name);
+}
+
 const IrEntity* create_entity_for_api_java(
     const IrSystem& system,
     const IrApi& api
@@ -732,12 +744,12 @@ bool write_java_list_handler_body(
             out << "                for (var record : records) {\n";
             out << "                    items.add(record.document());\n";
             out << "                }\n";
-            out << "                body.put(" << java_string(field.name)
+            out << "                body.put(" << java_api_body_field_expr(*entity, field.name)
                 << ", com.statespec.backend.Json.array(items));\n";
         }
         else
         {
-            out << "                body.put(" << java_string(field.name)
+            out << "                body.put(" << java_api_body_field_expr(*entity, field.name)
                 << ", pathParameterJson(pathParameters, "
                 << java_entity_field_expr(*entity, field.name) << "));\n";
         }

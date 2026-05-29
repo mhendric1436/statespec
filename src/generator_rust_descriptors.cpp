@@ -97,6 +97,18 @@ std::string rust_entity_state_expr(
            "::constants::" + rust_entity_state_constant_name(entity.name, state_name);
 }
 
+std::string rust_api_body_field_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    if (find_entity_field_rs(entity, field_name) == nullptr)
+    {
+        return rust_string(field_name);
+    }
+    return rust_entity_field_expr(entity, field_name);
+}
+
 std::string rust_entity_repository_type(const IrEntity& entity)
 {
     return "crate::entity_" + snake_identifier(entity.name) + "::persistence::Default" +
@@ -598,7 +610,8 @@ bool write_rust_get_handler_body(
                 out << "        if let Json::Object(document) = &record.document {\n";
                 out << "            if let Some(value) = document.get("
                     << rust_entity_field_expr(*entity, field.name) << ") {\n";
-                out << "                body.insert(" << rust_string(field.name)
+                out << "                body.insert("
+                    << rust_api_body_field_expr(*entity, field.name)
                     << ".to_string(), value.clone());\n";
                 out << "            }\n";
                 out << "        }\n";
@@ -669,14 +682,15 @@ bool write_rust_list_handler_body(
         if (&field == list_field)
         {
             out << "        body.insert(\n";
-            out << "            " << rust_string(field.name) << ".to_string(),\n";
+            out << "            " << rust_api_body_field_expr(*entity, field.name)
+                << ".to_string(),\n";
             out << "            Json::Array(records.into_iter().map(|record| "
                    "record.document).collect()),\n";
             out << "        );\n";
         }
         else
         {
-            out << "        body.insert(" << rust_string(field.name)
+            out << "        body.insert(" << rust_api_body_field_expr(*entity, field.name)
                 << ".to_string(), path_parameter_json(&path_parameters, "
                 << rust_entity_field_expr(*entity, field.name) << "));\n";
         }
@@ -791,7 +805,8 @@ bool write_rust_update_status_handler_body(
                 out << "        if let Json::Object(document) = &updated.document {\n";
                 out << "            if let Some(value) = document.get("
                     << rust_entity_field_expr(*entity, field.name) << ") {\n";
-                out << "                body.insert(" << rust_string(field.name)
+                out << "                body.insert("
+                    << rust_api_body_field_expr(*entity, field.name)
                     << ".to_string(), value.clone());\n";
                 out << "            }\n";
                 out << "        }\n";

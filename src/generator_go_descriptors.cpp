@@ -97,6 +97,18 @@ std::string go_entity_state_expr(
            go_entity_state_constant_name(entity.name, state_name);
 }
 
+std::string go_api_body_field_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    if (find_entity_field_go(entity, field_name) == nullptr)
+    {
+        return go_string(field_name);
+    }
+    return go_entity_field_expr(entity, field_name);
+}
+
 std::string go_entity_repository_expr(const IrEntity& entity)
 {
     return snake_identifier(entity.name) + ".Default" + pascal_identifier(entity.name) +
@@ -646,11 +658,13 @@ bool write_go_list_handler_body(
         {
             out << "\titems := []common.JSON{}\n";
             out << "\tfor _, record := range records { items = append(items, record.Document) }\n";
-            out << "\tbody[" << go_string(field.name) << "] = common.JSONArray(items)\n";
+            out << "\tbody[" << go_api_body_field_expr(*entity, field.name)
+                << "] = common.JSONArray(items)\n";
         }
         else
         {
-            out << "\tbody[" << go_string(field.name) << "] = pathParameterJSON(pathParameters, "
+            out << "\tbody[" << go_api_body_field_expr(*entity, field.name)
+                << "] = pathParameterJSON(pathParameters, "
                 << go_entity_field_expr(*entity, field.name) << ")\n";
         }
     }
