@@ -1,29 +1,9 @@
-func leaseDefinitionFromDescriptor(definition LeaseDescriptor) LeaseDefinition {
-	resourcePattern := definition.Name
-	if definition.Resource != nil {
-		resourcePattern = *definition.Resource
-	}
-	renewEvery := definition.TTL
-	if definition.RenewEvery != nil {
-		renewEvery = *definition.RenewEvery
-	}
-	return LeaseDefinition{
-		ID:              LeaseDefinitionID{Name: definition.Name, Version: 1},
-		ResourcePattern: resourcePattern,
-		TTL:             definition.TTL,
-		RenewEvery:      renewEvery,
-		MaxTTL:          definition.MaxTTL,
-		FencingToken:    definition.FencingToken,
-	}
-}
-
 func RegisterLeaseDefinitionsTx(ctx context.Context, tx Transaction, store LeaseStore) error {
 	for _, definition := range LeaseDefinitions() {
-		_, err := store.RegisterDefinitionTx(ctx, tx, leaseDefinitionFromDescriptor(definition))
+		_, err := store.RegisterDefinitionTx(ctx, tx, definition)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-

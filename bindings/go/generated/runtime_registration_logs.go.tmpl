@@ -1,15 +1,9 @@
 func RegisterLogDefinitionsTx(ctx context.Context, tx Transaction, sink LogSink) error {
 	for _, definition := range LogDefinitions() {
-		_, err := sink.RegisterDefinitionTx(ctx, tx, LogSignalDefinition{
-			Name:      definition.Name,
-			Level:     logLevelFromDescriptor(definition.Level),
-			EventName: definition.EventName,
-			Fields:    definition.Fields,
-		})
+		_, err := sink.RegisterDefinitionTx(ctx, tx, definition)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-

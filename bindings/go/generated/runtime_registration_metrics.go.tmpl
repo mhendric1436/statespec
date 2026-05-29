@@ -1,16 +1,9 @@
 func RegisterMetricDefinitionsTx(ctx context.Context, tx Transaction, sink MetricSink) error {
 	for _, definition := range MetricDefinitions() {
-		_, err := sink.RegisterDefinitionTx(ctx, tx, MetricInstrumentDefinition{
-			Name:        definition.Name,
-			Kind:        metricKindFromDescriptor(definition.Kind),
-			BackendName: definition.BackendName,
-			Unit:        definition.Unit,
-			Labels:      definition.Labels,
-		})
+		_, err := sink.RegisterDefinitionTx(ctx, tx, definition)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-

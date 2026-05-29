@@ -163,11 +163,6 @@ std::string go_runtime_registration_module_file(
     out << "package backend\n\n";
     out << "import (\n";
     out << "\t\"context\"\n";
-    if (name == "feature_flags")
-    {
-        out << "\t\"strconv\"\n";
-        out << "\t\"strings\"\n";
-    }
     out << ")\n\n";
     out << generate_go_runtime_registration_domain(templates, name);
     return out.str();
@@ -1383,8 +1378,6 @@ std::string go_descriptor_types_file()
     std::ostringstream out;
     out << "package descriptortypes\n\n";
     out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type LeaseDescriptor = common.LeaseDescriptor\n";
-    out << "type FeatureFlagDescriptor = common.FeatureFlagDescriptor\n";
     out << "type ValueDescriptor = common.ValueDescriptor\n";
     out << "type EnumMemberDescriptor = common.EnumMemberDescriptor\n";
     out << "type EnumDescriptor = common.EnumDescriptor\n";

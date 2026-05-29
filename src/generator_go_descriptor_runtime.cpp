@@ -28,16 +28,19 @@ std::string generate_go_runtime_descriptors(const IrSystem& system)
     out << "\t}\n";
     out << "}\n\n";
 
-    out << "func LeaseDefinitions() []LeaseDescriptor {\n";
-    out << "\treturn []LeaseDescriptor{\n";
+    out << "func LeaseDefinitions() []LeaseDefinition {\n";
+    out << "\treturn []LeaseDefinition{\n";
     for (const auto& lease : system.leases)
     {
+        const auto resource_pattern = lease.resource.value_or(lease.name);
+        const auto ttl = lease.ttl.value_or("0s");
+        const auto renew_every = lease.renew_every.value_or(ttl);
         out << "\t\t{\n";
-        out << "\t\t\tName: " << go_string(lease.name) << ",\n";
-        out << "\t\t\tResource: " << string_ptr_expr(lease.resource) << ",\n";
-        out << "\t\t\tTTL: " << parse_go_duration_seconds(lease.ttl) << " * time.Second,\n";
-        out << "\t\t\tRenewEvery: " << duration_ptr_expr(lease.renew_every) << ",\n";
-        out << "\t\t\tHolder: " << string_ptr_expr(lease.holder) << ",\n";
+        out << "\t\t\tID: LeaseDefinitionID{Name: " << go_string(lease.name) << ", Version: 1},\n";
+        out << "\t\t\tResourcePattern: " << go_string(resource_pattern) << ",\n";
+        out << "\t\t\tTTL: " << parse_go_duration_seconds(ttl) << " * time.Second,\n";
+        out << "\t\t\tRenewEvery: " << parse_go_duration_seconds(renew_every)
+            << " * time.Second,\n";
         out << "\t\t\tFencingToken: " << (lease.fencing_token.value_or(false) ? "true" : "false")
             << ",\n";
         out << "\t\t\tMaxTTL: " << duration_ptr_expr(lease.max_ttl) << ",\n";

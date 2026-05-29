@@ -890,7 +890,6 @@ std::string generate_descriptors_go(
     out << generate_go_policy_descriptors(system);
     out << generate_go_observability_descriptors(system);
     out << generate_go_runtime_descriptors(system);
-    out << generate_go_observability_registration(system);
     return out.str();
 }
 
