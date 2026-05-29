@@ -10,6 +10,8 @@ namespace statespec
 
 std::string go_string(const std::string& value);
 std::string go_entity_name_constant_name(const std::string& entity_name);
+std::string go_entity_plural_name_constant_name(const std::string& entity_name);
+std::string go_entity_plural_api_field_name(const std::string& entity_name);
 std::string go_entity_field_constant_name(
     const std::string& entity_name,
     const std::string& field_name

@@ -11,6 +11,8 @@ namespace statespec
 
 std::string cpp_string(const std::string& value);
 std::string cpp_entity_name_constant_name(const std::string& entity_name);
+std::string cpp_entity_plural_name_constant_name(const std::string& entity_name);
+std::string cpp_entity_plural_api_field_name(const std::string& entity_name);
 std::string cpp_entity_field_constant_name(
     const std::string& entity_name,
     const std::string& field_name

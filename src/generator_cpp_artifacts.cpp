@@ -1909,6 +1909,8 @@ std::string cpp_entity_constants_header(const IrEntity& entity)
     out << "{\n\n";
     out << "inline constexpr const char* " << cpp_entity_name_constant_name(entity.name) << " = "
         << cpp_string(entity.name) << ";\n";
+    out << "inline constexpr const char* " << cpp_entity_plural_name_constant_name(entity.name)
+        << " = " << cpp_string(cpp_entity_plural_api_field_name(entity.name)) << ";\n";
     out << "inline constexpr const char* k" << pascal_identifier(entity.name)
         << "CollectionName = " << cpp_string(entity.name) << ";\n";
     out << "inline constexpr const char* k" << pascal_identifier(entity.name)

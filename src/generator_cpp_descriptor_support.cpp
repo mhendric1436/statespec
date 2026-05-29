@@ -75,6 +75,11 @@ std::string cpp_entity_name_constant_name(const std::string& entity_name)
     return "k" + pascal_identifier(entity_name) + "EntityName";
 }
 
+std::string cpp_entity_plural_name_constant_name(const std::string& entity_name)
+{
+    return "k" + pascal_identifier(entity_name) + "EntityPluralName";
+}
+
 std::string cpp_entity_field_constant_name(
     const std::string& entity_name,
     const std::string& field_name
@@ -118,6 +123,25 @@ bool entity_has_field(
 
 } // namespace
 
+std::string cpp_entity_plural_api_field_name(const std::string& entity_name)
+{
+    const auto singular = pascal_identifier(entity_name, "Entities");
+    std::string plural;
+    if (!singular.empty() && singular.back() == 'y')
+    {
+        plural = singular.substr(0, singular.size() - 1) + "ies";
+    }
+    else if (!singular.empty() && singular.back() == 's')
+    {
+        plural = singular + "es";
+    }
+    else
+    {
+        plural = singular + "s";
+    }
+    return lower_camel_identifier(plural, "entities");
+}
+
 std::string cpp_api_codec_field_name_expr(
     const IrEntity& entity,
     const std::string& field_name
@@ -125,6 +149,11 @@ std::string cpp_api_codec_field_name_expr(
 {
     if (!entity_has_field(entity, field_name))
     {
+        if (field_name == cpp_entity_plural_api_field_name(entity.name))
+        {
+            return "::statespec_generated::entities::" + snake_identifier(entity.name) +
+                   "::constants::" + cpp_entity_plural_name_constant_name(entity.name);
+        }
         return cpp_string(field_name);
     }
     return "::statespec_generated::entities::" + snake_identifier(entity.name) +

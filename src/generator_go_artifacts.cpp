@@ -1849,6 +1849,8 @@ std::string go_entity_constants_file(const IrEntity& entity)
     out << "const (\n";
     out << "\t" << go_entity_name_constant_name(entity.name) << " = " << go_string(entity.name)
         << "\n";
+    out << "\t" << go_entity_plural_name_constant_name(entity.name) << " = "
+        << go_string(go_entity_plural_api_field_name(entity.name)) << "\n";
     out << "\t" << pascal_identifier(entity.name) << "CollectionName = " << go_string(entity.name)
         << "\n";
     out << "\t" << pascal_identifier(entity.name)

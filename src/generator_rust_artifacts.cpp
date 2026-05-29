@@ -1513,6 +1513,8 @@ std::string rust_entity_constants_file(const IrEntity& entity)
     out << "#![allow(dead_code)]\n\n";
     out << "pub const " << rust_entity_name_constant_name(entity.name)
         << ": &str = " << rust_string(entity.name) << ";\n";
+    out << "pub const " << rust_entity_plural_name_constant_name(entity.name)
+        << ": &str = " << rust_string(rust_entity_plural_api_field_name(entity.name)) << ";\n";
     out << "pub const " << upper_snake_identifier(entity.name + "_collection_name")
         << ": &str = " << rust_string(entity.name) << ";\n";
     out << "pub const " << upper_snake_identifier(entity.name + "_key_helper_name")

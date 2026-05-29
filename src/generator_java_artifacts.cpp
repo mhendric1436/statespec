@@ -1744,6 +1744,8 @@ std::string java_entity_constants_file(const IrEntity& entity)
     out << "    private Constants() {}\n\n";
     out << "    public static final String " << java_entity_name_constant_name(entity.name) << " = "
         << java_string(entity.name) << ";\n";
+    out << "    public static final String " << java_entity_plural_name_constant_name(entity.name)
+        << " = " << java_string(java_entity_plural_api_field_name(entity.name)) << ";\n";
     out << "    public static final String "
         << upper_snake_identifier(entity.name + "_collection_name") << " = "
         << java_string(entity.name) << ";\n";
