@@ -211,6 +211,9 @@ sorted_expected_app_artifact_paths(const std::vector<ExpectedBindingAppArtifact>
               terminal [Deleted]
               Active -> Deleted
             }
+            indexes {
+              unique by_tenant_account on tenant_id, account_id
+            }
             api {
               resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
               create {

@@ -85,6 +85,7 @@ common/backend/shape_types.go
 common/backend/workflow.go
 common/backend/workflows/provision_service.go
 common/backend/workflows/workflows.go
+common/entities/service_instance/constants.go
 common/entities/service_instance/gc.go
 common/entities/service_instance/model.go
 common/entities/service_instance/persistence.go

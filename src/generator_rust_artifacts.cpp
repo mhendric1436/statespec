@@ -1546,6 +1546,40 @@ std::string rust_entity_centered_facade_file(
     return out.str();
 }
 
+std::string rust_entity_constants_file(const IrEntity& entity)
+{
+    std::ostringstream out;
+    out << "#![allow(dead_code)]\n\n";
+    out << "pub const " << rust_entity_name_constant_name(entity.name)
+        << ": &str = " << rust_string(entity.name) << ";\n";
+    out << "pub const " << upper_snake_identifier(entity.name + "_collection_name")
+        << ": &str = " << rust_string(entity.name) << ";\n";
+    out << "pub const " << upper_snake_identifier(entity.name + "_key_helper_name")
+        << ": &str = " << rust_string(snake_identifier(entity.name) + "_lookup") << ";\n";
+    for (const auto& field : entity.fields)
+    {
+        out << "pub const " << rust_entity_field_constant_name(entity.name, field.name)
+            << ": &str = " << rust_string(field.name) << ";\n";
+        out << "pub const " << rust_entity_field_type_name_constant_name(entity.name, field.name)
+            << ": &str = " << rust_string(field.type) << ";\n";
+    }
+    for (const auto& index : entity.indexes)
+    {
+        out << "pub const " << rust_entity_index_constant_name(entity.name, index.name)
+            << ": &str = " << rust_string(index.name) << ";\n";
+        out << "pub const "
+            << upper_snake_identifier(entity.name + "_index_" + index.name + "_helper_name")
+            << ": &str = " << rust_string(rust_entity_index_repository_method_name(index.name))
+            << ";\n";
+    }
+    for (const auto& state : entity.states)
+    {
+        out << "pub const " << rust_entity_state_constant_name(entity.name, state.name)
+            << ": &str = " << rust_string(state.name) << ";\n";
+    }
+    return out.str();
+}
+
 std::string rust_event_descriptor_module(const IrSystem& system)
 {
     std::ostringstream out;
@@ -2100,12 +2134,16 @@ void add_rust_descriptor_module_artifacts(
             [](const IrState& state) { return state.garbage_collection.has_value(); }
         );
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
-        std::string entity_mods = "pub mod model;\npub mod persistence;\npub mod schema;\n";
+        std::string entity_mods =
+            "pub mod constants;\npub mod model;\npub mod persistence;\npub mod schema;\n";
         if (entity_uses_gc)
         {
             entity_mods += "pub mod gc;\n";
         }
         add_rust_raw_common_file(result, options, entity_dir + "mod.rs", entity_mods);
+        add_rust_raw_common_file(
+            result, options, entity_dir + "constants.rs", rust_entity_constants_file(entity)
+        );
         add_rust_raw_common_file(
             result, options, entity_dir + "model.rs",
             rust_entity_centered_facade_file(entity, "model")

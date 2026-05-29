@@ -1882,6 +1882,40 @@ std::string go_entity_centered_facade_file(
     return out.str();
 }
 
+std::string go_entity_constants_file(const IrEntity& entity)
+{
+    const auto constants_prefix = pascal_identifier(entity.name) + "Constants";
+    std::ostringstream out;
+    out << "package " << snake_identifier(entity.name) << "\n\n";
+    out << "const (\n";
+    out << "\t" << constants_prefix << "EntityName = " << go_string(entity.name) << "\n";
+    out << "\t" << constants_prefix << "CollectionName = " << go_string(entity.name) << "\n";
+    out << "\t" << constants_prefix
+        << "KeyHelperName = " << go_string(pascal_identifier(entity.name) + "Lookup") << "\n";
+    for (const auto& field : entity.fields)
+    {
+        out << "\t" << constants_prefix << "Field" << pascal_identifier(field.name) << " = "
+            << go_string(field.name) << "\n";
+        out << "\t" << constants_prefix << "Field" << pascal_identifier(field.name)
+            << "TypeName = " << go_string(field.type) << "\n";
+    }
+    for (const auto& index : entity.indexes)
+    {
+        out << "\t" << constants_prefix << "Index" << pascal_identifier(index.name) << " = "
+            << go_string(index.name) << "\n";
+        out << "\t" << constants_prefix << "Index" << pascal_identifier(index.name)
+            << "HelperName = " << go_string(go_entity_index_repository_method_name(index.name))
+            << "\n";
+    }
+    for (const auto& state : entity.states)
+    {
+        out << "\t" << constants_prefix << "Status" << pascal_identifier(state.name) << " = "
+            << go_string(state.name) << "\n";
+    }
+    out << ")\n";
+    return out.str();
+}
+
 std::string go_event_helpers_file(const IrSystem& system)
 {
     std::ostringstream out;
@@ -2392,6 +2426,9 @@ void add_go_entity_descriptor_artifacts(
     for (const auto& entity : system.entities)
     {
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
+        add_go_raw_common_file(
+            result, options, entity_dir + "constants.go", go_entity_constants_file(entity)
+        );
         add_go_raw_common_file(
             result, options, entity_dir + "model.go",
             go_entity_centered_facade_file(entity, "model")

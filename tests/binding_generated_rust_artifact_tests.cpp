@@ -140,6 +140,41 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(result, "api/entities/audit_log/catalog.rs");
     require_generated_artifact_exists(result, "common/entities/account/model.rs");
     require_generated_artifact_exists(result, "common/entities/audit_log/model.rs");
+    require_generated_artifact_exists(result, "common/entities/account/constants.rs");
+    require_generated_artifact_exists(result, "common/entities/audit_log/constants.rs");
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.rs",
+        "pub const ACCOUNT_ENTITY_NAME: &str = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.rs",
+        "pub const ACCOUNT_COLLECTION_NAME: &str = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.rs",
+        "pub const ACCOUNT_FIELD_TENANT_ID: &str = \"tenant_id\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.rs",
+        "pub const ACCOUNT_FIELD_CREATED_AT_TYPE_NAME: &str = \"timestamp\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.rs",
+        "pub const ACCOUNT_INDEX_BY_TENANT_ACCOUNT: &str = \"by_tenant_account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.rs",
+        "pub const ACCOUNT_INDEX_BY_TENANT_ACCOUNT_HELPER_NAME: &str = "
+        "\"list_by_tenant_account_tx\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.rs",
+        "pub const ACCOUNT_STATUS_ACTIVE: &str = \"Active\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.rs",
+        "pub const ACCOUNT_KEY_HELPER_NAME: &str = \"account_lookup\""
+    );
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.rs",
         "use crate::api_shapes::entity_account_shapes as shapes;"

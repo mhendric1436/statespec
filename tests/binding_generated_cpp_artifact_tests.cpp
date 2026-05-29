@@ -145,6 +145,44 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(result, "api/entities/audit_log/catalog.hpp");
     require_generated_artifact_exists(result, "common/entities/account/model.hpp");
     require_generated_artifact_exists(result, "common/entities/audit_log/model.hpp");
+    require_generated_artifact_exists(result, "common/entities/account/constants.hpp");
+    require_generated_artifact_exists(result, "common/entities/audit_log/constants.hpp");
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp", "namespace constants"
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountEntityName = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountCollectionName = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountFieldTenantId = \"tenant_id\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountFieldCreatedAtTypeName = \"timestamp\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountIndexByTenantAccount = \"by_tenant_account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountIndexByTenantAccountHelperName = "
+        "\"listByTenantAccountTx\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountStatusActive = \"Active\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountKeyHelperName = \"account_lookup\""
+    );
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.hpp", "#include \"shapes.hpp\""
     );

@@ -145,6 +145,39 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(result, "api/backend/entities/audit_log/catalog.go");
     require_generated_artifact_exists(result, "common/entities/account/model.go");
     require_generated_artifact_exists(result, "common/entities/audit_log/model.go");
+    require_generated_artifact_exists(result, "common/entities/account/constants.go");
+    require_generated_artifact_exists(result, "common/entities/audit_log/constants.go");
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.go", "AccountConstantsEntityName = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.go",
+        "AccountConstantsCollectionName = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.go",
+        "AccountConstantsFieldTenantId = \"tenant_id\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.go",
+        "AccountConstantsFieldCreatedAtTypeName = \"timestamp\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.go",
+        "AccountConstantsIndexByTenantAccount = \"by_tenant_account\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.go",
+        "AccountConstantsIndexByTenantAccountHelperName = \"ListByTenantAccountTx\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.go", "AccountConstantsStatusActive = \"Active\""
+    );
+    require_generated_artifact_contains(
+        result, "common/entities/account/constants.go",
+        "AccountConstantsKeyHelperName = "
+        "\"AccountLookup\""
+    );
     require_generated_artifact_contains(
         result, "api/backend/entities/account/catalog.go", "package account"
     );

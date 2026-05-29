@@ -1938,6 +1938,51 @@ std::string cpp_entity_centered_facade_header(
     return out.str();
 }
 
+std::string cpp_entity_constants_header(const IrEntity& entity)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "namespace statespec_generated::entities::" << snake_identifier(entity.name) << "\n";
+    out << "{\n\n";
+    out << "namespace constants\n";
+    out << "{\n\n";
+    out << "inline constexpr const char* " << cpp_entity_name_constant_name(entity.name) << " = "
+        << cpp_string(entity.name) << ";\n";
+    out << "inline constexpr const char* k" << pascal_identifier(entity.name)
+        << "CollectionName = " << cpp_string(entity.name) << ";\n";
+    out << "inline constexpr const char* k" << pascal_identifier(entity.name)
+        << "KeyHelperName = " << cpp_string(snake_identifier(entity.name) + "_lookup") << ";\n";
+    for (const auto& field : entity.fields)
+    {
+        out << "inline constexpr const char* "
+            << cpp_entity_field_constant_name(entity.name, field.name) << " = "
+            << cpp_string(field.name) << ";\n";
+        out << "inline constexpr const char* "
+            << cpp_entity_field_type_name_constant_name(entity.name, field.name) << " = "
+            << cpp_string(field.type) << ";\n";
+    }
+    for (const auto& index : entity.indexes)
+    {
+        out << "inline constexpr const char* "
+            << cpp_entity_index_constant_name(entity.name, index.name) << " = "
+            << cpp_string(index.name) << ";\n";
+        out << "inline constexpr const char* k" << pascal_identifier(entity.name) << "Index"
+            << pascal_identifier(index.name)
+            << "HelperName = " << cpp_string(entity_index_repository_method_name(index.name))
+            << ";\n";
+    }
+    for (const auto& state : entity.states)
+    {
+        out << "inline constexpr const char* "
+            << cpp_entity_state_constant_name(entity.name, state.name) << " = "
+            << cpp_string(state.name) << ";\n";
+    }
+    out << "\n} // namespace constants\n\n";
+    out << "} // namespace statespec_generated::entities::" << snake_identifier(entity.name)
+        << "\n";
+    return out.str();
+}
+
 std::string cpp_event_descriptor_module(const IrSystem& system)
 {
     std::ostringstream out;
@@ -2459,6 +2504,9 @@ void add_cpp_descriptor_module_artifacts(
     for (const auto& entity : system.entities)
     {
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
+        add_cpp_raw_common_file(
+            result, options, entity_dir + "constants.hpp", cpp_entity_constants_header(entity)
+        );
         add_cpp_raw_common_file(
             result, options, entity_dir + "model.hpp",
             cpp_entity_centered_facade_header(entity, "model")
