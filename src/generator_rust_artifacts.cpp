@@ -1656,76 +1656,12 @@ TemplateRenderer::Values rust_shape_descriptor_module_values(const IrShape& shap
 
 std::string rust_shape_types_file()
 {
-    return "use crate::backend::FieldDescriptor;\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct ShapeDescriptor {\n"
-           "    pub name: String,\n"
-           "    pub fields: Vec<FieldDescriptor>,\n"
-           "}\n";
+    return generate_rust_shape_types_file();
 }
 
 std::string rust_descriptor_types_file()
 {
-    return "use crate::json::Json;\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct ApiDescriptor {\n"
-           "    pub name: String,\n"
-           "    pub method: Option<String>,\n"
-           "    pub path: Option<String>,\n"
-           "    pub input: Option<String>,\n"
-           "    pub output: Option<String>,\n"
-           "    pub error: Option<String>,\n"
-           "    pub starts_workflow: Option<String>,\n"
-           "    pub enqueues: Option<String>,\n"
-           "}\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct ApiServerDescriptor {\n"
-           "    pub name: String,\n"
-           "    pub serves: Vec<String>,\n"
-           "    pub concurrency: i32,\n"
-           "}\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct ApiRouteDescriptor {\n"
-           "    pub name: String,\n"
-           "    pub server_name: String,\n"
-           "    pub api_name: String,\n"
-           "    pub method: Option<String>,\n"
-           "    pub path: Option<String>,\n"
-           "    pub input: Option<String>,\n"
-           "    pub output: Option<String>,\n"
-           "    pub error: Option<String>,\n"
-           "}\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct ApiRequestContext {\n"
-           "    pub server_name: String,\n"
-           "    pub api_name: String,\n"
-           "    pub method: Option<String>,\n"
-           "    pub path: Option<String>,\n"
-           "    pub body: Json,\n"
-           "}\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct ApiResponse {\n"
-           "    pub status_code: i32,\n"
-           "    pub body: Json,\n"
-           "}\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct WorkerDescriptor {\n"
-           "    pub name: String,\n"
-           "    pub singleton: bool,\n"
-           "    pub lease: Option<String>,\n"
-           "    pub polls: Option<String>,\n"
-           "    pub executes: Option<String>,\n"
-           "    pub concurrency: i32,\n"
-           "}\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct WorkerContext {\n"
-           "    pub worker_name: String,\n"
-           "    pub singleton: bool,\n"
-           "    pub lease: Option<String>,\n"
-           "    pub polls: Option<String>,\n"
-           "    pub executes: Option<String>,\n"
-           "    pub concurrency: i32,\n"
-           "}\n";
+    return generate_rust_descriptor_types_file();
 }
 
 void add_rust_raw_common_file(

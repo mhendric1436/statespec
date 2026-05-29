@@ -3,8 +3,13 @@
 #include "statespec/generator_bindings.hpp"
 #include "statespec/template_renderer.hpp"
 
+#include <string>
+
 namespace statespec
 {
+
+std::string generate_cpp_descriptor_types_header(const TemplatePackage& templates);
+std::string generate_cpp_shape_types_header();
 
 void add_cpp_common_runtime_artifacts(
     GenerationResult& result,

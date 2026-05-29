@@ -15,6 +15,11 @@ std::string generate_go_descriptor_prelude(
     const std::string& external_system_metadata_runtime,
     const std::string& entity_repository_runtime
 );
+std::string generate_go_backend_descriptor_types(
+    const std::string& external_system_runtime,
+    const std::string& external_system_metadata_runtime,
+    const std::string& entity_repository_runtime
+);
 std::string generate_go_feature_flag_descriptors(const IrSystem& system);
 std::string generate_go_declaration_descriptors(const IrSystem& system);
 std::string generate_go_external_system_descriptors(

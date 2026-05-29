@@ -3,8 +3,13 @@
 #include "statespec/generator_bindings.hpp"
 #include "statespec/template_renderer.hpp"
 
+#include <string>
+
 namespace statespec
 {
+
+std::string generate_rust_descriptor_types_file();
+std::string generate_rust_shape_types_file();
 
 void add_rust_common_runtime_artifacts(
     GenerationResult& result,

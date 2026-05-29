@@ -1375,100 +1375,7 @@ TemplateRenderer::Values go_descriptor_module_values(
 
 std::string go_descriptor_types_file()
 {
-    std::ostringstream out;
-    out << "package descriptortypes\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
-    out << "type ValueDescriptor = common.ValueDescriptor\n";
-    out << "type EnumMemberDescriptor = common.EnumMemberDescriptor\n";
-    out << "type EnumDescriptor = common.EnumDescriptor\n";
-    out << "type EventDescriptor = common.EventDescriptor\n";
-    out << "type EventEnvelope = common.EventEnvelope\n";
-    out << "type ExternalSystemPropertyDescriptor = common.ExternalSystemPropertyDescriptor\n";
-    out << "type ExternalSystemMetadataMappingDescriptor = "
-           "common.ExternalSystemMetadataMappingDescriptor\n";
-    out << "type ExternalSystemMetadataMappingAssignment = "
-           "common.ExternalSystemMetadataMappingAssignment\n";
-    out << "type ExternalSystemMetadataMappingPlan = common.ExternalSystemMetadataMappingPlan\n";
-    out << "type ExternalSystemMetadataMissingMappingSource = "
-           "common.ExternalSystemMetadataMissingMappingSource\n";
-    out << "type ExternalSystemMetadataMappingInputs = "
-           "common.ExternalSystemMetadataMappingInputs\n";
-    out << "type ExternalSystemMetadataMappingOutput = "
-           "common.ExternalSystemMetadataMappingOutput\n";
-    out << "type ExternalSystemMetadataMappingApplicator = "
-           "common.ExternalSystemMetadataMappingApplicator\n";
-    out << "type ExternalSystemMetadataDescriptor = common.ExternalSystemMetadataDescriptor\n";
-    out << "type ExternalSystemOperatorMetadataUpsertRequest = "
-           "common.ExternalSystemOperatorMetadataUpsertRequest\n";
-    out << "type ExternalSystemOperatorMetadataGetRequest = "
-           "common.ExternalSystemOperatorMetadataGetRequest\n";
-    out << "type ExternalSystemOperatorMetadataDisableRequest = "
-           "common.ExternalSystemOperatorMetadataDisableRequest\n";
-    out << "type ExternalSystemOperatorMetadataDeleteRequest = "
-           "common.ExternalSystemOperatorMetadataDeleteRequest\n";
-    out << "type ExternalSystemOperatorMetadataRepository = "
-           "common.ExternalSystemOperatorMetadataRepository\n";
-    out << "type ExternalSystemDescriptor = common.ExternalSystemDescriptor\n";
-    out << "type ExternalSystemClient = common.ExternalSystemClient\n";
-    out << "type ExternalSystemCallRequest = common.ExternalSystemCallRequest\n";
-    out << "type ExternalSystemCallResponse = common.ExternalSystemCallResponse\n";
-    out << "type ApiDescriptor struct {\n";
-    out << "\tName string\n";
-    out << "\tMethod *string\n";
-    out << "\tPath *string\n";
-    out << "\tInput *string\n";
-    out << "\tOutput *string\n";
-    out << "\tError *string\n";
-    out << "\tStartsWorkflow *string\n";
-    out << "\tEnqueues *string\n";
-    out << "}\n";
-    out << "type ApiServerDescriptor struct {\n";
-    out << "\tName string\n";
-    out << "\tServes []string\n";
-    out << "\tConcurrency int\n";
-    out << "}\n";
-    out << "type ApiRouteDescriptor struct {\n";
-    out << "\tName string\n";
-    out << "\tServerName string\n";
-    out << "\tApiName string\n";
-    out << "\tMethod *string\n";
-    out << "\tPath *string\n";
-    out << "\tInput *string\n";
-    out << "\tOutput *string\n";
-    out << "\tError *string\n";
-    out << "}\n";
-    out << "type APIRequestContext = common.APIRequestContext\n";
-    out << "type APIResponse = common.APIResponse\n";
-    out << "type ExternalSystemOperatorMetadataAPIHandler = "
-           "common.ExternalSystemOperatorMetadataAPIHandler\n";
-    out << "type WorkerDescriptor struct {\n";
-    out << "\tName string\n";
-    out << "\tSingleton bool\n";
-    out << "\tLease *string\n";
-    out << "\tPolls *string\n";
-    out << "\tExecutes *string\n";
-    out << "\tConcurrency int\n";
-    out << "}\n";
-    out << "type WorkerContext struct {\n";
-    out << "\tWorkerName string\n";
-    out << "\tSingleton bool\n";
-    out << "\tLease *string\n";
-    out << "\tPolls *string\n";
-    out << "\tExecutes *string\n";
-    out << "\tConcurrency int\n";
-    out << "}\n";
-    out << "type PolicyRuleDescriptor = common.PolicyRuleDescriptor\n";
-    out << "type QuotaDescriptor = common.QuotaDescriptor\n";
-    out << "type PolicyDescriptor = common.PolicyDescriptor\n";
-    out << "type ShapeDescriptor = common.ShapeDescriptor\n";
-    out << "type GarbageCollectionPolicy = common.GarbageCollectionPolicy\n";
-    out << "type EntityStateDescriptor = common.EntityStateDescriptor\n";
-    out << "type EntityOwnershipDescriptor = common.EntityOwnershipDescriptor\n";
-    out << "type EntityRelationDescriptor = common.EntityRelationDescriptor\n";
-    out << "type EntityChildDescriptor = common.EntityChildDescriptor\n";
-    out << "type EntityInvariantDescriptor = common.EntityInvariantDescriptor\n";
-    out << "type EntityDescriptor = common.EntityDescriptor\n";
-    return out.str();
+    return generate_go_descriptor_types_file();
 }
 
 std::string replace_all_copy(
@@ -1971,11 +1878,7 @@ std::string go_shape_descriptor_file(const IrShape& shape)
 
 std::string go_shape_types_file()
 {
-    return "package backend\n\n"
-           "type ShapeDescriptor struct {\n"
-           "\tName string\n"
-           "\tFields []FieldDescriptor\n"
-           "}\n";
+    return generate_go_shape_types_file();
 }
 
 void add_go_raw_common_file(
