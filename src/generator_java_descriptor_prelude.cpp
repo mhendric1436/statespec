@@ -41,6 +41,8 @@ std::string java_descriptor_module_imports(const IrSystem& system)
     out << "import com.statespec.generated.descriptors.CoreDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.EventDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.ExternalSystemDescriptorModule;\n";
+    out << "import com.statespec.generated.descriptors.ObservabilityDescriptorModule;\n";
+    out << "import com.statespec.generated.descriptors.PolicyDescriptorModule;\n";
     out << "import com.statespec.generated.descriptors.RuntimeDescriptorModule;\n";
     if (java_has_common_shapes(system))
     {

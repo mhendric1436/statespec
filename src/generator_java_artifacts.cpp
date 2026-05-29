@@ -71,10 +71,15 @@ std::string java_event_descriptor_module_file(const IrSystem& system)
     std::ostringstream out;
     out << "package com.statespec.generated.descriptors;\n\n";
     out << "import com.statespec.backend.Json;\n";
+    out << "import com.statespec.generated.descriptors.types.EventDescriptor;\n";
     out << "import com.statespec.generated.descriptors.types.EventEnvelope;\n";
+    out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
+    out << "import com.statespec.backend.Backend.FieldType;\n";
+    out << "import java.util.List;\n";
     out << "import java.util.Map;\n\n";
     out << "public final class EventDescriptorModule {\n";
     out << "    private EventDescriptorModule() {}\n\n";
+    out << generate_java_event_descriptors(system);
     for (const auto& event : system.events)
     {
         out << "    public static EventEnvelope build" << pascal_identifier(event.name)
@@ -1758,6 +1763,7 @@ std::string java_entity_api_shapes_file(
     out << "import com.statespec.backend.Json;\n";
     out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
     out << "import com.statespec.backend.Backend.FieldType;\n";
+    out << "import com.statespec.backend.Backend.FieldType;\n";
     out << "import com.statespec.generated.descriptors.types.ShapeDescriptor;\n";
     out << "import java.util.List;\n";
     out << "import java.util.Optional;\n\n";
@@ -3045,7 +3051,11 @@ void add_java_descriptor_module_artifacts(
 
     add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "CoreDescriptorModule.java",
-        descriptor_package, "CoreDescriptorModule", "core descriptors", diagnostics
+        descriptor_package, "CoreDescriptorModule", "core descriptors", diagnostics,
+        java_descriptor_module_values(
+            descriptor_package, "CoreDescriptorModule", "core descriptors",
+            generate_java_value_enum_descriptors(system)
+        )
     );
     add_java_raw_common_file(
         result, options, descriptor_package_path / "EventDescriptorModule.java",
@@ -3080,8 +3090,30 @@ void add_java_descriptor_module_artifacts(
         }
     }
     add_java_descriptor_module_artifact(
+        result, options, templates, descriptor_package_path / "PolicyDescriptorModule.java",
+        descriptor_package, "PolicyDescriptorModule", "policy descriptors", diagnostics,
+        java_descriptor_module_values(
+            descriptor_package, "PolicyDescriptorModule", "policy descriptors",
+            generate_java_policy_descriptors(system)
+        )
+    );
+    add_java_descriptor_module_artifact(
         result, options, templates, descriptor_package_path / "RuntimeDescriptorModule.java",
-        descriptor_package, "RuntimeDescriptorModule", "runtime descriptors", diagnostics
+        descriptor_package, "RuntimeDescriptorModule", "runtime descriptors", diagnostics,
+        java_descriptor_module_values(
+            descriptor_package, "RuntimeDescriptorModule", "runtime descriptors",
+            generate_java_feature_flag_descriptors(system) +
+                generate_java_runtime_descriptors(system)
+        )
+    );
+    add_java_descriptor_module_artifact(
+        result, options, templates, descriptor_package_path / "ObservabilityDescriptorModule.java",
+        descriptor_package, "ObservabilityDescriptorModule", "observability descriptors",
+        diagnostics,
+        java_descriptor_module_values(
+            descriptor_package, "ObservabilityDescriptorModule", "observability descriptors",
+            generate_java_observability_descriptors(system)
+        )
     );
     for (const auto& [name, class_name] : java_runtime_registration_modules(system))
     {

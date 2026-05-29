@@ -21,6 +21,8 @@ std::string generate_rust_backend_descriptor_types(
     const std::string& entity_repository_runtime
 );
 std::string generate_rust_feature_flag_descriptors(const IrSystem& system);
+std::string generate_rust_value_enum_descriptors(const IrSystem& system);
+std::string generate_rust_event_descriptors(const IrSystem& system);
 std::string generate_rust_declaration_descriptors(const IrSystem& system);
 std::string generate_rust_external_system_descriptors(
     const IrSystem& system,

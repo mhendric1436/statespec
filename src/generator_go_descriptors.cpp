@@ -885,11 +885,6 @@ std::string generate_descriptors_go(
         system, templates.load("generated/external_system_runtime.go.tmpl"),
         templates.load("generated/external_system_metadata_runtime.go.tmpl"), {}
     );
-    out << generate_go_feature_flag_descriptors(system);
-    out << generate_go_declaration_descriptors(system);
-    out << generate_go_policy_descriptors(system);
-    out << generate_go_observability_descriptors(system);
-    out << generate_go_runtime_descriptors(system);
     return out.str();
 }
 

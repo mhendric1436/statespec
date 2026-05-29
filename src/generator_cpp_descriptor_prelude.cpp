@@ -39,7 +39,6 @@ std::string cpp_descriptor_module_includes(const IrSystem& system)
 {
     std::ostringstream out;
     out << "#include \"descriptors/core.hpp\"\n";
-    out << "#include \"descriptors/runtime.hpp\"\n";
     if (cpp_has_common_shapes(system))
     {
         out << "#include \"descriptors/shapes.hpp\"\n";
@@ -87,7 +86,6 @@ std::string generate_cpp_descriptor_prelude(
     out << "#include <vector>\n\n";
     out << "namespace statespec_generated\n";
     out << "{\n\n";
-    out << "#include \"descriptors/events.hpp\"\n\n";
     out << entity_repository_runtime << "\n";
 
     return out.str();

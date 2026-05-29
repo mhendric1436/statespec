@@ -112,7 +112,7 @@ std::string generate_java_workflow_descriptor_umbrella(const IrSystem& system)
     for (std::size_t i = 0; i < system.workflows.size(); ++i)
     {
         const auto& workflow = system.workflows[i];
-        out << "            " << pascal_identifier(workflow.name)
+        out << "            com.statespec.generated.workflows." << pascal_identifier(workflow.name)
             << "DescriptorModule.workflowDefinition()"
             << (i + 1 < system.workflows.size() ? "," : "") << "\n";
     }

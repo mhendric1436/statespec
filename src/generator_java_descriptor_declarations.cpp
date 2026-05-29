@@ -7,7 +7,7 @@
 namespace statespec
 {
 
-std::string generate_java_declaration_descriptors(const IrSystem& system)
+std::string generate_java_value_enum_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
     out << "    public static List<ValueDescriptor> valueDescriptors() {\n";
@@ -45,6 +45,12 @@ std::string generate_java_declaration_descriptors(const IrSystem& system)
     out << "        );\n";
     out << "    }\n\n";
 
+    return out.str();
+}
+
+std::string generate_java_event_descriptors(const IrSystem& system)
+{
+    std::ostringstream out;
     out << "    public static List<EventDescriptor> eventDescriptors() {\n";
     out << "        return List.of(\n";
     for (std::size_t event_index = 0; event_index < system.events.size(); ++event_index)
@@ -66,6 +72,11 @@ std::string generate_java_declaration_descriptors(const IrSystem& system)
     out << "    }\n\n";
 
     return out.str();
+}
+
+std::string generate_java_declaration_descriptors(const IrSystem& system)
+{
+    return generate_java_value_enum_descriptors(system) + generate_java_event_descriptors(system);
 }
 
 } // namespace statespec

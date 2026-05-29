@@ -1572,6 +1572,7 @@ std::string cpp_entity_constants_header(const IrEntity& entity)
 std::string cpp_event_descriptor_module(const IrSystem& system)
 {
     std::ostringstream out;
+    out << generate_cpp_event_descriptors(system);
     out << "struct EventEnvelope\n";
     out << "{\n";
     out << "    std::string name;\n";
@@ -2141,6 +2142,14 @@ void add_cpp_descriptor_module_artifacts(
         result, options, templates, "descriptors/core.hpp", "core descriptors", diagnostics
     );
     add_cpp_descriptor_module_artifact(
+        result, options, templates, "descriptors/values_enums.hpp", "value and enum descriptors",
+        diagnostics,
+        TemplateRenderer::Values{
+            {"descriptor_module_name", "value and enum descriptors"},
+            {"descriptor_module_content", generate_cpp_value_enum_descriptors(system)}
+        }
+    );
+    add_cpp_descriptor_module_artifact(
         result, options, templates, "descriptors/events.hpp", "event helpers", diagnostics,
         TemplateRenderer::Values{
             {"descriptor_module_name", "event helpers"},
@@ -2151,6 +2160,13 @@ void add_cpp_descriptor_module_artifacts(
         result, options, templates, "descriptors/external_systems.hpp",
         "external system descriptors", diagnostics,
         cpp_external_system_descriptor_module_values(system, templates)
+    );
+    add_cpp_descriptor_module_artifact(
+        result, options, templates, "descriptors/policies.hpp", "policy descriptors", diagnostics,
+        TemplateRenderer::Values{
+            {"descriptor_module_name", "policy descriptors"},
+            {"descriptor_module_content", generate_cpp_policy_descriptors(system)}
+        }
     );
     if (!common_shapes.shapes.empty())
     {
@@ -2170,7 +2186,13 @@ void add_cpp_descriptor_module_artifacts(
         }
     }
     add_cpp_descriptor_module_artifact(
-        result, options, templates, "descriptors/runtime.hpp", "runtime descriptors", diagnostics
+        result, options, templates, "descriptors/runtime.hpp", "runtime descriptors", diagnostics,
+        TemplateRenderer::Values{
+            {"descriptor_module_name", "runtime descriptors"},
+            {"descriptor_module_content", generate_cpp_feature_flag_descriptors(system) +
+                                              generate_cpp_observability_descriptors(system) +
+                                              generate_cpp_runtime_descriptors(system)}
+        }
     );
     for (const auto& [name, label] : cpp_runtime_registration_modules(system))
     {

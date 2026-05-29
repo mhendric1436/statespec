@@ -7,7 +7,7 @@
 namespace statespec
 {
 
-std::string generate_cpp_declaration_descriptors(const IrSystem& system)
+std::string generate_cpp_value_enum_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
     out << "inline std::vector<ValueDescriptor> value_descriptors()\n";
@@ -43,6 +43,12 @@ std::string generate_cpp_declaration_descriptors(const IrSystem& system)
     out << "    };\n";
     out << "}\n\n";
 
+    return out.str();
+}
+
+std::string generate_cpp_event_descriptors(const IrSystem& system)
+{
+    std::ostringstream out;
     out << "inline std::vector<EventDescriptor> event_descriptors()\n";
     out << "{\n";
     out << "    return {\n";
@@ -62,6 +68,11 @@ std::string generate_cpp_declaration_descriptors(const IrSystem& system)
     out << "}\n\n";
 
     return out.str();
+}
+
+std::string generate_cpp_declaration_descriptors(const IrSystem& system)
+{
+    return generate_cpp_value_enum_descriptors(system) + generate_cpp_event_descriptors(system);
 }
 
 } // namespace statespec

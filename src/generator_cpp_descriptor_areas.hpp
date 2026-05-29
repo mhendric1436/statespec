@@ -16,6 +16,8 @@ std::string generate_cpp_descriptor_prelude(
     const std::string& entity_repository_runtime
 );
 std::string generate_cpp_feature_flag_descriptors(const IrSystem& system);
+std::string generate_cpp_value_enum_descriptors(const IrSystem& system);
+std::string generate_cpp_event_descriptors(const IrSystem& system);
 std::string generate_cpp_declaration_descriptors(const IrSystem& system);
 std::string generate_cpp_external_system_descriptors(
     const IrSystem& system,

@@ -63,6 +63,7 @@ common/backend/log.go
 common/backend/memory/backend.go
 common/backend/memory/transaction.go
 common/backend/metric.go
+common/backend/policy_descriptors.go
 common/backend/queue.go
 common/backend/runtime/codec.go
 common/backend/runtime/codec_leases.go
@@ -76,12 +77,14 @@ common/backend/runtime/entitygc/types.go
 common/backend/runtime/leases.go
 common/backend/runtime/queues.go
 common/backend/runtime/workflows.go
+common/backend/runtime_definitions.go
 common/backend/runtime_registration.go
 common/backend/runtime_registration_leases.go
 common/backend/runtime_registration_queues.go
 common/backend/runtime_registration_workflows.go
 common/backend/schema_compatibility.go
 common/backend/shape_types.go
+common/backend/values_enums_descriptors.go
 common/backend/workflow.go
 common/backend/workflows/provision_service.go
 common/backend/workflows/workflows.go

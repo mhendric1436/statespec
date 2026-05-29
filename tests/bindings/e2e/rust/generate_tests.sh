@@ -52,6 +52,8 @@ common/descriptors.rs
 common/descriptors/core.rs
 common/descriptors/events.rs
 common/descriptors/external_systems.rs
+common/descriptors/observability.rs
+common/descriptors/policies.rs
 common/descriptors/runtime.rs
 common/descriptors/runtime/leases.rs
 common/descriptors/runtime/queues.rs

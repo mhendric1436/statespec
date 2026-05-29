@@ -47,6 +47,9 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"common/com/statespec/generated/descriptors/EventDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java",
              common},
+            {"common/com/statespec/generated/descriptors/ObservabilityDescriptorModule.java",
+             common},
+            {"common/com/statespec/generated/descriptors/PolicyDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java", common},
             {"common/com/statespec/generated/descriptors/types/ApiDescriptor.java", common},
             {"common/com/statespec/generated/descriptors/types/ApiRouteDescriptor.java", common},
@@ -184,6 +187,16 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java",
         "common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "com/statespec/generated/descriptors/ObservabilityDescriptorModule.java",
+        "common/com/statespec/generated/descriptors/ObservabilityDescriptorModule.java",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "com/statespec/generated/descriptors/PolicyDescriptorModule.java",
+        "common/com/statespec/generated/descriptors/PolicyDescriptorModule.java",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

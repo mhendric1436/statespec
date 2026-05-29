@@ -7,7 +7,7 @@
 namespace statespec
 {
 
-std::string generate_rust_declaration_descriptors(const IrSystem& system)
+std::string generate_rust_value_enum_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
     out << "pub fn value_descriptors() -> Vec<ValueDescriptor> {\n";
@@ -41,6 +41,12 @@ std::string generate_rust_declaration_descriptors(const IrSystem& system)
     out << "    ]\n";
     out << "}\n\n";
 
+    return out.str();
+}
+
+std::string generate_rust_event_descriptors(const IrSystem& system)
+{
+    std::ostringstream out;
     out << "pub fn event_descriptors() -> Vec<EventDescriptor> {\n";
     out << "    vec![\n";
     for (const auto& event : system.events)
@@ -59,6 +65,11 @@ std::string generate_rust_declaration_descriptors(const IrSystem& system)
     out << "}\n\n";
 
     return out.str();
+}
+
+std::string generate_rust_declaration_descriptors(const IrSystem& system)
+{
+    return generate_rust_value_enum_descriptors(system) + generate_rust_event_descriptors(system);
 }
 
 } // namespace statespec

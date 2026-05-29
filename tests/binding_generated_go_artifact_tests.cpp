@@ -46,6 +46,8 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/external_systems.go", common},
             {"common/backend/descriptors/core.go", common},
             {"common/backend/descriptors/runtime.go", common},
+            {"common/backend/policy_descriptors.go", common},
+            {"common/backend/values_enums_descriptors.go", common},
             {"common/backend/entity_repository.go", common},
             {"common/backend/runtime_registration.go", common},
             {"common/go.mod", common},
@@ -91,6 +93,14 @@ void test_go_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "backend/descriptors/runtime.go", "common/backend/descriptors/runtime.go",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "backend/policy_descriptors.go", "common/backend/policy_descriptors.go",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "backend/values_enums_descriptors.go", "common/backend/values_enums_descriptors.go",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

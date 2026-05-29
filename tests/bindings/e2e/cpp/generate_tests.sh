@@ -53,11 +53,13 @@ common/descriptors.hpp
 common/descriptors/core.hpp
 common/descriptors/events.hpp
 common/descriptors/external_systems.hpp
+common/descriptors/policies.hpp
 common/descriptors/runtime.hpp
 common/descriptors/runtime/leases.hpp
 common/descriptors/runtime/queues.hpp
 common/descriptors/runtime/workflows.hpp
 common/descriptors/types.hpp
+common/descriptors/values_enums.hpp
 common/entities/service_instance/constants.hpp
 common/entities/service_instance/gc.hpp
 common/entities/service_instance/model.hpp

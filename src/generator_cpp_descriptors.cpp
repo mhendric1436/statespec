@@ -958,16 +958,15 @@ std::string generate_system_descriptors_header(
         system, templates.load("generated/external_system_runtime.hpp.tmpl"),
         templates.load("generated/external_system_metadata_runtime.hpp.tmpl"), {}
     );
-    out << generate_cpp_feature_flag_descriptors(system);
-    out << generate_cpp_declaration_descriptors(system);
+    out << "#include \"descriptors/values_enums.hpp\"\n\n";
+    out << "#include \"descriptors/events.hpp\"\n\n";
     out << "#include \"descriptors/external_systems.hpp\"\n\n";
-    out << generate_cpp_policy_descriptors(system);
+    out << "#include \"descriptors/policies.hpp\"\n\n";
     if (has_common_shapes(system))
     {
         out << "#include \"descriptors/shapes.hpp\"\n\n";
     }
-    out << generate_cpp_observability_descriptors(system);
-    out << generate_cpp_runtime_descriptors(system);
+    out << "#include \"descriptors/runtime.hpp\"\n\n";
     out << "} // namespace statespec_generated\n";
     out << "\n#include \"runtime_registration.hpp\"\n";
     return out.str();

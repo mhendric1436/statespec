@@ -16,6 +16,8 @@ std::string generate_java_descriptor_prelude(
     const std::string& entity_repository_runtime
 );
 std::string generate_java_feature_flag_descriptors(const IrSystem& system);
+std::string generate_java_value_enum_descriptors(const IrSystem& system);
+std::string generate_java_event_descriptors(const IrSystem& system);
 std::string generate_java_declaration_descriptors(const IrSystem& system);
 std::string generate_java_external_system_descriptors(const IrSystem& system);
 std::string generate_java_external_system_metadata_runtime(const IrSystem& system);

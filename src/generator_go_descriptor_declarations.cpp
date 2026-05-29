@@ -7,7 +7,7 @@
 namespace statespec
 {
 
-std::string generate_go_declaration_descriptors(const IrSystem& system)
+std::string generate_go_value_enum_descriptors(const IrSystem& system)
 {
     std::ostringstream out;
     out << "func ValueDescriptors() []ValueDescriptor {\n";
@@ -41,6 +41,12 @@ std::string generate_go_declaration_descriptors(const IrSystem& system)
     out << "\t}\n";
     out << "}\n\n";
 
+    return out.str();
+}
+
+std::string generate_go_event_descriptors(const IrSystem& system)
+{
+    std::ostringstream out;
     out << "func EventDescriptors() []EventDescriptor {\n";
     out << "\treturn []EventDescriptor{\n";
     for (const auto& event : system.events)
@@ -59,6 +65,11 @@ std::string generate_go_declaration_descriptors(const IrSystem& system)
     out << "}\n\n";
 
     return out.str();
+}
+
+std::string generate_go_declaration_descriptors(const IrSystem& system)
+{
+    return generate_go_value_enum_descriptors(system) + generate_go_event_descriptors(system);
 }
 
 } // namespace statespec

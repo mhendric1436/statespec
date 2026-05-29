@@ -2085,14 +2085,38 @@ void add_rust_descriptor_module_artifacts(
     const auto common_shapes = rust_shapes_matching(system, false);
     add_rust_raw_common_file(result, options, "descriptors/types.rs", rust_descriptor_types_file());
     add_rust_descriptor_module_artifact(
-        result, options, templates, "descriptors/core.rs", "core descriptors", diagnostics
+        result, options, templates, "descriptors/core.rs", "core descriptors", diagnostics,
+        TemplateRenderer::Values{
+            {"descriptor_module_name", "core descriptors"},
+            {"descriptor_module_content",
+             "use super::*;\n\n" + generate_rust_value_enum_descriptors(system)}
+        }
     );
     add_rust_raw_common_file(
-        result, options, "descriptors/events.rs", rust_event_descriptor_module(system)
+        result, options, "descriptors/events.rs",
+        "use super::*;\n\n" + generate_rust_event_descriptors(system) +
+            rust_event_descriptor_module(system)
     );
     add_rust_raw_common_file(
         result, options, "descriptors/external_systems.rs",
         rust_external_system_descriptor_module(system, templates)
+    );
+    add_rust_descriptor_module_artifact(
+        result, options, templates, "descriptors/policies.rs", "policy descriptors", diagnostics,
+        TemplateRenderer::Values{
+            {"descriptor_module_name", "policy descriptors"},
+            {"descriptor_module_content",
+             "use super::*;\n\n" + generate_rust_policy_descriptors(system)}
+        }
+    );
+    add_rust_descriptor_module_artifact(
+        result, options, templates, "descriptors/observability.rs", "observability descriptors",
+        diagnostics,
+        TemplateRenderer::Values{
+            {"descriptor_module_name", "observability descriptors"},
+            {"descriptor_module_content",
+             "use super::*;\n\n" + generate_rust_observability_descriptors(system)}
+        }
     );
     if (!common_shapes.shapes.empty())
     {
@@ -2112,7 +2136,13 @@ void add_rust_descriptor_module_artifacts(
         }
     }
     add_rust_descriptor_module_artifact(
-        result, options, templates, "descriptors/runtime.rs", "runtime descriptors", diagnostics
+        result, options, templates, "descriptors/runtime.rs", "runtime descriptors", diagnostics,
+        TemplateRenderer::Values{
+            {"descriptor_module_name", "runtime descriptors"},
+            {"descriptor_module_content", "use super::*;\n\n" +
+                                              generate_rust_feature_flag_descriptors(system) +
+                                              generate_rust_runtime_descriptors(system)}
+        }
     );
     for (const auto& [name, label] : rust_runtime_registration_modules(system))
     {

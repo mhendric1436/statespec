@@ -580,6 +580,12 @@ void require_descriptor_names(
     {
         if (file.path.find("common/entities/") != std::string::npos ||
             file.path.find("common/com/statespec/generated/entities/") != std::string::npos ||
+            file.path.find("common/descriptors/") != std::string::npos ||
+            file.path.find("common/backend/runtime_definitions.go") != std::string::npos ||
+            file.path.find("common/backend/observability_definitions.go") != std::string::npos ||
+            file.path.find("common/backend/values_enums_descriptors.go") != std::string::npos ||
+            file.path.find("common/backend/policy_descriptors.go") != std::string::npos ||
+            file.path.find("common/com/statespec/generated/descriptors/") != std::string::npos ||
             file.path.find("api/descriptors/") != std::string::npos ||
             file.path.find("api/backend/descriptors/") != std::string::npos ||
             file.path.find("api/com/statespec/generated/descriptors/") != std::string::npos)

@@ -44,8 +44,10 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors/core.hpp", common},
             {"common/descriptors/events.hpp", common},
             {"common/descriptors/external_systems.hpp", common},
+            {"common/descriptors/policies.hpp", common},
             {"common/descriptors/runtime.hpp", common},
             {"common/descriptors/types.hpp", common},
+            {"common/descriptors/values_enums.hpp", common},
             {"common/entity_repository.hpp", common},
             {"common/runtime_registration.hpp", common},
             {"common/Makefile", common},
@@ -82,6 +84,10 @@ void test_cpp_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
+        result, "descriptors/policies.hpp", "common/descriptors/policies.hpp",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
         result, "descriptors/types.hpp", "common/descriptors/types.hpp",
         statespec::GeneratedArtifactTier::Common
     );
@@ -91,6 +97,10 @@ void test_cpp_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "descriptors/runtime.hpp", "common/descriptors/runtime.hpp",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/values_enums.hpp", "common/descriptors/values_enums.hpp",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(

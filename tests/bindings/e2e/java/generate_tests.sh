@@ -76,6 +76,8 @@ common/com/statespec/generated/descriptors/CoreDescriptorModule.java
 common/com/statespec/generated/descriptors/DescriptorCatalog.java
 common/com/statespec/generated/descriptors/EventDescriptorModule.java
 common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java
+common/com/statespec/generated/descriptors/ObservabilityDescriptorModule.java
+common/com/statespec/generated/descriptors/PolicyDescriptorModule.java
 common/com/statespec/generated/descriptors/RuntimeDescriptorModule.java
 common/com/statespec/generated/descriptors/RuntimeLeaseRegistrationModule.java
 common/com/statespec/generated/descriptors/RuntimeQueueRegistrationModule.java

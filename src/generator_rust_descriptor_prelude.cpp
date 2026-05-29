@@ -34,12 +34,19 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     std::ostringstream out;
     out << "#[path = \"descriptors/core.rs\"]\n";
     out << "mod descriptor_core;\n";
+    out << "pub use descriptor_core::*;\n";
     out << "#[path = \"descriptors/events.rs\"]\n";
     out << "mod descriptor_events;\n";
     out << "pub use descriptor_events::*;\n";
     out << "#[path = \"descriptors/external_systems.rs\"]\n";
     out << "mod descriptor_external_systems;\n";
     out << "pub use descriptor_external_systems::*;\n";
+    out << "#[path = \"descriptors/policies.rs\"]\n";
+    out << "mod descriptor_policies;\n";
+    out << "pub use descriptor_policies::*;\n";
+    out << "#[path = \"descriptors/observability.rs\"]\n";
+    out << "mod descriptor_observability;\n";
+    out << "pub use descriptor_observability::*;\n";
     if (has_common_shapes)
     {
         out << "#[path = \"descriptors/shapes.rs\"]\n";
@@ -48,6 +55,7 @@ std::string rust_descriptor_module_declarations(const IrSystem& system)
     }
     out << "#[path = \"descriptors/runtime.rs\"]\n";
     out << "mod descriptor_runtime;\n";
+    out << "pub use descriptor_runtime::*;\n";
     auto add_runtime_registration_module = [&](bool used, std::string_view module_name)
     {
         if (!used)

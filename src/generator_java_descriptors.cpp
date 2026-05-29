@@ -1022,18 +1022,43 @@ std::string generate_descriptors_java(
     (void)templates;
     std::ostringstream out;
     out << generate_java_descriptor_prelude(system, {}, {}, {});
-    out << generate_java_feature_flag_descriptors(system);
-    out << generate_java_declaration_descriptors(system);
+    out << "    public static List<FeatureFlag.Definition> featureFlagDefinitions() {\n";
+    out << "        return RuntimeDescriptorModule.featureFlagDefinitions();\n";
+    out << "    }\n\n";
+    out << "    public static List<ValueDescriptor> valueDescriptors() {\n";
+    out << "        return CoreDescriptorModule.valueDescriptors();\n";
+    out << "    }\n\n";
+    out << "    public static List<EnumDescriptor> enumDescriptors() {\n";
+    out << "        return CoreDescriptorModule.enumDescriptors();\n";
+    out << "    }\n\n";
+    out << "    public static List<EventDescriptor> eventDescriptors() {\n";
+    out << "        return EventDescriptorModule.eventDescriptors();\n";
+    out << "    }\n\n";
     out << generate_java_external_system_descriptor_delegates();
-    out << generate_java_policy_descriptors(system);
+    out << "    public static List<PolicyDescriptor> policyDescriptors() {\n";
+    out << "        return PolicyDescriptorModule.policyDescriptors();\n";
+    out << "    }\n\n";
     if (has_common_shapes(system))
     {
         out << "    public static List<ShapeDescriptor> shapeDescriptors() {\n";
         out << "        return ShapeDescriptorModule.shapeDescriptors();\n";
         out << "    }\n\n";
     }
-    out << generate_java_observability_descriptors(system);
-    out << generate_java_runtime_descriptors(system);
+    out << "    public static List<Log.Definition> logDefinitions() {\n";
+    out << "        return ObservabilityDescriptorModule.logDefinitions();\n";
+    out << "    }\n\n";
+    out << "    public static List<Metric.Definition> metricDefinitions() {\n";
+    out << "        return ObservabilityDescriptorModule.metricDefinitions();\n";
+    out << "    }\n\n";
+    out << "    public static List<QueueDefinition> queueDefinitions() {\n";
+    out << "        return RuntimeDescriptorModule.queueDefinitions();\n";
+    out << "    }\n\n";
+    out << "    public static List<Lease.LeaseDefinition> leaseDefinitions() {\n";
+    out << "        return RuntimeDescriptorModule.leaseDefinitions();\n";
+    out << "    }\n\n";
+    out << "    public static List<WorkflowDefinition> workflowDefinitions() {\n";
+    out << "        return RuntimeDescriptorModule.workflowDefinitions();\n";
+    out << "    }\n\n";
     out << "}\n";
     return out.str();
 }

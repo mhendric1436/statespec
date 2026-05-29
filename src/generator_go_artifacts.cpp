@@ -2535,13 +2535,25 @@ void add_go_descriptor_module_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    const auto usage = runtime_domain_usage(system);
     add_go_descriptor_module_artifact(
         result, options, templates, "backend/descriptors/core.go", "descriptors",
         "core descriptors", diagnostics
     );
-    add_go_raw_common_file(result, options, "backend/events.go", go_event_helpers_file(system));
+    add_go_raw_common_file(
+        result, options, "backend/values_enums_descriptors.go",
+        "package backend\n\n" + generate_go_value_enum_descriptors(system)
+    );
+    add_go_raw_common_file(
+        result, options, "backend/events.go",
+        go_event_helpers_file(system) + "\n" + generate_go_event_descriptors(system)
+    );
     add_go_raw_common_file(
         result, options, "backend/external_systems.go", go_external_systems_file(system, templates)
+    );
+    add_go_raw_common_file(
+        result, options, "backend/policy_descriptors.go",
+        "package backend\n\n" + generate_go_policy_descriptors(system)
     );
     const auto common_shapes = go_shapes_matching(system, false);
     if (!common_shapes.shapes.empty())
@@ -2556,6 +2568,35 @@ void add_go_descriptor_module_artifacts(
         result, options, templates, "backend/descriptors/runtime.go", "descriptors",
         "runtime descriptors", diagnostics
     );
+    if (usage.uses_observability)
+    {
+        add_go_raw_common_file(
+            result, options, "backend/observability_definitions.go",
+            "package backend\n\n" + generate_go_observability_descriptors(system)
+        );
+    }
+    if (usage.uses_feature_flags || usage.uses_queues || usage.uses_leases || usage.uses_workflows)
+    {
+        std::ostringstream imports;
+        if (usage.uses_queues || usage.uses_leases || usage.uses_workflows)
+        {
+            imports << "import (\n";
+            if (usage.uses_queues || usage.uses_leases)
+            {
+                imports << "\t\"time\"\n";
+            }
+            if (usage.uses_workflows)
+            {
+                imports << "\tworkflows \"statespec-generated/common/backend/workflows\"\n";
+            }
+            imports << ")\n\n";
+        }
+        add_go_raw_common_file(
+            result, options, "backend/runtime_definitions.go",
+            "package backend\n\n" + imports.str() + generate_go_feature_flag_descriptors(system) +
+                generate_go_runtime_descriptors(system)
+        );
+    }
     for (const auto& [name, label] : go_runtime_registration_modules(system))
     {
         add_go_raw_common_file(

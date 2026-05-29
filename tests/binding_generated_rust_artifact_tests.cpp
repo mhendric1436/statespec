@@ -45,6 +45,8 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/descriptors/core.rs", common},
             {"common/descriptors/events.rs", common},
             {"common/descriptors/external_systems.rs", common},
+            {"common/descriptors/observability.rs", common},
+            {"common/descriptors/policies.rs", common},
             {"common/descriptors/runtime.rs", common},
             {"common/entity_repository.rs", common},
             {"common/runtime_registration.rs", common},
@@ -85,6 +87,14 @@ void test_rust_binding_generator_models_artifact_paths()
     );
     require_generated_file_artifact_path(
         result, "descriptors/external_systems.rs", "common/descriptors/external_systems.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/observability.rs", "common/descriptors/observability.rs",
+        statespec::GeneratedArtifactTier::Common
+    );
+    require_generated_file_artifact_path(
+        result, "descriptors/policies.rs", "common/descriptors/policies.rs",
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
