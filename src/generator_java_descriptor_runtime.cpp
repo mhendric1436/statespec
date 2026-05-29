@@ -39,19 +39,22 @@ std::string generate_java_runtime_descriptors(const IrSystem& system)
         for (std::size_t i = 0; i < system.leases.size(); ++i)
         {
             const auto& lease = system.leases[i];
-            const auto ttl = lease.ttl.value_or("0s");
-            const auto renew_every = lease.renew_every.value_or(ttl);
             out << "            new Lease.LeaseDefinition(\n";
             out << "                new Lease.LeaseDefinitionId(" << java_string(lease.name)
                 << ", 1L),\n";
-            out << "                " << java_string(lease.resource.value_or(lease.name)) << ",\n";
-            out << "                Duration.ofSeconds(" << parse_java_duration_seconds(ttl)
-                << "L),\n";
-            out << "                Duration.ofSeconds(" << parse_java_duration_seconds(renew_every)
-                << "L),\n";
-            out << "                " << optional_duration_expr(lease.max_ttl) << ",\n";
-            out << "                " << (lease.fencing_token.value_or(false) ? "true" : "false")
-                << "\n";
+            out << "                " << java_string(lease.resource_pattern) << ",\n";
+            out << "                Duration.ofSeconds(" << lease.ttl_seconds << "L),\n";
+            out << "                Duration.ofSeconds(" << lease.renew_every_seconds << "L),\n";
+            if (lease.max_ttl_seconds.has_value())
+            {
+                out << "                Optional.of(Duration.ofSeconds(" << *lease.max_ttl_seconds
+                    << "L)),\n";
+            }
+            else
+            {
+                out << "                Optional.empty(),\n";
+            }
+            out << "                " << (lease.fencing_token_enabled ? "true" : "false") << "\n";
             out << "            )" << (i + 1 < system.leases.size() ? "," : "") << "\n";
         }
     }

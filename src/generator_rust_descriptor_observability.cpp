@@ -9,32 +9,32 @@ namespace statespec
 namespace
 {
 
-std::string rust_log_level_expr(const std::string& level)
+std::string rust_log_level_expr(IrLogLevel level)
 {
-    if (level == "debug")
+    switch (level)
     {
+    case IrLogLevel::Debug:
         return "LogLevel::Debug";
-    }
-    if (level == "warn")
-    {
+    case IrLogLevel::Warn:
         return "LogLevel::Warn";
-    }
-    if (level == "error")
-    {
+    case IrLogLevel::Error:
         return "LogLevel::Error";
+    case IrLogLevel::Info:
+        return "LogLevel::Info";
     }
     return "LogLevel::Info";
 }
 
-std::string rust_metric_kind_expr(const std::string& kind)
+std::string rust_metric_kind_expr(IrMetricKind kind)
 {
-    if (kind == "gauge")
+    switch (kind)
     {
+    case IrMetricKind::Gauge:
         return "MetricKind::Gauge";
-    }
-    if (kind == "histogram")
-    {
+    case IrMetricKind::Histogram:
         return "MetricKind::Histogram";
+    case IrMetricKind::Counter:
+        return "MetricKind::Counter";
     }
     return "MetricKind::Counter";
 }
@@ -50,7 +50,7 @@ std::string generate_rust_observability_descriptors(const IrSystem& system)
     {
         out << "        LogDefinition {\n";
         out << "            name: " << rust_string(log.name) << ".to_string(),\n";
-        out << "            level: " << rust_log_level_expr(log.level) << ",\n";
+        out << "            level: " << rust_log_level_expr(log.level_kind) << ",\n";
         out << "            event_name: " << rust_string(log.event_name) << ".to_string(),\n";
         out << "            fields: vec![\n";
         for (const auto& field : log.fields)
@@ -69,7 +69,7 @@ std::string generate_rust_observability_descriptors(const IrSystem& system)
     {
         out << "        MetricDefinition {\n";
         out << "            name: " << rust_string(metric.name) << ".to_string(),\n";
-        out << "            kind: " << rust_metric_kind_expr(metric.kind) << ",\n";
+        out << "            kind: " << rust_metric_kind_expr(metric.kind_value) << ",\n";
         out << "            backend_name: " << rust_string(metric.backend_name)
             << ".to_string(),\n";
         out << "            unit: " << rust_string(metric.unit) << ".to_string(),\n";

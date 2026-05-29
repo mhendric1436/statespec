@@ -9,32 +9,32 @@ namespace statespec
 namespace
 {
 
-std::string java_log_level_expr(const std::string& level)
+std::string java_log_level_expr(IrLogLevel level)
 {
-    if (level == "debug")
+    switch (level)
     {
+    case IrLogLevel::Debug:
         return "Log.Level.DEBUG";
-    }
-    if (level == "warn")
-    {
+    case IrLogLevel::Warn:
         return "Log.Level.WARN";
-    }
-    if (level == "error")
-    {
+    case IrLogLevel::Error:
         return "Log.Level.ERROR";
+    case IrLogLevel::Info:
+        return "Log.Level.INFO";
     }
     return "Log.Level.INFO";
 }
 
-std::string java_metric_kind_expr(const std::string& kind)
+std::string java_metric_kind_expr(IrMetricKind kind)
 {
-    if (kind == "gauge")
+    switch (kind)
     {
+    case IrMetricKind::Gauge:
         return "Metric.Kind.GAUGE";
-    }
-    if (kind == "histogram")
-    {
+    case IrMetricKind::Histogram:
         return "Metric.Kind.HISTOGRAM";
+    case IrMetricKind::Counter:
+        return "Metric.Kind.COUNTER";
     }
     return "Metric.Kind.COUNTER";
 }
@@ -51,7 +51,7 @@ std::string generate_java_observability_descriptors(const IrSystem& system)
         const auto& log = system.logs[log_index];
         out << "            new Log.Definition(\n";
         out << "                " << java_string(log.name) << ",\n";
-        out << "                " << java_log_level_expr(log.level) << ",\n";
+        out << "                " << java_log_level_expr(log.level_kind) << ",\n";
         out << "                " << java_string(log.event_name) << ",\n";
         out << "                List.of(\n";
         for (std::size_t i = 0; i < log.fields.size(); ++i)
@@ -73,7 +73,7 @@ std::string generate_java_observability_descriptors(const IrSystem& system)
         const auto& metric = system.metrics[metric_index];
         out << "            new Metric.Definition(\n";
         out << "                " << java_string(metric.name) << ",\n";
-        out << "                " << java_metric_kind_expr(metric.kind) << ",\n";
+        out << "                " << java_metric_kind_expr(metric.kind_value) << ",\n";
         out << "                " << java_string(metric.backend_name) << ",\n";
         out << "                " << java_string(metric.unit) << ",\n";
         out << "                List.of(\n";

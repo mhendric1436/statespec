@@ -34,20 +34,25 @@ std::string generate_rust_runtime_descriptors(const IrSystem& system)
     out << "    vec![\n";
     for (const auto& lease : system.leases)
     {
-        const auto ttl = lease.ttl.value_or("0s");
-        const auto renew_every = lease.renew_every.value_or(ttl);
         out << "        LeaseDefinition {\n";
         out << "            id: LeaseDefinitionId { name: " << rust_string(lease.name)
             << ".to_string(), version: 1 },\n";
-        out << "            resource_pattern: " << rust_string(lease.resource.value_or(lease.name))
+        out << "            resource_pattern: " << rust_string(lease.resource_pattern)
             << ".to_string(),\n";
-        out << "            ttl: Duration::from_secs(" << parse_rust_duration_seconds(ttl)
+        out << "            ttl: Duration::from_secs(" << lease.ttl_seconds << "),\n";
+        out << "            renew_every: Duration::from_secs(" << lease.renew_every_seconds
             << "),\n";
-        out << "            renew_every: Duration::from_secs("
-            << parse_rust_duration_seconds(renew_every) << "),\n";
-        out << "            max_ttl: " << rust_optional_duration_expr(lease.max_ttl) << ",\n";
-        out << "            fencing_token: "
-            << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
+        if (lease.max_ttl_seconds.has_value())
+        {
+            out << "            max_ttl: Some(Duration::from_secs(" << *lease.max_ttl_seconds
+                << ")),\n";
+        }
+        else
+        {
+            out << "            max_ttl: None,\n";
+        }
+        out << "            fencing_token: " << (lease.fencing_token_enabled ? "true" : "false")
+            << ",\n";
         out << "        },\n";
     }
     out << "    ]\n";

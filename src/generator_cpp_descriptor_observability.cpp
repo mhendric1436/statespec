@@ -10,32 +10,32 @@ namespace statespec
 namespace
 {
 
-std::string cpp_log_level_expr(std::string_view level)
+std::string cpp_log_level_expr(IrLogLevel level)
 {
-    if (level == "debug")
+    switch (level)
     {
+    case IrLogLevel::Debug:
         return "statespec::backend::LogLevel::Debug";
-    }
-    if (level == "warn")
-    {
+    case IrLogLevel::Warn:
         return "statespec::backend::LogLevel::Warn";
-    }
-    if (level == "error")
-    {
+    case IrLogLevel::Error:
         return "statespec::backend::LogLevel::Error";
+    case IrLogLevel::Info:
+        return "statespec::backend::LogLevel::Info";
     }
     return "statespec::backend::LogLevel::Info";
 }
 
-std::string cpp_metric_kind_expr(std::string_view kind)
+std::string cpp_metric_kind_expr(IrMetricKind kind)
 {
-    if (kind == "gauge")
+    switch (kind)
     {
+    case IrMetricKind::Gauge:
         return "statespec::backend::MetricKind::Gauge";
-    }
-    if (kind == "histogram")
-    {
+    case IrMetricKind::Histogram:
         return "statespec::backend::MetricKind::Histogram";
+    case IrMetricKind::Counter:
+        return "statespec::backend::MetricKind::Counter";
     }
     return "statespec::backend::MetricKind::Counter";
 }
@@ -52,7 +52,7 @@ std::string generate_cpp_observability_descriptors(const IrSystem& system)
     {
         out << "        statespec::backend::LogDefinition{\n";
         out << "            " << cpp_string(log.name) << ",\n";
-        out << "            " << cpp_log_level_expr(log.level) << ",\n";
+        out << "            " << cpp_log_level_expr(log.level_kind) << ",\n";
         out << "            " << cpp_string(log.event_name) << ",\n";
         out << "            {\n";
         for (const auto& field : log.fields)
@@ -72,7 +72,7 @@ std::string generate_cpp_observability_descriptors(const IrSystem& system)
     {
         out << "        statespec::backend::MetricDefinition{\n";
         out << "            " << cpp_string(metric.name) << ",\n";
-        out << "            " << cpp_metric_kind_expr(metric.kind) << ",\n";
+        out << "            " << cpp_metric_kind_expr(metric.kind_value) << ",\n";
         out << "            " << cpp_string(metric.backend_name) << ",\n";
         out << "            " << cpp_string(metric.unit) << ",\n";
         out << "            {\n";

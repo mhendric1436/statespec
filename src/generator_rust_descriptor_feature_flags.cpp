@@ -9,56 +9,53 @@ namespace statespec
 namespace
 {
 
-std::string rust_feature_flag_type_expr(const std::string& type)
+std::string rust_feature_flag_type_expr(IrFeatureFlagType type)
 {
-    if (type == "string")
+    switch (type)
     {
+    case IrFeatureFlagType::String:
         return "FeatureFlagType::String";
-    }
-    if (type == "int")
-    {
+    case IrFeatureFlagType::Integer:
         return "FeatureFlagType::Integer";
-    }
-    if (type == "decimal")
-    {
+    case IrFeatureFlagType::Decimal:
         return "FeatureFlagType::Decimal";
+    case IrFeatureFlagType::Bool:
+        return "FeatureFlagType::Bool";
     }
     return "FeatureFlagType::Bool";
 }
 
-std::string rust_feature_flag_scope_expr(const std::string& scope)
+std::string rust_feature_flag_scope_expr(IrFeatureFlagScopeKind scope)
 {
-    if (scope == "system")
+    switch (scope)
     {
+    case IrFeatureFlagScopeKind::System:
         return "FeatureFlagScopeKind::System";
-    }
-    if (scope == "user")
-    {
+    case IrFeatureFlagScopeKind::User:
         return "FeatureFlagScopeKind::User";
-    }
-    if (scope.rfind("entity ", 0) == 0)
-    {
+    case IrFeatureFlagScopeKind::Entity:
         return "FeatureFlagScopeKind::Entity";
+    case IrFeatureFlagScopeKind::Tenant:
+        return "FeatureFlagScopeKind::Tenant";
     }
     return "FeatureFlagScopeKind::Tenant";
 }
 
 std::string rust_feature_flag_value_expr(
-    const std::string& type,
+    IrFeatureFlagType type,
     const std::string& value
 )
 {
-    if (type == "string")
+    switch (type)
     {
+    case IrFeatureFlagType::String:
         return "FeatureFlagValue::String(" + rust_string(value) + ".to_string())";
-    }
-    if (type == "int")
-    {
+    case IrFeatureFlagType::Integer:
         return "FeatureFlagValue::Integer(" + value + ")";
-    }
-    if (type == "decimal")
-    {
+    case IrFeatureFlagType::Decimal:
         return "FeatureFlagValue::Decimal(" + value + ")";
+    case IrFeatureFlagType::Bool:
+        return std::string{"FeatureFlagValue::Bool("} + (value == "true" ? "true" : "false") + ")";
     }
     return std::string{"FeatureFlagValue::Bool("} + (value == "true" ? "true" : "false") + ")";
 }
@@ -74,10 +71,10 @@ std::string generate_rust_feature_flag_descriptors(const IrSystem& system)
     {
         out << "        FeatureFlagDefinition {\n";
         out << "            name: " << rust_string(flag.name) << ".to_string(),\n";
-        out << "            flag_type: " << rust_feature_flag_type_expr(flag.type) << ",\n";
+        out << "            flag_type: " << rust_feature_flag_type_expr(flag.flag_type) << ",\n";
         out << "            default_value: "
-            << rust_feature_flag_value_expr(flag.type, flag.default_value) << ",\n";
-        out << "            scope: " << rust_feature_flag_scope_expr(flag.scope) << ",\n";
+            << rust_feature_flag_value_expr(flag.flag_type, flag.default_value) << ",\n";
+        out << "            scope: " << rust_feature_flag_scope_expr(flag.scope_kind) << ",\n";
         out << "            owner: " << rust_optional_string_expr(flag.owner) << ",\n";
         out << "            description: " << rust_optional_string_expr(flag.description) << ",\n";
         out << "            expires: " << rust_optional_string_expr(flag.expires) << ",\n";

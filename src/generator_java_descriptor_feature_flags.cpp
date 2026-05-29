@@ -9,56 +9,54 @@ namespace statespec
 namespace
 {
 
-std::string java_feature_flag_type_expr(const std::string& type)
+std::string java_feature_flag_type_expr(IrFeatureFlagType type)
 {
-    if (type == "string")
+    switch (type)
     {
+    case IrFeatureFlagType::String:
         return "FeatureFlag.Type.STRING";
-    }
-    if (type == "int")
-    {
+    case IrFeatureFlagType::Integer:
         return "FeatureFlag.Type.INT";
-    }
-    if (type == "decimal")
-    {
+    case IrFeatureFlagType::Decimal:
         return "FeatureFlag.Type.DECIMAL";
+    case IrFeatureFlagType::Bool:
+        return "FeatureFlag.Type.BOOL";
     }
     return "FeatureFlag.Type.BOOL";
 }
 
-std::string java_feature_flag_scope_expr(const std::string& scope)
+std::string java_feature_flag_scope_expr(IrFeatureFlagScopeKind scope)
 {
-    if (scope == "system")
+    switch (scope)
     {
+    case IrFeatureFlagScopeKind::System:
         return "FeatureFlag.ScopeKind.SYSTEM";
-    }
-    if (scope == "user")
-    {
+    case IrFeatureFlagScopeKind::User:
         return "FeatureFlag.ScopeKind.USER";
-    }
-    if (scope.rfind("entity ", 0) == 0)
-    {
+    case IrFeatureFlagScopeKind::Entity:
         return "FeatureFlag.ScopeKind.ENTITY";
+    case IrFeatureFlagScopeKind::Tenant:
+        return "FeatureFlag.ScopeKind.TENANT";
     }
     return "FeatureFlag.ScopeKind.TENANT";
 }
 
 std::string java_feature_flag_value_expr(
-    const std::string& type,
+    IrFeatureFlagType type,
     const std::string& value
 )
 {
-    if (type == "string")
+    switch (type)
     {
+    case IrFeatureFlagType::String:
         return "new FeatureFlag.Value.StringValue(" + java_string(value) + ")";
-    }
-    if (type == "int")
-    {
+    case IrFeatureFlagType::Integer:
         return "new FeatureFlag.Value.IntValue(" + value + "L)";
-    }
-    if (type == "decimal")
-    {
+    case IrFeatureFlagType::Decimal:
         return "new FeatureFlag.Value.DecimalValue(" + java_string(value) + ")";
+    case IrFeatureFlagType::Bool:
+        return std::string{"new FeatureFlag.Value.BoolValue("} +
+               (value == "true" ? "true" : "false") + ")";
     }
     return std::string{"new FeatureFlag.Value.BoolValue("} + (value == "true" ? "true" : "false") +
            ")";
@@ -76,10 +74,10 @@ std::string generate_java_feature_flag_descriptors(const IrSystem& system)
         const auto& flag = system.feature_flags[i];
         out << "            new FeatureFlag.Definition(\n";
         out << "                " << java_string(flag.name) << ",\n";
-        out << "                " << java_feature_flag_type_expr(flag.type) << ",\n";
-        out << "                " << java_feature_flag_value_expr(flag.type, flag.default_value)
-            << ",\n";
-        out << "                " << java_feature_flag_scope_expr(flag.scope) << ",\n";
+        out << "                " << java_feature_flag_type_expr(flag.flag_type) << ",\n";
+        out << "                "
+            << java_feature_flag_value_expr(flag.flag_type, flag.default_value) << ",\n";
+        out << "                " << java_feature_flag_scope_expr(flag.scope_kind) << ",\n";
         out << "                " << java_optional_string_expr(flag.owner) << ",\n";
         out << "                " << java_optional_string_expr(flag.description) << ",\n";
         out << "                " << java_optional_string_expr(flag.expires) << "\n";

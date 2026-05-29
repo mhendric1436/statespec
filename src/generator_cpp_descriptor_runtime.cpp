@@ -37,28 +37,19 @@ std::string generate_cpp_runtime_descriptors(const IrSystem& system)
         out << "        statespec::backend::LeaseDefinition{\n";
         out << "            statespec::backend::LeaseDefinitionId{" << cpp_string(lease.name)
             << ", 1},\n";
-        out << "            " << cpp_string(lease.resource.value_or(lease.name)) << ",\n";
-        out << "            std::chrono::seconds{" << parse_duration_seconds(lease.ttl) << "},\n";
-        if (lease.renew_every.has_value())
-        {
-            out << "            std::chrono::seconds{" << parse_duration_seconds(lease.renew_every)
-                << "},\n";
-        }
-        else
-        {
-            out << "            std::chrono::seconds{" << parse_duration_seconds(lease.ttl)
-                << "},\n";
-        }
-        if (lease.max_ttl.has_value())
+        out << "            " << cpp_string(lease.resource_pattern) << ",\n";
+        out << "            std::chrono::seconds{" << lease.ttl_seconds << "},\n";
+        out << "            std::chrono::seconds{" << lease.renew_every_seconds << "},\n";
+        if (lease.max_ttl_seconds.has_value())
         {
             out << "            std::optional<std::chrono::seconds>{std::chrono::seconds{"
-                << parse_duration_seconds(lease.max_ttl) << "}},\n";
+                << *lease.max_ttl_seconds << "}},\n";
         }
         else
         {
             out << "            std::nullopt,\n";
         }
-        out << "            " << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
+        out << "            " << (lease.fencing_token_enabled ? "true" : "false") << ",\n";
         out << "        },\n";
     }
     out << "    };\n";

@@ -166,6 +166,20 @@ void ir_lowers_system_runtime_contracts()
     statespec::test::require(
         ir.leases[0].fencing_token == true, "IR should lower lease fencing token"
     );
+    statespec::test::require(
+        ir.leases[0].resource_pattern == "orders:reconciler",
+        "IR should normalize lease resource pattern"
+    );
+    statespec::test::require(ir.leases[0].ttl_seconds == 30, "IR should normalize lease ttl");
+    statespec::test::require(
+        ir.leases[0].renew_every_seconds == 10, "IR should normalize lease renewal interval"
+    );
+    statespec::test::require(
+        ir.leases[0].fencing_token_enabled, "IR should normalize lease fencing token"
+    );
+    statespec::test::require(
+        ir.leases[0].max_ttl_seconds == 300, "IR should normalize lease max ttl"
+    );
 
     statespec::test::require(ir.workers.size() == 1, "IR should lower workers");
     const auto& worker = ir.workers[0];

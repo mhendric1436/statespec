@@ -32,18 +32,20 @@ std::string generate_go_runtime_descriptors(const IrSystem& system)
     out << "\treturn []LeaseDefinition{\n";
     for (const auto& lease : system.leases)
     {
-        const auto resource_pattern = lease.resource.value_or(lease.name);
-        const auto ttl = lease.ttl.value_or("0s");
-        const auto renew_every = lease.renew_every.value_or(ttl);
         out << "\t\t{\n";
         out << "\t\t\tID: LeaseDefinitionID{Name: " << go_string(lease.name) << ", Version: 1},\n";
-        out << "\t\t\tResourcePattern: " << go_string(resource_pattern) << ",\n";
-        out << "\t\t\tTTL: " << parse_go_duration_seconds(ttl) << " * time.Second,\n";
-        out << "\t\t\tRenewEvery: " << parse_go_duration_seconds(renew_every)
-            << " * time.Second,\n";
-        out << "\t\t\tFencingToken: " << (lease.fencing_token.value_or(false) ? "true" : "false")
-            << ",\n";
-        out << "\t\t\tMaxTTL: " << duration_ptr_expr(lease.max_ttl) << ",\n";
+        out << "\t\t\tResourcePattern: " << go_string(lease.resource_pattern) << ",\n";
+        out << "\t\t\tTTL: " << lease.ttl_seconds << " * time.Second,\n";
+        out << "\t\t\tRenewEvery: " << lease.renew_every_seconds << " * time.Second,\n";
+        out << "\t\t\tFencingToken: " << (lease.fencing_token_enabled ? "true" : "false") << ",\n";
+        if (lease.max_ttl_seconds.has_value())
+        {
+            out << "\t\t\tMaxTTL: durationPtr(" << *lease.max_ttl_seconds << " * time.Second),\n";
+        }
+        else
+        {
+            out << "\t\t\tMaxTTL: nil,\n";
+        }
         out << "\t\t},\n";
     }
     out << "\t}\n";

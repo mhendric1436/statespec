@@ -10,57 +10,54 @@ namespace statespec
 namespace
 {
 
-std::string cpp_feature_flag_type_expr(std::string_view type)
+std::string cpp_feature_flag_type_expr(IrFeatureFlagType type)
 {
-    if (type == "string")
+    switch (type)
     {
+    case IrFeatureFlagType::String:
         return "statespec::backend::FeatureFlagType::String";
-    }
-    if (type == "int" || type == "integer")
-    {
+    case IrFeatureFlagType::Integer:
         return "statespec::backend::FeatureFlagType::Integer";
-    }
-    if (type == "decimal")
-    {
+    case IrFeatureFlagType::Decimal:
         return "statespec::backend::FeatureFlagType::Decimal";
+    case IrFeatureFlagType::Bool:
+        return "statespec::backend::FeatureFlagType::Bool";
     }
     return "statespec::backend::FeatureFlagType::Bool";
 }
 
-std::string cpp_feature_flag_scope_expr(std::string_view scope)
+std::string cpp_feature_flag_scope_expr(IrFeatureFlagScopeKind scope)
 {
-    if (scope == "system")
+    switch (scope)
     {
+    case IrFeatureFlagScopeKind::System:
         return "statespec::backend::FeatureFlagScopeKind::System";
-    }
-    if (scope == "user")
-    {
+    case IrFeatureFlagScopeKind::User:
         return "statespec::backend::FeatureFlagScopeKind::User";
-    }
-    if (scope.rfind("entity ", 0) == 0)
-    {
+    case IrFeatureFlagScopeKind::Entity:
         return "statespec::backend::FeatureFlagScopeKind::Entity";
+    case IrFeatureFlagScopeKind::Tenant:
+        return "statespec::backend::FeatureFlagScopeKind::Tenant";
     }
     return "statespec::backend::FeatureFlagScopeKind::Tenant";
 }
 
 std::string cpp_feature_flag_value_expr(
-    std::string_view type,
-    std::string_view value
+    IrFeatureFlagType type,
+    const std::string& value
 )
 {
-    if (type == "string")
+    switch (type)
     {
-        return "statespec::backend::FeatureFlagValue::string_value(" +
-               cpp_string(std::string{value}) + ")";
-    }
-    if (type == "int" || type == "integer")
-    {
-        return "statespec::backend::FeatureFlagValue::integer_value(" + std::string{value} + ")";
-    }
-    if (type == "decimal")
-    {
-        return "statespec::backend::FeatureFlagValue::decimal_value(" + std::string{value} + ")";
+    case IrFeatureFlagType::String:
+        return "statespec::backend::FeatureFlagValue::string_value(" + cpp_string(value) + ")";
+    case IrFeatureFlagType::Integer:
+        return "statespec::backend::FeatureFlagValue::integer_value(" + value + ")";
+    case IrFeatureFlagType::Decimal:
+        return "statespec::backend::FeatureFlagValue::decimal_value(" + value + ")";
+    case IrFeatureFlagType::Bool:
+        return std::string{"statespec::backend::FeatureFlagValue::bool_value("} +
+               (value == "true" ? "true" : "false") + ")";
     }
     return std::string{"statespec::backend::FeatureFlagValue::bool_value("} +
            (value == "true" ? "true" : "false") + ")";
@@ -79,10 +76,10 @@ std::string generate_cpp_feature_flag_descriptors(const IrSystem& system)
     {
         out << "        statespec::backend::FeatureFlagDefinition{\n";
         out << "            " << cpp_string(flag.name) << ",\n";
-        out << "            " << cpp_feature_flag_type_expr(flag.type) << ",\n";
-        out << "            " << cpp_feature_flag_value_expr(flag.type, flag.default_value)
+        out << "            " << cpp_feature_flag_type_expr(flag.flag_type) << ",\n";
+        out << "            " << cpp_feature_flag_value_expr(flag.flag_type, flag.default_value)
             << ",\n";
-        out << "            " << cpp_feature_flag_scope_expr(flag.scope) << ",\n";
+        out << "            " << cpp_feature_flag_scope_expr(flag.scope_kind) << ",\n";
         out << "            " << optional_string_expr(flag.owner) << ",\n";
         out << "            " << optional_string_expr(flag.description) << ",\n";
         out << "            " << optional_string_expr(flag.expires) << ",\n";

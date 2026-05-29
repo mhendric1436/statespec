@@ -30,12 +30,30 @@ struct IrEvent
     std::vector<IrField> fields;
 };
 
+enum class IrFeatureFlagType
+{
+    Bool,
+    String,
+    Integer,
+    Decimal,
+};
+
+enum class IrFeatureFlagScopeKind
+{
+    Tenant,
+    System,
+    User,
+    Entity,
+};
+
 struct IrFeatureFlag
 {
     std::string name;
     std::string type;
+    IrFeatureFlagType flag_type{IrFeatureFlagType::Bool};
     std::string default_value;
     std::string scope;
+    IrFeatureFlagScopeKind scope_kind{IrFeatureFlagScopeKind::Tenant};
     std::optional<std::string> owner;
     std::optional<std::string> description;
     std::optional<std::string> expires;

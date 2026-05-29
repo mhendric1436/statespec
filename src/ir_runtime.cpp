@@ -4,7 +4,9 @@
 #include "ir_lowering_helpers.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cstddef>
+#include <cstdint>
 #include <string_view>
 #include <utility>
 
@@ -148,6 +150,50 @@ std::vector<std::string> list_response_selector(
         }
     }
     return selector;
+}
+
+std::int64_t duration_seconds(const std::optional<std::string>& value)
+{
+    if (!value.has_value() || value->empty() || (*value)[0] != 'P')
+    {
+        return 0;
+    }
+
+    std::int64_t total = 0;
+    std::int64_t current = 0;
+    bool in_time = false;
+    for (std::size_t i = 1; i < value->size(); ++i)
+    {
+        const auto ch = (*value)[i];
+        if (std::isdigit(static_cast<unsigned char>(ch)) != 0)
+        {
+            current = current * 10 + static_cast<std::int64_t>(ch - '0');
+            continue;
+        }
+        if (ch == 'T')
+        {
+            in_time = true;
+            continue;
+        }
+        if (ch == 'D')
+        {
+            total += current * 24 * 60 * 60;
+        }
+        else if (in_time && ch == 'H')
+        {
+            total += current * 60 * 60;
+        }
+        else if (in_time && ch == 'M')
+        {
+            total += current * 60;
+        }
+        else if (in_time && ch == 'S')
+        {
+            total += current;
+        }
+        current = 0;
+    }
+    return total;
 }
 
 std::vector<std::string> api_path_parameters(const IrApi& api)
@@ -536,15 +582,23 @@ void lower_ir_runtime(
 
     for (const auto& lease : system.leases)
     {
+        const auto ttl_seconds = duration_seconds(lease.ttl);
         ir.leases.push_back(
             IrLease{
                 lease.name,
                 lease.resource,
+                lease.resource.value_or(lease.name),
                 lease.ttl,
+                ttl_seconds,
                 lease.renew_every,
+                lease.renew_every.has_value() ? duration_seconds(lease.renew_every) : ttl_seconds,
                 lease.holder,
                 lease.fencing_token,
+                lease.fencing_token.value_or(false),
                 lease.max_ttl,
+                lease.max_ttl.has_value()
+                    ? std::optional<std::int64_t>{duration_seconds(lease.max_ttl)}
+                    : std::nullopt,
             }
         );
     }

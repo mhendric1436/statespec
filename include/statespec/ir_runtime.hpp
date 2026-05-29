@@ -2,6 +2,8 @@
 
 #include "statespec/ir_core.hpp"
 
+#include <cstdint>
+
 namespace statespec
 {
 
@@ -27,11 +29,16 @@ struct IrLease
 {
     std::string name;
     std::optional<std::string> resource;
+    std::string resource_pattern;
     std::optional<std::string> ttl;
+    std::int64_t ttl_seconds{0};
     std::optional<std::string> renew_every;
+    std::int64_t renew_every_seconds{0};
     std::optional<std::string> holder;
     std::optional<bool> fencing_token;
+    bool fencing_token_enabled{false};
     std::optional<std::string> max_ttl;
+    std::optional<std::int64_t> max_ttl_seconds;
 };
 
 struct IrWorker
