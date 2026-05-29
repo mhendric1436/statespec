@@ -1182,7 +1182,6 @@ std::string cpp_descriptor_types_header(const TemplatePackage& templates)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#define STATESPEC_GENERATED_DESCRIPTOR_TYPES_DEFINED 1\n\n";
     out << "#include \"../backend.hpp\"\n";
     out << "#include \"../external_system.hpp\"\n\n";
     out << "#include <chrono>\n";
