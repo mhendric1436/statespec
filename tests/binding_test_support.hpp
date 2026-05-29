@@ -304,6 +304,48 @@ sorted_expected_app_artifact_paths(const std::vector<ExpectedBindingAppArtifact>
     );
 }
 
+[[maybe_unused]] std::string generated_artifact_content(
+    const statespec::GenerationResult& result,
+    const std::string& artifact_path
+)
+{
+    for (const auto& file : result.files)
+    {
+        if (file.artifact_path == artifact_path)
+        {
+            return file.content;
+        }
+    }
+    require(false, "expected generated artifact " + artifact_path);
+    return {};
+}
+
+[[maybe_unused]] void require_generated_artifact_contains(
+    const statespec::GenerationResult& result,
+    const std::string& artifact_path,
+    const std::string& expected
+)
+{
+    const auto content = generated_artifact_content(result, artifact_path);
+    require(
+        content.find(expected) != std::string::npos,
+        "expected " + artifact_path + " to contain " + expected
+    );
+}
+
+[[maybe_unused]] void require_generated_artifact_not_contains(
+    const statespec::GenerationResult& result,
+    const std::string& artifact_path,
+    const std::string& unexpected
+)
+{
+    const auto content = generated_artifact_content(result, artifact_path);
+    require(
+        content.find(unexpected) == std::string::npos,
+        "did not expect " + artifact_path + " to contain " + unexpected
+    );
+}
+
 [[maybe_unused]] void require_generated_files_have_tiered_artifact_paths(
     statespec::BindingLanguage language,
     const std::string& language_name

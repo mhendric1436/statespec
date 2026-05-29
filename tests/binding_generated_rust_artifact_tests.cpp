@@ -140,6 +140,46 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(result, "api/entities/audit_log/catalog.rs");
     require_generated_artifact_exists(result, "common/entities/account/model.rs");
     require_generated_artifact_exists(result, "common/entities/audit_log/model.rs");
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs",
+        "use crate::api_shapes::entity_account_shapes as shapes;"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "#[path = \"codecs.rs\"]"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "#[path = \"handlers.rs\"]"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "#[path = \"registry.rs\"]"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "pub fn shape_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "pub fn api_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "pub fn api_route_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "pub fn handler_entrypoints()"
+    );
+    require_generated_artifact_contains(
+        result, "api/shapes.rs", "entity_account_catalog::shape_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/descriptors/catalog.rs", "entity_account_catalog::api_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/descriptors/catalog.rs", "entity_account_catalog::api_route_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/api_handler_registry.rs", "api_handler_registry_account::handle_create_account"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/descriptors/catalog.rs", "create_account_api_descriptors()"
+    );
 }
 
 } // namespace

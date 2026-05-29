@@ -145,6 +145,45 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(result, "api/entities/audit_log/catalog.hpp");
     require_generated_artifact_exists(result, "common/entities/account/model.hpp");
     require_generated_artifact_exists(result, "common/entities/audit_log/model.hpp");
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "#include \"shapes.hpp\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "#include \"codecs.hpp\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "#include \"handlers.hpp\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "#include \"registry.hpp\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "shape_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "api_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "api_route_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "handler_entrypoints()"
+    );
+    require_generated_artifact_contains(
+        result, "api/shapes.hpp", "api::entities::account::shape_descriptors"
+    );
+    require_generated_artifact_contains(
+        result, "api/descriptors/catalog.hpp", "api::entities::account::api_descriptors"
+    );
+    require_generated_artifact_contains(
+        result, "api/descriptors/catalog.hpp", "api::entities::account::api_route_descriptors"
+    );
+    require_generated_artifact_contains(
+        result, "api/api_handler_registry.hpp", "api::entities::account::HandlerRegistry"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/descriptors/catalog.hpp", "create_account_api_descriptor"
+    );
 }
 
 } // namespace

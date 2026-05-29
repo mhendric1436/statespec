@@ -265,6 +265,50 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_exists(
         result, "common/com/statespec/generated/entities/audit_log/Model.java"
     );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "package com.statespec.generated.entities.account;"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "Shapes.shapeDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "public static List<ApiDescriptor> apiDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "public static List<ApiRouteDescriptor> apiRouteDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "public static List<String> handlerEntrypoints()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "Registry.handleCreateAccount"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/shapes/ShapeCatalog.java",
+        "entities.account.Catalog.shapeDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/descriptors/Catalog.java",
+        "entities.account.Catalog.apiDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/descriptors/Catalog.java",
+        "entities.account.Catalog.apiRouteDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/ApiHandlerRegistry.java",
+        "entities.account.Catalog.handleCreateAccount"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/com/statespec/generated/descriptors/Catalog.java",
+        "CreateAccountDescriptorModule.apiDescriptors()"
+    );
 }
 
 } // namespace

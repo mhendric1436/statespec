@@ -145,6 +145,39 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(result, "api/backend/entities/audit_log/catalog.go");
     require_generated_artifact_exists(result, "common/entities/account/model.go");
     require_generated_artifact_exists(result, "common/entities/audit_log/model.go");
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "package account"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "func EntityShapeDescriptors"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "func EntityAPIDescriptors"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "func EntityAPIRouteDescriptors"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "func HandlerEntrypoints"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "func NewHandlerRegistry"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/shapes/catalog.go", "account.EntityShapeDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/descriptors/catalog.go", "account.EntityAPIDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/descriptors/catalog.go", "account.EntityAPIRouteDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/api_handler_registry.go", "account.NewHandlerRegistry"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/backend/descriptors/catalog.go", "CreateAccountAPIDescriptors()"
+    );
 }
 
 } // namespace
