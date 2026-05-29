@@ -105,10 +105,10 @@ std::string java_entity_descriptor_module_ref(std::string_view entity_name)
            ".Persistence";
 }
 
-std::string java_entity_model_ref(std::string_view entity_name)
+std::string java_entity_constants_ref(std::string_view entity_name)
 {
     return "com.statespec.generated.entities." + snake_identifier(std::string{entity_name}) +
-           ".Model";
+           ".Constants";
 }
 
 std::string java_entity_field_expr(
@@ -120,7 +120,7 @@ std::string java_entity_field_expr(
     {
         return java_string(field_name);
     }
-    return java_entity_model_ref(entity.name) + "." +
+    return java_entity_constants_ref(entity.name) + "." +
            java_entity_field_constant_name(entity.name, field_name);
 }
 
@@ -129,7 +129,7 @@ std::string java_entity_state_expr(
     const std::string& state_name
 )
 {
-    return java_entity_model_ref(entity.name) + "." +
+    return java_entity_constants_ref(entity.name) + "." +
            java_entity_state_constant_name(entity.name, state_name);
 }
 

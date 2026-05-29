@@ -85,7 +85,7 @@ std::string rust_entity_field_expr(
         return rust_string(field_name);
     }
     return "crate::entity_" + snake_identifier(entity.name) +
-           "::model::" + rust_entity_field_constant_name(entity.name, field_name);
+           "::constants::" + rust_entity_field_constant_name(entity.name, field_name);
 }
 
 std::string rust_entity_state_expr(
@@ -94,7 +94,7 @@ std::string rust_entity_state_expr(
 )
 {
     return "crate::entity_" + snake_identifier(entity.name) +
-           "::model::" + rust_entity_state_constant_name(entity.name, state_name);
+           "::constants::" + rust_entity_state_constant_name(entity.name, state_name);
 }
 
 std::string rust_entity_repository_type(const IrEntity& entity)

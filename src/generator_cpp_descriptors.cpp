@@ -110,7 +110,7 @@ std::string cpp_entity_field_expr(
         return cpp_string(field_name);
     }
     return "::statespec_generated::entities::" + snake_identifier(entity.name) +
-           "::" + cpp_entity_field_constant_name(entity.name, field_name);
+           "::constants::" + cpp_entity_field_constant_name(entity.name, field_name);
 }
 
 std::string cpp_entity_state_expr(
@@ -119,7 +119,7 @@ std::string cpp_entity_state_expr(
 )
 {
     return "::statespec_generated::entities::" + snake_identifier(entity.name) +
-           "::" + cpp_entity_state_constant_name(entity.name, state_name);
+           "::constants::" + cpp_entity_state_constant_name(entity.name, state_name);
 }
 
 std::string cpp_entity_repository_expr(const IrEntity& entity)

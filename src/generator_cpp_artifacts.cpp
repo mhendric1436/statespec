@@ -1000,7 +1000,7 @@ std::string cpp_entity_gc_descriptor_header(const IrEntity& entity)
         }
         terminal_states
             << "                ::statespec::backend::runtime::EntityGcTerminalStateDescriptor{"
-            << cpp_entity_state_constant_name(entity.name, state.name) << ", "
+            << "constants::" << cpp_entity_state_constant_name(entity.name, state.name) << ", "
             << "k" << pascal_identifier(entity.name) << "State" << pascal_identifier(state.name)
             << "GcAfter, "
             << "k" << pascal_identifier(entity.name) << "State" << pascal_identifier(state.name)
@@ -1011,7 +1011,7 @@ std::string cpp_entity_gc_descriptor_header(const IrEntity& entity)
     const auto descriptor_function = snake_identifier(entity.name) + "_entity_gc_descriptor";
     std::ostringstream out;
     out << "#pragma once\n\n";
-    out << "#include \"model.hpp\"\n";
+    out << "#include \"constants.hpp\"\n";
     out << "#include \"schema.hpp\"\n";
     out << "#include \"../../runtime/entity_gc_types.hpp\"\n\n";
     out << "namespace statespec_generated::entities::" << entity_namespace << "\n";
@@ -1020,9 +1020,9 @@ std::string cpp_entity_gc_descriptor_header(const IrEntity& entity)
         << "()\n";
     out << "{\n";
     out << "    return ::statespec::backend::runtime::EntityGcDescriptor{\n";
-    out << "        " << cpp_entity_name_constant_name(entity.name) << ",\n";
-    out << "        " << cpp_entity_name_constant_name(entity.name) << ",\n";
-    out << "        " << cpp_entity_field_constant_name(entity.name, "status") << ",\n";
+    out << "        constants::" << cpp_entity_name_constant_name(entity.name) << ",\n";
+    out << "        constants::" << cpp_entity_name_constant_name(entity.name) << ",\n";
+    out << "        constants::" << cpp_entity_field_constant_name(entity.name, "status") << ",\n";
     out << "        std::vector<::statespec::backend::runtime::EntityGcTerminalStateDescriptor>{\n";
     out << terminal_states.str();
     out << "        }\n";
@@ -1610,6 +1610,7 @@ std::string cpp_entity_centered_facade_header(
     out << "#pragma once\n\n";
     if (area == "model")
     {
+        out << "#include \"constants.hpp\"\n";
         out << "#include \"../../backend.hpp\"\n\n";
         out << "#include <vector>\n\n";
     }
@@ -1634,51 +1635,7 @@ std::string cpp_entity_centered_facade_header(
     out << "{\n\n";
     if (area == "model")
     {
-        out << "inline constexpr const char* " << cpp_entity_name_constant_name(entity.name)
-            << " = " << cpp_string(entity.name) << ";\n";
-        for (const auto& field : entity.fields)
-        {
-            out << "inline constexpr const char* "
-                << cpp_entity_field_constant_name(entity.name, field.name) << " = "
-                << cpp_string(field.name) << ";\n";
-            out << "inline constexpr const char* "
-                << cpp_entity_field_type_name_constant_name(entity.name, field.name) << " = "
-                << cpp_string(field.type) << ";\n";
-        }
-        for (const auto& index : entity.indexes)
-        {
-            out << "inline constexpr const char* "
-                << cpp_entity_index_constant_name(entity.name, index.name) << " = "
-                << cpp_string(index.name) << ";\n";
-        }
-        for (const auto& state : entity.states)
-        {
-            out << "inline constexpr const char* "
-                << cpp_entity_state_constant_name(entity.name, state.name) << " = "
-                << cpp_string(state.name) << ";\n";
-        }
-        for (const auto& relation : entity.relations)
-        {
-            const auto relation_constant_prefix = "k" + pascal_identifier(entity.name) +
-                                                  "Relation" + pascal_identifier(relation.name);
-            out << "inline constexpr const char* " << relation_constant_prefix
-                << "Name = " << cpp_string(relation.name) << ";\n";
-            out << "inline constexpr const char* " << relation_constant_prefix
-                << "Target = " << cpp_string(relation.target) << ";\n";
-            out << "inline constexpr const char* " << relation_constant_prefix
-                << "Kind = " << cpp_string(relation.kind) << ";\n";
-            if (relation.relation_kind.has_value())
-            {
-                out << "inline constexpr const char* " << relation_constant_prefix
-                    << "RelationKind = " << cpp_string(*relation.relation_kind) << ";\n";
-            }
-            if (relation.on_parent_delete.has_value())
-            {
-                out << "inline constexpr const char* " << relation_constant_prefix
-                    << "OnParentDelete = " << cpp_string(*relation.on_parent_delete) << ";\n";
-            }
-        }
-        out << "\n";
+        out << "using namespace constants;\n\n";
         out << "inline std::vector<statespec::backend::FieldDescriptor> " << entity_path
             << "_field_descriptors()\n";
         out << "{\n";
@@ -1718,6 +1675,7 @@ std::string cpp_entity_centered_facade_header(
     }
     else if (area == "schema")
     {
+        out << "using namespace constants;\n\n";
         out << "inline constexpr std::uint64_t k" << pascal_identifier(entity.name)
             << "SchemaVersion = 1;\n";
         if (entity.ownership.has_value())
@@ -1772,6 +1730,7 @@ std::string cpp_entity_centered_facade_header(
     }
     else if (area == "persistence")
     {
+        out << "using namespace constants;\n\n";
         const auto type_name = pascal_identifier(entity.name);
         out << "inline ::statespec_generated::EntityLookup " << entity_path
             << "_lookup(std::vector<::statespec_generated::EntityKeyValue> key_values)\n";
@@ -1976,6 +1935,27 @@ std::string cpp_entity_constants_header(const IrEntity& entity)
         out << "inline constexpr const char* "
             << cpp_entity_state_constant_name(entity.name, state.name) << " = "
             << cpp_string(state.name) << ";\n";
+    }
+    for (const auto& relation : entity.relations)
+    {
+        const auto relation_constant_prefix =
+            "k" + pascal_identifier(entity.name) + "Relation" + pascal_identifier(relation.name);
+        out << "inline constexpr const char* " << relation_constant_prefix
+            << "Name = " << cpp_string(relation.name) << ";\n";
+        out << "inline constexpr const char* " << relation_constant_prefix
+            << "Target = " << cpp_string(relation.target) << ";\n";
+        out << "inline constexpr const char* " << relation_constant_prefix
+            << "Kind = " << cpp_string(relation.kind) << ";\n";
+        if (relation.relation_kind.has_value())
+        {
+            out << "inline constexpr const char* " << relation_constant_prefix
+                << "RelationKind = " << cpp_string(*relation.relation_kind) << ";\n";
+        }
+        if (relation.on_parent_delete.has_value())
+        {
+            out << "inline constexpr const char* " << relation_constant_prefix
+                << "OnParentDelete = " << cpp_string(*relation.on_parent_delete) << ";\n";
+        }
     }
     out << "\n} // namespace constants\n\n";
     out << "} // namespace statespec_generated::entities::" << snake_identifier(entity.name)

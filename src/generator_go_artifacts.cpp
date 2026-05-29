@@ -1501,48 +1501,6 @@ std::string go_entity_centered_facade_file(
     if (area == "model")
     {
         out << "import backend \"statespec-generated/common/backend\"\n\n";
-        out << "const (\n";
-        out << "\t" << go_entity_name_constant_name(entity.name) << " = " << go_string(entity.name)
-            << "\n";
-        for (const auto& field : entity.fields)
-        {
-            out << "\t" << go_entity_field_constant_name(entity.name, field.name) << " = "
-                << go_string(field.name) << "\n";
-            out << "\t" << go_entity_field_type_name_constant_name(entity.name, field.name) << " = "
-                << go_string(field.type) << "\n";
-        }
-        for (const auto& index : entity.indexes)
-        {
-            out << "\t" << go_entity_index_constant_name(entity.name, index.name) << " = "
-                << go_string(index.name) << "\n";
-        }
-        for (const auto& state : entity.states)
-        {
-            out << "\t" << go_entity_state_constant_name(entity.name, state.name) << " = "
-                << go_string(state.name) << "\n";
-        }
-        for (const auto& relation : entity.relations)
-        {
-            const auto relation_constant_prefix =
-                pascal_identifier(entity.name) + "Relation" + pascal_identifier(relation.name);
-            out << "\t" << relation_constant_prefix << "Name = " << go_string(relation.name)
-                << "\n";
-            out << "\t" << relation_constant_prefix << "Target = " << go_string(relation.target)
-                << "\n";
-            out << "\t" << relation_constant_prefix << "Kind = " << go_string(relation.kind)
-                << "\n";
-            if (relation.relation_kind.has_value())
-            {
-                out << "\t" << relation_constant_prefix
-                    << "RelationKind = " << go_string(*relation.relation_kind) << "\n";
-            }
-            if (relation.on_parent_delete.has_value())
-            {
-                out << "\t" << relation_constant_prefix
-                    << "OnParentDelete = " << go_string(*relation.on_parent_delete) << "\n";
-            }
-        }
-        out << ")\n\n";
         out << "func " << pascal_identifier(entity.name)
             << "FieldDescriptors() []backend.FieldDescriptor {\n";
         out << "\treturn []backend.FieldDescriptor{\n";
@@ -1577,8 +1535,8 @@ std::string go_entity_centered_facade_file(
         }
         out << "\t}\n";
         out << "}\n\n";
-        out << "// Field, index, relationship, and state constants are rooted with the entity "
-               "model.\n";
+        out << "// Field, index, relationship, and state constants are rooted in "
+               "constants.go.\n";
     }
     else if (area == "schema")
     {
@@ -1884,33 +1842,53 @@ std::string go_entity_centered_facade_file(
 
 std::string go_entity_constants_file(const IrEntity& entity)
 {
-    const auto constants_prefix = pascal_identifier(entity.name) + "Constants";
     std::ostringstream out;
     out << "package " << snake_identifier(entity.name) << "\n\n";
     out << "const (\n";
-    out << "\t" << constants_prefix << "EntityName = " << go_string(entity.name) << "\n";
-    out << "\t" << constants_prefix << "CollectionName = " << go_string(entity.name) << "\n";
-    out << "\t" << constants_prefix
+    out << "\t" << go_entity_name_constant_name(entity.name) << " = " << go_string(entity.name)
+        << "\n";
+    out << "\t" << pascal_identifier(entity.name) << "CollectionName = " << go_string(entity.name)
+        << "\n";
+    out << "\t" << pascal_identifier(entity.name)
         << "KeyHelperName = " << go_string(pascal_identifier(entity.name) + "Lookup") << "\n";
     for (const auto& field : entity.fields)
     {
-        out << "\t" << constants_prefix << "Field" << pascal_identifier(field.name) << " = "
+        out << "\t" << go_entity_field_constant_name(entity.name, field.name) << " = "
             << go_string(field.name) << "\n";
-        out << "\t" << constants_prefix << "Field" << pascal_identifier(field.name)
-            << "TypeName = " << go_string(field.type) << "\n";
+        out << "\t" << go_entity_field_type_name_constant_name(entity.name, field.name) << " = "
+            << go_string(field.type) << "\n";
     }
     for (const auto& index : entity.indexes)
     {
-        out << "\t" << constants_prefix << "Index" << pascal_identifier(index.name) << " = "
+        out << "\t" << go_entity_index_constant_name(entity.name, index.name) << " = "
             << go_string(index.name) << "\n";
-        out << "\t" << constants_prefix << "Index" << pascal_identifier(index.name)
+        out << "\t" << pascal_identifier(entity.name) << "Index" << pascal_identifier(index.name)
             << "HelperName = " << go_string(go_entity_index_repository_method_name(index.name))
             << "\n";
     }
     for (const auto& state : entity.states)
     {
-        out << "\t" << constants_prefix << "Status" << pascal_identifier(state.name) << " = "
+        out << "\t" << go_entity_state_constant_name(entity.name, state.name) << " = "
             << go_string(state.name) << "\n";
+    }
+    for (const auto& relation : entity.relations)
+    {
+        const auto relation_constant_prefix =
+            pascal_identifier(entity.name) + "Relation" + pascal_identifier(relation.name);
+        out << "\t" << relation_constant_prefix << "Name = " << go_string(relation.name) << "\n";
+        out << "\t" << relation_constant_prefix << "Target = " << go_string(relation.target)
+            << "\n";
+        out << "\t" << relation_constant_prefix << "Kind = " << go_string(relation.kind) << "\n";
+        if (relation.relation_kind.has_value())
+        {
+            out << "\t" << relation_constant_prefix
+                << "RelationKind = " << go_string(*relation.relation_kind) << "\n";
+        }
+        if (relation.on_parent_delete.has_value())
+        {
+            out << "\t" << relation_constant_prefix
+                << "OnParentDelete = " << go_string(*relation.on_parent_delete) << "\n";
+        }
     }
     out << ")\n";
     return out.str();

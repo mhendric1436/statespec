@@ -175,6 +175,10 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
         result, "common/entities/account/constants.rs",
         "pub const ACCOUNT_KEY_HELPER_NAME: &str = \"account_lookup\""
     );
+    require_generated_artifact_not_contains(
+        result, "common/entities/account/model.rs",
+        "pub const ACCOUNT_ENTITY_NAME: &str = \"Account\""
+    );
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.rs",
         "use crate::api_shapes::entity_account_shapes as shapes;"

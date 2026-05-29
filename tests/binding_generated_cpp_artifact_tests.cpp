@@ -183,6 +183,10 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
         result, "common/entities/account/constants.hpp",
         "inline constexpr const char* kAccountKeyHelperName = \"account_lookup\""
     );
+    require_generated_artifact_not_contains(
+        result, "common/entities/account/model.hpp",
+        "inline constexpr const char* kAccountEntityName = \"Account\""
+    );
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.hpp", "#include \"shapes.hpp\""
     );

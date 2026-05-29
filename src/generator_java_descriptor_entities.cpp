@@ -11,17 +11,17 @@ namespace statespec
 namespace
 {
 
-std::string java_entity_model_ref(const IrEntity& entity)
+std::string java_entity_constants_ref(const IrEntity& entity)
 {
-    return "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Model";
+    return "com.statespec.generated.entities." + snake_identifier(entity.name) + ".Constants";
 }
 
-std::string java_entity_model_constant(
+std::string java_entity_constant(
     const IrEntity& entity,
     const std::string& constant_name
 )
 {
-    return java_entity_model_ref(entity) + "." + constant_name;
+    return java_entity_constants_ref(entity) + "." + constant_name;
 }
 
 } // namespace
@@ -36,8 +36,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         const auto& entity = system.entities[entity_index];
         out << "            new EntityDescriptor(\n";
         out << "                "
-            << java_entity_model_constant(entity, java_entity_name_constant_name(entity.name))
-            << ",\n";
+            << java_entity_constant(entity, java_entity_name_constant_name(entity.name)) << ",\n";
         out << "                List.of(";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -45,7 +44,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << java_entity_model_constant(
+            out << java_entity_constant(
                 entity, java_entity_field_constant_name(entity.name, entity.key_fields[i])
             );
         }
@@ -126,7 +125,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             const auto& state = entity.states[i];
             out << "                    new EntityStateDescriptor(\n";
             out << "                        "
-                << java_entity_model_constant(
+                << java_entity_constant(
                        entity, java_entity_state_constant_name(entity.name, state.name)
                    )
                 << ",\n";
@@ -147,7 +146,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
         if (entity.initial_state.has_value())
         {
             out << "                Optional.of("
-                << java_entity_model_constant(
+                << java_entity_constant(
                        entity, java_entity_state_constant_name(entity.name, *entity.initial_state)
                    )
                 << "),\n";
@@ -163,7 +162,7 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             {
                 out << ", ";
             }
-            out << java_entity_model_constant(
+            out << java_entity_constant(
                 entity, java_entity_state_constant_name(entity.name, entity.terminal_states[i])
             );
         }
@@ -184,13 +183,11 @@ std::string generate_java_entity_descriptors(const IrSystem& system)
             << "EntityDescriptor() {\n";
         out << "        return entityDescriptors().stream()\n";
         out << "            .filter(descriptor -> descriptor.name().equals("
-            << java_entity_model_constant(entity, java_entity_name_constant_name(entity.name))
-            << "))\n";
+            << java_entity_constant(entity, java_entity_name_constant_name(entity.name)) << "))\n";
         out << "            .findFirst()\n";
         out << "            .orElseThrow(() -> new IllegalStateException(\"entity descriptor not "
                "found: "
-            << "\" + "
-            << java_entity_model_constant(entity, java_entity_name_constant_name(entity.name))
+            << "\" + " << java_entity_constant(entity, java_entity_name_constant_name(entity.name))
             << "));\n";
         out << "    }\n\n";
     }

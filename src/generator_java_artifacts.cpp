@@ -1207,12 +1207,15 @@ std::string java_entity_gc_descriptor_file(const IrEntity& entity)
         {
             terminal_states << ",\n";
         }
-        terminal_states
-            << "                new EntityGcTypes.TerminalState("
-            << "Model." << java_entity_state_constant_name(entity.name, state.name) << ", Schema."
-            << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_after")
-            << ", Schema."
-            << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode") << ")";
+        terminal_states << "                new EntityGcTypes.TerminalState("
+                        << "Constants." << java_entity_state_constant_name(entity.name, state.name)
+                        << ", Schema."
+                        << upper_snake_identifier(
+                               entity.name + "_state_" + state.name + "_gc_after"
+                           )
+                        << ", Schema."
+                        << upper_snake_identifier(entity.name + "_state_" + state.name + "_gc_mode")
+                        << ")";
         first_terminal_state = false;
     }
 
@@ -1227,9 +1230,10 @@ std::string java_entity_gc_descriptor_file(const IrEntity& entity)
     out << "    public static EntityGcTypes.Descriptor descriptor()\n";
     out << "    {\n";
     out << "        return new EntityGcTypes.Descriptor(\n";
-    out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
-    out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
-    out << "            Model." << java_entity_field_constant_name(entity.name, "status") << ",\n";
+    out << "            Constants." << java_entity_name_constant_name(entity.name) << ",\n";
+    out << "            Constants." << java_entity_name_constant_name(entity.name) << ",\n";
+    out << "            Constants." << java_entity_field_constant_name(entity.name, "status")
+        << ",\n";
     out << "            List.of(\n";
     out << terminal_states.str() << "\n";
     out << "            )\n";
@@ -1418,11 +1422,13 @@ std::string java_entity_centered_facade_file(
     out << "package com.statespec.generated.entities." << snake_identifier(entity.name) << ";\n\n";
     if (area == "model")
     {
+        out << "import static com.statespec.generated.entities." << snake_identifier(entity.name)
+            << ".Constants.*;\n";
         out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
         out << "import com.statespec.backend.Backend.FieldType;\n";
         out << "import com.statespec.backend.Backend.IndexDescriptor;\n";
         out << "import java.util.List;\n\n";
-        out << "/** Entity-centered model constants and metadata for " << entity.name << ". */\n";
+        out << "/** Entity-centered model metadata for " << entity.name << ". */\n";
     }
     else if (area == "schema")
     {
@@ -1440,51 +1446,6 @@ std::string java_entity_centered_facade_file(
     out << "    private " << class_name << "() {}\n";
     if (area == "model")
     {
-        out << "\n";
-        out << "    public static final String " << java_entity_name_constant_name(entity.name)
-            << " = " << java_string(entity.name) << ";\n";
-        for (const auto& field : entity.fields)
-        {
-            out << "    public static final String "
-                << java_entity_field_constant_name(entity.name, field.name) << " = "
-                << java_string(field.name) << ";\n";
-            out << "    public static final String "
-                << java_entity_field_type_name_constant_name(entity.name, field.name) << " = "
-                << java_string(field.type) << ";\n";
-        }
-        for (const auto& index : entity.indexes)
-        {
-            out << "    public static final String "
-                << java_entity_index_constant_name(entity.name, index.name) << " = "
-                << java_string(index.name) << ";\n";
-        }
-        for (const auto& state : entity.states)
-        {
-            out << "    public static final String "
-                << java_entity_state_constant_name(entity.name, state.name) << " = "
-                << java_string(state.name) << ";\n";
-        }
-        for (const auto& relation : entity.relations)
-        {
-            const auto relation_constant_prefix =
-                upper_snake_identifier(entity.name + "_relation_" + relation.name);
-            out << "    public static final String " << relation_constant_prefix
-                << "_NAME = " << java_string(relation.name) << ";\n";
-            out << "    public static final String " << relation_constant_prefix
-                << "_TARGET = " << java_string(relation.target) << ";\n";
-            out << "    public static final String " << relation_constant_prefix
-                << "_KIND = " << java_string(relation.kind) << ";\n";
-            if (relation.relation_kind.has_value())
-            {
-                out << "    public static final String " << relation_constant_prefix
-                    << "_RELATION_KIND = " << java_string(*relation.relation_kind) << ";\n";
-            }
-            if (relation.on_parent_delete.has_value())
-            {
-                out << "    public static final String " << relation_constant_prefix
-                    << "_ON_PARENT_DELETE = " << java_string(*relation.on_parent_delete) << ";\n";
-            }
-        }
         out << "\n";
         out << "    public static List<FieldDescriptor> " << lower_camel_identifier(entity.name)
             << "FieldDescriptors() {\n";
@@ -1559,7 +1520,7 @@ std::string java_entity_centered_facade_file(
         out << "    public static CollectionDescriptor " << lower_camel_identifier(entity.name)
             << "CollectionDescriptor() {\n";
         out << "        return new CollectionDescriptor(\n";
-        out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
+        out << "            Constants." << java_entity_name_constant_name(entity.name) << ",\n";
         out << "            Model." << lower_camel_identifier(entity.name)
             << "FieldDescriptors(),\n";
         out << "            List.of(";
@@ -1569,7 +1530,8 @@ std::string java_entity_centered_facade_file(
             {
                 out << ", ";
             }
-            out << "Model." << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
+            out << "Constants."
+                << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "),\n";
         out << "            Model." << lower_camel_identifier(entity.name)
@@ -1588,7 +1550,7 @@ std::string java_entity_centered_facade_file(
                "keyValues\n";
         out << "    ) {\n";
         out << "        return new com.statespec.generated.entities.EntityLookup(\n";
-        out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
+        out << "            Constants." << java_entity_name_constant_name(entity.name) << ",\n";
         out << "            java.util.List.of(";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -1596,7 +1558,8 @@ std::string java_entity_centered_facade_file(
             {
                 out << ", ";
             }
-            out << "Model." << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
+            out << "Constants."
+                << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "),\n";
         out << "            java.util.List.copyOf(keyValues)\n";
@@ -1605,7 +1568,7 @@ std::string java_entity_centered_facade_file(
         out << "    public static com.statespec.generated.descriptors.types.EntityDescriptor "
             << lower_camel_identifier(entity.name) << "EntityDescriptor() {\n";
         out << "        return new com.statespec.generated.descriptors.types.EntityDescriptor(\n";
-        out << "            Model." << java_entity_name_constant_name(entity.name) << ",\n";
+        out << "            Constants." << java_entity_name_constant_name(entity.name) << ",\n";
         out << "            java.util.List.of(";
         for (std::size_t i = 0; i < entity.key_fields.size(); ++i)
         {
@@ -1613,7 +1576,8 @@ std::string java_entity_centered_facade_file(
             {
                 out << ", ";
             }
-            out << "Model." << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
+            out << "Constants."
+                << java_entity_field_constant_name(entity.name, entity.key_fields[i]);
         }
         out << "),\n";
         out << "            java.util.Optional.empty(),\n";
@@ -1711,7 +1675,7 @@ std::string java_entity_centered_facade_file(
         out << "            return entities.listEntitiesByIndexTx(\n";
         out << "                tx,\n";
         out << "                new com.statespec.generated.entities.EntityListByIndexRequest("
-               "Model."
+               "Constants."
             << java_entity_name_constant_name(entity.name) << ", indexName, values)\n";
         out << "            );\n";
         out << "        }\n";
@@ -1725,7 +1689,7 @@ std::string java_entity_centered_facade_file(
             out << "            java.util.List<com.statespec.backend.Backend.IndexValue> values\n";
             out << "        ) throws com.statespec.backend.Backend.BackendException\n";
             out << "        {\n";
-            out << "            return listByIndexTx(tx, Model."
+            out << "            return listByIndexTx(tx, Constants."
                 << java_entity_index_constant_name(entity.name, index.name) << ", values);\n";
             out << "        }\n";
         }
@@ -1792,6 +1756,27 @@ std::string java_entity_constants_file(const IrEntity& entity)
         out << "    public static final String "
             << java_entity_state_constant_name(entity.name, state.name) << " = "
             << java_string(state.name) << ";\n";
+    }
+    for (const auto& relation : entity.relations)
+    {
+        const auto relation_constant_prefix =
+            upper_snake_identifier(entity.name + "_relation_" + relation.name);
+        out << "    public static final String " << relation_constant_prefix
+            << "_NAME = " << java_string(relation.name) << ";\n";
+        out << "    public static final String " << relation_constant_prefix
+            << "_TARGET = " << java_string(relation.target) << ";\n";
+        out << "    public static final String " << relation_constant_prefix
+            << "_KIND = " << java_string(relation.kind) << ";\n";
+        if (relation.relation_kind.has_value())
+        {
+            out << "    public static final String " << relation_constant_prefix
+                << "_RELATION_KIND = " << java_string(*relation.relation_kind) << ";\n";
+        }
+        if (relation.on_parent_delete.has_value())
+        {
+            out << "    public static final String " << relation_constant_prefix
+                << "_ON_PARENT_DELETE = " << java_string(*relation.on_parent_delete) << ";\n";
+        }
     }
     out << "}\n";
     return out.str();

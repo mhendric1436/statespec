@@ -304,6 +304,10 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
         result, "common/com/statespec/generated/entities/account/Constants.java",
         "public static final String ACCOUNT_KEY_HELPER_NAME = \"buildAccountLookup\""
     );
+    require_generated_artifact_not_contains(
+        result, "common/com/statespec/generated/entities/account/Model.java",
+        "public static final String ACCOUNT_ENTITY_NAME = \"Account\""
+    );
     require_generated_artifact_contains(
         result, "api/com/statespec/generated/entities/account/Catalog.java",
         "package com.statespec.generated.entities.account;"

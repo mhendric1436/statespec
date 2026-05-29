@@ -1090,7 +1090,7 @@ std::string rust_entity_gc_descriptor_file(const IrEntity& entity)
             continue;
         }
         terminal_states << "            EntityGcTerminalStateDescriptor {\n"
-                        << "                state: model::"
+                        << "                state: constants::"
                         << rust_entity_state_constant_name(entity.name, state.name)
                         << ".to_string(),\n"
                         << "                after: schema::"
@@ -1108,16 +1108,16 @@ std::string rust_entity_gc_descriptor_file(const IrEntity& entity)
     std::ostringstream out;
     out << "use crate::runtime_entity_gc_types::{EntityGcDescriptor, "
            "EntityGcTerminalStateDescriptor};\n\n";
-    out << "use super::{model, schema};\n\n";
+    out << "use super::{constants, schema};\n\n";
     out << "pub fn " << descriptor_function
         << "() -> crate::runtime_entity_gc_types::EntityGcDescriptor {\n";
     out << "    EntityGcDescriptor {\n";
-    out << "        entity: model::" << rust_entity_name_constant_name(entity.name)
+    out << "        entity: constants::" << rust_entity_name_constant_name(entity.name)
         << ".to_string(),\n";
-    out << "        collection: model::" << rust_entity_name_constant_name(entity.name)
+    out << "        collection: constants::" << rust_entity_name_constant_name(entity.name)
         << ".to_string(),\n";
-    out << "        status_field: model::" << rust_entity_field_constant_name(entity.name, "status")
-        << ".to_string(),\n";
+    out << "        status_field: constants::"
+        << rust_entity_field_constant_name(entity.name, "status") << ".to_string(),\n";
     out << "        terminal_states: vec![\n";
     out << terminal_states.str();
     out << "        ],\n";
@@ -1234,49 +1234,7 @@ std::string rust_entity_centered_facade_file(
     if (area == "model")
     {
         out << "use crate::backend::{FieldDescriptor, FieldType, IndexDescriptor};\n\n";
-        out << "pub const " << rust_entity_name_constant_name(entity.name)
-            << ": &str = " << rust_string(entity.name) << ";\n";
-        for (const auto& field : entity.fields)
-        {
-            out << "pub const " << rust_entity_field_constant_name(entity.name, field.name)
-                << ": &str = " << rust_string(field.name) << ";\n";
-            out << "pub const "
-                << rust_entity_field_type_name_constant_name(entity.name, field.name)
-                << ": &str = " << rust_string(field.type) << ";\n";
-        }
-        for (const auto& index : entity.indexes)
-        {
-            out << "pub const " << rust_entity_index_constant_name(entity.name, index.name)
-                << ": &str = " << rust_string(index.name) << ";\n";
-        }
-        for (const auto& state : entity.states)
-        {
-            out << "pub const " << rust_entity_state_constant_name(entity.name, state.name)
-                << ": &str = " << rust_string(state.name) << ";\n";
-        }
-        for (const auto& relation : entity.relations)
-        {
-            const auto relation_constant_prefix =
-                upper_snake_identifier(entity.name + "_relation_" + relation.name);
-            out << "pub const " << relation_constant_prefix
-                << "_NAME: &str = " << rust_string(relation.name) << ";\n";
-            out << "pub const " << relation_constant_prefix
-                << "_TARGET: &str = " << rust_string(relation.target) << ";\n";
-            out << "pub const " << relation_constant_prefix
-                << "_KIND: &str = " << rust_string(relation.kind) << ";\n";
-            if (relation.relation_kind.has_value())
-            {
-                out << "pub const " << relation_constant_prefix
-                    << "_RELATION_KIND: &str = " << rust_string(*relation.relation_kind) << ";\n";
-            }
-            if (relation.on_parent_delete.has_value())
-            {
-                out << "pub const " << relation_constant_prefix
-                    << "_ON_PARENT_DELETE: &str = " << rust_string(*relation.on_parent_delete)
-                    << ";\n";
-            }
-        }
-        out << "\n";
+        out << "use super::constants::*;\n\n";
         out << "pub fn " << snake_identifier(entity.name)
             << "_field_descriptors() -> Vec<FieldDescriptor> {\n";
         out << "    vec![\n";
@@ -1315,6 +1273,7 @@ std::string rust_entity_centered_facade_file(
     else if (area == "schema")
     {
         out << "use crate::backend::CollectionDescriptor;\n";
+        out << "use super::constants::*;\n";
         out << "use super::model::*;\n\n";
         out << "pub const " << upper_snake_identifier(entity.name + "_schema_version")
             << ": u64 = 1;\n";
@@ -1381,7 +1340,7 @@ std::string rust_entity_centered_facade_file(
         out << "    EntityLookup, EntityRepository, EntityUpsertRequest,\n";
         out << "};\n";
         out << "use crate::json::Json;\n";
-        out << "use super::model::*;\n";
+        out << "use super::constants::*;\n";
         out << "use super::schema::*;\n\n";
         out << "pub fn " << function_prefix
             << "_lookup(key_values: Vec<EntityKeyValue>) -> EntityLookup {\n";
@@ -1576,6 +1535,27 @@ std::string rust_entity_constants_file(const IrEntity& entity)
     {
         out << "pub const " << rust_entity_state_constant_name(entity.name, state.name)
             << ": &str = " << rust_string(state.name) << ";\n";
+    }
+    for (const auto& relation : entity.relations)
+    {
+        const auto relation_constant_prefix =
+            upper_snake_identifier(entity.name + "_relation_" + relation.name);
+        out << "pub const " << relation_constant_prefix
+            << "_NAME: &str = " << rust_string(relation.name) << ";\n";
+        out << "pub const " << relation_constant_prefix
+            << "_TARGET: &str = " << rust_string(relation.target) << ";\n";
+        out << "pub const " << relation_constant_prefix
+            << "_KIND: &str = " << rust_string(relation.kind) << ";\n";
+        if (relation.relation_kind.has_value())
+        {
+            out << "pub const " << relation_constant_prefix
+                << "_RELATION_KIND: &str = " << rust_string(*relation.relation_kind) << ";\n";
+        }
+        if (relation.on_parent_delete.has_value())
+        {
+            out << "pub const " << relation_constant_prefix
+                << "_ON_PARENT_DELETE: &str = " << rust_string(*relation.on_parent_delete) << ";\n";
+        }
     }
     return out.str();
 }
