@@ -92,31 +92,18 @@ std::string generate_rust_descriptor_prelude(
     out << "use crate::external_system::{ExternalSystemMetadataLookup, "
            "ExternalSystemMetadataResolution, "
            "ExternalSystemMetadataResolver};\n";
-    out << "use crate::feature_flag::{FeatureFlagDefinition as RuntimeFeatureFlagDefinition, "
-           "FeatureFlagScopeKind, FeatureFlagStore, FeatureFlagType, FeatureFlagValue};\n";
-    out << "use crate::lease::{LeaseDefinition as RuntimeLeaseDefinition, LeaseDefinitionId, "
-           "LeaseStore};\n";
+    out << "use crate::feature_flag::{FeatureFlagDefinition, FeatureFlagScopeKind, "
+           "FeatureFlagStore, FeatureFlagType, FeatureFlagValue};\n";
+    out << "use crate::lease::{LeaseDefinition, LeaseDefinitionId, LeaseStore};\n";
     out << "use crate::json::Json;\n";
-    out << "use crate::log::{LogDefinition as RuntimeLogDefinition, LogLevel, LogSink};\n";
-    out << "use crate::metric::{MetricDefinition as RuntimeMetricDefinition, MetricKind, "
-           "MetricSink};\n";
+    out << "use crate::log::{LogDefinition, LogLevel, LogSink};\n";
+    out << "use crate::metric::{MetricDefinition, MetricKind, MetricSink};\n";
     out << "use crate::queue::{RegisterQueueDefinitionRequest, QueueDefinition, QueueStore};\n";
     out << "use crate::workflow::{RegisterWorkflowDefinitionRequest, WorkflowDefinition, "
            "WorkflowStore};\n\n";
     out << "pub use crate::descriptor_types::{ApiDescriptor, ApiRequestContext, ApiResponse, "
-           "ApiRouteDescriptor, ApiServerDescriptor, LeaseDefinition, WorkerContext, "
-           "WorkerDescriptor};\n\n";
+           "ApiRouteDescriptor, ApiServerDescriptor, WorkerContext, WorkerDescriptor};\n\n";
     out << "pub use crate::shape_types::ShapeDescriptor;\n\n";
-    out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct FeatureFlagDefinition {\n";
-    out << "    pub name: String,\n";
-    out << "    pub flag_type: String,\n";
-    out << "    pub default_value: String,\n";
-    out << "    pub scope: String,\n";
-    out << "    pub owner: Option<String>,\n";
-    out << "    pub description: Option<String>,\n";
-    out << "    pub expires: Option<String>,\n";
-    out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct ValueDescriptor {\n";
     out << "    pub name: String,\n";
@@ -329,21 +316,6 @@ std::string generate_rust_descriptor_prelude(
     out << "    pub denies: Vec<PolicyRuleDescriptor>,\n";
     out << "    pub quotas: Vec<QuotaDescriptor>,\n";
     out << "    pub audits: Vec<String>,\n";
-    out << "}\n\n";
-    out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct LogDefinition {\n";
-    out << "    pub name: String,\n";
-    out << "    pub level: String,\n";
-    out << "    pub event_name: String,\n";
-    out << "    pub fields: Vec<FieldDescriptor>,\n";
-    out << "}\n\n";
-    out << "#[derive(Debug, Clone)]\n";
-    out << "pub struct MetricDefinition {\n";
-    out << "    pub name: String,\n";
-    out << "    pub kind: String,\n";
-    out << "    pub backend_name: String,\n";
-    out << "    pub unit: String,\n";
-    out << "    pub labels: Vec<FieldDescriptor>,\n";
     out << "}\n\n";
     out << "#[derive(Debug, Clone)]\n";
     out << "pub struct GarbageCollectionPolicy {\n";

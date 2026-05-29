@@ -34,17 +34,20 @@ std::string generate_rust_runtime_descriptors(const IrSystem& system)
     out << "    vec![\n";
     for (const auto& lease : system.leases)
     {
+        const auto ttl = lease.ttl.value_or("0s");
+        const auto renew_every = lease.renew_every.value_or(ttl);
         out << "        LeaseDefinition {\n";
-        out << "            name: " << rust_string(lease.name) << ".to_string(),\n";
-        out << "            resource: " << rust_optional_string_expr(lease.resource) << ",\n";
-        out << "            ttl: Duration::from_secs(" << parse_rust_duration_seconds(lease.ttl)
+        out << "            id: LeaseDefinitionId { name: " << rust_string(lease.name)
+            << ".to_string(), version: 1 },\n";
+        out << "            resource_pattern: " << rust_string(lease.resource.value_or(lease.name))
+            << ".to_string(),\n";
+        out << "            ttl: Duration::from_secs(" << parse_rust_duration_seconds(ttl)
             << "),\n";
-        out << "            renew_every: " << rust_optional_duration_expr(lease.renew_every)
-            << ",\n";
-        out << "            holder: " << rust_optional_string_expr(lease.holder) << ",\n";
+        out << "            renew_every: Duration::from_secs("
+            << parse_rust_duration_seconds(renew_every) << "),\n";
+        out << "            max_ttl: " << rust_optional_duration_expr(lease.max_ttl) << ",\n";
         out << "            fencing_token: "
             << (lease.fencing_token.value_or(false) ? "true" : "false") << ",\n";
-        out << "            max_ttl: " << rust_optional_duration_expr(lease.max_ttl) << ",\n";
         out << "        },\n";
     }
     out << "    ]\n";

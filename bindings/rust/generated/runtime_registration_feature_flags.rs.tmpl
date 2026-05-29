@@ -1,47 +1,9 @@
-fn feature_flag_type_from_descriptor(flag_type: &str) -> FeatureFlagType {
-    match flag_type {
-        "string" => FeatureFlagType::String,
-        "int" => FeatureFlagType::Integer,
-        "decimal" => FeatureFlagType::Decimal,
-        _ => FeatureFlagType::Bool,
-    }
-}
-
-fn feature_flag_scope_from_descriptor(scope: &str) -> FeatureFlagScopeKind {
-    match scope {
-        "system" => FeatureFlagScopeKind::System,
-        "user" => FeatureFlagScopeKind::User,
-        _ if scope.starts_with("entity ") => FeatureFlagScopeKind::Entity,
-        _ => FeatureFlagScopeKind::Tenant,
-    }
-}
-
-fn feature_flag_value_from_descriptor(definition: &FeatureFlagDefinition) -> FeatureFlagValue {
-    match definition.flag_type.as_str() {
-        "string" => FeatureFlagValue::String(definition.default_value.clone()),
-        "int" => FeatureFlagValue::Integer(definition.default_value.parse().unwrap_or(0)),
-        "decimal" => FeatureFlagValue::Decimal(definition.default_value.parse().unwrap_or(0.0)),
-        _ => FeatureFlagValue::Bool(definition.default_value == "true"),
-    }
-}
-
 pub fn register_feature_flag_definitions_tx<B: Backend, S: FeatureFlagStore<B>>(
     tx: &mut B::Tx,
     store: &S,
 ) -> BackendResult<()> {
     for definition in feature_flag_definitions() {
-        store.register_definition_tx(
-            tx,
-            &RuntimeFeatureFlagDefinition {
-                name: definition.name.clone(),
-                flag_type: feature_flag_type_from_descriptor(&definition.flag_type),
-                default_value: feature_flag_value_from_descriptor(&definition),
-                scope: feature_flag_scope_from_descriptor(&definition.scope),
-                owner: definition.owner.clone(),
-                description: definition.description.clone(),
-                expires: definition.expires.clone(),
-            },
-        )?;
+        store.register_definition_tx(tx, &definition)?;
     }
     Ok(())
 }

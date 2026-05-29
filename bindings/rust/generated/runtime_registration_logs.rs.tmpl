@@ -3,15 +3,7 @@ pub fn register_log_definitions_tx<B: Backend, S: LogSink<B>>(
     sink: &S,
 ) -> BackendResult<()> {
     for definition in log_definitions() {
-        sink.register_definition_tx(
-            tx,
-            &RuntimeLogDefinition {
-                name: definition.name,
-                level: log_level_from_descriptor(&definition.level),
-                event_name: definition.event_name,
-                fields: definition.fields,
-            },
-        )?;
+        sink.register_definition_tx(tx, &definition)?;
     }
     Ok(())
 }

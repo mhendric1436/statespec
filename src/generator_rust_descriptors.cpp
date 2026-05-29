@@ -937,7 +937,6 @@ std::string generate_descriptors_rs(
     out << generate_rust_policy_descriptors(system);
     out << generate_rust_observability_descriptors(system);
     out << generate_rust_runtime_descriptors(system);
-    out << generate_rust_observability_registration(system);
     return out.str();
 }
 

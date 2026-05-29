@@ -3,16 +3,7 @@ pub fn register_metric_definitions_tx<B: Backend, S: MetricSink<B>>(
     sink: &S,
 ) -> BackendResult<()> {
     for definition in metric_definitions() {
-        sink.register_definition_tx(
-            tx,
-            &RuntimeMetricDefinition {
-                name: definition.name,
-                kind: metric_kind_from_descriptor(&definition.kind),
-                backend_name: definition.backend_name,
-                unit: definition.unit,
-                labels: definition.labels,
-            },
-        )?;
+        sink.register_definition_tx(tx, &definition)?;
     }
     Ok(())
 }

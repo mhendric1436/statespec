@@ -1666,18 +1666,7 @@ std::string rust_shape_types_file()
 
 std::string rust_descriptor_types_file()
 {
-    return "use std::time::Duration;\n\n"
-           "use crate::json::Json;\n\n"
-           "#[derive(Debug, Clone)]\n"
-           "pub struct LeaseDefinition {\n"
-           "    pub name: String,\n"
-           "    pub resource: Option<String>,\n"
-           "    pub ttl: Duration,\n"
-           "    pub renew_every: Option<Duration>,\n"
-           "    pub holder: Option<String>,\n"
-           "    pub fencing_token: bool,\n"
-           "    pub max_ttl: Option<Duration>,\n"
-           "}\n\n"
+    return "use crate::json::Json;\n\n"
            "#[derive(Debug, Clone)]\n"
            "pub struct ApiDescriptor {\n"
            "    pub name: String,\n"

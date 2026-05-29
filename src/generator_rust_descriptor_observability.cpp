@@ -6,6 +6,40 @@
 
 namespace statespec
 {
+namespace
+{
+
+std::string rust_log_level_expr(const std::string& level)
+{
+    if (level == "debug")
+    {
+        return "LogLevel::Debug";
+    }
+    if (level == "warn")
+    {
+        return "LogLevel::Warn";
+    }
+    if (level == "error")
+    {
+        return "LogLevel::Error";
+    }
+    return "LogLevel::Info";
+}
+
+std::string rust_metric_kind_expr(const std::string& kind)
+{
+    if (kind == "gauge")
+    {
+        return "MetricKind::Gauge";
+    }
+    if (kind == "histogram")
+    {
+        return "MetricKind::Histogram";
+    }
+    return "MetricKind::Counter";
+}
+
+} // namespace
 
 std::string generate_rust_observability_descriptors(const IrSystem& system)
 {
@@ -16,7 +50,7 @@ std::string generate_rust_observability_descriptors(const IrSystem& system)
     {
         out << "        LogDefinition {\n";
         out << "            name: " << rust_string(log.name) << ".to_string(),\n";
-        out << "            level: " << rust_string(log.level) << ".to_string(),\n";
+        out << "            level: " << rust_log_level_expr(log.level) << ",\n";
         out << "            event_name: " << rust_string(log.event_name) << ".to_string(),\n";
         out << "            fields: vec![\n";
         for (const auto& field : log.fields)
@@ -35,7 +69,7 @@ std::string generate_rust_observability_descriptors(const IrSystem& system)
     {
         out << "        MetricDefinition {\n";
         out << "            name: " << rust_string(metric.name) << ".to_string(),\n";
-        out << "            kind: " << rust_string(metric.kind) << ".to_string(),\n";
+        out << "            kind: " << rust_metric_kind_expr(metric.kind) << ",\n";
         out << "            backend_name: " << rust_string(metric.backend_name)
             << ".to_string(),\n";
         out << "            unit: " << rust_string(metric.unit) << ".to_string(),\n";
