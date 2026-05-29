@@ -91,6 +91,43 @@ TEST_CASE("entity constant helpers produce language-specific names")
     );
 }
 
+TEST_CASE("API codec field helpers use entity constants for durable fields")
+{
+    statespec::IrEntity entity;
+    entity.name = "ProjectTask";
+    entity.key_fields = {"tenant_id", "task_id"};
+    entity.fields = {
+        {"tenant_id", "string"},
+        {"task_id", "string"},
+        {"display_name", "string"},
+        {"status", "string"},
+    };
+
+    REQUIRE(
+        statespec::cpp_api_codec_field_name_expr(entity, "tenant_id") ==
+        "entities::project_task::constants::kProjectTaskFieldTenantId"
+    );
+    REQUIRE(statespec::cpp_api_codec_field_name_expr(entity, "items") == "\"items\"");
+
+    REQUIRE(
+        statespec::go_api_codec_field_name_expr(entity, "display_name") ==
+        "entityconstants.ProjectTaskFieldDisplayName"
+    );
+    REQUIRE(statespec::go_api_codec_field_name_expr(entity, "items") == "\"items\"");
+
+    REQUIRE(
+        statespec::java_api_codec_field_name_expr(entity, "status") ==
+        "Constants.PROJECT_TASK_FIELD_STATUS"
+    );
+    REQUIRE(statespec::java_api_codec_field_name_expr(entity, "items") == "\"items\"");
+
+    REQUIRE(
+        statespec::rust_api_codec_field_name_expr(entity, "task_id") ==
+        "entity_constants::PROJECT_TASK_FIELD_TASK_ID"
+    );
+    REQUIRE(statespec::rust_api_codec_field_name_expr(entity, "items") == "\"items\"");
+}
+
 TEST_CASE("string helpers provide ascii-only predicates")
 {
     REQUIRE(statespec::starts_with("optional<string>", "optional<"));

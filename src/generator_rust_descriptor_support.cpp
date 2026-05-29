@@ -91,6 +91,45 @@ std::string rust_entity_field_type_name_constant_name(
     return rust_entity_field_constant_name(entity_name, field_name) + "_TYPE_NAME";
 }
 
+namespace
+{
+
+bool entity_has_field(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    for (const auto& key_field : entity.key_fields)
+    {
+        if (key_field == field_name)
+        {
+            return true;
+        }
+    }
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == field_name)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
+
+std::string rust_api_codec_field_name_expr(
+    const IrEntity& entity,
+    const std::string& field_name
+)
+{
+    if (!entity_has_field(entity, field_name))
+    {
+        return rust_string(field_name);
+    }
+    return "entity_constants::" + rust_entity_field_constant_name(entity.name, field_name);
+}
+
 std::string rust_entity_index_constant_name(
     const std::string& entity_name,
     const std::string& index_name
