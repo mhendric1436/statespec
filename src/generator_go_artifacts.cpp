@@ -1086,8 +1086,11 @@ std::string go_entity_api_codec_file(
     out << "package " << snake_identifier(entity.name) << "\n\n";
     out << "import (\n";
     out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << "\tentityconstants \"statespec-generated/common/entities/"
+        << snake_identifier(entity.name) << "\"\n";
     out << "\tcodecsupport \"statespec-generated/api/backend/codecsupport\"\n";
     out << ")\n\n";
+    out << "var _ = entityconstants." << go_entity_name_constant_name(entity.name) << "\n\n";
     out << go_exported_api_codec_operations(
         generate_api_codec_operations_go(filtered), "codecsupport", true
     );

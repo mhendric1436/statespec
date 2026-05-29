@@ -1034,6 +1034,8 @@ std::string rust_entity_api_codec_file(
     out << "use crate::api_codecs::*;\n";
     out << "use crate::backend::{BackendError, BackendResult};\n";
     out << "use crate::descriptor_types::{ApiRequestContext, ApiResponse};\n";
+    out << "use crate::entity_" << snake_identifier(entity.name)
+        << "::constants as entity_constants;\n";
     out << "use crate::json::Json;\n";
     out << "use std::collections::BTreeMap;\n\n";
     out << generate_api_codec_operations_rs(filtered);

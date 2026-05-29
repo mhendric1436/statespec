@@ -940,6 +940,8 @@ std::string java_entity_api_codec_file(
     out << "import com.statespec.backend.Json;\n";
     out << "import com.statespec.generated.ApiRequestContext;\n";
     out << "import com.statespec.generated.ApiResponse;\n";
+    out << "import com.statespec.generated.entities." << snake_identifier(entity.name)
+        << ".Constants;\n";
     out << "import java.util.Map;\n";
     out << "import java.util.Optional;\n";
     out << "import java.util.TreeMap;\n\n";

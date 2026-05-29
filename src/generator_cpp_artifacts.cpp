@@ -981,6 +981,8 @@ std::string cpp_entity_api_codec_file(
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"../../api_codec_support.hpp\"\n";
+    out << "#include \"../../../common/entities/" << snake_identifier(entity.name)
+        << "/constants.hpp\"\n";
     out << "#include \"shapes.hpp\"\n\n";
     out << "namespace statespec_generated::api\n";
     out << "{\n\n";
