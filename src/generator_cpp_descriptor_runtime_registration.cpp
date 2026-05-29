@@ -4,6 +4,7 @@
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
+#include <vector>
 
 namespace statespec
 {
@@ -16,6 +17,103 @@ std::string cpp_runtime_registration_snippet(
 )
 {
     return templates.load("generated/runtime_registration_" + std::string(name) + ".hpp.tmpl");
+}
+
+struct CppRuntimeRegistrationDomain
+{
+    std::string_view tx_parameters;
+    std::string_view runtime_parameters;
+    std::string_view runtime_arguments;
+    std::string_view tx_calls;
+};
+
+std::vector<CppRuntimeRegistrationDomain>
+cpp_runtime_registration_domains(const RuntimeDomainUsage& usage)
+{
+    std::vector<CppRuntimeRegistrationDomain> domains;
+    if (usage.uses_feature_flags)
+    {
+        domains.push_back(
+            CppRuntimeRegistrationDomain{
+                ",\n    statespec::backend::IFeatureFlagStore& feature_flag_store",
+                ",\n    statespec::backend::IFeatureFlagStore& feature_flag_store",
+                ", feature_flag_store",
+                "    register_feature_flag_definitionsTx(tx, feature_flag_store);\n",
+            }
+        );
+    }
+    if (usage.uses_queues)
+    {
+        domains.push_back(
+            CppRuntimeRegistrationDomain{
+                ",\n    statespec::backend::IQueueStore& queue_store",
+                ",\n    statespec::backend::IQueueStore& queue_store",
+                ", queue_store",
+                "    register_queue_definitionsTx(tx, queue_store);\n",
+            }
+        );
+    }
+    if (usage.uses_leases)
+    {
+        domains.push_back(
+            CppRuntimeRegistrationDomain{
+                ",\n    statespec::backend::ILeaseStore& lease_store",
+                ",\n    statespec::backend::ILeaseStore& lease_store",
+                ", lease_store",
+                "    register_lease_definitionsTx(tx, lease_store);\n",
+            }
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        domains.push_back(
+            CppRuntimeRegistrationDomain{
+                ",\n    statespec::backend::IWorkflowStore& workflow_store",
+                ",\n    statespec::backend::IWorkflowStore& workflow_store",
+                ", workflow_store",
+                "    register_workflow_definitionsTx(tx, workflow_store);\n",
+            }
+        );
+    }
+    if (usage.uses_logs && usage.uses_metrics)
+    {
+        domains.push_back(
+            CppRuntimeRegistrationDomain{
+                ",\n    statespec::backend::ILogSink& log_sink"
+                ",\n    statespec::backend::IMetricSink& metric_sink",
+                ",\n    statespec::backend::ILogSink& log_sink"
+                ",\n    statespec::backend::IMetricSink& metric_sink",
+                ", log_sink, metric_sink",
+                "    register_observability_catalogTx(tx, log_sink, metric_sink);\n",
+            }
+        );
+    }
+    else
+    {
+        if (usage.uses_logs)
+        {
+            domains.push_back(
+                CppRuntimeRegistrationDomain{
+                    ",\n    statespec::backend::ILogSink& log_sink",
+                    ",\n    statespec::backend::ILogSink& log_sink",
+                    ", log_sink",
+                    "    register_log_definitionsTx(tx, log_sink);\n",
+                }
+            );
+        }
+        if (usage.uses_metrics)
+        {
+            domains.push_back(
+                CppRuntimeRegistrationDomain{
+                    ",\n    statespec::backend::IMetricSink& metric_sink",
+                    ",\n    statespec::backend::IMetricSink& metric_sink",
+                    ", metric_sink",
+                    "    register_metric_definitionsTx(tx, metric_sink);\n",
+                }
+            );
+        }
+    }
+    return domains;
 }
 
 } // namespace
@@ -50,63 +148,17 @@ std::string generate_cpp_runtime_registration(
     }
     ensure_collections_body << "    });\n";
 
-    auto add_domain =
-        [&](std::string_view tx_type, std::string_view name, std::string_view register_call)
+    auto add_domain = [&](const CppRuntimeRegistrationDomain& domain)
     {
-        tx_parameters << ",\n    " << tx_type << "& " << name;
-        runtime_parameters << ",\n    " << tx_type << "& " << name;
-        runtime_arguments << ", " << name;
-        tx_calls << "    " << register_call << "(tx, " << name << ");\n";
+        tx_parameters << domain.tx_parameters;
+        runtime_parameters << domain.runtime_parameters;
+        runtime_arguments << domain.runtime_arguments;
+        tx_calls << domain.tx_calls;
     };
 
-    if (usage.uses_feature_flags)
+    for (const auto& domain : cpp_runtime_registration_domains(usage))
     {
-        add_domain(
-            "statespec::backend::IFeatureFlagStore", "feature_flag_store",
-            "register_feature_flag_definitionsTx"
-        );
-    }
-    if (usage.uses_queues)
-    {
-        add_domain(
-            "statespec::backend::IQueueStore", "queue_store", "register_queue_definitionsTx"
-        );
-    }
-    if (usage.uses_leases)
-    {
-        add_domain(
-            "statespec::backend::ILeaseStore", "lease_store", "register_lease_definitionsTx"
-        );
-    }
-    if (usage.uses_workflows)
-    {
-        add_domain(
-            "statespec::backend::IWorkflowStore", "workflow_store",
-            "register_workflow_definitionsTx"
-        );
-    }
-    if (usage.uses_logs && usage.uses_metrics)
-    {
-        tx_parameters << ",\n    statespec::backend::ILogSink& log_sink";
-        runtime_parameters << ",\n    statespec::backend::ILogSink& log_sink";
-        tx_parameters << ",\n    statespec::backend::IMetricSink& metric_sink";
-        runtime_parameters << ",\n    statespec::backend::IMetricSink& metric_sink";
-        runtime_arguments << ", log_sink";
-        runtime_arguments << ", metric_sink";
-        tx_calls << "    register_observability_catalogTx(tx, log_sink, metric_sink);\n";
-    }
-    else
-    {
-        if (usage.uses_logs)
-        {
-            add_domain("statespec::backend::ILogSink", "log_sink", "register_log_definitionsTx");
-        }
-        if (usage.uses_metrics)
-        {
-            add_domain(
-                "statespec::backend::IMetricSink", "metric_sink", "register_metric_definitionsTx"
-            );
-        }
+        add_domain(domain);
     }
 
     return templates.render(

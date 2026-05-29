@@ -4,6 +4,7 @@
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
+#include <vector>
 
 namespace statespec
 {
@@ -16,6 +17,109 @@ std::string rust_runtime_registration_snippet(
 )
 {
     return templates.load("generated/runtime_registration_" + std::string(name) + ".rs.tmpl");
+}
+
+struct RustRuntimeRegistrationDomain
+{
+    std::string_view generic_parameters;
+    std::string_view generic_bounds;
+    std::string_view parameters;
+    std::string_view arguments;
+    std::string_view calls;
+};
+
+std::vector<RustRuntimeRegistrationDomain>
+rust_runtime_registration_domains(const RuntimeDomainUsage& usage)
+{
+    std::vector<RustRuntimeRegistrationDomain> domains;
+    if (usage.uses_feature_flags)
+    {
+        domains.push_back(
+            RustRuntimeRegistrationDomain{
+                ", F",
+                ",\n    F: FeatureFlagStore<B>",
+                ",\n    feature_flag_store: &F",
+                ", feature_flag_store",
+                "    register_feature_flag_definitions_tx(tx, feature_flag_store)?;\n",
+            }
+        );
+    }
+    if (usage.uses_queues)
+    {
+        domains.push_back(
+            RustRuntimeRegistrationDomain{
+                ", Q",
+                ",\n    Q: QueueStore<B>",
+                ",\n    queue_store: &Q",
+                ", queue_store",
+                "    register_queue_definitions_tx(tx, queue_store)?;\n",
+            }
+        );
+    }
+    if (usage.uses_leases)
+    {
+        domains.push_back(
+            RustRuntimeRegistrationDomain{
+                ", L",
+                ",\n    L: LeaseStore<B>",
+                ",\n    lease_store: &L",
+                ", lease_store",
+                "    register_lease_definitions_tx(tx, lease_store)?;\n",
+            }
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        domains.push_back(
+            RustRuntimeRegistrationDomain{
+                ", W",
+                ",\n    W: WorkflowStore<B>",
+                ",\n    workflow_store: &W",
+                ", workflow_store",
+                "    register_workflow_definitions_tx(tx, workflow_store)?;\n",
+            }
+        );
+    }
+    if (usage.uses_logs && usage.uses_metrics)
+    {
+        domains.push_back(
+            RustRuntimeRegistrationDomain{
+                ", LS, M",
+                ",\n    LS: LogSink<B>,\n    M: MetricSink<B>",
+                ",\n    log_sink: &LS,\n    metric_sink: &M",
+                ", log_sink, metric_sink",
+                "    register_observability_catalog_tx(tx, log_sink, metric_sink)?;\n",
+            }
+        );
+    }
+    else
+    {
+        if (usage.uses_logs)
+        {
+            domains.push_back(
+                RustRuntimeRegistrationDomain{
+                    ", LS",
+                    ",\n    LS: LogSink<B>",
+                    ",\n    log_sink: &LS",
+                    ", log_sink",
+                    "    register_log_definitions_tx(tx, log_sink)?;\n",
+                }
+            );
+        }
+        if (usage.uses_metrics)
+        {
+            domains.push_back(
+                RustRuntimeRegistrationDomain{
+                    ", M",
+                    ",\n    M: MetricSink<B>",
+                    ",\n    metric_sink: &M",
+                    ", metric_sink",
+                    "    register_metric_definitions_tx(tx, metric_sink)?;\n",
+                }
+            );
+        }
+    }
+    return domains;
 }
 
 } // namespace
@@ -48,49 +152,17 @@ std::string generate_rust_runtime_registration(
                                 << "_collection_descriptor(),\n";
     }
     ensure_collections_body << "    ])\n";
-    auto add = [&](std::string_view generic, std::string_view bound, std::string_view name,
-                   std::string_view fn)
+    auto add = [&](const RustRuntimeRegistrationDomain& domain)
     {
-        generic_parameters << ", " << generic;
-        generic_bounds << ",\n    " << generic << ": " << bound << "<B>";
-        params << ",\n    " << name << ": &" << generic;
-        args << ", " << name;
-        calls << "    " << fn << "(tx, " << name << ")?;\n";
+        generic_parameters << domain.generic_parameters;
+        generic_bounds << domain.generic_bounds;
+        params << domain.parameters;
+        args << domain.arguments;
+        calls << domain.calls;
     };
-    if (usage.uses_feature_flags)
+    for (const auto& domain : rust_runtime_registration_domains(usage))
     {
-        add("F", "FeatureFlagStore", "feature_flag_store", "register_feature_flag_definitions_tx");
-    }
-    if (usage.uses_queues)
-    {
-        add("Q", "QueueStore", "queue_store", "register_queue_definitions_tx");
-    }
-    if (usage.uses_leases)
-    {
-        add("L", "LeaseStore", "lease_store", "register_lease_definitions_tx");
-    }
-    if (usage.uses_workflows)
-    {
-        add("W", "WorkflowStore", "workflow_store", "register_workflow_definitions_tx");
-    }
-    if (usage.uses_logs && usage.uses_metrics)
-    {
-        generic_parameters << ", LS, M";
-        generic_bounds << ",\n    LS: LogSink<B>,\n    M: MetricSink<B>";
-        params << ",\n    log_sink: &LS,\n    metric_sink: &M";
-        args << ", log_sink, metric_sink";
-        calls << "    register_observability_catalog_tx(tx, log_sink, metric_sink)?;\n";
-    }
-    else
-    {
-        if (usage.uses_logs)
-        {
-            add("LS", "LogSink", "log_sink", "register_log_definitions_tx");
-        }
-        if (usage.uses_metrics)
-        {
-            add("M", "MetricSink", "metric_sink", "register_metric_definitions_tx");
-        }
+        add(domain);
     }
 
     return templates.render(

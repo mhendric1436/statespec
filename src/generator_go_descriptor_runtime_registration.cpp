@@ -3,6 +3,7 @@
 #include "statespec/runtime_usage.hpp"
 
 #include <sstream>
+#include <vector>
 
 namespace statespec
 {
@@ -15,6 +16,111 @@ std::string go_runtime_registration_snippet(
 )
 {
     return templates.load("generated/runtime_registration_" + std::string(name) + ".go.tmpl");
+}
+
+struct GoRuntimeRegistrationDomain
+{
+    std::string_view parameters;
+    std::string_view arguments;
+    std::string_view calls;
+};
+
+std::vector<GoRuntimeRegistrationDomain>
+go_runtime_registration_domains(const RuntimeDomainUsage& usage)
+{
+    std::vector<GoRuntimeRegistrationDomain> domains;
+    if (usage.uses_feature_flags)
+    {
+        domains.push_back(
+            GoRuntimeRegistrationDomain{
+                ", featureFlagStore FeatureFlagStore",
+                ", featureFlagStore",
+                "\tif err := RegisterFeatureFlagDefinitionsTx(ctx, tx, featureFlagStore); err "
+                "!= nil {\n"
+                "\t\treturn err\n"
+                "\t}\n",
+            }
+        );
+    }
+    if (usage.uses_queues)
+    {
+        domains.push_back(
+            GoRuntimeRegistrationDomain{
+                ", queueStore QueueStore",
+                ", queueStore",
+                "\tif err := RegisterQueueDefinitionsTx(ctx, tx, queueStore); err != nil {\n"
+                "\t\treturn err\n"
+                "\t}\n",
+            }
+        );
+    }
+    if (usage.uses_leases)
+    {
+        domains.push_back(
+            GoRuntimeRegistrationDomain{
+                ", leaseStore LeaseStore",
+                ", leaseStore",
+                "\tif err := RegisterLeaseDefinitionsTx(ctx, tx, leaseStore); err != nil {\n"
+                "\t\treturn err\n"
+                "\t}\n",
+            }
+        );
+    }
+    if (usage.uses_workflows)
+    {
+        domains.push_back(
+            GoRuntimeRegistrationDomain{
+                ", workflowStore WorkflowStore",
+                ", workflowStore",
+                "\tif err := RegisterWorkflowDefinitionsTx(ctx, tx, workflowStore); err != nil "
+                "{\n"
+                "\t\treturn err\n"
+                "\t}\n",
+            }
+        );
+    }
+    if (usage.uses_logs && usage.uses_metrics)
+    {
+        domains.push_back(
+            GoRuntimeRegistrationDomain{
+                ", logSink LogSink, metricSink MetricSink",
+                ", logSink, metricSink",
+                "\tif err := RegisterObservabilityCatalogTx(ctx, tx, logSink, metricSink); err "
+                "!= nil {\n"
+                "\t\treturn err\n"
+                "\t}\n",
+            }
+        );
+    }
+    else
+    {
+        if (usage.uses_logs)
+        {
+            domains.push_back(
+                GoRuntimeRegistrationDomain{
+                    ", logSink LogSink",
+                    ", logSink",
+                    "\tif err := RegisterLogDefinitionsTx(ctx, tx, logSink); err != nil {\n"
+                    "\t\treturn err\n"
+                    "\t}\n",
+                }
+            );
+        }
+        if (usage.uses_metrics)
+        {
+            domains.push_back(
+                GoRuntimeRegistrationDomain{
+                    ", metricSink MetricSink",
+                    ", metricSink",
+                    "\tif err := RegisterMetricDefinitionsTx(ctx, tx, metricSink); err != nil "
+                    "{\n"
+                    "\t\treturn err\n"
+                    "\t}\n",
+                }
+            );
+        }
+    }
+    return domains;
 }
 
 } // namespace
@@ -38,49 +144,15 @@ std::string generate_go_runtime_registration(
     std::ostringstream calls;
     std::ostringstream ensure_collections_body;
     ensure_collections_body << "\treturn backend.EnsureCollections(ctx, nil)\n";
-    auto add = [&](std::string_view type, std::string_view name, std::string_view fn)
+    auto add = [&](const GoRuntimeRegistrationDomain& domain)
     {
-        params << ", " << name << " " << type;
-        args << ", " << name;
-        calls << "\tif err := " << fn << "(ctx, tx, " << name << "); err != nil {\n";
-        calls << "\t\treturn err\n";
-        calls << "\t}\n";
+        params << domain.parameters;
+        args << domain.arguments;
+        calls << domain.calls;
     };
-    if (usage.uses_feature_flags)
+    for (const auto& domain : go_runtime_registration_domains(usage))
     {
-        add("FeatureFlagStore", "featureFlagStore", "RegisterFeatureFlagDefinitionsTx");
-    }
-    if (usage.uses_queues)
-    {
-        add("QueueStore", "queueStore", "RegisterQueueDefinitionsTx");
-    }
-    if (usage.uses_leases)
-    {
-        add("LeaseStore", "leaseStore", "RegisterLeaseDefinitionsTx");
-    }
-    if (usage.uses_workflows)
-    {
-        add("WorkflowStore", "workflowStore", "RegisterWorkflowDefinitionsTx");
-    }
-    if (usage.uses_logs && usage.uses_metrics)
-    {
-        params << ", logSink LogSink, metricSink MetricSink";
-        args << ", logSink, metricSink";
-        calls << "\tif err := RegisterObservabilityCatalogTx(ctx, tx, logSink, metricSink); err != "
-                 "nil {\n";
-        calls << "\t\treturn err\n";
-        calls << "\t}\n";
-    }
-    else
-    {
-        if (usage.uses_logs)
-        {
-            add("LogSink", "logSink", "RegisterLogDefinitionsTx");
-        }
-        if (usage.uses_metrics)
-        {
-            add("MetricSink", "metricSink", "RegisterMetricDefinitionsTx");
-        }
+        add(domain);
     }
     return templates.render(
         "generated/runtime_registration.go.tmpl",
