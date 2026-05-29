@@ -67,6 +67,37 @@ Do not move API-only or Worker-only helpers into `common` to simplify imports. I
 focused module needs a shared type, generate or import the focused shared type directly
 rather than depending on a common facade such as `common/descriptors.*`.
 
+Entities are split by durability boundary:
+
+- Common entity code owns durable model, schema, persistence, repository, key encoding,
+  index helper, compatibility, and GC descriptor facts. This code is shared by API and
+  Worker tiers because persisted entity state is the cross-version and cross-language
+  contract.
+- API entity code owns API contract artifacts derived from entity-owned CRUD intent:
+  request/response shape types, shape descriptors, codecs, concrete generated CRUD
+  handlers, and per-entity handler registration.
+- Worker code should depend on common entity modules for durable state and workflow
+  progress. It must not import API entity modules just to reach entity model or
+  persistence code.
+
+Per-entity API catalogs are the composition boundary between focused entity API modules
+and top-level API application catalogs. A catalog is emitted only for an entity with
+generated API-owned operations. The catalog imports its same-entity API modules and
+exposes entity-scoped functions for shape descriptors, API descriptors, route
+descriptors, codecs or handler entrypoints as supported by the language. Top-level
+files such as `api/shapes.*`, `api/descriptors/catalog.*`, and
+`api/api_handler_registry.*` compose those per-entity catalogs instead of importing
+individual per-shape, per-descriptor, or per-handler files directly.
+
+Per-entity API catalog paths:
+
+| Language | Path |
+|---|---|
+| `cpp` | `api/entities/<entity>/catalog.hpp` |
+| `go` | `api/backend/entities/<entity>/catalog.go` |
+| `java` | `api/com/statespec/generated/entities/<entity>/Catalog.java` |
+| `rust` | `api/entities/<entity>/catalog.rs` |
+
 API contract shapes are API-tier artifacts. Generated API shape catalogs live under the
 API tree, and `common/descriptors.*` must not expose API shape descriptor lists. Common
 descriptor facades may expose shared shape descriptors only when the spec declares shapes
