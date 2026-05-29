@@ -98,6 +98,13 @@ Per-entity API catalog paths:
 | `java` | `api/com/statespec/generated/entities/<entity>/Catalog.java` |
 | `rust` | `api/entities/<entity>/catalog.rs` |
 
+Per-entity API codecs should follow the same tier and dependency boundary. The codec
+files are API-owned because they encode and decode API request/response shapes, but any
+JSON key that corresponds to a durable entity field should come from the matching common
+entity constants file. Shape names and response envelope names that are not durable
+entity fields remain API-local. The current literal audit and migration scope are
+tracked in [api-codec-constant-audit.md](api-codec-constant-audit.md).
+
 API contract shapes are API-tier artifacts. Generated API shape catalogs live under the
 API tree, and `common/descriptors.*` must not expose API shape descriptor lists. Common
 descriptor facades may expose shared shape descriptors only when the spec declares shapes
