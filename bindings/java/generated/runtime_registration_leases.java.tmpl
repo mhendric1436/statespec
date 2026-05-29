@@ -1,14 +1,3 @@
-private
-static Lease.LeaseDefinition leaseDefinitionFromDescriptor(LeaseDefinition definition)
-{
-    return new Lease.LeaseDefinition(
-        new Lease.LeaseDefinitionId(definition.name(), 1L),
-        definition.resource().orElse(definition.name()), definition.ttl(),
-        definition.renewEvery().orElse(definition.ttl()), definition.maxTtl(),
-        definition.fencingToken()
-    );
-}
-
 public
 static void registerLeaseDefinitionsTx(
     Backend.Transaction tx,
@@ -17,6 +6,6 @@ static void registerLeaseDefinitionsTx(
 {
     for (var definition : leaseDefinitions())
     {
-        store.registerDefinitionTx(tx, leaseDefinitionFromDescriptor(definition));
+        store.registerDefinitionTx(tx, definition);
     }
 }

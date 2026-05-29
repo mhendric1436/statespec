@@ -6,11 +6,6 @@ static void registerLogDefinitionsTx(
 {
     for (var definition : logDefinitions())
     {
-        sink.registerDefinitionTx(
-            tx, new Log.Definition(
-                    definition.name(), logLevelFromDescriptor(definition.level()),
-                    definition.eventName(), definition.fields()
-                )
-        );
+        sink.registerDefinitionTx(tx, definition);
     }
 }

@@ -6,11 +6,6 @@ static void registerMetricDefinitionsTx(
 {
     for (var definition : metricDefinitions())
     {
-        sink.registerDefinitionTx(
-            tx, new Metric.Definition(
-                    definition.name(), metricKindFromDescriptor(definition.kind()),
-                    definition.backendName(), definition.unit(), definition.labels()
-                )
-        );
+        sink.registerDefinitionTx(tx, definition);
     }
 }

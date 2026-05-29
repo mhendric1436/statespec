@@ -68,6 +68,10 @@ std::string generate_java_descriptor_prelude(
     out << java_descriptor_module_imports(system);
     out << "import com.statespec.generated.descriptors.types.*;\n";
     out << "import com.statespec.backend.Json;\n";
+    out << "import com.statespec.backend.FeatureFlag;\n";
+    out << "import com.statespec.backend.Lease;\n";
+    out << "import com.statespec.backend.Log;\n";
+    out << "import com.statespec.backend.Metric;\n";
     out << "import com.statespec.backend.Queue;\n";
     out << "import com.statespec.backend.Workflow;\n";
     out << "import com.statespec.backend.Backend.FieldDescriptor;\n";

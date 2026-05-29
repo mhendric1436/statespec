@@ -32,23 +32,26 @@ std::string generate_java_runtime_descriptors(const IrSystem& system)
     out << "        );\n";
     out << "    }\n\n";
 
-    out << "    public static List<LeaseDefinition> leaseDefinitions() {\n";
+    out << "    public static List<Lease.LeaseDefinition> leaseDefinitions() {\n";
     out << "        return List.of(\n";
     if (!system.leases.empty())
     {
         for (std::size_t i = 0; i < system.leases.size(); ++i)
         {
             const auto& lease = system.leases[i];
-            out << "            new LeaseDefinition(\n";
-            out << "                " << java_string(lease.name) << ",\n";
-            out << "                " << java_optional_string_expr(lease.resource) << ",\n";
-            out << "                Duration.ofSeconds(" << parse_java_duration_seconds(lease.ttl)
+            const auto ttl = lease.ttl.value_or("0s");
+            const auto renew_every = lease.renew_every.value_or(ttl);
+            out << "            new Lease.LeaseDefinition(\n";
+            out << "                new Lease.LeaseDefinitionId(" << java_string(lease.name)
+                << ", 1L),\n";
+            out << "                " << java_string(lease.resource.value_or(lease.name)) << ",\n";
+            out << "                Duration.ofSeconds(" << parse_java_duration_seconds(ttl)
                 << "L),\n";
-            out << "                " << optional_duration_expr(lease.renew_every) << ",\n";
-            out << "                " << java_optional_string_expr(lease.holder) << ",\n";
+            out << "                Duration.ofSeconds(" << parse_java_duration_seconds(renew_every)
+                << "L),\n";
+            out << "                " << optional_duration_expr(lease.max_ttl) << ",\n";
             out << "                " << (lease.fencing_token.value_or(false) ? "true" : "false")
-                << ",\n";
-            out << "                " << optional_duration_expr(lease.max_ttl) << "\n";
+                << "\n";
             out << "            )" << (i + 1 < system.leases.size() ? "," : "") << "\n";
         }
     }

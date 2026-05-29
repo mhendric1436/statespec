@@ -122,30 +122,6 @@ java_descriptor_type_files()
         "public record EventEnvelope(String name, Map<String, Json> fields) {}\n"
     ));
     files.push_back(file(
-        "LeaseDefinition.java", "import java.time.Duration;\nimport java.util.Optional;\n\n",
-        "public record LeaseDefinition(\n"
-        "    String name,\n"
-        "    Optional<String> resource,\n"
-        "    Duration ttl,\n"
-        "    Optional<Duration> renewEvery,\n"
-        "    Optional<String> holder,\n"
-        "    boolean fencingToken,\n"
-        "    Optional<Duration> maxTtl\n"
-        ") {}\n"
-    ));
-    files.push_back(file(
-        "FeatureFlagDefinition.java", "import java.util.Optional;\n\n",
-        "public record FeatureFlagDefinition(\n"
-        "    String name,\n"
-        "    String type,\n"
-        "    String defaultValue,\n"
-        "    String scope,\n"
-        "    Optional<String> owner,\n"
-        "    Optional<String> description,\n"
-        "    Optional<String> expires\n"
-        ") {}\n"
-    ));
-    files.push_back(file(
         "ValueDescriptor.java", "import java.util.Optional;\n\n",
         "public record ValueDescriptor(String name, String type, Optional<String> constraint) {}\n"
     ));
@@ -267,29 +243,6 @@ java_descriptor_type_files()
         "import com.statespec.backend.Backend.FieldDescriptor;\n"
         "import java.util.List;\n\n",
         "public record ShapeDescriptor(String name, List<FieldDescriptor> fields) {}\n"
-    ));
-    files.push_back(file(
-        "LogDefinition.java",
-        "import com.statespec.backend.Backend.FieldDescriptor;\n"
-        "import java.util.List;\n\n",
-        "public record LogDefinition(\n"
-        "    String name,\n"
-        "    String level,\n"
-        "    String eventName,\n"
-        "    List<FieldDescriptor> fields\n"
-        ") {}\n"
-    ));
-    files.push_back(file(
-        "MetricDefinition.java",
-        "import com.statespec.backend.Backend.FieldDescriptor;\n"
-        "import java.util.List;\n\n",
-        "public record MetricDefinition(\n"
-        "    String name,\n"
-        "    String kind,\n"
-        "    String backendName,\n"
-        "    String unit,\n"
-        "    List<FieldDescriptor> labels\n"
-        ") {}\n"
     ));
     files.push_back(file(
         "GarbageCollectionPolicy.java", "",
@@ -483,32 +436,10 @@ std::string java_runtime_registration_module_file(
     out << "import com.statespec.backend.Queue;\n";
     out << "import com.statespec.backend.Workflow;\n";
     out << "import com.statespec.generated.descriptors.types.*;\n";
-    out << "import java.time.Duration;\n";
-    out << "import java.util.Locale;\n\n";
+    out << "\n";
     out << "import static com.statespec.generated.Descriptors.*;\n\n";
     out << "public final class " << class_name << " {\n";
     out << "    private " << class_name << "() {}\n\n";
-    if (name == "logs")
-    {
-        out << "    private static Log.Level logLevelFromDescriptor(String level) {\n";
-        out << "        return switch (level.toLowerCase(Locale.ROOT)) {\n";
-        out << "            case \"debug\" -> Log.Level.DEBUG;\n";
-        out << "            case \"warn\" -> Log.Level.WARN;\n";
-        out << "            case \"error\" -> Log.Level.ERROR;\n";
-        out << "            default -> Log.Level.INFO;\n";
-        out << "        };\n";
-        out << "    }\n\n";
-    }
-    if (name == "metrics")
-    {
-        out << "    private static Metric.Kind metricKindFromDescriptor(String kind) {\n";
-        out << "        return switch (kind.toLowerCase(Locale.ROOT)) {\n";
-        out << "            case \"gauge\" -> Metric.Kind.GAUGE;\n";
-        out << "            case \"histogram\" -> Metric.Kind.HISTOGRAM;\n";
-        out << "            default -> Metric.Kind.COUNTER;\n";
-        out << "        };\n";
-        out << "    }\n\n";
-    }
     out << generate_java_runtime_registration_domain(templates, name);
     out << "}\n";
     return out.str();

@@ -97,11 +97,7 @@ common/com/statespec/generated/descriptors/types/ExternalSystemDescriptor.java
 common/com/statespec/generated/descriptors/types/ExternalSystemMetadataDescriptor.java
 common/com/statespec/generated/descriptors/types/ExternalSystemMetadataMappingDescriptor.java
 common/com/statespec/generated/descriptors/types/ExternalSystemPropertyDescriptor.java
-common/com/statespec/generated/descriptors/types/FeatureFlagDefinition.java
 common/com/statespec/generated/descriptors/types/GarbageCollectionPolicy.java
-common/com/statespec/generated/descriptors/types/LeaseDefinition.java
-common/com/statespec/generated/descriptors/types/LogDefinition.java
-common/com/statespec/generated/descriptors/types/MetricDefinition.java
 common/com/statespec/generated/descriptors/types/PolicyDescriptor.java
 common/com/statespec/generated/descriptors/types/PolicyRuleDescriptor.java
 common/com/statespec/generated/descriptors/types/QuotaDescriptor.java

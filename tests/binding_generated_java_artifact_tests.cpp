@@ -75,12 +75,8 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
             {"common/com/statespec/generated/descriptors/types/"
              "ExternalSystemPropertyDescriptor.java",
              common},
-            {"common/com/statespec/generated/descriptors/types/FeatureFlagDefinition.java", common},
             {"common/com/statespec/generated/descriptors/types/GarbageCollectionPolicy.java",
              common},
-            {"common/com/statespec/generated/descriptors/types/LeaseDefinition.java", common},
-            {"common/com/statespec/generated/descriptors/types/LogDefinition.java", common},
-            {"common/com/statespec/generated/descriptors/types/MetricDefinition.java", common},
             {"common/com/statespec/generated/descriptors/types/PolicyDescriptor.java", common},
             {"common/com/statespec/generated/descriptors/types/PolicyRuleDescriptor.java", common},
             {"common/com/statespec/generated/descriptors/types/QuotaDescriptor.java", common},
