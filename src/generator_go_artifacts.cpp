@@ -686,14 +686,14 @@ std::string go_api_handler_registry_delegates(const std::vector<ApiHandlerDomain
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        const auto type_name = go_api_handler_domain_type_name(domain.name);
         for (const auto& api : domain.apis)
         {
             out << "func (handler DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
                 << "(ctx context.Context, request common.APIRequestContext) "
                    "(common.APIResponse, error) {\n";
-            out << "\treturn " << snake_identifier(domain.name) << ".New" << type_name
-                << "(handler.Backend).Handle" << pascal_identifier(api.name) << "(ctx, request)\n";
+            out << "\treturn " << snake_identifier(domain.name)
+                << ".NewHandlerRegistry(handler.Backend).Handle" << pascal_identifier(api.name)
+                << "(ctx, request)\n";
             out << "}\n\n";
         }
     }
@@ -2150,6 +2150,10 @@ std::string go_entity_api_catalog_file(
     }
     out << "\treturn result\n";
     out << "}\n\n";
+    out << "func NewHandlerRegistry(backend common.Backend) "
+        << go_api_handler_domain_type_name(entity.name) << " {\n";
+    out << "\treturn New" << go_api_handler_domain_type_name(entity.name) << "(backend)\n";
+    out << "}\n\n";
     out << "func EntityAPIDescriptors() []descriptortypes.ApiDescriptor {\n";
     out << "\treturn []descriptortypes.ApiDescriptor{\n";
     for (const auto& api : apis)
@@ -2245,14 +2249,18 @@ std::string go_api_shape_descriptor_catalog_file(const IrSystem& system)
                 imports << "\t" << package_alias << " \"statespec-generated/api/backend/entities/"
                         << package_alias << "\"\n";
             }
-            aggregation << "\tdescriptors = append(descriptors, " << package_alias << "."
-                        << pascal_identifier(shape.name) << "ShapeDescriptors()...)\n";
+            continue;
         }
         else
         {
             aggregation << "\tdescriptors = append(descriptors, " << pascal_identifier(shape.name)
                         << "ShapeDescriptors()...)\n";
         }
+    }
+    for (const auto& package_alias : imported_entities)
+    {
+        aggregation << "\tdescriptors = append(descriptors, " << package_alias
+                    << ".EntityShapeDescriptors()...)\n";
     }
     std::ostringstream out;
     out << "package shapes\n\n";
@@ -2748,29 +2756,41 @@ TemplateRenderer::Values go_api_descriptor_values(const IrSystem& system)
     };
 }
 
-TemplateRenderer::Values go_api_route_values(const IrSystem& system)
-{
-    std::ostringstream route_aggregation;
-    for (const auto& api : system.apis)
-    {
-        route_aggregation << "\tresult = append(result, "
-                          << go_api_route_descriptor_function_name(api) << "()...)\n";
-    }
-    return TemplateRenderer::Values{
-        {"api_route_descriptor_aggregation", route_aggregation.str()},
-    };
-}
-
 std::string go_api_descriptor_catalog_file(const IrSystem& system)
 {
     const auto descriptor_values = go_api_descriptor_values(system);
-    const auto route_values = go_api_route_values(system);
+    const auto entity_domains = crud_api_handler_domains_go(api_handler_domains(system));
+    std::set<std::string> entity_api_names;
     std::ostringstream out;
     out << "package descriptors\n\n";
-    out << "import descriptortypes \"statespec-generated/common/backend/descriptortypes\"\n\n";
+    out << "import (\n";
+    out << "\tdescriptortypes \"statespec-generated/common/backend/descriptortypes\"\n";
+    for (const auto& domain : entity_domains)
+    {
+        out << "\t" << snake_identifier(domain.name)
+            << " \"statespec-generated/api/backend/entities/" << snake_identifier(domain.name)
+            << "\"\n";
+        for (const auto& api : domain.apis)
+        {
+            entity_api_names.insert(api.name);
+        }
+    }
+    out << ")\n\n";
     out << "func ApiDescriptors() []descriptortypes.ApiDescriptor {\n";
     out << "\tresult := []descriptortypes.ApiDescriptor{}\n";
-    out << descriptor_values.at("api_descriptor_aggregation");
+    for (const auto& domain : entity_domains)
+    {
+        out << "\tresult = append(result, " << snake_identifier(domain.name)
+            << ".EntityAPIDescriptors()...)\n";
+    }
+    for (const auto& api : system.apis)
+    {
+        if (entity_api_names.contains(api.name))
+        {
+            continue;
+        }
+        out << "\tresult = append(result, " << go_api_descriptor_function_name(api) << "()...)\n";
+    }
     out << "\treturn result\n";
     out << "}\n\n";
     out << "func ApiServerDescriptors() []descriptortypes.ApiServerDescriptor {\n";
@@ -2778,7 +2798,20 @@ std::string go_api_descriptor_catalog_file(const IrSystem& system)
     out << "}\n\n";
     out << "func ApiRouteDescriptors() []descriptortypes.ApiRouteDescriptor {\n";
     out << "\tresult := []descriptortypes.ApiRouteDescriptor{}\n";
-    out << route_values.at("api_route_descriptor_aggregation");
+    for (const auto& domain : entity_domains)
+    {
+        out << "\tresult = append(result, " << snake_identifier(domain.name)
+            << ".EntityAPIRouteDescriptors()...)\n";
+    }
+    for (const auto& api : system.apis)
+    {
+        if (entity_api_names.contains(api.name))
+        {
+            continue;
+        }
+        out << "\tresult = append(result, " << go_api_route_descriptor_function_name(api)
+            << "()...)\n";
+    }
     out << "\treturn result\n";
     out << "}\n";
     return out.str();

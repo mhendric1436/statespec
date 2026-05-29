@@ -618,7 +618,7 @@ std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDoma
     for (const auto& domain : domains)
     {
         const auto registry_class =
-            "com.statespec.generated.entities." + snake_identifier(domain.name) + ".Registry";
+            "com.statespec.generated.entities." + snake_identifier(domain.name) + ".Catalog";
         for (const auto& api : domain.apis)
         {
             out << "        @Override\n";
@@ -2027,7 +2027,7 @@ std::string java_api_shape_catalog_file(const IrSystem& system)
                 continue;
             }
             out << "        descriptors.addAll(com.statespec.generated.entities."
-                << snake_identifier(*owner) << ".Shapes.shapeDescriptors());\n";
+                << snake_identifier(*owner) << ".Catalog.shapeDescriptors());\n";
             continue;
         }
         out << "        descriptors.addAll(" << pascal_identifier(shape.name)
@@ -2840,6 +2840,8 @@ TemplateRenderer::Values java_api_descriptor_values(const IrSystem& system)
 std::string java_api_descriptor_catalog_file(const IrSystem& system)
 {
     const auto values = java_api_descriptor_values(system);
+    const auto entity_domains = crud_api_handler_domains_java(api_handler_domains(system));
+    std::set<std::string> entity_api_names;
     std::ostringstream out;
     out << "package com.statespec.generated.descriptors;\n\n";
     out << "import com.statespec.generated.shapes.ShapeCatalog;\n";
@@ -2856,7 +2858,24 @@ std::string java_api_descriptor_catalog_file(const IrSystem& system)
     out << "    }\n\n";
     out << "    public static List<ApiDescriptor> apiDescriptors() {\n";
     out << "        var descriptors = new ArrayList<ApiDescriptor>();\n";
-    out << values.at("api_descriptor_aggregation");
+    for (const auto& domain : entity_domains)
+    {
+        out << "        descriptors.addAll(com.statespec.generated.entities."
+            << snake_identifier(domain.name) << ".Catalog.apiDescriptors());\n";
+        for (const auto& api : domain.apis)
+        {
+            entity_api_names.insert(api.name);
+        }
+    }
+    for (const auto& api : system.apis)
+    {
+        if (entity_api_names.contains(api.name))
+        {
+            continue;
+        }
+        out << "        descriptors.addAll(" << java_api_descriptor_module_class_name(api.name)
+            << ".apiDescriptors());\n";
+    }
     out << "        return List.copyOf(descriptors);\n";
     out << "    }\n\n";
     out << "    public static List<ApiServerDescriptor> apiServerDescriptors() {\n";
@@ -2864,7 +2883,20 @@ std::string java_api_descriptor_catalog_file(const IrSystem& system)
     out << "    }\n\n";
     out << "    public static List<ApiRouteDescriptor> apiRouteDescriptors() {\n";
     out << "        var descriptors = new ArrayList<ApiRouteDescriptor>();\n";
-    out << values.at("api_route_descriptor_aggregation");
+    for (const auto& domain : entity_domains)
+    {
+        out << "        descriptors.addAll(com.statespec.generated.entities."
+            << snake_identifier(domain.name) << ".Catalog.apiRouteDescriptors());\n";
+    }
+    for (const auto& api : system.apis)
+    {
+        if (entity_api_names.contains(api.name))
+        {
+            continue;
+        }
+        out << "        descriptors.addAll(" << java_api_descriptor_module_class_name(api.name)
+            << ".apiRouteDescriptors());\n";
+    }
     out << "        return List.copyOf(descriptors);\n";
     out << "    }\n";
     out << "}\n";

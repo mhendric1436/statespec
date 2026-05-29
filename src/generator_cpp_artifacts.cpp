@@ -624,7 +624,7 @@ std::string cpp_entity_api_catalog_path(std::string_view entity_name)
 
 std::string cpp_api_handler_domain_include_path(std::string_view domain_name)
 {
-    return "entities/" + snake_identifier(std::string{domain_name}) + "/registry.hpp";
+    return "entities/" + snake_identifier(std::string{domain_name}) + "/catalog.hpp";
 }
 
 std::string cpp_api_handler_registry_domain_includes(const std::vector<ApiHandlerDomain>& domains)
@@ -642,13 +642,14 @@ std::string cpp_api_handler_registry_delegates(const std::vector<ApiHandlerDomai
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        const auto class_name = cpp_api_handler_domain_class_name(domain.name);
+        const auto catalog_namespace =
+            "::statespec_generated::api::entities::" + snake_identifier(domain.name);
         for (const auto& api : domain.apis)
         {
             out << "    ApiResponse handle_" << snake_identifier(api.name)
                 << "(const ApiRequestContext& context) override\n";
             out << "    {\n";
-            out << "        " << class_name << " handler{backend_};\n";
+            out << "        " << catalog_namespace << "::HandlerRegistry handler{backend_};\n";
             out << "        return handler.handle_" << snake_identifier(api.name) << "(context);\n";
             out << "    }\n\n";
         }
@@ -2152,21 +2153,52 @@ std::string cpp_shapes_umbrella_header(
         {
             if (!entity_api_shapes(system, entity.name).empty())
             {
-                out << "#include \"entities/" << snake_identifier(entity.name) << "/shapes.hpp\"\n";
+                continue;
             }
         }
         out << "\n";
         out << "namespace statespec_generated\n";
         out << "{\n\n";
+        std::set<std::string> declared_entities;
+        for (const auto& shape : system.shapes)
+        {
+            const auto owner = entity_api_shape_owner(system, shape.name);
+            if (!owner.has_value() || !declared_entities.insert(*owner).second)
+            {
+                continue;
+            }
+            out << "namespace api::entities::" << snake_identifier(*owner) << "\n";
+            out << "{\n";
+            out << "std::vector<::statespec_generated::ShapeDescriptor> shape_descriptors();\n";
+            out << "} // namespace api::entities::" << snake_identifier(*owner) << "\n\n";
+        }
         out << "inline std::vector<ShapeDescriptor> api_shape_descriptors()\n";
         out << "{\n";
         out << "    std::vector<ShapeDescriptor> descriptors;\n";
         for (const auto& shape : system.shapes)
         {
+            if (entity_api_shape_owner(system, shape.name).has_value())
+            {
+                continue;
+            }
             out << "    for (auto descriptor : " << snake_identifier(shape.name)
                 << "_shape_descriptors())\n";
             out << "    {\n";
             out << "        descriptors.push_back(std::move(descriptor));\n";
+            out << "    }\n";
+        }
+        std::set<std::string> added_entities;
+        for (const auto& shape : system.shapes)
+        {
+            const auto owner = entity_api_shape_owner(system, shape.name);
+            if (!owner.has_value() || !added_entities.insert(*owner).second)
+            {
+                continue;
+            }
+            out << "    {\n";
+            out << "        auto slice = ::statespec_generated::api::entities::"
+                << snake_identifier(*owner) << "::shape_descriptors();\n";
+            out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
             out << "    }\n";
         }
         out << "    return descriptors;\n";
@@ -2220,10 +2252,10 @@ std::string cpp_entity_api_catalog_header(
     out << "#pragma once\n\n";
     out << "#include \"../../../common/descriptors/types.hpp\"\n";
     out << "#include \"../../../common/shape_types.hpp\"\n";
+    out << "#include \"shapes.hpp\"\n";
     out << "#include \"codecs.hpp\"\n";
     out << "#include \"handlers.hpp\"\n";
     out << "#include \"registry.hpp\"\n";
-    out << "#include \"shapes.hpp\"\n";
     for (const auto& api : apis)
     {
         out << "#include \"../../descriptors/" << snake_identifier(api.name) << ".hpp\"\n";
@@ -2688,39 +2720,33 @@ TemplateRenderer::Values cpp_api_descriptor_values(
     };
 }
 
-TemplateRenderer::Values cpp_api_route_values(
-    const IrSystem& system,
-    std::string_view include_prefix
-)
-{
-    std::ostringstream includes;
-    std::ostringstream route_aggregation;
-    for (const auto& api : system.apis)
-    {
-        includes << "\n#include \"" << include_prefix << snake_identifier(api.name) << ".hpp\"";
-        const auto route_module = cpp_api_route_descriptor_function_name(api) + "()";
-        route_aggregation << "    {\n";
-        route_aggregation << "        auto slice = " << route_module << ";\n";
-        route_aggregation << "        descriptors.insert(descriptors.end(), slice.begin(), "
-                             "slice.end());\n";
-        route_aggregation << "    }\n";
-    }
-    return TemplateRenderer::Values{
-        {"api_descriptor_includes", includes.str()},
-        {"api_route_descriptor_aggregation", route_aggregation.str()},
-    };
-}
-
 std::string cpp_api_descriptor_catalog_file(const IrSystem& system)
 {
     const auto descriptor_values = cpp_api_descriptor_values(system, {});
-    const auto route_values = cpp_api_route_values(system, {});
+    std::set<std::string> entity_api_names;
+    const auto entity_domains = crud_api_handler_domains(api_handler_domains(system));
     std::ostringstream out;
     out << "#pragma once\n\n";
     out << "#include \"../../common/descriptors/types.hpp\"\n";
     out << "#include \"../../common/shape_types.hpp\"\n";
     out << "#include \"../shapes.hpp\"\n";
-    out << descriptor_values.at("api_descriptor_includes") << "\n\n";
+    for (const auto& domain : entity_domains)
+    {
+        out << "#include \"../entities/" << snake_identifier(domain.name) << "/catalog.hpp\"\n";
+        for (const auto& api : domain.apis)
+        {
+            entity_api_names.insert(api.name);
+        }
+    }
+    for (const auto& api : system.apis)
+    {
+        if (entity_api_names.contains(api.name))
+        {
+            continue;
+        }
+        out << "#include \"" << snake_identifier(api.name) << ".hpp\"\n";
+    }
+    out << "\n";
     out << "namespace statespec_generated::api::descriptors\n";
     out << "{\n\n";
     out << "using ApiDescriptor = ::statespec_generated::ApiDescriptor;\n";
@@ -2733,7 +2759,25 @@ std::string cpp_api_descriptor_catalog_file(const IrSystem& system)
     out << "inline std::vector<ApiDescriptor> api_descriptors()\n";
     out << "{\n";
     out << "    std::vector<ApiDescriptor> descriptors;\n";
-    out << descriptor_values.at("api_descriptor_aggregation");
+    for (const auto& domain : entity_domains)
+    {
+        out << "    {\n";
+        out << "        auto slice = ::statespec_generated::api::entities::"
+            << snake_identifier(domain.name) << "::api_descriptors();\n";
+        out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
+        out << "    }\n";
+    }
+    for (const auto& api : system.apis)
+    {
+        if (entity_api_names.contains(api.name))
+        {
+            continue;
+        }
+        out << "    {\n";
+        out << "        auto slice = " << cpp_api_descriptor_function_name(api) << "();\n";
+        out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
+        out << "    }\n";
+    }
     out << "    return descriptors;\n";
     out << "}\n\n";
     out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
@@ -2743,7 +2787,25 @@ std::string cpp_api_descriptor_catalog_file(const IrSystem& system)
     out << "inline std::vector<ApiRouteDescriptor> api_route_descriptors()\n";
     out << "{\n";
     out << "    std::vector<ApiRouteDescriptor> descriptors;\n";
-    out << route_values.at("api_route_descriptor_aggregation");
+    for (const auto& domain : entity_domains)
+    {
+        out << "    {\n";
+        out << "        auto slice = ::statespec_generated::api::entities::"
+            << snake_identifier(domain.name) << "::api_route_descriptors();\n";
+        out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
+        out << "    }\n";
+    }
+    for (const auto& api : system.apis)
+    {
+        if (entity_api_names.contains(api.name))
+        {
+            continue;
+        }
+        out << "    {\n";
+        out << "        auto slice = " << cpp_api_route_descriptor_function_name(api) << "();\n";
+        out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
+        out << "    }\n";
+    }
     out << "    return descriptors;\n";
     out << "}\n\n";
     out << "} // namespace statespec_generated::api::descriptors\n";

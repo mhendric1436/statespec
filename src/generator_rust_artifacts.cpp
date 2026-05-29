@@ -733,7 +733,7 @@ std::string rust_api_handler_registry_domain_modules(const std::vector<ApiHandle
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        out << "#[path = \"entities/" << snake_identifier(domain.name) << "/registry.rs\"]\n";
+        out << "#[path = \"entities/" << snake_identifier(domain.name) << "/catalog.rs\"]\n";
         out << "mod " << rust_api_handler_domain_module_name(domain.name) << ";\n";
     }
     return out.str();
@@ -838,6 +838,7 @@ std::string rust_api_handler_domain_file(
     const auto filtered = with_domain_apis(system, domain.apis);
     std::ostringstream out;
     out << "use super::*;\n\n";
+    out << "use crate::backend::{BackendError, IndexValue};\n\n";
     out << "#[allow(dead_code)]\n";
     out << "pub(super) struct " << rust_api_handler_domain_type_name(domain.name)
         << "<'a, B: Backend> {\n";
@@ -1583,7 +1584,7 @@ std::string rust_external_system_descriptor_module(
 {
     std::ostringstream out;
     out << "use super::*;\n";
-    out << "use crate::backend::{Backend, BackendResult};\n";
+    out << "use crate::backend::{Backend, BackendError, BackendResult};\n";
     out << "use crate::external_system::{\n";
     out << "    ExternalSystemMetadataKeyValue, ExternalSystemMetadataLookup,\n";
     out << "    ExternalSystemMetadataResolution, ExternalSystemMetadataResolver,\n";
@@ -1810,6 +1811,8 @@ std::string rust_shapes_module(
             out << "#[path = \"entities/" << snake_identifier(entity.name) << "/shapes.rs\"]\n";
             out << "pub mod " << module_name << ";\n";
             out << "pub use " << module_name << "::*;\n";
+            out << "#[path = \"entities/" << snake_identifier(entity.name) << "/catalog.rs\"]\n";
+            out << "mod entity_" << snake_identifier(entity.name) << "_catalog;\n";
         }
         out << "\n";
         out << "use crate::shape_types::ShapeDescriptor;\n\n";
@@ -1820,14 +1823,21 @@ std::string rust_shapes_module(
             const auto owner = rust_entity_api_shape_owner(system, shape.name);
             if (owner.has_value())
             {
-                out << "    descriptors.extend(entity_" << snake_identifier(*owner)
-                    << "_shapes::" << snake_identifier(shape.name) << "_shape_descriptors());\n";
+                continue;
             }
-            else
+            out << "    descriptors.extend(shape_" << snake_identifier(shape.name)
+                << "::" << snake_identifier(shape.name) << "_shape_descriptors());\n";
+        }
+        std::set<std::string> added_entities;
+        for (const auto& shape : system.shapes)
+        {
+            const auto owner = rust_entity_api_shape_owner(system, shape.name);
+            if (!owner.has_value() || !added_entities.insert(*owner).second)
             {
-                out << "    descriptors.extend(shape_" << snake_identifier(shape.name)
-                    << "::" << snake_identifier(shape.name) << "_shape_descriptors());\n";
+                continue;
             }
+            out << "    descriptors.extend(entity_" << snake_identifier(*owner)
+                << "_catalog::shape_descriptors());\n";
         }
         out << "    descriptors\n";
         out << "}\n";
@@ -1876,14 +1886,21 @@ std::string rust_entity_api_catalog_file(
     std::ostringstream out;
     out << "use crate::descriptor_types::{ApiDescriptor, ApiRouteDescriptor};\n";
     out << "use crate::shape_types::ShapeDescriptor;\n";
+    out << "use crate::api_shapes::entity_" << snake_identifier(entity.name)
+        << "_shapes as shapes;\n";
+    out << "use shapes::*;\n";
+    out << "use crate::api_codecs::*;\n";
+    out << "use crate::api_handler_registry::*;\n";
+    out << "use crate::api_handlers::{ApiRequestContext, ApiResponse};\n";
+    out << "use crate::backend::{Backend, BackendResult};\n";
+    out << "use crate::descriptors::*;\n";
+    out << "use crate::json::Json;\n";
     out << "#[path = \"codecs.rs\"]\n";
     out << "mod codecs;\n";
     out << "#[path = \"handlers.rs\"]\n";
     out << "mod handlers;\n";
     out << "#[path = \"registry.rs\"]\n";
     out << "mod registry;\n";
-    out << "#[path = \"shapes.rs\"]\n";
-    out << "mod shapes;\n";
     for (const auto& api : apis)
     {
         out << "#[path = \"../../descriptors/" << snake_identifier(api.name) << ".rs\"]\n";
@@ -1925,6 +1942,15 @@ std::string rust_entity_api_catalog_file(
     }
     out << "    ]\n";
     out << "}\n";
+    for (const auto& api : apis)
+    {
+        out << "\n";
+        out << "pub(crate) fn handle_" << snake_identifier(api.name)
+            << "<B: Backend>(backend: &B, context: &ApiRequestContext) -> "
+               "BackendResult<ApiResponse> {\n";
+        out << "    registry::handle_" << snake_identifier(api.name) << "(backend, context)\n";
+        out << "}\n";
+    }
     return out.str();
 }
 
@@ -2356,8 +2382,27 @@ std::string rust_api_descriptor_catalog_file(const IrSystem& system)
     std::ostringstream api_aggregation;
     std::ostringstream route_aggregation;
     std::ostringstream server_descriptors;
+    const auto entity_domains = crud_api_handler_domains_rs(api_handler_domains(system));
+    std::set<std::string> entity_api_names;
+    for (const auto& domain : entity_domains)
+    {
+        modules << "#[path = \"../entities/" << snake_identifier(domain.name) << "/catalog.rs\"]\n";
+        modules << "mod entity_" << snake_identifier(domain.name) << "_catalog;\n";
+        api_aggregation << "    descriptors.extend(entity_" << snake_identifier(domain.name)
+                        << "_catalog::api_descriptors());\n";
+        route_aggregation << "    descriptors.extend(entity_" << snake_identifier(domain.name)
+                          << "_catalog::api_route_descriptors());\n";
+        for (const auto& api : domain.apis)
+        {
+            entity_api_names.insert(api.name);
+        }
+    }
     for (const auto& api : system.apis)
     {
+        if (entity_api_names.contains(api.name))
+        {
+            continue;
+        }
         const auto module = rust_api_descriptor_module_name(api);
         modules << "#[path = \"" << snake_identifier(api.name) << ".rs\"]\n";
         modules << "mod " << module << ";\n";
