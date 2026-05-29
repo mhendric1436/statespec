@@ -249,6 +249,23 @@ const std::string* conventional_soft_delete_terminal_state_rs(const IrEntity& en
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
+bool entity_needs_status_transition_helper_rs(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const IrApi& api)
+        {
+            return api.entity.has_value() && *api.entity == entity.name &&
+                   api.repository_operation.has_value() &&
+                   (*api.repository_operation == "update_status" ||
+                    *api.repository_operation == "delete");
+        }
+    );
+}
+
 bool status_update_has_required_request_fields_rs(const IrShape& request)
 {
     return find_field(request, std::string{EntityStatusFieldName}) != nullptr;
@@ -764,15 +781,8 @@ bool write_rust_update_status_handler_body(
            "status\".to_string() }),\n";
     out << "        };\n";
     out << "        let requested_status = request.status.clone();\n";
-    out << "        let transition_allowed = current_status == requested_status";
-    for (const auto& transition : entity->transitions)
-    {
-        out << " ||\n";
-        out << "            (current_status == " << rust_entity_state_expr(*entity, transition.from)
-            << " && requested_status == " << rust_entity_state_expr(*entity, transition.to) << ")";
-    }
-    out << ";\n";
-    out << "        if !transition_allowed {\n";
+    out << "        if !Self::" << snake_identifier(entity->name)
+        << "_status_transition_allowed(&current_status, &requested_status) {\n";
     out << "            return Err(BackendError::InvalidSchema { message: \"invalid entity status "
            "transition\".to_string() });\n";
     out << "        }\n";
@@ -878,15 +888,8 @@ bool write_rust_delete_handler_body(
     out << "        };\n";
     out << "        let requested_status = " << rust_entity_state_expr(*entity, *delete_state)
         << ".to_string();\n";
-    out << "        let transition_allowed = current_status == requested_status";
-    for (const auto& transition : entity->transitions)
-    {
-        out << " ||\n";
-        out << "            (current_status == " << rust_entity_state_expr(*entity, transition.from)
-            << " && requested_status == " << rust_entity_state_expr(*entity, transition.to) << ")";
-    }
-    out << ";\n";
-    out << "        if !transition_allowed {\n";
+    out << "        if !Self::" << snake_identifier(entity->name)
+        << "_status_transition_allowed(&current_status, &requested_status) {\n";
     out << "            return Err(BackendError::InvalidSchema { message: \"invalid entity delete "
            "transition\".to_string() });\n";
     out << "        }\n";
@@ -1064,6 +1067,27 @@ std::string generate_api_operation_default_handler_methods_rs_impl(
 )
 {
     std::ostringstream out;
+    for (const auto& entity : system.entities)
+    {
+        if (!entity_needs_status_transition_helper_rs(system, entity))
+        {
+            continue;
+        }
+        out << "    fn " << snake_identifier(entity.name)
+            << "_status_transition_allowed(current_status: &str, requested_status: &str) -> bool "
+               "{\n";
+        out << "        current_status == requested_status";
+        for (const auto& transition : entity.transitions)
+        {
+            out << " ||\n";
+            out << "            (current_status == "
+                << rust_entity_state_expr(entity, transition.from)
+                << " && requested_status == " << rust_entity_state_expr(entity, transition.to)
+                << ")";
+        }
+        out << "\n";
+        out << "    }\n\n";
+    }
     for (const auto& api : system.apis)
     {
         out << "    " << method_visibility << "fn handle_" << snake_identifier(api.name)

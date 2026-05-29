@@ -239,6 +239,23 @@ const std::string* conventional_soft_delete_terminal_state_go(const IrEntity& en
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
+bool entity_needs_status_transition_helper_go(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const IrApi& api)
+        {
+            return api.entity.has_value() && *api.entity == entity.name &&
+                   api.repository_operation.has_value() &&
+                   (*api.repository_operation == "update_status" ||
+                    *api.repository_operation == "delete");
+        }
+    );
+}
+
 bool status_update_has_required_request_fields_go(const IrShape& request)
 {
     return find_field(request, std::string{EntityStatusFieldName}) != nullptr;
@@ -729,15 +746,9 @@ bool write_go_update_status_handler_body(
         << go_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << ")\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
     out << "\trequestedStatus := decodedRequest.Status\n";
-    out << "\ttransitionAllowed := currentStatus == requestedStatus";
-    for (const auto& transition : entity->transitions)
-    {
-        out << " ||\n";
-        out << "\t\t(currentStatus == " << go_entity_state_expr(*entity, transition.from)
-            << " && requestedStatus == " << go_entity_state_expr(*entity, transition.to) << ")";
-    }
-    out << "\n";
-    out << "\tif !transitionAllowed { return common.APIResponse{}, fmt.Errorf(\"invalid entity "
+    out << "\tif !" << lower_camel_identifier(entity->name)
+        << "StatusTransitionAllowed(currentStatus, requestedStatus) { return "
+           "common.APIResponse{}, fmt.Errorf(\"invalid entity "
            "status transition\") }\n";
     out << "\tdocument, ok := record.Document.AsObject()\n";
     out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"entity document must be an "
@@ -835,15 +846,9 @@ bool write_go_delete_handler_body(
         << go_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << ")\n";
     out << "\tif err != nil { return common.APIResponse{}, err }\n";
     out << "\trequestedStatus := " << go_entity_state_expr(*entity, *delete_state) << "\n";
-    out << "\ttransitionAllowed := currentStatus == requestedStatus";
-    for (const auto& transition : entity->transitions)
-    {
-        out << " ||\n";
-        out << "\t\t(currentStatus == " << go_entity_state_expr(*entity, transition.from)
-            << " && requestedStatus == " << go_entity_state_expr(*entity, transition.to) << ")";
-    }
-    out << "\n";
-    out << "\tif !transitionAllowed { return common.APIResponse{}, fmt.Errorf(\"invalid entity "
+    out << "\tif !" << lower_camel_identifier(entity->name)
+        << "StatusTransitionAllowed(currentStatus, requestedStatus) { return "
+           "common.APIResponse{}, fmt.Errorf(\"invalid entity "
            "delete transition\") }\n";
     out << "\tdocument, ok := record.Document.AsObject()\n";
     out << "\tif !ok { return common.APIResponse{}, fmt.Errorf(\"entity document must be an "
@@ -1029,6 +1034,24 @@ std::string generate_api_operation_default_handler_methods_go_for_receiver(
 )
 {
     std::ostringstream out;
+    for (const auto& entity : system.entities)
+    {
+        if (!entity_needs_status_transition_helper_go(system, entity))
+        {
+            continue;
+        }
+        out << "func " << lower_camel_identifier(entity.name)
+            << "StatusTransitionAllowed(currentStatus string, requestedStatus string) bool {\n";
+        out << "\treturn currentStatus == requestedStatus";
+        for (const auto& transition : entity.transitions)
+        {
+            out << " ||\n";
+            out << "\t\t(currentStatus == " << go_entity_state_expr(entity, transition.from)
+                << " && requestedStatus == " << go_entity_state_expr(entity, transition.to) << ")";
+        }
+        out << "\n";
+        out << "}\n\n";
+    }
     for (const auto& api : system.apis)
     {
         out << "func (handler " << receiver_type << ") Handle" << pascal_identifier(api.name)

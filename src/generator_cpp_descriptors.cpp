@@ -264,6 +264,23 @@ const std::string* conventional_soft_delete_terminal_state(const IrEntity& entit
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
+bool entity_needs_status_transition_helper(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const IrApi& api)
+        {
+            return api.entity.has_value() && *api.entity == entity.name &&
+                   api.repository_operation.has_value() &&
+                   (*api.repository_operation == "update_status" ||
+                    *api.repository_operation == "delete");
+        }
+    );
+}
+
 bool status_update_has_required_request_fields(const IrShape& request)
 {
     return find_field(request, std::string{EntityStatusFieldName}) != nullptr;
@@ -770,16 +787,8 @@ bool write_cpp_update_status_handler_body(
         << cpp_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "\n";
     out << "            );\n";
     out << "            const auto requested_status = request.status;\n";
-    out << "            const bool transition_allowed = current_status == requested_status";
-    for (const auto& transition : entity->transitions)
-    {
-        out << " ||\n";
-        out << "                (current_status == "
-            << cpp_entity_state_expr(*entity, transition.from)
-            << " && requested_status == " << cpp_entity_state_expr(*entity, transition.to) << ")";
-    }
-    out << ";\n";
-    out << "            if (!transition_allowed)\n";
+    out << "            if (!" << snake_identifier(entity->name)
+        << "_status_transition_allowed(current_status, requested_status))\n";
     out << "            {\n";
     out << "                throw statespec::backend::BackendError(\"invalid entity status "
            "transition\");\n";
@@ -876,16 +885,8 @@ bool write_cpp_delete_handler_body(
     out << "            );\n";
     out << "            const auto requested_status = std::string{"
         << cpp_entity_state_expr(*entity, *delete_state) << "};\n";
-    out << "            const bool transition_allowed = current_status == requested_status";
-    for (const auto& transition : entity->transitions)
-    {
-        out << " ||\n";
-        out << "                (current_status == "
-            << cpp_entity_state_expr(*entity, transition.from)
-            << " && requested_status == " << cpp_entity_state_expr(*entity, transition.to) << ")";
-    }
-    out << ";\n";
-    out << "            if (!transition_allowed)\n";
+    out << "            if (!" << snake_identifier(entity->name)
+        << "_status_transition_allowed(current_status, requested_status))\n";
     out << "            {\n";
     out << "                throw statespec::backend::BackendError(\"invalid entity delete "
            "transition\");\n";
@@ -1111,6 +1112,30 @@ std::string generate_api_operation_default_handler_methods_impl(
     out << "        return std::to_string(std::chrono::duration_cast<std::chrono::seconds>(\n";
     out << "            std::chrono::system_clock::now().time_since_epoch()).count());\n";
     out << "    }\n\n";
+    for (const auto& entity : system.entities)
+    {
+        if (!entity_needs_status_transition_helper(system, entity))
+        {
+            continue;
+        }
+        out << "    static bool " << snake_identifier(entity.name)
+            << "_status_transition_allowed(\n";
+        out << "        const std::string& current_status,\n";
+        out << "        const std::string& requested_status\n";
+        out << "    )\n";
+        out << "    {\n";
+        out << "        return current_status == requested_status";
+        for (const auto& transition : entity.transitions)
+        {
+            out << " ||\n";
+            out << "            (current_status == "
+                << cpp_entity_state_expr(entity, transition.from)
+                << " && requested_status == " << cpp_entity_state_expr(entity, transition.to)
+                << ")";
+        }
+        out << ";\n";
+        out << "    }\n\n";
+    }
     for (const auto& api : system.apis)
     {
         out << "    ApiResponse handle_" << snake_identifier(api.name)

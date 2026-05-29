@@ -265,6 +265,23 @@ const std::string* conventional_soft_delete_terminal_state_java(const IrEntity& 
     return found == entity.terminal_states.end() ? nullptr : &*found;
 }
 
+bool entity_needs_status_transition_helper_java(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    return std::any_of(
+        system.apis.begin(), system.apis.end(),
+        [&](const IrApi& api)
+        {
+            return api.entity.has_value() && *api.entity == entity.name &&
+                   api.repository_operation.has_value() &&
+                   (*api.repository_operation == "update_status" ||
+                    *api.repository_operation == "delete");
+        }
+    );
+}
+
 bool status_update_has_required_request_fields_java(const IrShape& request)
 {
     return find_field(request, std::string{EntityStatusFieldName}) != nullptr;
@@ -820,16 +837,8 @@ bool write_java_update_status_handler_body(
         << java_entity_field_expr(*entity, std::string{EntityStatusFieldName}) << "\n";
     out << "                );\n";
     out << "                var requestedStatus = request.status();\n";
-    out << "                var transitionAllowed = currentStatus.equals(requestedStatus)";
-    for (const auto& transition : entity->transitions)
-    {
-        out << " ||\n";
-        out << "                    (currentStatus.equals("
-            << java_entity_state_expr(*entity, transition.from) << ") && requestedStatus.equals("
-            << java_entity_state_expr(*entity, transition.to) << "))";
-    }
-    out << ";\n";
-    out << "                if (!transitionAllowed) {\n";
+    out << "                if (!" << lower_camel_identifier(entity->name)
+        << "StatusTransitionAllowed(currentStatus, requestedStatus)) {\n";
     out << "                    throw new com.statespec.backend.Backend.BackendException(\"invalid "
            "entity status transition\");\n";
     out << "                }\n";
@@ -952,16 +961,8 @@ bool write_java_delete_handler_body(
     out << "                );\n";
     out << "                var requestedStatus = "
         << java_entity_state_expr(*entity, *delete_state) << ";\n";
-    out << "                var transitionAllowed = currentStatus.equals(requestedStatus)";
-    for (const auto& transition : entity->transitions)
-    {
-        out << " ||\n";
-        out << "                    (currentStatus.equals("
-            << java_entity_state_expr(*entity, transition.from) << ") && requestedStatus.equals("
-            << java_entity_state_expr(*entity, transition.to) << "))";
-    }
-    out << ";\n";
-    out << "                if (!transitionAllowed) {\n";
+    out << "                if (!" << lower_camel_identifier(entity->name)
+        << "StatusTransitionAllowed(currentStatus, requestedStatus)) {\n";
     out << "                    throw new com.statespec.backend.Backend.BackendException(\"invalid "
            "entity delete transition\");\n";
     out << "                }\n";
@@ -1175,6 +1176,25 @@ std::string generate_api_operation_default_handler_methods_java_impl(
 )
 {
     std::ostringstream out;
+    for (const auto& entity : system.entities)
+    {
+        if (!entity_needs_status_transition_helper_java(system, entity))
+        {
+            continue;
+        }
+        out << "        private static boolean " << lower_camel_identifier(entity.name)
+            << "StatusTransitionAllowed(String currentStatus, String requestedStatus) {\n";
+        out << "            return currentStatus.equals(requestedStatus)";
+        for (const auto& transition : entity.transitions)
+        {
+            out << " ||\n";
+            out << "                (currentStatus.equals("
+                << java_entity_state_expr(entity, transition.from) << ") && requestedStatus.equals("
+                << java_entity_state_expr(entity, transition.to) << "))";
+        }
+        out << ";\n";
+        out << "        }\n\n";
+    }
     for (const auto& api : system.apis)
     {
         if (include_override)
