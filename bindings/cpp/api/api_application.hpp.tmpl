@@ -17,13 +17,14 @@ class ApiApplication
   public:
     explicit ApiApplication(
         std::string_view server_name,
-        IApiOperationHandler& handler,
-        statespec::backend::IBackend& backend
+        statespec::backend::IBackend& backend,
+        IBusinessApiOperationHandler* business_handler = nullptr
     )
         : backend_(backend){{runtime_store_initializers}},
           server_(
               find_required_server(server_name),
-              handler
+              backend_,
+              business_handler
           )
     {
     }

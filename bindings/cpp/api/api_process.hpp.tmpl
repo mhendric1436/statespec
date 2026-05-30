@@ -46,14 +46,14 @@ class ApiProcess
 
     ApiProcess(
         ApiProcessConfig config,
-        IApiOperationHandler& handler,
         statespec::backend::IBackend& backend,
-        IApiTransport& transport
+        IApiTransport& transport,
+        IBusinessApiOperationHandler* business_handler = nullptr
     )
         : config_(std::move(config)),
-          handler_(handler),
           backend_(backend),
-          transport_(transport)
+          transport_(transport),
+          business_handler_(business_handler)
     {
         if (config_.server_names.empty())
         {
@@ -65,21 +65,21 @@ class ApiProcess
         for (const auto& server_name : config_.server_names)
         {
             applications_.push_back(
-                std::make_unique<ApiApplication>(server_name, handler_, backend_)
+                std::make_unique<ApiApplication>(server_name, backend_, business_handler_)
             );
         }
     }
 
     ApiProcess(
-        IApiOperationHandler& handler,
         statespec::backend::IBackend& backend,
-        IApiTransport& transport
+        IApiTransport& transport,
+        IBusinessApiOperationHandler* business_handler = nullptr
     )
         : ApiProcess(
               ApiProcessConfig::all_servers(),
-              handler,
               backend,
-              transport
+              transport,
+              business_handler
           )
     {
     }
@@ -278,9 +278,9 @@ class ApiProcess
     }
 
     ApiProcessConfig config_;
-    IApiOperationHandler& handler_;
     statespec::backend::IBackend& backend_;
     IApiTransport& transport_;
+    IBusinessApiOperationHandler* business_handler_ = nullptr;
     std::vector<std::unique_ptr<ApiApplication>> applications_;
     std::vector<EntityGcWorkerTask> entity_gc_tasks_;
     mutable std::mutex lifecycle_mutex_;

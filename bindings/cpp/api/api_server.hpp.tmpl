@@ -28,10 +28,12 @@ class ApiServer
   public:
     ApiServer(
         ApiServerDescriptor descriptor,
-        IApiOperationHandler& handler
+        statespec::backend::IBackend& backend,
+        IBusinessApiOperationHandler* business_handler = nullptr
     )
         : descriptor_(std::move(descriptor)),
-          handler_(handler)
+          backend_(backend),
+          business_handler_(business_handler)
     {
     }
 
@@ -50,12 +52,13 @@ class ApiServer
         {
             return std::nullopt;
         }
-        return dispatch_api_route(handler_, route_name, context);
+        return dispatch_api_route(backend_, business_handler_, route_name, context);
     }
 
   private:
     ApiServerDescriptor descriptor_;
-    IApiOperationHandler& handler_;
+    statespec::backend::IBackend& backend_;
+    IBusinessApiOperationHandler* business_handler_ = nullptr;
 };
 
 } // namespace statespec_generated::api

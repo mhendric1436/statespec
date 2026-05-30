@@ -15,11 +15,17 @@ namespace statespec_generated::api
 {
 
 using ApiHandlerInvoker = ApiResponse (*)(
-    IApiOperationHandler&,
+    statespec::backend::IBackend&,
+    const ApiRequestContext&
+);
+
+using BusinessApiHandlerInvoker = ApiResponse (*)(
+    IBusinessApiOperationHandler&,
     const ApiRequestContext&
 );
 
 using ApiHandlerLookupMap = std::unordered_map<std::string_view, ApiHandlerInvoker>;
+using BusinessApiHandlerLookupMap = std::unordered_map<std::string_view, BusinessApiHandlerInvoker>;
 
 inline std::vector<std::string> split_api_path(std::string_view path)
 {

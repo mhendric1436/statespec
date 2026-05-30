@@ -1060,17 +1060,6 @@ std::string generate_workflow_step_next_cases(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_api_operation_handler_methods(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& api : system.apis)
-    {
-        out << "    virtual ApiResponse handle_" << snake_identifier(api.name)
-            << "(const ApiRequestContext& context) = 0;\n";
-    }
-    return out.str();
-}
-
 std::string generate_business_api_operation_handler_methods(const IrSystem& system)
 {
     std::ostringstream out;
@@ -1198,7 +1187,7 @@ std::string generate_api_operation_default_handler_methods_impl(
 
 std::string generate_api_operation_default_handler_methods(const IrSystem& system)
 {
-    return generate_api_operation_default_handler_methods_impl(system, true);
+    return generate_api_operation_default_handler_methods_impl(system, false);
 }
 
 std::string generate_api_operation_default_handler_domain_methods(const IrSystem& system)

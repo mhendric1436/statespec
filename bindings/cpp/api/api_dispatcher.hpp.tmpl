@@ -40,7 +40,22 @@ api_handler_lookup_map()
     {
         ApiHandlerLookupMap map;
         // clang-format off
-{{api_handler_lookup_registrations}}{{api_business_handler_lookup_entries}} // clang-format on
+{{api_handler_lookup_registrations}} // clang-format on
+        return map;
+    }();
+    return handlers;
+}
+
+inline const std::unordered_map<
+    std::string_view,
+    BusinessApiHandlerInvoker>&
+business_api_handler_lookup_map()
+{
+    static const BusinessApiHandlerLookupMap handlers = []
+    {
+        BusinessApiHandlerLookupMap map;
+        // clang-format off
+{{api_business_handler_lookup_entries}} // clang-format on
         return map;
     }();
     return handlers;
@@ -58,7 +73,8 @@ inline std::optional<ApiRouteDescriptor> find_api_route(std::string_view route_n
 }
 
 inline std::optional<ApiResponse> dispatch_api_route(
-    IApiOperationHandler& handler,
+    statespec::backend::IBackend& backend,
+    IBusinessApiOperationHandler* business_handler,
     std::string_view route_name,
     const ApiRequestContext& context
 )
@@ -70,11 +86,22 @@ inline std::optional<ApiResponse> dispatch_api_route(
     }
     const auto& handlers = api_handler_lookup_map();
     const auto handler_it = handlers.find(std::string_view{route->api_name});
-    if (handler_it == handlers.end())
+    if (handler_it != handlers.end())
+    {
+        return handler_it->second(backend, context);
+    }
+
+    const auto& business_handlers = business_api_handler_lookup_map();
+    const auto business_handler_it = business_handlers.find(std::string_view{route->api_name});
+    if (business_handler_it == business_handlers.end())
     {
         return std::nullopt;
     }
-    return handler_it->second(handler, context);
+    if (business_handler == nullptr)
+    {
+        return ApiResponse{501, statespec::backend::Json::object({})};
+    }
+    return business_handler_it->second(*business_handler, context);
 }
 
 } // namespace statespec_generated::api

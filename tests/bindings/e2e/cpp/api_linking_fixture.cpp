@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-class LinkingApiHandler final : public statespec_generated::api::IApiOperationHandler
+class LinkingApiHandler final : public statespec_generated::api::IBusinessApiOperationHandler
 {
   public:
     statespec_generated::api::ApiResponse
@@ -59,7 +59,8 @@ int main()
     }
 
     LinkingApiHandler handler;
-    statespec_generated::api::ApiServer server{*descriptor, handler};
+    statespec::backend::memory::InMemoryBackend backend;
+    statespec_generated::api::ApiServer server{*descriptor, backend, &handler};
     const auto response = server.handle(
         "ProvisionApi.StartProvision",
         statespec_generated::api::ApiRequestContext{

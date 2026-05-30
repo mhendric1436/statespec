@@ -522,7 +522,7 @@ std::string cpp_business_api_handler_lookup_entries(const IrSystem& system)
             continue;
         }
         out << "        map.emplace(" << cpp_string(api.name)
-            << ", [](IApiOperationHandler& handler, const ApiRequestContext& context) {\n";
+            << ", [](IBusinessApiOperationHandler& handler, const ApiRequestContext& context) {\n";
         out << "            return handler.handle_" << snake_identifier(api.name) << "(context);\n";
         out << "        });\n";
     }
@@ -539,7 +539,7 @@ std::string cpp_api_handler_registry_delegates(const std::vector<ApiHandlerDomai
         for (const auto& api : domain.apis)
         {
             out << "    ApiResponse handle_" << snake_identifier(api.name)
-                << "(const ApiRequestContext& context) override\n";
+                << "(const ApiRequestContext& context)\n";
             out << "    {\n";
             out << "        " << catalog_namespace << "::HandlerRegistry handler{backend_};\n";
             out << "        return handler.handle_" << snake_identifier(api.name) << "(context);\n";
@@ -591,7 +591,7 @@ std::string cpp_business_api_handler_delegates(const IrSystem& system)
             continue;
         }
         out << "    ApiResponse handle_" << snake_identifier(api.name)
-            << "(const ApiRequestContext& context) override\n";
+            << "(const ApiRequestContext& context)\n";
         out << "    {\n";
         out << "        if (business_handler_ == nullptr)\n";
         out << "        {\n";
@@ -620,7 +620,9 @@ std::string cpp_api_handler_domain_registry_file(const ApiHandlerDomain& domain)
     for (const auto& api : domain.apis)
     {
         out << "    handlers.emplace(" << cpp_string(api.name)
-            << ", [](IApiOperationHandler& handler, const ApiRequestContext& context) {\n";
+            << ", [](statespec::backend::IBackend& backend, const ApiRequestContext& context) {\n";
+        out << "        ::statespec_generated::api::"
+            << cpp_api_handler_domain_class_name(domain.name) << " handler{backend};\n";
         out << "        return handler.handle_" << snake_identifier(api.name) << "(context);\n";
         out << "    });\n";
     }
@@ -2909,7 +2911,6 @@ void add_cpp_api_artifacts(
     add_cpp_generated_template_file(
         result, options, templates, "api/api_handlers.hpp", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_handler_methods", generate_api_operation_handler_methods(system)},
             {"business_api_operation_handler_methods",
              generate_business_api_operation_handler_methods(system)}
         }
