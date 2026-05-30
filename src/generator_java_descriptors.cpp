@@ -1182,19 +1182,6 @@ std::string generate_business_api_operation_handler_methods_java(const IrSystem&
     return out.str();
 }
 
-std::string generate_api_operation_dispatch_cases_java(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& api : system.apis)
-    {
-        out << "        if (route.get().apiName().equals(" << java_string(api.name) << ")) {\n";
-        out << "            return Optional.of(handler.handle" << pascal_identifier(api.name)
-            << "(context));\n";
-        out << "        }\n";
-    }
-    return out.str();
-}
-
 std::string generate_api_handler_lookup_entries_java(const IrSystem& system)
 {
     std::ostringstream out;
