@@ -1,7 +1,6 @@
 use crate::api_application::ApiApplication;
 use crate::api_descriptors;
 use crate::api_handler_registry::DefaultApiHandler;
-use crate::api_handlers::ApiHandler;
 use crate::api_transport::{ApiTransport, LocalBlockingApiTransport};
 use crate::backend::{Backend, BackendError, BackendResult};
 
@@ -36,12 +35,12 @@ impl ApiProcessConfig {
     }
 }
 
-pub struct ApiProcess<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> {
+pub struct ApiProcess<B: Backend + Clone, T: ApiTransport<B>> {
     pub config: ApiProcessConfig,
     pub backend: B,
-    pub handler: H,
+    pub handler: DefaultApiHandler<B>,
     pub transport: T,
-    pub applications: Vec<ApiApplication<B, H>>,
+    pub applications: Vec<ApiApplication<B>>,
     entity_gc_workers: Mutex<Vec<EntityGcWorkerTask>>,
     entity_gc_stop: Arc<AtomicBool>,
     entity_gc_handles: Mutex<Vec<JoinHandle<()>>>,
@@ -55,11 +54,11 @@ struct ApiProcessLifecycle {
     handle: Option<JoinHandle<BackendResult<()>>>,
 }
 
-impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B, H, T> {
+impl<B: Backend + Clone, T: ApiTransport<B>> ApiProcess<B, T> {
     pub fn new(
         config: ApiProcessConfig,
         backend: B,
-        handler: H,
+        handler: DefaultApiHandler<B>,
         transport: T,
     ) -> BackendResult<Self> {
         let config = if config.server_names.is_empty() {
@@ -140,7 +139,6 @@ impl<B: Backend + Clone, H: ApiHandler + Clone, T: ApiTransport<H>> ApiProcess<B
     pub fn start(self: &Arc<Self>) -> BackendResult<()>
     where
         B: Send + Sync + 'static,
-        H: Send + Sync + 'static,
         T: Send + Sync + 'static,
     {
         let mut lifecycle = self.lifecycle.lock().map_err(|_| BackendError::Internal {
@@ -267,7 +265,7 @@ fn current_time_string() -> String {
         .unwrap_or_else(|_| "0".to_string())
 }
 
-impl<B: Backend + Clone> ApiProcess<B, DefaultApiHandler<B>, LocalBlockingApiTransport> {
+impl<B: Backend + Clone> ApiProcess<B, LocalBlockingApiTransport> {
     pub fn new_default(backend: B) -> BackendResult<Self> {
         Self::new(
             ApiProcessConfig::all_servers(),

@@ -1,16 +1,16 @@
 use crate::api_descriptors;
 use crate::api_dispatcher;
-use crate::api_handlers::ApiHandler;
-use crate::backend::BackendResult;
+use crate::api_handler_registry::DefaultApiHandler;
+use crate::backend::{Backend, BackendResult};
 use crate::descriptor_types::{ApiRequestContext, ApiResponse, ApiServerDescriptor};
 
-pub struct ApiServer<H: ApiHandler> {
+pub struct ApiServer<B: Backend> {
     pub descriptor: ApiServerDescriptor,
-    pub handler: H,
+    pub handler: DefaultApiHandler<B>,
 }
 
-impl<H: ApiHandler> ApiServer<H> {
-    pub fn new(descriptor: ApiServerDescriptor, handler: H) -> Self {
+impl<B: Backend> ApiServer<B> {
+    pub fn new(descriptor: ApiServerDescriptor, handler: DefaultApiHandler<B>) -> Self {
         Self { descriptor, handler }
     }
 
@@ -23,7 +23,12 @@ impl<H: ApiHandler> ApiServer<H> {
         if !matches!(route, Some(ref value) if value.server_name == self.descriptor.name) {
             return Ok(None);
         }
-        api_dispatcher::dispatch_api_route(&self.handler, route_name, context)
+        api_dispatcher::dispatch_api_route(
+            &self.handler.backend,
+            self.handler.business_handler.as_deref(),
+            route_name,
+            context,
+        )
     }
 }
 

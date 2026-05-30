@@ -1,5 +1,7 @@
 #[allow(unused_imports)]
-use crate::api_handlers::{ApiHandler, ApiRequestContext, ApiResponse, BusinessApiHandler};
+use crate::api_dispatcher::{ApiHandlerInvoker, BusinessApiHandlerInvoker};
+#[allow(unused_imports)]
+use crate::api_handlers::{ApiRequestContext, ApiResponse, BusinessApiHandler};
 #[allow(unused_imports)]
 use crate::backend::{Backend, BackendError, BackendResult, IndexValue};
 #[allow(unused_imports)]
@@ -85,5 +87,14 @@ pub(crate) fn generated_api_timestamp() -> String {
         .unwrap_or_else(|_| "0".to_string())
 }
 
-impl<B: Backend> ApiHandler for DefaultApiHandler<B> {
-{{api_operation_default_handler_methods}}}
+pub fn register_handler_invokers<B: Backend>(
+    handlers: &mut std::collections::HashMap<&'static str, ApiHandlerInvoker<B>>,
+) {
+    let _ = handlers;
+{{api_handler_lookup_registrations}}}
+
+pub fn register_business_handler_invokers(
+    handlers: &mut std::collections::HashMap<&'static str, BusinessApiHandlerInvoker>,
+) {
+    let _ = handlers;
+{{api_business_handler_lookup_entries}}}

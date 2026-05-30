@@ -1,9 +1,11 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
-use statespec_generated::api_handlers::ApiHandler;
+use statespec_generated::api_handler_registry::DefaultApiHandler;
+use statespec_generated::api_handlers::BusinessApiHandler;
 use statespec_generated::api_server::{find_api_server, ApiServer};
 use statespec_generated::backend::Backend;
-use statespec_generated::descriptors::{ApiRequestContext, ApiResponse};
+use statespec_generated::descriptor_types::{ApiRequestContext, ApiResponse};
 use statespec_generated::json::Json;
 use statespec_generated::memory_backend::InMemoryBackend;
 
@@ -11,7 +13,7 @@ struct LinkingHandler {
     backend: InMemoryBackend,
 }
 
-impl ApiHandler for LinkingHandler {
+impl BusinessApiHandler for LinkingHandler {
     fn handle_start_provision(
         &self,
         context: &ApiRequestContext,
@@ -57,11 +59,13 @@ impl LinkingHandler {
 #[test]
 fn generated_api_server_links_with_memory_backend() {
     let descriptor = find_api_server("ProvisionApi").expect("ProvisionApi descriptor not found");
+    let backend = InMemoryBackend::new();
     let server = ApiServer::new(
         descriptor,
-        LinkingHandler {
-            backend: InMemoryBackend::new(),
-        },
+        DefaultApiHandler::with_business_handler(
+            backend.clone(),
+            Arc::new(LinkingHandler { backend }),
+        ),
     );
     let response = server
         .handle(

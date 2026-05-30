@@ -1,14 +1,13 @@
-use crate::api_handlers::ApiHandler;
 use crate::api_server::ApiServer;
-use crate::backend::{BackendError, BackendResult};
+use crate::backend::{Backend, BackendError, BackendResult};
 use crate::descriptor_types::{ApiRequestContext, ApiResponse};
 
 use std::sync::{Condvar, Mutex};
 
-pub trait ApiTransport<H: ApiHandler> {
+pub trait ApiTransport<B: Backend> {
     fn handle(
         &self,
-        server: &ApiServer<H>,
+        server: &ApiServer<B>,
         route_name: &str,
         context: &ApiRequestContext,
     ) -> BackendResult<Option<ApiResponse>>;
@@ -30,10 +29,10 @@ impl LocalBlockingApiTransport {
     }
 }
 
-impl<H: ApiHandler> ApiTransport<H> for LocalBlockingApiTransport {
+impl<B: Backend> ApiTransport<B> for LocalBlockingApiTransport {
     fn handle(
         &self,
-        server: &ApiServer<H>,
+        server: &ApiServer<B>,
         route_name: &str,
         context: &ApiRequestContext,
     ) -> BackendResult<Option<ApiResponse>> {

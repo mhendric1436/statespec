@@ -507,26 +507,19 @@ std::string rust_api_handler_registry_domain_modules(const std::vector<ApiHandle
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        out << "#[path = \"entities/" << snake_identifier(domain.name) << "/catalog.rs\"]\n";
+        out << "#[path = \"entities/" << snake_identifier(domain.name) << "/registry.rs\"]\n";
         out << "mod " << rust_api_handler_domain_module_name(domain.name) << ";\n";
     }
     return out.str();
 }
 
-std::string rust_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
+std::string rust_api_handler_lookup_registrations(const std::vector<ApiHandlerDomain>& domains)
 {
     std::ostringstream out;
     for (const auto& domain : domains)
     {
         const auto module_name = rust_api_handler_domain_module_name(domain.name);
-        for (const auto& api : domain.apis)
-        {
-            out << "    fn handle_" << snake_identifier(api.name)
-                << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
-            out << "        " << module_name << "::handle_" << snake_identifier(api.name)
-                << "(&self.backend, context)\n";
-            out << "    }\n\n";
-        }
+        out << "    " << module_name << "::register_handler_invokers::<B>(handlers);\n";
     }
     return out.str();
 }
@@ -564,7 +557,7 @@ crud_api_handler_domains_rs(const std::vector<ApiHandlerDomain>& domains)
     return result;
 }
 
-std::string rust_business_api_handler_delegates(const IrSystem& system)
+std::string rust_business_api_handler_lookup_entries(const IrSystem& system)
 {
     std::ostringstream out;
     for (const auto& api : system.apis)
@@ -573,15 +566,8 @@ std::string rust_business_api_handler_delegates(const IrSystem& system)
         {
             continue;
         }
-        out << "    fn handle_" << snake_identifier(api.name)
-            << "(&self, context: &ApiRequestContext) -> BackendResult<ApiResponse> {\n";
-        out << "        match &self.business_handler {\n";
-        out << "            Some(handler) => handler.handle_" << snake_identifier(api.name)
-            << "(context),\n";
-        out << "            None => Ok(ApiResponse { status_code: 501, body: "
-               "crate::json::Json::Object(std::collections::BTreeMap::new()) }),\n";
-        out << "        }\n";
-        out << "    }\n\n";
+        out << "    handlers.insert(" << rust_string(api.name) << ", |handler, context| "
+            << "handler.handle_" << snake_identifier(api.name) << "(context));\n";
     }
     return out.str();
 }
@@ -601,6 +587,16 @@ std::string rust_api_handler_domain_registry_file(const ApiHandlerDomain& domain
             << " { backend }.handle_" << snake_identifier(api.name) << "(context)\n";
         out << "}\n\n";
     }
+    out << "pub(super) fn register_handler_invokers<B: Backend>(\n";
+    out << "    handlers: &mut std::collections::HashMap<&'static str, "
+           "crate::api_dispatcher::ApiHandlerInvoker<B>>,\n";
+    out << ") {\n";
+    for (const auto& api : domain.apis)
+    {
+        out << "    handlers.insert(" << rust_string(api.name) << ", handle_"
+            << snake_identifier(api.name) << "::<B>);\n";
+    }
+    out << "}\n";
     return out.str();
 }
 
@@ -2643,7 +2639,6 @@ void add_rust_api_artifacts(
     add_rust_generated_template_file(
         result, options, templates, "api/api_handlers.rs", GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_handler_methods", generate_api_operation_handler_methods_rs(system)},
             {"business_api_operation_handler_methods",
              generate_business_api_operation_handler_methods_rs(system)}
         }
@@ -2676,9 +2671,10 @@ void add_rust_api_artifacts(
         result, options, templates, "api/api_handler_registry.rs", GeneratedArtifactTier::Api,
         diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_default_handler_methods",
-             rust_api_handler_registry_delegates(handler_domains) +
-                 rust_business_api_handler_delegates(system)},
+            {"api_handler_lookup_registrations",
+             rust_api_handler_lookup_registrations(handler_domains)},
+            {"api_business_handler_lookup_entries",
+             rust_business_api_handler_lookup_entries(system)},
             {"api_handler_registry_domain_modules",
              rust_api_handler_registry_domain_modules(handler_domains)},
             {"api_shape_import", rust_api_shape_import(system)}
@@ -2700,10 +2696,7 @@ void add_rust_api_artifacts(
         );
         add_rust_generated_template_file(
             result, options, templates, "api/api_dispatcher.rs", GeneratedArtifactTier::Api,
-            diagnostics,
-            TemplateRenderer::Values{
-                {"api_handler_lookup_entries", generate_api_handler_lookup_entries_rs(system)}
-            }
+            diagnostics
         );
         add_rust_generated_template_file(
             result, options, templates, "api/api_server.rs", GeneratedArtifactTier::Api, diagnostics

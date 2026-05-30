@@ -24,11 +24,10 @@ pub fn run() -> BackendResult<()> {
 }
 
 #[cfg(unix)]
-fn install_signal_handling<B, H, T>(process: std::sync::Arc<ApiProcess<B, H, T>>)
+fn install_signal_handling<B, T>(process: std::sync::Arc<ApiProcess<B, T>>)
 where
     B: Backend + Clone + Send + Sync + 'static,
-    H: crate::api_handlers::ApiHandler + Clone + Send + Sync + 'static,
-    T: crate::api_transport::ApiTransport<H> + Send + Sync + 'static,
+    T: crate::api_transport::ApiTransport<B> + Send + Sync + 'static,
 {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::time::Duration;
@@ -60,10 +59,9 @@ where
 }
 
 #[cfg(not(unix))]
-fn install_signal_handling<B, H, T>(_process: std::sync::Arc<ApiProcess<B, H, T>>)
+fn install_signal_handling<B, T>(_process: std::sync::Arc<ApiProcess<B, T>>)
 where
     B: Backend + Clone + Send + Sync + 'static,
-    H: crate::api_handlers::ApiHandler + Clone + Send + Sync + 'static,
-    T: crate::api_transport::ApiTransport<H> + Send + Sync + 'static,
+    T: crate::api_transport::ApiTransport<B> + Send + Sync + 'static,
 {
 }

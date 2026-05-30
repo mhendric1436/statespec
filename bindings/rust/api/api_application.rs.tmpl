@@ -1,17 +1,16 @@
 use crate::api_handler_registry::DefaultApiHandler;
-use crate::api_handlers::ApiHandler;
 use crate::api_server::{find_api_server, ApiServer};
 use crate::backend::Backend;
 {{runtime_store_imports}}
 
-pub struct ApiApplication<B: Backend, H: ApiHandler> {
+pub struct ApiApplication<B: Backend> {
     pub backend: B,
 {{runtime_store_fields}}
-    pub server: ApiServer<H>,
+    pub server: ApiServer<B>,
 }
 
-impl<B: Backend, H: ApiHandler> ApiApplication<B, H> {
-    pub fn new(server_name: &str, handler: H, backend: B) -> Option<Self> {
+impl<B: Backend> ApiApplication<B> {
+    pub fn new(server_name: &str, handler: DefaultApiHandler<B>, backend: B) -> Option<Self> {
         let descriptor = find_api_server(server_name)?;
         Some(Self {
             backend,
@@ -27,7 +26,7 @@ impl<B: Backend, H: ApiHandler> ApiApplication<B, H> {
     }
 }
 
-impl<B: Backend + Clone> ApiApplication<B, DefaultApiHandler<B>> {
+impl<B: Backend + Clone> ApiApplication<B> {
     pub fn new_default(server_name: &str, backend: B) -> Option<Self> {
         Self::new(server_name, DefaultApiHandler::new(backend.clone()), backend)
     }
