@@ -110,7 +110,6 @@ worker/worker_runtime.hpp
 worker/worker_workflows.hpp
 worker/workflow_runner.hpp
 worker/workflow_step_handlers.hpp
-worker/workflow_step_registry.hpp
 worker/workflows/provision_service.hpp
 worker/workflows/provision_service/handlers.hpp
 worker/workflows/provision_service/registry.hpp
@@ -431,13 +430,14 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "wo
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "DefaultWorkflowStepHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "workflow_step_key(\"ProvisionService\", 1, \"create_remote_service\")"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "workflow_step_key(\"ProvisionService\", 1, \"wait_for_remote_service\")"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_registry.hpp" "workflow_step_invokers"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/worker_registry.hpp" "workflow_step_invokers"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/registry.hpp" "register_workflow_step_invokers"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/registry.hpp" "invoke_provision_service_validate_request"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/handlers.hpp" "class ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/handlers.hpp" "handle_validate_request"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "workflow_step_invokers()"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "handler.handle_validate_request"
+assert_file_not_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "handler.handle_"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"wait_for_remote_service\""
 run_expect_status 0 make -C "$TMPDIR/out-app-cpp" check

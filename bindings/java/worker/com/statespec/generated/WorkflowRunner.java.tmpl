@@ -75,7 +75,7 @@ public final class WorkflowRunner {
                     Json.parse(record.stateJson())
                 );
             Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers =
-                WorkflowStepRegistry.workflowStepInvokers();
+                WorkerRegistry.workflowStepInvokers();
             WorkflowStepHandlers.WorkflowStepInvoker invoker =
                 invokers.get(
                     WorkflowStepHandlers.workflowStepKey(

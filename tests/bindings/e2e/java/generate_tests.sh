@@ -156,7 +156,6 @@ worker/com/statespec/generated/WorkerRuntime.java
 worker/com/statespec/generated/WorkerWorkflows.java
 worker/com/statespec/generated/WorkflowRunner.java
 worker/com/statespec/generated/WorkflowStepHandlers.java
-worker/com/statespec/generated/WorkflowStepRegistry.java
 worker/com/statespec/generated/registry/ProvisionWorkerRegistry.java
 worker/com/statespec/generated/worker/descriptors/Catalog.java
 worker/com/statespec/generated/worker/descriptors/ProvisionWorkerDescriptorModule.java
@@ -496,13 +495,14 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Workfl
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "DefaultHandler implements Handler"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "workflowStepKey(\"ProvisionService\", 1L, \"create_remote_service\")"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "workflowStepKey(\"ProvisionService\", 1L, \"wait_for_remote_service\")"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepRegistry.java" "workflowStepInvokers"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRegistry.java" "workflowStepInvokers"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Registry.java" "registerWorkflowStepInvokers"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Registry.java" "invokeProvisionServiceValidateRequest"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Handlers.java" "interface ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Handlers.java" "handleValidateRequest"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepRegistry.workflowStepInvokers()"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "handleValidateRequest"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "WorkerRegistry.workflowStepInvokers()"
+assert_file_not_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "handleValidateRequest"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "Optional.of(\"create_remote_service\")"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "Optional.of(\"wait_for_remote_service\")"
 cp "$SCRIPT_DIR/ApiLinkingFixture.java" "$TMPDIR/out-app-java/api/com/statespec/generated/ApiLinkingFixture.java"

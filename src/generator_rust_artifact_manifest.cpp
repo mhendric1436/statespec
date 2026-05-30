@@ -267,8 +267,6 @@ TemplateRenderer::Values rust_lib_values(
             }
             worker_modules << "#[path = \"worker/workflow_step_handlers.rs\"]\n";
             worker_modules << "pub mod workflow_step_handlers;\n";
-            worker_modules << "#[path = \"worker/workflow_step_registry.rs\"]\n";
-            worker_modules << "pub mod workflow_step_registry;\n";
             worker_modules << "#[path = \"worker/workflow_runner.rs\"]\n";
             worker_modules << "pub mod workflow_runner;\n";
         }

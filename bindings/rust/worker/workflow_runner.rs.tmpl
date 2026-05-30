@@ -8,7 +8,7 @@ use crate::workflow::{
 use crate::workflow_step_handlers::{
     workflow_step_key, WorkflowStepHandler, WorkflowStepHandlerContext,
 };
-use crate::workflow_step_registry::workflow_step_invokers;
+use crate::worker_registry::workflow_step_invokers;
 {{workflow_step_module_declarations}}
 
 pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> {
