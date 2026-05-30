@@ -166,6 +166,8 @@ assert_file_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "Busin
 assert_file_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "func RegisterHandlerInvokers"
 assert_file_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "func RegisterBusinessHandlerInvokers"
 assert_file_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "handler.HandleStartOrderProcessing"
+assert_file_not_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "func (handler DefaultAPITierHandler) HandleStartOrderProcessing"
+assert_file_not_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "NewDefaultOrderAPIHandlerRegistry"
 assert_file_not_exists "$TMPDIR/out-go/api/backend/entities/order/handlers.go"
 assert_file_not_contains "$TMPDIR/out-go/api/backend/api_handler_registry.go" "handler_not_implemented"
 assert_file_contains "$TMPDIR/out-go/api/backend/api_dispatcher.go" "func FindAPITierRoute"
