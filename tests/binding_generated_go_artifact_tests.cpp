@@ -227,6 +227,12 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/backend/entities/account/catalog.go", "func EntityAPIDescriptors"
     );
     require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "func EntityAPINames"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "CreateAccountAPIName"
+    );
+    require_generated_artifact_contains(
         result, "api/backend/entities/account/catalog.go", "func EntityAPIRouteDescriptors"
     );
     require_generated_artifact_contains(

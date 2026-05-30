@@ -2206,6 +2206,14 @@ std::string go_entity_api_catalog_file(
     }
     out << "\treturn result\n";
     out << "}\n\n";
+    out << "func EntityAPINames() []string {\n";
+    out << "\treturn []string{\n";
+    for (const auto& api : apis)
+    {
+        out << "\t\t" << go_api_name_constant_name(api.name) << ",\n";
+    }
+    out << "\t}\n";
+    out << "}\n\n";
     out << "func EntityAPIRouteDescriptors() []descriptortypes.ApiRouteDescriptor {\n";
     out << "\tresult := []descriptortypes.ApiRouteDescriptor{}\n";
     for (const auto& api : apis)

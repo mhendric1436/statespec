@@ -239,6 +239,8 @@ assert_file_not_contains "$TMPDIR/out-api-entities-go/api/backend/entities/task/
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/shapes.go" "type AccountResponse struct"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go" "func EntityShapeDescriptors"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go" "func EntityAPIDescriptors"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go" "func EntityAPINames"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go" "CreateAccountAPIName"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go" "func EntityAPIRouteDescriptors"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go" "func HandlerEntrypoints"
 assert_file_not_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go" "common/backend/descriptors"

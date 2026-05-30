@@ -237,6 +237,8 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/shapes.
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/codecs.rs" "decode_create_account_request"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/catalog.rs" "pub fn shape_descriptors"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/catalog.rs" "pub fn api_descriptors"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/catalog.rs" "pub fn api_names"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/catalog.rs" "constants::CREATE_ACCOUNT_API_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/catalog.rs" "pub fn api_route_descriptors"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/catalog.rs" "pub fn handler_entrypoints"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/catalog.rs" "#[path = \"codecs.rs\"]"

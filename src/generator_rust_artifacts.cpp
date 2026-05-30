@@ -1826,6 +1826,14 @@ std::string rust_entity_api_catalog_file(
     }
     out << "    descriptors\n";
     out << "}\n\n";
+    out << "pub fn api_names() -> &'static [&'static str] {\n";
+    out << "    &[\n";
+    for (const auto& api : apis)
+    {
+        out << "        constants::" << rust_api_name_constant_name(api.name) << ",\n";
+    }
+    out << "    ]\n";
+    out << "}\n\n";
     out << "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {\n";
     out << "    let mut descriptors = Vec::new();\n";
     for (const auto& api : apis)

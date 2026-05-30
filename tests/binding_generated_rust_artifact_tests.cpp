@@ -240,6 +240,12 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/entities/account/catalog.rs", "pub fn api_descriptors()"
     );
     require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "pub fn api_names()"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "constants::CREATE_ACCOUNT_API_NAME"
+    );
+    require_generated_artifact_contains(
         result, "api/entities/account/catalog.rs", "pub fn api_route_descriptors()"
     );
     require_generated_artifact_contains(

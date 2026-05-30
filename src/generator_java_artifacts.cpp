@@ -1880,6 +1880,15 @@ std::string java_entity_api_catalog_file(
     }
     out << "        return List.copyOf(descriptors);\n";
     out << "    }\n\n";
+    out << "    public static List<String> apiNames() {\n";
+    out << "        return List.of(\n";
+    for (std::size_t i = 0; i < apis.size(); ++i)
+    {
+        out << "            ApiConstants." << java_api_name_constant_name(apis[i].name);
+        out << (i + 1 < apis.size() ? "," : "") << "\n";
+    }
+    out << "        );\n";
+    out << "    }\n\n";
     out << "    public static List<ApiRouteDescriptor> apiRouteDescriptors() {\n";
     out << "        var descriptors = new ArrayList<ApiRouteDescriptor>();\n";
     for (const auto& api : apis)

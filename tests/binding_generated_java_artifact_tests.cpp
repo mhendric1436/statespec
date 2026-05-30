@@ -370,6 +370,14 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_contains(
         result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "public static List<String> apiNames()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "ApiConstants.CREATE_ACCOUNT_API_NAME"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
         "public static List<ApiRouteDescriptor> apiRouteDescriptors()"
     );
     require_generated_artifact_contains(

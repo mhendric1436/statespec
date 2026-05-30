@@ -262,6 +262,10 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.hpp", "api_descriptors()"
     );
+    require_generated_artifact_contains(result, "api/entities/account/catalog.hpp", "api_names()");
+    require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "constants::kCreateAccountApiName"
+    );
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.hpp", "api_route_descriptors()"
     );

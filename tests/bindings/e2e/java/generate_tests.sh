@@ -281,6 +281,8 @@ assert_file_not_contains "$TMPDIR/out-api-entities-java/api/com/statespec/genera
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Shapes.java" "record AccountResponse"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Catalog.java" "shapeDescriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Catalog.java" "apiDescriptors()"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Catalog.java" "apiNames()"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Catalog.java" "ApiConstants.CREATE_ACCOUNT_API_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Catalog.java" "apiRouteDescriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Catalog.java" "handlerEntrypoints()"
 assert_file_not_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Catalog.java" "com.statespec.generated.Descriptors"

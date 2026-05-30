@@ -231,6 +231,8 @@ assert_file_not_contains "$TMPDIR/out-api-entities-cpp/api/entities/task/codecs.
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/shapes.hpp" "struct AccountResponse"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "shape_descriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "api_descriptors()"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "api_names()"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "constants::kCreateAccountApiName"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "api_route_descriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "handler_entrypoints()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "DefaultAccountApiHandlerRegistry"

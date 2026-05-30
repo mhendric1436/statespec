@@ -1945,6 +1945,7 @@ std::string cpp_entity_api_catalog_header(
     out << "#pragma once\n\n";
     out << "#include \"../../../common/descriptors/types.hpp\"\n";
     out << "#include \"../../../common/shape_types.hpp\"\n";
+    out << "#include \"constants.hpp\"\n";
     out << "#include \"shapes.hpp\"\n";
     out << "#include \"codecs.hpp\"\n";
     out << "#include \"handlers.hpp\"\n";
@@ -1986,6 +1987,15 @@ std::string cpp_entity_api_catalog_header(
         out << "    }\n";
     }
     out << "    return descriptors;\n";
+    out << "}\n\n";
+    out << "inline std::vector<std::string> api_names()\n";
+    out << "{\n";
+    out << "    return {\n";
+    for (const auto& api : apis)
+    {
+        out << "        constants::" << cpp_api_name_constant_name(api.name) << ",\n";
+    }
+    out << "    };\n";
     out << "}\n\n";
     out << "inline std::vector<::statespec_generated::ApiRouteDescriptor> "
            "api_route_descriptors()\n";
