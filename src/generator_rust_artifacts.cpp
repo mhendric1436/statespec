@@ -310,10 +310,12 @@ std::string generate_rust_workflow_worker_module(const IrWorkflow& workflow)
     std::ostringstream out;
     out << "use crate::backend::{BackendError, BackendResult};\n";
     out << "use crate::workflow::WorkflowExecutionRecord;\n";
-    out << "use crate::workflow_step_handlers::{WorkflowStepHandler, "
-           "WorkflowStepHandlerContext};\n\n";
+    out << "use crate::workflow_" << snake_identifier(workflow.name)
+        << "_handlers::{WorkflowStepHandlerContext, " << pascal_identifier(workflow.name) << "V"
+        << workflow.version.value_or(1) << "StepHandler};\n\n";
     out << "pub fn dispatch_step(\n";
-    out << "    handler: &impl WorkflowStepHandler,\n";
+    out << "    handler: &impl " << pascal_identifier(workflow.name) << "V"
+        << workflow.version.value_or(1) << "StepHandler,\n";
     out << "    context: &WorkflowStepHandlerContext,\n";
     out << "    record: &WorkflowExecutionRecord,\n";
     out << ") -> Option<BackendResult<()>> {\n";
@@ -324,7 +326,7 @@ std::string generate_rust_workflow_worker_module(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "        " << rust_string(step.name) << " => Some(handler.handle_"
-            << snake_identifier(workflow.name + "_" + step.name) << "(context)),\n";
+            << snake_identifier(step.name) << "(context)),\n";
     }
     out << "        _ => Some(Err(BackendError::Unsupported {\n";
     out << "            message: \"unknown generated workflow step handler\".to_string(),\n";
@@ -351,6 +353,51 @@ std::string generate_rust_workflow_worker_module(const IrWorkflow& workflow)
     out << "        _ => None,\n";
     out << "    }\n";
     out << "}\n";
+    return out.str();
+}
+
+std::string generate_rust_workflow_handler_module(const IrWorkflow& workflow)
+{
+    const auto trait_name = pascal_identifier(workflow.name) + "V" +
+                            std::to_string(workflow.version.value_or(1)) + "StepHandler";
+    std::ostringstream out;
+    out << "use crate::backend::{BackendError, BackendResult};\n";
+    out << "pub use crate::workflow_step_handlers::WorkflowStepHandlerContext;\n\n";
+    out << "pub trait " << trait_name << " {\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "    fn handle_" << snake_identifier(step.name)
+            << "(&self, context: &WorkflowStepHandlerContext) -> BackendResult<()>;\n";
+    }
+    out << "}\n\n";
+    out << "#[derive(Clone, Debug)]\n";
+    out << "pub struct Default" << trait_name << ";\n\n";
+    out << "impl " << trait_name << " for Default" << trait_name << " {\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "    fn handle_" << snake_identifier(step.name)
+            << "(&self, _context: &WorkflowStepHandlerContext) -> BackendResult<()> {\n";
+        out << "        Err(BackendError::Internal {\n";
+        out << "            message: \"generated workflow step handler " << workflow.name << "."
+            << step.name << " is not implemented\".to_string(),\n";
+        out << "        })\n";
+        out << "    }\n";
+    }
+    out << "}\n";
+    return out.str();
+}
+
+std::string rust_workflow_step_handler_bases(const IrSystem& system)
+{
+    std::ostringstream out;
+    bool first = true;
+    for (const auto& workflow : system.workflows)
+    {
+        out << (first ? ": " : " + ") << "crate::workflow_" << snake_identifier(workflow.name)
+            << "_handlers::" << pascal_identifier(workflow.name) << "V"
+            << workflow.version.value_or(1) << "StepHandler";
+        first = false;
+    }
     return out.str();
 }
 
@@ -3047,6 +3094,11 @@ void add_rust_worker_artifacts(
         for (const auto& workflow : system.workflows)
         {
             add_rust_raw_worker_file(
+                result, options,
+                "worker/workflows/" + snake_identifier(workflow.name) + "/handlers.rs",
+                generate_rust_workflow_handler_module(workflow)
+            );
+            add_rust_raw_worker_file(
                 result, options, "worker/workflows/" + snake_identifier(workflow.name) + ".rs",
                 generate_rust_workflow_worker_module(workflow)
             );
@@ -3055,8 +3107,8 @@ void add_rust_worker_artifacts(
             result, options, templates, "worker/workflow_step_handlers.rs",
             GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
-                {"workflow_step_handler_methods",
-                 generate_workflow_step_handler_methods_rs(system)},
+                {"workflow_step_handler_bases", rust_workflow_step_handler_bases(system)},
+                {"workflow_step_handler_methods", std::string{}},
                 {"default_workflow_step_handler_methods",
                  generate_default_workflow_step_handler_methods_rs(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}

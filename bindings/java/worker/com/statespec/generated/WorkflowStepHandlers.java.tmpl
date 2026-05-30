@@ -4,6 +4,7 @@ import com.statespec.backend.Backend;
 import com.statespec.backend.Json;
 import java.util.List;
 import java.util.Optional;
+{{workflow_step_handler_imports}}
 
 public final class WorkflowStepHandlers {
     private WorkflowStepHandlers() {}
@@ -35,7 +36,7 @@ public final class WorkflowStepHandlers {
         void invoke(Backend backend, Context context);
     }
 
-    public interface Handler {
+    public interface Handler{{workflow_step_handler_bases}} {
 {{workflow_step_handler_methods}}    }
 
     public static final class DefaultHandler implements Handler {

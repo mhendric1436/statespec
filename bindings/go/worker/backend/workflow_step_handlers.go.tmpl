@@ -28,6 +28,7 @@ type WorkflowStepHandlerContext = workflowmodules.WorkflowStepHandlerContext
 type WorkflowStepInvoker func(context.Context, common.Backend, WorkflowStepHandlerContext) error
 
 type WorkflowStepHandler interface {
+{{workflow_step_handler_bases}}
 {{workflow_step_handler_methods}}
 }
 

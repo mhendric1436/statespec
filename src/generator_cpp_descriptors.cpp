@@ -1006,7 +1006,7 @@ std::string generate_default_workflow_step_handler_methods(const IrSystem& syste
     {
         for (const auto& step : workflow.steps)
         {
-            out << "    void handle_" << snake_identifier(workflow.name + "_" + step.name)
+            out << "    void handle_" << snake_identifier(step.name)
                 << "(const WorkflowStepHandlerContext&) override\n";
             out << "    {\n";
             out << "        throw std::runtime_error(\"generated workflow step handler "

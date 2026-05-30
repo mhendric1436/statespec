@@ -198,6 +198,16 @@ std::string generate_go_workflow_module_support()
 {
     return R"(package workflows
 
+import workflowcontext "statespec-generated/worker/backend/workflows/context"
+
+type WorkflowStepHandlerContext = workflowcontext.WorkflowStepHandlerContext
+)";
+}
+
+std::string generate_go_workflow_context_module()
+{
+    return R"(package context
+
 import common "statespec-generated/common/backend"
 
 type WorkflowStepHandlerContext struct {
@@ -276,16 +286,14 @@ std::string generate_go_workflow_worker_module(const IrWorkflow& workflow)
 {
     std::ostringstream out;
     out << "package workflows\n\n";
-    out << "import \"context\"\n\n";
-    out << "type " << pascal_identifier(workflow.name) << "StepHandler interface {\n";
-    for (const auto& step : workflow.steps)
-    {
-        out << "\tHandle" << pascal_identifier(workflow.name + "_" + step.name)
-            << "(context.Context, WorkflowStepHandlerContext) error\n";
-    }
-    out << "}\n\n";
+    const auto workflow_package = snake_identifier(workflow.name);
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tworkflowhandlers \"statespec-generated/worker/backend/workflows/" << workflow_package
+        << "\"\n";
+    out << ")\n\n";
     out << "func Dispatch" << pascal_identifier(workflow.name)
-        << "Step(ctx context.Context, handler " << pascal_identifier(workflow.name)
+        << "Step(ctx context.Context, handler workflowhandlers." << pascal_identifier(workflow.name)
         << "StepHandler, stepContext WorkflowStepHandlerContext) (bool, error) {\n";
     out << "\tif stepContext.WorkflowName != " << go_string(workflow.name) << " {\n";
     out << "\t\treturn false, nil\n";
@@ -294,8 +302,8 @@ std::string generate_go_workflow_worker_module(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "\tcase " << go_string(step.name) << ":\n";
-        out << "\t\treturn true, handler.Handle"
-            << pascal_identifier(workflow.name + "_" + step.name) << "(ctx, stepContext)\n";
+        out << "\t\treturn true, handler.Handle" << pascal_identifier(step.name)
+            << "(ctx, stepContext)\n";
     }
     out << "\tdefault:\n";
     out << "\t\treturn false, nil\n";
@@ -324,6 +332,40 @@ std::string generate_go_workflow_worker_module(const IrWorkflow& workflow)
     out << "\t\treturn nil\n";
     out << "\t}\n";
     out << "}\n";
+    return out.str();
+}
+
+std::string generate_go_workflow_handler_module(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
+    out << "package " << snake_identifier(workflow.name) << "\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tworkflowcontext \"statespec-generated/worker/backend/workflows/context\"\n";
+    out << ")\n\n";
+    out << "type " << pascal_identifier(workflow.name) << "V" << workflow.version.value_or(1)
+        << "StepHandler interface {\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "\tHandle" << pascal_identifier(step.name)
+            << "(context.Context, workflowcontext.WorkflowStepHandlerContext) error\n";
+    }
+    out << "}\n\n";
+    out << "type " << pascal_identifier(workflow.name)
+        << "StepHandler = " << pascal_identifier(workflow.name) << "V"
+        << workflow.version.value_or(1) << "StepHandler\n";
+    return out.str();
+}
+
+std::string go_workflow_step_handler_bases(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        out << "\tworkflow" << snake_identifier(workflow.name) << "."
+            << pascal_identifier(workflow.name) << "V" << workflow.version.value_or(1)
+            << "StepHandler\n";
+    }
     return out.str();
 }
 
@@ -3632,12 +3674,21 @@ void add_go_worker_artifacts(
         if (!system.workflows.empty())
         {
             add_go_raw_worker_file(
+                result, options, "worker/backend/workflows/context/context.go",
+                generate_go_workflow_context_module()
+            );
+            add_go_raw_worker_file(
                 result, options, "worker/backend/workflows/workflows.go",
                 generate_go_workflow_module_support()
             );
         }
         for (const auto& workflow : system.workflows)
         {
+            add_go_raw_worker_file(
+                result, options,
+                "worker/backend/workflows/" + snake_identifier(workflow.name) + "/handlers.go",
+                generate_go_workflow_handler_module(workflow)
+            );
             add_go_raw_worker_file(
                 result, options,
                 "worker/backend/workflows/" + snake_identifier(workflow.name) + ".go",
@@ -3648,8 +3699,8 @@ void add_go_worker_artifacts(
             result, options, templates, "worker/backend/workflow_step_handlers.go",
             GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
-                {"workflow_step_handler_methods",
-                 generate_workflow_step_handler_methods_go(system)},
+                {"workflow_step_handler_bases", go_workflow_step_handler_bases(system)},
+                {"workflow_step_handler_methods", std::string{}},
                 {"default_workflow_step_handler_methods",
                  generate_default_workflow_step_handler_methods_go(system)},
                 {"workflow_step_handler_imports",

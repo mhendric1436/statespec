@@ -967,9 +967,12 @@ std::string generate_default_workflow_step_handler_methods_rs(const IrSystem& sy
     std::ostringstream out;
     for (const auto& workflow : system.workflows)
     {
+        out << "impl crate::workflow_" << snake_identifier(workflow.name)
+            << "_handlers::" << pascal_identifier(workflow.name) << "V"
+            << workflow.version.value_or(1) << "StepHandler for DefaultWorkflowStepHandler {\n";
         for (const auto& step : workflow.steps)
         {
-            out << "    fn handle_" << snake_identifier(workflow.name + "_" + step.name)
+            out << "    fn handle_" << snake_identifier(step.name)
                 << "(&self, _context: &WorkflowStepHandlerContext) -> BackendResult<()> {\n";
             out << "        Err(BackendError::Internal {\n";
             out << "            message: \"generated workflow step handler " << workflow.name << "."
@@ -977,6 +980,7 @@ std::string generate_default_workflow_step_handler_methods_rs(const IrSystem& sy
             out << "        })\n";
             out << "    }\n";
         }
+        out << "}\n\n";
     }
     return out.str();
 }

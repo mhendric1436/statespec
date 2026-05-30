@@ -111,6 +111,7 @@ worker/worker_workflows.hpp
 worker/workflow_runner.hpp
 worker/workflow_step_handlers.hpp
 worker/workflows/provision_service.hpp
+worker/workflows/provision_service/handlers.hpp
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPDIR/out-e2e-cpp"
@@ -427,9 +428,11 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "DefaultWorkflowStepHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.wait_for_remote_service\""
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "handle_provision_service_validate_request"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "ProvisionServiceV1StepHandler"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/handlers.hpp" "class ProvisionServiceV1StepHandler"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/handlers.hpp" "handle_validate_request"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "provision_service_dispatch_step"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "handler.handle_provision_service_validate_request"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "handler.handle_validate_request"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"wait_for_remote_service\""
 run_expect_status 0 make -C "$TMPDIR/out-app-cpp" check

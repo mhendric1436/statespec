@@ -16,8 +16,7 @@ public final class WorkerLinkingFixture
     {
         private boolean handled;
 
-        @Override
-        public void handleProvisionServiceValidateRequest(WorkflowStepHandlers.Context context)
+        @Override public void handleValidateRequest(WorkflowStepHandlers.Context context)
         {
             if (!context.workflowName().equals("ProvisionService") ||
                 !context.stepName().equals("validate_request"))
@@ -27,14 +26,12 @@ public final class WorkerLinkingFixture
             handled = true;
         }
 
-        @Override
-        public void handleProvisionServiceCreateRemoteService(WorkflowStepHandlers.Context context)
+        @Override public void handleCreateRemoteService(WorkflowStepHandlers.Context context)
         {
             throw new IllegalStateException("unexpected create_remote_service step");
         }
 
-        @Override
-        public void handleProvisionServiceWaitForRemoteService(WorkflowStepHandlers.Context context)
+        @Override public void handleWaitForRemoteService(WorkflowStepHandlers.Context context)
         {
             throw new IllegalStateException("unexpected wait_for_remote_service step");
         }

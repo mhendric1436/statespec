@@ -12,7 +12,7 @@
 class ProcessWorkflowStepHandler final : public statespec_generated::worker::IWorkflowStepHandler
 {
   public:
-    void handle_provision_service_validate_request(
+    void handle_validate_request(
         const statespec_generated::worker::WorkflowStepHandlerContext& context
     ) override
     {
@@ -23,14 +23,14 @@ class ProcessWorkflowStepHandler final : public statespec_generated::worker::IWo
         handled_validate_request = true;
     }
 
-    void handle_provision_service_create_remote_service(
+    void handle_create_remote_service(
         const statespec_generated::worker::WorkflowStepHandlerContext&
     ) override
     {
         handled_create_remote_service = true;
     }
 
-    void handle_provision_service_wait_for_remote_service(
+    void handle_wait_for_remote_service(
         const statespec_generated::worker::WorkflowStepHandlerContext&
     ) override
     {

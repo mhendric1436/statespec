@@ -175,17 +175,100 @@ std::string cpp_workflow_module_function_name(
     return snake_identifier(workflow.name) + std::string(suffix);
 }
 
+std::string cpp_workflow_handler_class_name(const IrWorkflow& workflow)
+{
+    return pascal_identifier(workflow.name) + "V" + std::to_string(workflow.version.value_or(1)) +
+           "StepHandler";
+}
+
+std::string cpp_workflow_default_handler_class_name(const IrWorkflow& workflow)
+{
+    return "Default" + cpp_workflow_handler_class_name(workflow);
+}
+
+std::string cpp_workflow_handler_namespace(const IrWorkflow& workflow)
+{
+    return snake_identifier(workflow.name);
+}
+
+std::string generate_cpp_workflow_handler_module(const IrWorkflow& workflow)
+{
+    const auto class_name = cpp_workflow_handler_class_name(workflow);
+    const auto default_class_name = cpp_workflow_default_handler_class_name(workflow);
+    const auto ns = cpp_workflow_handler_namespace(workflow);
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include <stdexcept>\n\n";
+    out << "namespace statespec_generated::worker\n";
+    out << "{\n";
+    out << "struct WorkflowStepHandlerContext;\n";
+    out << "namespace workflows::" << ns << "\n";
+    out << "{\n\n";
+    out << "class " << class_name << "\n";
+    out << "{\n";
+    out << "  public:\n";
+    out << "    virtual ~" << class_name << "() = default;\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "    virtual void handle_" << snake_identifier(step.name)
+            << "(const ::statespec_generated::worker::WorkflowStepHandlerContext& context) = 0;\n";
+    }
+    out << "};\n\n";
+    out << "class " << default_class_name << " : public " << class_name << "\n";
+    out << "{\n";
+    out << "  public:\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "    void handle_" << snake_identifier(step.name)
+            << "(const ::statespec_generated::worker::WorkflowStepHandlerContext&) override\n";
+        out << "    {\n";
+        out << "        throw std::runtime_error(\"generated workflow step handler "
+            << workflow.name << "." << step.name << " is not implemented\");\n";
+        out << "    }\n";
+    }
+    out << "};\n\n";
+    out << "} // namespace workflows::" << ns << "\n";
+    out << "} // namespace statespec_generated::worker\n";
+    return out.str();
+}
+
+std::string cpp_workflow_step_handler_includes(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        out << "#include \"workflows/" << snake_identifier(workflow.name) << "/handlers.hpp\"\n";
+    }
+    return out.str();
+}
+
+std::string cpp_workflow_step_handler_bases(const IrSystem& system)
+{
+    std::ostringstream out;
+    bool first = true;
+    for (const auto& workflow : system.workflows)
+    {
+        out << (first ? " : public " : ", public ")
+            << "workflows::" << cpp_workflow_handler_namespace(workflow)
+            << "::" << cpp_workflow_handler_class_name(workflow);
+        first = false;
+    }
+    return out.str();
+}
+
 std::string generate_cpp_workflow_step_module(const IrWorkflow& workflow)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
+    out << "#include \"" << snake_identifier(workflow.name) << "/handlers.hpp\"\n";
     out << "#include \"../workflow_step_handlers.hpp\"\n\n";
     out << "#include <optional>\n";
     out << "#include <string>\n\n";
     out << "namespace statespec_generated::worker\n";
     out << "{\n\n";
     out << "inline bool " << cpp_workflow_module_function_name(workflow, "_dispatch_step") << "(\n";
-    out << "    IWorkflowStepHandler& handler,\n";
+    out << "    workflows::" << cpp_workflow_handler_namespace(workflow)
+        << "::" << cpp_workflow_handler_class_name(workflow) << "& handler,\n";
     out << "    const WorkflowStepHandlerContext& context,\n";
     out << "    const statespec::backend::WorkflowExecutionRecord& record\n";
     out << ")\n";
@@ -198,8 +281,7 @@ std::string generate_cpp_workflow_step_module(const IrWorkflow& workflow)
     {
         out << "    if (record.current_step == " << cpp_string(step.name) << ")\n";
         out << "    {\n";
-        out << "        handler.handle_" << snake_identifier(workflow.name + "_" + step.name)
-            << "(context);\n";
+        out << "        handler.handle_" << snake_identifier(step.name) << "(context);\n";
         out << "        return true;\n";
         out << "    }\n";
     }
@@ -3294,6 +3376,11 @@ void add_cpp_worker_artifacts(
         for (const auto& workflow : system.workflows)
         {
             add_cpp_raw_worker_file(
+                result, options,
+                "worker/workflows/" + snake_identifier(workflow.name) + "/handlers.hpp",
+                generate_cpp_workflow_handler_module(workflow)
+            );
+            add_cpp_raw_worker_file(
                 result, options, "worker/workflows/" + snake_identifier(workflow.name) + ".hpp",
                 generate_cpp_workflow_step_module(workflow)
             );
@@ -3302,7 +3389,8 @@ void add_cpp_worker_artifacts(
             result, options, templates, "worker/workflow_step_handlers.hpp",
             GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
-                {"workflow_step_handler_methods", generate_workflow_step_handler_methods(system)},
+                {"workflow_step_handler_includes", cpp_workflow_step_handler_includes(system)},
+                {"workflow_step_handler_bases", cpp_workflow_step_handler_bases(system)},
                 {"default_workflow_step_handler_methods",
                  generate_default_workflow_step_handler_methods(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}

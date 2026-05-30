@@ -29,16 +29,16 @@ pub struct WorkflowStepHandlerContext {
 
 pub type WorkflowStepInvoker<B> = fn(&B, &WorkflowStepHandlerContext) -> BackendResult<()>;
 
-pub trait WorkflowStepHandler {
+pub trait WorkflowStepHandler{{workflow_step_handler_bases}} {
 {{workflow_step_handler_methods}}
 }
 
 #[derive(Clone, Debug)]
 pub struct DefaultWorkflowStepHandler;
 
-impl WorkflowStepHandler for DefaultWorkflowStepHandler {
 {{default_workflow_step_handler_methods}}
-}
+
+impl WorkflowStepHandler for DefaultWorkflowStepHandler {}
 
 pub fn workflow_step_handler_keys() -> Vec<&'static str> {
     vec![

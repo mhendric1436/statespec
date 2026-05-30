@@ -7,6 +7,7 @@ use statespec_generated::workflow::{
     RegisterWorkflowDefinitionRequest, StartWorkflowRequest, WorkflowDefinition,
     WorkflowStepDefinition, WorkflowStore,
 };
+use statespec_generated::workflow_provision_service_handlers::ProvisionServiceV1StepHandler;
 use statespec_generated::workflow_runner::WorkflowRunner;
 use statespec_generated::workflow_step_handlers::{
     WorkflowStepHandler, WorkflowStepHandlerContext,
@@ -14,8 +15,8 @@ use statespec_generated::workflow_step_handlers::{
 
 struct LinkingWorkflowStepHandler;
 
-impl WorkflowStepHandler for LinkingWorkflowStepHandler {
-    fn handle_provision_service_validate_request(
+impl ProvisionServiceV1StepHandler for LinkingWorkflowStepHandler {
+    fn handle_validate_request(
         &self,
         context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<()> {
@@ -24,20 +25,22 @@ impl WorkflowStepHandler for LinkingWorkflowStepHandler {
         Ok(())
     }
 
-    fn handle_provision_service_create_remote_service(
+    fn handle_create_remote_service(
         &self,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<()> {
         Ok(())
     }
 
-    fn handle_provision_service_wait_for_remote_service(
+    fn handle_wait_for_remote_service(
         &self,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<()> {
         Ok(())
     }
 }
+
+impl WorkflowStepHandler for LinkingWorkflowStepHandler {}
 
 #[test]
 fn generated_worker_runner_links_with_memory_backend() {

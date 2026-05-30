@@ -13,8 +13,7 @@ public final class WorkerProcessFixture
     {
         private final AtomicBoolean handledValidateRequest = new AtomicBoolean(false);
 
-        @Override
-        public void handleProvisionServiceValidateRequest(WorkflowStepHandlers.Context context)
+        @Override public void handleValidateRequest(WorkflowStepHandlers.Context context)
         {
             if (!context.workflowName().equals("ProvisionService") ||
                 !context.stepName().equals("validate_request"))
@@ -24,15 +23,9 @@ public final class WorkerProcessFixture
             handledValidateRequest.set(true);
         }
 
-        @Override
-        public void handleProvisionServiceCreateRemoteService(WorkflowStepHandlers.Context context)
-        {
-        }
+        @Override public void handleCreateRemoteService(WorkflowStepHandlers.Context context) {}
 
-        @Override
-        public void handleProvisionServiceWaitForRemoteService(WorkflowStepHandlers.Context context)
-        {
-        }
+        @Override public void handleWaitForRemoteService(WorkflowStepHandlers.Context context) {}
     }
 
     public static void main(String[] args) throws Exception

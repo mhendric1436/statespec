@@ -15,7 +15,7 @@ type linkingWorkflowStepHandler struct {
 	handled bool
 }
 
-func (h *linkingWorkflowStepHandler) HandleProvisionServiceValidateRequest(ctx context.Context, step worker.WorkflowStepHandlerContext) error {
+func (h *linkingWorkflowStepHandler) HandleValidateRequest(ctx context.Context, step worker.WorkflowStepHandlerContext) error {
 	if step.WorkflowName != "ProvisionService" || step.StepName != "validate_request" {
 		t := ctx.Value(testingContextKey{}).(*testing.T)
 		t.Fatalf("unexpected workflow step: %#v", step)
@@ -24,11 +24,11 @@ func (h *linkingWorkflowStepHandler) HandleProvisionServiceValidateRequest(ctx c
 	return nil
 }
 
-func (h *linkingWorkflowStepHandler) HandleProvisionServiceCreateRemoteService(context.Context, worker.WorkflowStepHandlerContext) error {
+func (h *linkingWorkflowStepHandler) HandleCreateRemoteService(context.Context, worker.WorkflowStepHandlerContext) error {
 	return nil
 }
 
-func (h *linkingWorkflowStepHandler) HandleProvisionServiceWaitForRemoteService(context.Context, worker.WorkflowStepHandlerContext) error {
+func (h *linkingWorkflowStepHandler) HandleWaitForRemoteService(context.Context, worker.WorkflowStepHandlerContext) error {
 	return nil
 }
 

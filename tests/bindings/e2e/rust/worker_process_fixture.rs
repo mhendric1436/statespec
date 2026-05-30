@@ -10,6 +10,7 @@ use statespec_generated::worker_process::WorkerProcess;
 use statespec_generated::worker_process::WorkerProcessConfig;
 use statespec_generated::worker_runtime::WorkerRuntime;
 use statespec_generated::workflow::{StartWorkflowRequest, WorkflowStore};
+use statespec_generated::workflow_provision_service_handlers::ProvisionServiceV1StepHandler;
 use statespec_generated::workflow_step_handlers::{
     WorkflowStepHandler, WorkflowStepHandlerContext,
 };
@@ -19,8 +20,8 @@ struct ProcessWorkflowStepHandler {
     handled_validate_request: Arc<AtomicBool>,
 }
 
-impl WorkflowStepHandler for ProcessWorkflowStepHandler {
-    fn handle_provision_service_validate_request(
+impl ProvisionServiceV1StepHandler for ProcessWorkflowStepHandler {
+    fn handle_validate_request(
         &self,
         context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<()> {
@@ -30,20 +31,22 @@ impl WorkflowStepHandler for ProcessWorkflowStepHandler {
         Ok(())
     }
 
-    fn handle_provision_service_create_remote_service(
+    fn handle_create_remote_service(
         &self,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<()> {
         Ok(())
     }
 
-    fn handle_provision_service_wait_for_remote_service(
+    fn handle_wait_for_remote_service(
         &self,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<()> {
         Ok(())
     }
 }
+
+impl WorkflowStepHandler for ProcessWorkflowStepHandler {}
 
 #[test]
 fn generated_worker_process_lifecycle() {

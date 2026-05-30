@@ -11,6 +11,15 @@
 
 namespace statespec_generated::worker
 {
+struct WorkflowStepHandlerContext;
+}
+
+// clang-format off
+{{workflow_step_handler_includes}}
+// clang-format on
+
+namespace statespec_generated::worker
+{
 
 inline std::string workflow_step_key(
     const std::string& workflow_name,
@@ -47,13 +56,12 @@ using WorkflowStepInvoker = void (*)(
     const WorkflowStepHandlerContext& context
 );
 
-class IWorkflowStepHandler
+// clang-format off
+class IWorkflowStepHandler{{workflow_step_handler_bases}}
+// clang-format on
 {
   public:
     virtual ~IWorkflowStepHandler() = default;
-    // clang-format off
-{{workflow_step_handler_methods}}
-    // clang-format on
 };
 
 class DefaultWorkflowStepHandler final : public IWorkflowStepHandler
