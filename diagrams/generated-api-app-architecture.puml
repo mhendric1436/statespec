@@ -14,11 +14,13 @@ package "Generated API tier" {
   node "owned background\nthread / goroutine / task" as ApiWorker
   rectangle "ApiApplication\ncomposition root" as ApiApplication
   rectangle "ApiServer\nserver descriptor + request shell" as ApiServer
-  rectangle "ApiDispatcher\nroute lookup + typed dispatch" as ApiDispatcher
+  rectangle "ApiDispatcher\nroute map + handler maps" as ApiDispatcher
   rectangle "ApiRoutes\nroute descriptors" as ApiRoutes
   rectangle "ApiCodecs\ntyped request/response codecs" as ApiCodecs
-  interface "IApiOperationHandler\ntyped operation methods" as ApiHandler
-  rectangle "ApiHandlerRegistry\ndefault action implementations" as ApiHandlerRegistry
+  rectangle "ApiHandlerRegistry\nthin handler-map composer" as ApiHandlerRegistry
+  rectangle "api/entities/<entity>/registry\ngenerated CRUD invokers" as EntityApiRegistry
+  rectangle "api/entities/<entity>/handlers\nrepository-backed CRUD" as EntityApiHandlers
+  interface "BusinessApiHandler\nmanual business APIs" as BusinessApiHandler
   rectangle "ExternalSystemOperatorMetadataApi\noperator metadata APIs" as OperatorMetadataApi
   rectangle "ApiDescriptors\nAPI + server descriptor views" as ApiDescriptors
 }
@@ -43,7 +45,7 @@ package "Generated common tier" {
 package "User-owned API implementation" {
   component "Network transport adapter\nHTTP / RPC framework" as Transport
   component "AuthN / AuthZ / tenancy policy" as Auth
-  component "Concrete operation handler" as ConcreteHandler
+  component "Concrete business handler" as ConcreteBusinessHandler
   component "External system client implementation" as ExternalClientImpl
 }
 
@@ -98,21 +100,25 @@ CommonDescriptors --> MetricSink : register definitions
 
 ApiServer --> ApiDescriptors : find server descriptor
 ApiServer --> ApiDispatcher : handle route
-ApiDispatcher --> ApiRoutes : match route name
+ApiDispatcher --> ApiRoutes : build route_name map
+ApiDispatcher --> ApiHandlerRegistry : build api_name maps
 ApiDispatcher --> ApiCodecs : decode / encode typed payloads
-ApiDispatcher --> ApiHandler : invoke typed operation method
-ApiHandlerRegistry ..|> ApiHandler
-ConcreteHandler ..|> ApiHandler
+ApiDispatcher --> EntityApiRegistry : invoke generated CRUD invoker
+ApiDispatcher --> BusinessApiHandler : invoke business API
+ApiHandlerRegistry --> EntityApiRegistry : compose per-entity registrations
+EntityApiRegistry --> EntityApiHandlers : api_name -> backend invoker
+ConcreteBusinessHandler ..|> BusinessApiHandler
 
 OperatorMetadataApi --> MetadataRuntime : CRUD metadata records
-ConcreteHandler --> EntityRepository : load / save entities
-ConcreteHandler --> MetadataRuntime : resolve metadata
-ConcreteHandler --> CallAdapters : map fields + call external API
-ConcreteHandler --> WorkflowStore : start workflow
-ConcreteHandler --> QueueStore : enqueue
-ConcreteHandler --> FeatureFlagStore : evaluate
-ConcreteHandler --> LogSink : emit
-ConcreteHandler --> MetricSink : record
+EntityApiHandlers --> EntityRepository : create / get / list / update / delete
+ConcreteBusinessHandler --> EntityRepository : load / save entities
+ConcreteBusinessHandler --> MetadataRuntime : resolve metadata
+ConcreteBusinessHandler --> CallAdapters : map fields + call external API
+ConcreteBusinessHandler --> WorkflowStore : start workflow
+ConcreteBusinessHandler --> QueueStore : enqueue
+ConcreteBusinessHandler --> FeatureFlagStore : evaluate
+ConcreteBusinessHandler --> LogSink : emit
+ConcreteBusinessHandler --> MetricSink : record
 
 ExternalClientImpl ..|> ExternalSystemRuntime
 CallAdapters --> ExternalSystemRuntime : typed client interface
@@ -163,6 +169,21 @@ The generated composition root owns
 runtime stores and exposes bootstrap().
 The concrete backend implementation is
 selected only at the process entrypoint.
+end note
+
+note right of ApiDispatcher
+Request-time dispatch uses lookup maps:
+route_name -> route descriptor and
+api_name -> generated CRUD or business
+handler invoker. Descriptor vectors remain
+for catalog and introspection paths.
+end note
+
+note right of ApiHandlerRegistry
+The top-level registry is a thin composer.
+Generated CRUD registrations live with each
+api/entities/<entity> module. Business APIs
+use a separate user-supplied handler map.
 end note
 
 note bottom of Transaction

@@ -11,8 +11,9 @@ package "API contract" {
   rectangle "input shape\n- tenantId\n- orderId\n- requestedStatus\n- displayName" as Request
 }
 
-package "Generated handler" {
+package "Generated entity API handler" {
   rectangle "canonical IR\nvalidated names and types" as IR
+  rectangle "backend-owned CRUD invoker\nregistered by entity API registry" as Invoker
   rectangle "field mapping\npath params\nbody fields\nauth / tenant context" as Mapping
   rectangle "OCC transaction\nread version\nvalidate preconditions\nwrite mapped fields\ncommit" as Tx
 }
@@ -28,7 +29,8 @@ Caller --> Api : invokes endpoint
 Api --> Request : declares input
 Api --> IR : lowers to semantic model
 Request --> IR : contributes request fields
-IR --> Mapping : generator consumes IR
+IR --> Invoker : generator emits handler
+Invoker --> Mapping : applies derived CRUD mapping
 
 Mapping --> Entity : tenantId -> tenant_id
 Mapping --> Entity : orderId -> order_id

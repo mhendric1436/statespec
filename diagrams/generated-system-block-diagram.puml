@@ -26,10 +26,11 @@ package "Generated API artifacts" {
   rectangle "ApiProcessConfig\nAPI GC enablement" as ApiProcessConfig
   rectangle "ApiApplication\nAPI composition root" as ApiApplication
   rectangle "ApiServer" as ApiServer
-  rectangle "ApiDispatcher" as ApiDispatcher
+  rectangle "ApiDispatcher\nroute + handler maps" as ApiDispatcher
   rectangle "ApiRoutes / ApiDescriptors" as ApiRoutes
   rectangle "ApiCodecs" as ApiCodecs
-  interface "IApiOperationHandler" as ApiHandler
+  rectangle "Entity API registries\nper-entity CRUD invokers" as EntityApiRegistries
+  interface "Business API handler" as BusinessApiHandler
   rectangle "Operator metadata APIs" as OperatorMetadataApi
 }
 
@@ -46,7 +47,7 @@ package "Generated worker artifacts" {
 
 package "User-owned code" {
   component "Transport adapter" as Transport
-  component "Concrete API operation handlers" as ConcreteApiHandlers
+  component "Concrete business API handlers" as ConcreteBusinessHandlers
   component "Concrete workflow step handlers" as ConcreteStepHandlers
   component "External system clients" as ExternalClients
   component "Production backend adapter" as ProductionBackend
@@ -80,7 +81,8 @@ IR --> ApiServer
 IR --> ApiDispatcher
 IR --> ApiRoutes
 IR --> ApiCodecs
-IR --> ApiHandler
+IR --> EntityApiRegistries
+IR --> BusinessApiHandler
 IR --> OperatorMetadataApi
 IR --> WorkerMain
 IR --> WorkerRuntimeConfig
@@ -98,10 +100,12 @@ ApiApplication --> Descriptors : bootstrap_runtime_catalog()
 ApiApplication --> RuntimeStores : owns typed stores
 ApiApplication --> ApiServer
 ApiServer --> ApiDispatcher
-ApiDispatcher --> ApiRoutes
+ApiDispatcher --> ApiRoutes : route_name lookup map
 ApiDispatcher --> ApiCodecs
-ApiDispatcher --> ApiHandler
-ConcreteApiHandlers ..|> ApiHandler
+ApiDispatcher --> EntityApiRegistries : generated CRUD map
+ApiDispatcher --> BusinessApiHandler : business API map
+EntityApiRegistries --> EntityRepository : backend-owned CRUD
+ConcreteBusinessHandlers ..|> BusinessApiHandler
 Transport --> ApiServer : normalized request
 
 WorkerMain --> ProductionBackend : choose backend implementation
@@ -117,10 +121,10 @@ WorkerCatalog --> Descriptors
 WorkerDefinitions --> Descriptors
 
 OperatorMetadataApi --> MetadataRuntime
-ConcreteApiHandlers --> EntityRepository
-ConcreteApiHandlers --> MetadataRuntime
-ConcreteApiHandlers --> CallAdapters
-ConcreteApiHandlers --> RuntimeStores
+ConcreteBusinessHandlers --> EntityRepository
+ConcreteBusinessHandlers --> MetadataRuntime
+ConcreteBusinessHandlers --> CallAdapters
+ConcreteBusinessHandlers --> RuntimeStores
 ConcreteStepHandlers --> EntityRepository
 ConcreteStepHandlers --> MetadataRuntime
 ConcreteStepHandlers --> CallAdapters
@@ -158,6 +162,20 @@ Entity GC artifacts are common-tier and
 usage-pruned. API-only, Worker-only, and
 mixed deployments choose the active GC
 host with generated config flags.
+end note
+
+note right of ApiDispatcher
+Generated API dispatch uses maps for
+route names and API names. It invokes
+either a generated CRUD backend invoker
+or a user-owned business handler invoker.
+end note
+
+note right of EntityApiRegistries
+Entity-owned CRUD handler bodies live under
+api/entities/<entity>. The top-level handler
+registry only composes per-entity registries
+and the separate business handler map.
 end note
 
 note bottom of BackendContracts
