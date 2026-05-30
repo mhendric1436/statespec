@@ -157,6 +157,8 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_exists(result, "common/entities/audit_log/model.hpp");
     require_generated_artifact_exists(result, "common/entities/account/constants.hpp");
     require_generated_artifact_exists(result, "common/entities/audit_log/constants.hpp");
+    require_generated_artifact_exists(result, "api/entities/account/constants.hpp");
+    require_generated_artifact_not_exists(result, "api/entities/audit_log/constants.hpp");
     require_generated_artifact_contains(
         result, "common/entities/account/constants.hpp", "namespace constants"
     );
@@ -196,6 +198,25 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_contains(
         result, "common/entities/account/model.hpp",
         "inline constexpr const char* kAccountEntityName = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/constants.hpp",
+        "inline constexpr const char* kCreateAccountApiName = \"CreateAccount\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/constants.hpp",
+        "inline constexpr const char* kEntityApiCreateAccountRouteName = "
+        "\"EntityApi.CreateAccount\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/constants.hpp",
+        "inline constexpr const char* kCreateAccountRequestShapeName = "
+        "\"CreateAccountRequest\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/constants.hpp",
+        "inline constexpr const char* kAccountListResponseEnvelopeName = "
+        "::statespec_generated::entities::account::constants::kAccountEntityPluralName"
     );
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.hpp", "#include \"shapes.hpp\""

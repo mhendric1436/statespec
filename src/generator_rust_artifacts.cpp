@@ -1668,6 +1668,84 @@ std::string rust_entity_api_shapes_file(
     return out.str();
 }
 
+std::string rust_api_name_constant_name(const std::string& api_name)
+{
+    return upper_snake_identifier(api_name + "_api_name");
+}
+
+std::string rust_api_route_name_constant_name(
+    const std::string& api_server_name,
+    const std::string& api_name
+)
+{
+    return upper_snake_identifier(api_server_name + "_" + api_name + "_route_name");
+}
+
+std::string rust_api_response_envelope_constant_name(const std::string& entity_name)
+{
+    return upper_snake_identifier(entity_name + "_list_response_envelope_name");
+}
+
+std::string rust_entity_api_constants_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = rust_entity_api_shapes(system, entity.name);
+    std::vector<IrApi> apis;
+    for (const auto& domain : crud_api_handler_domains_rs(api_handler_domains(system)))
+    {
+        if (domain.name == entity.name)
+        {
+            apis = domain.apis;
+            break;
+        }
+    }
+
+    std::ostringstream out;
+    out << "use crate::entity_" << snake_identifier(entity.name)
+        << "::constants as entity_constants;\n\n";
+    for (const auto& api : apis)
+    {
+        out << "pub const " << rust_api_name_constant_name(api.name)
+            << ": &str = " << rust_string(api.name) << ";\n";
+    }
+    if (!apis.empty())
+    {
+        out << "\n";
+    }
+    for (const auto& api_server : system.api_servers)
+    {
+        for (const auto& api : apis)
+        {
+            if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) ==
+                api_server.serves.end())
+            {
+                continue;
+            }
+            out << "pub const " << rust_api_route_name_constant_name(api_server.name, api.name)
+                << ": &str = " << rust_string(api_server.name + "." + api.name) << ";\n";
+        }
+    }
+    if (!system.api_servers.empty() && !apis.empty())
+    {
+        out << "\n";
+    }
+    for (const auto& shape : shapes)
+    {
+        out << "pub const " << rust_shape_name_constant_name(shape.name)
+            << ": &str = " << rust_string(shape.name) << ";\n";
+    }
+    if (!shapes.empty())
+    {
+        out << "\n";
+    }
+    out << "pub const " << rust_api_response_envelope_constant_name(entity.name)
+        << ": &str = entity_constants::" << rust_entity_plural_name_constant_name(entity.name)
+        << ";\n";
+    return out.str();
+}
+
 std::string rust_entity_api_catalog_file(
     const IrSystem& system,
     const IrEntity& entity
@@ -1696,6 +1774,8 @@ std::string rust_entity_api_catalog_file(
     out << "use crate::backend::{Backend, BackendResult};\n";
     out << "use crate::entity_repository::EntityKeyValue;\n";
     out << "use crate::json::Json;\n";
+    out << "#[path = \"constants.rs\"]\n";
+    out << "pub(crate) mod constants;\n";
     out << "#[path = \"codecs.rs\"]\n";
     out << "mod codecs;\n";
     out << "#[path = \"handlers.rs\"]\n";
@@ -1809,6 +1889,10 @@ void add_rust_api_shape_type_artifacts(
         {
             continue;
         }
+        add_rust_raw_api_file(
+            result, options, "api/entities/" + snake_identifier(entity.name) + "/constants.rs",
+            rust_entity_api_constants_file(system, entity)
+        );
         add_rust_raw_api_file(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.rs",
             rust_entity_api_shapes_file(entity, shapes)

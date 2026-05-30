@@ -2069,6 +2069,77 @@ std::string go_entity_api_shapes_file(
     return out.str();
 }
 
+std::string go_api_name_constant_name(const std::string& api_name)
+{
+    return pascal_identifier(api_name) + "APIName";
+}
+
+std::string go_api_route_name_constant_name(
+    const std::string& api_server_name,
+    const std::string& api_name
+)
+{
+    return pascal_identifier(api_server_name) + pascal_identifier(api_name) + "RouteName";
+}
+
+std::string go_api_shape_name_constant_name(const std::string& shape_name)
+{
+    return pascal_identifier(shape_name) + "APIShapeName";
+}
+
+std::string go_api_response_envelope_constant_name(const std::string& entity_name)
+{
+    return pascal_identifier(entity_name) + "ListResponseEnvelopeName";
+}
+
+std::string go_entity_api_constants_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = go_entity_api_shapes(system, entity.name);
+    std::vector<IrApi> apis;
+    for (const auto& domain : crud_api_handler_domains_go(api_handler_domains(system)))
+    {
+        if (domain.name == entity.name)
+        {
+            apis = domain.apis;
+            break;
+        }
+    }
+
+    std::ostringstream out;
+    out << "package " << snake_identifier(entity.name) << "\n\n";
+    out << "import entityconstants \"statespec-generated/common/entities/"
+        << snake_identifier(entity.name) << "\"\n\n";
+    out << "const (\n";
+    for (const auto& api : apis)
+    {
+        out << "\t" << go_api_name_constant_name(api.name) << " = " << go_string(api.name) << "\n";
+    }
+    for (const auto& api_server : system.api_servers)
+    {
+        for (const auto& api : apis)
+        {
+            if (!go_api_server_serves(api_server, api.name))
+            {
+                continue;
+            }
+            out << "\t" << go_api_route_name_constant_name(api_server.name, api.name) << " = "
+                << go_string(api_server.name + "." + api.name) << "\n";
+        }
+    }
+    for (const auto& shape : shapes)
+    {
+        out << "\t" << go_api_shape_name_constant_name(shape.name) << " = " << go_string(shape.name)
+            << "\n";
+    }
+    out << "\t" << go_api_response_envelope_constant_name(entity.name) << " = entityconstants."
+        << go_entity_plural_name_constant_name(entity.name) << "\n";
+    out << ")\n";
+    return out.str();
+}
+
 std::string go_entity_api_catalog_file(
     const IrSystem& system,
     const IrEntity& entity
@@ -2265,6 +2336,11 @@ void add_go_api_shape_type_artifacts(
         {
             continue;
         }
+        add_go_raw_api_file(
+            result, options,
+            "api/backend/entities/" + snake_identifier(entity.name) + "/constants.go",
+            go_entity_api_constants_file(system, entity)
+        );
         add_go_raw_api_file(
             result, options, "api/backend/entities/" + snake_identifier(entity.name) + "/shapes.go",
             go_entity_api_shapes_file(entity, shapes, snake_identifier(entity.name))

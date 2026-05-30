@@ -152,6 +152,8 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_exists(result, "common/entities/audit_log/model.rs");
     require_generated_artifact_exists(result, "common/entities/account/constants.rs");
     require_generated_artifact_exists(result, "common/entities/audit_log/constants.rs");
+    require_generated_artifact_exists(result, "api/entities/account/constants.rs");
+    require_generated_artifact_not_exists(result, "api/entities/audit_log/constants.rs");
     require_generated_artifact_contains(
         result, "common/entities/account/constants.rs",
         "pub const ACCOUNT_ENTITY_NAME: &str = \"Account\""
@@ -188,6 +190,23 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_contains(
         result, "common/entities/account/model.rs",
         "pub const ACCOUNT_ENTITY_NAME: &str = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/constants.rs",
+        "pub const CREATE_ACCOUNT_API_NAME: &str = \"CreateAccount\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/constants.rs",
+        "pub const ENTITY_API_CREATE_ACCOUNT_ROUTE_NAME: &str = \"EntityApi.CreateAccount\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/constants.rs",
+        "pub const CREATE_ACCOUNT_REQUEST_SHAPE_NAME: &str = \"CreateAccountRequest\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/constants.rs",
+        "pub const ACCOUNT_LIST_RESPONSE_ENVELOPE_NAME: &str = "
+        "entity_constants::ACCOUNT_ENTITY_PLURAL_NAME"
     );
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.rs",

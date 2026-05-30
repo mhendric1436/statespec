@@ -157,6 +157,8 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_exists(result, "common/entities/audit_log/model.go");
     require_generated_artifact_exists(result, "common/entities/account/constants.go");
     require_generated_artifact_exists(result, "common/entities/audit_log/constants.go");
+    require_generated_artifact_exists(result, "api/backend/entities/account/constants.go");
+    require_generated_artifact_not_exists(result, "api/backend/entities/audit_log/constants.go");
     require_generated_artifact_contains(
         result, "common/entities/account/constants.go", "AccountEntityName = \"Account\""
     );
@@ -188,6 +190,22 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_not_contains(
         result, "common/entities/account/model.go", "AccountEntityName = \"Account\""
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/constants.go",
+        "CreateAccountAPIName = \"CreateAccount\""
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/constants.go",
+        "EntityApiCreateAccountRouteName = \"EntityApi.CreateAccount\""
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/constants.go",
+        "CreateAccountRequestAPIShapeName = \"CreateAccountRequest\""
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/constants.go",
+        "AccountListResponseEnvelopeName = entityconstants.AccountEntityPluralName"
     );
     require_generated_artifact_contains(
         result, "api/backend/entities/account/catalog.go", "package account"

@@ -1423,6 +1423,91 @@ std::string cpp_entity_constants_header(const IrEntity& entity)
     return out.str();
 }
 
+std::string cpp_api_name_constant_name(const std::string& api_name)
+{
+    return "k" + pascal_identifier(api_name) + "ApiName";
+}
+
+std::string cpp_api_route_name_constant_name(
+    const std::string& api_server_name,
+    const std::string& api_name
+)
+{
+    return "k" + pascal_identifier(api_server_name) + pascal_identifier(api_name) + "RouteName";
+}
+
+std::string cpp_api_response_envelope_constant_name(const std::string& entity_name)
+{
+    return "k" + pascal_identifier(entity_name) + "ListResponseEnvelopeName";
+}
+
+std::string cpp_entity_api_constants_header(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = entity_api_shapes(system, entity.name);
+    std::vector<IrApi> apis;
+    for (const auto& domain : crud_api_handler_domains(api_handler_domains(system)))
+    {
+        if (domain.name == entity.name)
+        {
+            apis = domain.apis;
+            break;
+        }
+    }
+
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../../common/entities/" << snake_identifier(entity.name)
+        << "/constants.hpp\"\n\n";
+    out << "namespace statespec_generated::api::entities::" << snake_identifier(entity.name)
+        << "::constants\n";
+    out << "{\n\n";
+    for (const auto& api : apis)
+    {
+        out << "inline constexpr const char* " << cpp_api_name_constant_name(api.name) << " = "
+            << cpp_string(api.name) << ";\n";
+    }
+    if (!apis.empty())
+    {
+        out << "\n";
+    }
+    for (const auto& api_server : system.api_servers)
+    {
+        for (const auto& api : apis)
+        {
+            if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) ==
+                api_server.serves.end())
+            {
+                continue;
+            }
+            out << "inline constexpr const char* "
+                << cpp_api_route_name_constant_name(api_server.name, api.name) << " = "
+                << cpp_string(api_server.name + "." + api.name) << ";\n";
+        }
+    }
+    if (!system.api_servers.empty() && !apis.empty())
+    {
+        out << "\n";
+    }
+    for (const auto& shape : shapes)
+    {
+        out << "inline constexpr const char* " << cpp_shape_name_constant_name(shape.name) << " = "
+            << cpp_string(shape.name) << ";\n";
+    }
+    if (!shapes.empty())
+    {
+        out << "\n";
+    }
+    out << "inline constexpr const char* " << cpp_api_response_envelope_constant_name(entity.name)
+        << " = ::statespec_generated::entities::" << snake_identifier(entity.name)
+        << "::constants::" << cpp_entity_plural_name_constant_name(entity.name) << ";\n\n";
+    out << "} // namespace statespec_generated::api::entities::" << snake_identifier(entity.name)
+        << "::constants\n";
+    return out.str();
+}
+
 std::string cpp_event_descriptor_module(const IrSystem& system)
 {
     std::ostringstream out;
@@ -1956,6 +2041,10 @@ void add_cpp_api_shape_type_artifacts(
         {
             continue;
         }
+        add_cpp_raw_api_file(
+            result, options, "api/entities/" + snake_identifier(entity.name) + "/constants.hpp",
+            cpp_entity_api_constants_header(system, entity)
+        );
         add_cpp_raw_api_file(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.hpp",
             cpp_entity_api_shapes_header(entity, shapes)

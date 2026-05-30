@@ -1734,6 +1734,87 @@ std::string java_entity_api_shapes_file(
     return out.str();
 }
 
+std::string java_api_name_constant_name(const std::string& api_name)
+{
+    return upper_snake_identifier(api_name + "_api_name");
+}
+
+std::string java_api_route_name_constant_name(
+    const std::string& api_server_name,
+    const std::string& api_name
+)
+{
+    return upper_snake_identifier(api_server_name + "_" + api_name + "_route_name");
+}
+
+std::string java_api_response_envelope_constant_name(const std::string& entity_name)
+{
+    return upper_snake_identifier(entity_name + "_list_response_envelope_name");
+}
+
+std::string java_entity_api_constants_file(
+    const IrSystem& system,
+    const IrEntity& entity
+)
+{
+    const auto shapes = java_entity_api_shapes(system, entity.name);
+    std::vector<IrApi> apis;
+    for (const auto& domain : crud_api_handler_domains_java(api_handler_domains(system)))
+    {
+        if (domain.name == entity.name)
+        {
+            apis = domain.apis;
+            break;
+        }
+    }
+
+    std::ostringstream out;
+    out << "package com.statespec.generated.entities." << snake_identifier(entity.name) << ";\n\n";
+    out << "public final class ApiConstants {\n";
+    out << "    private ApiConstants() {}\n\n";
+    for (const auto& api : apis)
+    {
+        out << "    public static final String " << java_api_name_constant_name(api.name) << " = "
+            << java_string(api.name) << ";\n";
+    }
+    if (!apis.empty())
+    {
+        out << "\n";
+    }
+    for (const auto& api_server : system.api_servers)
+    {
+        for (const auto& api : apis)
+        {
+            if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) ==
+                api_server.serves.end())
+            {
+                continue;
+            }
+            out << "    public static final String "
+                << java_api_route_name_constant_name(api_server.name, api.name) << " = "
+                << java_string(api_server.name + "." + api.name) << ";\n";
+        }
+    }
+    if (!system.api_servers.empty() && !apis.empty())
+    {
+        out << "\n";
+    }
+    for (const auto& shape : shapes)
+    {
+        out << "    public static final String " << java_shape_name_constant_name(shape.name)
+            << " = " << java_string(shape.name) << ";\n";
+    }
+    if (!shapes.empty())
+    {
+        out << "\n";
+    }
+    out << "    public static final String "
+        << java_api_response_envelope_constant_name(entity.name) << " = Constants."
+        << java_entity_plural_name_constant_name(entity.name) << ";\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string java_entity_api_catalog_file(
     const IrSystem& system,
     const IrEntity& entity
@@ -3353,6 +3434,12 @@ void add_java_api_artifacts(
         {
             continue;
         }
+        add_java_raw_api_file(
+            result, options,
+            "api/com/statespec/generated/entities/" + snake_identifier(entity.name) +
+                "/ApiConstants.java",
+            java_entity_api_constants_file(system, entity)
+        );
         add_java_raw_api_file(
             result, options, java_entity_api_codec_path(entity.name),
             java_entity_api_codec_file(system, entity)
