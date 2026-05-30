@@ -42,6 +42,11 @@ struct WorkflowStepHandlerContext
     statespec::backend::Json input;
 };
 
+using WorkflowStepInvoker = void (*)(
+    statespec::backend::IBackend& backend,
+    const WorkflowStepHandlerContext& context
+);
+
 class IWorkflowStepHandler
 {
   public:

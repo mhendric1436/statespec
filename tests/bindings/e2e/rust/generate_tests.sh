@@ -423,6 +423,7 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pu
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub fn encode(&self) -> String"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub fn workflow_step_key(workflow_name: &str, workflow_version: i64, step_name: &str) -> String"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "format!(\"{}:{}:{}\", workflow_name, workflow_version, step_name)"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub type WorkflowStepInvoker<B> = fn(&B, &WorkflowStepHandlerContext) -> BackendResult<()>"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub struct DefaultWorkflowStepHandler"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.create_remote_service\""

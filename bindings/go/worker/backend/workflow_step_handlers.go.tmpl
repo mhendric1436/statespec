@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	common "statespec-generated/common/backend"
 	workflowmodules "statespec-generated/worker/backend/workflows"
 {{workflow_step_handler_imports}}
 )
@@ -23,6 +24,8 @@ func WorkflowStepKeyString(workflowName string, workflowVersion int, stepName st
 }
 
 type WorkflowStepHandlerContext = workflowmodules.WorkflowStepHandlerContext
+
+type WorkflowStepInvoker func(context.Context, common.Backend, WorkflowStepHandlerContext) error
 
 type WorkflowStepHandler interface {
 {{workflow_step_handler_methods}}

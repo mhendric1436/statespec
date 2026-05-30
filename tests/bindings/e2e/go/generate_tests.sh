@@ -447,6 +447,8 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.g
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "func (key WorkflowStepKey) Encode() string"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "func WorkflowStepKeyString(workflowName string, workflowVersion int, stepName string) string"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "workflowName + \":\" + strconv.Itoa(workflowVersion) + \":\" + stepName"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "common \"statespec-generated/common/backend\""
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "type WorkflowStepInvoker func(context.Context, common.Backend, WorkflowStepHandlerContext) error"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.validate_request\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "type DefaultWorkflowStepHandler struct"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "\"ProvisionService.create_remote_service\""
