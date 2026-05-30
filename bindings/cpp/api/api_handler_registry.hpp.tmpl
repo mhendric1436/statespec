@@ -1,6 +1,6 @@
 #pragma once
 
-#include "api_handlers.hpp"
+#include "api_handler_registry_support.hpp"
 // clang-format off
 {{api_handler_registry_domain_includes}}
 // clang-format on
@@ -8,29 +8,17 @@
 namespace statespec_generated::api
 {
 
-class DefaultApiHandler final
+inline void register_handler_invokers([[maybe_unused]] ApiHandlerLookupMap& handlers)
 {
-  public:
-    explicit DefaultApiHandler(statespec::backend::IBackend& backend)
-        : backend_(backend)
-    {
-    }
-
-    DefaultApiHandler(
-        statespec::backend::IBackend& backend,
-        IBusinessApiOperationHandler& business_handler
-    )
-        : backend_(backend),
-          business_handler_(&business_handler)
-    {
-    }
-
     // clang-format off
-{{api_operation_default_handler_methods}} // clang-format on
+{{api_handler_lookup_registrations}} // clang-format on
+}
 
-  private:
-    [[maybe_unused]] statespec::backend::IBackend& backend_;
-    IBusinessApiOperationHandler* business_handler_ = nullptr;
-};
+inline void
+register_business_handler_invokers([[maybe_unused]] BusinessApiHandlerLookupMap& handlers)
+{
+    // clang-format off
+{{api_business_handler_lookup_entries}} // clang-format on
+}
 
 } // namespace statespec_generated::api

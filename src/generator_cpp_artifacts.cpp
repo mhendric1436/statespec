@@ -469,24 +469,9 @@ std::string cpp_entity_api_catalog_path(std::string_view entity_name)
     return "api/entities/" + snake_identifier(std::string{entity_name}) + "/catalog.hpp";
 }
 
-std::string cpp_api_handler_domain_include_path(std::string_view domain_name)
-{
-    return "entities/" + snake_identifier(std::string{domain_name}) + "/catalog.hpp";
-}
-
 std::string cpp_api_handler_domain_registry_include_path(std::string_view domain_name)
 {
     return "entities/" + snake_identifier(std::string{domain_name}) + "/registry.hpp";
-}
-
-std::string cpp_api_handler_registry_domain_includes(const std::vector<ApiHandlerDomain>& domains)
-{
-    std::ostringstream out;
-    for (const auto& domain : domains)
-    {
-        out << "#include \"" << cpp_api_handler_domain_include_path(domain.name) << "\"\n";
-    }
-    return out.str();
 }
 
 bool is_entity_crud_api(const IrApi& api);
@@ -507,7 +492,7 @@ std::string cpp_api_handler_lookup_registrations(const std::vector<ApiHandlerDom
     for (const auto& domain : domains)
     {
         out << "        ::statespec_generated::api::entities::" << snake_identifier(domain.name)
-            << "::register_handler_invokers(map);\n";
+            << "::register_handler_invokers(handlers);\n";
     }
     return out.str();
 }
@@ -521,30 +506,10 @@ std::string cpp_business_api_handler_lookup_entries(const IrSystem& system)
         {
             continue;
         }
-        out << "        map.emplace(" << cpp_string(api.name)
+        out << "        handlers.emplace(" << cpp_string(api.name)
             << ", [](IBusinessApiOperationHandler& handler, const ApiRequestContext& context) {\n";
         out << "            return handler.handle_" << snake_identifier(api.name) << "(context);\n";
         out << "        });\n";
-    }
-    return out.str();
-}
-
-std::string cpp_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
-{
-    std::ostringstream out;
-    for (const auto& domain : domains)
-    {
-        const auto catalog_namespace =
-            "::statespec_generated::api::entities::" + snake_identifier(domain.name);
-        for (const auto& api : domain.apis)
-        {
-            out << "    ApiResponse handle_" << snake_identifier(api.name)
-                << "(const ApiRequestContext& context)\n";
-            out << "    {\n";
-            out << "        " << catalog_namespace << "::HandlerRegistry handler{backend_};\n";
-            out << "        return handler.handle_" << snake_identifier(api.name) << "(context);\n";
-            out << "    }\n\n";
-        }
     }
     return out.str();
 }
@@ -579,29 +544,6 @@ std::vector<ApiHandlerDomain> crud_api_handler_domains(const std::vector<ApiHand
         }
     }
     return result;
-}
-
-std::string cpp_business_api_handler_delegates(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& api : system.apis)
-    {
-        if (is_entity_crud_api(api))
-        {
-            continue;
-        }
-        out << "    ApiResponse handle_" << snake_identifier(api.name)
-            << "(const ApiRequestContext& context)\n";
-        out << "    {\n";
-        out << "        if (business_handler_ == nullptr)\n";
-        out << "        {\n";
-        out << "            return ApiResponse{501, statespec::backend::Json::object({})};\n";
-        out << "        }\n";
-        out << "        return business_handler_->handle_" << snake_identifier(api.name)
-            << "(context);\n";
-        out << "    }\n\n";
-    }
-    return out.str();
 }
 
 std::string cpp_api_handler_domain_registry_file(const ApiHandlerDomain& domain)
@@ -2947,11 +2889,11 @@ void add_cpp_api_artifacts(
         result, options, templates, "api/api_handler_registry.hpp", GeneratedArtifactTier::Api,
         diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_default_handler_methods",
-             cpp_api_handler_registry_delegates(handler_domains) +
-                 cpp_business_api_handler_delegates(system)},
             {"api_handler_registry_domain_includes",
-             cpp_api_handler_registry_domain_includes(handler_domains)}
+             cpp_api_handler_dispatcher_domain_includes(handler_domains)},
+            {"api_handler_lookup_registrations",
+             cpp_api_handler_lookup_registrations(handler_domains)},
+            {"api_business_handler_lookup_entries", cpp_business_api_handler_lookup_entries(system)}
         }
     );
     add_cpp_generated_template_file(
@@ -2970,15 +2912,7 @@ void add_cpp_api_artifacts(
         );
         add_cpp_generated_template_file(
             result, options, templates, "api/api_dispatcher.hpp", GeneratedArtifactTier::Api,
-            diagnostics,
-            TemplateRenderer::Values{
-                {"api_handler_registry_domain_includes",
-                 cpp_api_handler_dispatcher_domain_includes(handler_domains)},
-                {"api_handler_lookup_registrations",
-                 cpp_api_handler_lookup_registrations(handler_domains)},
-                {"api_business_handler_lookup_entries",
-                 cpp_business_api_handler_lookup_entries(system)}
-            }
+            diagnostics
         );
         add_cpp_generated_template_file(
             result, options, templates, "api/api_server.hpp", GeneratedArtifactTier::Api,

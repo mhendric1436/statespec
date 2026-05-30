@@ -1185,11 +1185,6 @@ std::string generate_api_operation_default_handler_methods_impl(
     return out.str();
 }
 
-std::string generate_api_operation_default_handler_methods(const IrSystem& system)
-{
-    return generate_api_operation_default_handler_methods_impl(system, false);
-}
-
 std::string generate_api_operation_default_handler_domain_methods(const IrSystem& system)
 {
     return generate_api_operation_default_handler_methods_impl(system, false);

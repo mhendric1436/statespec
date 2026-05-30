@@ -245,7 +245,8 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/descriptors/catalog.hpp", "api::entities::account::api_route_descriptors"
     );
     require_generated_artifact_contains(
-        result, "api/api_handler_registry.hpp", "api::entities::account::HandlerRegistry"
+        result, "api/api_handler_registry.hpp",
+        "api::entities::account::register_handler_invokers(handlers)"
     );
     require_generated_artifact_not_contains(
         result, "api/descriptors/catalog.hpp", "create_account_api_descriptor"

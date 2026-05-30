@@ -25,8 +25,6 @@ std::string generate_workflow_step_next_cases(const IrSystem& system);
 
 std::string generate_business_api_operation_handler_methods(const IrSystem& system);
 
-std::string generate_api_operation_default_handler_methods(const IrSystem& system);
-
 std::string generate_api_operation_default_handler_domain_methods(const IrSystem& system);
 
 std::string generate_api_codecs(const IrSystem& system);

@@ -1,10 +1,7 @@
 #pragma once
 
-#include "api_handler_registry_support.hpp"
+#include "api_handler_registry.hpp"
 #include "api_routes.hpp"
-// clang-format off
-{{api_handler_registry_domain_includes}}
-// clang-format on
 
 #include <optional>
 #include <string>
@@ -40,7 +37,8 @@ api_handler_lookup_map()
     {
         ApiHandlerLookupMap map;
         // clang-format off
-{{api_handler_lookup_registrations}} // clang-format on
+        register_handler_invokers(map);
+        // clang-format on
         return map;
     }();
     return handlers;
@@ -55,7 +53,8 @@ business_api_handler_lookup_map()
     {
         BusinessApiHandlerLookupMap map;
         // clang-format off
-{{api_business_handler_lookup_entries}} // clang-format on
+        register_business_handler_invokers(map);
+        // clang-format on
         return map;
     }();
     return handlers;
