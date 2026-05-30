@@ -3385,6 +3385,11 @@ void add_go_api_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    if (system.apis.empty() && system.api_servers.empty())
+    {
+        return;
+    }
+
     const auto include_api_composition = !system.api_servers.empty();
 
     add_go_api_shape_type_artifacts(result, options, system);

@@ -3041,6 +3041,11 @@ void add_cpp_api_artifacts(
     DiagnosticBag& diagnostics
 )
 {
+    if (system.apis.empty() && system.api_servers.empty())
+    {
+        return;
+    }
+
     const auto include_api_composition = !system.api_servers.empty();
 
     add_cpp_api_shape_type_artifacts(result, options, system);

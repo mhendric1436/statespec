@@ -23,7 +23,6 @@ statespec::GenerationResult generate_cpp_bindings_for_artifact_tests()
 void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
 {
     const auto common = statespec::GeneratedArtifactTier::Common;
-    const auto api = statespec::GeneratedArtifactTier::Api;
     require_exact_generated_artifact_manifest(
         statespec::BindingLanguage::Cpp, "cpp",
         {
@@ -51,15 +50,6 @@ void test_cpp_binding_generator_emits_meaningful_artifact_filenames()
             {"common/entity_repository.hpp", common},
             {"common/runtime_registration.hpp", common},
             {"common/Makefile", common},
-            {"api/api_codecs.hpp", api},
-            {"api/api_codec_support.hpp", api},
-            {"api/api_descriptors.hpp", api},
-            {"api/api_handlers.hpp", api},
-            {"api/api_handler_registry.hpp", api},
-            {"api/api_handler_registry_support.hpp", api},
-            {"api/descriptors/catalog.hpp", api},
-            {"api/external_system_operator_metadata_api.hpp", api},
-            {"api/shapes.hpp", api},
         }
     );
 }
@@ -114,37 +104,9 @@ void test_cpp_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "Makefile", "common/Makefile", statespec::GeneratedArtifactTier::Common
     );
-    require_generated_file_artifact_path(
-        result, "api/api_descriptors.hpp", "api/api_descriptors.hpp",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_codecs.hpp", "api/api_codecs.hpp", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_codec_support.hpp", "api/api_codec_support.hpp",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_handlers.hpp", "api/api_handlers.hpp",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_handler_registry.hpp", "api/api_handler_registry.hpp",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_handler_registry_support.hpp", "api/api_handler_registry_support.hpp",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/descriptors/catalog.hpp", "api/descriptors/catalog.hpp",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/external_system_operator_metadata_api.hpp",
-        "api/external_system_operator_metadata_api.hpp", statespec::GeneratedArtifactTier::Api
-    );
+    require_generated_artifact_not_exists(result, "api/api_descriptors.hpp");
+    require_generated_artifact_not_exists(result, "api/api_codecs.hpp");
+    require_generated_artifact_not_exists(result, "api/api_handlers.hpp");
 }
 
 void test_cpp_entity_api_catalog_artifacts_are_operation_owned()

@@ -43,7 +43,8 @@ TemplateRenderer::Values rust_makefile_values(
 {
     const auto usage = runtime_domain_usage(system);
     const auto include_api =
-        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
+        (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api) &&
+        (!system.apis.empty() || !system.api_servers.empty());
     const auto include_worker =
         (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker) &&
         (!system.workers.empty() || usage.uses_workflows);
@@ -102,6 +103,9 @@ TemplateRenderer::Values rust_lib_values(
     const auto include_api_composition =
         (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api) &&
         !system.api_servers.empty();
+    const auto include_api =
+        (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api) &&
+        (!system.apis.empty() || !system.api_servers.empty());
     const auto include_worker =
         (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker) &&
         (!system.workers.empty() || usage.uses_workflows);
@@ -172,7 +176,7 @@ TemplateRenderer::Values rust_lib_values(
                         << "/mod.rs\"]\n";
         runtime_modules << "pub mod entity_" << snake_identifier(entity.name) << ";\n";
     }
-    if (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api)
+    if (include_api)
     {
         api_modules << "#[path = \"api/shapes.rs\"]\n";
         api_modules << "pub mod api_shapes;\n";

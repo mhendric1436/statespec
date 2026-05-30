@@ -320,7 +320,15 @@ cp "$SCRIPT_DIR/api_persistence_fixture.rs" "$TMPDIR/out-api-entities-rust/tests
 run_expect_status 0 make -C "$TMPDIR/out-api-entities-rust" check-api
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-rust"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/shapes.rs"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/api_handler_registry.rs"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/api_codecs.rs"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/api_descriptors.rs"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/external_system_operator_metadata_api.rs"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/descriptors/catalog.rs"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/api_handlers.rs"
 assert_file_not_exists "$TMPDIR/out-workflow-entities-rust/api/main.rs"
+assert_file_not_contains "$TMPDIR/out-workflow-entities-rust/Makefile" "check-api"
 assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::runtime_entity_gc_registration::register_entity_gc_workers"
 assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "use crate::worker_entity_gc_catalog::entity_gc_descriptors"
 assert_file_contains "$TMPDIR/out-workflow-entities-rust/worker/main.rs" "worker_entity_gc_descriptors()"

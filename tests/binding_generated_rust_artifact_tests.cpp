@@ -23,7 +23,6 @@ statespec::GenerationResult generate_rust_bindings_for_artifact_tests()
 void test_rust_binding_generator_emits_meaningful_artifact_filenames()
 {
     const auto common = statespec::GeneratedArtifactTier::Common;
-    const auto api = statespec::GeneratedArtifactTier::Api;
     require_exact_generated_artifact_manifest(
         statespec::BindingLanguage::Rust, "rust",
         {
@@ -53,13 +52,6 @@ void test_rust_binding_generator_emits_meaningful_artifact_filenames()
             {"common/Cargo.toml", common},
             {"common/lib.rs", common},
             {"common/Makefile", common},
-            {"api/api_codecs.rs", api},
-            {"api/api_descriptors.rs", api},
-            {"api/api_handlers.rs", api},
-            {"api/api_handler_registry.rs", api},
-            {"api/descriptors/catalog.rs", api},
-            {"api/external_system_operator_metadata_api.rs", api},
-            {"api/shapes.rs", api},
         }
     );
 }
@@ -118,28 +110,9 @@ void test_rust_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "Makefile", "common/Makefile", statespec::GeneratedArtifactTier::Common
     );
-    require_generated_file_artifact_path(
-        result, "api/api_descriptors.rs", "api/api_descriptors.rs",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_codecs.rs", "api/api_codecs.rs", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_handlers.rs", "api/api_handlers.rs", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/api_handler_registry.rs", "api/api_handler_registry.rs",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/descriptors/catalog.rs", "api/descriptors/catalog.rs",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/external_system_operator_metadata_api.rs",
-        "api/external_system_operator_metadata_api.rs", statespec::GeneratedArtifactTier::Api
-    );
+    require_generated_artifact_not_exists(result, "api/api_descriptors.rs");
+    require_generated_artifact_not_exists(result, "api/api_codecs.rs");
+    require_generated_artifact_not_exists(result, "api/api_handlers.rs");
 }
 
 void test_rust_entity_api_catalog_artifacts_are_operation_owned()

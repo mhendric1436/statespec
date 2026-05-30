@@ -23,7 +23,6 @@ statespec::GenerationResult generate_java_bindings_for_artifact_tests()
 void test_java_binding_generator_emits_meaningful_artifact_filenames()
 {
     const auto common = statespec::GeneratedArtifactTier::Common;
-    const auto api = statespec::GeneratedArtifactTier::Api;
     require_exact_generated_artifact_manifest(
         statespec::BindingLanguage::Java, "java",
         {
@@ -147,13 +146,6 @@ void test_java_binding_generator_emits_meaningful_artifact_filenames()
              common},
             {"common/com/statespec/generated/runtime/RuntimeRegistration.java", common},
             {"common/Makefile", common},
-            {"api/com/statespec/generated/ApiCodecs.java", api},
-            {"api/com/statespec/generated/ApiDescriptors.java", api},
-            {"api/com/statespec/generated/ApiHandlers.java", api},
-            {"api/com/statespec/generated/ApiHandlerRegistry.java", api},
-            {"api/com/statespec/generated/descriptors/Catalog.java", api},
-            {"api/com/statespec/generated/shapes/ShapeCatalog.java", api},
-            {"api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java", api},
         }
     );
 }
@@ -215,11 +207,6 @@ void test_java_binding_generator_models_artifact_paths()
         statespec::GeneratedArtifactTier::Common
     );
     require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/descriptors/Catalog.java",
-        "api/com/statespec/generated/descriptors/Catalog.java",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
         result, "com/statespec/generated/external/metadata/ExternalSystemMetadata.java",
         "common/com/statespec/generated/external/metadata/ExternalSystemMetadata.java",
         statespec::GeneratedArtifactTier::Common
@@ -235,27 +222,11 @@ void test_java_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "Makefile", "common/Makefile", statespec::GeneratedArtifactTier::Common
     );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiDescriptors.java",
-        "api/com/statespec/generated/ApiDescriptors.java", statespec::GeneratedArtifactTier::Api
+    require_generated_artifact_not_exists(
+        result, "api/com/statespec/generated/ApiDescriptors.java"
     );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiCodecs.java",
-        "api/com/statespec/generated/ApiCodecs.java", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiHandlers.java",
-        "api/com/statespec/generated/ApiHandlers.java", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ApiHandlerRegistry.java",
-        "api/com/statespec/generated/ApiHandlerRegistry.java", statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
-        "api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java",
-        statespec::GeneratedArtifactTier::Api
-    );
+    require_generated_artifact_not_exists(result, "api/com/statespec/generated/ApiCodecs.java");
+    require_generated_artifact_not_exists(result, "api/com/statespec/generated/ApiHandlers.java");
 }
 
 void test_java_entity_api_catalog_artifacts_are_operation_owned()

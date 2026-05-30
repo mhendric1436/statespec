@@ -589,8 +589,8 @@ sorted_expected_artifact_paths(const std::vector<ExpectedGeneratedArtifact>& exp
         language_name + " API tier should include common artifacts"
     );
     require(
-        result_has_tier(api_result, statespec::GeneratedArtifactTier::Api),
-        language_name + " API tier should include API artifacts"
+        !result_has_tier(api_result, statespec::GeneratedArtifactTier::Api),
+        language_name + " API tier should exclude API artifacts when the spec has no API surface"
     );
     require(
         !result_has_tier(api_result, statespec::GeneratedArtifactTier::Worker),

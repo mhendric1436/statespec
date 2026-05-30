@@ -13,7 +13,8 @@ TemplateRenderer::Values go_makefile_values(
 )
 {
     const auto include_api =
-        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
+        (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api) &&
+        (!system.apis.empty() || !system.api_servers.empty());
     const auto usage = runtime_domain_usage(system);
     const auto include_worker =
         (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker) &&

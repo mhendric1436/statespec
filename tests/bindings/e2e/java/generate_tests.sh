@@ -376,7 +376,15 @@ run_expect_status 0 make -C "$TMPDIR/out-api-entities-java" build-api
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-api-entities-java/build/classes" com.statespec.generated.ApiPersistenceFixture
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-java"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/shapes/ShapeCatalog.java"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/ApiHandlerRegistry.java"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/ApiCodecs.java"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/ApiDescriptors.java"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/ExternalSystemOperatorMetadataApi.java"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/descriptors/Catalog.java"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/ApiHandlers.java"
 assert_file_not_exists "$TMPDIR/out-workflow-entities-java/api/com/statespec/generated/ApiMain.java"
+assert_file_not_contains "$TMPDIR/out-workflow-entities-java/Makefile" "build-api"
 assert_file_contains "$TMPDIR/out-workflow-entities-java/worker/com/statespec/generated/WorkerMain.java" "import com.statespec.backend.runtime.EntityGcRegistration"
 assert_file_contains "$TMPDIR/out-workflow-entities-java/worker/com/statespec/generated/WorkerMain.java" "EntityGcRegistration.registerEntityGcWorkers"
 assert_file_contains "$TMPDIR/out-workflow-entities-java/worker/com/statespec/generated/WorkerMain.java" "WorkerEntityGcCatalog.descriptors()"

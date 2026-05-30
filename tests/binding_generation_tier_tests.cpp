@@ -99,12 +99,12 @@ void test_rust_lib_rs_matches_selected_tier()
     );
     const auto api_lib = generated_file_content(api_result, "lib.rs");
     require(
-        api_lib.find("pub mod api_descriptors;") != std::string::npos,
-        "API lib declares API descriptor module"
+        api_lib.find("pub mod api_descriptors;") == std::string::npos,
+        "API lib excludes API descriptor module when the spec has no API surface"
     );
     require(
-        api_lib.find("pub mod api_handlers;") != std::string::npos,
-        "API lib declares API handler module"
+        api_lib.find("pub mod api_handlers;") == std::string::npos,
+        "API lib excludes API handler module when the spec has no API surface"
     );
     require(
         api_lib.find("pub mod api_dispatcher;") == std::string::npos,
@@ -123,8 +123,9 @@ void test_rust_lib_rs_matches_selected_tier()
         "API lib excludes API transport module when no api_server is declared"
     );
     require(
-        api_lib.find("pub mod external_system_operator_metadata_api;") != std::string::npos,
-        "API lib declares external-system operator metadata API module"
+        api_lib.find("pub mod external_system_operator_metadata_api;") == std::string::npos,
+        "API lib excludes external-system operator metadata API module when the spec has no API "
+        "surface"
     );
 
     const auto worker_result = generate_for_tier(
@@ -207,12 +208,12 @@ void test_cpp_makefile_matches_selected_tier()
     );
     const auto api_makefile = generated_file_content(api_result, "Makefile");
     require(
-        api_makefile.find("api/api_descriptors.hpp") != std::string::npos,
-        "API Makefile includes API descriptors header"
+        api_makefile.find("api/api_descriptors.hpp") == std::string::npos,
+        "API Makefile excludes API descriptors header when the spec has no API surface"
     );
     require(
-        api_makefile.find("api/api_handlers.hpp") != std::string::npos,
-        "API Makefile includes API handlers header"
+        api_makefile.find("api/api_handlers.hpp") == std::string::npos,
+        "API Makefile excludes API handlers header when the spec has no API surface"
     );
     require(
         api_makefile.find("api/api_dispatcher.hpp") == std::string::npos,
@@ -231,12 +232,12 @@ void test_cpp_makefile_matches_selected_tier()
         "API Makefile excludes API transport header when no api_server is declared"
     );
     require(
-        api_makefile.find("build-api") != std::string::npos,
-        "API Makefile includes API build target"
+        api_makefile.find("build-api") == std::string::npos,
+        "API Makefile excludes API build target when the spec has no API surface"
     );
     require(
-        api_makefile.find("package-api") != std::string::npos,
-        "API Makefile includes API package target"
+        api_makefile.find("package-api") == std::string::npos,
+        "API Makefile excludes API package target when the spec has no API surface"
     );
     require(
         api_makefile.find("worker/worker_descriptors.hpp") == std::string::npos,

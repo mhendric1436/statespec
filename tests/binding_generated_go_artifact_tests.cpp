@@ -23,7 +23,6 @@ statespec::GenerationResult generate_go_bindings_for_artifact_tests()
 void test_go_binding_generator_emits_meaningful_artifact_filenames()
 {
     const auto common = statespec::GeneratedArtifactTier::Common;
-    const auto api = statespec::GeneratedArtifactTier::Api;
     require_exact_generated_artifact_manifest(
         statespec::BindingLanguage::Go, "go",
         {
@@ -52,14 +51,6 @@ void test_go_binding_generator_emits_meaningful_artifact_filenames()
             {"common/backend/runtime_registration.go", common},
             {"common/go.mod", common},
             {"common/Makefile", common},
-            {"api/backend/api_codecs.go", api},
-            {"api/backend/api_descriptors.go", api},
-            {"api/backend/api_handlers.go", api},
-            {"api/backend/api_handler_registry.go", api},
-            {"api/backend/codecsupport/api_codecs.go", api},
-            {"api/backend/descriptors/catalog.go", api},
-            {"api/backend/shapes/catalog.go", api},
-            {"api/backend/external_system_operator_metadata_api.go", api},
         }
     );
 }
@@ -117,35 +108,9 @@ void test_go_binding_generator_models_artifact_paths()
     require_generated_file_artifact_path(
         result, "Makefile", "common/Makefile", statespec::GeneratedArtifactTier::Common
     );
-    require_generated_file_artifact_path(
-        result, "api/backend/api_descriptors.go", "api/backend/api_descriptors.go",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/backend/api_codecs.go", "api/backend/api_codecs.go",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/backend/codecsupport/api_codecs.go", "api/backend/codecsupport/api_codecs.go",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/backend/descriptors/catalog.go", "api/backend/descriptors/catalog.go",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/backend/api_handlers.go", "api/backend/api_handlers.go",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/backend/api_handler_registry.go", "api/backend/api_handler_registry.go",
-        statespec::GeneratedArtifactTier::Api
-    );
-    require_generated_file_artifact_path(
-        result, "api/backend/external_system_operator_metadata_api.go",
-        "api/backend/external_system_operator_metadata_api.go",
-        statespec::GeneratedArtifactTier::Api
-    );
+    require_generated_artifact_not_exists(result, "api/backend/api_descriptors.go");
+    require_generated_artifact_not_exists(result, "api/backend/api_codecs.go");
+    require_generated_artifact_not_exists(result, "api/backend/api_handlers.go");
 }
 
 void test_go_entity_api_catalog_artifacts_are_operation_owned()

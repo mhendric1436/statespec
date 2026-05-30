@@ -14,7 +14,8 @@ TemplateRenderer::Values java_makefile_values(
 {
     const auto usage = runtime_domain_usage(system);
     const auto include_api =
-        tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api;
+        (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Api) &&
+        (!system.apis.empty() || !system.api_servers.empty());
     const auto include_worker =
         (tier == BindingGenerationTier::All || tier == BindingGenerationTier::Worker) &&
         (!system.workers.empty() || usage.uses_workflows);

@@ -339,7 +339,16 @@ run_expect_status 0 make -C "$TMPDIR/out-api-entities-go" check-api
 run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-api-entities-go" build-api
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$WORKFLOW_ENTITY_SPEC" --out "$TMPDIR/out-workflow-entities-go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/backend/shapes/catalog.go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/backend/api_handler_registry.go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/backend/api_codecs.go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/backend/api_descriptors.go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/backend/codecsupport/api_codecs.go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/backend/external_system_operator_metadata_api.go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/backend/descriptors/catalog.go"
+assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/backend/api_handlers.go"
 assert_file_not_exists "$TMPDIR/out-workflow-entities-go/api/cmd/api/main.go"
+assert_file_not_contains "$TMPDIR/out-workflow-entities-go/Makefile" "check-api"
 assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtimegc \"statespec-generated/common/backend/runtime\""
 assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "runtimegc.RegisterEntityGCWorkers"
 assert_file_contains "$TMPDIR/out-workflow-entities-go/worker/cmd/worker/main.go" "worker.WorkerEntityGCDescriptors()"
