@@ -1055,6 +1055,17 @@ std::string generate_api_operation_dispatch_cases_rs(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_handler_lookup_entries_rs(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "        handlers.insert(" << rust_string(api.name) << ", |handler, context| "
+            << "handler.handle_" << snake_identifier(api.name) << "(context));\n";
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_default_handler_methods_rs_impl(
     const IrSystem& system,
     std::string_view method_visibility

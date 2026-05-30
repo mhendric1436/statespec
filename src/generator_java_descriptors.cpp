@@ -1195,6 +1195,17 @@ std::string generate_api_operation_dispatch_cases_java(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_handler_lookup_entries_java(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "        handlers.put(" << java_string(api.name) << ", ApiHandlers.Handler::handle"
+            << pascal_identifier(api.name) << ");\n";
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_default_handler_methods_java_impl(
     const IrSystem& system,
     bool include_override

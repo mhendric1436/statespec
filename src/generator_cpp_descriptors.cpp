@@ -1099,6 +1099,20 @@ std::string generate_api_operation_dispatch_cases(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_handler_lookup_entries(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "        {" << cpp_string(api.name)
+            << ", [](IApiOperationHandler& handler, const ApiRequestContext& context) {\n";
+        out << "             return handler.handle_" << snake_identifier(api.name)
+            << "(context);\n";
+        out << "         }},\n";
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_default_handler_methods_impl(
     const IrSystem& system,
     bool include_override

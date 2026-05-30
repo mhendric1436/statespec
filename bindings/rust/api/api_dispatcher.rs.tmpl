@@ -1,13 +1,35 @@
+use std::collections::HashMap;
+use std::sync::OnceLock;
+
 use crate::api_routes;
 use crate::backend::BackendResult;
 use crate::descriptor_types::{ApiRequestContext, ApiResponse, ApiRouteDescriptor};
 
 use crate::api_handlers::ApiHandler;
 
+pub type ApiHandlerInvoker = fn(&dyn ApiHandler, &ApiRequestContext) -> BackendResult<ApiResponse>;
+
+pub fn api_route_lookup_map() -> &'static HashMap<String, ApiRouteDescriptor> {
+    static ROUTES: OnceLock<HashMap<String, ApiRouteDescriptor>> = OnceLock::new();
+    ROUTES.get_or_init(|| {
+        let mut routes = HashMap::new();
+        for route in api_routes::api_route_descriptors() {
+            routes.insert(route.name.clone(), route);
+        }
+        routes
+    })
+}
+
+pub fn api_handler_lookup_map() -> &'static HashMap<&'static str, ApiHandlerInvoker> {
+    static HANDLERS: OnceLock<HashMap<&'static str, ApiHandlerInvoker>> = OnceLock::new();
+    HANDLERS.get_or_init(|| {
+        let mut handlers: HashMap<&'static str, ApiHandlerInvoker> = HashMap::new();
+{{api_handler_lookup_entries}}        handlers
+    })
+}
+
 pub fn find_api_route(route_name: &str) -> Option<ApiRouteDescriptor> {
-    api_routes::api_route_descriptors()
-        .into_iter()
-        .find(|route| route.name == route_name)
+    api_route_lookup_map().get(route_name).cloned()
 }
 
 pub fn dispatch_api_route<H: ApiHandler>(
@@ -18,7 +40,8 @@ pub fn dispatch_api_route<H: ApiHandler>(
     let Some(route) = find_api_route(route_name) else {
         return Ok(None);
     };
-    match route.api_name.as_str() {
-{{api_operation_dispatch_cases}}        _ => Ok(None),
-    }
+    let Some(invoker) = api_handler_lookup_map().get(route.api_name.as_str()) else {
+        return Ok(None);
+    };
+    invoker(handler, context).map(Some)
 }

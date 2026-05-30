@@ -32,6 +32,8 @@ std::string generate_business_api_operation_handler_methods_go(const IrSystem& s
 
 std::string generate_api_operation_dispatch_cases_go(const IrSystem& system);
 
+std::string generate_api_handler_lookup_entries_go(const IrSystem& system);
+
 std::string generate_api_operation_default_handler_methods_go(const IrSystem& system);
 
 std::string generate_api_operation_default_handler_methods_go_for_receiver(

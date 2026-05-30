@@ -3419,7 +3419,7 @@ void add_java_api_artifacts(
             result, options, templates, java_api_generated_path("ApiDispatcher.java"),
             GeneratedArtifactTier::Api, diagnostics,
             TemplateRenderer::Values{
-                {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_java(system)}
+                {"api_handler_lookup_entries", generate_api_handler_lookup_entries_java(system)}
             }
         );
         add_java_generated_template_file(

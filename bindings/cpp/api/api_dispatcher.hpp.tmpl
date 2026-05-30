@@ -4,21 +4,56 @@
 #include "api_routes.hpp"
 
 #include <optional>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace statespec_generated::api
 {
 
+using ApiHandlerInvoker = ApiResponse (*)(
+    IApiOperationHandler&,
+    const ApiRequestContext&
+);
+
+inline const std::unordered_map<
+    std::string,
+    ApiRouteDescriptor>&
+api_route_lookup_map()
+{
+    static const auto routes = []
+    {
+        std::unordered_map<std::string, ApiRouteDescriptor> map;
+        for (const auto& route : api_route_descriptors())
+        {
+            map.emplace(route.name, route);
+        }
+        return map;
+    }();
+    return routes;
+}
+
+inline const std::unordered_map<
+    std::string_view,
+    ApiHandlerInvoker>&
+api_handler_lookup_map()
+{
+    static const std::unordered_map<std::string_view, ApiHandlerInvoker> handlers{
+        // clang-format off
+{{api_handler_lookup_entries}} // clang-format on
+    };
+    return handlers;
+}
+
 inline std::optional<ApiRouteDescriptor> find_api_route(std::string_view route_name)
 {
-    for (const auto& route : api_route_descriptors())
+    const auto& routes = api_route_lookup_map();
+    const auto it = routes.find(std::string{route_name});
+    if (it == routes.end())
     {
-        if (route.name == route_name)
-        {
-            return route;
-        }
+        return std::nullopt;
     }
-    return std::nullopt;
+    return it->second;
 }
 
 inline std::optional<ApiResponse> dispatch_api_route(
@@ -32,9 +67,13 @@ inline std::optional<ApiResponse> dispatch_api_route(
     {
         return std::nullopt;
     }
-    // clang-format off
-{{api_operation_dispatch_cases}} // clang-format on
-    return std::nullopt;
+    const auto& handlers = api_handler_lookup_map();
+    const auto handler_it = handlers.find(std::string_view{route->api_name});
+    if (handler_it == handlers.end())
+    {
+        return std::nullopt;
+    }
+    return handler_it->second(handler, context);
 }
 
 } // namespace statespec_generated::api

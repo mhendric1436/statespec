@@ -1022,6 +1022,20 @@ std::string generate_api_operation_dispatch_cases_go(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_api_handler_lookup_entries_go(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        out << "\t" << go_string(api.name) << ": func(ctx context.Context, handler APITierHandler, "
+            << "request descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error) "
+               "{\n";
+        out << "\t\treturn handler.Handle" << pascal_identifier(api.name) << "(ctx, request)\n";
+        out << "\t},\n";
+    }
+    return out.str();
+}
+
 std::string generate_api_operation_default_handler_methods_go_for_receiver(
     const IrSystem& system,
     std::string_view receiver_type

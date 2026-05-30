@@ -3295,7 +3295,7 @@ void add_go_api_artifacts(
             result, options, templates, "api/backend/api_dispatcher.go", GeneratedArtifactTier::Api,
             diagnostics,
             TemplateRenderer::Values{
-                {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases_go(system)}
+                {"api_handler_lookup_entries", generate_api_handler_lookup_entries_go(system)}
             }
         );
         add_go_generated_template_file(

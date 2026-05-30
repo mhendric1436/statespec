@@ -6,13 +6,38 @@ import (
 	descriptortypes "statespec-generated/common/backend/descriptortypes"
 )
 
-func FindAPITierRoute(routeName string) (descriptortypes.ApiRouteDescriptor, bool) {
+type APITierHandlerInvoker func(context.Context, APITierHandler, descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error)
+
+var apiTierRouteLookupMap = func() map[string]descriptortypes.ApiRouteDescriptor {
+	routes := make(map[string]descriptortypes.ApiRouteDescriptor)
 	for _, route := range APITierRouteDescriptors() {
-		if route.Name == routeName {
-			return route, true
-		}
+		routes[route.Name] = route
 	}
-	return descriptortypes.ApiRouteDescriptor{}, false
+	return routes
+}()
+
+var apiTierHandlerLookupMap = map[string]APITierHandlerInvoker{
+{{api_handler_lookup_entries}}}
+
+func APITierRouteLookupMap() map[string]descriptortypes.ApiRouteDescriptor {
+	routes := make(map[string]descriptortypes.ApiRouteDescriptor, len(apiTierRouteLookupMap))
+	for name, route := range apiTierRouteLookupMap {
+		routes[name] = route
+	}
+	return routes
+}
+
+func APITierHandlerLookupMap() map[string]APITierHandlerInvoker {
+	handlers := make(map[string]APITierHandlerInvoker, len(apiTierHandlerLookupMap))
+	for name, handler := range apiTierHandlerLookupMap {
+		handlers[name] = handler
+	}
+	return handlers
+}
+
+func FindAPITierRoute(routeName string) (descriptortypes.ApiRouteDescriptor, bool) {
+	route, ok := apiTierRouteLookupMap[routeName]
+	return route, ok
 }
 
 func DispatchAPITierRoute(ctx context.Context, handler APITierHandler, routeName string, request descriptortypes.APIRequestContext) (descriptortypes.APIResponse, bool, error) {
@@ -20,7 +45,13 @@ func DispatchAPITierRoute(ctx context.Context, handler APITierHandler, routeName
 	if !ok {
 		return descriptortypes.APIResponse{}, false, nil
 	}
-	switch route.ApiName {
-{{api_operation_dispatch_cases}}	}
-	return descriptortypes.APIResponse{}, false, nil
+	invoker, ok := apiTierHandlerLookupMap[route.ApiName]
+	if !ok {
+		return descriptortypes.APIResponse{}, false, nil
+	}
+	response, err := invoker(ctx, handler, request)
+	if err != nil {
+		return descriptortypes.APIResponse{}, true, err
+	}
+	return response, true, nil
 }

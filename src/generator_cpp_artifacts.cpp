@@ -2908,7 +2908,7 @@ void add_cpp_api_artifacts(
             result, options, templates, "api/api_dispatcher.hpp", GeneratedArtifactTier::Api,
             diagnostics,
             TemplateRenderer::Values{
-                {"api_operation_dispatch_cases", generate_api_operation_dispatch_cases(system)}
+                {"api_handler_lookup_entries", generate_api_handler_lookup_entries(system)}
             }
         );
         add_cpp_generated_template_file(

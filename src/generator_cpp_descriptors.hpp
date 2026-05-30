@@ -29,6 +29,8 @@ std::string generate_business_api_operation_handler_methods(const IrSystem& syst
 
 std::string generate_api_operation_dispatch_cases(const IrSystem& system);
 
+std::string generate_api_handler_lookup_entries(const IrSystem& system);
+
 std::string generate_api_operation_default_handler_methods(const IrSystem& system);
 
 std::string generate_api_operation_default_handler_domain_methods(const IrSystem& system);

@@ -1,18 +1,45 @@
 package com.statespec.generated;
 
 import com.statespec.generated.descriptors.types.ApiRouteDescriptor;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public final class ApiDispatcher {
     private ApiDispatcher() {}
 
-    public static Optional<ApiRouteDescriptor> findApiRoute(String routeName) {
+    @FunctionalInterface
+    public interface HandlerInvoker {
+        ApiResponse invoke(ApiHandlers.Handler handler, ApiRequestContext context) throws Exception;
+    }
+
+    private static final Map<String, ApiRouteDescriptor> ROUTES_BY_NAME = buildRouteLookupMap();
+    private static final Map<String, HandlerInvoker> HANDLERS_BY_API_NAME = buildHandlerLookupMap();
+
+    private static Map<String, ApiRouteDescriptor> buildRouteLookupMap() {
+        var routes = new HashMap<String, ApiRouteDescriptor>();
         for (ApiRouteDescriptor route : ApiRoutes.apiRouteDescriptors()) {
-            if (route.name().equals(routeName)) {
-                return Optional.of(route);
-            }
+            routes.put(route.name(), route);
         }
-        return Optional.empty();
+        return Collections.unmodifiableMap(routes);
+    }
+
+    private static Map<String, HandlerInvoker> buildHandlerLookupMap() {
+        var handlers = new HashMap<String, HandlerInvoker>();
+{{api_handler_lookup_entries}}        return Collections.unmodifiableMap(handlers);
+    }
+
+    public static Map<String, ApiRouteDescriptor> apiRouteLookupMap() {
+        return ROUTES_BY_NAME;
+    }
+
+    public static Map<String, HandlerInvoker> apiHandlerLookupMap() {
+        return HANDLERS_BY_API_NAME;
+    }
+
+    public static Optional<ApiRouteDescriptor> findApiRoute(String routeName) {
+        return Optional.ofNullable(ROUTES_BY_NAME.get(routeName));
     }
 
     public static Optional<ApiResponse> dispatchApiRoute(
@@ -24,6 +51,10 @@ public final class ApiDispatcher {
         if (!route.isPresent()) {
             return Optional.empty();
         }
-{{api_operation_dispatch_cases}}        return Optional.empty();
+        HandlerInvoker invoker = HANDLERS_BY_API_NAME.get(route.get().apiName());
+        if (invoker == null) {
+            return Optional.empty();
+        }
+        return Optional.of(invoker.invoke(handler, context));
     }
 }
