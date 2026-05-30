@@ -1,7 +1,10 @@
 #pragma once
 
-#include "api_handlers.hpp"
+#include "api_handler_registry_support.hpp"
 #include "api_routes.hpp"
+// clang-format off
+{{api_handler_registry_domain_includes}}
+// clang-format on
 
 #include <optional>
 #include <string>
@@ -10,11 +13,6 @@
 
 namespace statespec_generated::api
 {
-
-using ApiHandlerInvoker = ApiResponse (*)(
-    IApiOperationHandler&,
-    const ApiRequestContext&
-);
 
 inline const std::unordered_map<
     std::string,
@@ -38,10 +36,13 @@ inline const std::unordered_map<
     ApiHandlerInvoker>&
 api_handler_lookup_map()
 {
-    static const std::unordered_map<std::string_view, ApiHandlerInvoker> handlers{
+    static const ApiHandlerLookupMap handlers = []
+    {
+        ApiHandlerLookupMap map;
         // clang-format off
-{{api_handler_lookup_entries}} // clang-format on
-    };
+{{api_handler_lookup_registrations}}{{api_business_handler_lookup_entries}} // clang-format on
+        return map;
+    }();
     return handlers;
 }
 

@@ -474,12 +474,57 @@ std::string cpp_api_handler_domain_include_path(std::string_view domain_name)
     return "entities/" + snake_identifier(std::string{domain_name}) + "/catalog.hpp";
 }
 
+std::string cpp_api_handler_domain_registry_include_path(std::string_view domain_name)
+{
+    return "entities/" + snake_identifier(std::string{domain_name}) + "/registry.hpp";
+}
+
 std::string cpp_api_handler_registry_domain_includes(const std::vector<ApiHandlerDomain>& domains)
 {
     std::ostringstream out;
     for (const auto& domain : domains)
     {
         out << "#include \"" << cpp_api_handler_domain_include_path(domain.name) << "\"\n";
+    }
+    return out.str();
+}
+
+bool is_entity_crud_api(const IrApi& api);
+
+std::string cpp_api_handler_dispatcher_domain_includes(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        out << "#include \"" << cpp_api_handler_domain_registry_include_path(domain.name) << "\"\n";
+    }
+    return out.str();
+}
+
+std::string cpp_api_handler_lookup_registrations(const std::vector<ApiHandlerDomain>& domains)
+{
+    std::ostringstream out;
+    for (const auto& domain : domains)
+    {
+        out << "        ::statespec_generated::api::entities::" << snake_identifier(domain.name)
+            << "::register_handler_invokers(map);\n";
+    }
+    return out.str();
+}
+
+std::string cpp_business_api_handler_lookup_entries(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& api : system.apis)
+    {
+        if (is_entity_crud_api(api))
+        {
+            continue;
+        }
+        out << "        map.emplace(" << cpp_string(api.name)
+            << ", [](IApiOperationHandler& handler, const ApiRequestContext& context) {\n";
+        out << "            return handler.handle_" << snake_identifier(api.name) << "(context);\n";
+        out << "        });\n";
     }
     return out.str();
 }
@@ -559,11 +604,29 @@ std::string cpp_business_api_handler_delegates(const IrSystem& system)
     return out.str();
 }
 
-std::string cpp_api_handler_domain_registry_file()
+std::string cpp_api_handler_domain_registry_file(const ApiHandlerDomain& domain)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
+    out << "#include \"../../api_handler_registry_support.hpp\"\n";
     out << "#include \"handlers.hpp\"\n";
+    out << "\n";
+    out << "namespace statespec_generated::api::entities::" << snake_identifier(domain.name)
+        << "\n";
+    out << "{\n\n";
+    out << "inline void register_handler_invokers(::statespec_generated::api::ApiHandlerLookupMap& "
+           "handlers)\n";
+    out << "{\n";
+    for (const auto& api : domain.apis)
+    {
+        out << "    handlers.emplace(" << cpp_string(api.name)
+            << ", [](IApiOperationHandler& handler, const ApiRequestContext& context) {\n";
+        out << "        return handler.handle_" << snake_identifier(api.name) << "(context);\n";
+        out << "    });\n";
+    }
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api::entities::" << snake_identifier(domain.name)
+        << "\n";
     return out.str();
 }
 
@@ -2876,7 +2939,7 @@ void add_cpp_api_artifacts(
         );
         add_cpp_raw_api_file(
             result, options, cpp_api_handler_domain_registry_path(domain.name),
-            cpp_api_handler_domain_registry_file()
+            cpp_api_handler_domain_registry_file(domain)
         );
     }
     add_cpp_generated_template_file(
@@ -2908,7 +2971,12 @@ void add_cpp_api_artifacts(
             result, options, templates, "api/api_dispatcher.hpp", GeneratedArtifactTier::Api,
             diagnostics,
             TemplateRenderer::Values{
-                {"api_handler_lookup_entries", generate_api_handler_lookup_entries(system)}
+                {"api_handler_registry_domain_includes",
+                 cpp_api_handler_dispatcher_domain_includes(handler_domains)},
+                {"api_handler_lookup_registrations",
+                 cpp_api_handler_lookup_registrations(handler_domains)},
+                {"api_business_handler_lookup_entries",
+                 cpp_business_api_handler_lookup_entries(system)}
             }
         );
         add_cpp_generated_template_file(

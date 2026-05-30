@@ -1,16 +1,25 @@
 #pragma once
 
 #include "../common/backend.hpp"
+#include "api_handlers.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <map>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace statespec_generated::api
 {
+
+using ApiHandlerInvoker = ApiResponse (*)(
+    IApiOperationHandler&,
+    const ApiRequestContext&
+);
+
+using ApiHandlerLookupMap = std::unordered_map<std::string_view, ApiHandlerInvoker>;
 
 inline std::vector<std::string> split_api_path(std::string_view path)
 {
