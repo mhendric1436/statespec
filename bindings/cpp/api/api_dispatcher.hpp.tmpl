@@ -19,7 +19,7 @@ using ApiHandlerInvoker = ApiResponse (*)(
 inline const std::unordered_map<
     std::string,
     ApiRouteDescriptor>&
-api_route_lookup_map()
+api_route_descriptor_map()
 {
     static const auto routes = []
     {
@@ -47,7 +47,7 @@ api_handler_lookup_map()
 
 inline std::optional<ApiRouteDescriptor> find_api_route(std::string_view route_name)
 {
-    const auto& routes = api_route_lookup_map();
+    const auto& routes = api_route_descriptor_map();
     const auto it = routes.find(std::string{route_name});
     if (it == routes.end())
     {
