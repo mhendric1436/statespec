@@ -11,17 +11,15 @@ public final class ApiLinkingFixture
 {
     private ApiLinkingFixture() {}
 
-    private static final class LinkingHandler implements ApiHandlers.Handler
+    private static final class LinkingHandler implements ApiHandlers.BusinessHandler
     {
         private final InMemoryBackend backend = new InMemoryBackend();
 
-        @Override
         public ApiResponse handleStartProvision(ApiRequestContext context) throws Exception
         {
             return recordRequest(context);
         }
 
-        @Override
         public ApiResponse handleReportProvisionReady(ApiRequestContext context) throws Exception
         {
             return recordRequest(context);
@@ -47,7 +45,10 @@ public final class ApiLinkingFixture
         ApiServerDescriptor descriptor =
             ApiServer.findApiServer("ProvisionApi")
                 .orElseThrow(() -> new IllegalStateException("ProvisionApi descriptor not found"));
-        ApiServer server = new ApiServer(descriptor, new LinkingHandler());
+        ApiServer server = new ApiServer(
+            descriptor,
+            ApiHandlerRegistry.defaultHandler(new InMemoryBackend(), new LinkingHandler())
+        );
         Optional<ApiResponse> response = server.handle(
             "ProvisionApi.StartProvision",
             new ApiRequestContext(

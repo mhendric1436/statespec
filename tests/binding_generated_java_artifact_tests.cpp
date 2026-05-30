@@ -374,7 +374,7 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_contains(
         result, "api/com/statespec/generated/ApiHandlerRegistry.java",
-        "entities.account.Catalog.handleCreateAccount"
+        "entities.account.Registry.registerHandlerInvokers"
     );
     require_generated_artifact_not_contains(
         result, "api/com/statespec/generated/descriptors/Catalog.java",

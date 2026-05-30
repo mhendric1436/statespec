@@ -10,7 +10,11 @@ public final class ApiApplication {
 {{runtime_store_fields}}
     private final ApiServer server;
 
-    public ApiApplication(Backend backend, String serverName, ApiHandlers.Handler handler) {
+    public ApiApplication(
+        Backend backend,
+        String serverName,
+        ApiHandlerRegistry.DefaultHandler handler
+    ) {
         ApiServerDescriptor descriptor =
             ApiServer.findApiServer(serverName)
                 .orElseThrow(() -> new IllegalArgumentException("unknown generated API server"));

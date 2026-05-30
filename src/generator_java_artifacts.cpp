@@ -373,22 +373,20 @@ std::filesystem::path java_entity_api_catalog_path(std::string_view entity_name)
            "Catalog.java";
 }
 
-std::string java_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
+std::string java_api_handler_registry_domain_imports(const std::vector<ApiHandlerDomain>& domains)
+{
+    (void)domains;
+    std::ostringstream out;
+    return out.str();
+}
+
+std::string java_api_handler_lookup_registrations(const std::vector<ApiHandlerDomain>& domains)
 {
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        const auto registry_class =
-            "com.statespec.generated.entities." + snake_identifier(domain.name) + ".Catalog";
-        for (const auto& api : domain.apis)
-        {
-            out << "        @Override\n";
-            out << "        public ApiResponse handle" << pascal_identifier(api.name)
-                << "(ApiRequestContext context) throws Exception {\n";
-            out << "            return " << registry_class << ".handle"
-                << pascal_identifier(api.name) << "(backend, context);\n";
-            out << "        }\n\n";
-        }
+        out << "        com.statespec.generated.entities." << snake_identifier(domain.name)
+            << ".Registry.registerHandlerInvokers(handlers);\n";
     }
     return out.str();
 }
@@ -426,7 +424,7 @@ crud_api_handler_domains_java(const std::vector<ApiHandlerDomain>& domains)
     return result;
 }
 
-std::string java_business_api_handler_delegates(const IrSystem& system)
+std::string java_business_api_handler_lookup_entries(const IrSystem& system)
 {
     std::ostringstream out;
     for (const auto& api : system.apis)
@@ -435,16 +433,8 @@ std::string java_business_api_handler_delegates(const IrSystem& system)
         {
             continue;
         }
-        out << "        @Override\n";
-        out << "        public ApiResponse handle" << pascal_identifier(api.name)
-            << "(ApiRequestContext context) throws Exception {\n";
-        out << "            if (businessHandler == null) {\n";
-        out << "                return new ApiResponse(501, "
-               "com.statespec.backend.Json.object(java.util.Map.of()));\n";
-        out << "            }\n";
-        out << "            return businessHandler.handle" << pascal_identifier(api.name)
-            << "(context);\n";
-        out << "        }\n\n";
+        out << "        handlers.put(" << java_string(api.name) << ", "
+            << "ApiHandlers.BusinessHandler::handle" << pascal_identifier(api.name) << ");\n";
     }
     return out.str();
 }
@@ -480,8 +470,10 @@ std::string java_api_handler_domain_registry_file(const ApiHandlerDomain& domain
 {
     std::ostringstream out;
     out << "package com.statespec.generated.entities." << snake_identifier(domain.name) << ";\n\n";
+    out << "import com.statespec.generated.ApiDispatcher;\n";
     out << "import com.statespec.generated.ApiRequestContext;\n";
     out << "import com.statespec.generated.ApiResponse;\n\n";
+    out << "import java.util.Map;\n\n";
     out << "public final class Registry {\n";
     out << "    private Registry() {}\n\n";
     for (const auto& api : domain.apis)
@@ -493,6 +485,15 @@ std::string java_api_handler_domain_registry_file(const ApiHandlerDomain& domain
             << pascal_identifier(api.name) << "(context);\n";
         out << "    }\n\n";
     }
+    out << "    public static void registerHandlerInvokers(\n";
+    out << "        Map<String, ApiDispatcher.HandlerInvoker> handlers\n";
+    out << "    ) {\n";
+    for (const auto& api : domain.apis)
+    {
+        out << "        handlers.put(" << java_string(api.name) << ", Registry::handle"
+            << pascal_identifier(api.name) << ");\n";
+    }
+    out << "    }\n";
     out << "}\n";
     return out.str();
 }
@@ -3361,7 +3362,6 @@ void add_java_api_artifacts(
         result, options, templates, java_api_generated_path("ApiHandlers.java"),
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_handler_methods", generate_api_operation_handler_methods_java(system)},
             {"business_api_operation_handler_methods",
              generate_business_api_operation_handler_methods_java(system)}
         }
@@ -3394,10 +3394,12 @@ void add_java_api_artifacts(
         result, options, templates, java_api_generated_path("ApiHandlerRegistry.java"),
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_default_handler_methods",
-             java_api_handler_registry_delegates(handler_domains) +
-                 java_business_api_handler_delegates(system)},
-            {"api_shape_import", {}}
+            {"api_handler_registry_domain_imports",
+             java_api_handler_registry_domain_imports(handler_domains)},
+            {"api_handler_lookup_registrations",
+             java_api_handler_lookup_registrations(handler_domains)},
+            {"api_business_handler_lookup_entries",
+             java_business_api_handler_lookup_entries(system)}
         }
     );
     add_java_generated_template_file(
@@ -3417,10 +3419,7 @@ void add_java_api_artifacts(
         );
         add_java_generated_template_file(
             result, options, templates, java_api_generated_path("ApiDispatcher.java"),
-            GeneratedArtifactTier::Api, diagnostics,
-            TemplateRenderer::Values{
-                {"api_handler_lookup_entries", generate_api_handler_lookup_entries_java(system)}
-            }
+            GeneratedArtifactTier::Api, diagnostics
         );
         add_java_generated_template_file(
             result, options, templates, java_api_generated_path("ApiServer.java"),

@@ -1,5 +1,7 @@
 package com.statespec.generated;
 
+import com.statespec.backend.Backend;
+import com.statespec.backend.Json;
 import com.statespec.generated.descriptors.types.ApiRouteDescriptor;
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,11 +13,19 @@ public final class ApiDispatcher {
 
     @FunctionalInterface
     public interface HandlerInvoker {
-        ApiResponse invoke(ApiHandlers.Handler handler, ApiRequestContext context) throws Exception;
+        ApiResponse invoke(Backend backend, ApiRequestContext context) throws Exception;
+    }
+
+    @FunctionalInterface
+    public interface BusinessHandlerInvoker {
+        ApiResponse invoke(ApiHandlers.BusinessHandler handler, ApiRequestContext context)
+            throws Exception;
     }
 
     private static final Map<String, ApiRouteDescriptor> ROUTES_BY_NAME = buildRouteLookupMap();
     private static final Map<String, HandlerInvoker> HANDLERS_BY_API_NAME = buildHandlerLookupMap();
+    private static final Map<String, BusinessHandlerInvoker> BUSINESS_HANDLERS_BY_API_NAME =
+        buildBusinessHandlerLookupMap();
 
     private static Map<String, ApiRouteDescriptor> buildRouteLookupMap() {
         var routes = new HashMap<String, ApiRouteDescriptor>();
@@ -27,7 +37,14 @@ public final class ApiDispatcher {
 
     private static Map<String, HandlerInvoker> buildHandlerLookupMap() {
         var handlers = new HashMap<String, HandlerInvoker>();
-{{api_handler_lookup_entries}}        return Collections.unmodifiableMap(handlers);
+        ApiHandlerRegistry.registerHandlerInvokers(handlers);
+        return Collections.unmodifiableMap(handlers);
+    }
+
+    private static Map<String, BusinessHandlerInvoker> buildBusinessHandlerLookupMap() {
+        var handlers = new HashMap<String, BusinessHandlerInvoker>();
+        ApiHandlerRegistry.registerBusinessHandlerInvokers(handlers);
+        return Collections.unmodifiableMap(handlers);
     }
 
     public static Map<String, ApiRouteDescriptor> apiRouteLookupMap() {
@@ -38,12 +55,17 @@ public final class ApiDispatcher {
         return HANDLERS_BY_API_NAME;
     }
 
+    public static Map<String, BusinessHandlerInvoker> businessApiHandlerLookupMap() {
+        return BUSINESS_HANDLERS_BY_API_NAME;
+    }
+
     public static Optional<ApiRouteDescriptor> findApiRoute(String routeName) {
         return Optional.ofNullable(ROUTES_BY_NAME.get(routeName));
     }
 
     public static Optional<ApiResponse> dispatchApiRoute(
-        ApiHandlers.Handler handler,
+        Backend backend,
+        ApiHandlers.BusinessHandler businessHandler,
         String routeName,
         ApiRequestContext context
     ) throws Exception {
@@ -52,9 +74,17 @@ public final class ApiDispatcher {
             return Optional.empty();
         }
         HandlerInvoker invoker = HANDLERS_BY_API_NAME.get(route.get().apiName());
-        if (invoker == null) {
+        if (invoker != null) {
+            return Optional.of(invoker.invoke(backend, context));
+        }
+        BusinessHandlerInvoker businessInvoker =
+            BUSINESS_HANDLERS_BY_API_NAME.get(route.get().apiName());
+        if (businessInvoker == null) {
             return Optional.empty();
         }
-        return Optional.of(invoker.invoke(handler, context));
+        if (businessHandler == null) {
+            return Optional.of(new ApiResponse(501, Json.object(java.util.Map.of())));
+        }
+        return Optional.of(businessInvoker.invoke(businessHandler, context));
     }
 }

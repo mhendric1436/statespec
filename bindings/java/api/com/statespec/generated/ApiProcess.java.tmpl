@@ -71,7 +71,7 @@ public final class ApiProcess {
 
     private final Config config;
     private final Backend backend;
-    private final ApiHandlers.Handler handler;
+    private final ApiHandlerRegistry.DefaultHandler handler;
     private final ApiTransport transport;
     private final List<ApiApplication> applications = new ArrayList<>();
     private final List<EntityGcWorkerTask> entityGcWorkers = new ArrayList<>();
@@ -88,7 +88,7 @@ public final class ApiProcess {
     public ApiProcess(
         Config config,
         Backend backend,
-        ApiHandlers.Handler handler,
+        ApiHandlerRegistry.DefaultHandler handler,
         ApiTransport transport
     ) {
         this.config = config.serverNames().isEmpty() ? Config.allServers() : config;
@@ -100,7 +100,11 @@ public final class ApiProcess {
         }
     }
 
-    public ApiProcess(Backend backend, ApiHandlers.Handler handler, ApiTransport transport) {
+    public ApiProcess(
+        Backend backend,
+        ApiHandlerRegistry.DefaultHandler handler,
+        ApiTransport transport
+    ) {
         this(Config.allServers(), backend, handler, transport);
     }
 
@@ -121,7 +125,7 @@ public final class ApiProcess {
         return backend;
     }
 
-    public ApiHandlers.Handler handler() {
+    public ApiHandlerRegistry.DefaultHandler handler() {
         return handler;
     }
 

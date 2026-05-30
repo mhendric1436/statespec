@@ -6,9 +6,9 @@ import java.util.Optional;
 
 public final class ApiServer {
     private final ApiServerDescriptor descriptor;
-    private final ApiHandlers.Handler handler;
+    private final ApiHandlerRegistry.DefaultHandler handler;
 
-    public ApiServer(ApiServerDescriptor descriptor, ApiHandlers.Handler handler) {
+    public ApiServer(ApiServerDescriptor descriptor, ApiHandlerRegistry.DefaultHandler handler) {
         this.descriptor = descriptor;
         this.handler = handler;
     }
@@ -34,6 +34,11 @@ public final class ApiServer {
         if (!route.isPresent() || !route.get().serverName().equals(descriptor.name())) {
             return Optional.empty();
         }
-        return ApiDispatcher.dispatchApiRoute(handler, routeName, context);
+        return ApiDispatcher.dispatchApiRoute(
+            handler.backend(),
+            handler.businessHandler(),
+            routeName,
+            context
+        );
     }
 }
