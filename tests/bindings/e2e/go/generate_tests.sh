@@ -41,6 +41,7 @@ api/backend/descriptors/report_provision_ready.go
 api/backend/descriptors/start_provision.go
 api/backend/entity_gc_catalog.go
 api/backend/external_system_operator_metadata_api.go
+api/backend/servers/provision_api/catalog.go
 api/backend/servers/provision_api/constants.go
 api/backend/shapes/catalog.go
 api/backend/shapes/provision_callback_request.go
@@ -117,8 +118,8 @@ EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang go "$E2E_SPEC" --out "$TMPDIR/out-e2e-go"
 assert_file_contains "$TMPDIR/out-e2e-go/api/backend/descriptors/catalog.go" "func ApiRouteDescriptors"
-assert_file_contains "$TMPDIR/out-e2e-go/api/backend/descriptors/catalog.go" "operatorApiserver.OperatorApiServerName"
-assert_file_contains "$TMPDIR/out-e2e-go/api/backend/descriptors/catalog.go" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-go/api/backend/servers/operator_api/catalog.go" "Name: OperatorApiServerName"
+assert_file_contains "$TMPDIR/out-e2e-go/api/backend/servers/operator_api/catalog.go" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/external_systems.go" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/external_systems.go" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-go/common/backend/descriptors.go" "ExternalSystemOperatorMetadataAPIHandler"
@@ -189,9 +190,13 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/c
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/constants.go" "AccountListResponseEnvelopeName = entityconstants.AccountEntityPluralName"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/project/constants.go" "ListAccountProjectsAPIName = \"ListAccountProjects\""
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/constants.go"
+assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/catalog.go"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/constants.go" "EntityApiServerName = \"EntityApi\""
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/constants.go" "EntityApiServerConcurrency = 1"
 assert_file_not_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/constants.go" "CreateAccount"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/catalog.go" "account.EntityAPINames()"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/catalog.go" "case account.CreateAccountAPIName"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/catalog.go" "Name: EntityApiServerName"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/account/shapes.go"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/account/codecs.go"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go"
@@ -253,12 +258,10 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/shapes/entities.go
 assert_file_not_exists "$TMPDIR/out-api-entities-go/api/backend/shapes/create_account_request.go"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/shapes/catalog.go" "account.EntityShapeDescriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/descriptors/catalog.go" "account.EntityAPIDescriptors()"
-assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/descriptors/catalog.go" "account.EntityAPINames()"
-assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/descriptors/catalog.go" "project.EntityAPINames()"
-assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/descriptors/catalog.go" "case account.CreateAccountAPIName"
-assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/descriptors/catalog.go" "Name: entityApiserver.EntityApiServerName"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/descriptors/catalog.go" "project.EntityAPIRouteDescriptors()"
 assert_file_not_contains "$TMPDIR/out-api-entities-go/api/backend/descriptors/catalog.go" "\"CreateAccount\""
+assert_file_not_contains "$TMPDIR/out-api-entities-go/api/backend/descriptors/catalog.go" "EntityAPINames()"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/api_descriptors.go" "entityApiserver.ApiServerDescriptors()"
 assert_file_not_exists "$TMPDIR/out-api-entities-go/api/backend/descriptors/create_account.go"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/create_account_descriptor.go" "accountconstants \"statespec-generated/common/entities/account\""
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/create_account_descriptor.go" "Path: createAccountStringPtr(\"/v1/tenants/{\" + accountconstants.AccountFieldTenantId"

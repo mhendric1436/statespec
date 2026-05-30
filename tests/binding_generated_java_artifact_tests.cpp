@@ -289,6 +289,9 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_exists(
         result, "api/com/statespec/generated/servers/entity_api/Constants.java"
     );
+    require_generated_artifact_exists(
+        result, "api/com/statespec/generated/servers/entity_api/Catalog.java"
+    );
     require_generated_artifact_contains(
         result, "common/com/statespec/generated/entities/account/Constants.java",
         "public static final String ACCOUNT_ENTITY_NAME = \"Account\""
@@ -416,16 +419,20 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
         "entities.account.Catalog.apiDescriptors()"
     );
     require_generated_artifact_contains(
-        result, "api/com/statespec/generated/descriptors/Catalog.java",
+        result, "api/com/statespec/generated/servers/entity_api/Catalog.java",
         "entities.account.Catalog.apiNames()"
     );
     require_generated_artifact_contains(
-        result, "api/com/statespec/generated/descriptors/Catalog.java",
+        result, "api/com/statespec/generated/servers/entity_api/Catalog.java",
         "entities.account.ApiConstants.CREATE_ACCOUNT_API_NAME"
     );
     require_generated_artifact_contains(
-        result, "api/com/statespec/generated/descriptors/Catalog.java",
-        "servers.entity_api.Constants.ENTITY_API_SERVER_NAME"
+        result, "api/com/statespec/generated/servers/entity_api/Catalog.java",
+        "Constants.ENTITY_API_SERVER_NAME"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/ApiDescriptors.java",
+        "servers.entity_api.Catalog.apiServerDescriptors()"
     );
     require_generated_artifact_contains(
         result, "api/com/statespec/generated/descriptors/Catalog.java",
@@ -456,6 +463,9 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_not_contains(
         result, "api/com/statespec/generated/descriptors/Catalog.java", "\"CreateAccount\""
+    );
+    require_generated_artifact_not_contains(
+        result, "api/com/statespec/generated/descriptors/Catalog.java", "apiNames()"
     );
 }
 

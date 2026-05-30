@@ -41,6 +41,7 @@ api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java
 api/com/statespec/generated/descriptors/Catalog.java
 api/com/statespec/generated/descriptors/ReportProvisionReadyDescriptorModule.java
 api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java
+api/com/statespec/generated/servers/provision_api/Catalog.java
 api/com/statespec/generated/servers/provision_api/Constants.java
 api/com/statespec/generated/shapes/ProvisionCallbackRequest.java
 api/com/statespec/generated/shapes/ProvisionCallbackResponse.java
@@ -163,8 +164,8 @@ EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang java "$E2E_SPEC" --out "$TMPDIR/out-e2e-java"
 assert_file_contains "$TMPDIR/out-e2e-java/api/com/statespec/generated/descriptors/Catalog.java" "apiRouteDescriptors"
-assert_file_contains "$TMPDIR/out-e2e-java/api/com/statespec/generated/descriptors/Catalog.java" "servers.operator_api.Constants.OPERATOR_API_SERVER_NAME"
-assert_file_contains "$TMPDIR/out-e2e-java/api/com/statespec/generated/descriptors/Catalog.java" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-java/api/com/statespec/generated/servers/operator_api/Catalog.java" "Constants.OPERATOR_API_SERVER_NAME"
+assert_file_contains "$TMPDIR/out-e2e-java/api/com/statespec/generated/servers/operator_api/Catalog.java" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/descriptors/ExternalSystemDescriptorModule.java" "\"input.payment_id\""
 assert_file_not_contains "$TMPDIR/out-e2e-java/common/com/statespec/generated/Descriptors.java" "ExternalSystemOperatorMetadataApiHandler"
@@ -229,9 +230,13 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/ApiConstants.java" "public static final String ACCOUNT_LIST_RESPONSE_ENVELOPE_NAME = Constants.ACCOUNT_ENTITY_PLURAL_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/project/ApiConstants.java" "public static final String LIST_ACCOUNT_PROJECTS_API_NAME = \"ListAccountProjects\""
 assert_file_exists "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Constants.java"
+assert_file_exists "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Catalog.java"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Constants.java" "public static final String ENTITY_API_SERVER_NAME = \"EntityApi\""
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Constants.java" "public static final int ENTITY_API_SERVER_CONCURRENCY = 1"
 assert_file_not_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Constants.java" "CreateAccount"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Catalog.java" "com.statespec.generated.entities.account.Catalog.apiNames()"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Catalog.java" "com.statespec.generated.entities.account.ApiConstants.CREATE_ACCOUNT_API_NAME"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Catalog.java" "Constants.ENTITY_API_SERVER_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Handlers.java" "document.put(com.statespec.generated.entities.account.Constants.ACCOUNT_FIELD_DISPLAY_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Handlers.java" "body.put(com.statespec.generated.entities.account.Constants.ACCOUNT_FIELD_TENANT_ID"
 assert_file_not_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Handlers.java" "body.put(\"tenant_id\""
@@ -292,11 +297,10 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_not_exists "$TMPDIR/out-api-entities-java/api/com/statespec/generated/shapes/CreateAccountRequest.java"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/shapes/ShapeCatalog.java" "com.statespec.generated.entities.account.Catalog.shapeDescriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/descriptors/Catalog.java" "com.statespec.generated.entities.account.Catalog.apiDescriptors()"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/descriptors/Catalog.java" "com.statespec.generated.entities.account.Catalog.apiNames()"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/descriptors/Catalog.java" "com.statespec.generated.entities.account.ApiConstants.CREATE_ACCOUNT_API_NAME"
-assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/descriptors/Catalog.java" "com.statespec.generated.servers.entity_api.Constants.ENTITY_API_SERVER_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/descriptors/Catalog.java" "com.statespec.generated.entities.project.Catalog.apiRouteDescriptors()"
 assert_file_not_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/descriptors/Catalog.java" "\"CreateAccount\""
+assert_file_not_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/descriptors/Catalog.java" "apiNames()"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/ApiDescriptors.java" "servers.entity_api.Catalog.apiServerDescriptors()"
 assert_file_not_exists "$TMPDIR/out-api-entities-java/api/com/statespec/generated/descriptors/CreateAccountDescriptorModule.java"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Catalog.java" "entities.account.descriptors.CreateAccountDescriptorModule.apiDescriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/descriptors/CreateAccountDescriptorModule.java" "package com.statespec.generated.entities.account.descriptors;"

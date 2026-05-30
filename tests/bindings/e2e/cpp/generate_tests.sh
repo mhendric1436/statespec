@@ -43,6 +43,7 @@ api/descriptors/start_provision.hpp
 api/entity_gc_catalog.hpp
 api/external_system_operator_metadata_api.hpp
 api/main.cpp
+api/servers/provision_api/catalog.hpp
 api/servers/provision_api/constants.hpp
 api/shapes.hpp
 api/shapes/provision_callback_request.hpp
@@ -114,8 +115,8 @@ EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPDIR/out-e2e-cpp"
 assert_file_contains "$TMPDIR/out-e2e-cpp/api/descriptors/catalog.hpp" "api_route_descriptors"
-assert_file_contains "$TMPDIR/out-e2e-cpp/api/descriptors/catalog.hpp" "api::servers::operator_api::constants::kOperatorApiServerName"
-assert_file_contains "$TMPDIR/out-e2e-cpp/api/descriptors/catalog.hpp" "\"UpsertExternalSystemEndpoint\""
+assert_file_contains "$TMPDIR/out-e2e-cpp/api/servers/operator_api/catalog.hpp" "constants::kOperatorApiServerName"
+assert_file_contains "$TMPDIR/out-e2e-cpp/api/servers/operator_api/catalog.hpp" "\"UpsertExternalSystemEndpoint\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/external_systems.hpp" "\"metadata.retry_policy\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/external_systems.hpp" "\"input.payment_id\""
 assert_file_contains "$TMPDIR/out-e2e-cpp/common/descriptors/types.hpp" "IExternalSystemOperatorMetadataApiHandler"
@@ -182,9 +183,13 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/constant
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/constants.hpp" "inline constexpr const char* kAccountListResponseEnvelopeName = ::statespec_generated::entities::account::constants::kAccountEntityPluralName"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/project/constants.hpp" "inline constexpr const char* kListAccountProjectsApiName = \"ListAccountProjects\""
 assert_file_exists "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/constants.hpp"
+assert_file_exists "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/catalog.hpp"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/constants.hpp" "inline constexpr const char* kEntityApiServerName = \"EntityApi\""
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/constants.hpp" "inline constexpr int kEntityApiServerConcurrency = 1"
 assert_file_not_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/constants.hpp" "CreateAccount"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/catalog.hpp" "::statespec_generated::api::entities::account::api_names()"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/catalog.hpp" "::statespec_generated::api::entities::account::constants::kCreateAccountApiName"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/catalog.hpp" "constants::kEntityApiServerName"
 assert_file_exists "$TMPDIR/out-api-entities-cpp/api/entities/account/shapes.hpp"
 assert_file_exists "$TMPDIR/out-api-entities-cpp/api/entities/account/codecs.hpp"
 assert_file_exists "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp"
@@ -234,11 +239,9 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "api_names()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "constants::kCreateAccountApiName"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "api_route_descriptors()"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/descriptors/catalog.hpp" "::statespec_generated::api::entities::account::api_names()"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/descriptors/catalog.hpp" "::statespec_generated::api::entities::project::api_names()"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/descriptors/catalog.hpp" "::statespec_generated::api::entities::account::constants::kCreateAccountApiName"
-assert_file_contains "$TMPDIR/out-api-entities-cpp/api/descriptors/catalog.hpp" "::statespec_generated::api::servers::entity_api::constants::kEntityApiServerName"
 assert_file_not_contains "$TMPDIR/out-api-entities-cpp/api/descriptors/catalog.hpp" "\"CreateAccount\""
+assert_file_not_contains "$TMPDIR/out-api-entities-cpp/api/descriptors/catalog.hpp" "api_names()"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/api_descriptors.hpp" "servers::entity_api::api_server_descriptors()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "handler_entrypoints()"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "DefaultAccountApiHandlerRegistry"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp" "#include \"handlers.hpp\""

@@ -160,6 +160,7 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_exists(result, "api/entities/account/constants.hpp");
     require_generated_artifact_not_exists(result, "api/entities/audit_log/constants.hpp");
     require_generated_artifact_exists(result, "api/servers/entity_api/constants.hpp");
+    require_generated_artifact_exists(result, "api/servers/entity_api/catalog.hpp");
     require_generated_artifact_contains(
         result, "common/entities/account/constants.hpp", "namespace constants"
     );
@@ -279,15 +280,17 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/descriptors/catalog.hpp", "api::entities::account::api_descriptors"
     );
     require_generated_artifact_contains(
-        result, "api/descriptors/catalog.hpp", "api::entities::account::api_names"
+        result, "api/servers/entity_api/catalog.hpp", "api::entities::account::api_names"
     );
     require_generated_artifact_contains(
-        result, "api/descriptors/catalog.hpp",
+        result, "api/servers/entity_api/catalog.hpp",
         "api::entities::account::constants::kCreateAccountApiName"
     );
     require_generated_artifact_contains(
-        result, "api/descriptors/catalog.hpp",
-        "api::servers::entity_api::constants::kEntityApiServerName"
+        result, "api/servers/entity_api/catalog.hpp", "constants::kEntityApiServerName"
+    );
+    require_generated_artifact_contains(
+        result, "api/api_descriptors.hpp", "servers::entity_api::api_server_descriptors()"
     );
     require_generated_artifact_contains(
         result, "api/descriptors/catalog.hpp", "api::entities::account::api_route_descriptors"
@@ -302,6 +305,7 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_contains(
         result, "api/descriptors/catalog.hpp", "\"CreateAccount\""
     );
+    require_generated_artifact_not_contains(result, "api/descriptors/catalog.hpp", "api_names()");
 }
 
 } // namespace

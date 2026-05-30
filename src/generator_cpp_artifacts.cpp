@@ -1467,6 +1467,90 @@ std::string cpp_api_server_constants_header(const IrApiServer& api_server)
     return out.str();
 }
 
+std::string cpp_api_server_catalog_header(
+    const IrSystem& system,
+    const IrApiServer& api_server
+)
+{
+    const auto entity_domains = crud_api_handler_domains(api_handler_domains(system));
+    std::set<std::string> entity_api_names;
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../../common/descriptors/types.hpp\"\n";
+    out << "#include \"constants.hpp\"\n";
+    for (const auto& domain : entity_domains)
+    {
+        out << "#include \"../../entities/" << snake_identifier(domain.name) << "/catalog.hpp\"\n";
+        for (const auto& api : domain.apis)
+        {
+            entity_api_names.insert(api.name);
+        }
+    }
+    out << "\n#include <string>\n";
+    out << "#include <utility>\n";
+    out << "#include <vector>\n\n";
+    out << "namespace statespec_generated::api::servers::" << snake_identifier(api_server.name)
+        << "\n";
+    out << "{\n\n";
+    out << "using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;\n\n";
+    out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
+    out << "{\n";
+    out << "    std::vector<std::string> serves;\n";
+    for (const auto& domain : entity_domains)
+    {
+        std::vector<IrApi> served_domain_apis;
+        for (const auto& api : domain.apis)
+        {
+            if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                api_server.serves.end())
+            {
+                served_domain_apis.push_back(api);
+            }
+        }
+        if (served_domain_apis.empty())
+        {
+            continue;
+        }
+        out << "    for (const auto& api_name : ::statespec_generated::api::entities::"
+            << snake_identifier(domain.name) << "::api_names())\n";
+        out << "    {\n";
+        out << "        if (";
+        for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << " || ";
+            }
+            out << "api_name == ::statespec_generated::api::entities::"
+                << snake_identifier(domain.name)
+                << "::constants::" << cpp_api_name_constant_name(served_domain_apis[i].name);
+        }
+        out << ")\n";
+        out << "        {\n";
+        out << "            serves.push_back(api_name);\n";
+        out << "        }\n";
+        out << "    }\n";
+    }
+    for (const auto& served_api : api_server.serves)
+    {
+        if (entity_api_names.contains(served_api))
+        {
+            continue;
+        }
+        out << "    serves.push_back(" << cpp_string(served_api) << ");\n";
+    }
+    out << "    return {ApiServerDescriptor{\n";
+    out << "        constants::" << cpp_api_server_name_constant_name(api_server.name) << ",\n";
+    out << "        std::move(serves),\n";
+    out << "        constants::" << cpp_api_server_concurrency_constant_name(api_server.name)
+        << ",\n";
+    out << "    }};\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api::servers::" << snake_identifier(api_server.name)
+        << "\n";
+    return out.str();
+}
+
 std::string cpp_entity_api_constants_header(
     const IrSystem& system,
     const IrEntity& entity
@@ -2572,11 +2656,6 @@ std::string cpp_api_descriptor_catalog_file(const IrSystem& system)
             entity_api_names.insert(api.name);
         }
     }
-    for (const auto& api_server : system.api_servers)
-    {
-        out << "#include \"../servers/" << snake_identifier(api_server.name)
-            << "/constants.hpp\"\n";
-    }
     for (const auto& api : system.apis)
     {
         if (entity_api_names.contains(api.name))
@@ -2585,9 +2664,7 @@ std::string cpp_api_descriptor_catalog_file(const IrSystem& system)
         }
         out << "#include \"" << snake_identifier(api.name) << ".hpp\"\n";
     }
-    out << "\n#include <string>\n";
-    out << "#include <utility>\n";
-    out << "#include <vector>\n\n";
+    out << "\n#include <vector>\n\n";
     out << "namespace statespec_generated::api::descriptors\n";
     out << "{\n\n";
     out << "using ApiDescriptor = ::statespec_generated::ApiDescriptor;\n";
@@ -2617,70 +2694,6 @@ std::string cpp_api_descriptor_catalog_file(const IrSystem& system)
         out << "    {\n";
         out << "        auto slice = " << cpp_api_descriptor_function_name(api) << "();\n";
         out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
-        out << "    }\n";
-    }
-    out << "    return descriptors;\n";
-    out << "}\n\n";
-    out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
-    out << "{\n";
-    out << "    std::vector<ApiServerDescriptor> descriptors;\n";
-    for (const auto& api_server : system.api_servers)
-    {
-        out << "    {\n";
-        out << "        std::vector<std::string> serves;\n";
-        for (const auto& domain : entity_domains)
-        {
-            std::vector<IrApi> served_domain_apis;
-            for (const auto& api : domain.apis)
-            {
-                if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
-                    api_server.serves.end())
-                {
-                    served_domain_apis.push_back(api);
-                }
-            }
-            if (served_domain_apis.empty())
-            {
-                continue;
-            }
-            out << "        for (const auto& api_name : ::statespec_generated::api::entities::"
-                << snake_identifier(domain.name) << "::api_names())\n";
-            out << "        {\n";
-            out << "            if (";
-            for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
-            {
-                if (i > 0)
-                {
-                    out << " || ";
-                }
-                out << "api_name == ::statespec_generated::api::entities::"
-                    << snake_identifier(domain.name)
-                    << "::constants::" << cpp_api_name_constant_name(served_domain_apis[i].name);
-            }
-            out << ")\n";
-            out << "            {\n";
-            out << "                serves.push_back(api_name);\n";
-            out << "            }\n";
-            out << "        }\n";
-        }
-        for (const auto& served_api : api_server.serves)
-        {
-            if (entity_api_names.contains(served_api))
-            {
-                continue;
-            }
-            out << "        serves.push_back(" << cpp_string(served_api) << ");\n";
-        }
-        out << "        descriptors.push_back(ApiServerDescriptor{\n";
-        out << "            ::statespec_generated::api::servers::"
-            << snake_identifier(api_server.name)
-            << "::constants::" << cpp_api_server_name_constant_name(api_server.name) << ",\n";
-        out << "            std::move(serves),\n";
-        out << "            ::statespec_generated::api::servers::"
-            << snake_identifier(api_server.name)
-            << "::constants::" << cpp_api_server_concurrency_constant_name(api_server.name)
-            << ",\n";
-        out << "        });\n";
         out << "    }\n";
     }
     out << "    return descriptors;\n";
@@ -2747,6 +2760,42 @@ std::string cpp_worker_descriptor_catalog_file(const IrSystem& system)
     out << "    return contexts;\n";
     out << "}\n\n";
     out << "} // namespace statespec_generated::worker::descriptors\n";
+    return out.str();
+}
+
+std::string cpp_api_descriptors_header(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../common/descriptors/types.hpp\"\n";
+    out << "#include \"descriptors/catalog.hpp\"\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        out << "#include \"servers/" << snake_identifier(api_server.name) << "/catalog.hpp\"\n";
+    }
+    out << "\n#include <vector>\n\n";
+    out << "namespace statespec_generated::api\n";
+    out << "{\n\n";
+    out << "using ApiDescriptor = ::statespec_generated::ApiDescriptor;\n";
+    out << "using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;\n\n";
+    out << "inline std::vector<ApiDescriptor> api_descriptors()\n";
+    out << "{\n";
+    out << "    return descriptors::api_descriptors();\n";
+    out << "}\n\n";
+    out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
+    out << "{\n";
+    out << "    std::vector<ApiServerDescriptor> descriptors;\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        out << "    {\n";
+        out << "        auto slice = servers::" << snake_identifier(api_server.name)
+            << "::api_server_descriptors();\n";
+        out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
+        out << "    }\n";
+    }
+    out << "    return descriptors;\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api\n";
     return out.str();
 }
 
@@ -2964,10 +3013,13 @@ void add_cpp_api_artifacts(
             result, options, "api/servers/" + snake_identifier(api_server.name) + "/constants.hpp",
             cpp_api_server_constants_header(api_server)
         );
+        add_cpp_raw_api_file(
+            result, options, "api/servers/" + snake_identifier(api_server.name) + "/catalog.hpp",
+            cpp_api_server_catalog_header(system, api_server)
+        );
     }
-    add_cpp_generated_template_file(
-        result, options, templates, "api/api_descriptors.hpp", GeneratedArtifactTier::Api,
-        diagnostics
+    add_cpp_raw_api_file(
+        result, options, "api/api_descriptors.hpp", cpp_api_descriptors_header(system)
     );
     add_cpp_generated_template_file(
         result, options, templates, "api/api_codecs.hpp", GeneratedArtifactTier::Api, diagnostics,

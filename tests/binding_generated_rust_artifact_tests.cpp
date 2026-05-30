@@ -155,6 +155,7 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_exists(result, "api/entities/account/constants.rs");
     require_generated_artifact_not_exists(result, "api/entities/audit_log/constants.rs");
     require_generated_artifact_exists(result, "api/servers/entity_api/constants.rs");
+    require_generated_artifact_exists(result, "api/servers/entity_api/catalog.rs");
     require_generated_artifact_contains(
         result, "common/entities/account/constants.rs",
         "pub const ACCOUNT_ENTITY_NAME: &str = \"Account\""
@@ -270,14 +271,17 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/descriptors/catalog.rs", "entity_account_catalog::api_descriptors()"
     );
     require_generated_artifact_contains(
-        result, "api/descriptors/catalog.rs", "entity_account_catalog::api_names()"
+        result, "api/servers/entity_api/catalog.rs", "entity_account_catalog::api_names()"
     );
     require_generated_artifact_contains(
-        result, "api/descriptors/catalog.rs",
+        result, "api/servers/entity_api/catalog.rs",
         "entity_account_catalog::constants::CREATE_ACCOUNT_API_NAME"
     );
     require_generated_artifact_contains(
-        result, "api/descriptors/catalog.rs", "server_entity_api_constants::ENTITY_API_SERVER_NAME"
+        result, "api/servers/entity_api/catalog.rs", "constants::ENTITY_API_SERVER_NAME"
+    );
+    require_generated_artifact_contains(
+        result, "api/api_descriptors.rs", "server_entity_api_catalog::api_server_descriptors()"
     );
     require_generated_artifact_contains(
         result, "api/descriptors/catalog.rs", "entity_account_catalog::api_route_descriptors()"
@@ -292,6 +296,7 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_contains(
         result, "api/descriptors/catalog.rs", "\"CreateAccount\""
     );
+    require_generated_artifact_not_contains(result, "api/descriptors/catalog.rs", "api_names()");
 }
 
 } // namespace
