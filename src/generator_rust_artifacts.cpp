@@ -475,7 +475,7 @@ IrSystem with_domain_apis(
 
 std::string rust_api_handler_domain_module_name(std::string_view domain_name)
 {
-    return "api_handler_registry_" + snake_identifier(std::string{domain_name});
+    return "entity_" + snake_identifier(std::string{domain_name});
 }
 
 std::string rust_api_handler_domain_type_name(std::string_view domain_name)
@@ -507,7 +507,7 @@ std::string rust_api_handler_registry_domain_modules(const std::vector<ApiHandle
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        out << "#[path = \"entities/" << snake_identifier(domain.name) << "/registry.rs\"]\n";
+        out << "#[path = \"entities/" << snake_identifier(domain.name) << "/catalog.rs\"]\n";
         out << "mod " << rust_api_handler_domain_module_name(domain.name) << ";\n";
     }
     return out.str();
@@ -519,7 +519,7 @@ std::string rust_api_handler_lookup_registrations(const std::vector<ApiHandlerDo
     for (const auto& domain : domains)
     {
         const auto module_name = rust_api_handler_domain_module_name(domain.name);
-        out << "    " << module_name << "::register_handler_invokers::<B>(handlers);\n";
+        out << "    " << module_name << "::registry::register_handler_invokers::<B>(handlers);\n";
     }
     return out.str();
 }
@@ -587,7 +587,7 @@ std::string rust_api_handler_domain_registry_file(const ApiHandlerDomain& domain
             << " { backend }.handle_" << snake_identifier(api.name) << "(context)\n";
         out << "}\n\n";
     }
-    out << "pub(super) fn register_handler_invokers<B: Backend>(\n";
+    out << "pub(crate) fn register_handler_invokers<B: Backend>(\n";
     out << "    handlers: &mut std::collections::HashMap<&'static str, "
            "crate::api_dispatcher::ApiHandlerInvoker<B>>,\n";
     out << ") {\n";
@@ -1701,7 +1701,7 @@ std::string rust_entity_api_catalog_file(
     out << "#[path = \"handlers.rs\"]\n";
     out << "mod handlers;\n";
     out << "#[path = \"registry.rs\"]\n";
-    out << "mod registry;\n";
+    out << "pub(crate) mod registry;\n";
     for (const auto& api : apis)
     {
         out << "#[path = \"descriptors/" << snake_identifier(api.name) << ".rs\"]\n";

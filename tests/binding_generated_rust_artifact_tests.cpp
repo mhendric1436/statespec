@@ -237,7 +237,7 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_contains(
         result, "api/api_handler_registry.rs",
-        "api_handler_registry_account::register_handler_invokers::<B>(handlers)"
+        "entity_account::registry::register_handler_invokers::<B>(handlers)"
     );
     require_generated_artifact_not_contains(
         result, "api/descriptors/catalog.rs", "create_account_api_descriptors()"
