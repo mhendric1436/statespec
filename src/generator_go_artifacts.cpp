@@ -2092,6 +2092,29 @@ std::string go_api_response_envelope_constant_name(const std::string& entity_nam
     return pascal_identifier(entity_name) + "ListResponseEnvelopeName";
 }
 
+std::string go_api_server_name_constant_name(const std::string& api_server_name)
+{
+    return pascal_identifier(api_server_name) + "ServerName";
+}
+
+std::string go_api_server_concurrency_constant_name(const std::string& api_server_name)
+{
+    return pascal_identifier(api_server_name) + "ServerConcurrency";
+}
+
+std::string go_api_server_constants_file(const IrApiServer& api_server)
+{
+    std::ostringstream out;
+    out << "package " << snake_identifier(api_server.name) << "\n\n";
+    out << "const (\n";
+    out << "\t" << go_api_server_name_constant_name(api_server.name) << " = "
+        << go_string(api_server.name) << "\n";
+    out << "\t" << go_api_server_concurrency_constant_name(api_server.name) << " = "
+        << api_server.concurrency.value_or(1) << "\n";
+    out << ")\n";
+    return out.str();
+}
+
 std::string go_entity_api_constants_file(
     const IrSystem& system,
     const IrEntity& entity
@@ -3273,6 +3296,14 @@ void add_go_api_artifacts(
         result, options, "api/backend/descriptors/catalog.go",
         go_api_descriptor_catalog_file(system)
     );
+    for (const auto& api_server : system.api_servers)
+    {
+        add_go_raw_api_file(
+            result, options,
+            "api/backend/servers/" + snake_identifier(api_server.name) + "/constants.go",
+            go_api_server_constants_file(api_server)
+        );
+    }
     add_go_generated_template_file(
         result, options, templates, "api/backend/api_descriptors.go", GeneratedArtifactTier::Api,
         diagnostics

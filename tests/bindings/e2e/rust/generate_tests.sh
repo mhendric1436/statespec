@@ -42,6 +42,7 @@ api/descriptors/start_provision.rs
 api/entity_gc_catalog.rs
 api/external_system_operator_metadata_api.rs
 api/main.rs
+api/servers/provision_api/constants.rs
 api/shapes.rs
 api/shapes/provision_callback_request.rs
 api/shapes/provision_callback_response.rs
@@ -180,6 +181,10 @@ assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/constan
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/constants.rs" "pub const CREATE_ACCOUNT_REQUEST_SHAPE_NAME: &str = \"CreateAccountRequest\""
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/constants.rs" "pub const ACCOUNT_LIST_RESPONSE_ENVELOPE_NAME: &str = entity_constants::ACCOUNT_ENTITY_PLURAL_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/project/constants.rs" "pub const LIST_ACCOUNT_PROJECTS_API_NAME: &str = \"ListAccountProjects\""
+assert_file_exists "$TMPDIR/out-api-entities-rust/api/servers/entity_api/constants.rs"
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/servers/entity_api/constants.rs" "pub const ENTITY_API_SERVER_NAME: &str = \"EntityApi\""
+assert_file_contains "$TMPDIR/out-api-entities-rust/api/servers/entity_api/constants.rs" "pub const ENTITY_API_SERVER_CONCURRENCY: usize = 1"
+assert_file_not_contains "$TMPDIR/out-api-entities-rust/api/servers/entity_api/constants.rs" "CreateAccount"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/handlers.rs" "document.insert(crate::entity_account::constants::ACCOUNT_FIELD_DISPLAY_NAME.to_string()"
 assert_file_contains "$TMPDIR/out-api-entities-rust/api/entities/account/handlers.rs" "body.insert(crate::entity_account::constants::ACCOUNT_FIELD_TENANT_ID.to_string()"
 assert_file_not_contains "$TMPDIR/out-api-entities-rust/api/entities/account/handlers.rs" "body.insert(\"tenant_id\""

@@ -41,6 +41,7 @@ api/com/statespec/generated/codecs/ApiCodecsStartProvisionResponse.java
 api/com/statespec/generated/descriptors/Catalog.java
 api/com/statespec/generated/descriptors/ReportProvisionReadyDescriptorModule.java
 api/com/statespec/generated/descriptors/StartProvisionDescriptorModule.java
+api/com/statespec/generated/servers/provision_api/Constants.java
 api/com/statespec/generated/shapes/ProvisionCallbackRequest.java
 api/com/statespec/generated/shapes/ProvisionCallbackResponse.java
 api/com/statespec/generated/shapes/ShapeCatalog.java
@@ -227,6 +228,10 @@ assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/ApiConstants.java" "public static final String CREATE_ACCOUNT_REQUEST_SHAPE_NAME = \"CreateAccountRequest\""
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/ApiConstants.java" "public static final String ACCOUNT_LIST_RESPONSE_ENVELOPE_NAME = Constants.ACCOUNT_ENTITY_PLURAL_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/project/ApiConstants.java" "public static final String LIST_ACCOUNT_PROJECTS_API_NAME = \"ListAccountProjects\""
+assert_file_exists "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Constants.java"
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Constants.java" "public static final String ENTITY_API_SERVER_NAME = \"EntityApi\""
+assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Constants.java" "public static final int ENTITY_API_SERVER_CONCURRENCY = 1"
+assert_file_not_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/servers/entity_api/Constants.java" "CreateAccount"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Handlers.java" "document.put(com.statespec.generated.entities.account.Constants.ACCOUNT_FIELD_DISPLAY_NAME"
 assert_file_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Handlers.java" "body.put(com.statespec.generated.entities.account.Constants.ACCOUNT_FIELD_TENANT_ID"
 assert_file_not_contains "$TMPDIR/out-api-entities-java/api/com/statespec/generated/entities/account/Handlers.java" "body.put(\"tenant_id\""

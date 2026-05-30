@@ -159,6 +159,7 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_exists(result, "common/entities/audit_log/constants.hpp");
     require_generated_artifact_exists(result, "api/entities/account/constants.hpp");
     require_generated_artifact_not_exists(result, "api/entities/audit_log/constants.hpp");
+    require_generated_artifact_exists(result, "api/servers/entity_api/constants.hpp");
     require_generated_artifact_contains(
         result, "common/entities/account/constants.hpp", "namespace constants"
     );
@@ -217,6 +218,17 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/entities/account/constants.hpp",
         "inline constexpr const char* kAccountListResponseEnvelopeName = "
         "::statespec_generated::entities::account::constants::kAccountEntityPluralName"
+    );
+    require_generated_artifact_contains(
+        result, "api/servers/entity_api/constants.hpp",
+        "inline constexpr const char* kEntityApiServerName = \"EntityApi\""
+    );
+    require_generated_artifact_contains(
+        result, "api/servers/entity_api/constants.hpp",
+        "inline constexpr int kEntityApiServerConcurrency = 1"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/servers/entity_api/constants.hpp", "CreateAccount"
     );
     require_generated_artifact_contains(
         result, "api/entities/account/catalog.hpp", "#include \"shapes.hpp\""

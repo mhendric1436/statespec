@@ -41,6 +41,7 @@ api/backend/descriptors/report_provision_ready.go
 api/backend/descriptors/start_provision.go
 api/backend/entity_gc_catalog.go
 api/backend/external_system_operator_metadata_api.go
+api/backend/servers/provision_api/constants.go
 api/backend/shapes/catalog.go
 api/backend/shapes/provision_callback_request.go
 api/backend/shapes/provision_callback_response.go
@@ -187,6 +188,10 @@ assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/c
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/constants.go" "CreateAccountRequestAPIShapeName = \"CreateAccountRequest\""
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/account/constants.go" "AccountListResponseEnvelopeName = entityconstants.AccountEntityPluralName"
 assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/entities/project/constants.go" "ListAccountProjectsAPIName = \"ListAccountProjects\""
+assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/constants.go"
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/constants.go" "EntityApiServerName = \"EntityApi\""
+assert_file_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/constants.go" "EntityApiServerConcurrency = 1"
+assert_file_not_contains "$TMPDIR/out-api-entities-go/api/backend/servers/entity_api/constants.go" "CreateAccount"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/account/shapes.go"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/account/codecs.go"
 assert_file_exists "$TMPDIR/out-api-entities-go/api/backend/entities/account/catalog.go"

@@ -1441,6 +1441,32 @@ std::string cpp_api_response_envelope_constant_name(const std::string& entity_na
     return "k" + pascal_identifier(entity_name) + "ListResponseEnvelopeName";
 }
 
+std::string cpp_api_server_name_constant_name(const std::string& api_server_name)
+{
+    return "k" + pascal_identifier(api_server_name) + "ServerName";
+}
+
+std::string cpp_api_server_concurrency_constant_name(const std::string& api_server_name)
+{
+    return "k" + pascal_identifier(api_server_name) + "ServerConcurrency";
+}
+
+std::string cpp_api_server_constants_header(const IrApiServer& api_server)
+{
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "namespace statespec_generated::api::servers::" << snake_identifier(api_server.name)
+        << "::constants\n";
+    out << "{\n\n";
+    out << "inline constexpr const char* " << cpp_api_server_name_constant_name(api_server.name)
+        << " = " << cpp_string(api_server.name) << ";\n";
+    out << "inline constexpr int " << cpp_api_server_concurrency_constant_name(api_server.name)
+        << " = " << api_server.concurrency.value_or(1) << ";\n\n";
+    out << "} // namespace statespec_generated::api::servers::" << snake_identifier(api_server.name)
+        << "::constants\n";
+    return out.str();
+}
+
 std::string cpp_entity_api_constants_header(
     const IrSystem& system,
     const IrEntity& entity
@@ -2900,6 +2926,13 @@ void add_cpp_api_artifacts(
     add_cpp_raw_api_file(
         result, options, "api/descriptors/catalog.hpp", cpp_api_descriptor_catalog_file(system)
     );
+    for (const auto& api_server : system.api_servers)
+    {
+        add_cpp_raw_api_file(
+            result, options, "api/servers/" + snake_identifier(api_server.name) + "/constants.hpp",
+            cpp_api_server_constants_header(api_server)
+        );
+    }
     add_cpp_generated_template_file(
         result, options, templates, "api/api_descriptors.hpp", GeneratedArtifactTier::Api,
         diagnostics

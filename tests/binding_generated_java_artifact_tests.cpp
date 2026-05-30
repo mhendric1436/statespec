@@ -286,6 +286,9 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(
         result, "api/com/statespec/generated/entities/audit_log/ApiConstants.java"
     );
+    require_generated_artifact_exists(
+        result, "api/com/statespec/generated/servers/entity_api/Constants.java"
+    );
     require_generated_artifact_contains(
         result, "common/com/statespec/generated/entities/account/Constants.java",
         "public static final String ACCOUNT_ENTITY_NAME = \"Account\""
@@ -341,6 +344,17 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/com/statespec/generated/entities/account/ApiConstants.java",
         "public static final String ACCOUNT_LIST_RESPONSE_ENVELOPE_NAME = "
         "Constants.ACCOUNT_ENTITY_PLURAL_NAME"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/servers/entity_api/Constants.java",
+        "public static final String ENTITY_API_SERVER_NAME = \"EntityApi\""
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/servers/entity_api/Constants.java",
+        "public static final int ENTITY_API_SERVER_CONCURRENCY = 1"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/com/statespec/generated/servers/entity_api/Constants.java", "CreateAccount"
     );
     require_generated_artifact_contains(
         result, "api/com/statespec/generated/entities/account/Catalog.java",

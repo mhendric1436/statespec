@@ -43,6 +43,7 @@ api/descriptors/start_provision.hpp
 api/entity_gc_catalog.hpp
 api/external_system_operator_metadata_api.hpp
 api/main.cpp
+api/servers/provision_api/constants.hpp
 api/shapes.hpp
 api/shapes/provision_callback_request.hpp
 api/shapes/provision_callback_response.hpp
@@ -180,6 +181,10 @@ assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/constant
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/constants.hpp" "inline constexpr const char* kCreateAccountRequestShapeName = \"CreateAccountRequest\""
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/account/constants.hpp" "inline constexpr const char* kAccountListResponseEnvelopeName = ::statespec_generated::entities::account::constants::kAccountEntityPluralName"
 assert_file_contains "$TMPDIR/out-api-entities-cpp/api/entities/project/constants.hpp" "inline constexpr const char* kListAccountProjectsApiName = \"ListAccountProjects\""
+assert_file_exists "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/constants.hpp"
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/constants.hpp" "inline constexpr const char* kEntityApiServerName = \"EntityApi\""
+assert_file_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/constants.hpp" "inline constexpr int kEntityApiServerConcurrency = 1"
+assert_file_not_contains "$TMPDIR/out-api-entities-cpp/api/servers/entity_api/constants.hpp" "CreateAccount"
 assert_file_exists "$TMPDIR/out-api-entities-cpp/api/entities/account/shapes.hpp"
 assert_file_exists "$TMPDIR/out-api-entities-cpp/api/entities/account/codecs.hpp"
 assert_file_exists "$TMPDIR/out-api-entities-cpp/api/entities/account/catalog.hpp"

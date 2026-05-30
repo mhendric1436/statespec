@@ -1752,6 +1752,32 @@ std::string java_api_response_envelope_constant_name(const std::string& entity_n
     return upper_snake_identifier(entity_name + "_list_response_envelope_name");
 }
 
+std::string java_api_server_name_constant_name(const std::string& api_server_name)
+{
+    return upper_snake_identifier(api_server_name + "_server_name");
+}
+
+std::string java_api_server_concurrency_constant_name(const std::string& api_server_name)
+{
+    return upper_snake_identifier(api_server_name + "_server_concurrency");
+}
+
+std::string java_api_server_constants_file(const IrApiServer& api_server)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated.servers." << snake_identifier(api_server.name)
+        << ";\n\n";
+    out << "public final class Constants {\n";
+    out << "    private Constants() {}\n\n";
+    out << "    public static final String " << java_api_server_name_constant_name(api_server.name)
+        << " = " << java_string(api_server.name) << ";\n";
+    out << "    public static final int "
+        << java_api_server_concurrency_constant_name(api_server.name) << " = "
+        << api_server.concurrency.value_or(1) << ";\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string java_entity_api_constants_file(
     const IrSystem& system,
     const IrEntity& entity
@@ -3403,6 +3429,15 @@ void add_java_api_artifacts(
 
     add_java_api_shape_type_artifacts(result, options, system);
     add_java_api_descriptor_artifacts(result, options, system);
+    for (const auto& api_server : system.api_servers)
+    {
+        add_java_raw_api_file(
+            result, options,
+            "api/com/statespec/generated/servers/" + snake_identifier(api_server.name) +
+                "/Constants.java",
+            java_api_server_constants_file(api_server)
+        );
+    }
     add_java_generated_template_file(
         result, options, templates, java_api_generated_path("ApiDescriptors.java"),
         GeneratedArtifactTier::Api, diagnostics

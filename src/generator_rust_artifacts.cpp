@@ -1686,6 +1686,26 @@ std::string rust_api_response_envelope_constant_name(const std::string& entity_n
     return upper_snake_identifier(entity_name + "_list_response_envelope_name");
 }
 
+std::string rust_api_server_name_constant_name(const std::string& api_server_name)
+{
+    return upper_snake_identifier(api_server_name + "_server_name");
+}
+
+std::string rust_api_server_concurrency_constant_name(const std::string& api_server_name)
+{
+    return upper_snake_identifier(api_server_name + "_server_concurrency");
+}
+
+std::string rust_api_server_constants_file(const IrApiServer& api_server)
+{
+    std::ostringstream out;
+    out << "pub const " << rust_api_server_name_constant_name(api_server.name)
+        << ": &str = " << rust_string(api_server.name) << ";\n";
+    out << "pub const " << rust_api_server_concurrency_constant_name(api_server.name)
+        << ": usize = " << api_server.concurrency.value_or(1) << ";\n";
+    return out.str();
+}
+
 std::string rust_entity_api_constants_file(
     const IrSystem& system,
     const IrEntity& entity
@@ -2686,6 +2706,13 @@ void add_rust_api_artifacts(
     add_rust_raw_api_file(
         result, options, "api/descriptors/catalog.rs", rust_api_descriptor_catalog_file(system)
     );
+    for (const auto& api_server : system.api_servers)
+    {
+        add_rust_raw_api_file(
+            result, options, "api/servers/" + snake_identifier(api_server.name) + "/constants.rs",
+            rust_api_server_constants_file(api_server)
+        );
+    }
     add_rust_generated_template_file(
         result, options, templates, "api/api_descriptors.rs", GeneratedArtifactTier::Api,
         diagnostics
