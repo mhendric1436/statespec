@@ -1,5 +1,6 @@
 CXX ?= clang++
 CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -I. -Icommon
+CLANG_FORMAT ?= clang-format
 BUILD_DIR ?= build
 
 DIST_DIR ?= dist
@@ -8,7 +9,7 @@ CHECK_TARGETS := check-common
 BUILD_TARGETS := build-common
 PACKAGE_TARGETS := package-common{{target_additions}}
 
-.PHONY: all help check build package check-common build-common package-common{{phony_targets}} clean
+.PHONY: all help check build package format check-common build-common package-common{{phony_targets}} clean
 
 all: check
 
@@ -19,6 +20,7 @@ help:
 	@printf '%s\n' '  check   Compiles generated headers and compile-check surfaces only.'
 	@printf '%s\n' '  build   Builds generated runnable entrypoints when present.'
 	@printf '%s\n' '  package Builds and archives generated artifacts under $(DIST_DIR).'
+	@printf '%s\n' '  format  Formats generated C++ sources with $(CLANG_FORMAT).'
 	@printf '%s\n' '  clean   Removes $(BUILD_DIR) and $(DIST_DIR).'
 	@printf '%s\n' ''
 	@printf '%s\n' 'Tier targets:'
@@ -30,6 +32,13 @@ check: $(CHECK_TARGETS)
 build: $(BUILD_TARGETS)
 
 package: $(PACKAGE_TARGETS)
+
+format:
+	for dir in common api worker; do \
+		if [ -d $$dir ]; then \
+			find $$dir -type f \( -name '*.hpp' -o -name '*.cpp' \) -exec $(CLANG_FORMAT) -i {} +; \
+		fi; \
+	done
 
 $(BUILD_DIR)/.dir:
 	mkdir -p $(BUILD_DIR)

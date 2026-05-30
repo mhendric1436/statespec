@@ -1,4 +1,5 @@
 GO ?= go
+GOFMT ?= gofmt
 BIN_DIR ?= build/bin
 DIST_DIR ?= dist
 
@@ -10,7 +11,7 @@ CHECK_TARGETS := check-common
 BUILD_TARGETS := build-common
 PACKAGE_TARGETS := package-common{{target_additions}}
 
-.PHONY: all help check build package check-common build-common package-common{{phony_targets}} clean
+.PHONY: all help check build package format check-common build-common package-common{{phony_targets}} clean
 
 all: check
 
@@ -21,6 +22,7 @@ help:
 	@printf '%s\n' '  check   Runs go test for generated packages.'
 	@printf '%s\n' '  build   Runs go build for generated packages and entrypoint binaries.'
 	@printf '%s\n' '  package Builds and archives generated artifacts under $(DIST_DIR).'
+	@printf '%s\n' '  format  Formats generated Go sources with $(GOFMT).'
 	@printf '%s\n' '  clean   Clears Go test cache and removes build and $(DIST_DIR).'
 	@printf '%s\n' ''
 	@printf '%s\n' 'Tier targets:'
@@ -32,6 +34,13 @@ check: $(CHECK_TARGETS)
 build: $(BUILD_TARGETS)
 
 package: $(PACKAGE_TARGETS)
+
+format:
+	for dir in common api worker; do \
+		if [ -d $$dir ]; then \
+			find $$dir -type f -name '*.go' -exec $(GOFMT) -w {} +; \
+		fi; \
+	done
 
 $(DIST_DIR):
 	mkdir -p $(DIST_DIR)

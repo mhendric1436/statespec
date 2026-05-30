@@ -1,5 +1,6 @@
 JAVAC ?= javac
 JAR ?= jar
+CLANG_FORMAT ?= clang-format
 BUILD_DIR ?= build/classes
 DIST_DIR ?= dist
 COMMON_SOURCES := $(shell find common -name '*.java' -print)
@@ -9,7 +10,7 @@ WORKER_SOURCES := $(shell if [ -d worker ]; then find worker -name '*.java' -pri
 BUILD_TARGETS := build-common{{build_target_additions}}
 PACKAGE_TARGETS := package-common{{package_target_additions}}
 
-.PHONY: all help check build package build-common package-common{{phony_targets}} clean
+.PHONY: all help check build package format build-common package-common{{phony_targets}} clean
 
 all: check
 
@@ -20,6 +21,7 @@ help:
 	@printf '%s\n' '  check   Alias for build; compiles generated Java sources.'
 	@printf '%s\n' '  build   Compiles generated Java sources into $(BUILD_DIR).'
 	@printf '%s\n' '  package Builds and archives generated artifacts under $(DIST_DIR).'
+	@printf '%s\n' '  format  Formats generated Java sources with $(CLANG_FORMAT).'
 	@printf '%s\n' '  clean   Removes build and $(DIST_DIR).'
 	@printf '%s\n' ''
 	@printf '%s\n' 'Tier targets:'
@@ -31,6 +33,13 @@ check: build
 build: $(BUILD_TARGETS)
 
 package: $(PACKAGE_TARGETS)
+
+format:
+	for dir in common api worker; do \
+		if [ -d $$dir ]; then \
+			find $$dir -type f -name '*.java' -exec $(CLANG_FORMAT) -i {} +; \
+		fi; \
+	done
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
