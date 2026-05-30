@@ -1493,9 +1493,6 @@ std::string cpp_api_server_catalog_header(
         << "\n";
     out << "{\n\n";
     out << "using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;\n\n";
-    out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
-    out << "{\n";
-    out << "    std::vector<std::string> serves;\n";
     for (const auto& domain : entity_domains)
     {
         std::vector<IrApi> served_domain_apis;
@@ -1511,6 +1508,9 @@ std::string cpp_api_server_catalog_header(
         {
             continue;
         }
+        out << "inline void append_" << snake_identifier(domain.name)
+            << "_api_server_names(std::vector<std::string>& serves)\n";
+        out << "{\n";
         out << "    for (const auto& api_name : ::statespec_generated::api::entities::"
             << snake_identifier(domain.name) << "::api_names())\n";
         out << "    {\n";
@@ -1530,6 +1530,25 @@ std::string cpp_api_server_catalog_header(
         out << "            serves.push_back(api_name);\n";
         out << "        }\n";
         out << "    }\n";
+        out << "}\n\n";
+    }
+    out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
+    out << "{\n";
+    out << "    std::vector<std::string> serves;\n";
+    for (const auto& domain : entity_domains)
+    {
+        const auto served = std::any_of(
+            domain.apis.begin(), domain.apis.end(),
+            [&](const IrApi& api)
+            {
+                return std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                       api_server.serves.end();
+            }
+        );
+        if (served)
+        {
+            out << "    append_" << snake_identifier(domain.name) << "_api_server_names(serves);\n";
+        }
     }
     for (const auto& served_api : api_server.serves)
     {

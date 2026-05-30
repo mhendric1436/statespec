@@ -287,6 +287,12 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
         "api::entities::account::constants::kCreateAccountApiName"
     );
     require_generated_artifact_contains(
+        result, "api/servers/entity_api/catalog.hpp", "append_account_api_server_names"
+    );
+    require_generated_artifact_contains(
+        result, "api/servers/entity_api/catalog.hpp", "append_account_api_server_names(serves)"
+    );
+    require_generated_artifact_contains(
         result, "api/servers/entity_api/catalog.hpp", "constants::kEntityApiServerName"
     );
     require_generated_artifact_contains(
