@@ -33,14 +33,21 @@ public final class WorkflowStepHandlers {
 
     @FunctionalInterface
     public interface WorkflowStepInvoker {
-        void invoke(Handler handler, Backend backend, Context context) throws Exception;
+        void invoke(HandlerBundle handlers, Backend backend, Context context) throws Exception;
     }
 
-    public interface Handler{{workflow_step_handler_bases}} {
-{{workflow_step_handler_methods}}    }
+    public interface HandlerBundle {
+        Object workflowHandler(String workflowName, long workflowVersion);
+    }
 
-    public static final class DefaultHandler implements Handler {
-{{default_workflow_step_handler_methods}}    }
+    public static final class DefaultHandlerBundle implements HandlerBundle {
+{{default_workflow_step_handler_members}}
+{{default_workflow_step_handler_setters}}
+        @Override
+        public Object workflowHandler(String workflowName, long workflowVersion) {
+{{default_workflow_step_handler_lookup}}            return null;
+        }
+    }
 
     public static List<String> workflowStepHandlerKeys() {
         return List.of(

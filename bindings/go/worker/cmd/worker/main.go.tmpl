@@ -17,8 +17,8 @@ func main() {
 
 	backend := memory.NewBackend()
 	runtime := worker.NewWorkerTierRuntime(backend)
-	handler := worker.DefaultWorkflowStepHandler{}
-	process := worker.NewWorkerProcess(runtime, handler)
+	handlers := worker.NewDefaultWorkflowStepHandlerBundle()
+	process := worker.NewWorkerProcess(runtime, handlers)
 
 {{worker_main_entity_gc_registration}}	if err := process.Start(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "statespec generated Worker process failed: %v\n", err)

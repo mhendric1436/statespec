@@ -25,16 +25,23 @@ func WorkflowStepKeyString(workflowName string, workflowVersion int, stepName st
 
 type WorkflowStepHandlerContext = workflowmodules.WorkflowStepHandlerContext
 
-type WorkflowStepInvoker func(context.Context, WorkflowStepHandler, common.Backend, WorkflowStepHandlerContext) error
+type WorkflowStepInvoker func(context.Context, WorkflowStepHandlerBundle, common.Backend, WorkflowStepHandlerContext) error
 
-type WorkflowStepHandler interface {
-{{workflow_step_handler_bases}}
-{{workflow_step_handler_methods}}
+type WorkflowStepHandlerBundle interface {
+	WorkflowStepHandler(workflowName string, workflowVersion int64) any
 }
 
-type DefaultWorkflowStepHandler struct{}
+type DefaultWorkflowStepHandlerBundle struct {
+{{default_workflow_step_handler_members}}}
 
-{{default_workflow_step_handler_methods}}
+func NewDefaultWorkflowStepHandlerBundle() DefaultWorkflowStepHandlerBundle {
+	return DefaultWorkflowStepHandlerBundle{
+{{default_workflow_step_handler_initializers}}	}
+}
+
+func (bundle DefaultWorkflowStepHandlerBundle) WorkflowStepHandler(workflowName string, workflowVersion int64) any {
+{{default_workflow_step_handler_lookup}}	return nil
+}
 
 func WorkflowStepHandlerKeys() []string {
 	return []string{

@@ -940,7 +940,6 @@ std::string generate_workflow_step_handler_imports_go(const IrSystem& system)
         return {};
     }
     std::ostringstream out;
-    out << "\t\"fmt\"\n";
     for (const auto& workflow : system.workflows)
     {
         out << "\tworkflow" << snake_identifier(workflow.name)

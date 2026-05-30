@@ -129,7 +129,7 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
         worker_run_once
             << "    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(\n"
             << "        const WorkerContext& context,\n"
-            << "        IWorkflowStepHandler& handler,\n"
+            << "        WorkflowStepHandlerBundle& handlers,\n"
             << "        const std::string& workflow_execution_id\n"
             << "    )\n"
             << "    {\n"
@@ -138,7 +138,7 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
             << "            return std::nullopt;\n"
             << "        }\n"
             << "        WorkflowRunner runner{\n"
-            << "            backend_, workflows_, handler, context.worker_name, "
+            << "            backend_, workflows_, handlers, context.worker_name, "
                "std::chrono::seconds{30}, 3\n"
             << "        };\n"
             << "        return runner.run_once(workflow_execution_id, *context.executes, 1);\n"
@@ -149,7 +149,7 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
         worker_run_once
             << "    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(\n"
             << "        const WorkerContext&,\n"
-            << "        IWorkflowStepHandler&,\n"
+            << "        WorkflowStepHandlerBundle&,\n"
             << "        const std::string&\n"
             << "    )\n"
             << "    {\n"
@@ -242,16 +242,49 @@ std::string cpp_workflow_step_handler_includes(const IrSystem& system)
     return out.str();
 }
 
-std::string cpp_workflow_step_handler_bases(const IrSystem& system)
+std::string cpp_workflow_step_handler_members(const IrSystem& system)
 {
     std::ostringstream out;
-    bool first = true;
     for (const auto& workflow : system.workflows)
     {
-        out << (first ? " : public " : ", public ")
-            << "workflows::" << cpp_workflow_handler_namespace(workflow)
-            << "::" << cpp_workflow_handler_class_name(workflow);
-        first = false;
+        const auto ns = cpp_workflow_handler_namespace(workflow);
+        const auto handler_class = cpp_workflow_handler_class_name(workflow);
+        const auto default_class = cpp_workflow_default_handler_class_name(workflow);
+        out << "    workflows::" << ns << "::" << default_class << " default_" << ns
+            << "_handler_;\n";
+        out << "    workflows::" << ns << "::" << handler_class << "* " << ns
+            << "_handler_ = &default_" << ns << "_handler_;\n";
+    }
+    return out.str();
+}
+
+std::string cpp_workflow_step_handler_setters(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto ns = cpp_workflow_handler_namespace(workflow);
+        const auto handler_class = cpp_workflow_handler_class_name(workflow);
+        out << "    void set_" << ns << "_handler(workflows::" << ns << "::" << handler_class
+            << "& handler)\n";
+        out << "    {\n";
+        out << "        " << ns << "_handler_ = &handler;\n";
+        out << "    }\n\n";
+    }
+    return out.str();
+}
+
+std::string cpp_workflow_step_handler_lookup(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto ns = cpp_workflow_handler_namespace(workflow);
+        out << "        if (workflow_name == " << cpp_string(workflow.name)
+            << " && workflow_version == " << workflow.version.value_or(1) << ")\n";
+        out << "        {\n";
+        out << "            return " << ns << "_handler_;\n";
+        out << "        }\n";
     }
     return out.str();
 }
@@ -303,6 +336,7 @@ std::string generate_cpp_workflow_registry_module(const IrWorkflow& workflow)
     out << "#pragma once\n\n";
     out << "#include \"handlers.hpp\"\n";
     out << "#include \"../../workflow_step_handlers.hpp\"\n\n";
+    out << "#include <stdexcept>\n";
     out << "#include <string>\n";
     out << "#include <unordered_map>\n\n";
     out << "namespace statespec_generated::worker::workflows::" << ns << "\n";
@@ -311,14 +345,21 @@ std::string generate_cpp_workflow_registry_module(const IrWorkflow& workflow)
     {
         const auto step_snake = snake_identifier(step.name);
         out << "inline void invoke_" << snake << "_" << step_snake << "(\n";
-        out << "    ::statespec_generated::worker::IWorkflowStepHandler& handler,\n";
+        out << "    ::statespec_generated::worker::WorkflowStepHandlerBundle& handlers,\n";
         out << "    ::statespec::backend::IBackend& backend,\n";
         out << "    const ::statespec_generated::worker::WorkflowStepHandlerContext& context\n";
         out << ")\n";
         out << "{\n";
         out << "    (void)backend;\n";
-        out << "    static_cast<" << handler_class << "&>(handler).handle_" << step_snake
-            << "(context);\n";
+        out << "    auto* handler = static_cast<" << handler_class
+            << "*>(handlers.workflow_handler(" << cpp_string(workflow.name) << ", "
+            << workflow.version.value_or(1) << "));\n";
+        out << "    if (handler == nullptr)\n";
+        out << "    {\n";
+        out << "        throw std::runtime_error(\"generated workflow step handler "
+            << workflow.name << " v" << workflow.version.value_or(1) << " is not registered\");\n";
+        out << "    }\n";
+        out << "    handler->handle_" << step_snake << "(context);\n";
         out << "}\n\n";
     }
     out << "inline void register_workflow_step_invokers(\n";
@@ -3443,9 +3484,11 @@ void add_cpp_worker_artifacts(
             GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_handler_includes", cpp_workflow_step_handler_includes(system)},
-                {"workflow_step_handler_bases", cpp_workflow_step_handler_bases(system)},
-                {"default_workflow_step_handler_methods",
-                 generate_default_workflow_step_handler_methods(system)},
+                {"default_workflow_step_handler_members",
+                 cpp_workflow_step_handler_members(system)},
+                {"default_workflow_step_handler_setters",
+                 cpp_workflow_step_handler_setters(system)},
+                {"default_workflow_step_handler_lookup", cpp_workflow_step_handler_lookup(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}
             }
         );

@@ -12,7 +12,7 @@ use statespec_generated::worker_runtime::WorkerRuntime;
 use statespec_generated::workflow::{StartWorkflowRequest, WorkflowStore};
 use statespec_generated::workflow_provision_service_handlers::ProvisionServiceV1StepHandler;
 use statespec_generated::workflow_step_handlers::{
-    WorkflowStepHandler, WorkflowStepHandlerContext,
+    DefaultWorkflowStepHandlerBundle, WorkflowStepHandlerContext,
 };
 
 #[derive(Clone)]
@@ -46,8 +46,6 @@ impl ProvisionServiceV1StepHandler for ProcessWorkflowStepHandler {
     }
 }
 
-impl WorkflowStepHandler for ProcessWorkflowStepHandler {}
-
 #[test]
 fn generated_worker_process_lifecycle() {
     let backend = InMemoryBackend::new();
@@ -56,11 +54,15 @@ fn generated_worker_process_lifecycle() {
     let handler = ProcessWorkflowStepHandler {
         handled_validate_request: Arc::clone(&handled_validate_request),
     };
+    let handlers = Arc::new(
+        DefaultWorkflowStepHandlerBundle::default()
+            .with_provision_service_v1_handler(Arc::new(handler)),
+    );
     let config = WorkerProcessConfig {
         bootstrap_on_start: true,
         worker_poll_interval_ms: 1,
     };
-    let process = Arc::new(WorkerProcess::with_config(runtime, handler, config));
+    let process = Arc::new(WorkerProcess::with_config(runtime, handlers, config));
 
     assert!(
         process.join().is_err(),

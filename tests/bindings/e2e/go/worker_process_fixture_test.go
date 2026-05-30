@@ -41,9 +41,11 @@ func TestGeneratedWorkerProcessLifecycle(t *testing.T) {
 	backend := memory.NewBackend()
 	runtime := worker.NewWorkerTierRuntime(backend)
 	handler := processWorkflowStepHandler{handled: make(chan struct{})}
+	handlers := worker.NewDefaultWorkflowStepHandlerBundle()
+	handlers.ProvisionService = handler
 	config := worker.DefaultWorkerProcessConfig()
 	config.WorkerPollInterval = time.Millisecond
-	process := worker.NewWorkerProcessWithConfig(runtime, handler, config)
+	process := worker.NewWorkerProcessWithConfig(runtime, handlers, config)
 
 	if err := process.Join(); err == nil {
 		t.Fatal("joining a WorkerProcess before start should fail")

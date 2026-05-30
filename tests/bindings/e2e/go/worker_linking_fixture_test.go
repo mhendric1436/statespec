@@ -68,10 +68,12 @@ func TestGeneratedWorkerRunnerLinksWithMemoryBackend(t *testing.T) {
 	}
 
 	handler := &linkingWorkflowStepHandler{}
+	handlers := worker.NewDefaultWorkflowStepHandlerBundle()
+	handlers.ProvisionService = handler
 	runner := worker.WorkflowRunner{
 		Backend:       backend,
 		WorkflowStore: workflows,
-		Handler:       handler,
+		Handlers:      handlers,
 		WorkerName:    "ProvisionWorker",
 		LeaseDuration: time.Minute,
 		MaxAttempts:   3,

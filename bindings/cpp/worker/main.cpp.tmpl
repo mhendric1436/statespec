@@ -31,8 +31,8 @@ int main()
     {
         statespec::backend::memory::InMemoryBackend backend;
         statespec_generated::worker::WorkerRuntime runtime{backend};
-        statespec_generated::worker::DefaultWorkflowStepHandler handler;
-        statespec_generated::worker::WorkerProcess process{runtime, handler};
+        statespec_generated::worker::DefaultWorkflowStepHandlerBundle handlers;
+        statespec_generated::worker::WorkerProcess process{runtime, handlers};
 
         // clang-format off
 {{worker_main_entity_gc_registration}} // clang-format on

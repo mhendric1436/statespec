@@ -12,7 +12,7 @@ import (
 type WorkflowRunner struct {
 	Backend       common.Backend
 	WorkflowStore common.WorkflowStore
-	Handler       WorkflowStepHandler
+	Handlers      WorkflowStepHandlerBundle
 	WorkerName    string
 	LeaseDuration time.Duration
 	MaxAttempts   uint32
@@ -54,7 +54,7 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 	if !handled {
 		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s", stepKey)
 	} else {
-		handlerErr = invoker(ctx, runner.Handler, runner.Backend, stepContext)
+		handlerErr = invoker(ctx, runner.Handlers, runner.Backend, stepContext)
 	}
 	if handlerErr != nil {
 		failed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, common.FailWorkflowStepRequest{

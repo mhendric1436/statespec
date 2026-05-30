@@ -3,13 +3,15 @@
 #include "worker/worker_process.hpp"
 #include "worker/worker_runtime.hpp"
 #include "worker/workflow_step_handlers.hpp"
+#include "worker/workflows/provision_service/handlers.hpp"
 
 #include <atomic>
 #include <chrono>
 #include <stdexcept>
 #include <thread>
 
-class ProcessWorkflowStepHandler final : public statespec_generated::worker::IWorkflowStepHandler
+class ProcessWorkflowStepHandler final : public statespec_generated::worker::workflows::
+                                             provision_service::ProvisionServiceV1StepHandler
 {
   public:
     void handle_validate_request(
@@ -47,9 +49,11 @@ int main()
     statespec::backend::memory::InMemoryBackend backend;
     statespec_generated::worker::WorkerRuntime runtime{backend};
     ProcessWorkflowStepHandler handler;
+    statespec_generated::worker::DefaultWorkflowStepHandlerBundle handlers;
+    handlers.set_provision_service_handler(handler);
     statespec_generated::worker::WorkerProcessConfig config;
     config.worker_poll_interval_ms = 1;
-    statespec_generated::worker::WorkerProcess process{runtime, handler, config};
+    statespec_generated::worker::WorkerProcess process{runtime, handlers, config};
 
     if (process.join() == 0)
     {

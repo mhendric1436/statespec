@@ -797,14 +797,14 @@ TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
             << "    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> "
                "runOnce(\n"
             << "        com.statespec.generated.descriptors.types.WorkerContext context,\n"
-            << "        WorkflowStepHandlers.Handler handler,\n"
+            << "        WorkflowStepHandlers.HandlerBundle handlers,\n"
             << "        String workflowExecutionId\n"
             << "    ) throws Exception {\n"
             << "        if (context.executes().isEmpty()) {\n"
             << "            return Optional.empty();\n"
             << "        }\n"
             << "        WorkflowRunner runner =\n"
-            << "            new WorkflowRunner(backend, workflows, handler, context.workerName(), "
+            << "            new WorkflowRunner(backend, workflows, handlers, context.workerName(), "
                "Duration.ofSeconds(30), 3);\n"
             << "        return runner.runOnce(workflowExecutionId, "
                "context.executes().orElseThrow(), "
@@ -818,7 +818,7 @@ TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
             << "    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> "
                "runOnce(\n"
             << "        com.statespec.generated.descriptors.types.WorkerContext context,\n"
-            << "        WorkflowStepHandlers.Handler handler,\n"
+            << "        WorkflowStepHandlers.HandlerBundle handlers,\n"
             << "        String workflowExecutionId\n"
             << "    ) {\n"
             << "        return Optional.empty();\n"
@@ -951,16 +951,68 @@ std::string generate_java_workflow_registry_module(const IrWorkflow& workflow)
     {
         out << "    private static void invoke" << pascal_identifier(workflow.name)
             << pascal_identifier(step.name) << "(\n";
-        out << "        WorkflowStepHandlers.Handler handler,\n";
+        out << "        WorkflowStepHandlers.HandlerBundle handlers,\n";
         out << "        Backend backend,\n";
         out << "        WorkflowStepHandlers.Context context\n";
         out << "    ) throws Exception {\n";
         out << "        var ignoredBackend = backend;\n";
-        out << "        ((Handlers." << class_name << ") handler).handle"
-            << pascal_identifier(step.name) << "(context);\n";
+        out << "        Object workflowHandler = handlers.workflowHandler("
+            << java_string(workflow.name) << ", " << workflow.version.value_or(1) << "L);\n";
+        out << "        if (!(workflowHandler instanceof Handlers." << class_name
+            << " handler)) {\n";
+        out << "            throw new IllegalStateException(\"generated workflow step handler "
+            << workflow.name << " v" << workflow.version.value_or(1) << " is not registered\");\n";
+        out << "        }\n";
+        out << "        handler.handle" << pascal_identifier(step.name) << "(context);\n";
         out << "    }\n\n";
     }
     out << "}\n";
+    return out.str();
+}
+
+std::string java_workflow_step_handler_bundle_members(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto package_name = snake_identifier(workflow.name);
+        const auto class_name = pascal_identifier(workflow.name) + "V" +
+                                std::to_string(workflow.version.value_or(1)) + "StepHandler";
+        out << "        private com.statespec.generated.workflows." << package_name << ".Handlers."
+            << class_name << " " << lower_camel_identifier(workflow.name)
+            << " = new com.statespec.generated.workflows." << package_name << ".Handlers.Default"
+            << class_name << "();\n";
+    }
+    return out.str();
+}
+
+std::string java_workflow_step_handler_bundle_setters(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto package_name = snake_identifier(workflow.name);
+        const auto class_name = pascal_identifier(workflow.name) + "V" +
+                                std::to_string(workflow.version.value_or(1)) + "StepHandler";
+        out << "        public void set" << pascal_identifier(workflow.name)
+            << "Handler(com.statespec.generated.workflows." << package_name << ".Handlers."
+            << class_name << " handler) {\n";
+        out << "            this." << lower_camel_identifier(workflow.name) << " = handler;\n";
+        out << "        }\n\n";
+    }
+    return out.str();
+}
+
+std::string java_workflow_step_handler_bundle_lookup(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        out << "            if (workflowName.equals(" << java_string(workflow.name)
+            << ") && workflowVersion == " << workflow.version.value_or(1) << "L) {\n";
+        out << "                return " << lower_camel_identifier(workflow.name) << ";\n";
+        out << "            }\n";
+    }
     return out.str();
 }
 
@@ -971,19 +1023,6 @@ std::string java_workflow_step_handler_imports(const IrSystem& system)
     {
         out << "import com.statespec.generated.workflows." << snake_identifier(workflow.name)
             << ".Handlers;\n";
-    }
-    return out.str();
-}
-
-std::string java_workflow_step_handler_bases(const IrSystem& system)
-{
-    std::ostringstream out;
-    bool first = true;
-    for (const auto& workflow : system.workflows)
-    {
-        out << (first ? " extends " : ", ") << "Handlers." << pascal_identifier(workflow.name)
-            << "V" << workflow.version.value_or(1) << "StepHandler";
-        first = false;
     }
     return out.str();
 }
@@ -3915,10 +3954,12 @@ void add_java_worker_artifacts(
             GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
                 {"workflow_step_handler_imports", java_workflow_step_handler_imports(system)},
-                {"workflow_step_handler_bases", java_workflow_step_handler_bases(system)},
-                {"workflow_step_handler_methods", std::string{}},
-                {"default_workflow_step_handler_methods",
-                 generate_default_workflow_step_handler_methods_java(system)},
+                {"default_workflow_step_handler_members",
+                 java_workflow_step_handler_bundle_members(system)},
+                {"default_workflow_step_handler_setters",
+                 java_workflow_step_handler_bundle_setters(system)},
+                {"default_workflow_step_handler_lookup",
+                 java_workflow_step_handler_bundle_lookup(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys_java(system)}
             }
         );

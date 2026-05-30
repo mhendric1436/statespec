@@ -191,13 +191,13 @@ TemplateRenderer::Values rust_runtime_bootstrap_values(const IrSystem& system)
     if (usage.uses_workflows)
     {
         worker_imports << "use crate::workflow_runner::WorkflowRunner;\n";
-        worker_imports << "use crate::workflow_step_handlers::WorkflowStepHandler;\n";
+        worker_imports << "use crate::workflow_step_handlers::WorkflowStepHandlerBundle;\n";
         worker_imports << "use crate::worker_contexts::WorkerContext;\n";
         worker_run_once
             << "    pub fn run_once(\n"
             << "        &self,\n"
             << "        context: &WorkerContext,\n"
-            << "        handler: &impl WorkflowStepHandler,\n"
+            << "        handlers: &dyn WorkflowStepHandlerBundle,\n"
             << "        workflow_execution_id: &str,\n"
             << "    ) -> "
                "crate::backend::BackendResult<Option<crate::workflow::WorkflowExecutionRecord>> "
@@ -208,7 +208,7 @@ TemplateRenderer::Values rust_runtime_bootstrap_values(const IrSystem& system)
             << "        let runner = WorkflowRunner {\n"
             << "            backend: &self.backend,\n"
             << "            workflow_store: &self.workflows,\n"
-            << "            handler,\n"
+            << "            handlers,\n"
             << "            worker_name: context.worker_name.clone(),\n"
             << "            lease_duration: std::time::Duration::from_secs(30),\n"
             << "            max_attempts: 3,\n"
@@ -218,13 +218,13 @@ TemplateRenderer::Values rust_runtime_bootstrap_values(const IrSystem& system)
     }
     else
     {
-        worker_imports << "use crate::workflow_step_handlers::WorkflowStepHandler;\n";
+        worker_imports << "use crate::workflow_step_handlers::WorkflowStepHandlerBundle;\n";
         worker_imports << "use crate::worker_contexts::WorkerContext;\n";
         worker_run_once
             << "    pub fn run_once(\n"
             << "        &self,\n"
             << "        _context: &WorkerContext,\n"
-            << "        _handler: &impl WorkflowStepHandler,\n"
+            << "        _handlers: &dyn WorkflowStepHandlerBundle,\n"
             << "        _workflow_execution_id: &str,\n"
             << "    ) -> "
                "crate::backend::BackendResult<Option<crate::workflow::WorkflowExecutionRecord>> "
@@ -290,7 +290,7 @@ std::string rust_worker_registry_facade(const IrSystem& system)
     {
         out << "use std::collections::HashMap;\n\n";
         out << "use crate::backend::Backend;\n";
-        out << "use crate::workflow_step_handlers::{WorkflowStepHandler, WorkflowStepInvoker};\n\n";
+        out << "use crate::workflow_step_handlers::WorkflowStepInvoker;\n\n";
     }
     out << "pub fn find_worker_descriptor(worker_name: &str) -> Option<WorkerDescriptor> {\n";
     for (const auto& worker : system.workers)
@@ -314,17 +314,15 @@ std::string rust_worker_registry_facade(const IrSystem& system)
     out << "}\n";
     if (!system.workflows.empty())
     {
-        out << "\npub fn workflow_step_invokers<H, B>() -> HashMap<String, WorkflowStepInvoker<H, "
-               "B>>\n";
+        out << "\npub fn workflow_step_invokers<B>() -> HashMap<String, WorkflowStepInvoker<B>>\n";
         out << "where\n";
-        out << "    H: WorkflowStepHandler,\n";
         out << "    B: Backend,\n";
         out << "{\n";
         out << "    let mut invokers = HashMap::new();\n";
         for (const auto& workflow : system.workflows)
         {
             out << "    workflow_" << snake_identifier(workflow.name)
-                << "_registry::register_workflow_step_invokers::<H, B>(&mut invokers);\n";
+                << "_registry::register_workflow_step_invokers::<B>(&mut invokers);\n";
         }
         out << "    invokers\n";
         out << "}\n";
@@ -397,31 +395,36 @@ std::string generate_rust_workflow_registry_module(const IrWorkflow& workflow)
     const auto handler_module = "workflow_" + snake_identifier(workflow.name) + "_handlers";
     std::ostringstream out;
     out << "use std::collections::HashMap;\n\n";
-    out << "use crate::backend::{Backend, BackendResult};\n";
+    out << "use crate::backend::{Backend, BackendError, BackendResult};\n";
     out << "use crate::workflow_step_handlers::{workflow_step_key, WorkflowStepHandlerContext, "
-           "WorkflowStepInvoker};\n";
+           "WorkflowStepHandlerBundle, WorkflowStepInvoker};\n";
     out << "use crate::" << handler_module << "::" << trait_name << ";\n\n";
     for (const auto& step : workflow.steps)
     {
         out << "fn invoke_" << snake_identifier(workflow.name) << "_" << snake_identifier(step.name)
-            << "<H, B>(\n";
-        out << "    handler: &H,\n";
+            << "<B>(\n";
+        out << "    handlers: &dyn WorkflowStepHandlerBundle,\n";
         out << "    backend: &B,\n";
         out << "    context: &WorkflowStepHandlerContext,\n";
         out << ") -> BackendResult<()>\n";
         out << "where\n";
-        out << "    H: " << trait_name << ",\n";
         out << "    B: Backend,\n";
         out << "{\n";
         out << "    let _ = backend;\n";
+        out << "    let Some(handler) = handlers." << snake_identifier(workflow.name) << "_v"
+            << workflow.version.value_or(1) << "() else {\n";
+        out << "        return Err(BackendError::Internal {\n";
+        out << "            message: \"generated workflow step handler " << workflow.name << " v"
+            << workflow.version.value_or(1) << " is not registered\".to_string(),\n";
+        out << "        });\n";
+        out << "    };\n";
         out << "    handler.handle_" << snake_identifier(step.name) << "(context)\n";
         out << "}\n\n";
     }
-    out << "pub fn register_workflow_step_invokers<H, B>(\n";
-    out << "    invokers: &mut HashMap<String, WorkflowStepInvoker<H, B>>,\n";
+    out << "pub fn register_workflow_step_invokers<B>(\n";
+    out << "    invokers: &mut HashMap<String, WorkflowStepInvoker<B>>,\n";
     out << ")\n";
     out << "where\n";
-    out << "    H: " << trait_name << ",\n";
     out << "    B: Backend,\n";
     out << "{\n";
     for (const auto& step : workflow.steps)
@@ -430,23 +433,95 @@ std::string generate_rust_workflow_registry_module(const IrWorkflow& workflow)
         out << "        workflow_step_key(" << rust_string(workflow.name) << ", "
             << workflow.version.value_or(1) << ", " << rust_string(step.name) << "),\n";
         out << "        invoke_" << snake_identifier(workflow.name) << "_"
-            << snake_identifier(step.name) << "::<H, B>,\n";
+            << snake_identifier(step.name) << "::<B>,\n";
         out << "    );\n";
     }
     out << "}\n";
     return out.str();
 }
 
-std::string rust_workflow_step_handler_bases(const IrSystem& system)
+std::string rust_workflow_step_handler_imports(const IrSystem& system)
 {
     std::ostringstream out;
-    bool first = true;
     for (const auto& workflow : system.workflows)
     {
-        out << (first ? ": " : " + ") << "crate::workflow_" << snake_identifier(workflow.name)
-            << "_handlers::" << pascal_identifier(workflow.name) << "V"
-            << workflow.version.value_or(1) << "StepHandler";
-        first = false;
+        out << "use crate::workflow_" << snake_identifier(workflow.name) << "_handlers::{Default"
+            << pascal_identifier(workflow.name) << "V" << workflow.version.value_or(1)
+            << "StepHandler, " << pascal_identifier(workflow.name) << "V"
+            << workflow.version.value_or(1) << "StepHandler};\n";
+    }
+    return out.str();
+}
+
+std::string rust_workflow_step_bundle_methods(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto method =
+            snake_identifier(workflow.name) + "_v" + std::to_string(workflow.version.value_or(1));
+        out << "    fn " << method << "(&self) -> Option<&dyn " << pascal_identifier(workflow.name)
+            << "V" << workflow.version.value_or(1) << "StepHandler>;\n";
+    }
+    return out.str();
+}
+
+std::string rust_workflow_step_bundle_fields(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto field =
+            snake_identifier(workflow.name) + "_v" + std::to_string(workflow.version.value_or(1));
+        out << "    " << field << ": Arc<dyn " << pascal_identifier(workflow.name) << "V"
+            << workflow.version.value_or(1) << "StepHandler + Send + Sync>,\n";
+    }
+    return out.str();
+}
+
+std::string rust_workflow_step_bundle_initializers(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto field =
+            snake_identifier(workflow.name) + "_v" + std::to_string(workflow.version.value_or(1));
+        out << "            " << field << ": Arc::new(Default" << pascal_identifier(workflow.name)
+            << "V" << workflow.version.value_or(1) << "StepHandler),\n";
+    }
+    return out.str();
+}
+
+std::string rust_workflow_step_bundle_setters(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto field =
+            snake_identifier(workflow.name) + "_v" + std::to_string(workflow.version.value_or(1));
+        out << "    pub fn with_" << field << "_handler(\n";
+        out << "        mut self,\n";
+        out << "        handler: Arc<dyn " << pascal_identifier(workflow.name) << "V"
+            << workflow.version.value_or(1) << "StepHandler + Send + Sync>,\n";
+        out << "    ) -> Self {\n";
+        out << "        self." << field << " = handler;\n";
+        out << "        self\n";
+        out << "    }\n\n";
+    }
+    return out.str();
+}
+
+std::string rust_workflow_step_bundle_impl(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto method =
+            snake_identifier(workflow.name) + "_v" + std::to_string(workflow.version.value_or(1));
+        out << "    fn " << method << "(&self) -> Option<&dyn " << pascal_identifier(workflow.name)
+            << "V" << workflow.version.value_or(1) << "StepHandler> {\n";
+        out << "        Some(self." << method << ".as_ref())\n";
+        out << "    }\n";
     }
     return out.str();
 }
@@ -3153,10 +3228,15 @@ void add_rust_worker_artifacts(
             result, options, templates, "worker/workflow_step_handlers.rs",
             GeneratedArtifactTier::Worker, diagnostics,
             TemplateRenderer::Values{
-                {"workflow_step_handler_bases", rust_workflow_step_handler_bases(system)},
-                {"workflow_step_handler_methods", std::string{}},
-                {"default_workflow_step_handler_methods",
-                 generate_default_workflow_step_handler_methods_rs(system)},
+                {"workflow_step_handler_imports", rust_workflow_step_handler_imports(system)},
+                {"workflow_step_handler_bundle_methods", rust_workflow_step_bundle_methods(system)},
+                {"default_workflow_step_handler_fields", rust_workflow_step_bundle_fields(system)},
+                {"default_workflow_step_handler_initializers",
+                 rust_workflow_step_bundle_initializers(system)},
+                {"default_workflow_step_handler_setters",
+                 rust_workflow_step_bundle_setters(system)},
+                {"default_workflow_step_handler_bundle_impl",
+                 rust_workflow_step_bundle_impl(system)},
                 {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}
             }
         );

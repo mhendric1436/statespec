@@ -10,9 +10,9 @@ import (
 type WorkerTierApplication struct {
 	Context descriptortypes.WorkerContext
 	Runtime *WorkerTierRuntime
-	Handler WorkflowStepHandler
+	Handlers WorkflowStepHandlerBundle
 }
 
 func (app WorkerTierApplication) RunOnce(ctx context.Context, workflowExecutionID string) (*common.WorkflowExecutionRecord, error) {
-	return app.Runtime.RunOnce(ctx, app.Context, app.Handler, workflowExecutionID)
+	return app.Runtime.RunOnce(ctx, app.Context, app.Handlers, workflowExecutionID)
 }

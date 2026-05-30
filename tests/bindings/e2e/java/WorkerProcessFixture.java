@@ -9,7 +9,9 @@ public final class WorkerProcessFixture
 {
     private WorkerProcessFixture() {}
 
-    private static final class ProcessStepHandler implements WorkflowStepHandlers.Handler
+    private static final class ProcessStepHandler
+        implements com.statespec.generated.workflows.provision_service.Handlers
+                       .ProvisionServiceV1StepHandler
     {
         private final AtomicBoolean handledValidateRequest = new AtomicBoolean(false);
 
@@ -33,8 +35,11 @@ public final class WorkerProcessFixture
         InMemoryBackend backend = new InMemoryBackend();
         WorkerRuntime runtime = new WorkerRuntime(backend);
         ProcessStepHandler handler = new ProcessStepHandler();
+        WorkflowStepHandlers.DefaultHandlerBundle handlers =
+            new WorkflowStepHandlers.DefaultHandlerBundle();
+        handlers.setProvisionServiceHandler(handler);
         WorkerProcess.Config config = new WorkerProcess.Config(true, 1);
-        WorkerProcess process = new WorkerProcess(runtime, handler, config);
+        WorkerProcess process = new WorkerProcess(runtime, handlers, config);
 
         try
         {

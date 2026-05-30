@@ -21,7 +21,7 @@ func DefaultWorkerProcessConfig() WorkerProcessConfig {
 
 type WorkerProcess struct {
 	Runtime *WorkerTierRuntime
-	Handler WorkflowStepHandler
+	Handlers WorkflowStepHandlerBundle
 	Config  WorkerProcessConfig
 
 	lifecycleMu sync.Mutex
@@ -34,14 +34,14 @@ type WorkerProcess struct {
 	running     bool
 }
 
-func NewWorkerProcess(runtime *WorkerTierRuntime, handler WorkflowStepHandler) *WorkerProcess {
-	return NewWorkerProcessWithConfig(runtime, handler, DefaultWorkerProcessConfig())
+func NewWorkerProcess(runtime *WorkerTierRuntime, handlers WorkflowStepHandlerBundle) *WorkerProcess {
+	return NewWorkerProcessWithConfig(runtime, handlers, DefaultWorkerProcessConfig())
 }
 
-func NewWorkerProcessWithConfig(runtime *WorkerTierRuntime, handler WorkflowStepHandler, config WorkerProcessConfig) *WorkerProcess {
+func NewWorkerProcessWithConfig(runtime *WorkerTierRuntime, handlers WorkflowStepHandlerBundle, config WorkerProcessConfig) *WorkerProcess {
 	return &WorkerProcess{
 		Runtime: runtime,
-		Handler: handler,
+		Handlers: handlers,
 		Config:  config,
 	}
 }
@@ -87,7 +87,7 @@ func (process *WorkerProcess) startWorkerLoops(ctx context.Context) {
 						return
 					default:
 					}
-					_, _ = process.Runtime.RunOnce(ctx, workerContext, process.Handler, "")
+					_, _ = process.Runtime.RunOnce(ctx, workerContext, process.Handlers, "")
 					timer := time.NewTimer(interval)
 					select {
 					case <-ctx.Done():

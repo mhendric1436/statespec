@@ -1,11 +1,13 @@
 #include "common/memory/backend.hpp"
 #include "common/runtime/workflow_store.hpp"
 #include "worker/workflow_runner.hpp"
+#include "worker/workflows/provision_service/handlers.hpp"
 
 #include <chrono>
 #include <stdexcept>
 
-class LinkingWorkflowStepHandler final : public statespec_generated::worker::IWorkflowStepHandler
+class LinkingWorkflowStepHandler final : public statespec_generated::worker::workflows::
+                                             provision_service::ProvisionServiceV1StepHandler
 {
   public:
     void handle_validate_request(
@@ -81,8 +83,10 @@ int main()
     );
 
     LinkingWorkflowStepHandler handler;
+    statespec_generated::worker::DefaultWorkflowStepHandlerBundle handlers;
+    handlers.set_provision_service_handler(handler);
     statespec_generated::worker::WorkflowRunner runner{
-        backend, workflows, handler, "ProvisionWorker", std::chrono::seconds{60}, 3,
+        backend, workflows, handlers, "ProvisionWorker", std::chrono::seconds{60}, 3,
     };
     const auto advanced = runner.run_once("wf-1", "ProvisionService", 1);
     if (!handler.handled() || !advanced.has_value() || advanced->status != "Running" ||

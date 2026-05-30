@@ -7,6 +7,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace statespec_generated::worker
@@ -51,25 +52,44 @@ struct WorkflowStepHandlerContext
     statespec::backend::Json input;
 };
 
-// clang-format off
-class IWorkflowStepHandler{{workflow_step_handler_bases}}
-// clang-format on
+class WorkflowStepHandlerBundle
 {
   public:
-    virtual ~IWorkflowStepHandler() = default;
+    virtual ~WorkflowStepHandlerBundle() = default;
+    virtual void* workflow_handler(
+        std::string_view workflow_name,
+        std::int64_t workflow_version
+    ) = 0;
 };
 
 using WorkflowStepInvoker = void (*)(
-    IWorkflowStepHandler& handler,
+    WorkflowStepHandlerBundle& handlers,
     statespec::backend::IBackend& backend,
     const WorkflowStepHandlerContext& context
 );
 
-class DefaultWorkflowStepHandler final : public IWorkflowStepHandler
+class DefaultWorkflowStepHandlerBundle final : public WorkflowStepHandlerBundle
 {
   public:
     // clang-format off
-{{default_workflow_step_handler_methods}}
+{{default_workflow_step_handler_setters}}
+    // clang-format on
+
+    void* workflow_handler(
+        std::string_view workflow_name,
+        std::int64_t workflow_version
+    ) override
+    {
+        // clang-format off
+{{default_workflow_step_handler_lookup}} // clang-format on
+        (void)workflow_name;
+        (void)workflow_version;
+        return nullptr;
+    }
+
+  private:
+    // clang-format off
+{{default_workflow_step_handler_members}}
     // clang-format on
 };
 

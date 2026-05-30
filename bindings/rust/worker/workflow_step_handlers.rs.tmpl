@@ -1,5 +1,8 @@
-use crate::backend::{BackendError, BackendResult};
+use std::sync::Arc;
+
+use crate::backend::BackendResult;
 use crate::json::Json;
+{{workflow_step_handler_imports}}
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct WorkflowStepKey {
@@ -27,18 +30,29 @@ pub struct WorkflowStepHandlerContext {
     pub input: Json,
 }
 
-pub type WorkflowStepInvoker<H, B> = fn(&H, &B, &WorkflowStepHandlerContext) -> BackendResult<()>;
+pub type WorkflowStepInvoker<B> =
+    fn(&dyn WorkflowStepHandlerBundle, &B, &WorkflowStepHandlerContext) -> BackendResult<()>;
 
-pub trait WorkflowStepHandler{{workflow_step_handler_bases}} {
-{{workflow_step_handler_methods}}
+pub trait WorkflowStepHandlerBundle {
+{{workflow_step_handler_bundle_methods}}
 }
 
-#[derive(Clone, Debug)]
-pub struct DefaultWorkflowStepHandler;
+#[derive(Clone)]
+pub struct DefaultWorkflowStepHandlerBundle {
+{{default_workflow_step_handler_fields}}}
 
-{{default_workflow_step_handler_methods}}
+impl Default for DefaultWorkflowStepHandlerBundle {
+    fn default() -> Self {
+        Self {
+{{default_workflow_step_handler_initializers}}        }
+    }
+}
 
-impl WorkflowStepHandler for DefaultWorkflowStepHandler {}
+impl DefaultWorkflowStepHandlerBundle {
+{{default_workflow_step_handler_setters}}}
+
+impl WorkflowStepHandlerBundle for DefaultWorkflowStepHandlerBundle {
+{{default_workflow_step_handler_bundle_impl}}}
 
 pub fn workflow_step_handler_keys() -> Vec<&'static str> {
     vec![

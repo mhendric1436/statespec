@@ -24,14 +24,14 @@ class WorkflowRunner
     WorkflowRunner(
         statespec::backend::IBackend& backend,
         statespec::backend::IWorkflowStore& workflow_store,
-        IWorkflowStepHandler& handler,
+        WorkflowStepHandlerBundle& handlers,
         std::string worker_name,
         std::chrono::seconds lease_duration,
         std::uint32_t max_attempts
     )
         : backend_(backend),
           workflow_store_(workflow_store),
-          handler_(handler),
+          handlers_(handlers),
           worker_name_(std::move(worker_name)),
           lease_duration_(lease_duration),
           max_attempts_(max_attempts)
@@ -86,7 +86,7 @@ class WorkflowRunner
             {
                 throw std::runtime_error("unknown generated workflow step handler: " + key);
             }
-            invoker->second(handler_, backend_, context);
+            invoker->second(handlers_, backend_, context);
             std::optional<std::string> next_step;
             // clang-format off
 {{workflow_step_module_next_cases}}
@@ -119,7 +119,7 @@ class WorkflowRunner
   private:
     statespec::backend::IBackend& backend_;
     statespec::backend::IWorkflowStore& workflow_store_;
-    IWorkflowStepHandler& handler_;
+    WorkflowStepHandlerBundle& handlers_;
     std::string worker_name_;
     std::chrono::seconds lease_duration_;
     std::uint32_t max_attempts_;

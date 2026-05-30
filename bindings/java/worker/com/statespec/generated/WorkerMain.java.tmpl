@@ -17,8 +17,8 @@ public final class WorkerMain {
     private static int run() {
         var backend = new InMemoryBackend();
         var runtime = new WorkerRuntime(backend);
-        var handler = new WorkflowStepHandlers.DefaultHandler();
-        var process = new WorkerProcess(runtime, handler);
+        var handlers = new WorkflowStepHandlers.DefaultHandlerBundle();
+        var process = new WorkerProcess(runtime, handlers);
 
         Runtime.getRuntime().addShutdownHook(new Thread(process::requestStop, "statespec-worker-shutdown"));
 

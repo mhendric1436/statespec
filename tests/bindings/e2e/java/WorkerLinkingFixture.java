@@ -12,7 +12,9 @@ public final class WorkerLinkingFixture
 {
     private WorkerLinkingFixture() {}
 
-    private static final class LinkingStepHandler implements WorkflowStepHandlers.Handler
+    private static final class LinkingStepHandler
+        implements com.statespec.generated.workflows.provision_service.Handlers
+                       .ProvisionServiceV1StepHandler
     {
         private boolean handled;
 
@@ -66,8 +68,11 @@ public final class WorkerLinkingFixture
         );
 
         LinkingStepHandler handler = new LinkingStepHandler();
+        WorkflowStepHandlers.DefaultHandlerBundle handlers =
+            new WorkflowStepHandlers.DefaultHandlerBundle();
+        handlers.setProvisionServiceHandler(handler);
         WorkflowRunner runner = new WorkflowRunner(
-            backend, workflows, handler, "ProvisionWorker", Duration.ofMinutes(1), 3
+            backend, workflows, handlers, "ProvisionWorker", Duration.ofMinutes(1), 3
         );
         Optional<Workflow.WorkflowExecutionRecord> advanced =
             runner.runOnce("wf-1", "ProvisionService", 1L);

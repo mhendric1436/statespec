@@ -13,7 +13,7 @@ import java.util.Optional;
 public final class WorkflowRunner {
     private final Backend backend;
     private final Workflow workflowStore;
-    private final WorkflowStepHandlers.Handler handler;
+    private final WorkflowStepHandlers.HandlerBundle handlers;
     private final String workerName;
     private final Duration leaseDuration;
     private final int maxAttempts;
@@ -21,14 +21,14 @@ public final class WorkflowRunner {
     public WorkflowRunner(
         Backend backend,
         Workflow workflowStore,
-        WorkflowStepHandlers.Handler handler,
+        WorkflowStepHandlers.HandlerBundle handlers,
         String workerName,
         Duration leaseDuration,
         int maxAttempts
     ) {
         this.backend = backend;
         this.workflowStore = workflowStore;
-        this.handler = handler;
+        this.handlers = handlers;
         this.workerName = workerName;
         this.leaseDuration = leaseDuration;
         this.maxAttempts = maxAttempts;
@@ -89,7 +89,7 @@ public final class WorkflowRunner {
                     "unknown generated workflow step handler: " + stepKey
                 );
             }
-            invoker.invoke(handler, backend, context);
+            invoker.invoke(handlers, backend, context);
             Optional<String> nextStep = Optional.empty();
 {{workflow_step_module_next_cases}}            return Optional.of(
                 workflowStore.completeStep(

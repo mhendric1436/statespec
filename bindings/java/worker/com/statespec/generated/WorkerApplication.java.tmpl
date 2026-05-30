@@ -5,16 +5,16 @@ import com.statespec.generated.descriptors.types.WorkerContext;
 public final class WorkerApplication {
     private final WorkerContext context;
     private final WorkerRuntime runtime;
-    private final WorkflowStepHandlers.Handler handler;
+    private final WorkflowStepHandlers.HandlerBundle handlers;
 
     public WorkerApplication(
         WorkerContext context,
         WorkerRuntime runtime,
-        WorkflowStepHandlers.Handler handler
+        WorkflowStepHandlers.HandlerBundle handlers
     ) {
         this.context = context;
         this.runtime = runtime;
-        this.handler = handler;
+        this.handlers = handlers;
     }
 
     public WorkerContext context() {
@@ -24,6 +24,6 @@ public final class WorkerApplication {
     public java.util.Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> runOnce(
         String workflowExecutionId
     ) throws Exception {
-        return runtime.runOnce(context, handler, workflowExecutionId);
+        return runtime.runOnce(context, handlers, workflowExecutionId);
     }
 }
