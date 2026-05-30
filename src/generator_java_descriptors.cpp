@@ -1071,12 +1071,15 @@ std::string generate_workflow_step_handler_keys_java(const IrSystem& system)
     {
         for (const auto& step : workflow.steps)
         {
-            keys.push_back(workflow.name + "." + step.name);
+            keys.push_back(
+                "WorkflowStepHandlers.workflowStepKey(" + java_string(workflow.name) + ", " +
+                std::to_string(workflow.version.value_or(1)) + "L, " + java_string(step.name) + ")"
+            );
         }
     }
     for (std::size_t i = 0; i < keys.size(); ++i)
     {
-        out << "            " << java_string(keys[i]) << (i + 1 < keys.size() ? "," : "") << "\n";
+        out << "            " << keys[i] << (i + 1 < keys.size() ? "," : "") << "\n";
     }
     return out.str();
 }

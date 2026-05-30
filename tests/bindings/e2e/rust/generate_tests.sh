@@ -111,8 +111,10 @@ worker/worker_runtime.rs
 worker/worker_workflows.rs
 worker/workflow_runner.rs
 worker/workflow_step_handlers.rs
+worker/workflow_step_registry.rs
 worker/workflows/provision_service.rs
 worker/workflows/provision_service/handlers.rs
+worker/workflows/provision_service/registry.rs
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang rust "$E2E_SPEC" --out "$TMPDIR/out-e2e-rust"
@@ -424,15 +426,17 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pu
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub fn encode(&self) -> String"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub fn workflow_step_key(workflow_name: &str, workflow_version: i64, step_name: &str) -> String"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "format!(\"{}:{}:{}\", workflow_name, workflow_version, step_name)"
-assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub type WorkflowStepInvoker<B> = fn(&B, &WorkflowStepHandlerContext) -> BackendResult<()>"
-assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.validate_request\""
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub type WorkflowStepInvoker<H, B> = fn(&H, &B, &WorkflowStepHandlerContext) -> BackendResult<()>"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService:1:validate_request\""
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "pub struct DefaultWorkflowStepHandler"
-assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.create_remote_service\""
-assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService.wait_for_remote_service\""
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService:1:create_remote_service\""
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "\"ProvisionService:1:wait_for_remote_service\""
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_registry.rs" "workflow_step_invokers"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service/registry.rs" "register_workflow_step_invokers"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service/handlers.rs" "pub trait ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service/handlers.rs" "handle_validate_request"
-assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "workflow_provision_service::dispatch_step"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "workflow_step_invokers::<H, B>()"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "handle_validate_request"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "Some(\"create_remote_service\".to_string())"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "Some(\"wait_for_remote_service\".to_string())"

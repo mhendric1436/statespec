@@ -25,7 +25,7 @@ func WorkflowStepKeyString(workflowName string, workflowVersion int, stepName st
 
 type WorkflowStepHandlerContext = workflowmodules.WorkflowStepHandlerContext
 
-type WorkflowStepInvoker func(context.Context, common.Backend, WorkflowStepHandlerContext) error
+type WorkflowStepInvoker func(context.Context, WorkflowStepHandler, common.Backend, WorkflowStepHandlerContext) error
 
 type WorkflowStepHandler interface {
 {{workflow_step_handler_bases}}

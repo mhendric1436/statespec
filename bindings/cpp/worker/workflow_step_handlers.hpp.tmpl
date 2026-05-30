@@ -51,11 +51,6 @@ struct WorkflowStepHandlerContext
     statespec::backend::Json input;
 };
 
-using WorkflowStepInvoker = void (*)(
-    statespec::backend::IBackend& backend,
-    const WorkflowStepHandlerContext& context
-);
-
 // clang-format off
 class IWorkflowStepHandler{{workflow_step_handler_bases}}
 // clang-format on
@@ -63,6 +58,12 @@ class IWorkflowStepHandler{{workflow_step_handler_bases}}
   public:
     virtual ~IWorkflowStepHandler() = default;
 };
+
+using WorkflowStepInvoker = void (*)(
+    IWorkflowStepHandler& handler,
+    statespec::backend::IBackend& backend,
+    const WorkflowStepHandlerContext& context
+);
 
 class DefaultWorkflowStepHandler final : public IWorkflowStepHandler
 {

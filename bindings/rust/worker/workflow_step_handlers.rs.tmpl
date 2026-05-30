@@ -27,7 +27,7 @@ pub struct WorkflowStepHandlerContext {
     pub input: Json,
 }
 
-pub type WorkflowStepInvoker<B> = fn(&B, &WorkflowStepHandlerContext) -> BackendResult<()>;
+pub type WorkflowStepInvoker<H, B> = fn(&H, &B, &WorkflowStepHandlerContext) -> BackendResult<()>;
 
 pub trait WorkflowStepHandler{{workflow_step_handler_bases}} {
 {{workflow_step_handler_methods}}

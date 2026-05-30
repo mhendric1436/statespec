@@ -387,6 +387,53 @@ std::string generate_rust_workflow_handler_module(const IrWorkflow& workflow)
     return out.str();
 }
 
+std::string generate_rust_workflow_registry_module(const IrWorkflow& workflow)
+{
+    const auto trait_name = pascal_identifier(workflow.name) + "V" +
+                            std::to_string(workflow.version.value_or(1)) + "StepHandler";
+    const auto handler_module = "workflow_" + snake_identifier(workflow.name) + "_handlers";
+    std::ostringstream out;
+    out << "use std::collections::HashMap;\n\n";
+    out << "use crate::backend::{Backend, BackendResult};\n";
+    out << "use crate::workflow_step_handlers::{workflow_step_key, WorkflowStepHandlerContext, "
+           "WorkflowStepInvoker};\n";
+    out << "use crate::" << handler_module << "::" << trait_name << ";\n\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "fn invoke_" << snake_identifier(workflow.name) << "_" << snake_identifier(step.name)
+            << "<H, B>(\n";
+        out << "    handler: &H,\n";
+        out << "    backend: &B,\n";
+        out << "    context: &WorkflowStepHandlerContext,\n";
+        out << ") -> BackendResult<()>\n";
+        out << "where\n";
+        out << "    H: " << trait_name << ",\n";
+        out << "    B: Backend,\n";
+        out << "{\n";
+        out << "    let _ = backend;\n";
+        out << "    handler.handle_" << snake_identifier(step.name) << "(context)\n";
+        out << "}\n\n";
+    }
+    out << "pub fn register_workflow_step_invokers<H, B>(\n";
+    out << "    invokers: &mut HashMap<String, WorkflowStepInvoker<H, B>>,\n";
+    out << ")\n";
+    out << "where\n";
+    out << "    H: " << trait_name << ",\n";
+    out << "    B: Backend,\n";
+    out << "{\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "    invokers.insert(\n";
+        out << "        workflow_step_key(" << rust_string(workflow.name) << ", "
+            << workflow.version.value_or(1) << ", " << rust_string(step.name) << "),\n";
+        out << "        invoke_" << snake_identifier(workflow.name) << "_"
+            << snake_identifier(step.name) << "::<H, B>,\n";
+        out << "    );\n";
+    }
+    out << "}\n";
+    return out.str();
+}
+
 std::string rust_workflow_step_handler_bases(const IrSystem& system)
 {
     std::ostringstream out;
@@ -401,23 +448,42 @@ std::string rust_workflow_step_handler_bases(const IrSystem& system)
     return out.str();
 }
 
+std::string generate_rust_workflow_step_registry_module(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "use std::collections::HashMap;\n\n";
+    out << "use crate::backend::Backend;\n";
+    out << "use crate::workflow_step_handlers::{WorkflowStepHandler, WorkflowStepInvoker};\n";
+    for (const auto& workflow : system.workflows)
+    {
+        out << "use crate::workflow_" << snake_identifier(workflow.name) << "_registry;\n";
+    }
+    out << "\n";
+    out << "pub fn workflow_step_invokers<H, B>() -> HashMap<String, WorkflowStepInvoker<H, B>>\n";
+    out << "where\n";
+    out << "    H: WorkflowStepHandler,\n";
+    out << "    B: Backend,\n";
+    out << "{\n";
+    out << "    let mut invokers = HashMap::new();\n";
+    for (const auto& workflow : system.workflows)
+    {
+        out << "    workflow_" << snake_identifier(workflow.name)
+            << "_registry::register_workflow_step_invokers::<H, B>(&mut invokers);\n";
+    }
+    out << "    invokers\n";
+    out << "}\n";
+    return out.str();
+}
+
 TemplateRenderer::Values rust_workflow_runner_values(const IrSystem& system)
 {
     std::ostringstream declarations;
-    std::ostringstream dispatch_cases;
     std::ostringstream next_cases;
     for (const auto& workflow : system.workflows)
     {
         const auto module_name = rust_workflow_module_name(workflow);
         declarations << "#[path = \"workflows/" << snake_identifier(workflow.name) << ".rs\"]\n";
         declarations << "mod " << module_name << ";\n";
-        dispatch_cases << "        if !matched {\n";
-        dispatch_cases << "            if let Some(result) = " << module_name
-                       << "::dispatch_step(self.handler, &context, &record) {\n";
-        dispatch_cases << "                matched = true;\n";
-        dispatch_cases << "                handler_result = result;\n";
-        dispatch_cases << "            }\n";
-        dispatch_cases << "        }\n";
         next_cases << "                if next_step.is_none() {\n";
         next_cases << "                    next_step = " << module_name
                    << "::next_step(&record);\n";
@@ -425,7 +491,6 @@ TemplateRenderer::Values rust_workflow_runner_values(const IrSystem& system)
     }
     return TemplateRenderer::Values{
         {"workflow_step_module_declarations", declarations.str()},
-        {"workflow_step_module_dispatch_cases", dispatch_cases.str()},
         {"workflow_step_module_next_cases", next_cases.str()},
     };
 }
@@ -3099,6 +3164,11 @@ void add_rust_worker_artifacts(
                 generate_rust_workflow_handler_module(workflow)
             );
             add_rust_raw_worker_file(
+                result, options,
+                "worker/workflows/" + snake_identifier(workflow.name) + "/registry.rs",
+                generate_rust_workflow_registry_module(workflow)
+            );
+            add_rust_raw_worker_file(
                 result, options, "worker/workflows/" + snake_identifier(workflow.name) + ".rs",
                 generate_rust_workflow_worker_module(workflow)
             );
@@ -3117,6 +3187,10 @@ void add_rust_worker_artifacts(
         add_rust_generated_template_file(
             result, options, templates, "worker/workflow_runner.rs", GeneratedArtifactTier::Worker,
             diagnostics, rust_workflow_runner_values(system)
+        );
+        add_rust_raw_worker_file(
+            result, options, "worker/workflow_step_registry.rs",
+            generate_rust_workflow_step_registry_module(system)
         );
     }
     if (usage.uses_queues)

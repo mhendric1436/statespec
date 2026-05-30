@@ -942,7 +942,8 @@ std::string generate_workflow_step_handler_keys_rs(const IrSystem& system)
     {
         for (const auto& step : workflow.steps)
         {
-            out << "        " << rust_string(workflow.name + "." + step.name) << ",\n";
+            out << "        \"" << workflow.name << ":" << workflow.version.value_or(1) << ":"
+                << step.name << "\",\n";
         }
     }
     return out.str();

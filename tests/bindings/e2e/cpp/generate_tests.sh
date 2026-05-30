@@ -110,8 +110,10 @@ worker/worker_runtime.hpp
 worker/worker_workflows.hpp
 worker/workflow_runner.hpp
 worker/workflow_step_handlers.hpp
+worker/workflow_step_registry.hpp
 worker/workflows/provision_service.hpp
 worker/workflows/provision_service/handlers.hpp
+worker/workflows/provision_service/registry.hpp
 EOF
 
 run_expect_status 0 "$CLI" generate bindings --lang cpp "$E2E_SPEC" --out "$TMPDIR/out-e2e-cpp"
@@ -422,16 +424,19 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "in
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "workflow_name + \":\" + std::to_string(workflow_version) + \":\" + step_name"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "std::string encode() const"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "using WorkflowStepInvoker = void (*)"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "IWorkflowStepHandler& handler"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "statespec::backend::IBackend& backend"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "const WorkflowStepHandlerContext& context"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.validate_request\""
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "workflow_step_key(\"ProvisionService\", 1, \"validate_request\")"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "DefaultWorkflowStepHandler"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.create_remote_service\""
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "\"ProvisionService.wait_for_remote_service\""
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "workflow_step_key(\"ProvisionService\", 1, \"create_remote_service\")"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "workflow_step_key(\"ProvisionService\", 1, \"wait_for_remote_service\")"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_registry.hpp" "workflow_step_invokers"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/registry.hpp" "register_workflow_step_invokers"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/handlers.hpp" "class ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/handlers.hpp" "handle_validate_request"
-assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "provision_service_dispatch_step"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "workflow_step_invokers()"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "handler.handle_validate_request"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"wait_for_remote_service\""

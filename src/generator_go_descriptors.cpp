@@ -895,7 +895,8 @@ std::string generate_workflow_step_handler_keys_go(const IrSystem& system)
     {
         for (const auto& step : workflow.steps)
         {
-            out << "\t\t" << go_string(workflow.name + "." + step.name) << ",\n";
+            out << "\t\tWorkflowStepKeyString(" << go_string(workflow.name) << ", "
+                << workflow.version.value_or(1) << ", " << go_string(step.name) << "),\n";
         }
     }
     return out.str();

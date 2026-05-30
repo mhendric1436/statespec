@@ -257,7 +257,7 @@ assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkflowSt
 assert_file_exists "$TMPDIR/out-java/worker/com/statespec/generated/workflows/OrderProcessingWorkerModule.java"
 assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/workflows/OrderProcessingWorkerModule.java" "handleValidateOrder"
 assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkflowRunner.java" "class WorkflowRunner"
-assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkflowRunner.java" "OrderProcessingWorkerModule.dispatchStep"
+assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepRegistry.workflowStepInvokers()"
 assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkflowRunner.java" "keepAliveStep"
 assert_file_not_exists "$TMPDIR/out-java/worker/com/statespec/generated/WorkerHandlers.java"
 assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkerRuntime.java" "runOnce"

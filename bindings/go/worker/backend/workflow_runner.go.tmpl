@@ -48,10 +48,12 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		ExecutionID:     &record.WorkflowExecutionID,
 		Input:           record.State,
 	}
-	var handlerErr error
-	var handled bool
-{{workflow_step_module_dispatch_cases}}	if !handled {
-		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s.%s", record.WorkflowName, record.CurrentStep)
+	handlerErr := error(nil)
+	invoker, handled := WorkflowStepInvokers()[WorkflowStepKeyString(record.WorkflowName, int(record.WorkflowVersion), record.CurrentStep)]
+	if !handled {
+		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s:%d:%s", record.WorkflowName, record.WorkflowVersion, record.CurrentStep)
+	} else {
+		handlerErr = invoker(ctx, runner.Handler, runner.Backend, stepContext)
 	}
 	if handlerErr != nil {
 		failed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, common.FailWorkflowStepRequest{

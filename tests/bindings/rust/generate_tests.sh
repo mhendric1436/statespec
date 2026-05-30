@@ -245,7 +245,7 @@ assert_file_contains "$TMPDIR/out-rust/worker/workflow_step_handlers.rs" "pub fn
 assert_file_exists "$TMPDIR/out-rust/worker/workflows/order_processing.rs"
 assert_file_contains "$TMPDIR/out-rust/worker/workflows/order_processing.rs" "handle_validate_order"
 assert_file_contains "$TMPDIR/out-rust/worker/workflow_runner.rs" "pub struct WorkflowRunner"
-assert_file_contains "$TMPDIR/out-rust/worker/workflow_runner.rs" "workflow_order_processing::dispatch_step"
+assert_file_contains "$TMPDIR/out-rust/worker/workflow_runner.rs" "workflow_step_invokers::<H, B>()"
 assert_file_contains "$TMPDIR/out-rust/worker/workflow_runner.rs" "keep_alive_step"
 assert_file_not_exists "$TMPDIR/out-rust/worker/worker_handlers.rs"
 assert_file_contains "$TMPDIR/out-rust/worker/worker_runtime.rs" "pub fn run_once"

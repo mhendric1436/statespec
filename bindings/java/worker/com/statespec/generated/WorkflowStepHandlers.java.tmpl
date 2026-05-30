@@ -33,7 +33,7 @@ public final class WorkflowStepHandlers {
 
     @FunctionalInterface
     public interface WorkflowStepInvoker {
-        void invoke(Backend backend, Context context);
+        void invoke(Handler handler, Backend backend, Context context) throws Exception;
     }
 
     public interface Handler{{workflow_step_handler_bases}} {

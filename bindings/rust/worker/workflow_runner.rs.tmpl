@@ -5,7 +5,10 @@ use crate::workflow::{
     ClaimWorkflowStepRequest, CompleteWorkflowStepRequest, FailWorkflowStepRequest,
     KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,
 };
-use crate::workflow_step_handlers::{WorkflowStepHandler, WorkflowStepHandlerContext};
+use crate::workflow_step_handlers::{
+    workflow_step_key, WorkflowStepHandler, WorkflowStepHandlerContext,
+};
+use crate::workflow_step_registry::workflow_step_invokers;
 {{workflow_step_module_declarations}}
 
 pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> {
@@ -58,7 +61,15 @@ impl<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> WorkflowRunner
         };
         let mut matched = false;
         let mut handler_result: BackendResult<()> = Ok(());
-{{workflow_step_module_dispatch_cases}}
+        let key = workflow_step_key(
+            &record.workflow_name,
+            record.workflow_version,
+            &record.current_step,
+        );
+        if let Some(invoker) = workflow_step_invokers::<H, B>().get(&key) {
+            matched = true;
+            handler_result = invoker(self.handler, self.backend, &context);
+        }
         if !matched {
             handler_result = Err(BackendError::Unsupported {
                 message: "unknown generated workflow step handler".to_string(),

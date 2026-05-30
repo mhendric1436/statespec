@@ -1,6 +1,7 @@
 #pragma once
 
 #include "workflow_step_handlers.hpp"
+#include "workflow_step_registry.hpp"
 // clang-format off
 {{workflow_step_module_includes}}
 // clang-format on
@@ -76,14 +77,16 @@ class WorkflowRunner
                 record.current_step,  record.workflow_execution_id,
                 record.state,
             };
-            bool handled = false;
-            // clang-format off
-{{workflow_step_module_dispatch_cases}}
-            // clang-format on
-            if (!handled)
+            const auto key = workflow_step_key(
+                record.workflow_name, record.workflow_version, record.current_step
+            );
+            const auto& invokers = workflow_step_invokers();
+            const auto invoker = invokers.find(key);
+            if (invoker == invokers.end())
             {
                 throw std::runtime_error("unknown generated workflow step handler");
             }
+            invoker->second(handler_, backend_, context);
             std::optional<std::string> next_step;
             // clang-format off
 {{workflow_step_module_next_cases}}

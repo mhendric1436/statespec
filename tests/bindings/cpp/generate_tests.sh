@@ -231,7 +231,7 @@ assert_file_contains "$TMPDIR/out-cpp/worker/workflow_step_handlers.hpp" "workfl
 assert_file_exists "$TMPDIR/out-cpp/worker/workflows/order_processing.hpp"
 assert_file_contains "$TMPDIR/out-cpp/worker/workflows/order_processing.hpp" "handler.handle_validate_order"
 assert_file_contains "$TMPDIR/out-cpp/worker/workflow_runner.hpp" "class WorkflowRunner"
-assert_file_contains "$TMPDIR/out-cpp/worker/workflow_runner.hpp" "order_processing_dispatch_step"
+assert_file_contains "$TMPDIR/out-cpp/worker/workflow_runner.hpp" "workflow_step_invokers()"
 assert_file_contains "$TMPDIR/out-cpp/worker/workflow_runner.hpp" "keep_alive_step"
 assert_file_not_exists "$TMPDIR/out-cpp/worker/worker_handlers.hpp"
 assert_file_contains "$TMPDIR/out-cpp/worker/worker_runtime.hpp" "statespec::backend::IBackend& backend_"

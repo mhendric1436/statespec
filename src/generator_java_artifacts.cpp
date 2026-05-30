@@ -916,6 +916,79 @@ std::string generate_java_workflow_handler_module(const IrWorkflow& workflow)
     return out.str();
 }
 
+std::string generate_java_workflow_registry_module(const IrWorkflow& workflow)
+{
+    const auto class_name = pascal_identifier(workflow.name) + "V" +
+                            std::to_string(workflow.version.value_or(1)) + "StepHandler";
+    std::ostringstream out;
+    out << "package com.statespec.generated.workflows." << snake_identifier(workflow.name)
+        << ";\n\n";
+    out << "import com.statespec.backend.Backend;\n";
+    out << "import com.statespec.generated.WorkflowStepHandlers;\n";
+    out << "import java.util.LinkedHashMap;\n";
+    out << "import java.util.Map;\n\n";
+    out << "public final class Registry {\n";
+    out << "    private Registry() {}\n\n";
+    out << "    public static void registerWorkflowStepInvokers(\n";
+    out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers\n";
+    out << "    ) {\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "        invokers.put(\n";
+        out << "            WorkflowStepHandlers.workflowStepKey(" << java_string(workflow.name)
+            << ", " << workflow.version.value_or(1) << "L, " << java_string(step.name) << "),\n";
+        out << "            Registry::invoke" << pascal_identifier(workflow.name)
+            << pascal_identifier(step.name) << "\n";
+        out << "        );\n";
+    }
+    out << "    }\n\n";
+    out << "    public static Map<String, WorkflowStepHandlers.WorkflowStepInvoker> "
+           "workflowStepInvokers() {\n";
+    out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers = new "
+           "LinkedHashMap<>();\n";
+    out << "        registerWorkflowStepInvokers(invokers);\n";
+    out << "        return Map.copyOf(invokers);\n";
+    out << "    }\n\n";
+    for (const auto& step : workflow.steps)
+    {
+        out << "    private static void invoke" << pascal_identifier(workflow.name)
+            << pascal_identifier(step.name) << "(\n";
+        out << "        WorkflowStepHandlers.Handler handler,\n";
+        out << "        Backend backend,\n";
+        out << "        WorkflowStepHandlers.Context context\n";
+        out << "    ) throws Exception {\n";
+        out << "        var ignoredBackend = backend;\n";
+        out << "        ((Handlers." << class_name << ") handler).handle"
+            << pascal_identifier(step.name) << "(context);\n";
+        out << "    }\n\n";
+    }
+    out << "}\n";
+    return out.str();
+}
+
+std::string generate_java_workflow_step_registry_module(const IrSystem& system)
+{
+    std::ostringstream out;
+    out << "package com.statespec.generated;\n\n";
+    out << "import java.util.LinkedHashMap;\n";
+    out << "import java.util.Map;\n";
+    out << "\npublic final class WorkflowStepRegistry {\n";
+    out << "    private WorkflowStepRegistry() {}\n\n";
+    out << "    public static Map<String, WorkflowStepHandlers.WorkflowStepInvoker> "
+           "workflowStepInvokers() {\n";
+    out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers = new "
+           "LinkedHashMap<>();\n";
+    for (const auto& workflow : system.workflows)
+    {
+        out << "        com.statespec.generated.workflows." << snake_identifier(workflow.name)
+            << ".Registry.registerWorkflowStepInvokers(invokers);\n";
+    }
+    out << "        return Map.copyOf(invokers);\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
 std::string java_workflow_step_handler_imports(const IrSystem& system)
 {
     std::ostringstream out;
@@ -943,23 +1016,17 @@ std::string java_workflow_step_handler_bases(const IrSystem& system)
 TemplateRenderer::Values java_workflow_runner_values(const IrSystem& system)
 {
     std::ostringstream imports;
-    std::ostringstream dispatch_cases;
     std::ostringstream next_cases;
     for (const auto& workflow : system.workflows)
     {
         const auto class_name = java_workflow_worker_module_class_name(workflow);
         imports << "import com.statespec.generated.workflows." << class_name << ";\n";
-        dispatch_cases << "            if (!handled) {\n";
-        dispatch_cases << "                handled = " << class_name
-                       << ".dispatchStep(handler, context, record);\n";
-        dispatch_cases << "            }\n";
         next_cases << "            if (nextStep.isEmpty()) {\n";
         next_cases << "                nextStep = " << class_name << ".nextStep(record);\n";
         next_cases << "            }\n";
     }
     return TemplateRenderer::Values{
         {"workflow_step_module_imports", imports.str()},
-        {"workflow_step_module_dispatch_cases", dispatch_cases.str()},
         {"workflow_step_module_next_cases", next_cases.str()},
     };
 }
@@ -3856,6 +3923,13 @@ void add_java_worker_artifacts(
             add_java_raw_worker_file(
                 result, options,
                 java_worker_generated_path(
+                    "workflows/" + snake_identifier(workflow.name) + "/Registry.java"
+                ),
+                generate_java_workflow_registry_module(workflow)
+            );
+            add_java_raw_worker_file(
+                result, options,
+                java_worker_generated_path(
                     "workflows/" + java_workflow_worker_module_class_name(workflow) + ".java"
                 ),
                 generate_java_workflow_worker_module(workflow)
@@ -3876,6 +3950,10 @@ void add_java_worker_artifacts(
         add_java_generated_template_file(
             result, options, templates, java_worker_generated_path("WorkflowRunner.java"),
             GeneratedArtifactTier::Worker, diagnostics, java_workflow_runner_values(system)
+        );
+        add_java_raw_worker_file(
+            result, options, java_worker_generated_path("WorkflowStepRegistry.java"),
+            generate_java_workflow_step_registry_module(system)
         );
     }
     if (usage.uses_queues)
