@@ -1006,22 +1006,6 @@ std::string generate_business_api_operation_handler_methods_go(const IrSystem& s
     return out.str();
 }
 
-std::string generate_api_operation_dispatch_cases_go(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& api : system.apis)
-    {
-        out << "\tcase " << go_string(api.name) << ":\n";
-        out << "\t\tresponse, err := handler.Handle" << pascal_identifier(api.name)
-            << "(ctx, request)\n";
-        out << "\t\tif err != nil {\n";
-        out << "\t\t\treturn descriptortypes.APIResponse{}, true, err\n";
-        out << "\t\t}\n";
-        out << "\t\treturn response, true, nil\n";
-    }
-    return out.str();
-}
-
 std::string generate_api_handler_lookup_entries_go(const IrSystem& system)
 {
     std::ostringstream out;

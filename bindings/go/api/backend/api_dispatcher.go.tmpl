@@ -8,7 +8,7 @@ import (
 
 type APITierHandlerInvoker func(context.Context, APITierHandler, descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error)
 
-var apiTierRouteLookupMap = func() map[string]descriptortypes.ApiRouteDescriptor {
+var apiRouteDescriptorMap = func() map[string]descriptortypes.ApiRouteDescriptor {
 	routes := make(map[string]descriptortypes.ApiRouteDescriptor)
 	for _, route := range APITierRouteDescriptors() {
 		routes[route.Name] = route
@@ -16,27 +16,27 @@ var apiTierRouteLookupMap = func() map[string]descriptortypes.ApiRouteDescriptor
 	return routes
 }()
 
-var apiTierHandlerLookupMap = map[string]APITierHandlerInvoker{
+var apiHandlerMap = map[string]APITierHandlerInvoker{
 {{api_handler_lookup_entries}}}
 
 func APITierRouteLookupMap() map[string]descriptortypes.ApiRouteDescriptor {
-	routes := make(map[string]descriptortypes.ApiRouteDescriptor, len(apiTierRouteLookupMap))
-	for name, route := range apiTierRouteLookupMap {
+	routes := make(map[string]descriptortypes.ApiRouteDescriptor, len(apiRouteDescriptorMap))
+	for name, route := range apiRouteDescriptorMap {
 		routes[name] = route
 	}
 	return routes
 }
 
 func APITierHandlerLookupMap() map[string]APITierHandlerInvoker {
-	handlers := make(map[string]APITierHandlerInvoker, len(apiTierHandlerLookupMap))
-	for name, handler := range apiTierHandlerLookupMap {
+	handlers := make(map[string]APITierHandlerInvoker, len(apiHandlerMap))
+	for name, handler := range apiHandlerMap {
 		handlers[name] = handler
 	}
 	return handlers
 }
 
 func FindAPITierRoute(routeName string) (descriptortypes.ApiRouteDescriptor, bool) {
-	route, ok := apiTierRouteLookupMap[routeName]
+	route, ok := apiRouteDescriptorMap[routeName]
 	return route, ok
 }
 
@@ -45,7 +45,7 @@ func DispatchAPITierRoute(ctx context.Context, handler APITierHandler, routeName
 	if !ok {
 		return descriptortypes.APIResponse{}, false, nil
 	}
-	invoker, ok := apiTierHandlerLookupMap[route.ApiName]
+	invoker, ok := apiHandlerMap[route.ApiName]
 	if !ok {
 		return descriptortypes.APIResponse{}, false, nil
 	}
