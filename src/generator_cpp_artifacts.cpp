@@ -1833,7 +1833,7 @@ std::string cpp_entity_api_catalog_header(
     out << "#include \"registry.hpp\"\n";
     for (const auto& api : apis)
     {
-        out << "#include \"../../descriptors/" << snake_identifier(api.name) << ".hpp\"\n";
+        out << "#include \"descriptors/" << snake_identifier(api.name) << ".hpp\"\n";
     }
     out << "\n#include <string>\n";
     out << "#include <utility>\n";
@@ -1862,8 +1862,8 @@ std::string cpp_entity_api_catalog_header(
     for (const auto& api : apis)
     {
         out << "    {\n";
-        out << "        auto slice = ::statespec_generated::api::descriptors::"
-            << cpp_api_descriptor_function_name(api) << "();\n";
+        out << "        auto slice = descriptors::" << cpp_api_descriptor_function_name(api)
+            << "();\n";
         out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
         out << "    }\n";
     }
@@ -1876,8 +1876,8 @@ std::string cpp_entity_api_catalog_header(
     for (const auto& api : apis)
     {
         out << "    {\n";
-        out << "        auto slice = ::statespec_generated::api::descriptors::"
-            << cpp_api_route_descriptor_function_name(api) << "();\n";
+        out << "        auto slice = descriptors::" << cpp_api_route_descriptor_function_name(api)
+            << "();\n";
         out << "        descriptors.insert(descriptors.end(), slice.begin(), slice.end());\n";
         out << "    }\n";
     }
@@ -2158,13 +2158,15 @@ std::string cpp_api_route_descriptor_function_name(const IrApi& api)
 
 std::string cpp_api_shape_include_for(
     const IrSystem& system,
-    std::string_view shape_name
+    std::string_view shape_name,
+    bool entity_local
 )
 {
     const auto owner = entity_api_shape_owner(system, shape_name);
     if (owner.has_value())
     {
-        return "../entities/" + snake_identifier(*owner) + "/shapes.hpp";
+        return entity_local ? "../shapes.hpp"
+                            : "../entities/" + snake_identifier(*owner) + "/shapes.hpp";
     }
     return "../shapes/" + snake_identifier(std::string{shape_name}) + ".hpp";
 }
@@ -2301,26 +2303,28 @@ std::string cpp_api_optional_path_expr(
 
 std::string cpp_api_descriptor_module(
     const IrSystem& system,
-    const IrApi& api
+    const IrApi& api,
+    bool entity_local
 )
 {
     std::ostringstream out;
+    const auto common_prefix = entity_local ? "../../../../common" : "../../common";
     out << "#pragma once\n\n";
-    out << "#include \"../../common/descriptors/types.hpp\"\n\n";
+    out << "#include \"" << common_prefix << "/descriptors/types.hpp\"\n\n";
     if (const auto* entity = cpp_api_entity(system, api);
         entity != nullptr && cpp_api_path_uses_entity_constants(system, api))
     {
-        out << "#include \"../../common/entities/" << snake_identifier(entity->name)
+        out << "#include \"" << common_prefix << "/entities/" << snake_identifier(entity->name)
             << "/constants.hpp\"\n";
     }
     std::set<std::string> shape_includes;
     if (api.input.has_value() && find_shape(system, *api.input) != nullptr)
     {
-        shape_includes.insert(cpp_api_shape_include_for(system, *api.input));
+        shape_includes.insert(cpp_api_shape_include_for(system, *api.input, entity_local));
     }
     if (api.output.has_value() && find_shape(system, *api.output) != nullptr)
     {
-        shape_includes.insert(cpp_api_shape_include_for(system, *api.output));
+        shape_includes.insert(cpp_api_shape_include_for(system, *api.output, entity_local));
     }
     for (const auto& include : shape_includes)
     {
@@ -2330,7 +2334,16 @@ std::string cpp_api_descriptor_module(
     {
         out << "\n";
     }
-    out << "namespace statespec_generated::api::descriptors\n";
+    if (entity_local)
+    {
+        const auto* entity = cpp_api_entity(system, api);
+        out << "namespace statespec_generated::api::entities::" << snake_identifier(entity->name)
+            << "::descriptors\n";
+    }
+    else
+    {
+        out << "namespace statespec_generated::api::descriptors\n";
+    }
     out << "{\n\n";
     out << "inline std::vector<::statespec_generated::ApiDescriptor> "
         << cpp_api_descriptor_function_name(api) << "()\n";
@@ -2372,7 +2385,16 @@ std::string cpp_api_descriptor_module(
     }
     out << "    };\n";
     out << "}\n\n";
-    out << "} // namespace statespec_generated::api::descriptors\n";
+    if (entity_local)
+    {
+        const auto* entity = cpp_api_entity(system, api);
+        out << "} // namespace statespec_generated::api::entities::"
+            << snake_identifier(entity->name) << "::descriptors\n";
+    }
+    else
+    {
+        out << "} // namespace statespec_generated::api::descriptors\n";
+    }
     return out.str();
 }
 
@@ -2384,9 +2406,19 @@ void add_cpp_api_descriptor_artifacts(
 {
     for (const auto& api : system.apis)
     {
+        if (const auto* entity = cpp_api_entity(system, api); entity != nullptr)
+        {
+            add_cpp_raw_api_file(
+                result, options,
+                "api/entities/" + snake_identifier(entity->name) + "/descriptors/" +
+                    snake_identifier(api.name) + ".hpp",
+                cpp_api_descriptor_module(system, api, true)
+            );
+            continue;
+        }
         add_cpp_raw_api_file(
             result, options, "api/descriptors/" + snake_identifier(api.name) + ".hpp",
-            cpp_api_descriptor_module(system, api)
+            cpp_api_descriptor_module(system, api, false)
         );
     }
 }

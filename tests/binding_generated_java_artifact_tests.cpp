@@ -342,6 +342,25 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
         "Registry.handleCreateAccount"
     );
     require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Catalog.java",
+        "entities.account.descriptors.CreateAccountDescriptorModule.apiDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result,
+        "api/com/statespec/generated/entities/account/descriptors/"
+        "CreateAccountDescriptorModule.java",
+        "package com.statespec.generated.entities.account.descriptors;"
+    );
+    require_generated_artifact_contains(
+        result,
+        "api/com/statespec/generated/entities/account/descriptors/"
+        "CreateAccountDescriptorModule.java",
+        "import com.statespec.generated.entities.account.Constants;"
+    );
+    require_generated_artifact_not_exists(
+        result, "api/com/statespec/generated/descriptors/CreateAccountDescriptorModule.java"
+    );
+    require_generated_artifact_contains(
         result, "api/com/statespec/generated/shapes/ShapeCatalog.java",
         "entities.account.Catalog.shapeDescriptors()"
     );

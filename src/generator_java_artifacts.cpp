@@ -1766,7 +1766,8 @@ std::string java_entity_api_catalog_file(
     out << "        var descriptors = new ArrayList<ApiDescriptor>();\n";
     for (const auto& api : apis)
     {
-        out << "        descriptors.addAll(com.statespec.generated.descriptors."
+        out << "        descriptors.addAll(com.statespec.generated.entities."
+            << snake_identifier(entity.name) << ".descriptors."
             << java_api_descriptor_module_class_name(api.name) << ".apiDescriptors());\n";
     }
     out << "        return List.copyOf(descriptors);\n";
@@ -1775,7 +1776,8 @@ std::string java_entity_api_catalog_file(
     out << "        var descriptors = new ArrayList<ApiRouteDescriptor>();\n";
     for (const auto& api : apis)
     {
-        out << "        descriptors.addAll(com.statespec.generated.descriptors."
+        out << "        descriptors.addAll(com.statespec.generated.entities."
+            << snake_identifier(entity.name) << ".descriptors."
             << java_api_descriptor_module_class_name(api.name) << ".apiRouteDescriptors());\n";
     }
     out << "        return List.copyOf(descriptors);\n";
@@ -2644,7 +2646,15 @@ std::string java_api_descriptor_module(
 )
 {
     std::ostringstream out;
-    out << "package com.statespec.generated.descriptors;\n\n";
+    if (const auto* entity = java_api_entity(system, api); entity != nullptr)
+    {
+        out << "package com.statespec.generated.entities." << snake_identifier(entity->name)
+            << ".descriptors;\n\n";
+    }
+    else
+    {
+        out << "package com.statespec.generated.descriptors;\n\n";
+    }
     out << "import com.statespec.generated.descriptors.types.ApiDescriptor;\n";
     out << "import com.statespec.generated.descriptors.types.ApiRouteDescriptor;\n";
     if (const auto* entity = java_api_entity(system, api);
@@ -2741,11 +2751,13 @@ void add_java_api_descriptor_artifacts(
     const auto descriptor_path = java_api_generated_path("descriptors");
     for (const auto& api : system.apis)
     {
-        add_java_raw_api_file(
-            result, options,
-            descriptor_path / (java_api_descriptor_module_class_name(api.name) + ".java"),
-            java_api_descriptor_module(system, api)
-        );
+        auto path = descriptor_path / (java_api_descriptor_module_class_name(api.name) + ".java");
+        if (const auto* entity = java_api_entity(system, api); entity != nullptr)
+        {
+            path = java_api_generated_path("entities") / snake_identifier(entity->name) /
+                   "descriptors" / (java_api_descriptor_module_class_name(api.name) + ".java");
+        }
+        add_java_raw_api_file(result, options, path, java_api_descriptor_module(system, api));
     }
     add_java_raw_api_file(
         result, options, descriptor_path / "Catalog.java", java_api_descriptor_catalog_file(system)

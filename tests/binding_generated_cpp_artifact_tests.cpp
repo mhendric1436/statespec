@@ -210,6 +210,20 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/entities/account/catalog.hpp", "#include \"registry.hpp\""
     );
     require_generated_artifact_contains(
+        result, "api/entities/account/catalog.hpp", "#include \"descriptors/create_account.hpp\""
+    );
+    require_generated_artifact_exists(
+        result, "api/entities/account/descriptors/create_account.hpp"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/entities/account/descriptors/create_account.hpp",
+        "#include \"../../common/entities/account/constants.hpp\""
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/descriptors/create_account.hpp",
+        "#include \"../../../../common/entities/account/constants.hpp\""
+    );
+    require_generated_artifact_contains(
         result, "api/entities/account/catalog.hpp", "shape_descriptors()"
     );
     require_generated_artifact_contains(

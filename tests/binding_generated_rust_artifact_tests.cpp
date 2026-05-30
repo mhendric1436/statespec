@@ -215,6 +215,18 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/entities/account/catalog.rs", "pub fn handler_entrypoints()"
     );
     require_generated_artifact_contains(
+        result, "api/entities/account/catalog.rs", "#[path = \"descriptors/create_account.rs\"]"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/descriptors/create_account.rs",
+        "pub fn create_account_api_descriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/entities/account/descriptors/create_account.rs",
+        "use crate::entity_account::constants as entity_constants;"
+    );
+    require_generated_artifact_not_exists(result, "api/descriptors/create_account.rs");
+    require_generated_artifact_contains(
         result, "api/shapes.rs", "entity_account_catalog::shape_descriptors()"
     );
     require_generated_artifact_contains(

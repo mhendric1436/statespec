@@ -2084,21 +2084,7 @@ std::string go_entity_api_catalog_file(
     out << "import (\n";
     out << "\tcommon \"statespec-generated/common/backend\"\n";
     out << "\tdescriptortypes \"statespec-generated/common/backend/descriptortypes\"\n";
-    if (std::any_of(
-            apis.begin(), apis.end(),
-            [&](const IrApi& api) { return go_api_path_uses_entity_constants(system, api); }
-        ))
-    {
-        out << "\t" << snake_identifier(entity.name)
-            << "constants \"statespec-generated/common/entities/" << snake_identifier(entity.name)
-            << "\"\n";
-    }
     out << ")\n\n";
-    out << "func entityCatalogStringPtr(value string) *string { return &value }\n\n";
-    auto optional_string = [](const std::optional<std::string>& value)
-    { return value.has_value() ? "entityCatalogStringPtr(" + go_string(*value) + ")" : "nil"; };
-    auto optional_shape = [&](const std::optional<std::string>& value)
-    { return optional_string(value); };
     out << "func EntityShapeDescriptors() []common.ShapeDescriptor {\n";
     out << "\tresult := []common.ShapeDescriptor{}\n";
     for (const auto& shape : shapes)
@@ -2113,47 +2099,21 @@ std::string go_entity_api_catalog_file(
     out << "\treturn New" << go_api_handler_domain_type_name(entity.name) << "(backend)\n";
     out << "}\n\n";
     out << "func EntityAPIDescriptors() []descriptortypes.ApiDescriptor {\n";
-    out << "\treturn []descriptortypes.ApiDescriptor{\n";
+    out << "\tresult := []descriptortypes.ApiDescriptor{}\n";
     for (const auto& api : apis)
     {
-        out << "\t\t{\n";
-        out << "\t\t\tName: " << go_string(api.name) << ",\n";
-        out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
-        out << "\t\t\tPath: " << go_api_optional_path_expr(system, api, "entityCatalogStringPtr")
-            << ",\n";
-        out << "\t\t\tInput: " << optional_shape(api.input) << ",\n";
-        out << "\t\t\tOutput: " << optional_shape(api.output) << ",\n";
-        out << "\t\t\tError: " << optional_string(api.error) << ",\n";
-        out << "\t\t\tStartsWorkflow: " << optional_string(api.starts_workflow) << ",\n";
-        out << "\t\t\tEnqueues: " << optional_string(api.enqueues) << ",\n";
-        out << "\t\t},\n";
+        out << "\tresult = append(result, " << go_api_descriptor_function_name(api) << "()...)\n";
     }
-    out << "\t}\n";
+    out << "\treturn result\n";
     out << "}\n\n";
     out << "func EntityAPIRouteDescriptors() []descriptortypes.ApiRouteDescriptor {\n";
-    out << "\treturn []descriptortypes.ApiRouteDescriptor{\n";
+    out << "\tresult := []descriptortypes.ApiRouteDescriptor{}\n";
     for (const auto& api : apis)
     {
-        for (const auto& api_server : system.api_servers)
-        {
-            if (!go_api_server_serves(api_server, api.name))
-            {
-                continue;
-            }
-            out << "\t\t{\n";
-            out << "\t\t\tName: " << go_string(api_server.name + "." + api.name) << ",\n";
-            out << "\t\t\tServerName: " << go_string(api_server.name) << ",\n";
-            out << "\t\t\tApiName: " << go_string(api.name) << ",\n";
-            out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
-            out << "\t\t\tPath: "
-                << go_api_optional_path_expr(system, api, "entityCatalogStringPtr") << ",\n";
-            out << "\t\t\tInput: " << optional_shape(api.input) << ",\n";
-            out << "\t\t\tOutput: " << optional_shape(api.output) << ",\n";
-            out << "\t\t\tError: " << optional_string(api.error) << ",\n";
-            out << "\t\t},\n";
-        }
+        out << "\tresult = append(result, " << go_api_route_descriptor_function_name(api)
+            << "()...)\n";
     }
-    out << "\t}\n";
+    out << "\treturn result\n";
     out << "}\n\n";
     out << "func HandlerEntrypoints() []string {\n";
     out << "\treturn []string{\n";
@@ -2594,7 +2554,8 @@ std::string go_api_shape_package_for(
 std::string go_api_optional_shape_expr(
     const IrSystem& system,
     const std::optional<std::string>& value,
-    std::string_view string_ptr
+    std::string_view string_ptr,
+    const IrEntity* local_entity = nullptr
 )
 {
     if (!value.has_value())
@@ -2604,6 +2565,11 @@ std::string go_api_optional_shape_expr(
     if (go_find_shape(system, *value) == nullptr)
     {
         return std::string{string_ptr} + "(" + go_string(*value) + ")";
+    }
+    const auto owner = go_entity_api_shape_owner(system, *value);
+    if (owner.has_value() && local_entity != nullptr && *owner == local_entity->name)
+    {
+        return std::string{string_ptr} + "(" + go_shape_name_constant_name(*value) + ")";
     }
     return std::string{string_ptr} + "(" + go_api_shape_package_for(system, *value) + "." +
            go_shape_name_constant_name(*value) + ")";
@@ -2747,15 +2713,18 @@ std::string go_api_descriptor_module(
     const auto string_ptr = lower_camel_identifier(api.name) + "StringPtr";
     auto optional_string = [&](const std::optional<std::string>& value)
     { return value.has_value() ? string_ptr + "(" + go_string(*value) + ")" : "nil"; };
-    out << "package descriptors\n\n";
+    const auto* local_entity = go_api_entity(system, api);
+    out << "package "
+        << (local_entity == nullptr ? std::string{"descriptors"}
+                                    : snake_identifier(local_entity->name))
+        << "\n\n";
     out << "import (\n";
     out << "\tdescriptortypes \"statespec-generated/common/backend/descriptortypes\"\n";
-    if (const auto* entity = go_api_entity(system, api);
-        entity != nullptr && go_api_path_uses_entity_constants(system, api))
+    if (local_entity != nullptr && go_api_path_uses_entity_constants(system, api))
     {
-        out << "\t" << snake_identifier(entity->name)
-            << "constants \"statespec-generated/common/entities/" << snake_identifier(entity->name)
-            << "\"\n";
+        out << "\t" << snake_identifier(local_entity->name)
+            << "constants \"statespec-generated/common/entities/"
+            << snake_identifier(local_entity->name) << "\"\n";
     }
     std::set<std::string> imports;
     auto add_shape_import = [&](const std::optional<std::string>& shape_name)
@@ -2767,6 +2736,10 @@ std::string go_api_descriptor_module(
         const auto owner = go_entity_api_shape_owner(system, *shape_name);
         if (owner.has_value())
         {
+            if (local_entity != nullptr && *owner == local_entity->name)
+            {
+                return;
+            }
             const auto package_alias = snake_identifier(*owner);
             imports.insert(
                 "\t" + package_alias + " \"statespec-generated/api/backend/entities/" +
@@ -2793,8 +2766,10 @@ std::string go_api_descriptor_module(
     out << "\t\t\tName: " << go_string(api.name) << ",\n";
     out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
     out << "\t\t\tPath: " << go_api_optional_path_expr(system, api, string_ptr) << ",\n";
-    out << "\t\t\tInput: " << go_api_optional_shape_expr(system, api.input, string_ptr) << ",\n";
-    out << "\t\t\tOutput: " << go_api_optional_shape_expr(system, api.output, string_ptr) << ",\n";
+    out << "\t\t\tInput: "
+        << go_api_optional_shape_expr(system, api.input, string_ptr, local_entity) << ",\n";
+    out << "\t\t\tOutput: "
+        << go_api_optional_shape_expr(system, api.output, string_ptr, local_entity) << ",\n";
     out << "\t\t\tError: " << optional_string(api.error) << ",\n";
     out << "\t\t\tStartsWorkflow: " << optional_string(api.starts_workflow) << ",\n";
     out << "\t\t\tEnqueues: " << optional_string(api.enqueues) << ",\n";
@@ -2816,10 +2791,10 @@ std::string go_api_descriptor_module(
         out << "\t\t\tApiName: " << go_string(api.name) << ",\n";
         out << "\t\t\tMethod: " << optional_string(api.method) << ",\n";
         out << "\t\t\tPath: " << go_api_optional_path_expr(system, api, string_ptr) << ",\n";
-        out << "\t\t\tInput: " << go_api_optional_shape_expr(system, api.input, string_ptr)
-            << ",\n";
-        out << "\t\t\tOutput: " << go_api_optional_shape_expr(system, api.output, string_ptr)
-            << ",\n";
+        out << "\t\t\tInput: "
+            << go_api_optional_shape_expr(system, api.input, string_ptr, local_entity) << ",\n";
+        out << "\t\t\tOutput: "
+            << go_api_optional_shape_expr(system, api.output, string_ptr, local_entity) << ",\n";
         out << "\t\t\tError: " << optional_string(api.error) << ",\n";
         out << "\t\t},\n";
     }
@@ -2836,10 +2811,13 @@ void add_go_api_descriptor_artifacts(
 {
     for (const auto& api : system.apis)
     {
-        add_go_raw_api_file(
-            result, options, "api/backend/descriptors/" + snake_identifier(api.name) + ".go",
-            go_api_descriptor_module(system, api)
-        );
+        std::string path = "api/backend/descriptors/" + snake_identifier(api.name) + ".go";
+        if (const auto* entity = go_api_entity(system, api); entity != nullptr)
+        {
+            path = "api/backend/entities/" + snake_identifier(entity->name) + "/" +
+                   snake_identifier(api.name) + "_descriptor.go";
+        }
+        add_go_raw_api_file(result, options, path, go_api_descriptor_module(system, api));
     }
 }
 

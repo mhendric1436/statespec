@@ -208,6 +208,20 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/backend/entities/account/catalog.go", "func NewHandlerRegistry"
     );
     require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "CreateAccountApiDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/catalog.go", "CreateAccountApiRouteDescriptors()"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/create_account_descriptor.go", "package account"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/entities/account/create_account_descriptor.go",
+        "accountconstants \"statespec-generated/common/entities/account\""
+    );
+    require_generated_artifact_not_exists(result, "api/backend/descriptors/create_account.go");
+    require_generated_artifact_contains(
         result, "api/backend/shapes/catalog.go", "account.EntityShapeDescriptors()"
     );
     require_generated_artifact_contains(

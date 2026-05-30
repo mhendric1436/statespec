@@ -1708,7 +1708,7 @@ std::string rust_entity_api_catalog_file(
     out << "mod registry;\n";
     for (const auto& api : apis)
     {
-        out << "#[path = \"../../descriptors/" << snake_identifier(api.name) << ".rs\"]\n";
+        out << "#[path = \"descriptors/" << snake_identifier(api.name) << ".rs\"]\n";
         out << "mod " << rust_api_descriptor_module_name(api) << ";\n";
     }
     out << "\n";
@@ -2322,10 +2322,13 @@ void add_rust_api_descriptor_artifacts(
 {
     for (const auto& api : system.apis)
     {
-        add_rust_raw_api_file(
-            result, options, "api/descriptors/" + snake_identifier(api.name) + ".rs",
-            rust_api_descriptor_module(system, api)
-        );
+        std::string path = "api/descriptors/" + snake_identifier(api.name) + ".rs";
+        if (const auto* entity = rust_api_entity(system, api); entity != nullptr)
+        {
+            path = "api/entities/" + snake_identifier(entity->name) + "/descriptors/" +
+                   snake_identifier(api.name) + ".rs";
+        }
+        add_rust_raw_api_file(result, options, path, rust_api_descriptor_module(system, api));
     }
 }
 
