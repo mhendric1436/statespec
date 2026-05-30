@@ -278,6 +278,12 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
         "entity_account_catalog::constants::CREATE_ACCOUNT_API_NAME"
     );
     require_generated_artifact_contains(
+        result, "api/servers/entity_api/catalog.rs", "fn append_account_api_server_names"
+    );
+    require_generated_artifact_contains(
+        result, "api/servers/entity_api/catalog.rs", "append_account_api_server_names(&mut serves)"
+    );
+    require_generated_artifact_contains(
         result, "api/servers/entity_api/catalog.rs", "constants::ENTITY_API_SERVER_NAME"
     );
     require_generated_artifact_contains(

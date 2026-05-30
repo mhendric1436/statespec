@@ -1726,8 +1726,6 @@ std::string rust_api_server_catalog_file(
         }
     }
     out << "\nuse crate::descriptor_types::ApiServerDescriptor;\n\n";
-    out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
-    out << "    let mut serves = Vec::<String>::new();\n";
     for (const auto& domain : entity_domains)
     {
         std::vector<IrApi> served_domain_apis;
@@ -1743,6 +1741,8 @@ std::string rust_api_server_catalog_file(
         {
             continue;
         }
+        out << "fn append_" << snake_identifier(domain.name)
+            << "_api_server_names(serves: &mut Vec<String>) {\n";
         out << "    for api_name in entity_" << snake_identifier(domain.name)
             << "_catalog::api_names() {\n";
         out << "        match *api_name {\n";
@@ -1755,6 +1755,25 @@ std::string rust_api_server_catalog_file(
         out << "            _ => {}\n";
         out << "        }\n";
         out << "    }\n";
+        out << "}\n\n";
+    }
+    out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
+    out << "    let mut serves = Vec::<String>::new();\n";
+    for (const auto& domain : entity_domains)
+    {
+        const auto served = std::any_of(
+            domain.apis.begin(), domain.apis.end(),
+            [&](const IrApi& api)
+            {
+                return std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                       api_server.serves.end();
+            }
+        );
+        if (served)
+        {
+            out << "    append_" << snake_identifier(domain.name)
+                << "_api_server_names(&mut serves);\n";
+        }
     }
     for (const auto& served_api : api_server.serves)
     {

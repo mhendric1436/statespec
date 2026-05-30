@@ -269,6 +269,12 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/backend/servers/entity_api/catalog.go", "case account.CreateAccountAPIName"
     );
     require_generated_artifact_contains(
+        result, "api/backend/servers/entity_api/catalog.go", "func appendAccountAPIServerNames"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/servers/entity_api/catalog.go", "appendAccountAPIServerNames(&serves)"
+    );
+    require_generated_artifact_contains(
         result, "api/backend/servers/entity_api/catalog.go", "Name: EntityApiServerName"
     );
     require_generated_artifact_contains(

@@ -1793,8 +1793,6 @@ std::string java_api_server_catalog_file(
     out << "import java.util.List;\n\n";
     out << "public final class Catalog {\n";
     out << "    private Catalog() {}\n\n";
-    out << "    public static List<ApiServerDescriptor> apiServerDescriptors() {\n";
-    out << "        var serves = new ArrayList<String>();\n";
     for (const auto& domain : entity_domains)
     {
         std::vector<IrApi> served_domain_apis;
@@ -1811,6 +1809,8 @@ std::string java_api_server_catalog_file(
         {
             continue;
         }
+        out << "    private static void append" << pascal_identifier(domain.name)
+            << "ApiServerNames(List<String> serves) {\n";
         out << "        for (var apiName : com.statespec.generated.entities."
             << snake_identifier(domain.name) << ".Catalog.apiNames()) {\n";
         out << "            if (";
@@ -1828,6 +1828,25 @@ std::string java_api_server_catalog_file(
         out << "                serves.add(apiName);\n";
         out << "            }\n";
         out << "        }\n";
+        out << "    }\n\n";
+    }
+    out << "    public static List<ApiServerDescriptor> apiServerDescriptors() {\n";
+    out << "        var serves = new ArrayList<String>();\n";
+    for (const auto& domain : entity_domains)
+    {
+        const auto served = std::any_of(
+            domain.apis.begin(), domain.apis.end(),
+            [&](const IrApi& api)
+            {
+                return std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                       api_server.serves.end();
+            }
+        );
+        if (served)
+        {
+            out << "        append" << pascal_identifier(domain.name)
+                << "ApiServerNames(serves);\n";
+        }
     }
     for (const auto& served_api : api_server.serves)
     {

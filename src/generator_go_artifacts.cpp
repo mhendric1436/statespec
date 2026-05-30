@@ -2151,10 +2151,10 @@ std::string go_api_server_catalog_file(
             << "\"\n";
     }
     out << ")\n\n";
-    out << "func ApiServerDescriptors() []descriptortypes.ApiServerDescriptor {\n";
-    out << "\tserves := []string{}\n";
     for (const auto& domain : served_domains)
     {
+        out << "func append" << pascal_identifier(domain.name)
+            << "APIServerNames(serves *[]string) {\n";
         out << "\tfor _, apiName := range " << snake_identifier(domain.name)
             << ".EntityAPINames() {\n";
         out << "\t\tswitch apiName {\n";
@@ -2169,9 +2169,16 @@ std::string go_api_server_catalog_file(
                 << go_api_name_constant_name(domain.apis[i].name);
         }
         out << ":\n";
-        out << "\t\t\tserves = append(serves, apiName)\n";
+        out << "\t\t\t*serves = append(*serves, apiName)\n";
         out << "\t\t}\n";
         out << "\t}\n";
+        out << "}\n\n";
+    }
+    out << "func ApiServerDescriptors() []descriptortypes.ApiServerDescriptor {\n";
+    out << "\tserves := []string{}\n";
+    for (const auto& domain : served_domains)
+    {
+        out << "\tappend" << pascal_identifier(domain.name) << "APIServerNames(&serves)\n";
     }
     for (const auto& served_api : api_server.serves)
     {
