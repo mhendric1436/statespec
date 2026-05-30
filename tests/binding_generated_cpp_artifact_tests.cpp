@@ -279,6 +279,17 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/descriptors/catalog.hpp", "api::entities::account::api_descriptors"
     );
     require_generated_artifact_contains(
+        result, "api/descriptors/catalog.hpp", "api::entities::account::api_names"
+    );
+    require_generated_artifact_contains(
+        result, "api/descriptors/catalog.hpp",
+        "api::entities::account::constants::kCreateAccountApiName"
+    );
+    require_generated_artifact_contains(
+        result, "api/descriptors/catalog.hpp",
+        "api::servers::entity_api::constants::kEntityApiServerName"
+    );
+    require_generated_artifact_contains(
         result, "api/descriptors/catalog.hpp", "api::entities::account::api_route_descriptors"
     );
     require_generated_artifact_contains(
@@ -287,6 +298,9 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_not_contains(
         result, "api/descriptors/catalog.hpp", "create_account_api_descriptor"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/descriptors/catalog.hpp", "\"CreateAccount\""
     );
 }
 

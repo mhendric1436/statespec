@@ -2881,49 +2881,8 @@ void add_java_api_descriptor_artifacts(
     );
 }
 
-TemplateRenderer::Values java_api_descriptor_values(const IrSystem& system)
-{
-    std::ostringstream api_aggregation;
-    std::ostringstream route_aggregation;
-    std::ostringstream server_descriptors;
-    for (const auto& api : system.apis)
-    {
-        const auto class_name = java_api_descriptor_module_class_name(api.name);
-        api_aggregation << "        descriptors.addAll(" << class_name << ".apiDescriptors());\n";
-        route_aggregation << "        descriptors.addAll(" << class_name
-                          << ".apiRouteDescriptors());\n";
-    }
-    server_descriptors << "        return List.of(\n";
-    for (std::size_t server_index = 0; server_index < system.api_servers.size(); ++server_index)
-    {
-        const auto& api_server = system.api_servers[server_index];
-        server_descriptors << "            new ApiServerDescriptor(\n";
-        server_descriptors << "                " << java_string(api_server.name) << ",\n";
-        server_descriptors << "                List.of(";
-        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
-        {
-            if (i > 0)
-            {
-                server_descriptors << ", ";
-            }
-            server_descriptors << java_string(api_server.serves[i]);
-        }
-        server_descriptors << "),\n";
-        server_descriptors << "                " << api_server.concurrency.value_or(1) << "\n";
-        server_descriptors << "            )"
-                           << (server_index + 1 < system.api_servers.size() ? "," : "") << "\n";
-    }
-    server_descriptors << "        );\n";
-    return TemplateRenderer::Values{
-        {"api_descriptor_aggregation", api_aggregation.str()},
-        {"api_route_descriptor_aggregation", route_aggregation.str()},
-        {"api_server_descriptors", server_descriptors.str()},
-    };
-}
-
 std::string java_api_descriptor_catalog_file(const IrSystem& system)
 {
-    const auto values = java_api_descriptor_values(system);
     const auto entity_domains = crud_api_handler_domains_java(api_handler_domains(system));
     std::set<std::string> entity_api_names;
     std::ostringstream out;
@@ -2963,7 +2922,64 @@ std::string java_api_descriptor_catalog_file(const IrSystem& system)
     out << "        return List.copyOf(descriptors);\n";
     out << "    }\n\n";
     out << "    public static List<ApiServerDescriptor> apiServerDescriptors() {\n";
-    out << values.at("api_server_descriptors");
+    out << "        var descriptors = new ArrayList<ApiServerDescriptor>();\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        out << "        {\n";
+        out << "            var serves = new ArrayList<String>();\n";
+        for (const auto& domain : entity_domains)
+        {
+            std::vector<IrApi> served_domain_apis;
+            for (const auto& api : domain.apis)
+            {
+                if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                    api_server.serves.end())
+                {
+                    served_domain_apis.push_back(api);
+                }
+            }
+            if (served_domain_apis.empty())
+            {
+                continue;
+            }
+            out << "            for (var apiName : com.statespec.generated.entities."
+                << snake_identifier(domain.name) << ".Catalog.apiNames()) {\n";
+            out << "                if (";
+            for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << " || ";
+                }
+                out << "apiName.equals(com.statespec.generated.entities."
+                    << snake_identifier(domain.name) << ".ApiConstants."
+                    << java_api_name_constant_name(served_domain_apis[i].name) << ")";
+            }
+            out << ") {\n";
+            out << "                    serves.add(apiName);\n";
+            out << "                }\n";
+            out << "            }\n";
+        }
+        for (const auto& served_api : api_server.serves)
+        {
+            if (entity_api_names.contains(served_api))
+            {
+                continue;
+            }
+            out << "            serves.add(" << java_string(served_api) << ");\n";
+        }
+        out << "            descriptors.add(new ApiServerDescriptor(\n";
+        out << "                com.statespec.generated.servers."
+            << snake_identifier(api_server.name) << ".Constants."
+            << java_api_server_name_constant_name(api_server.name) << ",\n";
+        out << "                List.copyOf(serves),\n";
+        out << "                com.statespec.generated.servers."
+            << snake_identifier(api_server.name) << ".Constants."
+            << java_api_server_concurrency_constant_name(api_server.name) << "\n";
+        out << "            ));\n";
+        out << "        }\n";
+    }
+    out << "        return List.copyOf(descriptors);\n";
     out << "    }\n\n";
     out << "    public static List<ApiRouteDescriptor> apiRouteDescriptors() {\n";
     out << "        var descriptors = new ArrayList<ApiRouteDescriptor>();\n";

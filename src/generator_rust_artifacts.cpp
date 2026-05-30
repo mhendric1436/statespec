@@ -1702,7 +1702,7 @@ std::string rust_api_server_constants_file(const IrApiServer& api_server)
     out << "pub const " << rust_api_server_name_constant_name(api_server.name)
         << ": &str = " << rust_string(api_server.name) << ";\n";
     out << "pub const " << rust_api_server_concurrency_constant_name(api_server.name)
-        << ": usize = " << api_server.concurrency.value_or(1) << ";\n";
+        << ": i32 = " << api_server.concurrency.value_or(1) << ";\n";
     return out.str();
 }
 
@@ -2445,7 +2445,6 @@ std::string rust_api_descriptor_catalog_file(const IrSystem& system)
     std::ostringstream modules;
     std::ostringstream api_aggregation;
     std::ostringstream route_aggregation;
-    std::ostringstream server_descriptors;
     const auto entity_domains = crud_api_handler_domains_rs(api_handler_domains(system));
     std::set<std::string> entity_api_names;
     for (const auto& domain : entity_domains)
@@ -2461,6 +2460,12 @@ std::string rust_api_descriptor_catalog_file(const IrSystem& system)
             entity_api_names.insert(api.name);
         }
     }
+    for (const auto& api_server : system.api_servers)
+    {
+        modules << "#[path = \"../servers/" << snake_identifier(api_server.name)
+                << "/constants.rs\"]\n";
+        modules << "mod server_" << snake_identifier(api_server.name) << "_constants;\n";
+    }
     for (const auto& api : system.apis)
     {
         if (entity_api_names.contains(api.name))
@@ -2475,27 +2480,6 @@ std::string rust_api_descriptor_catalog_file(const IrSystem& system)
         route_aggregation << "    descriptors.extend(" << module
                           << "::" << rust_api_route_descriptor_function_name(api) << "());\n";
     }
-    server_descriptors << "    vec![\n";
-    for (const auto& api_server : system.api_servers)
-    {
-        server_descriptors << "        ApiServerDescriptor {\n";
-        server_descriptors << "            name: " << rust_string(api_server.name)
-                           << ".to_string(),\n";
-        server_descriptors << "            serves: vec![";
-        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
-        {
-            if (i > 0)
-            {
-                server_descriptors << ", ";
-            }
-            server_descriptors << rust_string(api_server.serves[i]) << ".to_string()";
-        }
-        server_descriptors << "],\n";
-        server_descriptors << "            concurrency: " << api_server.concurrency.value_or(1)
-                           << ",\n";
-        server_descriptors << "        },\n";
-    }
-    server_descriptors << "    ]\n";
     std::ostringstream out;
     out << modules.str() << "\n";
     out << "use crate::api_shapes;\n";
@@ -2510,7 +2494,59 @@ std::string rust_api_descriptor_catalog_file(const IrSystem& system)
     out << "    descriptors\n";
     out << "}\n\n";
     out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
-    out << server_descriptors.str();
+    out << "    let mut descriptors = Vec::new();\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        out << "    {\n";
+        out << "        let mut serves = Vec::<String>::new();\n";
+        for (const auto& domain : entity_domains)
+        {
+            std::vector<IrApi> served_domain_apis;
+            for (const auto& api : domain.apis)
+            {
+                if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                    api_server.serves.end())
+                {
+                    served_domain_apis.push_back(api);
+                }
+            }
+            if (served_domain_apis.empty())
+            {
+                continue;
+            }
+            out << "        for api_name in entity_" << snake_identifier(domain.name)
+                << "_catalog::api_names() {\n";
+            out << "            match *api_name {\n";
+            for (const auto& api : served_domain_apis)
+            {
+                out << "                entity_" << snake_identifier(domain.name)
+                    << "_catalog::constants::" << rust_api_name_constant_name(api.name)
+                    << " => serves.push(api_name.to_string()),\n";
+            }
+            out << "                _ => {}\n";
+            out << "            }\n";
+            out << "        }\n";
+        }
+        for (const auto& served_api : api_server.serves)
+        {
+            if (entity_api_names.contains(served_api))
+            {
+                continue;
+            }
+            out << "        serves.push(" << rust_string(served_api) << ".to_string());\n";
+        }
+        out << "        descriptors.push(ApiServerDescriptor {\n";
+        out << "            name: server_" << snake_identifier(api_server.name)
+            << "_constants::" << rust_api_server_name_constant_name(api_server.name)
+            << ".to_string(),\n";
+        out << "            serves,\n";
+        out << "            concurrency: server_" << snake_identifier(api_server.name)
+            << "_constants::" << rust_api_server_concurrency_constant_name(api_server.name)
+            << ",\n";
+        out << "        });\n";
+        out << "    }\n";
+    }
+    out << "    descriptors\n";
     out << "}\n\n";
     out << "pub fn api_route_descriptors() -> Vec<ApiRouteDescriptor> {\n";
     out << "    let mut descriptors = Vec::new();\n";

@@ -262,6 +262,15 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/backend/descriptors/catalog.go", "account.EntityAPIDescriptors()"
     );
     require_generated_artifact_contains(
+        result, "api/backend/descriptors/catalog.go", "account.EntityAPINames()"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/descriptors/catalog.go", "case account.CreateAccountAPIName"
+    );
+    require_generated_artifact_contains(
+        result, "api/backend/descriptors/catalog.go", "Name: entityApiserver.EntityApiServerName"
+    );
+    require_generated_artifact_contains(
         result, "api/backend/descriptors/catalog.go", "account.EntityAPIRouteDescriptors()"
     );
     require_generated_artifact_contains(
@@ -269,6 +278,9 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_not_contains(
         result, "api/backend/descriptors/catalog.go", "CreateAccountAPIDescriptors()"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/backend/descriptors/catalog.go", "\"CreateAccount\""
     );
 }
 

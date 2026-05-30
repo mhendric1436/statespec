@@ -2934,43 +2934,8 @@ void add_go_api_descriptor_artifacts(
     }
 }
 
-TemplateRenderer::Values go_api_descriptor_values(const IrSystem& system)
-{
-    std::ostringstream api_aggregation;
-    std::ostringstream server_descriptors;
-    for (const auto& api : system.apis)
-    {
-        api_aggregation << "\tresult = append(result, " << go_api_descriptor_function_name(api)
-                        << "()...)\n";
-    }
-    server_descriptors << "\treturn []descriptortypes.ApiServerDescriptor{\n";
-    for (const auto& api_server : system.api_servers)
-    {
-        server_descriptors << "\t\t{\n";
-        server_descriptors << "\t\t\tName: " << go_string(api_server.name) << ",\n";
-        server_descriptors << "\t\t\tServes: []string{";
-        for (std::size_t i = 0; i < api_server.serves.size(); ++i)
-        {
-            if (i > 0)
-            {
-                server_descriptors << ", ";
-            }
-            server_descriptors << go_string(api_server.serves[i]);
-        }
-        server_descriptors << "},\n";
-        server_descriptors << "\t\t\tConcurrency: " << api_server.concurrency.value_or(1) << ",\n";
-        server_descriptors << "\t\t},\n";
-    }
-    server_descriptors << "\t}\n";
-    return TemplateRenderer::Values{
-        {"api_descriptor_aggregation", api_aggregation.str()},
-        {"api_server_descriptors", server_descriptors.str()},
-    };
-}
-
 std::string go_api_descriptor_catalog_file(const IrSystem& system)
 {
-    const auto descriptor_values = go_api_descriptor_values(system);
     const auto entity_domains = crud_api_handler_domains_go(api_handler_domains(system));
     std::set<std::string> entity_api_names;
     std::ostringstream out;
@@ -2986,6 +2951,12 @@ std::string go_api_descriptor_catalog_file(const IrSystem& system)
         {
             entity_api_names.insert(api.name);
         }
+    }
+    for (const auto& api_server : system.api_servers)
+    {
+        out << "\t" << lower_camel_identifier(api_server.name) << "server "
+            << "\"statespec-generated/api/backend/servers/" << snake_identifier(api_server.name)
+            << "\"\n";
     }
     out << ")\n\n";
     out << "func ApiDescriptors() []descriptortypes.ApiDescriptor {\n";
@@ -3006,7 +2977,63 @@ std::string go_api_descriptor_catalog_file(const IrSystem& system)
     out << "\treturn result\n";
     out << "}\n\n";
     out << "func ApiServerDescriptors() []descriptortypes.ApiServerDescriptor {\n";
-    out << descriptor_values.at("api_server_descriptors");
+    out << "\tresult := []descriptortypes.ApiServerDescriptor{}\n";
+    for (const auto& api_server : system.api_servers)
+    {
+        const auto server_alias = lower_camel_identifier(api_server.name) + "server";
+        out << "\t{\n";
+        out << "\t\tserves := []string{}\n";
+        for (const auto& domain : entity_domains)
+        {
+            std::vector<IrApi> served_domain_apis;
+            for (const auto& api : domain.apis)
+            {
+                if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                    api_server.serves.end())
+                {
+                    served_domain_apis.push_back(api);
+                }
+            }
+            if (served_domain_apis.empty())
+            {
+                continue;
+            }
+            out << "\t\tfor _, apiName := range " << snake_identifier(domain.name)
+                << ".EntityAPINames() {\n";
+            out << "\t\t\tswitch apiName {\n";
+            out << "\t\t\tcase ";
+            for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
+            {
+                if (i > 0)
+                {
+                    out << ", ";
+                }
+                out << snake_identifier(domain.name) << "."
+                    << go_api_name_constant_name(served_domain_apis[i].name);
+            }
+            out << ":\n";
+            out << "\t\t\t\tserves = append(serves, apiName)\n";
+            out << "\t\t\t}\n";
+            out << "\t\t}\n";
+        }
+        for (const auto& served_api : api_server.serves)
+        {
+            if (entity_api_names.contains(served_api))
+            {
+                continue;
+            }
+            out << "\t\tserves = append(serves, " << go_string(served_api) << ")\n";
+        }
+        out << "\t\tresult = append(result, descriptortypes.ApiServerDescriptor{\n";
+        out << "\t\t\tName: " << server_alias << "."
+            << go_api_server_name_constant_name(api_server.name) << ",\n";
+        out << "\t\t\tServes: serves,\n";
+        out << "\t\t\tConcurrency: " << server_alias << "."
+            << go_api_server_concurrency_constant_name(api_server.name) << ",\n";
+        out << "\t\t})\n";
+        out << "\t}\n";
+    }
+    out << "\treturn result\n";
     out << "}\n\n";
     out << "func ApiRouteDescriptors() []descriptortypes.ApiRouteDescriptor {\n";
     out << "\tresult := []descriptortypes.ApiRouteDescriptor{}\n";

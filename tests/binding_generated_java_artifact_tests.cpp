@@ -417,6 +417,18 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_contains(
         result, "api/com/statespec/generated/descriptors/Catalog.java",
+        "entities.account.Catalog.apiNames()"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/descriptors/Catalog.java",
+        "entities.account.ApiConstants.CREATE_ACCOUNT_API_NAME"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/descriptors/Catalog.java",
+        "servers.entity_api.Constants.ENTITY_API_SERVER_NAME"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/descriptors/Catalog.java",
         "entities.account.Catalog.apiRouteDescriptors()"
     );
     require_generated_artifact_contains(
@@ -441,6 +453,9 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_contains(
         result, "api/com/statespec/generated/descriptors/Catalog.java",
         "CreateAccountDescriptorModule.apiDescriptors()"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/com/statespec/generated/descriptors/Catalog.java", "\"CreateAccount\""
     );
 }
 

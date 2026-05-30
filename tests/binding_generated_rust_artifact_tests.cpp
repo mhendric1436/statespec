@@ -215,7 +215,7 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_contains(
         result, "api/servers/entity_api/constants.rs",
-        "pub const ENTITY_API_SERVER_CONCURRENCY: usize = 1"
+        "pub const ENTITY_API_SERVER_CONCURRENCY: i32 = 1"
     );
     require_generated_artifact_not_contains(
         result, "api/servers/entity_api/constants.rs", "CreateAccount"
@@ -270,6 +270,16 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/descriptors/catalog.rs", "entity_account_catalog::api_descriptors()"
     );
     require_generated_artifact_contains(
+        result, "api/descriptors/catalog.rs", "entity_account_catalog::api_names()"
+    );
+    require_generated_artifact_contains(
+        result, "api/descriptors/catalog.rs",
+        "entity_account_catalog::constants::CREATE_ACCOUNT_API_NAME"
+    );
+    require_generated_artifact_contains(
+        result, "api/descriptors/catalog.rs", "server_entity_api_constants::ENTITY_API_SERVER_NAME"
+    );
+    require_generated_artifact_contains(
         result, "api/descriptors/catalog.rs", "entity_account_catalog::api_route_descriptors()"
     );
     require_generated_artifact_contains(
@@ -278,6 +288,9 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     );
     require_generated_artifact_not_contains(
         result, "api/descriptors/catalog.rs", "create_account_api_descriptors()"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/descriptors/catalog.rs", "\"CreateAccount\""
     );
 }
 
