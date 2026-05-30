@@ -161,6 +161,12 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(result, "api/backend/entities/audit_log/constants.go");
     require_generated_artifact_exists(result, "api/backend/servers/entity_api/constants.go");
     require_generated_artifact_exists(result, "api/backend/servers/entity_api/catalog.go");
+    require_generated_artifact_exists(
+        result, "api/backend/servers/entity_api/entities/account/catalog.go"
+    );
+    require_generated_artifact_not_exists(
+        result, "api/backend/servers/entity_api/entities/audit_log/catalog.go"
+    );
     require_generated_artifact_contains(
         result, "common/entities/account/constants.go", "AccountEntityName = \"Account\""
     );
@@ -263,16 +269,23 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/backend/descriptors/catalog.go", "account.EntityAPIDescriptors()"
     );
     require_generated_artifact_contains(
-        result, "api/backend/servers/entity_api/catalog.go", "account.EntityAPINames()"
+        result, "api/backend/servers/entity_api/entities/account/catalog.go",
+        "account.EntityAPINames()"
     );
     require_generated_artifact_contains(
-        result, "api/backend/servers/entity_api/catalog.go", "case account.CreateAccountAPIName"
+        result, "api/backend/servers/entity_api/entities/account/catalog.go",
+        "case account.CreateAccountAPIName"
     );
     require_generated_artifact_contains(
-        result, "api/backend/servers/entity_api/catalog.go", "func appendAccountAPIServerNames"
+        result, "api/backend/servers/entity_api/entities/account/catalog.go",
+        "func AppendAPIServerNames"
     );
     require_generated_artifact_contains(
-        result, "api/backend/servers/entity_api/catalog.go", "appendAccountAPIServerNames(&serves)"
+        result, "api/backend/servers/entity_api/catalog.go",
+        "serveraccount.AppendAPIServerNames(&serves)"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/backend/servers/entity_api/catalog.go", "func AppendAPIServerNames"
     );
     require_generated_artifact_contains(
         result, "api/backend/servers/entity_api/catalog.go", "Name: EntityApiServerName"

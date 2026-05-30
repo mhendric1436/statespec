@@ -1795,40 +1795,10 @@ std::string java_api_server_catalog_file(
     out << "    private Catalog() {}\n\n";
     for (const auto& domain : entity_domains)
     {
-        std::vector<IrApi> served_domain_apis;
         for (const auto& api : domain.apis)
         {
             entity_api_names.insert(api.name);
-            if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
-                api_server.serves.end())
-            {
-                served_domain_apis.push_back(api);
-            }
         }
-        if (served_domain_apis.empty())
-        {
-            continue;
-        }
-        out << "    private static void append" << pascal_identifier(domain.name)
-            << "ApiServerNames(List<String> serves) {\n";
-        out << "        for (var apiName : com.statespec.generated.entities."
-            << snake_identifier(domain.name) << ".Catalog.apiNames()) {\n";
-        out << "            if (";
-        for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << " || ";
-            }
-            out << "apiName.equals(com.statespec.generated.entities."
-                << snake_identifier(domain.name) << ".ApiConstants."
-                << java_api_name_constant_name(served_domain_apis[i].name) << ")";
-        }
-        out << ") {\n";
-        out << "                serves.add(apiName);\n";
-        out << "            }\n";
-        out << "        }\n";
-        out << "    }\n\n";
     }
     out << "    public static List<ApiServerDescriptor> apiServerDescriptors() {\n";
     out << "        var serves = new ArrayList<String>();\n";
@@ -1844,8 +1814,9 @@ std::string java_api_server_catalog_file(
         );
         if (served)
         {
-            out << "        append" << pascal_identifier(domain.name)
-                << "ApiServerNames(serves);\n";
+            out << "        com.statespec.generated.servers." << snake_identifier(api_server.name)
+                << ".entities." << snake_identifier(domain.name)
+                << ".Catalog.appendApiServerNames(serves);\n";
         }
     }
     for (const auto& served_api : api_server.serves)
@@ -1862,6 +1833,49 @@ std::string java_api_server_catalog_file(
     out << "            Constants." << java_api_server_concurrency_constant_name(api_server.name)
         << "\n";
     out << "        ));\n";
+    out << "    }\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string java_api_server_entity_catalog_file(
+    const IrApiServer& api_server,
+    const ApiHandlerDomain& domain
+)
+{
+    std::vector<IrApi> served_domain_apis;
+    for (const auto& api : domain.apis)
+    {
+        if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+            api_server.serves.end())
+        {
+            served_domain_apis.push_back(api);
+        }
+    }
+
+    std::ostringstream out;
+    out << "package com.statespec.generated.servers." << snake_identifier(api_server.name)
+        << ".entities." << snake_identifier(domain.name) << ";\n\n";
+    out << "import java.util.List;\n\n";
+    out << "public final class Catalog {\n";
+    out << "    private Catalog() {}\n\n";
+    out << "    public static void appendApiServerNames(List<String> serves) {\n";
+    out << "        for (var apiName : com.statespec.generated.entities."
+        << snake_identifier(domain.name) << ".Catalog.apiNames()) {\n";
+    out << "            if (";
+    for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << " || ";
+        }
+        out << "apiName.equals(com.statespec.generated.entities." << snake_identifier(domain.name)
+            << ".ApiConstants." << java_api_name_constant_name(served_domain_apis[i].name) << ")";
+    }
+    out << ") {\n";
+    out << "                serves.add(apiName);\n";
+    out << "            }\n";
+    out << "        }\n";
     out << "    }\n";
     out << "}\n";
     return out.str();
@@ -3521,6 +3535,28 @@ void add_java_api_artifacts(
                 "/Constants.java",
             java_api_server_constants_file(api_server)
         );
+        for (const auto& domain : crud_api_handler_domains_java(api_handler_domains(system)))
+        {
+            const auto served = std::any_of(
+                domain.apis.begin(), domain.apis.end(),
+                [&](const IrApi& api)
+                {
+                    return std::find(
+                               api_server.serves.begin(), api_server.serves.end(), api.name
+                           ) != api_server.serves.end();
+                }
+            );
+            if (!served)
+            {
+                continue;
+            }
+            add_java_raw_api_file(
+                result, options,
+                "api/com/statespec/generated/servers/" + snake_identifier(api_server.name) +
+                    "/entities/" + snake_identifier(domain.name) + "/Catalog.java",
+                java_api_server_entity_catalog_file(api_server, domain)
+            );
+        }
         add_java_raw_api_file(
             result, options,
             "api/com/statespec/generated/servers/" + snake_identifier(api_server.name) +

@@ -1718,45 +1718,25 @@ std::string rust_api_server_catalog_file(
     out << "mod constants;\n";
     for (const auto& domain : entity_domains)
     {
-        out << "#[path = \"../../entities/" << snake_identifier(domain.name) << "/catalog.rs\"]\n";
-        out << "mod entity_" << snake_identifier(domain.name) << "_catalog;\n";
+        const auto served = std::any_of(
+            domain.apis.begin(), domain.apis.end(),
+            [&](const IrApi& api)
+            {
+                return std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                       api_server.serves.end();
+            }
+        );
+        if (served)
+        {
+            out << "#[path = \"entities/" << snake_identifier(domain.name) << ".rs\"]\n";
+            out << "mod entity_" << snake_identifier(domain.name) << ";\n";
+        }
         for (const auto& api : domain.apis)
         {
             entity_api_names.insert(api.name);
         }
     }
     out << "\nuse crate::descriptor_types::ApiServerDescriptor;\n\n";
-    for (const auto& domain : entity_domains)
-    {
-        std::vector<IrApi> served_domain_apis;
-        for (const auto& api : domain.apis)
-        {
-            if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
-                api_server.serves.end())
-            {
-                served_domain_apis.push_back(api);
-            }
-        }
-        if (served_domain_apis.empty())
-        {
-            continue;
-        }
-        out << "fn append_" << snake_identifier(domain.name)
-            << "_api_server_names(serves: &mut Vec<String>) {\n";
-        out << "    for api_name in entity_" << snake_identifier(domain.name)
-            << "_catalog::api_names() {\n";
-        out << "        match *api_name {\n";
-        for (const auto& api : served_domain_apis)
-        {
-            out << "            entity_" << snake_identifier(domain.name)
-                << "_catalog::constants::" << rust_api_name_constant_name(api.name)
-                << " => serves.push(api_name.to_string()),\n";
-        }
-        out << "            _ => {}\n";
-        out << "        }\n";
-        out << "    }\n";
-        out << "}\n\n";
-    }
     out << "pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {\n";
     out << "    let mut serves = Vec::<String>::new();\n";
     for (const auto& domain : entity_domains)
@@ -1771,8 +1751,8 @@ std::string rust_api_server_catalog_file(
         );
         if (served)
         {
-            out << "    append_" << snake_identifier(domain.name)
-                << "_api_server_names(&mut serves);\n";
+            out << "    entity_" << snake_identifier(domain.name)
+                << "::append_api_server_names(&mut serves);\n";
         }
     }
     for (const auto& served_api : api_server.serves)
@@ -1790,6 +1770,34 @@ std::string rust_api_server_catalog_file(
     out << "        concurrency: constants::"
         << rust_api_server_concurrency_constant_name(api_server.name) << ",\n";
     out << "    }]\n";
+    out << "}\n";
+    return out.str();
+}
+
+std::string rust_api_server_entity_catalog_file(
+    const IrApiServer& api_server,
+    const ApiHandlerDomain& domain
+)
+{
+    std::ostringstream out;
+    out << "#[path = \"../../../entities/" << snake_identifier(domain.name) << "/catalog.rs\"]\n";
+    out << "mod entity_catalog;\n\n";
+    out << "pub fn append_api_server_names(serves: &mut Vec<String>) {\n";
+    out << "    for api_name in entity_catalog::api_names() {\n";
+    out << "        match *api_name {\n";
+    for (const auto& api : domain.apis)
+    {
+        if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) ==
+            api_server.serves.end())
+        {
+            continue;
+        }
+        out << "            entity_catalog::constants::" << rust_api_name_constant_name(api.name)
+            << " => serves.push(api_name.to_string()),\n";
+    }
+    out << "            _ => {}\n";
+    out << "        }\n";
+    out << "    }\n";
     out << "}\n";
     return out.str();
 }
@@ -2813,6 +2821,28 @@ void add_rust_api_artifacts(
             result, options, "api/servers/" + snake_identifier(api_server.name) + "/constants.rs",
             rust_api_server_constants_file(api_server)
         );
+        for (const auto& domain : crud_api_handler_domains_rs(api_handler_domains(system)))
+        {
+            const auto served = std::any_of(
+                domain.apis.begin(), domain.apis.end(),
+                [&](const IrApi& api)
+                {
+                    return std::find(
+                               api_server.serves.begin(), api_server.serves.end(), api.name
+                           ) != api_server.serves.end();
+                }
+            );
+            if (!served)
+            {
+                continue;
+            }
+            add_rust_raw_api_file(
+                result, options,
+                "api/servers/" + snake_identifier(api_server.name) + "/entities/" +
+                    snake_identifier(domain.name) + ".rs",
+                rust_api_server_entity_catalog_file(api_server, domain)
+            );
+        }
         add_rust_raw_api_file(
             result, options, "api/servers/" + snake_identifier(api_server.name) + "/catalog.rs",
             rust_api_server_catalog_file(system, api_server)

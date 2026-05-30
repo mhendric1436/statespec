@@ -1480,7 +1480,18 @@ std::string cpp_api_server_catalog_header(
     out << "#include \"constants.hpp\"\n";
     for (const auto& domain : entity_domains)
     {
-        out << "#include \"../../entities/" << snake_identifier(domain.name) << "/catalog.hpp\"\n";
+        const auto served = std::any_of(
+            domain.apis.begin(), domain.apis.end(),
+            [&](const IrApi& api)
+            {
+                return std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+                       api_server.serves.end();
+            }
+        );
+        if (served)
+        {
+            out << "#include \"entities/" << snake_identifier(domain.name) << ".hpp\"\n";
+        }
         for (const auto& api : domain.apis)
         {
             entity_api_names.insert(api.name);
@@ -1493,45 +1504,6 @@ std::string cpp_api_server_catalog_header(
         << "\n";
     out << "{\n\n";
     out << "using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;\n\n";
-    for (const auto& domain : entity_domains)
-    {
-        std::vector<IrApi> served_domain_apis;
-        for (const auto& api : domain.apis)
-        {
-            if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
-                api_server.serves.end())
-            {
-                served_domain_apis.push_back(api);
-            }
-        }
-        if (served_domain_apis.empty())
-        {
-            continue;
-        }
-        out << "inline void append_" << snake_identifier(domain.name)
-            << "_api_server_names(std::vector<std::string>& serves)\n";
-        out << "{\n";
-        out << "    for (const auto& api_name : ::statespec_generated::api::entities::"
-            << snake_identifier(domain.name) << "::api_names())\n";
-        out << "    {\n";
-        out << "        if (";
-        for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
-        {
-            if (i > 0)
-            {
-                out << " || ";
-            }
-            out << "api_name == ::statespec_generated::api::entities::"
-                << snake_identifier(domain.name)
-                << "::constants::" << cpp_api_name_constant_name(served_domain_apis[i].name);
-        }
-        out << ")\n";
-        out << "        {\n";
-        out << "            serves.push_back(api_name);\n";
-        out << "        }\n";
-        out << "    }\n";
-        out << "}\n\n";
-    }
     out << "inline std::vector<ApiServerDescriptor> api_server_descriptors()\n";
     out << "{\n";
     out << "    std::vector<std::string> serves;\n";
@@ -1547,7 +1519,8 @@ std::string cpp_api_server_catalog_header(
         );
         if (served)
         {
-            out << "    append_" << snake_identifier(domain.name) << "_api_server_names(serves);\n";
+            out << "    entities::" << snake_identifier(domain.name)
+                << "::append_api_server_names(serves);\n";
         }
     }
     for (const auto& served_api : api_server.serves)
@@ -1567,6 +1540,55 @@ std::string cpp_api_server_catalog_header(
     out << "}\n\n";
     out << "} // namespace statespec_generated::api::servers::" << snake_identifier(api_server.name)
         << "\n";
+    return out.str();
+}
+
+std::string cpp_api_server_entity_catalog_header(
+    const IrApiServer& api_server,
+    const ApiHandlerDomain& domain
+)
+{
+    std::vector<IrApi> served_domain_apis;
+    for (const auto& api : domain.apis)
+    {
+        if (std::find(api_server.serves.begin(), api_server.serves.end(), api.name) !=
+            api_server.serves.end())
+        {
+            served_domain_apis.push_back(api);
+        }
+    }
+
+    std::ostringstream out;
+    out << "#pragma once\n\n";
+    out << "#include \"../../../entities/" << snake_identifier(domain.name) << "/catalog.hpp\"\n\n";
+    out << "#include <string>\n";
+    out << "#include <vector>\n\n";
+    out << "namespace statespec_generated::api::servers::" << snake_identifier(api_server.name)
+        << "::entities::" << snake_identifier(domain.name) << "\n";
+    out << "{\n\n";
+    out << "inline void append_api_server_names(std::vector<std::string>& serves)\n";
+    out << "{\n";
+    out << "    for (const auto& api_name : ::statespec_generated::api::entities::"
+        << snake_identifier(domain.name) << "::api_names())\n";
+    out << "    {\n";
+    out << "        if (";
+    for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
+    {
+        if (i > 0)
+        {
+            out << " || ";
+        }
+        out << "api_name == ::statespec_generated::api::entities::" << snake_identifier(domain.name)
+            << "::constants::" << cpp_api_name_constant_name(served_domain_apis[i].name);
+    }
+    out << ")\n";
+    out << "        {\n";
+    out << "            serves.push_back(api_name);\n";
+    out << "        }\n";
+    out << "    }\n";
+    out << "}\n\n";
+    out << "} // namespace statespec_generated::api::servers::" << snake_identifier(api_server.name)
+        << "::entities::" << snake_identifier(domain.name) << "\n";
     return out.str();
 }
 
@@ -3032,6 +3054,28 @@ void add_cpp_api_artifacts(
             result, options, "api/servers/" + snake_identifier(api_server.name) + "/constants.hpp",
             cpp_api_server_constants_header(api_server)
         );
+        for (const auto& domain : crud_api_handler_domains(api_handler_domains(system)))
+        {
+            const auto served = std::any_of(
+                domain.apis.begin(), domain.apis.end(),
+                [&](const IrApi& api)
+                {
+                    return std::find(
+                               api_server.serves.begin(), api_server.serves.end(), api.name
+                           ) != api_server.serves.end();
+                }
+            );
+            if (!served)
+            {
+                continue;
+            }
+            add_cpp_raw_api_file(
+                result, options,
+                "api/servers/" + snake_identifier(api_server.name) + "/entities/" +
+                    snake_identifier(domain.name) + ".hpp",
+                cpp_api_server_entity_catalog_header(api_server, domain)
+            );
+        }
         add_cpp_raw_api_file(
             result, options, "api/servers/" + snake_identifier(api_server.name) + "/catalog.hpp",
             cpp_api_server_catalog_header(system, api_server)

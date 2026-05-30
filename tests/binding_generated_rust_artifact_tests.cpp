@@ -156,6 +156,8 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_exists(result, "api/entities/audit_log/constants.rs");
     require_generated_artifact_exists(result, "api/servers/entity_api/constants.rs");
     require_generated_artifact_exists(result, "api/servers/entity_api/catalog.rs");
+    require_generated_artifact_exists(result, "api/servers/entity_api/entities/account.rs");
+    require_generated_artifact_not_exists(result, "api/servers/entity_api/entities/audit_log.rs");
     require_generated_artifact_contains(
         result, "common/entities/account/constants.rs",
         "pub const ACCOUNT_ENTITY_NAME: &str = \"Account\""
@@ -271,17 +273,21 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/descriptors/catalog.rs", "entity_account_catalog::api_descriptors()"
     );
     require_generated_artifact_contains(
-        result, "api/servers/entity_api/catalog.rs", "entity_account_catalog::api_names()"
+        result, "api/servers/entity_api/entities/account.rs", "entity_catalog::api_names()"
+    );
+    require_generated_artifact_contains(
+        result, "api/servers/entity_api/entities/account.rs",
+        "entity_catalog::constants::CREATE_ACCOUNT_API_NAME"
+    );
+    require_generated_artifact_contains(
+        result, "api/servers/entity_api/entities/account.rs", "pub fn append_api_server_names"
     );
     require_generated_artifact_contains(
         result, "api/servers/entity_api/catalog.rs",
-        "entity_account_catalog::constants::CREATE_ACCOUNT_API_NAME"
+        "entity_account::append_api_server_names(&mut serves)"
     );
-    require_generated_artifact_contains(
+    require_generated_artifact_not_contains(
         result, "api/servers/entity_api/catalog.rs", "fn append_account_api_server_names"
-    );
-    require_generated_artifact_contains(
-        result, "api/servers/entity_api/catalog.rs", "append_account_api_server_names(&mut serves)"
     );
     require_generated_artifact_contains(
         result, "api/servers/entity_api/catalog.rs", "constants::ENTITY_API_SERVER_NAME"
