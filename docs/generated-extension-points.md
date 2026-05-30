@@ -140,23 +140,27 @@ circuit-breaker behavior.
 
 API handlers receive a framework-neutral request context and return a generated API
 response. The generated dispatcher maps an API server route name such as
-`ProvisionApi.StartProvision` to the declared operation-specific handler method.
+`ProvisionApi.StartProvision` through a route lookup map, then maps the resolved
+`api_name` through a handler lookup map. Runtime dispatch should use these maps rather
+than generated linear `if`/`switch` chains.
 Framework adapters should translate HTTP requests into the generated request context,
 call the generated API server dispatch boundary, and translate the response back to the
 selected HTTP framework. The generated local blocking transport is only a lifecycle
 placeholder; real network transport selection is user/runtime-owned.
 
-| Language | Generated API handler surface |
+| Language | Generated CRUD invoker surface |
 |---|---|
-| C++ | `statespec_generated::api::IApiOperationHandler` in `api/api_handlers.hpp` |
-| Go | `api/backend.APITierHandler` |
-| Java | `ApiHandlers.Handler` |
-| Rust | `api_handlers::ApiHandler` |
+| C++ | `statespec_generated::api::ApiHandlerInvoker`, registered by per-entity `register_handler_invokers` |
+| Go | `api/backend.APIHandlerInvoker`, registered by per-entity `RegisterHandlerInvokers` |
+| Java | `ApiDispatcher.HandlerInvoker`, registered by per-entity `Registry.registerHandlerInvokers` |
+| Rust | `api_dispatcher::ApiHandlerInvoker<B>`, registered by per-entity `registry::register_handler_invokers` |
 
-API handlers may start workflows, enqueue messages, resolve operator metadata, or read
-entities, but any persisted state access must use the generated backend/OCC transaction
-model. Handler code should not bypass `IBackend` and `ITransaction` or the equivalent
-language bindings for direct store access.
+Generated CRUD invokers receive the backend directly and open or compose
+backend/OCC transactions through generated repositories. Business API handlers may
+start workflows, enqueue messages, resolve operator metadata, or read entities, but any
+persisted state access must use the generated backend/OCC transaction model. Handler
+code should not bypass `IBackend` and `ITransaction` or the equivalent language
+bindings for direct store access.
 
 Generated default entity API handlers use generated entity repositories for create,
 read, list, status update, and soft-delete operations. Repositories own collection names,
@@ -174,9 +178,10 @@ must emit concrete create, get, list, status update, and delete behavior for tho
 Manual user handler implementations remain the extension point for top-level business
 APIs that do not have entity repository metadata.
 
-The generated handler registry composes these two paths. Entity CRUD operations
-delegate to generated repository-backed handler modules. Top-level business APIs
-delegate to a user-supplied business handler interface:
+The generated handler registry composes these two paths. Entity CRUD operations are
+registered by per-entity API modules such as `api/entities/account/registry.*`, and the
+top-level registry is a thin composer. Top-level business APIs delegate through a
+separate user-supplied business handler interface and a separate business handler map:
 
 | Language | Business API handler surface |
 |---|---|
@@ -189,6 +194,15 @@ If no business handler is supplied, generated default handlers return `501` for 
 business APIs. This keeps generated application shells linkable without pretending to
 implement domain-specific behavior.
 
+The dispatcher owns two runtime lookup tables:
+
+- `route_name -> ApiRouteDescriptor`
+- `api_name -> generated CRUD invoker` or `api_name -> business handler invoker`
+
+Descriptor lists remain available for catalog and introspection APIs, but request-time
+dispatch should not linearly scan descriptor lists or compare API names in generated
+chains.
+
 Generated constants are the canonical spelling source for entity metadata in binding
 output. Entity names, field names, state values, and index names are emitted once and
 then reused by descriptors, repository helpers, generated API handlers, GC metadata, and
@@ -200,9 +214,10 @@ or document field layouts. Cross-language API app persistence compatibility depe
 generated repositories owning those details consistently for C++, Go, Java, and Rust
 bindings produced from the same `.sspec` file.
 
-Typed operation handlers are the canonical API extension point. StateSpec does not
-generate a parallel generic API handler path; each declared API operation maps to one
-generated handler method and one dispatcher branch.
+Business operation handlers are the canonical user extension point. StateSpec does not
+generate a parallel generic catch-all API handler path. Entity-owned CRUD operations
+map to generated backend invokers; manual business APIs map to operation-specific
+business handler methods.
 
 Generated API codec files provide the canonical conversion between the framework-neutral
 `ApiRequestContext`/`ApiResponse` JSON bodies and declared API input/output shape types:

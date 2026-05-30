@@ -371,8 +371,9 @@ Generated API apps own structural wiring, not business behavior:
   lifecycle APIs.
 - Local/no-op blocking transport behavior for generated app startup and shutdown tests,
   including unblocking when the generated process requests stop.
-- Route lookup and dispatch.
-- Per-action handler interfaces.
+- Map-based route lookup and API-name-to-handler dispatch.
+- Backend-owned handler invokers for generated entity CRUD operations.
+- Business API handler interfaces for top-level non-CRUD APIs.
 - Concrete generated default handlers for entity-owned CRUD operations identified by
   `api.entity` plus `api.repository_operation` in IR.
 - Operator metadata API contracts.
@@ -384,6 +385,14 @@ APIs, validation beyond the spec, concrete backend adapter, and outbound clients
 Generated local transports must not be treated as an opinionated HTTP backend; they own
 only local lifecycle blocking/unblocking until StateSpec intentionally adopts a concrete
 HTTP runtime.
+
+Generated API dispatchers must use lookup maps for request-time dispatch:
+`route_name -> ApiRouteDescriptor`, `api_name -> generated CRUD invoker`, and
+`api_name -> business handler invoker`. Descriptor lists remain available for catalogs
+and introspection, but generated request dispatch should not linearly scan route or API
+descriptor lists. Top-level handler registries should be thin composers that register
+per-entity CRUD invokers and separate business handler invokers; generated CRUD method
+bodies belong in per-entity API modules, not in the top-level registry.
 
 Generated `main` functions and tests should not wrap `ApiProcess.run` in ad hoc
 threads. `ApiProcess` owns the background thread, goroutine, or task; callers start it,

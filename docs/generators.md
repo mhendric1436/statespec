@@ -89,6 +89,12 @@ files such as `api/shapes.*`, `api/descriptors/catalog.*`, and
 `api/api_handler_registry.*` compose those per-entity catalogs instead of importing
 individual per-shape, per-descriptor, or per-handler files directly.
 
+Generated CRUD handlers are owned by the per-entity API module. The top-level API
+handler registry must remain a thin composer that asks each entity registry to register
+its backend-owned invokers. Business API handlers are registered separately. This keeps
+generated CRUD logic near the entity API contract and prevents the top-level registry
+from growing with every entity lifecycle operation.
+
 Per-entity API catalog paths:
 
 | Language | Path |
@@ -192,8 +198,8 @@ The API application artifact responsibilities are:
 | `api_process` | API process config, owned thread/task lifecycle, bootstrap, stop, and join coordination |
 | `api_server` | API server request dispatch boundary |
 | `api_transport` | Transport interface and local/no-op blocking/unblocking transport |
-| `api_dispatcher` | Route-to-handler dispatch |
-| `api_handler_registry` | User implementation registry for API handlers |
+| `api_dispatcher` | Map-based route lookup and API-name-to-handler dispatch |
+| `api_handler_registry` | Thin composer for generated CRUD invokers and user business handler invokers |
 | `api_main` | API process entrypoint |
 
 Generated API process entrypoints construct backend, handler, process config, transport,
@@ -314,6 +320,18 @@ decision boundary is the lowered API IR: `api.entity` plus `api.repository_opera
 identifies an entity-owned lifecycle operation and must produce a concrete generated
 default handler. Top-level business APIs without that repository metadata continue to
 expose user-owned handler extension points.
+
+Generated dispatchers should build lookup maps for request-time dispatch:
+
+- `route_name -> ApiRouteDescriptor`
+- `api_name -> generated CRUD handler invoker`
+- `api_name -> business handler invoker`
+
+Descriptor vectors remain useful for introspection, tests, and catalogs, but the
+dispatcher should not search them linearly on every request. Generated CRUD invokers
+receive the backend/OCC surface directly. Business invokers receive the user-supplied
+business handler interface. Missing business handler implementations should return the
+generated `501` response so generated application shells remain linkable.
 
 Shape declarations become reusable `components.schemas` entries. Primitive StateSpec
 types are mapped to conservative JSON Schema types, while references to declared

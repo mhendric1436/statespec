@@ -251,8 +251,9 @@ Generated API code owns:
 - A local/no-op blocking transport that starts successfully, blocks until shutdown, and
   unblocks when the generated process requests stop.
 - Route descriptors derived from `api_server serves` and declared API method/path metadata.
-- Route-to-handler dispatch.
-- API handler interfaces.
+- Map-based route lookup and API-name-to-handler dispatch.
+- Generated backend-owned CRUD handler invokers for entity-owned APIs.
+- Business API handler interfaces for top-level non-CRUD APIs.
 - Typed request and response codecs for declared API input/output shapes.
 - Default API action handlers that decode request shapes and encode accepted action responses.
 - Operator metadata API handler interfaces for external-system metadata.
@@ -263,7 +264,7 @@ User code owns:
 - Real network transport selection.
 - HTTP or RPC framework adapter.
 - Authentication, authorization, and tenant resolution.
-- Concrete API handler implementations.
+- Concrete business API handler implementations for top-level non-CRUD APIs.
 - Transport-level request deserialization and response serialization for the selected framework.
 - Concrete backend adapter implementing the generated OCC interfaces.
 - External clients and runtime configuration.
@@ -283,6 +284,12 @@ context, call the generated `ApiServer.handle` dispatch boundary, and translate 
 generated response back to the transport. Until StateSpec adopts an opinionated HTTP
 backend, real network transport selection remains user/runtime-owned. Local tests may
 use the generated in-memory backend as the concrete backend adapter.
+
+Entity-owned CRUD APIs do not require user handler code. Generated per-entity API
+modules register CRUD invokers with the top-level handler registry, and those invokers
+operate through the generated backend/OCC repositories. Manual top-level business APIs
+remain user-owned: the dispatcher uses a separate business handler map and returns a
+generated `501` response when no business handler is supplied.
 
 When an entity declares terminal garbage collection metadata, generated common-tier GC
 workers can be composed by API-only apps, Worker-only apps, or mixed API + Worker apps.
