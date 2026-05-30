@@ -52,7 +52,10 @@ func TestGeneratedAPIServerLinksWithMemoryBackend(t *testing.T) {
 	backend := memory.NewBackend()
 	server := api.APITierServer{
 		Descriptor: descriptor,
-		Handler:    linkingHandler{backend: backend},
+		Handler: api.DefaultAPITierHandler{
+			Backend:         backend,
+			BusinessHandler: linkingHandler{backend: backend},
+		},
 	}
 	response, handled, err := server.Handle(context.Background(), "ProvisionApi.StartProvision", common.APIRequestContext{
 		ServerName: "ProvisionApi",

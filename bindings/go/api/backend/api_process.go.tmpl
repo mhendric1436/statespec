@@ -35,7 +35,7 @@ func DefaultAPIProcessConfig() APIProcessConfig {
 type APIProcess struct {
 	Config       APIProcessConfig
 	Backend      common.Backend
-	Handler      APITierHandler
+	Handler      DefaultAPITierHandler
 	Transport    APITierTransport
 	Applications []*APITierApplication
 	EntityGCWorkers []EntityGCWorkerFunc
@@ -52,7 +52,7 @@ type APIProcess struct {
 	gcWait       sync.WaitGroup
 }
 
-func NewAPIProcess(config APIProcessConfig, backend common.Backend, handler APITierHandler, transport APITierTransport) (*APIProcess, error) {
+func NewAPIProcess(config APIProcessConfig, backend common.Backend, handler DefaultAPITierHandler, transport APITierTransport) (*APIProcess, error) {
 	if len(config.ServerNames) == 0 {
 		for _, descriptor := range APITierServerDescriptors() {
 			config.ServerNames = append(config.ServerNames, descriptor.Name)

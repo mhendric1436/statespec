@@ -585,21 +585,12 @@ std::string go_api_handler_entity_imports(
     return out.str();
 }
 
-std::string go_api_handler_registry_delegates(const std::vector<ApiHandlerDomain>& domains)
+std::string go_api_handler_lookup_registrations(const std::vector<ApiHandlerDomain>& domains)
 {
     std::ostringstream out;
     for (const auto& domain : domains)
     {
-        for (const auto& api : domain.apis)
-        {
-            out << "func (handler DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
-                << "(ctx context.Context, request common.APIRequestContext) "
-                   "(common.APIResponse, error) {\n";
-            out << "\treturn " << snake_identifier(domain.name)
-                << ".NewHandlerRegistry(handler.Backend).Handle" << pascal_identifier(api.name)
-                << "(ctx, request)\n";
-            out << "}\n\n";
-        }
+        out << "\t" << snake_identifier(domain.name) << ".RegisterHandlerInvokers(registrar)\n";
     }
     return out.str();
 }
@@ -649,7 +640,7 @@ crud_api_handler_domains_go(const std::vector<ApiHandlerDomain>& domains)
     return result;
 }
 
-std::string go_business_api_handler_delegates(const IrSystem& system)
+std::string go_business_api_handler_lookup_entries(const IrSystem& system)
 {
     std::ostringstream out;
     for (const auto& api : system.apis)
@@ -658,16 +649,11 @@ std::string go_business_api_handler_delegates(const IrSystem& system)
         {
             continue;
         }
-        out << "func (handler DefaultAPITierHandler) Handle" << pascal_identifier(api.name)
-            << "(ctx context.Context, request common.APIRequestContext) "
-               "(common.APIResponse, error) {\n";
-        out << "\tif handler.BusinessHandler == nil {\n";
-        out << "\t\treturn common.APIResponse{StatusCode: 501, Body: common.JSONObject(map[string]"
-               "common.JSON{})}, nil\n";
+        out << "\thandlers[" << go_string(api.name)
+            << "] = func(ctx context.Context, handler BusinessAPITierHandler, request "
+               "descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error) {\n";
+        out << "\t\treturn handler.Handle" << pascal_identifier(api.name) << "(ctx, request)\n";
         out << "\t}\n";
-        out << "\treturn handler.BusinessHandler.Handle" << pascal_identifier(api.name)
-            << "(ctx, request)\n";
-        out << "}\n\n";
     }
     return out.str();
 }
@@ -741,10 +727,30 @@ std::string go_api_handler_domain_registry_file(const ApiHandlerDomain& domain)
 {
     std::ostringstream out;
     out << "package " << snake_identifier(domain.name) << "\n\n";
-    out << "import common \"statespec-generated/common/backend\"\n\n";
+    out << "import (\n";
+    out << "\t\"context\"\n\n";
+    out << "\tcommon \"statespec-generated/common/backend\"\n";
+    out << "\tdescriptortypes \"statespec-generated/common/backend/descriptortypes\"\n";
+    out << ")\n\n";
     out << "func New" << go_api_handler_domain_type_name(domain.name) << "(backend common.Backend) "
         << go_api_handler_domain_type_name(domain.name) << " {\n";
     out << "\treturn " << go_api_handler_domain_type_name(domain.name) << "{Backend: backend}\n";
+    out << "}\n\n";
+    out << "type HandlerRegistrar interface {\n";
+    out << "\tRegisterHandlerInvoker(string, func(context.Context, common.Backend, "
+           "descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error))\n";
+    out << "}\n\n";
+    out << "func RegisterHandlerInvokers(registrar HandlerRegistrar) {\n";
+    for (const auto& api : domain.apis)
+    {
+        out << "\tregistrar.RegisterHandlerInvoker(" << go_string(api.name)
+            << ", func(ctx context.Context, backend common.Backend, request "
+               "descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error) {\n";
+        out << "\t\thandler := New" << go_api_handler_domain_type_name(domain.name)
+            << "(backend)\n";
+        out << "\t\treturn handler.Handle" << pascal_identifier(api.name) << "(ctx, request)\n";
+        out << "\t})\n";
+    }
     out << "}\n";
     return out.str();
 }
@@ -3232,7 +3238,6 @@ void add_go_api_artifacts(
         result, options, templates, "api/backend/api_handlers.go", GeneratedArtifactTier::Api,
         diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_handler_methods", generate_api_operation_handler_methods_go(system)},
             {"business_api_operation_handler_methods",
              generate_business_api_operation_handler_methods_go(system)}
         }
@@ -3265,12 +3270,11 @@ void add_go_api_artifacts(
         result, options, templates, "api/backend/api_handler_registry.go",
         GeneratedArtifactTier::Api, diagnostics,
         TemplateRenderer::Values{
-            {"api_operation_default_handler_methods",
-             go_api_handler_registry_delegates(handler_domains) +
-                 go_business_api_handler_delegates(system)},
+            {"api_handler_lookup_registrations",
+             go_api_handler_lookup_registrations(handler_domains)},
+            {"api_business_handler_lookup_entries", go_business_api_handler_lookup_entries(system)},
             {"api_handler_registry_domain_imports",
-             go_api_handler_registry_domain_imports(handler_domains)},
-            {"api_shape_import", {}}
+             go_api_handler_registry_domain_imports(handler_domains)}
         }
     );
     add_go_generated_template_file(
@@ -3293,10 +3297,7 @@ void add_go_api_artifacts(
         );
         add_go_generated_template_file(
             result, options, templates, "api/backend/api_dispatcher.go", GeneratedArtifactTier::Api,
-            diagnostics,
-            TemplateRenderer::Values{
-                {"api_handler_lookup_entries", generate_api_handler_lookup_entries_go(system)}
-            }
+            diagnostics
         );
         add_go_generated_template_file(
             result, options, templates, "api/backend/api_server.go", GeneratedArtifactTier::Api,

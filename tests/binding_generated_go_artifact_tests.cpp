@@ -231,7 +231,7 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
         result, "api/backend/descriptors/catalog.go", "account.EntityAPIRouteDescriptors()"
     );
     require_generated_artifact_contains(
-        result, "api/backend/api_handler_registry.go", "account.NewHandlerRegistry"
+        result, "api/backend/api_handler_registry.go", "account.RegisterHandlerInvokers"
     );
     require_generated_artifact_not_contains(
         result, "api/backend/descriptors/catalog.go", "CreateAccountAPIDescriptors()"

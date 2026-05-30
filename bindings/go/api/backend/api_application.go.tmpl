@@ -14,7 +14,7 @@ type APITierApplication struct {
 	Server       APITierServer
 }
 
-func NewAPITierApplication(backend common.Backend, serverName string, handler APITierHandler) (*APITierApplication, bool) {
+func NewAPITierApplication(backend common.Backend, serverName string, handler DefaultAPITierHandler) (*APITierApplication, bool) {
 	descriptor, ok := FindAPITierServer(serverName)
 	if !ok {
 		return nil, false

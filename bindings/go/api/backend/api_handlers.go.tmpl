@@ -11,8 +11,5 @@ var _ = context.Background
 type APITierRequestContext = descriptortypes.APIRequestContext
 type APITierResponse = descriptortypes.APIResponse
 
-type APITierHandler interface {
-{{api_operation_handler_methods}}}
-
 type BusinessAPITierHandler interface {
 {{business_api_operation_handler_methods}}}

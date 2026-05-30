@@ -8,7 +8,7 @@ import (
 
 type APITierServer struct {
 	Descriptor descriptortypes.ApiServerDescriptor
-	Handler    APITierHandler
+	Handler    DefaultAPITierHandler
 }
 
 func FindAPITierServer(serverName string) (descriptortypes.ApiServerDescriptor, bool) {
@@ -25,5 +25,5 @@ func (server APITierServer) Handle(ctx context.Context, routeName string, reques
 	if !ok || route.ServerName != server.Descriptor.Name {
 		return descriptortypes.APIResponse{}, false, nil
 	}
-	return DispatchAPITierRoute(ctx, server.Handler, routeName, request)
+	return DispatchAPITierRoute(ctx, server.Handler.Backend, server.Handler.BusinessHandler, routeName, request)
 }

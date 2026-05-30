@@ -3,10 +3,12 @@ package backend
 import (
 	"context"
 
+	common "statespec-generated/common/backend"
 	descriptortypes "statespec-generated/common/backend/descriptortypes"
 )
 
-type APITierHandlerInvoker func(context.Context, APITierHandler, descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error)
+type APIHandlerInvoker func(context.Context, common.Backend, descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error)
+type BusinessAPIHandlerInvoker func(context.Context, BusinessAPITierHandler, descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error)
 
 var apiRouteDescriptorMap = func() map[string]descriptortypes.ApiRouteDescriptor {
 	routes := make(map[string]descriptortypes.ApiRouteDescriptor)
@@ -16,8 +18,17 @@ var apiRouteDescriptorMap = func() map[string]descriptortypes.ApiRouteDescriptor
 	return routes
 }()
 
-var apiHandlerMap = map[string]APITierHandlerInvoker{
-{{api_handler_lookup_entries}}}
+var apiHandlerMap = func() map[string]APIHandlerInvoker {
+	handlers := map[string]APIHandlerInvoker{}
+	RegisterHandlerInvokers(handlers)
+	return handlers
+}()
+
+var businessAPIHandlerMap = func() map[string]BusinessAPIHandlerInvoker {
+	handlers := map[string]BusinessAPIHandlerInvoker{}
+	RegisterBusinessHandlerInvokers(handlers)
+	return handlers
+}()
 
 func APITierRouteLookupMap() map[string]descriptortypes.ApiRouteDescriptor {
 	routes := make(map[string]descriptortypes.ApiRouteDescriptor, len(apiRouteDescriptorMap))
@@ -27,9 +38,17 @@ func APITierRouteLookupMap() map[string]descriptortypes.ApiRouteDescriptor {
 	return routes
 }
 
-func APITierHandlerLookupMap() map[string]APITierHandlerInvoker {
-	handlers := make(map[string]APITierHandlerInvoker, len(apiHandlerMap))
+func APITierHandlerLookupMap() map[string]APIHandlerInvoker {
+	handlers := make(map[string]APIHandlerInvoker, len(apiHandlerMap))
 	for name, handler := range apiHandlerMap {
+		handlers[name] = handler
+	}
+	return handlers
+}
+
+func BusinessAPITierHandlerLookupMap() map[string]BusinessAPIHandlerInvoker {
+	handlers := make(map[string]BusinessAPIHandlerInvoker, len(businessAPIHandlerMap))
+	for name, handler := range businessAPIHandlerMap {
 		handlers[name] = handler
 	}
 	return handlers
@@ -40,16 +59,27 @@ func FindAPITierRoute(routeName string) (descriptortypes.ApiRouteDescriptor, boo
 	return route, ok
 }
 
-func DispatchAPITierRoute(ctx context.Context, handler APITierHandler, routeName string, request descriptortypes.APIRequestContext) (descriptortypes.APIResponse, bool, error) {
+func DispatchAPITierRoute(ctx context.Context, backend common.Backend, businessHandler BusinessAPITierHandler, routeName string, request descriptortypes.APIRequestContext) (descriptortypes.APIResponse, bool, error) {
 	route, ok := FindAPITierRoute(routeName)
 	if !ok {
 		return descriptortypes.APIResponse{}, false, nil
 	}
 	invoker, ok := apiHandlerMap[route.ApiName]
+	if ok {
+		response, err := invoker(ctx, backend, request)
+		if err != nil {
+			return descriptortypes.APIResponse{}, true, err
+		}
+		return response, true, nil
+	}
+	businessInvoker, ok := businessAPIHandlerMap[route.ApiName]
 	if !ok {
 		return descriptortypes.APIResponse{}, false, nil
 	}
-	response, err := invoker(ctx, handler, request)
+	if businessHandler == nil {
+		return descriptortypes.APIResponse{StatusCode: 501, Body: common.JSONObject(map[string]common.JSON{})}, true, nil
+	}
+	response, err := businessInvoker(ctx, businessHandler, request)
 	if err != nil {
 		return descriptortypes.APIResponse{}, true, err
 	}

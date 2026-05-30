@@ -2,50 +2,21 @@ package backend
 
 import (
 	"context"
-	"fmt"
-	"strings"
-	"time"
 
 	common "statespec-generated/common/backend"
-{{api_shape_import}}
+	descriptortypes "statespec-generated/common/backend/descriptortypes"
 {{api_handler_registry_domain_imports}}
 )
 
-var _ = fmt.Errorf
-var _ = time.Now
+var _ = context.Background
+var _ descriptortypes.APIRequestContext
 
-func extractAPIPathParameters(routeTemplate string, actualPath *string) map[string]string {
-	parameters := map[string]string{}
-	if actualPath == nil {
-		return parameters
-	}
-	templateParts := splitAPIPath(routeTemplate)
-	actualParts := splitAPIPath(*actualPath)
-	for i := 0; i < len(templateParts) && i < len(actualParts); i++ {
-		part := templateParts[i]
-		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") && len(part) > 2 {
-			parameters[part[1:len(part)-1]] = actualParts[i]
-		}
-	}
-	return parameters
+type apiHandlerRegistrar struct {
+	handlers map[string]APIHandlerInvoker
 }
 
-func splitAPIPath(path string) []string {
-	parts := []string{}
-	for _, part := range strings.Split(path, "/") {
-		if part != "" {
-			parts = append(parts, part)
-		}
-	}
-	return parts
-}
-
-func pathParameterJSON(parameters map[string]string, name string) common.JSON {
-	value, ok := parameters[name]
-	if !ok {
-		return common.JSONNull()
-	}
-	return common.JSONString(value)
+func (registrar apiHandlerRegistrar) RegisterHandlerInvoker(apiName string, invoker func(context.Context, common.Backend, descriptortypes.APIRequestContext) (descriptortypes.APIResponse, error)) {
+	registrar.handlers[apiName] = APIHandlerInvoker(invoker)
 }
 
 type DefaultAPITierHandler struct {
@@ -53,5 +24,10 @@ type DefaultAPITierHandler struct {
 	BusinessHandler BusinessAPITierHandler
 }
 
-{{api_operation_default_handler_methods}}
-var _ APITierHandler = DefaultAPITierHandler{}
+func RegisterHandlerInvokers(handlers map[string]APIHandlerInvoker) {
+	registrar := apiHandlerRegistrar{handlers: handlers}
+	_ = registrar
+{{api_handler_lookup_registrations}}}
+
+func RegisterBusinessHandlerInvokers(handlers map[string]BusinessAPIHandlerInvoker) {
+{{api_business_handler_lookup_entries}}}
