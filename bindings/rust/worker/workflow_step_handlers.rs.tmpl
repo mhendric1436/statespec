@@ -1,6 +1,23 @@
 use crate::backend::{BackendError, BackendResult};
 use crate::json::Json;
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct WorkflowStepKey {
+    pub workflow_name: String,
+    pub workflow_version: i64,
+    pub step_name: String,
+}
+
+impl WorkflowStepKey {
+    pub fn encode(&self) -> String {
+        workflow_step_key(&self.workflow_name, self.workflow_version, &self.step_name)
+    }
+}
+
+pub fn workflow_step_key(workflow_name: &str, workflow_version: i64, step_name: &str) -> String {
+    format!("{}:{}:{}", workflow_name, workflow_version, step_name)
+}
+
 #[derive(Debug, Clone)]
 pub struct WorkflowStepHandlerContext {
     pub workflow_name: String,

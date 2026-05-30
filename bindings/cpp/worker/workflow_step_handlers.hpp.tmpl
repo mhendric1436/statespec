@@ -3,6 +3,7 @@
 #include "../common/descriptors/types.hpp"
 #include "../common/workflow.hpp"
 
+#include <cstdint>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -10,6 +11,27 @@
 
 namespace statespec_generated::worker
 {
+
+inline std::string workflow_step_key(
+    const std::string& workflow_name,
+    std::int64_t workflow_version,
+    const std::string& step_name
+)
+{
+    return workflow_name + ":" + std::to_string(workflow_version) + ":" + step_name;
+}
+
+struct WorkflowStepKey
+{
+    std::string workflow_name;
+    std::int64_t workflow_version = 1;
+    std::string step_name;
+
+    std::string encode() const
+    {
+        return workflow_step_key(workflow_name, workflow_version, step_name);
+    }
+};
 
 struct WorkflowStepHandlerContext
 {

@@ -2,10 +2,25 @@ package backend
 
 import (
 	"context"
+	"strconv"
 
 	workflowmodules "statespec-generated/worker/backend/workflows"
 {{workflow_step_handler_imports}}
 )
+
+type WorkflowStepKey struct {
+	WorkflowName    string
+	WorkflowVersion int
+	StepName        string
+}
+
+func (key WorkflowStepKey) Encode() string {
+	return WorkflowStepKeyString(key.WorkflowName, key.WorkflowVersion, key.StepName)
+}
+
+func WorkflowStepKeyString(workflowName string, workflowVersion int, stepName string) string {
+	return workflowName + ":" + strconv.Itoa(workflowVersion) + ":" + stepName
+}
 
 type WorkflowStepHandlerContext = workflowmodules.WorkflowStepHandlerContext
 

@@ -7,6 +7,20 @@ import java.util.Optional;
 public final class WorkflowStepHandlers {
     private WorkflowStepHandlers() {}
 
+    public record WorkflowStepKey(String workflowName, long workflowVersion, String stepName) {
+        public String encode() {
+            return workflowStepKey(workflowName, workflowVersion, stepName);
+        }
+    }
+
+    public static String workflowStepKey(
+        String workflowName,
+        long workflowVersion,
+        String stepName
+    ) {
+        return workflowName + ":" + workflowVersion + ":" + stepName;
+    }
+
     public record Context(
         String workflowName,
         long workflowVersion,
