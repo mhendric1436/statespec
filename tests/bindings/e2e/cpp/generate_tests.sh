@@ -437,6 +437,7 @@ assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_step_handlers.hpp" "Pr
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/handlers.hpp" "class ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service/handlers.hpp" "handle_validate_request"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "workflow_step_invokers()"
+assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "unknown generated workflow step handler: \" + key"
 assert_file_not_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "handler.handle_"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp" "return \"wait_for_remote_service\""

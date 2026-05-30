@@ -84,7 +84,7 @@ class WorkflowRunner
             const auto invoker = invokers.find(key);
             if (invoker == invokers.end())
             {
-                throw std::runtime_error("unknown generated workflow step handler");
+                throw std::runtime_error("unknown generated workflow step handler: " + key);
             }
             invoker->second(handler_, backend_, context);
             std::optional<std::string> next_step;

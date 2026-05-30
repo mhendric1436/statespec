@@ -502,6 +502,8 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Workfl
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Handlers.java" "interface ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Handlers.java" "handleValidateRequest"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "WorkerRegistry.workflowStepInvokers()"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "String stepKey ="
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "unknown generated workflow step handler: \" + stepKey"
 assert_file_not_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "handleValidateRequest"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "Optional.of(\"create_remote_service\")"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "Optional.of(\"wait_for_remote_service\")"

@@ -49,9 +49,10 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		Input:           record.State,
 	}
 	handlerErr := error(nil)
-	invoker, handled := WorkflowStepInvokers()[WorkflowStepKeyString(record.WorkflowName, int(record.WorkflowVersion), record.CurrentStep)]
+	stepKey := WorkflowStepKeyString(record.WorkflowName, int(record.WorkflowVersion), record.CurrentStep)
+	invoker, handled := WorkflowStepInvokers()[stepKey]
 	if !handled {
-		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s:%d:%s", record.WorkflowName, record.WorkflowVersion, record.CurrentStep)
+		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s", stepKey)
 	} else {
 		handlerErr = invoker(ctx, runner.Handler, runner.Backend, stepContext)
 	}

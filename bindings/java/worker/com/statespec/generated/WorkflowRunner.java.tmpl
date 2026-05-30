@@ -76,16 +76,18 @@ public final class WorkflowRunner {
                 );
             Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers =
                 WorkerRegistry.workflowStepInvokers();
-            WorkflowStepHandlers.WorkflowStepInvoker invoker =
-                invokers.get(
-                    WorkflowStepHandlers.workflowStepKey(
-                        record.workflowName(),
-                        record.workflowVersion(),
-                        record.currentStep()
-                    )
+            String stepKey =
+                WorkflowStepHandlers.workflowStepKey(
+                    record.workflowName(),
+                    record.workflowVersion(),
+                    record.currentStep()
                 );
+            WorkflowStepHandlers.WorkflowStepInvoker invoker =
+                invokers.get(stepKey);
             if (invoker == null) {
-                throw new IllegalArgumentException("unknown generated workflow step handler");
+                throw new IllegalArgumentException(
+                    "unknown generated workflow step handler: " + stepKey
+                );
             }
             invoker.invoke(handler, backend, context);
             Optional<String> nextStep = Optional.empty();

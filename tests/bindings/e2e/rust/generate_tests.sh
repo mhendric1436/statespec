@@ -437,6 +437,7 @@ assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_step_handlers.rs" "Pr
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service/handlers.rs" "pub trait ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service/handlers.rs" "handle_validate_request"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "workflow_step_invokers::<H, B>()"
+assert_file_contains "$TMPDIR/out-app-rust/worker/workflow_runner.rs" "unknown generated workflow step handler: {}"
 assert_file_not_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "handle_validate_request"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "Some(\"create_remote_service\".to_string())"
 assert_file_contains "$TMPDIR/out-app-rust/worker/workflows/provision_service.rs" "Some(\"wait_for_remote_service\".to_string())"

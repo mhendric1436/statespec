@@ -463,6 +463,8 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.g
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service/handlers.go" "type ProvisionServiceV1StepHandler interface"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service/handlers.go" "HandleValidateRequest"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "WorkflowStepInvokers()"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "stepKey := WorkflowStepKeyString"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "unknown generated workflow step handler: %s"
 assert_file_not_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "HandleValidateRequest"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "nextStep := \"create_remote_service\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "nextStep := \"wait_for_remote_service\""

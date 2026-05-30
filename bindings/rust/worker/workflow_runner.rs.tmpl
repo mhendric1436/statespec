@@ -59,22 +59,17 @@ impl<'a, B: Backend, S: WorkflowStore<B>, H: WorkflowStepHandler> WorkflowRunner
             execution_id: Some(record.workflow_execution_id.clone()),
             input: record.state.clone(),
         };
-        let mut matched = false;
-        let mut handler_result: BackendResult<()> = Ok(());
         let key = workflow_step_key(
             &record.workflow_name,
             record.workflow_version,
             &record.current_step,
         );
-        if let Some(invoker) = workflow_step_invokers::<H, B>().get(&key) {
-            matched = true;
-            handler_result = invoker(self.handler, self.backend, &context);
-        }
-        if !matched {
-            handler_result = Err(BackendError::Unsupported {
-                message: "unknown generated workflow step handler".to_string(),
-            });
-        }
+        let handler_result = match workflow_step_invokers::<H, B>().get(&key) {
+            Some(invoker) => invoker(self.handler, self.backend, &context),
+            None => Err(BackendError::Unsupported {
+                message: format!("unknown generated workflow step handler: {}", key),
+            }),
+        };
         match handler_result {
             Ok(()) => {
                 let mut next_step = None;
