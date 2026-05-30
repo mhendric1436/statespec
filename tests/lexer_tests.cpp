@@ -114,6 +114,37 @@ void lexer_tokenizes_api_server_keywords()
     );
 }
 
+void lexer_rejects_identifier_leading_underscore()
+{
+    statespec::DiagnosticBag diagnostics;
+    const auto tokens = statespec::test::lex_text("_Invalid valid_name", diagnostics);
+
+    statespec::test::require(
+        diagnostics.has_errors(), "leading underscore should produce a lexer diagnostic"
+    );
+    statespec::test::require(
+        tokens[0].kind == statespec::TokenKind::Unknown,
+        "leading underscore should be emitted as an unknown token"
+    );
+    statespec::test::require(
+        tokens[0].lexeme == "_", "leading underscore must not be part of the identifier"
+    );
+    statespec::test::require(
+        tokens[1].kind == statespec::TokenKind::Identifier,
+        "lexer should recover at the first valid identifier character"
+    );
+    statespec::test::require(
+        tokens[1].lexeme == "Invalid", "identifier after leading underscore should be preserved"
+    );
+    statespec::test::require(
+        tokens[2].kind == statespec::TokenKind::Identifier,
+        "underscore should remain valid after the first character"
+    );
+    statespec::test::require(
+        tokens[2].lexeme == "valid_name", "identifier part underscore should be preserved"
+    );
+}
+
 void lexer_tokenizes_literals()
 {
     const auto tokens =
@@ -241,6 +272,11 @@ TEST_CASE("lexer tokenizes observability keywords")
 TEST_CASE("lexer tokenizes API server keywords")
 {
     lexer_tokenizes_api_server_keywords();
+}
+
+TEST_CASE("lexer rejects identifier leading underscores")
+{
+    lexer_rejects_identifier_leading_underscore();
 }
 
 TEST_CASE("lexer tokenizes literals")

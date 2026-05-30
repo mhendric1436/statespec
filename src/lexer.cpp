@@ -15,7 +15,7 @@ namespace
 bool is_identifier_start(char ch)
 {
     const auto value = static_cast<unsigned char>(ch);
-    return std::isalpha(value) != 0 || ch == '_';
+    return std::isalpha(value) != 0;
 }
 
 bool is_identifier_part(char ch)
