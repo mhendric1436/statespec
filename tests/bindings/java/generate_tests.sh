@@ -174,6 +174,8 @@ assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerReg
 assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistry.java" "registerBusinessHandlerInvokers"
 assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistry.java" "ApiHandlers.BusinessHandler::handleStartOrderProcessing"
 assert_file_not_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistry.java" "businessHandler.handleStartOrderProcessing"
+assert_file_not_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistry.java" "new Handlers.DefaultHandler"
+assert_file_not_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistry.java" "handleCreateOrder"
 assert_file_not_exists "$TMPDIR/out-java/api/com/statespec/generated/entities/order/Handlers.java"
 assert_file_not_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiHandlerRegistry.java" "handler_not_implemented"
 assert_file_contains "$TMPDIR/out-java/api/com/statespec/generated/ApiDispatcher.java" "findApiRoute"

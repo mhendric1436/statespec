@@ -377,6 +377,21 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
         "entities.account.Registry.registerHandlerInvokers"
     );
     require_generated_artifact_not_contains(
+        result, "api/com/statespec/generated/ApiHandlerRegistry.java",
+        "handleCreateAccount(ApiRequestContext"
+    );
+    require_generated_artifact_not_contains(
+        result, "api/com/statespec/generated/ApiHandlerRegistry.java", "new Handlers.DefaultHandler"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Registry.java",
+        "public static void registerHandlerInvokers"
+    );
+    require_generated_artifact_contains(
+        result, "api/com/statespec/generated/entities/account/Registry.java",
+        "handlers.put(\"CreateAccount\", Registry::handleCreateAccount)"
+    );
+    require_generated_artifact_not_contains(
         result, "api/com/statespec/generated/descriptors/Catalog.java",
         "CreateAccountDescriptorModule.apiDescriptors()"
     );
