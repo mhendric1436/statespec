@@ -3959,8 +3959,7 @@ void add_java_worker_artifacts(
                 {"default_workflow_step_handler_setters",
                  java_workflow_step_handler_bundle_setters(system)},
                 {"default_workflow_step_handler_lookup",
-                 java_workflow_step_handler_bundle_lookup(system)},
-                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_java(system)}
+                 java_workflow_step_handler_bundle_lookup(system)}
             }
         );
         add_java_generated_template_file(

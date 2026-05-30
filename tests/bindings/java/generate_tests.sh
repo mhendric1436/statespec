@@ -253,7 +253,7 @@ assert_file_exists "$TMPDIR/out-java/worker/com/statespec/generated/workflows/or
 assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/workflows/order_processing/Handlers.java" "interface OrderProcessingV2StepHandler"
 assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/workflows/order_processing/Handlers.java" "handleValidateOrder"
 assert_file_not_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "handleWorkflowStep"
-assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "workflowStepHandlerKeys"
+assert_file_not_contains "$TMPDIR/out-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "workflowStepHandlerKeys"
 assert_file_contains "$TMPDIR/out-java/worker/com/statespec/generated/workflows/order_processing/Registry.java" "invokeOrderProcessingValidateOrder"
 assert_file_exists "$TMPDIR/out-java/worker/com/statespec/generated/workflows/OrderProcessingWorkerModule.java"
 assert_file_not_contains "$TMPDIR/out-java/worker/com/statespec/generated/workflows/OrderProcessingWorkerModule.java" "handleValidateOrder"

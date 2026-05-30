@@ -21,8 +21,8 @@ package "Generated worker tier" {
   rectangle "WorkerDescriptors\nworker catalog view" as WorkerDescriptors
   rectangle "WorkerContexts\nworker execution contexts" as WorkerContexts
   rectangle "WorkflowRunner\nclaim / keep alive / complete / fail" as WorkflowRunner
-  interface "IWorkflowStepHandler\ntyped step methods" as StepHandler
-  rectangle "WorkflowStepHandlers\nhandler keys + context\ndefault linking handler" as StepHandlers
+  interface "Workflow/version\nstep handlers" as StepHandler
+  rectangle "WorkflowStepHandlers\nbundle + context\nstep invoker types" as StepHandlers
   rectangle "WorkerQueues\nqueue definitions" as WorkerQueues
   rectangle "WorkerLeases\nlease definitions" as WorkerLeases
   rectangle "WorkerWorkflows\nworkflow definitions" as WorkerWorkflows

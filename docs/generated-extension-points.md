@@ -302,10 +302,10 @@ completing terminal steps, and failing the step when the handler returns an erro
 
 | Language | Generated workflow step handler surface |
 |---|---|
-| C++ | `statespec_generated::worker::IWorkflowStepHandler` in `worker/workflow_step_handlers.hpp` |
-| Go | `worker/backend.WorkflowStepHandler` |
-| Java | `WorkflowStepHandlers.Handler` |
-| Rust | `worker::workflow_step_handlers::WorkflowStepHandler` |
+| C++ | Workflow/version-specific classes such as `ProvisionServiceV1StepHandler` in `worker/workflows/<workflow>/handlers.hpp` |
+| Go | Workflow/version-specific interfaces such as `ProvisionServiceV1StepHandler` in `worker/backend/workflows/<workflow>/handlers.go` |
+| Java | Workflow/version-specific interfaces such as `ProvisionServiceV1StepHandler` in `workflows/<workflow>/Handlers.java` |
+| Rust | Workflow/version-specific traits such as `ProvisionServiceV1StepHandler` in `worker/workflows/<workflow>/handlers.rs` |
 
 Each declared workflow step maps to one generated handler method. For example,
 `workflow ProvisionService` step `validate_request` maps to:
@@ -315,12 +315,13 @@ Each declared workflow step maps to one generated handler method. For example,
 - Java `handleProvisionServiceValidateRequest`
 - Rust `handle_provision_service_validate_request`
 
-StateSpec does not generate a parallel generic workflow step handler path. The generated
-context includes the workflow name, workflow version, step name, optional execution ID,
-and input payload. Generated `workflow_step_handler_keys` helpers list the valid handler
-keys in deterministic `WorkflowName.step_name` form. Application code can use those keys
-to register concrete step handlers and fail fast when a declared workflow step has no
-implementation.
+StateSpec does not generate a parallel generic workflow step handler path and does not
+require one class to own every workflow step in the system. The generated context
+includes the workflow name, workflow version, step name, optional execution ID, and input
+payload. Generated per-workflow registries bind workflow-step dispatch keys to invokers,
+and the generated handler bundle resolves the workflow/version-specific user handler at
+runtime. Application code implements only the workflow handler types it needs; missing
+handlers fail deterministically through the generated dispatch map.
 
 The generated runner derives workflow advancement from the `.sspec` workflow body. A
 step with `transition_to next_step` completes the claimed step with `next_step` set to

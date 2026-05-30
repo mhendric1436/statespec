@@ -888,51 +888,6 @@ std::string generate_descriptors_go(
     return out.str();
 }
 
-std::string generate_workflow_step_handler_keys_go(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        for (const auto& step : workflow.steps)
-        {
-            out << "\t\tWorkflowStepKeyString(" << go_string(workflow.name) << ", "
-                << workflow.version.value_or(1) << ", " << go_string(step.name) << "),\n";
-        }
-    }
-    return out.str();
-}
-
-std::string generate_workflow_step_handler_methods_go(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        for (const auto& step : workflow.steps)
-        {
-            out << "\tHandle" << pascal_identifier(workflow.name + "_" + step.name)
-                << "(context.Context, WorkflowStepHandlerContext) error\n";
-        }
-    }
-    return out.str();
-}
-
-std::string generate_default_workflow_step_handler_methods_go(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        for (const auto& step : workflow.steps)
-        {
-            out << "func (DefaultWorkflowStepHandler) Handle" << pascal_identifier(step.name)
-                << "(context.Context, WorkflowStepHandlerContext) error {\n";
-            out << "\treturn fmt.Errorf(\"generated workflow step handler " << workflow.name << "."
-                << step.name << " is not implemented\")\n";
-            out << "}\n\n";
-        }
-    }
-    return out.str();
-}
-
 std::string generate_workflow_step_handler_imports_go(const IrSystem& system)
 {
     if (system.workflows.empty())
@@ -945,46 +900,6 @@ std::string generate_workflow_step_handler_imports_go(const IrSystem& system)
         out << "\tworkflow" << snake_identifier(workflow.name)
             << " \"statespec-generated/worker/backend/workflows/" << snake_identifier(workflow.name)
             << "\"\n";
-    }
-    return out.str();
-}
-
-std::string generate_workflow_step_dispatch_cases_go(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        for (const auto& step : workflow.steps)
-        {
-            out << "\tcase record.WorkflowName == " << go_string(workflow.name)
-                << " && record.CurrentStep == " << go_string(step.name) << ":\n";
-            out << "\t\thandlerErr = runner.Handler.Handle"
-                << pascal_identifier(workflow.name + "_" + step.name) << "(ctx, stepContext)\n";
-        }
-    }
-    return out.str();
-}
-
-std::string generate_workflow_step_next_cases_go(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        for (const auto& step : workflow.steps)
-        {
-            for (const auto& statement : step.statements)
-            {
-                if (statement.kind != "transition_to" || !statement.target.has_value())
-                {
-                    continue;
-                }
-                out << "\tif record.WorkflowName == " << go_string(workflow.name)
-                    << " && record.CurrentStep == " << go_string(step.name) << " {\n";
-                out << "\t\tnextStepValue := " << go_string(*statement.target) << "\n";
-                out << "\t\tnextStep = &nextStepValue\n";
-                out << "\t}\n";
-            }
-        }
     }
     return out.str();
 }

@@ -227,7 +227,7 @@ assert_file_contains "$TMPDIR/out-cpp/worker/workflow_step_handlers.hpp" "OrderP
 assert_file_contains "$TMPDIR/out-cpp/worker/workflows/order_processing/handlers.hpp" "class OrderProcessingV2StepHandler"
 assert_file_contains "$TMPDIR/out-cpp/worker/workflows/order_processing/handlers.hpp" "handle_validate_order"
 assert_file_not_contains "$TMPDIR/out-cpp/worker/workflow_step_handlers.hpp" "virtual void handle(const WorkflowStepHandlerContext"
-assert_file_contains "$TMPDIR/out-cpp/worker/workflow_step_handlers.hpp" "workflow_step_handler_keys"
+assert_file_not_contains "$TMPDIR/out-cpp/worker/workflow_step_handlers.hpp" "workflow_step_handler_keys"
 assert_file_contains "$TMPDIR/out-cpp/worker/workflows/order_processing/registry.hpp" "invoke_order_processing_validate_order"
 assert_file_exists "$TMPDIR/out-cpp/worker/workflows/order_processing.hpp"
 assert_file_not_contains "$TMPDIR/out-cpp/worker/workflows/order_processing.hpp" "handler.handle_"

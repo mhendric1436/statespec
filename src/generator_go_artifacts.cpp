@@ -3796,9 +3796,7 @@ void add_go_worker_artifacts(
                  go_workflow_step_handler_bundle_initializers(system)},
                 {"default_workflow_step_handler_lookup",
                  go_workflow_step_handler_bundle_lookup(system)},
-                {"workflow_step_handler_imports",
-                 generate_workflow_step_handler_imports_go(system)},
-                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_go(system)}
+                {"workflow_step_handler_imports", generate_workflow_step_handler_imports_go(system)}
             }
         );
         add_go_generated_template_file(

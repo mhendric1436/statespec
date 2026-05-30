@@ -2,7 +2,6 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 import com.statespec.backend.Json;
-import java.util.List;
 import java.util.Optional;
 {{workflow_step_handler_imports}}
 
@@ -47,10 +46,5 @@ public final class WorkflowStepHandlers {
         public Object workflowHandler(String workflowName, long workflowVersion) {
 {{default_workflow_step_handler_lookup}}            return null;
         }
-    }
-
-    public static List<String> workflowStepHandlerKeys() {
-        return List.of(
-{{workflow_step_handler_keys}}        );
     }
 }

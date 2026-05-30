@@ -41,7 +41,7 @@ package "Generated worker artifacts" {
   rectangle "WorkerApplication" as WorkerApplication
   rectangle "WorkerRegistry / Contexts / Descriptors" as WorkerCatalog
   rectangle "WorkflowRunner" as WorkflowRunner
-  interface "IWorkflowStepHandler" as StepHandler
+  interface "Workflow/version\nstep handlers" as StepHandler
   rectangle "WorkerQueues / WorkerLeases / WorkerWorkflows" as WorkerDefinitions
 }
 

@@ -241,7 +241,7 @@ assert_file_contains "$TMPDIR/out-rust/worker/workflow_step_handlers.rs" "OrderP
 assert_file_contains "$TMPDIR/out-rust/worker/workflows/order_processing/handlers.rs" "pub trait OrderProcessingV2StepHandler"
 assert_file_contains "$TMPDIR/out-rust/worker/workflows/order_processing/handlers.rs" "handle_validate_order"
 assert_file_not_contains "$TMPDIR/out-rust/worker/workflow_step_handlers.rs" "handle_workflow_step"
-assert_file_contains "$TMPDIR/out-rust/worker/workflow_step_handlers.rs" "pub fn workflow_step_handler_keys"
+assert_file_not_contains "$TMPDIR/out-rust/worker/workflow_step_handlers.rs" "pub fn workflow_step_handler_keys"
 assert_file_contains "$TMPDIR/out-rust/worker/workflows/order_processing/registry.rs" "invoke_order_processing_validate_order"
 assert_file_exists "$TMPDIR/out-rust/worker/workflows/order_processing.rs"
 assert_file_not_contains "$TMPDIR/out-rust/worker/workflows/order_processing.rs" "handle_validate_order"

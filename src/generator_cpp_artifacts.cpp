@@ -3488,8 +3488,7 @@ void add_cpp_worker_artifacts(
                  cpp_workflow_step_handler_members(system)},
                 {"default_workflow_step_handler_setters",
                  cpp_workflow_step_handler_setters(system)},
-                {"default_workflow_step_handler_lookup", cpp_workflow_step_handler_lookup(system)},
-                {"workflow_step_handler_keys", generate_workflow_step_handler_keys(system)}
+                {"default_workflow_step_handler_lookup", cpp_workflow_step_handler_lookup(system)}
             }
         );
         add_cpp_generated_template_file(

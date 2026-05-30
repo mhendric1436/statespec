@@ -13,16 +13,6 @@ std::string generate_descriptors_java(
     const TemplatePackage& templates
 );
 
-std::string generate_workflow_step_handler_keys_java(const IrSystem& system);
-
-std::string generate_workflow_step_handler_methods_java(const IrSystem& system);
-
-std::string generate_default_workflow_step_handler_methods_java(const IrSystem& system);
-
-std::string generate_workflow_step_dispatch_cases_java(const IrSystem& system);
-
-std::string generate_workflow_step_next_cases_java(const IrSystem& system);
-
 std::string generate_api_operation_handler_methods_java(const IrSystem& system);
 
 std::string generate_business_api_operation_handler_methods_java(const IrSystem& system);

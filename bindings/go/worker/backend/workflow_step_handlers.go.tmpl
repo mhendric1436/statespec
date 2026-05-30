@@ -42,8 +42,3 @@ func NewDefaultWorkflowStepHandlerBundle() DefaultWorkflowStepHandlerBundle {
 func (bundle DefaultWorkflowStepHandlerBundle) WorkflowStepHandler(workflowName string, workflowVersion int64) any {
 {{default_workflow_step_handler_lookup}}	return nil
 }
-
-func WorkflowStepHandlerKeys() []string {
-	return []string{
-{{workflow_step_handler_keys}}	}
-}

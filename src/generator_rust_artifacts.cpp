@@ -3236,8 +3236,7 @@ void add_rust_worker_artifacts(
                 {"default_workflow_step_handler_setters",
                  rust_workflow_step_bundle_setters(system)},
                 {"default_workflow_step_handler_bundle_impl",
-                 rust_workflow_step_bundle_impl(system)},
-                {"workflow_step_handler_keys", generate_workflow_step_handler_keys_rs(system)}
+                 rust_workflow_step_bundle_impl(system)}
             }
         );
         add_rust_generated_template_file(

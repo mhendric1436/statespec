@@ -8,7 +8,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace statespec_generated::worker
 {
@@ -92,13 +91,5 @@ class DefaultWorkflowStepHandlerBundle final : public WorkflowStepHandlerBundle
 {{default_workflow_step_handler_members}}
     // clang-format on
 };
-
-inline std::vector<std::string> workflow_step_handler_keys()
-{
-    // clang-format off
-    return {
-{{workflow_step_handler_keys}}    };
-    // clang-format on
-}
 
 } // namespace statespec_generated::worker
