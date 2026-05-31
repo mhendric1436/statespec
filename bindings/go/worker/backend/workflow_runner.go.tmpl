@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	common "statespec-generated/common/backend"
@@ -31,22 +32,16 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		return nil, err
 	}
 	record := claimed[0]
-	if _, err := runner.WorkflowStore.KeepAliveStep(ctx, runner.Backend, common.KeepAliveWorkflowStepRequest{
-		WorkflowExecutionID: record.WorkflowExecutionID,
-		Worker:              runner.WorkerName,
-		CurrentStep:         record.CurrentStep,
-		ClaimToken:          stringValue(record.ClaimToken),
-		Now:                 time.Now(),
-		LeaseDuration:       runner.LeaseDuration,
-	}); err != nil {
-		return nil, err
-	}
+	keepAlive := newPeriodicWorkflowKeepAlive(ctx, runner.Backend, runner.WorkflowStore, runner.WorkerName, record, runner.LeaseDuration, workflowKeepAliveInterval(runner.LeaseDuration))
+	keepAlive.Start()
 	tx, err := runner.Backend.Begin(ctx)
 	if err != nil {
+		keepAlive.Stop()
 		return nil, err
 	}
 	committed := false
 	defer func() {
+		keepAlive.Stop()
 		if !committed && tx.IsOpen() {
 			_ = tx.Abort(ctx)
 		}
@@ -74,6 +69,10 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		if handlerErr != nil {
 			result = Fail(handlerErr.Error())
 		}
+	}
+	keepAlive.Stop()
+	if err := keepAlive.Err(); err != nil {
+		return nil, fmt.Errorf("workflow keep alive failed: %w", err)
 	}
 	switch result.Kind {
 	case WorkflowStepFail:
@@ -125,6 +124,105 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		committed = true
 		return &completed, nil
 	}
+}
+
+type periodicWorkflowKeepAlive struct {
+	ctx           context.Context
+	backend       common.Backend
+	workflowStore common.WorkflowStore
+	workerName    string
+	record        common.WorkflowExecutionRecord
+	leaseDuration time.Duration
+	interval      time.Duration
+	stop          chan struct{}
+	done          chan struct{}
+	stopOnce      sync.Once
+	mu            sync.Mutex
+	err           error
+}
+
+func newPeriodicWorkflowKeepAlive(ctx context.Context, backend common.Backend, workflowStore common.WorkflowStore, workerName string, record common.WorkflowExecutionRecord, leaseDuration time.Duration, interval time.Duration) *periodicWorkflowKeepAlive {
+	return &periodicWorkflowKeepAlive{
+		ctx:           ctx,
+		backend:       backend,
+		workflowStore: workflowStore,
+		workerName:    workerName,
+		record:        record,
+		leaseDuration: leaseDuration,
+		interval:      interval,
+		stop:          make(chan struct{}),
+		done:          make(chan struct{}),
+	}
+}
+
+func (keepAlive *periodicWorkflowKeepAlive) Start() {
+	keepAlive.keepAliveOnce()
+	go keepAlive.run()
+}
+
+func (keepAlive *periodicWorkflowKeepAlive) Stop() {
+	keepAlive.stopOnce.Do(func() {
+		close(keepAlive.stop)
+		<-keepAlive.done
+	})
+}
+
+func (keepAlive *periodicWorkflowKeepAlive) Err() error {
+	keepAlive.mu.Lock()
+	defer keepAlive.mu.Unlock()
+	return keepAlive.err
+}
+
+func (keepAlive *periodicWorkflowKeepAlive) run() {
+	defer close(keepAlive.done)
+	ticker := time.NewTicker(keepAlive.interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-keepAlive.ctx.Done():
+			keepAlive.recordError(keepAlive.ctx.Err())
+			return
+		case <-keepAlive.stop:
+			return
+		case <-ticker.C:
+			keepAlive.keepAliveOnce()
+		}
+	}
+}
+
+func (keepAlive *periodicWorkflowKeepAlive) keepAliveOnce() {
+	if _, err := keepAlive.workflowStore.KeepAliveStep(keepAlive.ctx, keepAlive.backend, common.KeepAliveWorkflowStepRequest{
+		WorkflowExecutionID: keepAlive.record.WorkflowExecutionID,
+		Worker:              keepAlive.workerName,
+		CurrentStep:         keepAlive.record.CurrentStep,
+		ClaimToken:          stringValue(keepAlive.record.ClaimToken),
+		Now:                 time.Now(),
+		LeaseDuration:       keepAlive.leaseDuration,
+	}); err != nil {
+		keepAlive.recordError(err)
+	}
+}
+
+func (keepAlive *periodicWorkflowKeepAlive) recordError(err error) {
+	if err == nil {
+		return
+	}
+	keepAlive.mu.Lock()
+	defer keepAlive.mu.Unlock()
+	if keepAlive.err == nil {
+		keepAlive.err = err
+	}
+}
+
+func workflowKeepAliveInterval(leaseDuration time.Duration) time.Duration {
+	interval := leaseDuration / 3
+	if interval < 250*time.Millisecond {
+		interval = 250 * time.Millisecond
+	}
+	if leaseDuration > 250*time.Millisecond && interval >= leaseDuration {
+		interval = leaseDuration / 2
+	}
+	return interval
 }
 
 func (runner WorkflowRunner) revalidateClaimedStep(ctx context.Context, tx common.Transaction, claimed common.WorkflowExecutionRecord) (common.WorkflowExecutionRecord, error) {

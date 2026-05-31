@@ -414,9 +414,9 @@ User-owned code supplies concrete workflow step handlers, concrete queue workers
 Generated workflow claims must carry a generated claim token. Keep-alive calls must
 include that token and update a separate workflow heartbeat record rather than mutating
 the workflow execution document. Finalization paths must validate the claim token before
-completing, failing, or canceling a claimed step. C++ generated workflow runners start a
-periodic keep-alive controller while the handler transaction is open; other language
-bindings still use the single pre-handler keep-alive baseline until their periodic
+completing, failing, or canceling a claimed step. C++ and Go generated workflow runners
+start a periodic keep-alive controller while the handler transaction is open; Java and
+Rust still use the single pre-handler keep-alive baseline until their periodic
 controllers are implemented. Any periodic keep-alive work must preserve the
 transaction-scoped handler model and avoid introducing OCC conflicts with the workflow
 execution document that the handler transaction revalidates and finalizes.

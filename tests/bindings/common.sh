@@ -91,7 +91,10 @@ assert_go_workflow_result_regression() {
     assert_file_contains "$root/worker/backend/workflow_runner.go" "unknown generated workflow step handler: %s"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "case WorkflowStepFail:"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "case WorkflowStepCancel:"
-    assert_file_occurrence_count "$root/worker/backend/workflow_runner.go" "runner.WorkflowStore.KeepAliveStep" 1
+    assert_file_occurrence_count "$root/worker/backend/workflow_runner.go" ".KeepAliveStep" 1
+    assert_file_contains "$root/worker/backend/workflow_runner.go" "type periodicWorkflowKeepAlive struct"
+    assert_file_contains "$root/worker/backend/workflow_runner.go" "keepAlive.Start()"
+    assert_file_contains "$root/worker/backend/workflow_runner.go" "keepAlive.Stop()"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "tx, err := runner.Backend.Begin(ctx)"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "runner.revalidateClaimedStep(ctx, tx, record)"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "result, err = invoker(ctx, runner.Backend, tx, stepContext)"
