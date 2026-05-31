@@ -1,3 +1,5 @@
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 use std::time::{Duration, SystemTime};
 
 use crate::backend::{Backend, BackendError, BackendResult, ConflictKind, Transaction};
@@ -18,7 +20,11 @@ pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>> {
     pub max_attempts: u32,
 }
 
-impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
+impl<'a, B, S> WorkflowRunner<'a, B, S>
+where
+    B: Backend + Sync,
+    S: WorkflowStore<B> + Sync,
+{
     pub fn run_once(
         &self,
         workflow_execution_id: &str,
@@ -40,7 +46,67 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
         let Some(record) = claimed.into_iter().next() else {
             return Ok(None);
         };
-        self.workflow_store.keep_alive_step(
+        thread::scope(|scope| {
+            let (stop_tx, stop_rx) = mpsc::channel::<()>();
+            let keep_alive_error = Arc::new(Mutex::new(None));
+            self.keep_alive_once(&record, &keep_alive_error);
+
+            let keep_alive_record = record.clone();
+            let thread_error = Arc::clone(&keep_alive_error);
+            let interval = workflow_keep_alive_interval(self.lease_duration);
+            let handle = scope.spawn(move || loop {
+                match stop_rx.recv_timeout(interval) {
+                    Ok(_) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
+                    Err(mpsc::RecvTimeoutError::Timeout) => {
+                        self.keep_alive_once(&keep_alive_record, &thread_error);
+                    }
+                }
+            });
+
+            let mut tx = match self.backend.begin() {
+                Ok(tx) => tx,
+                Err(err) => {
+                    let _ = stop_tx.send(());
+                    if handle.join().is_err() {
+                        return Err(BackendError::Internal {
+                            message: "workflow keep alive thread panicked".to_string(),
+                        });
+                    }
+                    return Err(err);
+                }
+            };
+            let result = self.run_claimed_step_tx(&mut tx, record);
+
+            let _ = stop_tx.send(());
+            let keep_alive_result = if handle.join().is_err() {
+                Err(BackendError::Internal {
+                    message: "workflow keep alive thread panicked".to_string(),
+                })
+            } else {
+                take_keep_alive_error(&keep_alive_error)
+            };
+
+            match (result, keep_alive_result) {
+                (Ok(record), Ok(())) => {
+                    self.backend.commit(tx)?;
+                    Ok(Some(record))
+                }
+                (Ok(_), Err(err)) | (Err(err), _) => {
+                    if tx.is_open() {
+                        let _ = tx.abort();
+                    }
+                    Err(err)
+                }
+            }
+        })
+    }
+
+    fn keep_alive_once(
+        &self,
+        record: &WorkflowExecutionRecord,
+        error: &Arc<Mutex<Option<String>>>,
+    ) {
+        if let Err(err) = self.workflow_store.keep_alive_step(
             self.backend,
             &KeepAliveWorkflowStepRequest {
                 workflow_execution_id: record.workflow_execution_id.clone(),
@@ -50,20 +116,8 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
                 now: SystemTime::now(),
                 lease_duration: self.lease_duration,
             },
-        )?;
-        let mut tx = self.backend.begin()?;
-        let result = self.run_claimed_step_tx(&mut tx, record);
-        match result {
-            Ok(record) => {
-                self.backend.commit(tx)?;
-                Ok(Some(record))
-            }
-            Err(err) => {
-                if tx.is_open() {
-                    let _ = tx.abort();
-                }
-                Err(err)
-            }
+        ) {
+            record_keep_alive_error(error, format!("{:?}", err));
         }
     }
 
@@ -133,7 +187,9 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
         tx: &mut B::Tx,
         claimed: &WorkflowExecutionRecord,
     ) -> BackendResult<WorkflowExecutionRecord> {
-        let Some(current) = self.workflow_store.inspect_tx(tx, &claimed.workflow_execution_id)?
+        let Some(current) = self
+            .workflow_store
+            .inspect_tx(tx, &claimed.workflow_execution_id)?
         else {
             return Err(BackendError::NotFound {
                 message: "claimed workflow execution disappeared".to_string(),
@@ -174,4 +230,37 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
         }
         Ok(current)
     }
+}
+
+fn record_keep_alive_error(error: &Arc<Mutex<Option<String>>>, message: String) {
+    if let Ok(mut guard) = error.lock() {
+        if guard.is_none() {
+            *guard = Some(message);
+        }
+    }
+}
+
+fn take_keep_alive_error(error: &Arc<Mutex<Option<String>>>) -> BackendResult<()> {
+    let mut guard = error.lock().map_err(|_| BackendError::Internal {
+        message: "workflow keep alive error lock poisoned".to_string(),
+    })?;
+    let message = guard.take();
+    if let Some(message) = message {
+        return Err(BackendError::Conflict {
+            kind: ConflictKind::WorkflowClaimConflict,
+            message: format!("workflow keep alive failed: {}", message),
+        });
+    }
+    Ok(())
+}
+
+fn workflow_keep_alive_interval(lease_duration: Duration) -> Duration {
+    let mut interval = lease_duration / 3;
+    if interval < Duration::from_millis(250) {
+        interval = Duration::from_millis(250);
+    }
+    if lease_duration > Duration::from_millis(250) && interval >= lease_duration {
+        interval = lease_duration / 2;
+    }
+    interval
 }

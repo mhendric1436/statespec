@@ -38,12 +38,11 @@ still pass a concrete workflow execution id to run a known execution.
 
 ## Claim Tokens And Keep-Alive
 
-The generated C++, Go, and Java `WorkflowRunner.run_once` implementations start a periodic
+The generated C++, Go, Java, and Rust `WorkflowRunner.run_once` implementations start a periodic
 keep-alive controller after a workflow step is claimed and before the typed step handler
 is invoked. The controller refreshes the claim heartbeat on a background thread or
 goroutine while the handler transaction is open, then stops before the runner applies
-the handler result with `complete`, `fail`, or `cancel`. Rust still uses the single
-pre-handler keep-alive baseline until its periodic controller is implemented.
+the handler result with `complete`, `fail`, or `cancel`.
 
 Claiming a workflow step assigns a claim token to the workflow execution and writes a
 matching workflow heartbeat record. Keep-alive requests must include that token. The
@@ -51,11 +50,6 @@ workflow store validates the token and refreshes the heartbeat record instead of
 updating the workflow execution document. Completing, failing, or canceling the step
 validates the same token and clears the heartbeat. This keeps background heartbeats from
 racing the open handler transaction on the workflow execution document version.
-
-The single pre-handler baseline in Rust is sufficient for short local fixture handlers
-and for documenting the claim/handler/finalization order. In Rust, long-running
-handlers can still outlive the renewed claim lease if their execution time exceeds the
-keep-alive extension.
 
 Periodic keep-alive implementations must reuse this heartbeat path. A background
 keep-alive must not update the same workflow execution document version that the open
@@ -67,9 +61,8 @@ handler transaction reads and later commits.
 boundaries:
 
 1. Claim the step with a backend-managed workflow-store call and commit that claim.
-2. Keep the claim alive with backend-managed heartbeat updates. C++, Go, and Java do
-   this periodically while the handler runs; Rust currently does one pre-handler
-   heartbeat update.
+2. Keep the claim alive with backend-managed heartbeat updates. C++, Go, Java, and Rust
+   do this periodically while the handler runs.
 3. Begin a second transaction, re-read and revalidate the claimed workflow execution,
    invoke the typed step handler with that transaction, apply the handler result with
    `complete`, `fail`, or `cancel` through the workflow store `Tx` API, and commit.

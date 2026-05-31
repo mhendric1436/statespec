@@ -151,7 +151,10 @@ assert_rust_workflow_result_regression() {
     assert_file_contains "$root/worker/workflow_runner.rs" "WorkflowStepResult::Fail { reason }"
     assert_file_contains "$root/worker/workflow_runner.rs" "WorkflowStepResult::Cancel { reason }"
     assert_file_occurrence_count "$root/worker/workflow_runner.rs" "self.workflow_store.keep_alive_step" 1
-    assert_file_contains "$root/worker/workflow_runner.rs" "let mut tx = self.backend.begin()?"
+    assert_file_contains "$root/worker/workflow_runner.rs" "thread::scope"
+    assert_file_contains "$root/worker/workflow_runner.rs" "workflow_keep_alive_interval"
+    assert_file_contains "$root/worker/workflow_runner.rs" "take_keep_alive_error"
+    assert_file_contains "$root/worker/workflow_runner.rs" "let mut tx = match self.backend.begin()"
     assert_file_contains "$root/worker/workflow_runner.rs" "self.revalidate_claimed_step(tx, &claimed)"
     assert_file_contains "$root/worker/workflow_runner.rs" "Some(invoker) => invoker(self.backend, tx, &context)"
     assert_file_contains "$root/worker/workflow_runner.rs" ".complete_step_tx("

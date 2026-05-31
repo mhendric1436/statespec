@@ -1,8 +1,8 @@
 use crate::backend::{Backend, BackendResult};
-use crate::workflow::WorkflowExecutionRecord;
-use crate::workflow_step_handlers::WorkflowStepInvokerMap;
 use crate::worker_contexts::WorkerContext;
 use crate::worker_runtime::WorkerRuntime;
+use crate::workflow::WorkflowExecutionRecord;
+use crate::workflow_step_handlers::WorkflowStepInvokerMap;
 
 pub struct WorkerApplication<'a, B: Backend> {
     pub context: WorkerContext,
@@ -10,7 +10,10 @@ pub struct WorkerApplication<'a, B: Backend> {
     pub workflow_step_invokers: &'a WorkflowStepInvokerMap<B>,
 }
 
-impl<'a, B: Backend> WorkerApplication<'a, B> {
+impl<'a, B> WorkerApplication<'a, B>
+where
+    B: Backend + Sync,
+{
     pub fn new(
         context: WorkerContext,
         runtime: &'a WorkerRuntime<B>,
@@ -27,7 +30,10 @@ impl<'a, B: Backend> WorkerApplication<'a, B> {
         &self,
         workflow_execution_id: &str,
     ) -> BackendResult<Option<WorkflowExecutionRecord>> {
-        self.runtime
-            .run_once(&self.context, self.workflow_step_invokers, workflow_execution_id)
+        self.runtime.run_once(
+            &self.context,
+            self.workflow_step_invokers,
+            workflow_execution_id,
+        )
     }
 }
