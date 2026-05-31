@@ -12,11 +12,35 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 #include <utility>
 
 namespace statespec_generated::worker
 {
+
+using WorkflowNextStepResolver =
+    std::optional<std::string> (*)(const statespec::backend::WorkflowExecutionRecord& record);
+
+inline std::string workflow_next_step_key(
+    const std::string& workflow_name,
+    std::int64_t workflow_version
+)
+{
+    return workflow_name + ":" + std::to_string(workflow_version);
+}
+
+inline const std::unordered_map<
+    std::string,
+    WorkflowNextStepResolver>&
+workflow_next_step_resolvers()
+{
+    static const std::unordered_map<std::string, WorkflowNextStepResolver> resolvers = {
+        // clang-format off
+{{workflow_next_step_resolver_entries}} // clang-format on
+    };
+    return resolvers;
+}
 
 class WorkflowRunner
 {
@@ -87,9 +111,13 @@ class WorkflowRunner
             }
             invoker->second(backend_, context);
             std::optional<std::string> next_step;
-            // clang-format off
-{{workflow_step_module_next_cases}}
-            // clang-format on
+            const auto resolver_key =
+                workflow_next_step_key(record.workflow_name, record.workflow_version);
+            const auto resolver = workflow_next_step_resolvers().find(resolver_key);
+            if (resolver != workflow_next_step_resolvers().end())
+            {
+                next_step = resolver->second(record);
+            }
             return workflow_store_.complete_step(
                 backend_, statespec::backend::CompleteWorkflowStepRequest{
                               record.workflow_execution_id,

@@ -490,20 +490,18 @@ std::string cpp_worker_registry_facade(const IrSystem& system)
 TemplateRenderer::Values cpp_workflow_runner_values(const IrSystem& system)
 {
     std::ostringstream includes;
-    std::ostringstream next_cases;
+    std::ostringstream resolver_entries;
     for (const auto& workflow : system.workflows)
     {
         const auto snake = snake_identifier(workflow.name);
         includes << "#include \"workflows/" << snake << ".hpp\"\n";
-        next_cases << "            if (!next_step.has_value())\n";
-        next_cases << "            {\n";
-        next_cases << "                next_step = "
-                   << cpp_workflow_module_function_name(workflow, "_next_step") << "(record);\n";
-        next_cases << "            }\n";
+        resolver_entries << "        {workflow_next_step_key(" << cpp_string(workflow.name) << ", "
+                         << workflow.version.value_or(1) << "), "
+                         << cpp_workflow_module_function_name(workflow, "_next_step") << "},\n";
     }
     return TemplateRenderer::Values{
         {"workflow_step_module_includes", includes.str()},
-        {"workflow_step_module_next_cases", next_cases.str()},
+        {"workflow_next_step_resolver_entries", resolver_entries.str()},
     };
 }
 
