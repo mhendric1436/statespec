@@ -1178,6 +1178,7 @@ std::string replace_all_copy(
 }
 
 std::string cpp_entity_centered_facade_header(
+    const TemplatePackage& templates,
     const IrEntity& entity,
     std::string_view area
 )
@@ -1472,10 +1473,35 @@ std::string cpp_entity_centered_facade_header(
             << " facade. Implementation moves here in the next staged split.\n\n";
     }
     out << "} // namespace statespec_generated::entities::" << entity_namespace << "\n";
-    return out.str();
+    const auto content = out.str();
+    if (area == "model")
+    {
+        return templates.render(
+            "common/entities/model.hpp.tmpl",
+            TemplateRenderer::Values{{"model_content", content}}
+        );
+    }
+    if (area == "schema")
+    {
+        return templates.render(
+            "common/entities/schema.hpp.tmpl",
+            TemplateRenderer::Values{{"schema_content", content}}
+        );
+    }
+    if (area == "persistence")
+    {
+        return templates.render(
+            "common/entities/persistence.hpp.tmpl",
+            TemplateRenderer::Values{{"persistence_content", content}}
+        );
+    }
+    return content;
 }
 
-std::string cpp_entity_constants_header(const IrEntity& entity)
+std::string cpp_entity_constants_header(
+    const TemplatePackage& templates,
+    const IrEntity& entity
+)
 {
     std::ostringstream out;
     out << "#pragma once\n\n";
@@ -1540,7 +1566,10 @@ std::string cpp_entity_constants_header(const IrEntity& entity)
     out << "\n} // namespace constants\n\n";
     out << "} // namespace statespec_generated::entities::" << snake_identifier(entity.name)
         << "\n";
-    return out.str();
+    return templates.render(
+        "common/entities/constants.hpp.tmpl",
+        TemplateRenderer::Values{{"constants_content", out.str()}}
+    );
 }
 
 std::string cpp_api_name_constant_name(const std::string& api_name)
@@ -2433,19 +2462,19 @@ void add_cpp_descriptor_module_artifacts(
     {
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
         add_cpp_raw_common_file(
-            result, options, entity_dir + "constants.hpp", cpp_entity_constants_header(entity)
+            result, options, entity_dir + "constants.hpp", cpp_entity_constants_header(templates, entity)
         );
         add_cpp_raw_common_file(
             result, options, entity_dir + "model.hpp",
-            cpp_entity_centered_facade_header(entity, "model")
+            cpp_entity_centered_facade_header(templates, entity, "model")
         );
         add_cpp_raw_common_file(
             result, options, entity_dir + "persistence.hpp",
-            cpp_entity_centered_facade_header(entity, "persistence")
+            cpp_entity_centered_facade_header(templates, entity, "persistence")
         );
         add_cpp_raw_common_file(
             result, options, entity_dir + "schema.hpp",
-            cpp_entity_centered_facade_header(entity, "schema")
+            cpp_entity_centered_facade_header(templates, entity, "schema")
         );
         if (cpp_entity_uses_gc(entity))
         {

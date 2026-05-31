@@ -1460,6 +1460,7 @@ std::string replace_all_copy(
 }
 
 std::string go_entity_centered_facade_file(
+    const TemplatePackage& templates,
     const IrEntity& entity,
     std::string_view area
 )
@@ -1805,10 +1806,33 @@ std::string go_entity_centered_facade_file(
         out << "// Entity-centered " << area
             << " facade. Implementation moves here in the next staged split.\n";
     }
-    return out.str();
+    const auto content = out.str();
+    if (area == "model")
+    {
+        return templates.render(
+            "common/entities/model.go.tmpl", TemplateRenderer::Values{{"model_content", content}}
+        );
+    }
+    if (area == "schema")
+    {
+        return templates.render(
+            "common/entities/schema.go.tmpl", TemplateRenderer::Values{{"schema_content", content}}
+        );
+    }
+    if (area == "persistence")
+    {
+        return templates.render(
+            "common/entities/persistence.go.tmpl",
+            TemplateRenderer::Values{{"persistence_content", content}}
+        );
+    }
+    return content;
 }
 
-std::string go_entity_constants_file(const IrEntity& entity)
+std::string go_entity_constants_file(
+    const TemplatePackage& templates,
+    const IrEntity& entity
+)
 {
     std::ostringstream out;
     out << "package " << snake_identifier(entity.name) << "\n\n";
@@ -1861,7 +1885,10 @@ std::string go_entity_constants_file(const IrEntity& entity)
         }
     }
     out << ")\n";
-    return out.str();
+    return templates.render(
+        "common/entities/constants.go.tmpl",
+        TemplateRenderer::Values{{"constants_content", out.str()}}
+    );
 }
 
 std::string go_event_helpers_file(const IrSystem& system)
@@ -2656,7 +2683,7 @@ void add_go_shape_descriptor_artifact(
 void add_go_entity_descriptor_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
-    const TemplatePackage&,
+    const TemplatePackage& templates,
     const IrSystem& system,
     DiagnosticBag&
 )
@@ -2673,19 +2700,19 @@ void add_go_entity_descriptor_artifacts(
     {
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
         add_go_raw_common_file(
-            result, options, entity_dir + "constants.go", go_entity_constants_file(entity)
+            result, options, entity_dir + "constants.go", go_entity_constants_file(templates, entity)
         );
         add_go_raw_common_file(
             result, options, entity_dir + "model.go",
-            go_entity_centered_facade_file(entity, "model")
+            go_entity_centered_facade_file(templates, entity, "model")
         );
         add_go_raw_common_file(
             result, options, entity_dir + "persistence.go",
-            go_entity_centered_facade_file(entity, "persistence")
+            go_entity_centered_facade_file(templates, entity, "persistence")
         );
         add_go_raw_common_file(
             result, options, entity_dir + "schema.go",
-            go_entity_centered_facade_file(entity, "schema")
+            go_entity_centered_facade_file(templates, entity, "schema")
         );
         if (entity_uses_gc(entity))
         {

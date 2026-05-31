@@ -1060,6 +1060,7 @@ std::string replace_all_copy(
 }
 
 std::string rust_entity_centered_facade_file(
+    const TemplatePackage& templates,
     const IrEntity& entity,
     std::string_view area
 )
@@ -1337,10 +1338,33 @@ std::string rust_entity_centered_facade_file(
         out << "// Entity-centered " << area
             << " facade. Implementation moves here in the next staged split.\n";
     }
-    return out.str();
+    const auto content = out.str();
+    if (area == "model")
+    {
+        return templates.render(
+            "common/entities/model.rs.tmpl", TemplateRenderer::Values{{"model_content", content}}
+        );
+    }
+    if (area == "schema")
+    {
+        return templates.render(
+            "common/entities/schema.rs.tmpl", TemplateRenderer::Values{{"schema_content", content}}
+        );
+    }
+    if (area == "persistence")
+    {
+        return templates.render(
+            "common/entities/persistence.rs.tmpl",
+            TemplateRenderer::Values{{"persistence_content", content}}
+        );
+    }
+    return content;
 }
 
-std::string rust_entity_constants_file(const IrEntity& entity)
+std::string rust_entity_constants_file(
+    const TemplatePackage& templates,
+    const IrEntity& entity
+)
 {
     std::ostringstream out;
     out << "#![allow(dead_code)]\n\n";
@@ -1394,7 +1418,10 @@ std::string rust_entity_constants_file(const IrEntity& entity)
                 << "_ON_PARENT_DELETE: &str = " << rust_string(*relation.on_parent_delete) << ";\n";
         }
     }
-    return out.str();
+    return templates.render(
+        "common/entities/constants.rs.tmpl",
+        TemplateRenderer::Values{{"constants_content", out.str()}}
+    );
 }
 
 std::string rust_event_descriptor_module(const IrSystem& system)
@@ -2210,19 +2237,19 @@ void add_rust_descriptor_module_artifacts(
         }
         add_rust_raw_common_file(result, options, entity_dir + "mod.rs", entity_mods);
         add_rust_raw_common_file(
-            result, options, entity_dir + "constants.rs", rust_entity_constants_file(entity)
+            result, options, entity_dir + "constants.rs", rust_entity_constants_file(templates, entity)
         );
         add_rust_raw_common_file(
             result, options, entity_dir + "model.rs",
-            rust_entity_centered_facade_file(entity, "model")
+            rust_entity_centered_facade_file(templates, entity, "model")
         );
         add_rust_raw_common_file(
             result, options, entity_dir + "persistence.rs",
-            rust_entity_centered_facade_file(entity, "persistence")
+            rust_entity_centered_facade_file(templates, entity, "persistence")
         );
         add_rust_raw_common_file(
             result, options, entity_dir + "schema.rs",
-            rust_entity_centered_facade_file(entity, "schema")
+            rust_entity_centered_facade_file(templates, entity, "schema")
         );
         if (entity_uses_gc)
         {

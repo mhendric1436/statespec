@@ -1187,6 +1187,7 @@ TemplateRenderer::Values java_descriptor_module_values(
 }
 
 std::string java_entity_centered_facade_file(
+    const TemplatePackage& templates,
     const IrEntity& entity,
     std::string_view class_name,
     std::string_view area
@@ -1489,10 +1490,34 @@ std::string java_entity_centered_facade_file(
         out << "    }\n";
     }
     out << "}\n";
-    return out.str();
+    const auto content = out.str();
+    if (area == "model")
+    {
+        return templates.render(
+            "common/entities/Model.java.tmpl", TemplateRenderer::Values{{"model_content", content}}
+        );
+    }
+    if (area == "schema")
+    {
+        return templates.render(
+            "common/entities/Schema.java.tmpl",
+            TemplateRenderer::Values{{"schema_content", content}}
+        );
+    }
+    if (area == "persistence")
+    {
+        return templates.render(
+            "common/entities/Persistence.java.tmpl",
+            TemplateRenderer::Values{{"persistence_content", content}}
+        );
+    }
+    return content;
 }
 
-std::string java_entity_constants_file(const IrEntity& entity)
+std::string java_entity_constants_file(
+    const TemplatePackage& templates,
+    const IrEntity& entity
+)
 {
     std::ostringstream out;
     out << "package com.statespec.generated.entities." << snake_identifier(entity.name) << ";\n\n";
@@ -1555,7 +1580,10 @@ std::string java_entity_constants_file(const IrEntity& entity)
         }
     }
     out << "}\n";
-    return out.str();
+    return templates.render(
+        "common/entities/Constants.java.tmpl",
+        TemplateRenderer::Values{{"constants_content", out.str()}}
+    );
 }
 
 TemplateRenderer::Values java_shape_descriptor_module_values(
@@ -3360,19 +3388,20 @@ void add_java_descriptor_module_artifacts(
         const auto entity_path = std::filesystem::path{"com"} / "statespec" / "generated" /
                                  "entities" / snake_identifier(entity.name);
         add_java_raw_common_file(
-            result, options, entity_path / "Constants.java", java_entity_constants_file(entity)
+            result, options, entity_path / "Constants.java",
+            java_entity_constants_file(templates, entity)
         );
         add_java_raw_common_file(
             result, options, entity_path / "Model.java",
-            java_entity_centered_facade_file(entity, "Model", "model")
+            java_entity_centered_facade_file(templates, entity, "Model", "model")
         );
         add_java_raw_common_file(
             result, options, entity_path / "Persistence.java",
-            java_entity_centered_facade_file(entity, "Persistence", "persistence")
+            java_entity_centered_facade_file(templates, entity, "Persistence", "persistence")
         );
         add_java_raw_common_file(
             result, options, entity_path / "Schema.java",
-            java_entity_centered_facade_file(entity, "Schema", "schema")
+            java_entity_centered_facade_file(templates, entity, "Schema", "schema")
         );
         if (entity_uses_gc)
         {
