@@ -15,7 +15,9 @@ public final class WorkerProcessFixture
     {
         private final AtomicBoolean handledValidateRequest = new AtomicBoolean(false);
 
-        @Override public void handleValidateRequest(WorkflowStepHandlers.Context context)
+        @Override
+        public WorkflowStepHandlers.WorkflowStepResult
+        handleValidateRequest(WorkflowStepHandlers.Context context)
         {
             if (!context.workflowName().equals("ProvisionService") ||
                 !context.stepName().equals("validate_request"))
@@ -23,11 +25,22 @@ public final class WorkerProcessFixture
                 throw new IllegalStateException("unexpected workflow step");
             }
             handledValidateRequest.set(true);
+            return WorkflowStepHandlers.complete("create_remote_service");
         }
 
-        @Override public void handleCreateRemoteService(WorkflowStepHandlers.Context context) {}
+        @Override
+        public WorkflowStepHandlers.WorkflowStepResult
+        handleCreateRemoteService(WorkflowStepHandlers.Context context)
+        {
+            return WorkflowStepHandlers.complete("wait_for_remote_service");
+        }
 
-        @Override public void handleWaitForRemoteService(WorkflowStepHandlers.Context context) {}
+        @Override
+        public WorkflowStepHandlers.WorkflowStepResult
+        handleWaitForRemoteService(WorkflowStepHandlers.Context context)
+        {
+            return WorkflowStepHandlers.complete();
+        }
     }
 
     public static void main(String[] args) throws Exception

@@ -18,7 +18,9 @@ public final class WorkerLinkingFixture
     {
         private boolean handled;
 
-        @Override public void handleValidateRequest(WorkflowStepHandlers.Context context)
+        @Override
+        public WorkflowStepHandlers.WorkflowStepResult
+        handleValidateRequest(WorkflowStepHandlers.Context context)
         {
             if (!context.workflowName().equals("ProvisionService") ||
                 !context.stepName().equals("validate_request"))
@@ -26,16 +28,21 @@ public final class WorkerLinkingFixture
                 throw new IllegalStateException("unexpected workflow step");
             }
             handled = true;
+            return WorkflowStepHandlers.complete("create_remote_service");
         }
 
-        @Override public void handleCreateRemoteService(WorkflowStepHandlers.Context context)
+        @Override
+        public WorkflowStepHandlers.WorkflowStepResult
+        handleCreateRemoteService(WorkflowStepHandlers.Context context)
         {
-            throw new IllegalStateException("unexpected create_remote_service step");
+            return WorkflowStepHandlers.fail("unexpected create_remote_service step");
         }
 
-        @Override public void handleWaitForRemoteService(WorkflowStepHandlers.Context context)
+        @Override
+        public WorkflowStepHandlers.WorkflowStepResult
+        handleWaitForRemoteService(WorkflowStepHandlers.Context context)
         {
-            throw new IllegalStateException("unexpected wait_for_remote_service step");
+            return WorkflowStepHandlers.fail("unexpected wait_for_remote_service step");
         }
     }
 

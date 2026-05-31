@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-{{workflow_step_module_imports}}
 
 public final class WorkflowRunner {
     private final Backend backend;
@@ -89,16 +88,42 @@ public final class WorkflowRunner {
                     "unknown generated workflow step handler: " + stepKey
                 );
             }
-            invoker.invoke(handlers, backend, context);
-            Optional<String> nextStep = Optional.empty();
-{{workflow_step_module_next_cases}}            return Optional.of(
+            WorkflowStepHandlers.WorkflowStepResult result =
+                invoker.invoke(handlers, backend, context);
+            if (result.kind() == WorkflowStepHandlers.WorkflowStepResultKind.FAIL) {
+                return Optional.of(
+                    workflowStore.failStep(
+                        backend,
+                        new Workflow.FailWorkflowStepRequest(
+                            record.workflowExecutionId(),
+                            workerName,
+                            record.currentStep(),
+                            result.reason(),
+                            Instant.now(),
+                            maxAttempts
+                        )
+                    )
+                );
+            }
+            if (result.kind() == WorkflowStepHandlers.WorkflowStepResultKind.CANCEL) {
+                return Optional.of(
+                    workflowStore.cancel(
+                        backend,
+                        new Workflow.CancelWorkflowRequest(
+                            record.workflowExecutionId(),
+                            result.reason()
+                        )
+                    )
+                );
+            }
+            return Optional.of(
                 workflowStore.completeStep(
                     backend,
                     new Workflow.CompleteWorkflowStepRequest(
                         record.workflowExecutionId(),
                         workerName,
                         record.currentStep(),
-                        nextStep,
+                        result.nextStep(),
                         record.stateJson()
                     )
                 )

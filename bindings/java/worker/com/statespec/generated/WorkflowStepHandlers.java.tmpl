@@ -30,9 +30,53 @@ public final class WorkflowStepHandlers {
         Json input
     ) {}
 
+    public enum WorkflowStepResultKind {
+        COMPLETE,
+        FAIL,
+        CANCEL
+    }
+
+    public record WorkflowStepResult(
+        WorkflowStepResultKind kind,
+        Optional<String> nextStep,
+        String reason
+    ) {}
+
+    public static WorkflowStepResult complete(Optional<String> nextStep) {
+        return new WorkflowStepResult(
+            WorkflowStepResultKind.COMPLETE,
+            nextStep,
+            ""
+        );
+    }
+
+    public static WorkflowStepResult complete(String nextStep) {
+        return complete(Optional.of(nextStep));
+    }
+
+    public static WorkflowStepResult complete() {
+        return complete(Optional.empty());
+    }
+
+    public static WorkflowStepResult fail(String reason) {
+        return new WorkflowStepResult(
+            WorkflowStepResultKind.FAIL,
+            Optional.empty(),
+            reason
+        );
+    }
+
+    public static WorkflowStepResult cancel(String reason) {
+        return new WorkflowStepResult(
+            WorkflowStepResultKind.CANCEL,
+            Optional.empty(),
+            reason
+        );
+    }
+
     @FunctionalInterface
     public interface WorkflowStepInvoker {
-        void invoke(HandlerBundle handlers, Backend backend, Context context) throws Exception;
+        WorkflowStepResult invoke(HandlerBundle handlers, Backend backend, Context context) throws Exception;
     }
 
     public interface HandlerBundle {

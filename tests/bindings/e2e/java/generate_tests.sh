@@ -159,7 +159,6 @@ worker/com/statespec/generated/WorkflowStepHandlers.java
 worker/com/statespec/generated/registry/ProvisionWorkerRegistry.java
 worker/com/statespec/generated/worker/descriptors/Catalog.java
 worker/com/statespec/generated/worker/descriptors/ProvisionWorkerDescriptorModule.java
-worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java
 worker/com/statespec/generated/workflows/provision_service/Handlers.java
 worker/com/statespec/generated/workflows/provision_service/Registry.java
 EOF
@@ -490,7 +489,9 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/Workfl
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "import com.statespec.backend.Backend"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "@FunctionalInterface"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "interface WorkflowStepInvoker"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "void invoke(HandlerBundle handlers, Backend backend, Context context)"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "enum WorkflowStepResultKind"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "record WorkflowStepResult"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "WorkflowStepResult invoke(HandlerBundle handlers, Backend backend, Context context)"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "DefaultHandlerBundle implements HandlerBundle"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerRegistry.java" "workflowStepInvokers"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Registry.java" "registerWorkflowStepInvokers"
@@ -500,13 +501,16 @@ assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workfl
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Registry.java" "workflowStepKey(\"ProvisionService\", 1L, \"wait_for_remote_service\")"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowStepHandlers.java" "ProvisionServiceV1StepHandler"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Handlers.java" "interface ProvisionServiceV1StepHandler"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Handlers.java" "handleValidateRequest"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/provision_service/Handlers.java" "WorkflowStepHandlers.WorkflowStepResult handleValidateRequest"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "WorkerRegistry.workflowStepInvokers()"
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "String stepKey ="
 assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "unknown generated workflow step handler: \" + stepKey"
-assert_file_not_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "handleValidateRequest"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "Optional.of(\"create_remote_service\")"
-assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java" "Optional.of(\"wait_for_remote_service\")"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepHandlers.WorkflowStepResult result"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepResultKind.FAIL"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepResultKind.CANCEL"
+assert_file_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "result.nextStep()"
+assert_file_not_contains "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkflowRunner.java" "nextStep ="
+assert_file_not_exists "$TMPDIR/out-app-java/worker/com/statespec/generated/workflows/ProvisionServiceWorkerModule.java"
 cp "$SCRIPT_DIR/ApiLinkingFixture.java" "$TMPDIR/out-app-java/api/com/statespec/generated/ApiLinkingFixture.java"
 cp "$SCRIPT_DIR/RegistrationRestartFixture.java" "$TMPDIR/out-app-java/common/com/statespec/generated/RegistrationRestartFixture.java"
 cp "$SCRIPT_DIR/WorkerLinkingFixture.java" "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerLinkingFixture.java"
