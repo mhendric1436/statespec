@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use statespec_generated::backend::{Backend, Transaction};
 use statespec_generated::json::Json;
 use statespec_generated::memory_backend::InMemoryBackend;
 use statespec_generated::runtime_workflows::RuntimeWorkflowStore;
@@ -19,9 +20,10 @@ struct LinkingWorkflowStepHandler;
 impl ProvisionServiceV1StepHandler<InMemoryBackend> for LinkingWorkflowStepHandler {
     fn handle_validate_request(
         &self,
-        _tx: &mut <InMemoryBackend as statespec_generated::backend::Backend>::Tx,
+        tx: &mut <InMemoryBackend as Backend>::Tx,
         context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
+        assert!(tx.is_open(), "workflow handler received a closed transaction");
         assert_eq!(context.workflow_name, "ProvisionService");
         assert_eq!(context.step_name, "validate_request");
         Ok(WorkflowStepResult::complete(Some(
@@ -31,9 +33,10 @@ impl ProvisionServiceV1StepHandler<InMemoryBackend> for LinkingWorkflowStepHandl
 
     fn handle_create_remote_service(
         &self,
-        _tx: &mut <InMemoryBackend as statespec_generated::backend::Backend>::Tx,
+        tx: &mut <InMemoryBackend as Backend>::Tx,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
+        assert!(tx.is_open(), "workflow handler received a closed transaction");
         Ok(WorkflowStepResult::fail(
             "unexpected create_remote_service step",
         ))
@@ -41,9 +44,10 @@ impl ProvisionServiceV1StepHandler<InMemoryBackend> for LinkingWorkflowStepHandl
 
     fn handle_wait_for_remote_service(
         &self,
-        _tx: &mut <InMemoryBackend as statespec_generated::backend::Backend>::Tx,
+        tx: &mut <InMemoryBackend as Backend>::Tx,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
+        assert!(tx.is_open(), "workflow handler received a closed transaction");
         Ok(WorkflowStepResult::fail(
             "unexpected wait_for_remote_service step",
         ))

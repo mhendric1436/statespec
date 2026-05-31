@@ -12,6 +12,7 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../../../.." && pwd)"
 TESTS_DIR="$REPO_DIR/tests"
 . "$TESTS_DIR/cli/common.sh"
+. "$TESTS_DIR/bindings/common.sh"
 
 APP_SPEC="$REPO_DIR/testdata/generators/canonical-api-worker-app.sspec"
 E2E_SPEC="$REPO_DIR/testdata/generators/external-system-metadata-e2e.sspec"
@@ -459,6 +460,7 @@ assert_file_not_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "Workf
 assert_file_not_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "workflow_step_invokers(handlers_)"
 assert_file_contains "$TMPDIR/out-app-cpp/worker/workflow_runner.hpp" "unknown generated workflow step handler: \" + key"
 assert_file_not_exists "$TMPDIR/out-app-cpp/worker/workflows/provision_service.hpp"
+assert_cpp_workflow_transaction_regression "$TMPDIR/out-app-cpp"
 run_expect_status 0 make -C "$TMPDIR/out-app-cpp" check
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/api_linking_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/api-linking-fixture"
 run_expect_status 0 "$TMPDIR/out-app-cpp/build/api-linking-fixture"

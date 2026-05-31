@@ -12,10 +12,14 @@ class LinkingWorkflowStepHandler final : public statespec_generated::worker::wor
 {
   public:
     statespec_generated::worker::WorkflowStepResult handle_validate_request(
-        statespec::backend::ITransaction&,
+        statespec::backend::ITransaction& tx,
         const statespec_generated::worker::WorkflowStepHandlerContext& context
     ) override
     {
+        if (!tx.is_open())
+        {
+            throw std::runtime_error("workflow handler received a closed transaction");
+        }
         if (context.workflow_name != "ProvisionService" || context.step_name != "validate_request")
         {
             throw std::runtime_error("unexpected workflow step");
@@ -25,20 +29,28 @@ class LinkingWorkflowStepHandler final : public statespec_generated::worker::wor
     }
 
     statespec_generated::worker::WorkflowStepResult handle_create_remote_service(
-        statespec::backend::ITransaction&,
+        statespec::backend::ITransaction& tx,
         const statespec_generated::worker::WorkflowStepHandlerContext&
     ) override
     {
+        if (!tx.is_open())
+        {
+            throw std::runtime_error("workflow handler received a closed transaction");
+        }
         return statespec_generated::worker::WorkflowStepResult::fail(
             "unexpected create_remote_service step"
         );
     }
 
     statespec_generated::worker::WorkflowStepResult handle_wait_for_remote_service(
-        statespec::backend::ITransaction&,
+        statespec::backend::ITransaction& tx,
         const statespec_generated::worker::WorkflowStepHandlerContext&
     ) override
     {
+        if (!tx.is_open())
+        {
+            throw std::runtime_error("workflow handler received a closed transaction");
+        }
         return statespec_generated::worker::WorkflowStepResult::fail(
             "unexpected wait_for_remote_service step"
         );

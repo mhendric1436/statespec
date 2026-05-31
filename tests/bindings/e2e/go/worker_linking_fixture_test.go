@@ -16,7 +16,10 @@ type linkingWorkflowStepHandler struct {
 }
 
 func (h *linkingWorkflowStepHandler) HandleValidateRequest(ctx context.Context, tx common.Transaction, step worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
-	_ = tx
+	if !tx.IsOpen() {
+		t := ctx.Value(testingContextKey{}).(*testing.T)
+		t.Fatal("workflow handler received a closed transaction")
+	}
 	if step.WorkflowName != "ProvisionService" || step.StepName != "validate_request" {
 		t := ctx.Value(testingContextKey{}).(*testing.T)
 		t.Fatalf("unexpected workflow step: %#v", step)

@@ -16,7 +16,10 @@ type processWorkflowStepHandler struct {
 }
 
 func (h processWorkflowStepHandler) HandleValidateRequest(ctx context.Context, tx common.Transaction, step worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
-	_ = tx
+	if !tx.IsOpen() {
+		t := ctx.Value(testingContextKey{}).(*testing.T)
+		t.Fatal("workflow handler received a closed transaction")
+	}
 	if step.WorkflowName != "ProvisionService" || step.StepName != "validate_request" {
 		t := ctx.Value(testingContextKey{}).(*testing.T)
 		t.Fatalf("unexpected workflow step: %#v", step)
@@ -30,12 +33,18 @@ func (h processWorkflowStepHandler) HandleValidateRequest(ctx context.Context, t
 	return worker.Complete(&nextStep), nil
 }
 
-func (h processWorkflowStepHandler) HandleCreateRemoteService(context.Context, common.Transaction, worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+func (h processWorkflowStepHandler) HandleCreateRemoteService(_ context.Context, tx common.Transaction, _ worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+	if !tx.IsOpen() {
+		return worker.Fail("workflow handler received a closed transaction"), nil
+	}
 	nextStep := "wait_for_remote_service"
 	return worker.Complete(&nextStep), nil
 }
 
-func (h processWorkflowStepHandler) HandleWaitForRemoteService(context.Context, common.Transaction, worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+func (h processWorkflowStepHandler) HandleWaitForRemoteService(_ context.Context, tx common.Transaction, _ worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+	if !tx.IsOpen() {
+		return worker.Fail("workflow handler received a closed transaction"), nil
+	}
 	return worker.Complete(nil), nil
 }
 

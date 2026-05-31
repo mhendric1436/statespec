@@ -22,7 +22,10 @@ public final class WorkerProcessFixture
             WorkflowStepHandlers.Context context
         )
         {
-            var ignoredTx = tx;
+            if (!tx.isOpen())
+            {
+                throw new IllegalStateException("workflow handler received a closed transaction");
+            }
             if (!context.workflowName().equals("ProvisionService") ||
                 !context.stepName().equals("validate_request"))
             {
@@ -39,7 +42,10 @@ public final class WorkerProcessFixture
             WorkflowStepHandlers.Context context
         )
         {
-            var ignoredTx = tx;
+            if (!tx.isOpen())
+            {
+                throw new IllegalStateException("workflow handler received a closed transaction");
+            }
             return WorkflowStepHandlers.complete("wait_for_remote_service");
         }
 
@@ -50,7 +56,10 @@ public final class WorkerProcessFixture
             WorkflowStepHandlers.Context context
         )
         {
-            var ignoredTx = tx;
+            if (!tx.isOpen())
+            {
+                throw new IllegalStateException("workflow handler received a closed transaction");
+            }
             return WorkflowStepHandlers.complete();
         }
     }
