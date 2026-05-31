@@ -1,0 +1,19 @@
+#pragma once
+
+#include "handlers.hpp"
+#include "../../workflow_step_handlers.hpp"
+
+#include <string>
+
+namespace statespec_generated::worker::workflows::{{workflow_namespace}}
+{
+
+inline void register_workflow_step_invokers(
+    ::statespec_generated::worker::WorkflowStepInvokerMap& invokers,
+    {{handler_class}}& handler
+)
+{
+{{invoker_entries}}
+}
+
+} // namespace statespec_generated::worker::workflows::{{workflow_namespace}}

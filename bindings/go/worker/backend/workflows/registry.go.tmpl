@@ -1,0 +1,17 @@
+package {{workflow_package}}
+
+import (
+	"context"
+
+	common "statespec-generated/common/backend"
+	workflowcontext "statespec-generated/worker/backend/workflows/context"
+)
+
+type StepInvoker func(context.Context, common.Backend, workflowcontext.WorkflowStepHandlerContext) (workflowcontext.WorkflowStepResult, error)
+
+{{step_invoker_functions}}
+func RegisterWorkflowStepInvokers(invokers map[string]StepInvoker, handler {{handler_alias}}) {
+{{invoker_entries}}
+}
+
+{{workflow_step_invokers_function}}

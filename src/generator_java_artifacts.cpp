@@ -844,26 +844,21 @@ TemplateRenderer::Values java_api_runtime_bootstrap_values(const IrSystem& syste
     return values;
 }
 
-std::string generate_java_workflow_handler_module(const IrWorkflow& workflow)
+std::string java_workflow_handler_methods(const IrWorkflow& workflow)
 {
-    const auto class_name = pascal_identifier(workflow.name) + "V" +
-                            std::to_string(workflow.version.value_or(1)) + "StepHandler";
     std::ostringstream out;
-    out << "package com.statespec.generated.workflows." << snake_identifier(workflow.name)
-        << ";\n\n";
-    out << "import com.statespec.generated.WorkflowStepHandlers;\n\n";
-    out << "public final class Handlers {\n";
-    out << "    private Handlers() {}\n\n";
-    out << "    public interface " << class_name << " {\n";
     for (const auto& step : workflow.steps)
     {
         out << "        WorkflowStepHandlers.WorkflowStepResult handle"
             << pascal_identifier(step.name) << "(WorkflowStepHandlers.Context context) "
             << "throws Exception;\n";
     }
-    out << "    }\n\n";
-    out << "    public static final class Default" << class_name << " implements " << class_name
-        << " {\n";
+    return out.str();
+}
+
+std::string java_workflow_default_handler_methods(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
     for (const auto& step : workflow.steps)
     {
         out << "        @Override\n";
@@ -873,28 +868,30 @@ std::string generate_java_workflow_handler_module(const IrWorkflow& workflow)
             << workflow.name << "." << step.name << " is not implemented\");\n";
         out << "        }\n";
     }
-    out << "    }\n";
-    out << "}\n";
     return out.str();
 }
 
-std::string generate_java_workflow_registry_module(const IrWorkflow& workflow)
+std::string generate_java_workflow_handler_module(
+    const TemplatePackage& templates,
+    const IrWorkflow& workflow
+)
 {
     const auto class_name = pascal_identifier(workflow.name) + "V" +
                             std::to_string(workflow.version.value_or(1)) + "StepHandler";
+    return templates.render(
+        "worker/com/statespec/generated/workflows/Handlers.java.tmpl",
+        TemplateRenderer::Values{
+            {"workflow_package", snake_identifier(workflow.name)},
+            {"handler_interface", class_name},
+            {"handler_methods", java_workflow_handler_methods(workflow)},
+            {"default_handler_methods", java_workflow_default_handler_methods(workflow)},
+        }
+    );
+}
+
+std::string java_workflow_registry_invoker_entries(const IrWorkflow& workflow)
+{
     std::ostringstream out;
-    out << "package com.statespec.generated.workflows." << snake_identifier(workflow.name)
-        << ";\n\n";
-    out << "import com.statespec.backend.Backend;\n";
-    out << "import com.statespec.generated.WorkflowStepHandlers;\n";
-    out << "import java.util.LinkedHashMap;\n";
-    out << "import java.util.Map;\n\n";
-    out << "public final class Registry {\n";
-    out << "    private Registry() {}\n\n";
-    out << "    public static void registerWorkflowStepInvokers(\n";
-    out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers,\n";
-    out << "        Handlers." << class_name << " handler\n";
-    out << "    ) {\n";
     for (const auto& step : workflow.steps)
     {
         out << "        invokers.put(\n";
@@ -904,15 +901,14 @@ std::string generate_java_workflow_registry_module(const IrWorkflow& workflow)
             << pascal_identifier(step.name) << "(handler, backend, context)\n";
         out << "        );\n";
     }
-    out << "    }\n\n";
-    out << "    public static Map<String, WorkflowStepHandlers.WorkflowStepInvoker> "
-           "workflowStepInvokers(Handlers."
-        << class_name << " handler) {\n";
-    out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers = new "
-           "LinkedHashMap<>();\n";
-    out << "        registerWorkflowStepInvokers(invokers, handler);\n";
-    out << "        return Map.copyOf(invokers);\n";
-    out << "    }\n\n";
+    return out.str();
+}
+
+std::string java_workflow_registry_invoke_methods(const IrWorkflow& workflow)
+{
+    const auto class_name = pascal_identifier(workflow.name) + "V" +
+                            std::to_string(workflow.version.value_or(1)) + "StepHandler";
+    std::ostringstream out;
     for (const auto& step : workflow.steps)
     {
         out << "    private static WorkflowStepHandlers.WorkflowStepResult invoke"
@@ -925,8 +921,25 @@ std::string generate_java_workflow_registry_module(const IrWorkflow& workflow)
         out << "        return handler.handle" << pascal_identifier(step.name) << "(context);\n";
         out << "    }\n\n";
     }
-    out << "}\n";
     return out.str();
+}
+
+std::string generate_java_workflow_registry_module(
+    const TemplatePackage& templates,
+    const IrWorkflow& workflow
+)
+{
+    const auto class_name = pascal_identifier(workflow.name) + "V" +
+                            std::to_string(workflow.version.value_or(1)) + "StepHandler";
+    return templates.render(
+        "worker/com/statespec/generated/workflows/Registry.java.tmpl",
+        TemplateRenderer::Values{
+            {"workflow_package", snake_identifier(workflow.name)},
+            {"handler_interface", class_name},
+            {"invoker_entries", java_workflow_registry_invoker_entries(workflow)},
+            {"invoke_methods", java_workflow_registry_invoke_methods(workflow)},
+        }
+    );
 }
 
 TemplateRenderer::Values java_workflow_runner_values(const IrSystem& system)
@@ -3841,14 +3854,14 @@ void add_java_worker_artifacts(
                 java_worker_generated_path(
                     "workflows/" + snake_identifier(workflow.name) + "/Handlers.java"
                 ),
-                generate_java_workflow_handler_module(workflow)
+                generate_java_workflow_handler_module(templates, workflow)
             );
             add_java_raw_worker_file(
                 result, options,
                 java_worker_generated_path(
                     "workflows/" + snake_identifier(workflow.name) + "/Registry.java"
                 ),
-                generate_java_workflow_registry_module(workflow)
+                generate_java_workflow_registry_module(templates, workflow)
             );
         }
         add_java_generated_template_file(

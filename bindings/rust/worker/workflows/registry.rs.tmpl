@@ -1,0 +1,16 @@
+use std::sync::Arc;
+
+use crate::backend::{Backend, BackendResult};
+use crate::workflow_step_handlers::{workflow_step_key, WorkflowStepHandlerContext, WorkflowStepInvokerMap, WorkflowStepResult};
+use crate::workflow_{{workflow_snake}}_handlers::{{handler_trait}};
+
+{{invoke_functions}}
+pub fn register_workflow_step_invokers<B>(
+    invokers: &mut WorkflowStepInvokerMap<B>,
+    handler: Arc<dyn {{handler_trait}} + Send + Sync>,
+)
+where
+    B: Backend + 'static,
+{
+{{invoker_entries}}
+}

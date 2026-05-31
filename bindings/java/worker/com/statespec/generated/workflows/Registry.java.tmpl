@@ -1,0 +1,25 @@
+package com.statespec.generated.workflows.{{workflow_package}};
+
+import com.statespec.backend.Backend;
+import com.statespec.generated.WorkflowStepHandlers;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public final class Registry {
+    private Registry() {}
+
+    public static void registerWorkflowStepInvokers(
+        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers,
+        Handlers.{{handler_interface}} handler
+    ) {
+{{invoker_entries}}
+    }
+
+    public static Map<String, WorkflowStepHandlers.WorkflowStepInvoker> workflowStepInvokers(Handlers.{{handler_interface}} handler) {
+        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers = new LinkedHashMap<>();
+        registerWorkflowStepInvokers(invokers, handler);
+        return Map.copyOf(invokers);
+    }
+
+{{invoke_methods}}
+}

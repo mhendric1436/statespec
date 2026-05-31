@@ -1,0 +1,18 @@
+package {{workflow_package}}
+
+import (
+	"context"
+	"fmt"
+
+	workflowcontext "statespec-generated/worker/backend/workflows/context"
+)
+
+type {{handler_interface}} interface {
+{{handler_methods}}
+}
+
+type {{handler_alias}} = {{handler_interface}}
+
+type Default{{handler_alias}} struct{}
+
+{{default_handler_methods}}

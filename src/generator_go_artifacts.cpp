@@ -363,28 +363,21 @@ std::string go_worker_registry_facade(const IrSystem& system)
     return out.str();
 }
 
-std::string generate_go_workflow_handler_module(const IrWorkflow& workflow)
+std::string go_workflow_handler_methods(const IrWorkflow& workflow)
 {
     std::ostringstream out;
-    out << "package " << snake_identifier(workflow.name) << "\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n";
-    out << "\t\"fmt\"\n\n";
-    out << "\tworkflowcontext \"statespec-generated/worker/backend/workflows/context\"\n";
-    out << ")\n\n";
-    out << "type " << pascal_identifier(workflow.name) << "V" << workflow.version.value_or(1)
-        << "StepHandler interface {\n";
     for (const auto& step : workflow.steps)
     {
         out << "\tHandle" << pascal_identifier(step.name)
             << "(context.Context, workflowcontext.WorkflowStepHandlerContext) "
                "(workflowcontext.WorkflowStepResult, error)\n";
     }
-    out << "}\n\n";
-    out << "type " << pascal_identifier(workflow.name)
-        << "StepHandler = " << pascal_identifier(workflow.name) << "V"
-        << workflow.version.value_or(1) << "StepHandler\n";
-    out << "\ntype Default" << pascal_identifier(workflow.name) << "StepHandler struct{}\n\n";
+    return out.str();
+}
+
+std::string go_workflow_default_handler_methods(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
     for (const auto& step : workflow.steps)
     {
         out << "func (Default" << pascal_identifier(workflow.name) << "StepHandler) Handle"
@@ -399,19 +392,29 @@ std::string generate_go_workflow_handler_module(const IrWorkflow& workflow)
     return out.str();
 }
 
-std::string generate_go_workflow_registry_module(const IrWorkflow& workflow)
+std::string generate_go_workflow_handler_module(
+    const TemplatePackage& templates,
+    const IrWorkflow& workflow
+)
+{
+    const auto handler_interface = pascal_identifier(workflow.name) + "V" +
+                                   std::to_string(workflow.version.value_or(1)) + "StepHandler";
+    const auto handler_alias = pascal_identifier(workflow.name) + "StepHandler";
+    return templates.render(
+        "worker/backend/workflows/handlers.go.tmpl",
+        TemplateRenderer::Values{
+            {"workflow_package", snake_identifier(workflow.name)},
+            {"handler_interface", handler_interface},
+            {"handler_alias", handler_alias},
+            {"handler_methods", go_workflow_handler_methods(workflow)},
+            {"default_handler_methods", go_workflow_default_handler_methods(workflow)},
+        }
+    );
+}
+
+std::string go_workflow_registry_invoker_functions(const IrWorkflow& workflow)
 {
     std::ostringstream out;
-    out << "package " << snake_identifier(workflow.name) << "\n\n";
-    out << "import (\n";
-    out << "\t\"context\"\n";
-    out << "\n";
-    out << "\tcommon \"statespec-generated/common/backend\"\n";
-    out << "\tworkflowcontext \"statespec-generated/worker/backend/workflows/context\"\n";
-    out << ")\n\n";
-    out << "type StepInvoker func(context.Context, common.Backend, "
-           "workflowcontext.WorkflowStepHandlerContext) (workflowcontext.WorkflowStepResult, "
-           "error)\n\n";
     for (const auto& step : workflow.steps)
     {
         out << "func invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
@@ -424,8 +427,12 @@ std::string generate_go_workflow_registry_module(const IrWorkflow& workflow)
         out << "\t}\n";
         out << "}\n\n";
     }
-    out << "func RegisterWorkflowStepInvokers(invokers map[string]StepInvoker, handler "
-        << pascal_identifier(workflow.name) << "StepHandler) {\n";
+    return out.str();
+}
+
+std::string go_workflow_registry_invoker_entries(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
     for (const auto& step : workflow.steps)
     {
         out << "\tinvokers["
@@ -436,7 +443,12 @@ std::string generate_go_workflow_registry_module(const IrWorkflow& workflow)
             << "] = invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
             << "(handler)\n";
     }
-    out << "}\n\n";
+    return out.str();
+}
+
+std::string go_workflow_step_invokers_function(const IrWorkflow& workflow)
+{
+    std::ostringstream out;
     out << "func WorkflowStepInvokers(handler " << pascal_identifier(workflow.name)
         << "StepHandler) map[string]StepInvoker {\n";
     out << "\tinvokers := map[string]StepInvoker{}\n";
@@ -444,6 +456,23 @@ std::string generate_go_workflow_registry_module(const IrWorkflow& workflow)
     out << "\treturn invokers\n";
     out << "}\n";
     return out.str();
+}
+
+std::string generate_go_workflow_registry_module(
+    const TemplatePackage& templates,
+    const IrWorkflow& workflow
+)
+{
+    return templates.render(
+        "worker/backend/workflows/registry.go.tmpl",
+        TemplateRenderer::Values{
+            {"workflow_package", snake_identifier(workflow.name)},
+            {"handler_alias", pascal_identifier(workflow.name) + "StepHandler"},
+            {"step_invoker_functions", go_workflow_registry_invoker_functions(workflow)},
+            {"invoker_entries", go_workflow_registry_invoker_entries(workflow)},
+            {"workflow_step_invokers_function", go_workflow_step_invokers_function(workflow)},
+        }
+    );
 }
 
 TemplateRenderer::Values go_workflow_runner_values(const IrSystem& system)
@@ -3767,12 +3796,12 @@ void add_go_worker_artifacts(
             add_go_raw_worker_file(
                 result, options,
                 "worker/backend/workflows/" + snake_identifier(workflow.name) + "/handlers.go",
-                generate_go_workflow_handler_module(workflow)
+                generate_go_workflow_handler_module(templates, workflow)
             );
             add_go_raw_worker_file(
                 result, options,
                 "worker/backend/workflows/" + snake_identifier(workflow.name) + "/registry.go",
-                generate_go_workflow_registry_module(workflow)
+                generate_go_workflow_registry_module(templates, workflow)
             );
         }
         add_go_generated_template_file(

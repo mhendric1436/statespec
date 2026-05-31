@@ -1,0 +1,27 @@
+#pragma once
+
+#include "../../workflow_step_types.hpp"
+
+#include <stdexcept>
+
+namespace statespec_generated::worker
+{
+struct WorkflowStepHandlerContext;
+namespace workflows::{{workflow_namespace}}
+{
+
+class {{handler_class}}
+{
+  public:
+    virtual ~{{handler_class}}() = default;
+{{handler_methods}}
+};
+
+class {{default_handler_class}} : public {{handler_class}}
+{
+  public:
+{{default_handler_methods}}
+};
+
+} // namespace workflows::{{workflow_namespace}}
+} // namespace statespec_generated::worker

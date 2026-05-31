@@ -1,0 +1,15 @@
+package com.statespec.generated.workflows.{{workflow_package}};
+
+import com.statespec.generated.WorkflowStepHandlers;
+
+public final class Handlers {
+    private Handlers() {}
+
+    public interface {{handler_interface}} {
+{{handler_methods}}
+    }
+
+    public static final class Default{{handler_interface}} implements {{handler_interface}} {
+{{default_handler_methods}}
+    }
+}
