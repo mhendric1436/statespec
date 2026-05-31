@@ -2,6 +2,7 @@ package com.statespec.generated;
 
 import com.statespec.backend.Backend;
 import com.statespec.generated.descriptors.types.WorkerContext;
+import java.util.Map;
 
 public final class WorkerProcess {
     public static final class Config {
@@ -27,7 +28,7 @@ public final class WorkerProcess {
     }
 
     private final WorkerRuntime runtime;
-    private final WorkflowStepHandlers.HandlerBundle handlers;
+    private final Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers;
     private final Config config;
     private Thread thread;
     private final java.util.List<Thread> workerLoopThreads = new java.util.ArrayList<>();
@@ -37,13 +38,20 @@ public final class WorkerProcess {
     private boolean running = false;
     private boolean stopRequested = false;
 
-    public WorkerProcess(WorkerRuntime runtime, WorkflowStepHandlers.HandlerBundle handlers) {
-        this(runtime, handlers, Config.defaults());
+    public WorkerProcess(
+        WorkerRuntime runtime,
+        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers
+    ) {
+        this(runtime, invokers, Config.defaults());
     }
 
-    public WorkerProcess(WorkerRuntime runtime, WorkflowStepHandlers.HandlerBundle handlers, Config config) {
+    public WorkerProcess(
+        WorkerRuntime runtime,
+        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers,
+        Config config
+    ) {
         this.runtime = runtime;
-        this.handlers = handlers;
+        this.invokers = Map.copyOf(invokers);
         this.config = config;
     }
 
@@ -84,7 +92,7 @@ public final class WorkerProcess {
                     () -> {
                         while (!stopRequested()) {
                             try {
-                                runtime.runOnce(context, handlers, "");
+                                runtime.runOnce(context, invokers, "");
                             } catch (Exception error) {
                             }
                             try {

@@ -3,6 +3,7 @@ package com.statespec.generated;
 import com.statespec.backend.Backend;
 import com.statespec.backend.memory.InMemoryBackend;
 {{worker_main_entity_gc_import}}
+{{worker_main_workflow_imports}}
 
 public final class WorkerMain {
     private WorkerMain() {}
@@ -17,8 +18,9 @@ public final class WorkerMain {
     private static int run() {
         var backend = new InMemoryBackend();
         var runtime = new WorkerRuntime(backend);
-        var handlers = new WorkflowStepHandlers.DefaultHandlerBundle();
-        var process = new WorkerProcess(runtime, handlers);
+        var invokers =
+            new java.util.LinkedHashMap<String, WorkflowStepHandlers.WorkflowStepInvoker>();
+{{worker_main_workflow_invoker_composition}}        var process = new WorkerProcess(runtime, invokers);
 
         Runtime.getRuntime().addShutdownHook(new Thread(process::requestStop, "statespec-worker-shutdown"));
 

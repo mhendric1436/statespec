@@ -48,11 +48,11 @@ public final class WorkerProcessFixture
         InMemoryBackend backend = new InMemoryBackend();
         WorkerRuntime runtime = new WorkerRuntime(backend);
         ProcessStepHandler handler = new ProcessStepHandler();
-        WorkflowStepHandlers.DefaultHandlerBundle handlers =
-            new WorkflowStepHandlers.DefaultHandlerBundle();
-        handlers.setProvisionServiceHandler(handler);
+        var invokers =
+            new java.util.LinkedHashMap<String, WorkflowStepHandlers.WorkflowStepInvoker>();
+        WorkerRegistry.registerProvisionServiceWorkflowStepInvokers(invokers, handler);
         WorkerProcess.Config config = new WorkerProcess.Config(true, 1);
-        WorkerProcess process = new WorkerProcess(runtime, handlers, config);
+        WorkerProcess process = new WorkerProcess(runtime, invokers, config);
 
         try
         {

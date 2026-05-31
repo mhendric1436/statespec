@@ -3,7 +3,6 @@ package com.statespec.generated;
 import com.statespec.backend.Backend;
 import com.statespec.backend.Json;
 import java.util.Optional;
-{{workflow_step_handler_imports}}
 
 public final class WorkflowStepHandlers {
     private WorkflowStepHandlers() {}
@@ -76,19 +75,6 @@ public final class WorkflowStepHandlers {
 
     @FunctionalInterface
     public interface WorkflowStepInvoker {
-        WorkflowStepResult invoke(HandlerBundle handlers, Backend backend, Context context) throws Exception;
-    }
-
-    public interface HandlerBundle {
-        Object workflowHandler(String workflowName, long workflowVersion);
-    }
-
-    public static final class DefaultHandlerBundle implements HandlerBundle {
-{{default_workflow_step_handler_members}}
-{{default_workflow_step_handler_setters}}
-        @Override
-        public Object workflowHandler(String workflowName, long workflowVersion) {
-{{default_workflow_step_handler_lookup}}            return null;
-        }
+        WorkflowStepResult invoke(Backend backend, Context context) throws Exception;
     }
 }

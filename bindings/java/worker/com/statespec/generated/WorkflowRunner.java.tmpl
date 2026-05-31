@@ -12,7 +12,7 @@ import java.util.Optional;
 public final class WorkflowRunner {
     private final Backend backend;
     private final Workflow workflowStore;
-    private final WorkflowStepHandlers.HandlerBundle handlers;
+    private final Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers;
     private final String workerName;
     private final Duration leaseDuration;
     private final int maxAttempts;
@@ -20,14 +20,14 @@ public final class WorkflowRunner {
     public WorkflowRunner(
         Backend backend,
         Workflow workflowStore,
-        WorkflowStepHandlers.HandlerBundle handlers,
+        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers,
         String workerName,
         Duration leaseDuration,
         int maxAttempts
     ) {
         this.backend = backend;
         this.workflowStore = workflowStore;
-        this.handlers = handlers;
+        this.invokers = Map.copyOf(invokers);
         this.workerName = workerName;
         this.leaseDuration = leaseDuration;
         this.maxAttempts = maxAttempts;
@@ -73,8 +73,6 @@ public final class WorkflowRunner {
                     Optional.of(record.workflowExecutionId()),
                     Json.parse(record.stateJson())
                 );
-            Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers =
-                WorkerRegistry.workflowStepInvokers();
             String stepKey =
                 WorkflowStepHandlers.workflowStepKey(
                     record.workflowName(),
@@ -89,7 +87,7 @@ public final class WorkflowRunner {
                 );
             }
             WorkflowStepHandlers.WorkflowStepResult result =
-                invoker.invoke(handlers, backend, context);
+                invoker.invoke(backend, context);
             if (result.kind() == WorkflowStepHandlers.WorkflowStepResultKind.FAIL) {
                 return Optional.of(
                     workflowStore.failStep(

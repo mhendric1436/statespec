@@ -160,7 +160,6 @@ std::string java_worker_registry_facade_file(const IrSystem& system)
     out << "import com.statespec.generated.descriptors.types.WorkerDescriptor;\n";
     if (!system.workflows.empty())
     {
-        out << "import java.util.LinkedHashMap;\n";
         out << "import java.util.Map;\n";
     }
     out << "import java.util.Optional;\n\n";
@@ -194,17 +193,21 @@ std::string java_worker_registry_facade_file(const IrSystem& system)
     out << "    }\n";
     if (!system.workflows.empty())
     {
-        out << "\n    public static Map<String, WorkflowStepHandlers.WorkflowStepInvoker> "
-               "workflowStepInvokers() {\n";
-        out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers = new "
-               "LinkedHashMap<>();\n";
         for (const auto& workflow : system.workflows)
         {
-            out << "        com.statespec.generated.workflows." << snake_identifier(workflow.name)
-                << ".Registry.registerWorkflowStepInvokers(invokers);\n";
+            const auto package_name = snake_identifier(workflow.name);
+            const auto class_name = pascal_identifier(workflow.name) + "V" +
+                                    std::to_string(workflow.version.value_or(1)) + "StepHandler";
+            out << "\n    public static void register" << pascal_identifier(workflow.name)
+                << "WorkflowStepInvokers(\n";
+            out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers,\n";
+            out << "        com.statespec.generated.workflows." << package_name << ".Handlers."
+                << class_name << " handler\n";
+            out << "    ) {\n";
+            out << "        com.statespec.generated.workflows." << package_name
+                << ".Registry.registerWorkflowStepInvokers(invokers, handler);\n";
+            out << "    }\n";
         }
-        out << "        return Map.copyOf(invokers);\n";
-        out << "    }\n";
     }
     out << "}\n";
     return out.str();
@@ -796,14 +799,14 @@ TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
             << "    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> "
                "runOnce(\n"
             << "        com.statespec.generated.descriptors.types.WorkerContext context,\n"
-            << "        WorkflowStepHandlers.HandlerBundle handlers,\n"
+            << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers,\n"
             << "        String workflowExecutionId\n"
             << "    ) throws Exception {\n"
             << "        if (context.executes().isEmpty()) {\n"
             << "            return Optional.empty();\n"
             << "        }\n"
             << "        WorkflowRunner runner =\n"
-            << "            new WorkflowRunner(backend, workflows, handlers, context.workerName(), "
+            << "            new WorkflowRunner(backend, workflows, invokers, context.workerName(), "
                "Duration.ofSeconds(30), 3);\n"
             << "        return runner.runOnce(workflowExecutionId, "
                "context.executes().orElseThrow(), "
@@ -817,7 +820,7 @@ TemplateRenderer::Values java_runtime_bootstrap_values(const IrSystem& system)
             << "    public Optional<com.statespec.backend.Workflow.WorkflowExecutionRecord> "
                "runOnce(\n"
             << "        com.statespec.generated.descriptors.types.WorkerContext context,\n"
-            << "        WorkflowStepHandlers.HandlerBundle handlers,\n"
+            << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers,\n"
             << "        String workflowExecutionId\n"
             << "    ) {\n"
             << "        return Optional.empty();\n"
@@ -889,102 +892,40 @@ std::string generate_java_workflow_registry_module(const IrWorkflow& workflow)
     out << "public final class Registry {\n";
     out << "    private Registry() {}\n\n";
     out << "    public static void registerWorkflowStepInvokers(\n";
-    out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers\n";
+    out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers,\n";
+    out << "        Handlers." << class_name << " handler\n";
     out << "    ) {\n";
     for (const auto& step : workflow.steps)
     {
         out << "        invokers.put(\n";
         out << "            WorkflowStepHandlers.workflowStepKey(" << java_string(workflow.name)
             << ", " << workflow.version.value_or(1) << "L, " << java_string(step.name) << "),\n";
-        out << "            Registry::invoke" << pascal_identifier(workflow.name)
-            << pascal_identifier(step.name) << "\n";
+        out << "            (backend, context) -> invoke" << pascal_identifier(workflow.name)
+            << pascal_identifier(step.name) << "(handler, backend, context)\n";
         out << "        );\n";
     }
     out << "    }\n\n";
     out << "    public static Map<String, WorkflowStepHandlers.WorkflowStepInvoker> "
-           "workflowStepInvokers() {\n";
+           "workflowStepInvokers(Handlers."
+        << class_name << " handler) {\n";
     out << "        Map<String, WorkflowStepHandlers.WorkflowStepInvoker> invokers = new "
            "LinkedHashMap<>();\n";
-    out << "        registerWorkflowStepInvokers(invokers);\n";
+    out << "        registerWorkflowStepInvokers(invokers, handler);\n";
     out << "        return Map.copyOf(invokers);\n";
     out << "    }\n\n";
     for (const auto& step : workflow.steps)
     {
         out << "    private static WorkflowStepHandlers.WorkflowStepResult invoke"
             << pascal_identifier(workflow.name) << pascal_identifier(step.name) << "(\n";
-        out << "        WorkflowStepHandlers.HandlerBundle handlers,\n";
+        out << "        Handlers." << class_name << " handler,\n";
         out << "        Backend backend,\n";
         out << "        WorkflowStepHandlers.Context context\n";
         out << "    ) throws Exception {\n";
         out << "        var ignoredBackend = backend;\n";
-        out << "        Object workflowHandler = handlers.workflowHandler("
-            << java_string(workflow.name) << ", " << workflow.version.value_or(1) << "L);\n";
-        out << "        if (!(workflowHandler instanceof Handlers." << class_name
-            << " handler)) {\n";
-        out << "            throw new IllegalStateException(\"generated workflow step handler "
-            << workflow.name << " v" << workflow.version.value_or(1) << " is not registered\");\n";
-        out << "        }\n";
         out << "        return handler.handle" << pascal_identifier(step.name) << "(context);\n";
         out << "    }\n\n";
     }
     out << "}\n";
-    return out.str();
-}
-
-std::string java_workflow_step_handler_bundle_members(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        const auto package_name = snake_identifier(workflow.name);
-        const auto class_name = pascal_identifier(workflow.name) + "V" +
-                                std::to_string(workflow.version.value_or(1)) + "StepHandler";
-        out << "        private com.statespec.generated.workflows." << package_name << ".Handlers."
-            << class_name << " " << lower_camel_identifier(workflow.name)
-            << " = new com.statespec.generated.workflows." << package_name << ".Handlers.Default"
-            << class_name << "();\n";
-    }
-    return out.str();
-}
-
-std::string java_workflow_step_handler_bundle_setters(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        const auto package_name = snake_identifier(workflow.name);
-        const auto class_name = pascal_identifier(workflow.name) + "V" +
-                                std::to_string(workflow.version.value_or(1)) + "StepHandler";
-        out << "        public void set" << pascal_identifier(workflow.name)
-            << "Handler(com.statespec.generated.workflows." << package_name << ".Handlers."
-            << class_name << " handler) {\n";
-        out << "            this." << lower_camel_identifier(workflow.name) << " = handler;\n";
-        out << "        }\n\n";
-    }
-    return out.str();
-}
-
-std::string java_workflow_step_handler_bundle_lookup(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        out << "            if (workflowName.equals(" << java_string(workflow.name)
-            << ") && workflowVersion == " << workflow.version.value_or(1) << "L) {\n";
-        out << "                return " << lower_camel_identifier(workflow.name) << ";\n";
-        out << "            }\n";
-    }
-    return out.str();
-}
-
-std::string java_workflow_step_handler_imports(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        out << "import com.statespec.generated.workflows." << snake_identifier(workflow.name)
-            << ".Handlers;\n";
-    }
     return out.str();
 }
 
@@ -1150,11 +1091,28 @@ TemplateRenderer::Values java_api_main_values(const IrSystem& system)
 TemplateRenderer::Values java_worker_main_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
+    std::ostringstream workflow_imports;
+    std::ostringstream workflow_invoker_composition;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto package_name = snake_identifier(workflow.name);
+        const auto class_name = pascal_identifier(workflow.name) + "V" +
+                                std::to_string(workflow.version.value_or(1)) + "StepHandler";
+        const auto handler_var = lower_camel_identifier(workflow.name) + "Handler";
+        workflow_invoker_composition << "        var " << handler_var
+                                     << " = new com.statespec.generated.workflows." << package_name
+                                     << ".Handlers.Default" << class_name << "();\n";
+        workflow_invoker_composition << "        WorkerRegistry.register"
+                                     << pascal_identifier(workflow.name)
+                                     << "WorkflowStepInvokers(invokers, " << handler_var << ");\n";
+    }
     if (!usage.uses_entity_gc)
     {
         return TemplateRenderer::Values{
             {"worker_main_entity_gc_import", ""},
             {"worker_main_entity_gc_registration", ""},
+            {"worker_main_workflow_imports", workflow_imports.str()},
+            {"worker_main_workflow_invoker_composition", workflow_invoker_composition.str()},
         };
     }
     return TemplateRenderer::Values{
@@ -1165,6 +1123,8 @@ TemplateRenderer::Values java_worker_main_values(const IrSystem& system)
          "                task -> runtime.addEntityGcWorker(task::run), backend, "
          "WorkerEntityGcCatalog.descriptors()\n"
          "            );\n\n"},
+        {"worker_main_workflow_imports", workflow_imports.str()},
+        {"worker_main_workflow_invoker_composition", workflow_invoker_composition.str()},
     };
 }
 
@@ -3893,16 +3853,7 @@ void add_java_worker_artifacts(
         }
         add_java_generated_template_file(
             result, options, templates, java_worker_generated_path("WorkflowStepHandlers.java"),
-            GeneratedArtifactTier::Worker, diagnostics,
-            TemplateRenderer::Values{
-                {"workflow_step_handler_imports", java_workflow_step_handler_imports(system)},
-                {"default_workflow_step_handler_members",
-                 java_workflow_step_handler_bundle_members(system)},
-                {"default_workflow_step_handler_setters",
-                 java_workflow_step_handler_bundle_setters(system)},
-                {"default_workflow_step_handler_lookup",
-                 java_workflow_step_handler_bundle_lookup(system)}
-            }
+            GeneratedArtifactTier::Worker, diagnostics
         );
         add_java_generated_template_file(
             result, options, templates, java_worker_generated_path("WorkflowRunner.java"),

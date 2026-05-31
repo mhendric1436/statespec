@@ -75,11 +75,11 @@ public final class WorkerLinkingFixture
         );
 
         LinkingStepHandler handler = new LinkingStepHandler();
-        WorkflowStepHandlers.DefaultHandlerBundle handlers =
-            new WorkflowStepHandlers.DefaultHandlerBundle();
-        handlers.setProvisionServiceHandler(handler);
+        var invokers =
+            new java.util.LinkedHashMap<String, WorkflowStepHandlers.WorkflowStepInvoker>();
+        WorkerRegistry.registerProvisionServiceWorkflowStepInvokers(invokers, handler);
         WorkflowRunner runner = new WorkflowRunner(
-            backend, workflows, handlers, "ProvisionWorker", Duration.ofMinutes(1), 3
+            backend, workflows, invokers, "ProvisionWorker", Duration.ofMinutes(1), 3
         );
         Optional<Workflow.WorkflowExecutionRecord> advanced =
             runner.runOnce("wf-1", "ProvisionService", 1L);
