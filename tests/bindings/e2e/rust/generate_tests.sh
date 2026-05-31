@@ -465,5 +465,6 @@ mkdir -p "$TMPDIR/out-app-rust/tests"
 cp "$SCRIPT_DIR/api_linking_fixture.rs" "$TMPDIR/out-app-rust/tests/api_linking_fixture.rs"
 cp "$SCRIPT_DIR/registration_restart_fixture.rs" "$TMPDIR/out-app-rust/tests/registration_restart_fixture.rs"
 cp "$SCRIPT_DIR/worker_linking_fixture.rs" "$TMPDIR/out-app-rust/tests/worker_linking_fixture.rs"
+cp "$SCRIPT_DIR/worker_long_running_fixture.rs" "$TMPDIR/out-app-rust/tests/worker_long_running_fixture.rs"
 cp "$SCRIPT_DIR/worker_process_fixture.rs" "$TMPDIR/out-app-rust/tests/worker_process_fixture.rs"
 run_expect_status 0 make -C "$TMPDIR/out-app-rust" check

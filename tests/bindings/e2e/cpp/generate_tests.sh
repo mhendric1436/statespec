@@ -471,5 +471,7 @@ run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TM
 run_expect_status 0 "$TMPDIR/out-app-cpp/build/registration-restart-fixture"
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/worker_linking_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/worker-linking-fixture"
 run_expect_status 0 "$TMPDIR/out-app-cpp/build/worker-linking-fixture"
+run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/worker_long_running_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/worker-long-running-fixture"
+run_expect_status 0 "$TMPDIR/out-app-cpp/build/worker-long-running-fixture"
 run_expect_status 0 "${CXX:-clang++}" -std=c++20 -Wall -Wextra -Wpedantic -I"$TMPDIR/out-app-cpp" -I"$TMPDIR/out-app-cpp/common" "$SCRIPT_DIR/worker_process_fixture.cpp" -o "$TMPDIR/out-app-cpp/build/worker-process-fixture"
 run_expect_status 0 "$TMPDIR/out-app-cpp/build/worker-process-fixture"

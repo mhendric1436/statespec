@@ -528,9 +528,11 @@ assert_java_workflow_result_regression "$TMPDIR/out-app-java"
 cp "$SCRIPT_DIR/ApiLinkingFixture.java" "$TMPDIR/out-app-java/api/com/statespec/generated/ApiLinkingFixture.java"
 cp "$SCRIPT_DIR/RegistrationRestartFixture.java" "$TMPDIR/out-app-java/common/com/statespec/generated/RegistrationRestartFixture.java"
 cp "$SCRIPT_DIR/WorkerLinkingFixture.java" "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerLinkingFixture.java"
+cp "$SCRIPT_DIR/WorkerLongRunningFixture.java" "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerLongRunningFixture.java"
 cp "$SCRIPT_DIR/WorkerProcessFixture.java" "$TMPDIR/out-app-java/worker/com/statespec/generated/WorkerProcessFixture.java"
 run_expect_status 0 make -C "$TMPDIR/out-app-java" check
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.ApiLinkingFixture
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.RegistrationRestartFixture
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.WorkerLinkingFixture
+run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.WorkerLongRunningFixture
 run_expect_status 0 "${JAVA:-java}" -cp "$TMPDIR/out-app-java/build/classes" com.statespec.generated.WorkerProcessFixture

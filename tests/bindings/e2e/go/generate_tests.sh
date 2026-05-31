@@ -492,6 +492,7 @@ assert_go_workflow_result_regression "$TMPDIR/out-app-go"
 cp "$SCRIPT_DIR/api_linking_fixture_test.go" "$TMPDIR/out-app-go/api/backend/api_linking_fixture_test.go"
 cp "$SCRIPT_DIR/registration_restart_fixture_test.go" "$TMPDIR/out-app-go/common/backend/registration_restart_fixture_test.go"
 cp "$SCRIPT_DIR/worker_linking_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_linking_fixture_test.go"
+cp "$SCRIPT_DIR/worker_long_running_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_long_running_fixture_test.go"
 cp "$SCRIPT_DIR/worker_process_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_process_fixture_test.go"
 run_expect_status 0 make -C "$TMPDIR/out-app-go" check
 run_expect_status 0 env GOCACHE="$TMPDIR/go-cache" make -C "$TMPDIR/out-app-go" build
