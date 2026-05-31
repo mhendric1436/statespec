@@ -1,6 +1,6 @@
 use crate::backend::{Backend, BackendResult};
 use crate::memory_backend::InMemoryBackend;
-{{worker_main_entity_gc_import}}use crate::workflow_step_handlers::DefaultWorkflowStepHandlerBundle;
+{{worker_main_entity_gc_import}}{{worker_main_workflow_imports}}use crate::workflow_step_handlers::WorkflowStepInvokerMap;
 use crate::worker_process::WorkerProcess;
 use crate::worker_runtime::WorkerRuntime;
 
@@ -14,8 +14,11 @@ pub fn main() {
 pub fn run() -> BackendResult<()> {
     let backend = InMemoryBackend::new();
 {{worker_main_entity_gc_backend_clone}}    let runtime = WorkerRuntime::new(backend);
-    let handlers = std::sync::Arc::new(DefaultWorkflowStepHandlerBundle::default());
-    let process = std::sync::Arc::new(WorkerProcess::new(runtime, handlers));
+    let mut workflow_step_invokers = WorkflowStepInvokerMap::new();
+{{worker_main_workflow_invoker_composition}}    let process = std::sync::Arc::new(WorkerProcess::new(
+        runtime,
+        std::sync::Arc::new(workflow_step_invokers),
+    ));
 {{worker_main_entity_gc_registration}}    process.start()?;
     install_signal_handling(process.clone());
     process.join()

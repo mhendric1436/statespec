@@ -1,25 +1,25 @@
 use crate::backend::{Backend, BackendResult};
 use crate::workflow::WorkflowExecutionRecord;
-use crate::workflow_step_handlers::WorkflowStepHandlerBundle;
+use crate::workflow_step_handlers::WorkflowStepInvokerMap;
 use crate::worker_contexts::WorkerContext;
 use crate::worker_runtime::WorkerRuntime;
 
 pub struct WorkerApplication<'a, B: Backend> {
     pub context: WorkerContext,
     pub runtime: &'a WorkerRuntime<B>,
-    pub handlers: &'a dyn WorkflowStepHandlerBundle,
+    pub workflow_step_invokers: &'a WorkflowStepInvokerMap<B>,
 }
 
 impl<'a, B: Backend> WorkerApplication<'a, B> {
     pub fn new(
         context: WorkerContext,
         runtime: &'a WorkerRuntime<B>,
-        handlers: &'a dyn WorkflowStepHandlerBundle,
+        workflow_step_invokers: &'a WorkflowStepInvokerMap<B>,
     ) -> Self {
         Self {
             context,
             runtime,
-            handlers,
+            workflow_step_invokers,
         }
     }
 
@@ -28,6 +28,6 @@ impl<'a, B: Backend> WorkerApplication<'a, B> {
         workflow_execution_id: &str,
     ) -> BackendResult<Option<WorkflowExecutionRecord>> {
         self.runtime
-            .run_once(&self.context, self.handlers, workflow_execution_id)
+            .run_once(&self.context, self.workflow_step_invokers, workflow_execution_id)
     }
 }

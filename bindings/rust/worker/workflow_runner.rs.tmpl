@@ -6,14 +6,13 @@ use crate::workflow::{
     FailWorkflowStepRequest, KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,
 };
 use crate::workflow_step_handlers::{
-    workflow_step_key, WorkflowStepHandlerBundle, WorkflowStepHandlerContext, WorkflowStepResult,
+    workflow_step_key, WorkflowStepHandlerContext, WorkflowStepInvokerMap, WorkflowStepResult,
 };
-use crate::worker_registry::workflow_step_invokers;
 
 pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>> {
     pub backend: &'a B,
     pub workflow_store: &'a S,
-    pub handlers: &'a dyn WorkflowStepHandlerBundle,
+    pub workflow_step_invokers: &'a WorkflowStepInvokerMap<B>,
     pub worker_name: String,
     pub lease_duration: Duration,
     pub max_attempts: u32,
@@ -63,8 +62,8 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
             record.workflow_version,
             &record.current_step,
         );
-        let handler_result = match workflow_step_invokers::<B>().get(&key) {
-            Some(invoker) => invoker(self.handlers, self.backend, &context),
+        let handler_result = match self.workflow_step_invokers.get(&key) {
+            Some(invoker) => invoker(self.backend, &context),
             None => Err(BackendError::Unsupported {
                 message: format!("unknown generated workflow step handler: {}", key),
             }),

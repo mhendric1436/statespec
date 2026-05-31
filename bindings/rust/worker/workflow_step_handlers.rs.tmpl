@@ -1,8 +1,8 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::backend::BackendResult;
 use crate::json::Json;
-{{workflow_step_handler_imports}}
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct WorkflowStepKey {
@@ -56,29 +56,6 @@ impl WorkflowStepResult {
 }
 
 pub type WorkflowStepInvoker<B> =
-    fn(
-        &dyn WorkflowStepHandlerBundle,
-        &B,
-        &WorkflowStepHandlerContext,
-    ) -> BackendResult<WorkflowStepResult>;
+    Arc<dyn Fn(&B, &WorkflowStepHandlerContext) -> BackendResult<WorkflowStepResult> + Send + Sync>;
 
-pub trait WorkflowStepHandlerBundle {
-{{workflow_step_handler_bundle_methods}}
-}
-
-#[derive(Clone)]
-pub struct DefaultWorkflowStepHandlerBundle {
-{{default_workflow_step_handler_fields}}}
-
-impl Default for DefaultWorkflowStepHandlerBundle {
-    fn default() -> Self {
-        Self {
-{{default_workflow_step_handler_initializers}}        }
-    }
-}
-
-impl DefaultWorkflowStepHandlerBundle {
-{{default_workflow_step_handler_setters}}}
-
-impl WorkflowStepHandlerBundle for DefaultWorkflowStepHandlerBundle {
-{{default_workflow_step_handler_bundle_impl}}}
+pub type WorkflowStepInvokerMap<B> = HashMap<String, WorkflowStepInvoker<B>>;

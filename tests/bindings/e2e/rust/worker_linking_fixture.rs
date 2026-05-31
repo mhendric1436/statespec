@@ -8,9 +8,10 @@ use statespec_generated::workflow::{
     WorkflowStepDefinition, WorkflowStore,
 };
 use statespec_generated::workflow_provision_service_handlers::ProvisionServiceV1StepHandler;
+use statespec_generated::workflow_provision_service_registry;
 use statespec_generated::workflow_runner::WorkflowRunner;
 use statespec_generated::workflow_step_handlers::{
-    DefaultWorkflowStepHandlerBundle, WorkflowStepHandlerContext, WorkflowStepResult,
+    WorkflowStepHandlerContext, WorkflowStepInvokerMap, WorkflowStepResult,
 };
 
 struct LinkingWorkflowStepHandler;
@@ -96,12 +97,15 @@ fn generated_worker_runner_links_with_memory_backend() {
         )
         .unwrap();
 
-    let handlers = DefaultWorkflowStepHandlerBundle::default()
-        .with_provision_service_v1_handler(std::sync::Arc::new(LinkingWorkflowStepHandler));
+    let mut workflow_step_invokers = WorkflowStepInvokerMap::new();
+    workflow_provision_service_registry::register_workflow_step_invokers::<InMemoryBackend>(
+        &mut workflow_step_invokers,
+        std::sync::Arc::new(LinkingWorkflowStepHandler),
+    );
     let runner = WorkflowRunner {
         backend: &backend,
         workflow_store: &workflows,
-        handlers: &handlers,
+        workflow_step_invokers: &workflow_step_invokers,
         worker_name: "ProvisionWorker".to_string(),
         lease_duration: Duration::from_secs(60),
         max_attempts: 3,
