@@ -15,7 +15,7 @@ type processWorkflowStepHandler struct {
 	handled chan struct{}
 }
 
-func (h processWorkflowStepHandler) HandleValidateRequest(ctx context.Context, step worker.WorkflowStepHandlerContext) error {
+func (h processWorkflowStepHandler) HandleValidateRequest(ctx context.Context, step worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
 	if step.WorkflowName != "ProvisionService" || step.StepName != "validate_request" {
 		t := ctx.Value(testingContextKey{}).(*testing.T)
 		t.Fatalf("unexpected workflow step: %#v", step)
@@ -25,15 +25,17 @@ func (h processWorkflowStepHandler) HandleValidateRequest(ctx context.Context, s
 	default:
 		close(h.handled)
 	}
-	return nil
+	nextStep := "create_remote_service"
+	return worker.Complete(&nextStep), nil
 }
 
-func (h processWorkflowStepHandler) HandleCreateRemoteService(context.Context, worker.WorkflowStepHandlerContext) error {
-	return nil
+func (h processWorkflowStepHandler) HandleCreateRemoteService(context.Context, worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+	nextStep := "wait_for_remote_service"
+	return worker.Complete(&nextStep), nil
 }
 
-func (h processWorkflowStepHandler) HandleWaitForRemoteService(context.Context, worker.WorkflowStepHandlerContext) error {
-	return nil
+func (h processWorkflowStepHandler) HandleWaitForRemoteService(context.Context, worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+	return worker.Complete(nil), nil
 }
 
 func TestGeneratedWorkerProcessLifecycle(t *testing.T) {

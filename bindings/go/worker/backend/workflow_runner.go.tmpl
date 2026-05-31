@@ -6,7 +6,6 @@ import (
 	"time"
 
 	common "statespec-generated/common/backend"
-	workflowmodules "statespec-generated/worker/backend/workflows"
 )
 
 type WorkflowRunner struct {
@@ -54,7 +53,46 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 	if !handled {
 		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s", stepKey)
 	} else {
-		handlerErr = invoker(ctx, runner.Handlers, runner.Backend, stepContext)
+		result, err := invoker(ctx, runner.Handlers, runner.Backend, stepContext)
+		handlerErr = err
+		if handlerErr == nil {
+			switch result.Kind {
+			case WorkflowStepFail:
+				failed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, common.FailWorkflowStepRequest{
+					WorkflowExecutionID: record.WorkflowExecutionID,
+					Worker:              runner.WorkerName,
+					FailedStep:          record.CurrentStep,
+					Reason:              result.Reason,
+					Now:                 time.Now(),
+					MaxAttempts:         runner.MaxAttempts,
+				})
+				if failErr != nil {
+					return nil, failErr
+				}
+				return &failed, nil
+			case WorkflowStepCancel:
+				canceled, cancelErr := runner.WorkflowStore.Cancel(ctx, runner.Backend, common.CancelWorkflowRequest{
+					WorkflowExecutionID: record.WorkflowExecutionID,
+					Reason:              result.Reason,
+				})
+				if cancelErr != nil {
+					return nil, cancelErr
+				}
+				return &canceled, nil
+			default:
+				completed, completeErr := runner.WorkflowStore.CompleteStep(ctx, runner.Backend, common.CompleteWorkflowStepRequest{
+					WorkflowExecutionID: record.WorkflowExecutionID,
+					Worker:              runner.WorkerName,
+					CompletedStep:       record.CurrentStep,
+					NextStep:            result.NextStep,
+					State:               record.State,
+				})
+				if completeErr != nil {
+					return nil, completeErr
+				}
+				return &completed, nil
+			}
+		}
 	}
 	if handlerErr != nil {
 		failed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, common.FailWorkflowStepRequest{
@@ -70,17 +108,5 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		}
 		return &failed, handlerErr
 	}
-	var nextStep *string
-{{workflow_step_module_next_cases}}
-	completed, err := runner.WorkflowStore.CompleteStep(ctx, runner.Backend, common.CompleteWorkflowStepRequest{
-		WorkflowExecutionID: record.WorkflowExecutionID,
-		Worker:              runner.WorkerName,
-		CompletedStep:       record.CurrentStep,
-		NextStep:            nextStep,
-		State:               record.State,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &completed, nil
+	return nil, nil
 }

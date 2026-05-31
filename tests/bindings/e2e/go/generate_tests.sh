@@ -112,7 +112,6 @@ worker/backend/worker_workflows.go
 worker/backend/workflow_runner.go
 worker/backend/workflow_step_handlers.go
 worker/backend/workflows/context/context.go
-worker/backend/workflows/provision_service.go
 worker/backend/workflows/provision_service/handlers.go
 worker/backend/workflows/provision_service/registry.go
 worker/backend/workflows/workflows.go
@@ -451,7 +450,11 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.g
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "func WorkflowStepKeyString(workflowName string, workflowVersion int, stepName string) string"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "workflowName + \":\" + strconv.Itoa(workflowVersion) + \":\" + stepName"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "common \"statespec-generated/common/backend\""
-assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "type WorkflowStepInvoker func(context.Context, WorkflowStepHandlerBundle, common.Backend, WorkflowStepHandlerContext) error"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "type WorkflowStepResult = workflowmodules.WorkflowStepResult"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "func Complete(nextStep *string) WorkflowStepResult"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "func Fail(reason string) WorkflowStepResult"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "func Cancel(reason string) WorkflowStepResult"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "type WorkflowStepInvoker func(context.Context, WorkflowStepHandlerBundle, common.Backend, WorkflowStepHandlerContext) (WorkflowStepResult, error)"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "type DefaultWorkflowStepHandlerBundle struct"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/worker_registry.go" "func WorkflowStepInvokers"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service/registry.go" "func WorkflowStepInvokers"
@@ -461,13 +464,15 @@ assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_serv
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service/registry.go" "\"ProvisionService:1:wait_for_remote_service\""
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_step_handlers.go" "ProvisionServiceStepHandler"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service/handlers.go" "type ProvisionServiceV1StepHandler interface"
-assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service/handlers.go" "HandleValidateRequest"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service/handlers.go" "HandleValidateRequest(context.Context, workflowcontext.WorkflowStepHandlerContext) (workflowcontext.WorkflowStepResult, error)"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "WorkflowStepInvokers()"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "stepKey := WorkflowStepKeyString"
 assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "unknown generated workflow step handler: %s"
-assert_file_not_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "HandleValidateRequest"
-assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "nextStep := \"create_remote_service\""
-assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go" "nextStep := \"wait_for_remote_service\""
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "switch result.Kind"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "case WorkflowStepFail:"
+assert_file_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "case WorkflowStepCancel:"
+assert_file_not_contains "$TMPDIR/out-app-go/worker/backend/workflow_runner.go" "NextProvisionServiceStep"
+assert_file_not_exists "$TMPDIR/out-app-go/worker/backend/workflows/provision_service.go"
 cp "$SCRIPT_DIR/api_linking_fixture_test.go" "$TMPDIR/out-app-go/api/backend/api_linking_fixture_test.go"
 cp "$SCRIPT_DIR/registration_restart_fixture_test.go" "$TMPDIR/out-app-go/common/backend/registration_restart_fixture_test.go"
 cp "$SCRIPT_DIR/worker_linking_fixture_test.go" "$TMPDIR/out-app-go/worker/backend/worker_linking_fixture_test.go"

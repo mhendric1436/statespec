@@ -203,6 +203,26 @@ std::string generate_go_workflow_module_support()
 import workflowcontext "statespec-generated/worker/backend/workflows/context"
 
 type WorkflowStepHandlerContext = workflowcontext.WorkflowStepHandlerContext
+type WorkflowStepResultKind = workflowcontext.WorkflowStepResultKind
+type WorkflowStepResult = workflowcontext.WorkflowStepResult
+
+const (
+	WorkflowStepComplete = workflowcontext.WorkflowStepComplete
+	WorkflowStepFail     = workflowcontext.WorkflowStepFail
+	WorkflowStepCancel   = workflowcontext.WorkflowStepCancel
+)
+
+func Complete(nextStep *string) WorkflowStepResult {
+	return workflowcontext.Complete(nextStep)
+}
+
+func Fail(reason string) WorkflowStepResult {
+	return workflowcontext.Fail(reason)
+}
+
+func Cancel(reason string) WorkflowStepResult {
+	return workflowcontext.Cancel(reason)
+}
 )";
 }
 
@@ -218,6 +238,32 @@ type WorkflowStepHandlerContext struct {
 	StepName        string
 	ExecutionID     *string
 	Input           common.JSON
+}
+
+type WorkflowStepResultKind string
+
+const (
+	WorkflowStepComplete WorkflowStepResultKind = "complete"
+	WorkflowStepFail     WorkflowStepResultKind = "fail"
+	WorkflowStepCancel   WorkflowStepResultKind = "cancel"
+)
+
+type WorkflowStepResult struct {
+	Kind     WorkflowStepResultKind
+	NextStep *string
+	Reason   string
+}
+
+func Complete(nextStep *string) WorkflowStepResult {
+	return WorkflowStepResult{Kind: WorkflowStepComplete, NextStep: nextStep}
+}
+
+func Fail(reason string) WorkflowStepResult {
+	return WorkflowStepResult{Kind: WorkflowStepFail, Reason: reason}
+}
+
+func Cancel(reason string) WorkflowStepResult {
+	return WorkflowStepResult{Kind: WorkflowStepCancel, Reason: reason}
 }
 )";
 }
@@ -303,7 +349,8 @@ std::string go_worker_registry_facade(const IrSystem& system)
             out << "\t\tlocalInvoker := invoker\n";
             out << "\t\tinvokers[key] = func(ctx context.Context, handlers "
                    "WorkflowStepHandlerBundle, "
-                   "backend common.Backend, stepContext WorkflowStepHandlerContext) error {\n";
+                   "backend common.Backend, stepContext WorkflowStepHandlerContext) "
+                   "(WorkflowStepResult, error) {\n";
             out << "\t\t\tworkflowHandler := "
                    "handlers.WorkflowStepHandler(stepContext.WorkflowName, "
                    "stepContext.WorkflowVersion)\n";
@@ -314,36 +361,6 @@ std::string go_worker_registry_facade(const IrSystem& system)
         out << "\treturn invokers\n";
         out << "}\n";
     }
-    return out.str();
-}
-
-std::string generate_go_workflow_worker_module(const IrWorkflow& workflow)
-{
-    std::ostringstream out;
-    out << "package workflows\n\n";
-    out << "func Next" << pascal_identifier(workflow.name)
-        << "Step(workflowName string, currentStep string) *string {\n";
-    out << "\tif workflowName != " << go_string(workflow.name) << " {\n";
-    out << "\t\treturn nil\n";
-    out << "\t}\n";
-    out << "\tswitch currentStep {\n";
-    for (const auto& step : workflow.steps)
-    {
-        for (const auto& statement : step.statements)
-        {
-            if (statement.kind != "transition_to" || !statement.target.has_value())
-            {
-                continue;
-            }
-            out << "\tcase " << go_string(step.name) << ":\n";
-            out << "\t\tnextStep := " << go_string(*statement.target) << "\n";
-            out << "\t\treturn &nextStep\n";
-        }
-    }
-    out << "\tdefault:\n";
-    out << "\t\treturn nil\n";
-    out << "\t}\n";
-    out << "}\n";
     return out.str();
 }
 
@@ -361,7 +378,8 @@ std::string generate_go_workflow_handler_module(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "\tHandle" << pascal_identifier(step.name)
-            << "(context.Context, workflowcontext.WorkflowStepHandlerContext) error\n";
+            << "(context.Context, workflowcontext.WorkflowStepHandlerContext) "
+               "(workflowcontext.WorkflowStepResult, error)\n";
     }
     out << "}\n\n";
     out << "type " << pascal_identifier(workflow.name)
@@ -372,9 +390,11 @@ std::string generate_go_workflow_handler_module(const IrWorkflow& workflow)
     {
         out << "func (Default" << pascal_identifier(workflow.name) << "StepHandler) Handle"
             << pascal_identifier(step.name)
-            << "(context.Context, workflowcontext.WorkflowStepHandlerContext) error {\n";
-        out << "\treturn fmt.Errorf(\"generated workflow step handler " << workflow.name << "."
-            << step.name << " is not implemented\")\n";
+            << "(context.Context, workflowcontext.WorkflowStepHandlerContext) "
+               "(workflowcontext.WorkflowStepResult, error) {\n";
+        out << "\treason := \"generated workflow step handler " << workflow.name << "." << step.name
+            << " is not implemented\"\n";
+        out << "\treturn workflowcontext.Fail(reason), fmt.Errorf(reason)\n";
         out << "}\n\n";
     }
     return out.str();
@@ -391,18 +411,21 @@ std::string generate_go_workflow_registry_module(const IrWorkflow& workflow)
     out << "\tworkflowcontext \"statespec-generated/worker/backend/workflows/context\"\n";
     out << ")\n\n";
     out << "type StepInvoker func(context.Context, any, common.Backend, "
-           "workflowcontext.WorkflowStepHandlerContext) error\n\n";
+           "workflowcontext.WorkflowStepHandlerContext) (workflowcontext.WorkflowStepResult, "
+           "error)\n\n";
     for (const auto& step : workflow.steps)
     {
         out << "func invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
             << "(ctx context.Context, workflowHandler any, backend common.Backend, stepContext "
-               "workflowcontext.WorkflowStepHandlerContext) error {\n";
+               "workflowcontext.WorkflowStepHandlerContext) "
+               "(workflowcontext.WorkflowStepResult, error) {\n";
         out << "\t_ = backend\n";
         out << "\thandler, ok := workflowHandler.(" << pascal_identifier(workflow.name)
             << "StepHandler)\n";
         out << "\tif !ok || handler == nil {\n";
-        out << "\t\treturn fmt.Errorf(\"generated workflow step handler " << workflow.name << " v"
-            << workflow.version.value_or(1) << " is not registered\")\n";
+        out << "\t\treason := \"generated workflow step handler " << workflow.name << " v"
+            << workflow.version.value_or(1) << " is not registered\"\n";
+        out << "\t\treturn workflowcontext.Fail(reason), fmt.Errorf(reason)\n";
         out << "\t}\n";
         out << "\treturn handler.Handle" << pascal_identifier(step.name) << "(ctx, stepContext)\n";
         out << "}\n\n";
@@ -463,18 +486,8 @@ std::string go_workflow_step_handler_bundle_lookup(const IrSystem& system)
 
 TemplateRenderer::Values go_workflow_runner_values(const IrSystem& system)
 {
-    std::ostringstream next_cases;
-    for (const auto& workflow : system.workflows)
-    {
-        const auto pascal = pascal_identifier(workflow.name);
-        next_cases << "\tif nextStep == nil {\n";
-        next_cases << "\t\tnextStep = workflowmodules.Next" << pascal
-                   << "Step(record.WorkflowName, record.CurrentStep)\n";
-        next_cases << "\t}\n";
-    }
-    return TemplateRenderer::Values{
-        {"workflow_step_module_next_cases", next_cases.str()},
-    };
+    (void)system;
+    return TemplateRenderer::Values{};
 }
 
 TemplateRenderer::Values go_api_runtime_bootstrap_values(const IrSystem& system)
@@ -3779,11 +3792,6 @@ void add_go_worker_artifacts(
                 result, options,
                 "worker/backend/workflows/" + snake_identifier(workflow.name) + "/registry.go",
                 generate_go_workflow_registry_module(workflow)
-            );
-            add_go_raw_worker_file(
-                result, options,
-                "worker/backend/workflows/" + snake_identifier(workflow.name) + ".go",
-                generate_go_workflow_worker_module(workflow)
             );
         }
         add_go_generated_template_file(

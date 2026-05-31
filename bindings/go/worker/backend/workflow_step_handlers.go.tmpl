@@ -24,8 +24,28 @@ func WorkflowStepKeyString(workflowName string, workflowVersion int, stepName st
 }
 
 type WorkflowStepHandlerContext = workflowmodules.WorkflowStepHandlerContext
+type WorkflowStepResultKind = workflowmodules.WorkflowStepResultKind
+type WorkflowStepResult = workflowmodules.WorkflowStepResult
 
-type WorkflowStepInvoker func(context.Context, WorkflowStepHandlerBundle, common.Backend, WorkflowStepHandlerContext) error
+const (
+	WorkflowStepComplete = workflowmodules.WorkflowStepComplete
+	WorkflowStepFail     = workflowmodules.WorkflowStepFail
+	WorkflowStepCancel   = workflowmodules.WorkflowStepCancel
+)
+
+func Complete(nextStep *string) WorkflowStepResult {
+	return workflowmodules.Complete(nextStep)
+}
+
+func Fail(reason string) WorkflowStepResult {
+	return workflowmodules.Fail(reason)
+}
+
+func Cancel(reason string) WorkflowStepResult {
+	return workflowmodules.Cancel(reason)
+}
+
+type WorkflowStepInvoker func(context.Context, WorkflowStepHandlerBundle, common.Backend, WorkflowStepHandlerContext) (WorkflowStepResult, error)
 
 type WorkflowStepHandlerBundle interface {
 	WorkflowStepHandler(workflowName string, workflowVersion int64) any
