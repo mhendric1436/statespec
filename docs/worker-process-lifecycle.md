@@ -36,14 +36,32 @@ The empty workflow execution id used by the polling loop means "claim the next r
 execution for this workflow name and version." Direct tests and specialized adapters may
 still pass a concrete workflow execution id to run a known execution.
 
+## Current Keep-Alive Baseline
+
+The current generated `WorkflowRunner.run_once` implementation performs exactly one
+backend-managed keep-alive call after a workflow step is claimed and before the typed
+step handler is invoked. It does not yet start a periodic background keep-alive task
+while the handler is running.
+
+This baseline is sufficient for short local fixture handlers and for documenting the
+claim/handler/finalization order. Long-running handlers can outlive the renewed claim
+lease if their execution time exceeds the keep-alive extension. Production deployments
+with long workflow steps should either keep step handlers shorter than the lease window
+or wait for the planned periodic keep-alive controller work.
+
+The future periodic design must avoid conflicting with the transaction-scoped handler
+model. A background keep-alive must not update the same workflow execution document
+version that the open handler transaction reads and later commits, unless the backend
+model separates claim heartbeat state from the workflow execution state being finalized.
+
 ## Transaction Boundaries
 
 `WorkflowRunner.run_once` uses claim ownership and step finalization as separate OCC
 boundaries:
 
 1. Claim the step with a backend-managed workflow-store call and commit that claim.
-2. Keep the claim alive with independent keep-alive calls while execution is in
-   progress.
+2. Keep the claim alive once with a backend-managed keep-alive call before handler
+   execution.
 3. Begin a second transaction, re-read and revalidate the claimed workflow execution,
    invoke the typed step handler with that transaction, apply the handler result with
    `complete`, `fail`, or `cancel` through the workflow store `Tx` API, and commit.

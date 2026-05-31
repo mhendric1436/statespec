@@ -323,7 +323,7 @@ Language bindings for C++, Go, Java, and Rust generate deployable artifact group
 
 - `common` contains backend interfaces, usage-pruned typed runtime surfaces, shared descriptors, entity/workflow/queue/lease/log/metric/feature-flag definitions, external-system metadata helpers, and generated build files.
 - `api` contains API tier descriptors, route descriptors, handler contracts, dispatchers, operator metadata APIs, and API server shells.
-- `worker` contains worker descriptors, worker contexts, usage-pruned queue/lease/workflow views, workflow step handler contracts, worker registries, worker app shells, and workflow runners with keep-alive support.
+- `worker` contains worker descriptors, worker contexts, usage-pruned queue/lease/workflow views, workflow step handler contracts, worker registries, worker app shells, and workflow runners with current single pre-handler keep-alive support.
 
 ### Generated facade dependency rule
 
@@ -406,10 +406,16 @@ Generated worker apps own structural workflow and worker wiring:
 - Worker registry and descriptor lookup.
 - Workflow step handler interfaces.
 - Queue worker interfaces.
-- Workflow runner behavior for claim, keep alive, result-driven complete/fail/cancel,
-  and retry-visible state.
+- Workflow runner behavior for claim, current single pre-handler keep alive,
+  result-driven complete/fail/cancel, and retry-visible state.
 
 User-owned code supplies concrete workflow step handlers, concrete queue workers, external API clients, retry policy integration, runtime configuration, and concrete backend adapters.
+
+The current generated workflow runner baseline performs exactly one keep-alive after
+claiming a step and before invoking the step handler. It does not yet run periodic
+background keep-alives during handler execution. Future periodic keep-alive work must
+preserve the transaction-scoped handler model and avoid introducing OCC conflicts with
+the workflow execution document that the handler transaction revalidates and finalizes.
 
 Generated workflow step advancement must be handler-result driven. Workflow step
 handlers return a generated `WorkflowStepResult` or language equivalent that explicitly

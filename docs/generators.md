@@ -222,17 +222,18 @@ The worker application artifact responsibilities are:
 | `worker_process` | Thread/goroutine-owned Worker lifecycle: bootstrap, workflow polling loops, Worker-hosted GC, stop, and join |
 | `worker_runtime` | Store composition, definition registration, GC worker registration, and one-step workflow execution runtime |
 | `worker_registry` | Registry derived from `worker` declarations |
-| `workflow_runner` | Workflow claim, keep-alive, typed step dispatch, handler-result complete/fail/cancel, and retry loop |
+| `workflow_runner` | Workflow claim, current single pre-handler keep-alive, typed step dispatch, handler-result complete/fail/cancel, and retry loop |
 | `workflow_step_handlers` | Step-specific user implementation contract, result type, invoker map support, and default linking handlers for declared workflow steps |
 | `worker_main` | Worker process entrypoint |
 
 Generated workflow runners use two OCC boundaries. The claim call is backend-managed and
 commits before handler code runs. The handler then runs inside a caller-managed
 transaction used for persisted StateSpec reads/writes and the final
-complete/fail/cancel workflow-store `Tx` operation. Keep-alive calls remain independent
-lease-maintenance operations. Generated handler contracts should make the transaction
-available to user code so workflow advancement and handler-owned durable mutations
-commit atomically.
+complete/fail/cancel workflow-store `Tx` operation. The current generated baseline
+performs one independent keep-alive call between claim and handler execution; it does
+not yet run a periodic background keep-alive while the handler is executing. Generated
+handler contracts should make the transaction available to user code so workflow
+advancement and handler-owned durable mutations commit atomically.
 
 Generated API application filenames:
 

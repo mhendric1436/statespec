@@ -51,9 +51,9 @@ Generated code owns:
   registry helpers, and process entrypoints
 - workflow step handler context types, typed step-specific handler methods, and
   deterministic workflow step handler keys
-- workflow runners that claim workflow steps, call user handlers, keep claimed steps
-  alive, and apply handler-returned complete/fail/cancel results through backend
-  workflow stores
+- workflow runners that claim workflow steps, perform the current single pre-handler
+  keep-alive call, call user handlers, and apply handler-returned complete/fail/cancel
+  results through backend workflow stores
 - transaction-scoped catalog registration helpers for queues, leases, workflows, feature
   flags, logs, and metrics when those runtime domains are used
 - operator metadata lookup, default mapping applicators, external-system client call

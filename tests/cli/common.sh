@@ -73,6 +73,19 @@ assert_file_not_contains() {
     fi
 }
 
+assert_file_occurrence_count() {
+    path="$1"
+    needle="$2"
+    expected="$3"
+    actual="$(grep -F -- "$needle" "$path" | wc -l | tr -d ' ')"
+    if [ "$actual" != "$expected" ]; then
+        echo "expected $path to contain $expected occurrences of: $needle" >&2
+        echo "actual occurrences: $actual" >&2
+        cat "$path" >&2 || true
+        exit 1
+    fi
+}
+
 assert_tree_files_not_contains() {
     root="$1"
     file_pattern="$2"

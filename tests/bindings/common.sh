@@ -61,6 +61,7 @@ assert_cpp_workflow_transaction_regression() {
     assert_file_contains "$root/worker/workflows/provision_service/registry.hpp" "return handler.handle_create_remote_service(tx, context);"
     assert_file_contains "$root/worker/workflows/provision_service/registry.hpp" "return handler.handle_wait_for_remote_service(tx, context);"
     assert_file_contains "$root/worker/workflow_runner.hpp" "workflow_store_.keep_alive_step"
+    assert_file_occurrence_count "$root/worker/workflow_runner.hpp" "workflow_store_.keep_alive_step" 1
     assert_file_contains "$root/worker/workflow_runner.hpp" "auto tx = backend_.begin()"
     assert_file_contains "$root/worker/workflow_runner.hpp" "const auto current = revalidate_claimed_step(*tx, record)"
     assert_file_contains "$root/worker/workflow_runner.hpp" "result = invoker->second(backend_, *tx, context)"
@@ -87,6 +88,7 @@ assert_go_workflow_result_regression() {
     assert_file_contains "$root/worker/backend/workflow_runner.go" "unknown generated workflow step handler: %s"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "case WorkflowStepFail:"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "case WorkflowStepCancel:"
+    assert_file_occurrence_count "$root/worker/backend/workflow_runner.go" "runner.WorkflowStore.KeepAliveStep" 1
     assert_file_contains "$root/worker/backend/workflow_runner.go" "tx, err := runner.Backend.Begin(ctx)"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "runner.revalidateClaimedStep(ctx, tx, record)"
     assert_file_contains "$root/worker/backend/workflow_runner.go" "result, err = invoker(ctx, runner.Backend, tx, stepContext)"
@@ -112,6 +114,7 @@ assert_java_workflow_result_regression() {
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "unknown generated workflow step handler: \" + stepKey"
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepResultKind.FAIL"
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepResultKind.CANCEL"
+    assert_file_occurrence_count "$root/worker/com/statespec/generated/WorkflowRunner.java" "workflowStore.keepAliveStep" 1
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "Backend.Transaction tx = backend.begin();"
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "revalidateClaimedStep(tx, record)"
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "result = invoker.invoke(backend, tx, context);"
@@ -137,6 +140,7 @@ assert_rust_workflow_result_regression() {
     assert_file_contains "$root/worker/workflow_runner.rs" "WorkflowStepResult::Complete { next_step }"
     assert_file_contains "$root/worker/workflow_runner.rs" "WorkflowStepResult::Fail { reason }"
     assert_file_contains "$root/worker/workflow_runner.rs" "WorkflowStepResult::Cancel { reason }"
+    assert_file_occurrence_count "$root/worker/workflow_runner.rs" "self.workflow_store.keep_alive_step" 1
     assert_file_contains "$root/worker/workflow_runner.rs" "let mut tx = self.backend.begin()?"
     assert_file_contains "$root/worker/workflow_runner.rs" "self.revalidate_claimed_step(tx, &claimed)"
     assert_file_contains "$root/worker/workflow_runner.rs" "Some(invoker) => invoker(self.backend, tx, &context)"
