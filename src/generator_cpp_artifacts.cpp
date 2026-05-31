@@ -336,42 +336,29 @@ std::string generate_cpp_workflow_registry_module(const IrWorkflow& workflow)
     out << "#pragma once\n\n";
     out << "#include \"handlers.hpp\"\n";
     out << "#include \"../../workflow_step_handlers.hpp\"\n\n";
-    out << "#include <stdexcept>\n";
     out << "#include <string>\n\n";
     out << "namespace statespec_generated::worker::workflows::" << ns << "\n";
     out << "{\n\n";
-    for (const auto& step : workflow.steps)
-    {
-        const auto step_snake = snake_identifier(step.name);
-        out << "inline void invoke_" << snake << "_" << step_snake << "(\n";
-        out << "    ::statespec_generated::worker::WorkflowStepHandlerBundle& handlers,\n";
-        out << "    ::statespec::backend::IBackend& backend,\n";
-        out << "    const ::statespec_generated::worker::WorkflowStepHandlerContext& context\n";
-        out << ")\n";
-        out << "{\n";
-        out << "    (void)backend;\n";
-        out << "    auto* handler = static_cast<" << handler_class
-            << "*>(handlers.workflow_handler(" << cpp_string(workflow.name) << ", "
-            << workflow.version.value_or(1) << "));\n";
-        out << "    if (handler == nullptr)\n";
-        out << "    {\n";
-        out << "        throw std::runtime_error(\"generated workflow step handler "
-            << workflow.name << " v" << workflow.version.value_or(1) << " is not registered\");\n";
-        out << "    }\n";
-        out << "    handler->handle_" << step_snake << "(context);\n";
-        out << "}\n\n";
-    }
     out << "inline void register_workflow_step_invokers(\n";
-    out << "    ::statespec_generated::worker::WorkflowStepInvokerMap& invokers\n";
+    out << "    ::statespec_generated::worker::WorkflowStepInvokerMap& invokers,\n";
+    out << "    " << handler_class << "& handler\n";
     out << ")\n";
     out << "{\n";
     for (const auto& step : workflow.steps)
     {
+        const auto step_snake = snake_identifier(step.name);
         out << "    invokers.emplace(\n";
         out << "        ::statespec_generated::worker::workflow_step_key("
             << cpp_string(workflow.name) << ", " << workflow.version.value_or(1) << ", "
             << cpp_string(step.name) << "),\n";
-        out << "        &invoke_" << snake << "_" << snake_identifier(step.name) << "\n";
+        out << "        [&handler](\n";
+        out << "            ::statespec::backend::IBackend& backend,\n";
+        out << "            const ::statespec_generated::worker::WorkflowStepHandlerContext& "
+               "context\n";
+        out << "        ) {\n";
+        out << "            (void)backend;\n";
+        out << "            handler.handle_" << step_snake << "(context);\n";
+        out << "        }\n";
         out << "    );\n";
     }
     out << "}\n\n";
@@ -462,18 +449,23 @@ std::string cpp_worker_registry_facade(const IrSystem& system)
     out << "}\n\n";
     if (!system.workflows.empty())
     {
-        out << "inline const WorkflowStepInvokerMap& workflow_step_invokers()\n";
+        out << "inline WorkflowStepInvokerMap workflow_step_invokers(WorkflowStepHandlerBundle& "
+               "handlers)\n";
         out << "{\n";
-        out << "    static const auto invokers = [] {\n";
         out << "        WorkflowStepInvokerMap values;\n";
         for (const auto& workflow : system.workflows)
         {
-            out << "        workflows::" << cpp_workflow_handler_namespace(workflow)
-                << "::register_workflow_step_invokers(values);\n";
+            const auto handler_class = cpp_workflow_handler_class_name(workflow);
+            out << "        if (auto* handler = static_cast<workflows::"
+                << cpp_workflow_handler_namespace(workflow) << "::" << handler_class
+                << "*>(handlers.workflow_handler(" << cpp_string(workflow.name) << ", "
+                << workflow.version.value_or(1) << ")))\n";
+            out << "        {\n";
+            out << "            workflows::" << cpp_workflow_handler_namespace(workflow)
+                << "::register_workflow_step_invokers(values, *handler);\n";
+            out << "        }\n";
         }
         out << "        return values;\n";
-        out << "    }();\n";
-        out << "    return invokers;\n";
         out << "}\n\n";
     }
     out << "} // namespace statespec_generated::worker\n";

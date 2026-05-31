@@ -80,13 +80,13 @@ class WorkflowRunner
             const auto key = workflow_step_key(
                 record.workflow_name, record.workflow_version, record.current_step
             );
-            const auto& invokers = workflow_step_invokers();
+            const auto invokers = workflow_step_invokers(handlers_);
             const auto invoker = invokers.find(key);
             if (invoker == invokers.end())
             {
                 throw std::runtime_error("unknown generated workflow step handler: " + key);
             }
-            invoker->second(handlers_, backend_, context);
+            invoker->second(backend_, context);
             std::optional<std::string> next_step;
             // clang-format off
 {{workflow_step_module_next_cases}}

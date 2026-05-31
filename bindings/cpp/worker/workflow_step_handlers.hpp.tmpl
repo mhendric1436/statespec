@@ -4,6 +4,7 @@
 #include "../common/workflow.hpp"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -62,11 +63,8 @@ class WorkflowStepHandlerBundle
     ) = 0;
 };
 
-using WorkflowStepInvoker = void (*)(
-    WorkflowStepHandlerBundle& handlers,
-    statespec::backend::IBackend& backend,
-    const WorkflowStepHandlerContext& context
-);
+using WorkflowStepInvoker = std::function<
+    void(statespec::backend::IBackend& backend, const WorkflowStepHandlerContext& context)>;
 
 using WorkflowStepInvokerMap = std::unordered_map<std::string, WorkflowStepInvoker>;
 
