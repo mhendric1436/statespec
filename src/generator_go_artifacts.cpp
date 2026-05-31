@@ -135,7 +135,7 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     {
         worker_run_once
             << "func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext "
-               "descriptortypes.WorkerContext, handlers WorkflowStepHandlerBundle, "
+               "descriptortypes.WorkerContext, invokers WorkflowStepInvokerMap, "
                "workflowExecutionID "
                "string) "
                "(*common.WorkflowExecutionRecord, error) {\n"
@@ -145,7 +145,7 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
             << "\trunner := WorkflowRunner{\n"
             << "\t\tBackend:       runtime.Backend,\n"
             << "\t\tWorkflowStore: runtime.Workflows,\n"
-            << "\t\tHandlers:      handlers,\n"
+            << "\t\tInvokers:      invokers,\n"
             << "\t\tWorkerName:    workerContext.WorkerName,\n"
             << "\t\tLeaseDuration: 30 * time.Second,\n"
             << "\t\tMaxAttempts:   3,\n"
@@ -157,7 +157,7 @@ TemplateRenderer::Values go_runtime_bootstrap_values(const IrSystem& system)
     {
         worker_run_once
             << "func (runtime *WorkerTierRuntime) RunOnce(ctx context.Context, workerContext "
-               "descriptortypes.WorkerContext, handlers WorkflowStepHandlerBundle, "
+               "descriptortypes.WorkerContext, invokers WorkflowStepInvokerMap, "
                "workflowExecutionID "
                "string) "
                "(*common.WorkflowExecutionRecord, error) {\n"
@@ -340,26 +340,25 @@ std::string go_worker_registry_facade(const IrSystem& system)
     out << "}\n";
     if (!system.workflows.empty())
     {
-        out << "\nfunc WorkflowStepInvokers() map[string]WorkflowStepInvoker {\n";
-        out << "\tinvokers := map[string]WorkflowStepInvoker{}\n";
         for (const auto& workflow : system.workflows)
         {
             const auto alias = "workflow" + snake_identifier(workflow.name);
-            out << "\tfor key, invoker := range " << alias << ".WorkflowStepInvokers() {\n";
+            const auto pascal = pascal_identifier(workflow.name);
+            out << "\nfunc Register" << pascal
+                << "WorkflowStepInvokers(invokers WorkflowStepInvokerMap, handler " << alias << "."
+                << pascal << "StepHandler) {\n";
+            out << "\tlocalInvokers := map[string]" << alias << ".StepInvoker{}\n";
+            out << "\t" << alias << ".RegisterWorkflowStepInvokers(localInvokers, handler)\n";
+            out << "\tfor key, invoker := range localInvokers {\n";
             out << "\t\tlocalInvoker := invoker\n";
-            out << "\t\tinvokers[key] = func(ctx context.Context, handlers "
-                   "WorkflowStepHandlerBundle, "
-                   "backend common.Backend, stepContext WorkflowStepHandlerContext) "
+            out << "\t\tinvokers[key] = func(ctx context.Context, backend common.Backend, "
+                   "stepContext WorkflowStepHandlerContext) "
                    "(WorkflowStepResult, error) {\n";
-            out << "\t\t\tworkflowHandler := "
-                   "handlers.WorkflowStepHandler(stepContext.WorkflowName, "
-                   "stepContext.WorkflowVersion)\n";
-            out << "\t\t\treturn localInvoker(ctx, workflowHandler, backend, stepContext)\n";
+            out << "\t\t\treturn localInvoker(ctx, backend, stepContext)\n";
             out << "\t\t}\n";
             out << "\t}\n";
+            out << "}\n";
         }
-        out << "\treturn invokers\n";
-        out << "}\n";
     }
     return out.str();
 }
@@ -406,81 +405,44 @@ std::string generate_go_workflow_registry_module(const IrWorkflow& workflow)
     out << "package " << snake_identifier(workflow.name) << "\n\n";
     out << "import (\n";
     out << "\t\"context\"\n";
-    out << "\t\"fmt\"\n\n";
+    out << "\n";
     out << "\tcommon \"statespec-generated/common/backend\"\n";
     out << "\tworkflowcontext \"statespec-generated/worker/backend/workflows/context\"\n";
     out << ")\n\n";
-    out << "type StepInvoker func(context.Context, any, common.Backend, "
+    out << "type StepInvoker func(context.Context, common.Backend, "
            "workflowcontext.WorkflowStepHandlerContext) (workflowcontext.WorkflowStepResult, "
            "error)\n\n";
     for (const auto& step : workflow.steps)
     {
         out << "func invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
-            << "(ctx context.Context, workflowHandler any, backend common.Backend, stepContext "
+            << "(handler " << pascal_identifier(workflow.name) << "StepHandler) StepInvoker {\n";
+        out << "\treturn func(ctx context.Context, backend common.Backend, stepContext "
                "workflowcontext.WorkflowStepHandlerContext) "
                "(workflowcontext.WorkflowStepResult, error) {\n";
         out << "\t_ = backend\n";
-        out << "\thandler, ok := workflowHandler.(" << pascal_identifier(workflow.name)
-            << "StepHandler)\n";
-        out << "\tif !ok || handler == nil {\n";
-        out << "\t\treason := \"generated workflow step handler " << workflow.name << " v"
-            << workflow.version.value_or(1) << " is not registered\"\n";
-        out << "\t\treturn workflowcontext.Fail(reason), fmt.Errorf(reason)\n";
-        out << "\t}\n";
         out << "\treturn handler.Handle" << pascal_identifier(step.name) << "(ctx, stepContext)\n";
+        out << "\t}\n";
         out << "}\n\n";
     }
-    out << "func WorkflowStepInvokers() map[string]StepInvoker {\n";
-    out << "\treturn map[string]StepInvoker{\n";
+    out << "func RegisterWorkflowStepInvokers(invokers map[string]StepInvoker, handler "
+        << pascal_identifier(workflow.name) << "StepHandler) {\n";
     for (const auto& step : workflow.steps)
     {
-        out << "\t\t"
+        out << "\tinvokers["
             << go_string(
                    workflow.name + ":" + std::to_string(workflow.version.value_or(1)) + ":" +
                    step.name
                )
-            << ": invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
-            << ",\n";
+            << "] = invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
+            << "(handler)\n";
     }
-    out << "\t}\n";
+    out << "}\n\n";
+    out << "func WorkflowStepInvokers(handler " << pascal_identifier(workflow.name)
+        << "StepHandler) map[string]StepInvoker {\n";
+    out << "\tinvokers := map[string]StepInvoker{}\n";
+    out << "\tRegisterWorkflowStepInvokers(invokers, handler)\n";
+    out << "\treturn invokers\n";
     out << "}\n";
-    return out.str();
-}
-
-std::string go_workflow_step_handler_bundle_members(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        out << "\t" << pascal_identifier(workflow.name) << " workflow"
-            << snake_identifier(workflow.name) << "." << pascal_identifier(workflow.name)
-            << "StepHandler\n";
-    }
-    return out.str();
-}
-
-std::string go_workflow_step_handler_bundle_initializers(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        out << "\t\t" << pascal_identifier(workflow.name) << ": workflow"
-            << snake_identifier(workflow.name) << ".Default" << pascal_identifier(workflow.name)
-            << "StepHandler{},\n";
-    }
-    return out.str();
-}
-
-std::string go_workflow_step_handler_bundle_lookup(const IrSystem& system)
-{
-    std::ostringstream out;
-    for (const auto& workflow : system.workflows)
-    {
-        out << "\tif workflowName == " << go_string(workflow.name)
-            << " && workflowVersion == " << workflow.version.value_or(1) << " {\n";
-        out << "\t\treturn bundle." << pascal_identifier(workflow.name) << "\n";
-        out << "\t}\n";
-    }
     return out.str();
 }
 
@@ -1378,11 +1340,28 @@ TemplateRenderer::Values go_api_main_values(const IrSystem& system)
 TemplateRenderer::Values go_worker_main_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
+    std::ostringstream workflow_imports;
+    std::ostringstream workflow_invoker_composition;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto workflow_package = snake_identifier(workflow.name);
+        const auto workflow_alias = "workflow" + workflow_package;
+        const auto workflow_var = workflow_package + "Handler";
+        workflow_imports << "\t" << workflow_alias << " \"statespec-generated/worker/backend/"
+                         << "workflows/" << workflow_package << "\"\n";
+        workflow_invoker_composition << "\t" << workflow_var << " := " << workflow_alias
+                                     << ".Default" << pascal_identifier(workflow.name)
+                                     << "StepHandler{}\n";
+        workflow_invoker_composition << "\tworker.Register" << pascal_identifier(workflow.name)
+                                     << "WorkflowStepInvokers(invokers, " << workflow_var << ")\n";
+    }
     if (!usage.uses_entity_gc)
     {
         return TemplateRenderer::Values{
             {"worker_main_entity_gc_import", ""},
             {"worker_main_entity_gc_registration", ""},
+            {"worker_main_workflow_imports", workflow_imports.str()},
+            {"worker_main_workflow_invoker_composition", workflow_invoker_composition.str()},
         };
     }
     return TemplateRenderer::Values{
@@ -1396,6 +1375,8 @@ TemplateRenderer::Values go_worker_main_values(const IrSystem& system)
          "\t\tfmt.Fprintf(os.Stderr, \"statespec generated Worker process failed: %v\\n\", err)\n"
          "\t\tos.Exit(1)\n"
          "\t}\n\n"},
+        {"worker_main_workflow_imports", workflow_imports.str()},
+        {"worker_main_workflow_invoker_composition", workflow_invoker_composition.str()},
     };
 }
 
@@ -3796,16 +3777,7 @@ void add_go_worker_artifacts(
         }
         add_go_generated_template_file(
             result, options, templates, "worker/backend/workflow_step_handlers.go",
-            GeneratedArtifactTier::Worker, diagnostics,
-            TemplateRenderer::Values{
-                {"default_workflow_step_handler_members",
-                 go_workflow_step_handler_bundle_members(system)},
-                {"default_workflow_step_handler_initializers",
-                 go_workflow_step_handler_bundle_initializers(system)},
-                {"default_workflow_step_handler_lookup",
-                 go_workflow_step_handler_bundle_lookup(system)},
-                {"workflow_step_handler_imports", generate_workflow_step_handler_imports_go(system)}
-            }
+            GeneratedArtifactTier::Worker, diagnostics
         );
         add_go_generated_template_file(
             result, options, templates, "worker/backend/workflow_runner.go",

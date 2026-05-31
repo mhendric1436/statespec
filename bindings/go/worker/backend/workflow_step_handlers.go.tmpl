@@ -6,7 +6,6 @@ import (
 
 	common "statespec-generated/common/backend"
 	workflowmodules "statespec-generated/worker/backend/workflows"
-{{workflow_step_handler_imports}}
 )
 
 type WorkflowStepKey struct {
@@ -45,20 +44,6 @@ func Cancel(reason string) WorkflowStepResult {
 	return workflowmodules.Cancel(reason)
 }
 
-type WorkflowStepInvoker func(context.Context, WorkflowStepHandlerBundle, common.Backend, WorkflowStepHandlerContext) (WorkflowStepResult, error)
+type WorkflowStepInvoker func(context.Context, common.Backend, WorkflowStepHandlerContext) (WorkflowStepResult, error)
 
-type WorkflowStepHandlerBundle interface {
-	WorkflowStepHandler(workflowName string, workflowVersion int64) any
-}
-
-type DefaultWorkflowStepHandlerBundle struct {
-{{default_workflow_step_handler_members}}}
-
-func NewDefaultWorkflowStepHandlerBundle() DefaultWorkflowStepHandlerBundle {
-	return DefaultWorkflowStepHandlerBundle{
-{{default_workflow_step_handler_initializers}}	}
-}
-
-func (bundle DefaultWorkflowStepHandlerBundle) WorkflowStepHandler(workflowName string, workflowVersion int64) any {
-{{default_workflow_step_handler_lookup}}	return nil
-}
+type WorkflowStepInvokerMap map[string]WorkflowStepInvoker
