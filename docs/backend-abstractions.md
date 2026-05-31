@@ -379,6 +379,19 @@ workflow execution, worker, current step, current time, and lease duration. Work
 stores should only extend the lease when the execution is still claimed by that worker
 for the same current step.
 
+Generated workflow runners should not combine claiming with arbitrary handler execution
+in one transaction. Claiming is a short transaction that publishes ownership of the
+step. After the claim commits, the runner may keep the claim alive independently while
+the handler runs. Handler execution and step finalization should then use one
+caller-managed transaction: revalidate the claimed execution record, perform
+handler-owned persisted reads and writes through the transaction, and call
+`complete_stepTx`, `fail_stepTx`, or `cancelTx` before committing.
+
+This pattern intentionally permits the finalization transaction to remain open across
+the handler. It requires remote side effects to be idempotent because an external call
+cannot be rolled back by the StateSpec OCC backend. Use workflow execution id, current
+step, and attempt as the stable basis for remote idempotency keys.
+
 ## Required Semantics
 
 All backend implementations should preserve these semantics:

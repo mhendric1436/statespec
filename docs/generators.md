@@ -226,6 +226,14 @@ The worker application artifact responsibilities are:
 | `workflow_step_handlers` | Step-specific user implementation contract, result type, invoker map support, and default linking handlers for declared workflow steps |
 | `worker_main` | Worker process entrypoint |
 
+Generated workflow runners use two OCC boundaries. The claim call is backend-managed and
+commits before handler code runs. The handler then runs inside a caller-managed
+transaction used for persisted StateSpec reads/writes and the final
+complete/fail/cancel workflow-store `Tx` operation. Keep-alive calls remain independent
+lease-maintenance operations. Generated handler contracts should make the transaction
+available to user code so workflow advancement and handler-owned durable mutations
+commit atomically.
+
 Generated API application filenames:
 
 | Language | Files |

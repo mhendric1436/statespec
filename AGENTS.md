@@ -418,6 +418,24 @@ reason. The generated runner applies that result through the workflow store. Do 
 separate runner-side next-step calculators or generated `transition_to` inference
 chains; those create a second source of execution semantics outside the handler result.
 
+Workflow step execution must use a two-boundary OCC pattern:
+
+1. Claim the workflow step in its own short backend-managed transaction and commit it.
+2. Keep-alive calls remain independent lease-maintenance operations while the step is
+   executing.
+3. Open a second transaction for step execution/finalization, re-read and revalidate
+   the claimed workflow execution record, invoke the workflow step handler with the
+   caller-managed transaction, then apply `complete`, `fail`, or `cancel` through the
+   workflow store `Tx` API before committing.
+
+The handler's persisted entity, queue, workflow, log, metric, or feature-flag reads and
+writes must participate in that second transaction. Holding this transaction open across
+the handler is acceptable because the claimed step lease provides execution ownership,
+but any remote side effect performed inside the handler must be idempotent. Generated
+docs and examples should recommend idempotency keys derived from
+`workflow_execution_id`, `current_step`, and `attempt`. The OCC transaction protects
+StateSpec persisted state; it does not make an external system transactional.
+
 ### Generated artifact naming rule
 
 Generated artifacts must use meaningful filenames for the code they contain. Avoid catch-all files such as `api_artifacts.*` or `worker_artifacts.*`.

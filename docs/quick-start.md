@@ -327,8 +327,12 @@ User code owns:
 - Concrete deployment and supervisor integration around generated `main`.
 
 Workflow step handlers should be idempotent. Any persisted state read that affects a
-worker decision must happen through the generated backend transaction model, in the same
-transaction as the write or workflow/queue operation that consumes the read.
+worker decision must happen through the generated backend transaction model. Generated
+workflow runners claim a step in a separate committed transaction, then execute the
+handler and apply complete/fail/cancel in a second transaction. Handler-owned persisted
+writes and workflow advancement should commit together through that second transaction.
+Remote work performed by a handler must be idempotent because it may be retried after a
+crash, lease expiry, or OCC conflict.
 Handlers also own step advancement decisions. A generated handler method returns a
 workflow step result: complete with an optional next step, fail with a reason, or cancel
 with a reason. The runner applies that result directly and does not use a separate

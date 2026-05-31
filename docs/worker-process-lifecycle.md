@@ -36,6 +36,31 @@ The empty workflow execution id used by the polling loop means "claim the next r
 execution for this workflow name and version." Direct tests and specialized adapters may
 still pass a concrete workflow execution id to run a known execution.
 
+## Transaction Boundaries
+
+`WorkflowRunner.run_once` uses claim ownership and step finalization as separate OCC
+boundaries:
+
+1. Claim the step with a backend-managed workflow-store call and commit that claim.
+2. Keep the claim alive with independent keep-alive calls while execution is in
+   progress.
+3. Begin a second transaction, re-read and revalidate the claimed workflow execution,
+   invoke the typed step handler with that transaction, apply the handler result with
+   `complete`, `fail`, or `cancel` through the workflow store `Tx` API, and commit.
+
+The second transaction is intentionally allowed to stay open while the handler runs.
+That keeps handler-owned persisted state changes and workflow advancement in one OCC
+commit. The required tradeoff is idempotency: remote calls made from a handler must be
+safe to repeat if the process crashes, the lease expires, or the final transaction
+conflicts. Prefer idempotency keys derived from:
+
+```text
+workflow_execution_id + ":" + current_step + ":" + attempt
+```
+
+The OCC transaction covers StateSpec backend state only. External systems still require
+their own idempotency, retry, timeout, and reconciliation behavior.
+
 ## User-Owned Code
 
 Generated code provides default workflow-specific handler implementations so generated
@@ -47,7 +72,8 @@ fail with a reason, or cancel with a reason.
 User-owned workflow step handlers should be idempotent. Any persisted state read that
 affects a worker decision must use the generated backend transaction model and be
 coordinated with the write, queue, workflow, log, or metric operation that consumes the
-read.
+read. In generated workflow runners, that means using the transaction passed to the step
+handler and letting the runner commit that transaction with the workflow step result.
 
 ## Garbage Collection
 

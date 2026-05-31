@@ -332,10 +332,20 @@ with `next_step` to continue, complete with no next step to finish, fail to make
 step retry-visible, or cancel to terminate the workflow. This keeps workflow business
 logic and advancement decisions in the same user-owned handler method.
 
+Generated workflow runners use two OCC boundaries for step execution. Claiming the step
+is a short standalone transaction that commits ownership before user code runs.
+Keep-alive calls are independent lease-maintenance operations while execution is in
+progress. The handler then runs inside a second caller-managed transaction: the runner
+re-reads and revalidates the claimed workflow execution record, invokes the typed
+handler with that transaction, applies the returned complete/fail/cancel result through
+the workflow store `Tx` API, and commits once.
+
 Workflow step handlers should be idempotent. A handler may be retried after process
-restart, lease expiry, or backend failover. External calls should use idempotency keys
-from entity or workflow state, and entity mutations should happen through OCC-backed
-transactions.
+restart, lease expiry, backend failover, or a final OCC commit conflict. Persisted reads
+and writes that affect the step result must use the transaction passed by the runner.
+External calls made while that transaction is open must be idempotent; use keys derived
+from `workflow_execution_id`, `current_step`, and `attempt` where possible. The
+transaction protects StateSpec persisted state, not remote side effects.
 
 Generated workflow runners can be linked with the in-memory workflow, queue, lease, log,
 and metric stores for deterministic local tests. This verifies the generated wiring and
