@@ -289,6 +289,21 @@ std::string cpp_workflow_step_handler_lookup(const IrSystem& system)
     return out.str();
 }
 
+std::string cpp_worker_main_workflow_invoker_composition(const IrSystem& system)
+{
+    std::ostringstream out;
+    for (const auto& workflow : system.workflows)
+    {
+        const auto ns = cpp_workflow_handler_namespace(workflow);
+        const auto default_class = cpp_workflow_default_handler_class_name(workflow);
+        out << "        statespec_generated::worker::workflows::" << ns << "::" << default_class
+            << " " << ns << "_handler;\n";
+        out << "        statespec_generated::worker::workflows::" << ns
+            << "::register_workflow_step_invokers(invokers, " << ns << "_handler);\n";
+    }
+    return out.str();
+}
+
 std::string generate_cpp_workflow_step_module(const IrWorkflow& workflow)
 {
     std::ostringstream out;
@@ -1144,11 +1159,13 @@ TemplateRenderer::Values cpp_api_main_values(const IrSystem& system)
 TemplateRenderer::Values cpp_worker_main_values(const IrSystem& system)
 {
     const auto usage = runtime_domain_usage(system);
+    const auto workflow_invoker_composition = cpp_worker_main_workflow_invoker_composition(system);
     if (!usage.uses_entity_gc)
     {
         return TemplateRenderer::Values{
             {"worker_main_entity_gc_include", ""},
             {"worker_main_entity_gc_registration", ""},
+            {"worker_main_workflow_invoker_composition", workflow_invoker_composition},
         };
     }
     return TemplateRenderer::Values{
@@ -1160,6 +1177,7 @@ TemplateRenderer::Values cpp_worker_main_values(const IrSystem& system)
          "            runtime, backend, "
          "statespec_generated::worker::worker_entity_gc_descriptors()\n"
          "        );\n\n"},
+        {"worker_main_workflow_invoker_composition", workflow_invoker_composition},
     };
 }
 

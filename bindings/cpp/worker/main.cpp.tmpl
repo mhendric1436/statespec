@@ -2,6 +2,7 @@
 // clang-format off
 {{worker_main_entity_gc_include}} // clang-format on
 #include "worker_process.hpp"
+#include "worker_registry.hpp"
 #include "worker_runtime.hpp"
 #include "workflow_step_handlers.hpp"
 
@@ -31,8 +32,9 @@ int main()
     {
         statespec::backend::memory::InMemoryBackend backend;
         statespec_generated::worker::WorkerRuntime runtime{backend};
-        statespec_generated::worker::DefaultWorkflowStepHandlerBundle handlers;
-        auto invokers = statespec_generated::worker::workflow_step_invokers(handlers);
+        statespec_generated::worker::WorkflowStepInvokerMap invokers;
+        // clang-format off
+{{worker_main_workflow_invoker_composition}} // clang-format on
         statespec_generated::worker::WorkerProcess process{runtime, invokers};
 
         // clang-format off

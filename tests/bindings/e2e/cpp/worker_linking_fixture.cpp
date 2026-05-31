@@ -2,6 +2,7 @@
 #include "common/runtime/workflow_store.hpp"
 #include "worker/workflow_runner.hpp"
 #include "worker/workflows/provision_service/handlers.hpp"
+#include "worker/workflows/provision_service/registry.hpp"
 
 #include <chrono>
 #include <stdexcept>
@@ -83,9 +84,10 @@ int main()
     );
 
     LinkingWorkflowStepHandler handler;
-    statespec_generated::worker::DefaultWorkflowStepHandlerBundle handlers;
-    handlers.set_provision_service_handler(handler);
-    auto invokers = statespec_generated::worker::workflow_step_invokers(handlers);
+    statespec_generated::worker::WorkflowStepInvokerMap invokers;
+    statespec_generated::worker::workflows::provision_service::register_workflow_step_invokers(
+        invokers, handler
+    );
     statespec_generated::worker::WorkflowRunner runner{
         backend, workflows, invokers, "ProvisionWorker", std::chrono::seconds{60}, 3,
     };
