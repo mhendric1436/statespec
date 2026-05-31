@@ -121,7 +121,11 @@ assert_java_workflow_result_regression() {
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepResultKind.FAIL"
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "WorkflowStepResultKind.CANCEL"
     assert_file_occurrence_count "$root/worker/com/statespec/generated/WorkflowRunner.java" "workflowStore.keepAliveStep" 1
-    assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "Backend.Transaction tx = backend.begin();"
+    assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "private static final class PeriodicWorkflowKeepAlive"
+    assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "keepAlive.start()"
+    assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "keepAlive.stop()"
+    assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "Backend.Transaction tx;"
+    assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "tx = backend.begin();"
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "revalidateClaimedStep(tx, record)"
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "result = invoker.invoke(backend, tx, context);"
     assert_file_contains "$root/worker/com/statespec/generated/WorkflowRunner.java" "workflowStore.completeStepTx"

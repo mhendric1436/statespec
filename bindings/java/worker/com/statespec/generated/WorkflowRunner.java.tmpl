@@ -54,18 +54,23 @@ public final class WorkflowRunner {
             return Optional.empty();
         }
         Workflow.WorkflowExecutionRecord record = claimed.get(0);
-        workflowStore.keepAliveStep(
-            backend,
-            new Workflow.KeepAliveWorkflowStepRequest(
-                record.workflowExecutionId(),
+        PeriodicWorkflowKeepAlive keepAlive =
+            new PeriodicWorkflowKeepAlive(
+                backend,
+                workflowStore,
                 workerName,
-                record.currentStep(),
-                record.claimToken().orElse(""),
-                Instant.now(),
-                leaseDuration
-            )
-        );
-        Backend.Transaction tx = backend.begin();
+                record,
+                leaseDuration,
+                keepAliveInterval(leaseDuration)
+            );
+        keepAlive.start();
+        Backend.Transaction tx;
+        try {
+            tx = backend.begin();
+        } catch (Exception ex) {
+            keepAlive.stop();
+            throw ex;
+        }
         boolean committed = false;
         try {
             Workflow.WorkflowExecutionRecord current = revalidateClaimedStep(tx, record);
@@ -96,6 +101,12 @@ public final class WorkflowRunner {
                 } catch (Exception ex) {
                     result = WorkflowStepHandlers.fail(ex.getMessage());
                 }
+            }
+            keepAlive.stop();
+            if (keepAlive.error().isPresent()) {
+                throw new Backend.BackendException(
+                    "workflow keep alive failed: " + keepAlive.error().get().getMessage()
+                );
             }
             if (result.kind() == WorkflowStepHandlers.WorkflowStepResultKind.FAIL) {
                 Workflow.WorkflowExecutionRecord failed =
@@ -144,10 +155,145 @@ public final class WorkflowRunner {
             committed = true;
             return Optional.of(completed);
         } finally {
+            keepAlive.stop();
             if (!committed && tx.isOpen()) {
                 tx.abort();
             }
         }
+    }
+
+    private static final class PeriodicWorkflowKeepAlive {
+        private final Backend backend;
+        private final Workflow workflowStore;
+        private final String workerName;
+        private final Workflow.WorkflowExecutionRecord record;
+        private final Duration leaseDuration;
+        private final Duration interval;
+        private final Object lock = new Object();
+        private Thread thread;
+        private boolean started;
+        private boolean stopRequested;
+        private Exception error;
+
+        PeriodicWorkflowKeepAlive(
+            Backend backend,
+            Workflow workflowStore,
+            String workerName,
+            Workflow.WorkflowExecutionRecord record,
+            Duration leaseDuration,
+            Duration interval
+        ) {
+            this.backend = backend;
+            this.workflowStore = workflowStore;
+            this.workerName = workerName;
+            this.record = record;
+            this.leaseDuration = leaseDuration;
+            this.interval = interval;
+        }
+
+        void start() {
+            synchronized (lock) {
+                if (started) {
+                    return;
+                }
+                started = true;
+                stopRequested = false;
+            }
+
+            keepAliveOnce();
+
+            synchronized (lock) {
+                if (stopRequested) {
+                    return;
+                }
+                thread = new Thread(this::run, "statespec-workflow-keepalive");
+                thread.setDaemon(true);
+                thread.start();
+            }
+        }
+
+        void stop() {
+            Thread toJoin;
+            synchronized (lock) {
+                stopRequested = true;
+                lock.notifyAll();
+                toJoin = thread;
+            }
+            if (toJoin != null && toJoin != Thread.currentThread()) {
+                try {
+                    toJoin.join();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    recordError(ex);
+                }
+            }
+        }
+
+        Optional<Exception> error() {
+            synchronized (lock) {
+                return Optional.ofNullable(error);
+            }
+        }
+
+        private void run() {
+            while (true) {
+                synchronized (lock) {
+                    if (stopRequested) {
+                        return;
+                    }
+                    try {
+                        lock.wait(interval.toMillis());
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        recordError(ex);
+                        return;
+                    }
+                    if (stopRequested) {
+                        return;
+                    }
+                }
+                keepAliveOnce();
+            }
+        }
+
+        private void keepAliveOnce() {
+            try {
+                workflowStore.keepAliveStep(
+                    backend,
+                    new Workflow.KeepAliveWorkflowStepRequest(
+                        record.workflowExecutionId(),
+                        workerName,
+                        record.currentStep(),
+                        record.claimToken().orElse(""),
+                        Instant.now(),
+                        leaseDuration
+                    )
+                );
+            } catch (Exception ex) {
+                recordError(ex);
+            }
+        }
+
+        private void recordError(Exception ex) {
+            synchronized (lock) {
+                if (error == null) {
+                    error = ex;
+                }
+            }
+        }
+    }
+
+    private static Duration keepAliveInterval(Duration leaseDuration) {
+        Duration interval = leaseDuration.dividedBy(3);
+        if (interval.compareTo(Duration.ofMillis(250)) < 0) {
+            interval = Duration.ofMillis(250);
+        }
+        if (leaseDuration.compareTo(Duration.ofMillis(250)) > 0 &&
+            interval.compareTo(leaseDuration) >= 0)
+        {
+            interval = leaseDuration.dividedBy(2);
+        }
+        return interval;
     }
 
     private Workflow.WorkflowExecutionRecord revalidateClaimedStep(

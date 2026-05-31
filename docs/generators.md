@@ -229,10 +229,10 @@ The worker application artifact responsibilities are:
 Generated workflow runners use two OCC boundaries. The claim call is backend-managed and
 commits before handler code runs. The handler then runs inside a caller-managed
 transaction used for persisted StateSpec reads/writes and the final
-complete/fail/cancel workflow-store `Tx` operation. C++ and Go generated workflow
+complete/fail/cancel workflow-store `Tx` operation. C++, Go, and Java generated workflow
 runners run a periodic keep-alive controller while the handler transaction is open.
-Java and Rust currently perform one independent keep-alive call between claim and
-handler execution until their periodic controllers are implemented. Generated handler contracts
+Rust currently performs one independent keep-alive call between claim and handler
+execution until its periodic controller is implemented. Generated handler contracts
 should make the transaction available to user code so workflow advancement and
 handler-owned durable mutations commit atomically.
 
