@@ -66,69 +66,111 @@ class WorkflowRunner
                           lease_duration_,
                       }
         );
+        auto tx = backend_.begin();
         try
         {
+            const auto current = revalidate_claimed_step(*tx, record);
             WorkflowStepHandlerContext context{
-                record.workflow_name, static_cast<int>(record.workflow_version),
-                record.current_step,  record.workflow_execution_id,
-                record.state,
+                current.workflow_name, static_cast<int>(current.workflow_version),
+                current.current_step,  current.workflow_execution_id,
+                current.state,
             };
             const auto key = workflow_step_key(
-                record.workflow_name, record.workflow_version, record.current_step
+                current.workflow_name, current.workflow_version, current.current_step
             );
             const auto invoker = invokers_.find(key);
+            WorkflowStepResult result;
             if (invoker == invokers_.end())
             {
-                throw std::runtime_error("unknown generated workflow step handler: " + key);
+                result = WorkflowStepResult::fail("unknown generated workflow step handler: " + key);
             }
-            const auto result = invoker->second(backend_, context);
+            else
+            {
+                try
+                {
+                    result = invoker->second(backend_, *tx, context);
+                }
+                catch (const std::exception& ex)
+                {
+                    result = WorkflowStepResult::fail(ex.what());
+                }
+            }
             if (result.kind == WorkflowStepResultKind::Fail)
             {
-                return workflow_store_.fail_step(
-                    backend_, statespec::backend::FailWorkflowStepRequest{
-                                  record.workflow_execution_id,
+                auto failed = workflow_store_.fail_stepTx(
+                    *tx, statespec::backend::FailWorkflowStepRequest{
+                                  current.workflow_execution_id,
                                   worker_name_,
-                                  record.current_step,
+                                  current.current_step,
                                   result.reason,
                                   std::chrono::system_clock::now(),
                                   max_attempts_,
                               }
                 );
+                backend_.commit(*tx);
+                return failed;
             }
             if (result.kind == WorkflowStepResultKind::Cancel)
             {
-                return workflow_store_.cancel(
-                    backend_, statespec::backend::CancelWorkflowRequest{
-                                  record.workflow_execution_id, result.reason
-                              }
+                auto canceled = workflow_store_.cancelTx(
+                    *tx, statespec::backend::CancelWorkflowRequest{
+                             current.workflow_execution_id, result.reason
+                         }
                 );
+                backend_.commit(*tx);
+                return canceled;
             }
-            return workflow_store_.complete_step(
-                backend_, statespec::backend::CompleteWorkflowStepRequest{
-                              record.workflow_execution_id,
+            auto completed = workflow_store_.complete_stepTx(
+                *tx, statespec::backend::CompleteWorkflowStepRequest{
+                              current.workflow_execution_id,
                               worker_name_,
-                              record.current_step,
+                              current.current_step,
                               result.next_step,
-                              record.state,
+                              current.state,
                           }
             );
+            backend_.commit(*tx);
+            return completed;
         }
-        catch (const std::exception& ex)
+        catch (...)
         {
-            return workflow_store_.fail_step(
-                backend_, statespec::backend::FailWorkflowStepRequest{
-                              record.workflow_execution_id,
-                              worker_name_,
-                              record.current_step,
-                              ex.what(),
-                              std::chrono::system_clock::now(),
-                              max_attempts_,
-                          }
-            );
+            if (tx->is_open())
+            {
+                tx->abort();
+            }
+            throw;
         }
     }
 
   private:
+    statespec::backend::WorkflowExecutionRecord revalidate_claimed_step(
+        statespec::backend::ITransaction& tx,
+        const statespec::backend::WorkflowExecutionRecord& claimed
+    )
+    {
+        auto current = workflow_store_.inspectTx(tx, claimed.workflow_execution_id);
+        if (!current.has_value())
+        {
+            throw std::runtime_error("claimed workflow execution disappeared");
+        }
+        if (current->workflow_name != claimed.workflow_name ||
+            current->workflow_version != claimed.workflow_version ||
+            current->current_step != claimed.current_step)
+        {
+            throw std::runtime_error("claimed workflow execution changed before execution");
+        }
+        if (!current->claimed_by.has_value() || *current->claimed_by != worker_name_)
+        {
+            throw std::runtime_error("claimed workflow execution is no longer owned by worker");
+        }
+        const auto now = std::chrono::system_clock::now();
+        if (!current->claim_expires_at.has_value() || *current->claim_expires_at <= now)
+        {
+            throw std::runtime_error("claimed workflow execution lease expired before execution");
+        }
+        return *current;
+    }
+
     statespec::backend::IBackend& backend_;
     statespec::backend::IWorkflowStore& workflow_store_;
     const WorkflowStepInvokerMap& invokers_;

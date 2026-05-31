@@ -12,6 +12,7 @@ class LinkingWorkflowStepHandler final : public statespec_generated::worker::wor
 {
   public:
     statespec_generated::worker::WorkflowStepResult handle_validate_request(
+        statespec::backend::ITransaction&,
         const statespec_generated::worker::WorkflowStepHandlerContext& context
     ) override
     {
@@ -24,6 +25,7 @@ class LinkingWorkflowStepHandler final : public statespec_generated::worker::wor
     }
 
     statespec_generated::worker::WorkflowStepResult handle_create_remote_service(
+        statespec::backend::ITransaction&,
         const statespec_generated::worker::WorkflowStepHandlerContext&
     ) override
     {
@@ -33,6 +35,7 @@ class LinkingWorkflowStepHandler final : public statespec_generated::worker::wor
     }
 
     statespec_generated::worker::WorkflowStepResult handle_wait_for_remote_service(
+        statespec::backend::ITransaction&,
         const statespec_generated::worker::WorkflowStepHandlerContext&
     ) override
     {

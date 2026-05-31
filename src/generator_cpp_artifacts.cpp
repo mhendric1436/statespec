@@ -190,7 +190,10 @@ std::string cpp_workflow_handler_methods(const IrWorkflow& workflow)
     {
         out << "    virtual ::statespec_generated::worker::WorkflowStepResult handle_"
             << snake_identifier(step.name)
-            << "(const ::statespec_generated::worker::WorkflowStepHandlerContext& context) = 0;\n";
+            << "(\n";
+        out << "        ::statespec::backend::ITransaction& tx,\n";
+        out << "        const ::statespec_generated::worker::WorkflowStepHandlerContext& context\n";
+        out << "    ) = 0;\n";
     }
     return out.str();
 }
@@ -202,7 +205,10 @@ std::string cpp_workflow_default_handler_methods(const IrWorkflow& workflow)
     {
         out << "    ::statespec_generated::worker::WorkflowStepResult handle_"
             << snake_identifier(step.name)
-            << "(const ::statespec_generated::worker::WorkflowStepHandlerContext&) override\n";
+            << "(\n";
+        out << "        ::statespec::backend::ITransaction&,\n";
+        out << "        const ::statespec_generated::worker::WorkflowStepHandlerContext&\n";
+        out << "    ) override\n";
         out << "    {\n";
         out << "        throw std::runtime_error(\"generated workflow step handler "
             << workflow.name << "." << step.name << " is not implemented\");\n";
@@ -315,11 +321,12 @@ std::string cpp_workflow_registry_invoker_entries(const IrWorkflow& workflow)
             << cpp_string(step.name) << "),\n";
         out << "        [&handler](\n";
         out << "            ::statespec::backend::IBackend& backend,\n";
+        out << "            ::statespec::backend::ITransaction& tx,\n";
         out << "            const ::statespec_generated::worker::WorkflowStepHandlerContext& "
                "context\n";
         out << "        ) {\n";
         out << "            (void)backend;\n";
-        out << "            return handler.handle_" << step_snake << "(context);\n";
+        out << "            return handler.handle_" << step_snake << "(tx, context);\n";
         out << "        }\n";
         out << "    );\n";
     }
