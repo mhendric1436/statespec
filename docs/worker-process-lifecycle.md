@@ -36,13 +36,14 @@ The empty workflow execution id used by the polling loop means "claim the next r
 execution for this workflow name and version." Direct tests and specialized adapters may
 still pass a concrete workflow execution id to run a known execution.
 
-## Claim Tokens And Keep-Alive
+## Claim Tokens And Periodic Keep-Alive
 
-The generated C++, Go, Java, and Rust `WorkflowRunner.run_once` implementations start a periodic
-keep-alive controller after a workflow step is claimed and before the typed step handler
-is invoked. The controller refreshes the claim heartbeat on a background thread or
-goroutine while the handler transaction is open, then stops before the runner applies
-the handler result with `complete`, `fail`, or `cancel`.
+The generated C++, Go, Java, and Rust `WorkflowRunner.run_once` implementations start a
+periodic keep-alive controller after a workflow step is claimed and before the typed
+step handler is invoked. The controller performs one immediate keep-alive, then
+refreshes the claim heartbeat on a background thread or goroutine while the handler
+transaction is open. The runner stops the controller and checks its error state before
+applying the handler result with `complete`, `fail`, or `cancel`.
 
 Claiming a workflow step assigns a claim token to the workflow execution and writes a
 matching workflow heartbeat record. Keep-alive requests must include that token. The
@@ -55,14 +56,19 @@ Periodic keep-alive implementations must reuse this heartbeat path. A background
 keep-alive must not update the same workflow execution document version that the open
 handler transaction reads and later commits.
 
+Keep-alive failure is treated as a workflow claim conflict. If the background controller
+records an error before the handler transaction commits, the runner aborts the handler
+transaction and returns the keep-alive error instead of finalizing the step. This keeps a
+worker from completing work after its claim can no longer be proven current.
+
 ## Transaction Boundaries
 
 `WorkflowRunner.run_once` uses claim ownership and step finalization as separate OCC
 boundaries:
 
 1. Claim the step with a backend-managed workflow-store call and commit that claim.
-2. Keep the claim alive with backend-managed heartbeat updates. C++, Go, Java, and Rust
-   do this periodically while the handler runs.
+2. Keep the claim alive with backend-managed heartbeat updates that run independently of
+   the handler transaction.
 3. Begin a second transaction, re-read and revalidate the claimed workflow execution,
    invoke the typed step handler with that transaction, apply the handler result with
    `complete`, `fail`, or `cancel` through the workflow store `Tx` API, and commit.
@@ -80,6 +86,11 @@ workflow_execution_id + ":" + current_step + ":" + attempt
 
 The OCC transaction covers StateSpec backend state only. External systems still require
 their own idempotency, retry, timeout, and reconciliation behavior.
+
+The generated app regression suite includes long-running handler fixtures for C++, Go,
+Java, and Rust. Those fixtures sleep inside a workflow step handler, count workflow
+keep-alive calls, and verify that the generated runner performs more than the initial
+keep-alive before the handler completes.
 
 ## User-Owned Code
 

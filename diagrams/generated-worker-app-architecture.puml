@@ -7,6 +7,7 @@ skinparam packageStyle rectangle
 
 package "Durable work sources" {
   queue "Workflow executions\nready step records" as WorkflowExecutions
+  queue "Workflow heartbeat records\nclaim token + expiry" as WorkflowHeartbeats
   rectangle "WorkerContext\nexecutes workflow name" as WorkerContext
 }
 
@@ -20,7 +21,8 @@ package "Generated worker tier" {
   rectangle "WorkerRegistry\nworker lookup" as WorkerRegistry
   rectangle "WorkerDescriptors\nworker catalog view" as WorkerDescriptors
   rectangle "WorkerContexts\nworker execution contexts" as WorkerContexts
-  rectangle "WorkflowRunner\nclaim / keep alive\napply step result" as WorkflowRunner
+  rectangle "WorkflowRunner\nclaim / transactional handler\napply step result" as WorkflowRunner
+  rectangle "Periodic keep-alive controller\nimmediate + timed heartbeat\nstop + error check" as KeepAliveController
   interface "Workflow/version\nstep handler" as StepHandler
   rectangle "WorkflowStepHandlers\ncontext + result\nstep invoker map" as StepHandlers
   rectangle "Per-workflow registries\nworkflow:version:step -> invoker" as WorkflowInvokerRegistry
@@ -109,14 +111,17 @@ WorkerLeases --> CommonDescriptors : lease definitions
 WorkerWorkflows --> CommonDescriptors : workflow definitions
 
 WorkflowExecutions --> WorkflowStore : claimable records
+WorkflowHeartbeats --> WorkflowStore : active claim heartbeat
 WorkerRuntime --> WorkflowRunner : creates runner
 WorkflowRunner --> WorkflowStore : claim_steps()
-WorkflowRunner --> WorkflowStore : keep_alive_step()
+WorkflowRunner --> KeepAliveController : start after claim
+KeepAliveController --> WorkflowStore : keep_alive_step()
+KeepAliveController --> WorkflowRunner : stop + error state
 WorkflowRunner --> StepHandlers : typed context
 WorkflowRunner --> WorkflowInvokerRegistry : lookup by key
 WorkflowInvokerRegistry --> StepHandler : invoke generated step method
 StepHandler --> WorkflowRunner : WorkflowStepResult\ncomplete / fail / cancel
-WorkflowRunner --> WorkflowStore : complete_step() / fail_step() / cancel()
+WorkflowRunner --> WorkflowStore : complete_stepTx() / fail_stepTx() / cancelTx()
 
 ConcreteStepHandler ..|> StepHandler
 ConcreteStepHandler --> RetryPolicy
@@ -154,12 +159,20 @@ MetricSink --> MetricsBackend : samples
 
 note right of WorkflowRunner
 The generated runner owns workflow
-step execution mechanics: claim,
-keep alive, typed invoker dispatch,
-and applying handler-returned results
-to workflow records. It does not infer
-next steps through a separate generated
-calculator.
+step execution mechanics: claim in a
+short transaction, start periodic
+heartbeat keep-alive, invoke the typed
+handler inside the finalization
+transaction, then apply the returned
+result. It does not infer next steps
+through a separate generated calculator.
+end note
+
+note right of KeepAliveController
+Keep-alive uses the claim token and
+updates heartbeat records instead of
+the workflow execution document. A
+keep-alive error aborts finalization.
 end note
 
 note right of StepHandler

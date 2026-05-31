@@ -375,16 +375,22 @@ scoped to a particular execution of a workflow definition.
 
 Workflow clients that hold a claimed step can call the keep-alive API to extend the
 claim lease before completing or failing the step. The keep-alive request identifies the
-workflow execution, worker, current step, current time, and lease duration. Workflow
-stores should only extend the lease when the execution is still claimed by that worker
-for the same current step.
+workflow execution, worker, current step, claim token, current time, and lease duration.
+Workflow stores should only extend the lease when the execution is still claimed by that
+worker for the same current step and the claim token still matches.
+
+Keep-alive updates are heartbeat-backed. A workflow store should refresh the workflow
+heartbeat record for the active claim and avoid mutating the workflow execution document
+that an open handler transaction is expected to re-read, validate, and finalize. This
+prevents periodic keep-alive updates from conflicting with the final OCC transaction
+used to complete, fail, or cancel the step.
 
 Generated workflow runners should not combine claiming with arbitrary handler execution
 in one transaction. Claiming is a short transaction that publishes ownership of the
-step. After the claim commits, the runner may keep the claim alive independently while
-the handler runs. Handler execution and step finalization should then use one
-caller-managed transaction: revalidate the claimed execution record, perform
-handler-owned persisted reads and writes through the transaction, and call
+step. After the claim commits, the generated C++, Go, Java, and Rust runners keep the
+claim alive periodically while the handler runs. Handler execution and step finalization
+then use one caller-managed transaction: revalidate the claimed execution record,
+perform handler-owned persisted reads and writes through the transaction, and call
 `complete_stepTx`, `fail_stepTx`, or `cancelTx` before committing.
 
 This pattern intentionally permits the finalization transaction to remain open across

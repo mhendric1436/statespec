@@ -40,7 +40,8 @@ package "Generated worker artifacts" {
   rectangle "WorkerRuntime\nworker composition root" as WorkerRuntime
   rectangle "WorkerApplication" as WorkerApplication
   rectangle "WorkerRegistry / Contexts / Descriptors" as WorkerCatalog
-  rectangle "WorkflowRunner\napplies WorkflowStepResult" as WorkflowRunner
+  rectangle "WorkflowRunner\nclaim + transaction-scoped handler\napplies WorkflowStepResult" as WorkflowRunner
+  rectangle "Periodic keep-alive controller\nclaim-token heartbeat updates" as WorkflowKeepAlive
   rectangle "Workflow invoker map\nworkflow:version:step" as WorkflowInvokerMap
   interface "Workflow/version\nstep handler" as StepHandler
   rectangle "WorkerQueues / WorkerLeases / WorkerWorkflows" as WorkerDefinitions
@@ -57,6 +58,7 @@ package "User-owned code" {
 package "Runtime infrastructure" {
   database "Versioned persisted state" as PersistedState
   queue "Workflow execution records" as WorkflowRecords
+  queue "Workflow heartbeat records" as WorkflowHeartbeats
   queue "Durable queue records" as QueueRecords
   cloud "External systems" as ExternalSystems
   cloud "Log backend" as LogBackend
@@ -117,6 +119,8 @@ WorkerMain --> WorkerApplication : wire context + invoker map
 WorkerRuntime --> Descriptors : bootstrap / register_runtime_catalogTx()
 WorkerRuntime --> RuntimeStores : owns typed stores
 WorkerApplication --> WorkflowRunner
+WorkflowRunner --> WorkflowKeepAlive : start / stop around handler
+WorkflowKeepAlive --> RuntimeStores : keep_alive_step()
 WorkflowRunner --> WorkflowInvokerMap : lookup by key
 WorkflowInvokerMap --> StepHandler
 ConcreteStepHandlers ..|> StepHandler
@@ -146,6 +150,7 @@ MemoryBackend ..|> BackendContracts
 BackendContracts --> PersistedState : OCC collections / documents
 
 RuntimeStores --> WorkflowRecords : workflow definitions + executions
+RuntimeStores --> WorkflowHeartbeats : claim token + expiry
 RuntimeStores --> QueueRecords : queue definitions + messages
 RuntimeStores --> LogBackend : log definitions + records
 RuntimeStores --> MetricBackend : metric definitions + samples
@@ -179,6 +184,16 @@ Entity-owned CRUD handler bodies live under
 api/entities/<entity>. The top-level handler
 registry only composes per-entity registries
 and the separate business handler map.
+end note
+
+note right of WorkflowRunner
+Generated workflow runners use two OCC
+boundaries: claim in a short transaction,
+then revalidate, run the typed handler,
+and finalize in one caller-managed
+transaction. Periodic keep-alive runs in
+parallel through heartbeat records so it
+does not conflict with finalization.
 end note
 
 note bottom of BackendContracts

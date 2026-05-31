@@ -222,7 +222,7 @@ The worker application artifact responsibilities are:
 | `worker_process` | Thread/goroutine-owned Worker lifecycle: bootstrap, workflow polling loops, Worker-hosted GC, stop, and join |
 | `worker_runtime` | Store composition, definition registration, GC worker registration, and one-step workflow execution runtime |
 | `worker_registry` | Registry derived from `worker` declarations |
-| `workflow_runner` | Workflow claim, heartbeat-safe keep-alive, typed step dispatch, handler-result complete/fail/cancel, and retry loop |
+| `workflow_runner` | Workflow claim, claim-token validation, periodic heartbeat-safe keep-alive, typed step dispatch, handler-result complete/fail/cancel, and retry loop |
 | `workflow_step_handlers` | Step-specific user implementation contract, result type, invoker map support, and default linking handlers for declared workflow steps |
 | `worker_main` | Worker process entrypoint |
 
@@ -230,10 +230,11 @@ Generated workflow runners use two OCC boundaries. The claim call is backend-man
 commits before handler code runs. The handler then runs inside a caller-managed
 transaction used for persisted StateSpec reads/writes and the final
 complete/fail/cancel workflow-store `Tx` operation. C++, Go, Java, and Rust generated
-workflow runners run a periodic keep-alive controller while the handler transaction is open.
-Generated handler contracts
-should make the transaction available to user code so workflow advancement and
-handler-owned durable mutations commit atomically.
+workflow runners run a periodic keep-alive controller while the handler transaction is
+open. The controller updates claim heartbeat records through backend-managed operations
+and stops before finalization. Generated handler contracts should make the transaction
+available to user code so workflow advancement and handler-owned durable mutations
+commit atomically.
 
 Generated API application filenames:
 

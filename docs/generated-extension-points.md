@@ -334,11 +334,20 @@ logic and advancement decisions in the same user-owned handler method.
 
 Generated workflow runners use two OCC boundaries for step execution. Claiming the step
 is a short standalone transaction that commits ownership before user code runs.
-Keep-alive calls are independent lease-maintenance operations while execution is in
-progress. The handler then runs inside a second caller-managed transaction: the runner
-re-reads and revalidates the claimed workflow execution record, invokes the typed
-handler with that transaction, applies the returned complete/fail/cancel result through
-the workflow store `Tx` API, and commits once.
+Keep-alive calls are independent heartbeat-maintenance operations while execution is in
+progress. The generated C++, Go, Java, and Rust runners start a background keep-alive
+controller before invoking the handler. The controller performs one immediate
+keep-alive, then refreshes the heartbeat periodically until the handler returns. The
+handler then runs inside a second caller-managed transaction: the runner re-reads and
+revalidates the claimed workflow execution record, invokes the typed handler with that
+transaction, applies the returned complete/fail/cancel result through the workflow store
+`Tx` API, and commits once.
+
+Keep-alive requests use the generated claim token. They refresh a workflow heartbeat
+record rather than mutating the workflow execution document that the open handler
+transaction later finalizes. If the keep-alive controller records an error, the runner
+aborts the handler transaction and returns a claim conflict instead of completing work
+under a stale claim.
 
 Workflow step handlers should be idempotent. A handler may be retried after process
 restart, lease expiry, backend failover, or a final OCC commit conflict. Persisted reads
