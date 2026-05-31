@@ -62,6 +62,9 @@ assert_cpp_workflow_transaction_regression() {
     assert_file_contains "$root/worker/workflows/provision_service/registry.hpp" "return handler.handle_wait_for_remote_service(tx, context);"
     assert_file_contains "$root/worker/workflow_runner.hpp" "workflow_store_.keep_alive_step"
     assert_file_occurrence_count "$root/worker/workflow_runner.hpp" "workflow_store_.keep_alive_step" 1
+    assert_file_contains "$root/worker/workflow_runner.hpp" "class PeriodicWorkflowKeepAlive"
+    assert_file_contains "$root/worker/workflow_runner.hpp" "keep_alive.start()"
+    assert_file_contains "$root/worker/workflow_runner.hpp" "keep_alive.stop()"
     assert_file_contains "$root/worker/workflow_runner.hpp" "auto tx = backend_.begin()"
     assert_file_contains "$root/worker/workflow_runner.hpp" "const auto current = revalidate_claimed_step(*tx, record)"
     assert_file_contains "$root/worker/workflow_runner.hpp" "result = invoker->second(backend_, *tx, context)"

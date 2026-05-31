@@ -38,29 +38,28 @@ still pass a concrete workflow execution id to run a known execution.
 
 ## Claim Tokens And Keep-Alive
 
-The current generated `WorkflowRunner.run_once` implementation performs exactly one
-backend-managed keep-alive call after a workflow step is claimed and before the typed
-step handler is invoked. It does not yet start a periodic background keep-alive task
-while the handler is running.
+The generated C++ `WorkflowRunner.run_once` implementation starts a periodic keep-alive
+controller after a workflow step is claimed and before the typed step handler is
+invoked. The controller refreshes the claim heartbeat on a background thread while the
+handler transaction is open, then stops before the runner applies the handler result
+with `complete`, `fail`, or `cancel`. Go, Java, and Rust still use the single
+pre-handler keep-alive baseline until their periodic controllers are implemented.
 
 Claiming a workflow step assigns a claim token to the workflow execution and writes a
 matching workflow heartbeat record. Keep-alive requests must include that token. The
 workflow store validates the token and refreshes the heartbeat record instead of
 updating the workflow execution document. Completing, failing, or canceling the step
-validates the same token and clears the heartbeat. This keeps the current single
-keep-alive behavior compatible with the future periodic keep-alive controller because
-background heartbeats will not race the open handler transaction on the workflow
-execution document version.
+validates the same token and clears the heartbeat. This keeps background heartbeats from
+racing the open handler transaction on the workflow execution document version.
 
-This baseline is sufficient for short local fixture handlers and for documenting the
-claim/handler/finalization order. Long-running handlers can outlive the renewed claim
-lease if their execution time exceeds the keep-alive extension. Production deployments
-with long workflow steps should either keep step handlers shorter than the lease window
-or wait for the planned periodic keep-alive controller work.
+The single pre-handler baseline in Go, Java, and Rust is sufficient for short local
+fixture handlers and for documenting the claim/handler/finalization order. In those
+languages, long-running handlers can still outlive the renewed claim lease if their
+execution time exceeds the keep-alive extension.
 
-The future periodic design must reuse this heartbeat path. A background keep-alive must
-not update the same workflow execution document version that the open handler
-transaction reads and later commits.
+Periodic keep-alive implementations must reuse this heartbeat path. A background
+keep-alive must not update the same workflow execution document version that the open
+handler transaction reads and later commits.
 
 ## Transaction Boundaries
 
@@ -68,8 +67,9 @@ transaction reads and later commits.
 boundaries:
 
 1. Claim the step with a backend-managed workflow-store call and commit that claim.
-2. Keep the claim alive once with a backend-managed heartbeat update before handler
-   execution.
+2. Keep the claim alive with backend-managed heartbeat updates. C++ does this
+   periodically while the handler runs; Go, Java, and Rust currently do one pre-handler
+   heartbeat update.
 3. Begin a second transaction, re-read and revalidate the claimed workflow execution,
    invoke the typed step handler with that transaction, apply the handler result with
    `complete`, `fail`, or `cancel` through the workflow store `Tx` API, and commit.

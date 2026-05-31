@@ -3,11 +3,14 @@
 #include "workflow_step_types.hpp"
 
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <exception>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <thread>
 
 #include <utility>
 
@@ -57,16 +60,11 @@ class WorkflowRunner
             return std::nullopt;
         }
         const auto record = claimed.front();
-        workflow_store_.keep_alive_step(
-            backend_, statespec::backend::KeepAliveWorkflowStepRequest{
-                          record.workflow_execution_id,
-                          worker_name_,
-                          record.current_step,
-                          record.claim_token.value_or(""),
-                          std::chrono::system_clock::now(),
-                          lease_duration_,
-                      }
-        );
+        PeriodicWorkflowKeepAlive keep_alive{
+            backend_, workflow_store_, worker_name_,
+            record,   lease_duration_, keep_alive_interval(lease_duration_),
+        };
+        keep_alive.start();
         auto tx = backend_.begin();
         try
         {
@@ -96,6 +94,11 @@ class WorkflowRunner
                 {
                     result = WorkflowStepResult::fail(ex.what());
                 }
+            }
+            keep_alive.stop();
+            if (const auto error = keep_alive.error(); error.has_value())
+            {
+                throw std::runtime_error("workflow keep alive failed: " + *error);
             }
             if (result.kind == WorkflowStepResultKind::Fail)
             {
@@ -138,6 +141,7 @@ class WorkflowRunner
         }
         catch (...)
         {
+            keep_alive.stop();
             if (tx->is_open())
             {
                 tx->abort();
@@ -147,6 +151,161 @@ class WorkflowRunner
     }
 
   private:
+    class PeriodicWorkflowKeepAlive
+    {
+      public:
+        PeriodicWorkflowKeepAlive(
+            statespec::backend::IBackend& backend,
+            statespec::backend::IWorkflowStore& workflow_store,
+            std::string worker_name,
+            statespec::backend::WorkflowExecutionRecord record,
+            std::chrono::seconds lease_duration,
+            std::chrono::milliseconds interval
+        )
+            : backend_(backend),
+              workflow_store_(workflow_store),
+              worker_name_(std::move(worker_name)),
+              record_(std::move(record)),
+              lease_duration_(lease_duration),
+              interval_(interval)
+        {
+        }
+
+        ~PeriodicWorkflowKeepAlive()
+        {
+            stop();
+        }
+
+        PeriodicWorkflowKeepAlive(const PeriodicWorkflowKeepAlive&) = delete;
+        PeriodicWorkflowKeepAlive& operator=(const PeriodicWorkflowKeepAlive&) = delete;
+        PeriodicWorkflowKeepAlive(PeriodicWorkflowKeepAlive&&) = delete;
+        PeriodicWorkflowKeepAlive& operator=(PeriodicWorkflowKeepAlive&&) = delete;
+
+        void start()
+        {
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                if (started_)
+                {
+                    return;
+                }
+                started_ = true;
+                stop_requested_ = false;
+            }
+
+            keep_alive_once();
+
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (stop_requested_)
+            {
+                return;
+            }
+            thread_ = std::thread([this] { run(); });
+        }
+
+        void stop()
+        {
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                stop_requested_ = true;
+            }
+            cv_.notify_all();
+            if (thread_.joinable() && thread_.get_id() != std::this_thread::get_id())
+            {
+                thread_.join();
+            }
+        }
+
+        std::optional<std::string> error() const
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            return error_;
+        }
+
+      private:
+        void run()
+        {
+            while (true)
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                if (cv_.wait_for(lock, interval_, [this] { return stop_requested_; }))
+                {
+                    return;
+                }
+                lock.unlock();
+                keep_alive_once();
+            }
+        }
+
+        bool stop_requested() const
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            return stop_requested_;
+        }
+
+        void keep_alive_once()
+        {
+            try
+            {
+                workflow_store_.keep_alive_step(
+                    backend_, statespec::backend::KeepAliveWorkflowStepRequest{
+                                  record_.workflow_execution_id,
+                                  worker_name_,
+                                  record_.current_step,
+                                  record_.claim_token.value_or(""),
+                                  std::chrono::system_clock::now(),
+                                  lease_duration_,
+                              }
+                );
+            }
+            catch (const std::exception& ex)
+            {
+                record_error(ex.what());
+            }
+            catch (...)
+            {
+                record_error("unknown keep alive failure");
+            }
+        }
+
+        void record_error(std::string message)
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (!error_.has_value())
+            {
+                error_ = std::move(message);
+            }
+        }
+
+        statespec::backend::IBackend& backend_;
+        statespec::backend::IWorkflowStore& workflow_store_;
+        std::string worker_name_;
+        statespec::backend::WorkflowExecutionRecord record_;
+        std::chrono::seconds lease_duration_;
+        std::chrono::milliseconds interval_;
+        mutable std::mutex mutex_;
+        std::condition_variable cv_;
+        std::thread thread_;
+        std::optional<std::string> error_;
+        bool started_ = false;
+        bool stop_requested_ = false;
+    };
+
+    static std::chrono::milliseconds keep_alive_interval(std::chrono::seconds lease_duration)
+    {
+        const auto lease_ms = std::chrono::duration_cast<std::chrono::milliseconds>(lease_duration);
+        auto interval = lease_ms / 3;
+        if (interval < std::chrono::milliseconds{250})
+        {
+            interval = std::chrono::milliseconds{250};
+        }
+        if (lease_ms > std::chrono::milliseconds{250} && interval >= lease_ms)
+        {
+            interval = lease_ms / 2;
+        }
+        return interval;
+    }
+
     statespec::backend::WorkflowExecutionRecord revalidate_claimed_step(
         statespec::backend::ITransaction& tx,
         const statespec::backend::WorkflowExecutionRecord& claimed
