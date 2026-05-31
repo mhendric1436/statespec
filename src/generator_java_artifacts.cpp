@@ -850,7 +850,8 @@ std::string java_workflow_handler_methods(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "        WorkflowStepHandlers.WorkflowStepResult handle"
-            << pascal_identifier(step.name) << "(WorkflowStepHandlers.Context context) "
+            << pascal_identifier(step.name)
+            << "(Backend.Transaction tx, WorkflowStepHandlers.Context context) "
             << "throws Exception;\n";
     }
     return out.str();
@@ -863,7 +864,9 @@ std::string java_workflow_default_handler_methods(const IrWorkflow& workflow)
     {
         out << "        @Override\n";
         out << "        public WorkflowStepHandlers.WorkflowStepResult handle"
-            << pascal_identifier(step.name) << "(WorkflowStepHandlers.Context context) {\n";
+            << pascal_identifier(step.name)
+            << "(Backend.Transaction tx, WorkflowStepHandlers.Context context) {\n";
+        out << "            var ignoredTx = tx;\n";
         out << "            return WorkflowStepHandlers.fail(\"generated workflow step handler "
             << workflow.name << "." << step.name << " is not implemented\");\n";
         out << "        }\n";
@@ -897,8 +900,8 @@ std::string java_workflow_registry_invoker_entries(const IrWorkflow& workflow)
         out << "        invokers.put(\n";
         out << "            WorkflowStepHandlers.workflowStepKey(" << java_string(workflow.name)
             << ", " << workflow.version.value_or(1) << "L, " << java_string(step.name) << "),\n";
-        out << "            (backend, context) -> invoke" << pascal_identifier(workflow.name)
-            << pascal_identifier(step.name) << "(handler, backend, context)\n";
+        out << "            (backend, tx, context) -> invoke" << pascal_identifier(workflow.name)
+            << pascal_identifier(step.name) << "(handler, backend, tx, context)\n";
         out << "        );\n";
     }
     return out.str();
@@ -915,10 +918,12 @@ std::string java_workflow_registry_invoke_methods(const IrWorkflow& workflow)
             << pascal_identifier(workflow.name) << pascal_identifier(step.name) << "(\n";
         out << "        Handlers." << class_name << " handler,\n";
         out << "        Backend backend,\n";
+        out << "        Backend.Transaction tx,\n";
         out << "        WorkflowStepHandlers.Context context\n";
         out << "    ) throws Exception {\n";
         out << "        var ignoredBackend = backend;\n";
-        out << "        return handler.handle" << pascal_identifier(step.name) << "(context);\n";
+        out << "        return handler.handle" << pascal_identifier(step.name)
+            << "(tx, context);\n";
         out << "    }\n\n";
     }
     return out.str();
@@ -1802,8 +1807,7 @@ std::string java_entity_api_shapes_file(
     std::ostringstream shape_record_declarations;
     for (const auto& shape : shapes)
     {
-        shape_record_declarations << "    public record " << pascal_identifier(shape.name)
-                                  << "(\n";
+        shape_record_declarations << "    public record " << pascal_identifier(shape.name) << "(\n";
         for (std::size_t i = 0; i < shape.fields.size(); ++i)
         {
             const auto& field = shape.fields[i];

@@ -17,8 +17,12 @@ public final class WorkerProcessFixture
 
         @Override
         public WorkflowStepHandlers.WorkflowStepResult
-        handleValidateRequest(WorkflowStepHandlers.Context context)
+        handleValidateRequest(
+            com.statespec.backend.Backend.Transaction tx,
+            WorkflowStepHandlers.Context context
+        )
         {
+            var ignoredTx = tx;
             if (!context.workflowName().equals("ProvisionService") ||
                 !context.stepName().equals("validate_request"))
             {
@@ -30,15 +34,23 @@ public final class WorkerProcessFixture
 
         @Override
         public WorkflowStepHandlers.WorkflowStepResult
-        handleCreateRemoteService(WorkflowStepHandlers.Context context)
+        handleCreateRemoteService(
+            com.statespec.backend.Backend.Transaction tx,
+            WorkflowStepHandlers.Context context
+        )
         {
+            var ignoredTx = tx;
             return WorkflowStepHandlers.complete("wait_for_remote_service");
         }
 
         @Override
         public WorkflowStepHandlers.WorkflowStepResult
-        handleWaitForRemoteService(WorkflowStepHandlers.Context context)
+        handleWaitForRemoteService(
+            com.statespec.backend.Backend.Transaction tx,
+            WorkflowStepHandlers.Context context
+        )
         {
+            var ignoredTx = tx;
             return WorkflowStepHandlers.complete();
         }
     }

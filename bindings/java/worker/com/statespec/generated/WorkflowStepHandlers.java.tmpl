@@ -75,6 +75,6 @@ public final class WorkflowStepHandlers {
 
     @FunctionalInterface
     public interface WorkflowStepInvoker {
-        WorkflowStepResult invoke(Backend backend, Context context) throws Exception;
+        WorkflowStepResult invoke(Backend backend, Backend.Transaction tx, Context context) throws Exception;
     }
 }

@@ -64,82 +64,113 @@ public final class WorkflowRunner {
                 leaseDuration
             )
         );
+        Backend.Transaction tx = backend.begin();
+        boolean committed = false;
         try {
+            Workflow.WorkflowExecutionRecord current = revalidateClaimedStep(tx, record);
             WorkflowStepHandlers.Context context =
                 new WorkflowStepHandlers.Context(
-                    record.workflowName(),
-                    record.workflowVersion(),
-                    record.currentStep(),
-                    Optional.of(record.workflowExecutionId()),
-                    Json.parse(record.stateJson())
+                    current.workflowName(),
+                    current.workflowVersion(),
+                    current.currentStep(),
+                    Optional.of(current.workflowExecutionId()),
+                    Json.parse(current.stateJson())
                 );
             String stepKey =
                 WorkflowStepHandlers.workflowStepKey(
-                    record.workflowName(),
-                    record.workflowVersion(),
-                    record.currentStep()
+                    current.workflowName(),
+                    current.workflowVersion(),
+                    current.currentStep()
                 );
             WorkflowStepHandlers.WorkflowStepInvoker invoker =
                 invokers.get(stepKey);
+            WorkflowStepHandlers.WorkflowStepResult result;
             if (invoker == null) {
-                throw new IllegalArgumentException(
+                result = WorkflowStepHandlers.fail(
                     "unknown generated workflow step handler: " + stepKey
                 );
+            } else {
+                try {
+                    result = invoker.invoke(backend, tx, context);
+                } catch (Exception ex) {
+                    result = WorkflowStepHandlers.fail(ex.getMessage());
+                }
             }
-            WorkflowStepHandlers.WorkflowStepResult result =
-                invoker.invoke(backend, context);
             if (result.kind() == WorkflowStepHandlers.WorkflowStepResultKind.FAIL) {
-                return Optional.of(
-                    workflowStore.failStep(
-                        backend,
+                Workflow.WorkflowExecutionRecord failed =
+                    workflowStore.failStepTx(
+                        tx,
                         new Workflow.FailWorkflowStepRequest(
-                            record.workflowExecutionId(),
+                            current.workflowExecutionId(),
                             workerName,
-                            record.currentStep(),
+                            current.currentStep(),
                             result.reason(),
                             Instant.now(),
                             maxAttempts
                         )
-                    )
-                );
+                    );
+                backend.commit(tx);
+                committed = true;
+                return Optional.of(failed);
             }
             if (result.kind() == WorkflowStepHandlers.WorkflowStepResultKind.CANCEL) {
-                return Optional.of(
-                    workflowStore.cancel(
-                        backend,
+                Workflow.WorkflowExecutionRecord canceled =
+                    workflowStore.cancelTx(
+                        tx,
                         new Workflow.CancelWorkflowRequest(
-                            record.workflowExecutionId(),
+                            current.workflowExecutionId(),
                             result.reason()
                         )
+                    );
+                backend.commit(tx);
+                committed = true;
+                return Optional.of(canceled);
+            }
+            Workflow.WorkflowExecutionRecord completed =
+                workflowStore.completeStepTx(
+                    tx,
+                    new Workflow.CompleteWorkflowStepRequest(
+                        current.workflowExecutionId(),
+                        workerName,
+                        current.currentStep(),
+                        result.nextStep(),
+                        current.stateJson()
                     )
                 );
+            backend.commit(tx);
+            committed = true;
+            return Optional.of(completed);
+        } finally {
+            if (!committed && tx.isOpen()) {
+                tx.abort();
             }
-            return Optional.of(
-                workflowStore.completeStep(
-                    backend,
-                    new Workflow.CompleteWorkflowStepRequest(
-                        record.workflowExecutionId(),
-                        workerName,
-                        record.currentStep(),
-                        result.nextStep(),
-                        record.stateJson()
-                    )
-                )
-            );
-        } catch (Exception ex) {
-            return Optional.of(
-                workflowStore.failStep(
-                    backend,
-                    new Workflow.FailWorkflowStepRequest(
-                        record.workflowExecutionId(),
-                        workerName,
-                        record.currentStep(),
-                        ex.getMessage(),
-                        Instant.now(),
-                        maxAttempts
-                    )
-                )
-            );
         }
+    }
+
+    private Workflow.WorkflowExecutionRecord revalidateClaimedStep(
+        Backend.Transaction tx,
+        Workflow.WorkflowExecutionRecord claimed
+    ) throws Exception {
+        Optional<Workflow.WorkflowExecutionRecord> current =
+            workflowStore.inspectTx(tx, claimed.workflowExecutionId());
+        if (current.isEmpty()) {
+            throw new Backend.BackendException("claimed workflow execution disappeared");
+        }
+        Workflow.WorkflowExecutionRecord record = current.get();
+        if (!claimed.workflowName().equals(record.workflowName()) ||
+            claimed.workflowVersion() != record.workflowVersion() ||
+            !claimed.currentStep().equals(record.currentStep()))
+        {
+            throw new Backend.BackendException("claimed workflow execution changed before execution");
+        }
+        if (record.claimedBy().isEmpty() || !record.claimedBy().get().equals(workerName))
+        {
+            throw new Backend.BackendException("claimed workflow execution is no longer owned by worker");
+        }
+        if (record.claimExpiresAt().isEmpty() || !record.claimExpiresAt().get().isAfter(Instant.now()))
+        {
+            throw new Backend.BackendException("claimed workflow execution lease expired before execution");
+        }
+        return record;
     }
 }

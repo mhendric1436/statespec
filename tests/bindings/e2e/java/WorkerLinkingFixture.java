@@ -20,8 +20,12 @@ public final class WorkerLinkingFixture
 
         @Override
         public WorkflowStepHandlers.WorkflowStepResult
-        handleValidateRequest(WorkflowStepHandlers.Context context)
+        handleValidateRequest(
+            com.statespec.backend.Backend.Transaction tx,
+            WorkflowStepHandlers.Context context
+        )
         {
+            var ignoredTx = tx;
             if (!context.workflowName().equals("ProvisionService") ||
                 !context.stepName().equals("validate_request"))
             {
@@ -33,15 +37,23 @@ public final class WorkerLinkingFixture
 
         @Override
         public WorkflowStepHandlers.WorkflowStepResult
-        handleCreateRemoteService(WorkflowStepHandlers.Context context)
+        handleCreateRemoteService(
+            com.statespec.backend.Backend.Transaction tx,
+            WorkflowStepHandlers.Context context
+        )
         {
+            var ignoredTx = tx;
             return WorkflowStepHandlers.fail("unexpected create_remote_service step");
         }
 
         @Override
         public WorkflowStepHandlers.WorkflowStepResult
-        handleWaitForRemoteService(WorkflowStepHandlers.Context context)
+        handleWaitForRemoteService(
+            com.statespec.backend.Backend.Transaction tx,
+            WorkflowStepHandlers.Context context
+        )
         {
+            var ignoredTx = tx;
             return WorkflowStepHandlers.fail("unexpected wait_for_remote_service step");
         }
     }
