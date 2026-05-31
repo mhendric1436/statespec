@@ -1,0 +1,15 @@
+package com.statespec.generated.servers.{{api_server_package}}.entities.{{entity_package}};
+
+import java.util.List;
+
+public final class Catalog {
+    private Catalog() {}
+
+    public static void appendApiServerNames(List<String> serves) {
+        for (var apiName : com.statespec.generated.entities.{{entity_package}}.Catalog.apiNames()) {
+            if ({{served_api_condition}}) {
+                serves.add(apiName);
+            }
+        }
+    }
+}

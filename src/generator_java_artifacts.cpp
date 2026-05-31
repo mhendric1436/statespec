@@ -1870,20 +1870,13 @@ std::string java_api_server_constants_file(const IrApiServer& api_server)
 }
 
 std::string java_api_server_catalog_file(
+    const TemplatePackage& templates,
     const IrSystem& system,
     const IrApiServer& api_server
 )
 {
     const auto entity_domains = crud_api_handler_domains_java(api_handler_domains(system));
     std::set<std::string> entity_api_names;
-    std::ostringstream out;
-    out << "package com.statespec.generated.servers." << snake_identifier(api_server.name)
-        << ";\n\n";
-    out << "import com.statespec.generated.descriptors.types.ApiServerDescriptor;\n";
-    out << "import java.util.ArrayList;\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class Catalog {\n";
-    out << "    private Catalog() {}\n\n";
     for (const auto& domain : entity_domains)
     {
         for (const auto& api : domain.apis)
@@ -1891,8 +1884,8 @@ std::string java_api_server_catalog_file(
             entity_api_names.insert(api.name);
         }
     }
-    out << "    public static List<ApiServerDescriptor> apiServerDescriptors() {\n";
-    out << "        var serves = new ArrayList<String>();\n";
+    std::ostringstream entity_append_calls;
+    std::ostringstream manual_served_api_entries;
     for (const auto& domain : entity_domains)
     {
         const auto served = std::any_of(
@@ -1905,9 +1898,10 @@ std::string java_api_server_catalog_file(
         );
         if (served)
         {
-            out << "        com.statespec.generated.servers." << snake_identifier(api_server.name)
-                << ".entities." << snake_identifier(domain.name)
-                << ".Catalog.appendApiServerNames(serves);\n";
+            entity_append_calls << "        com.statespec.generated.servers."
+                                << snake_identifier(api_server.name) << ".entities."
+                                << snake_identifier(domain.name)
+                                << ".Catalog.appendApiServerNames(serves);\n";
         }
     }
     for (const auto& served_api : api_server.serves)
@@ -1916,20 +1910,23 @@ std::string java_api_server_catalog_file(
         {
             continue;
         }
-        out << "        serves.add(" << java_string(served_api) << ");\n";
+        manual_served_api_entries << "        serves.add(" << java_string(served_api) << ");\n";
     }
-    out << "        return List.of(new ApiServerDescriptor(\n";
-    out << "            Constants." << java_api_server_name_constant_name(api_server.name) << ",\n";
-    out << "            List.copyOf(serves),\n";
-    out << "            Constants." << java_api_server_concurrency_constant_name(api_server.name)
-        << "\n";
-    out << "        ));\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
+    return templates.render(
+        "api/com/statespec/generated/servers/Catalog.java.tmpl",
+        TemplateRenderer::Values{
+            {"api_server_package", snake_identifier(api_server.name)},
+            {"server_entity_append_calls", entity_append_calls.str()},
+            {"manual_served_api_entries", manual_served_api_entries.str()},
+            {"api_server_name_constant", java_api_server_name_constant_name(api_server.name)},
+            {"api_server_concurrency_constant",
+             java_api_server_concurrency_constant_name(api_server.name)},
+        }
+    );
 }
 
 std::string java_api_server_entity_catalog_file(
+    const TemplatePackage& templates,
     const IrApiServer& api_server,
     const ApiHandlerDomain& domain
 )
@@ -1944,32 +1941,25 @@ std::string java_api_server_entity_catalog_file(
         }
     }
 
-    std::ostringstream out;
-    out << "package com.statespec.generated.servers." << snake_identifier(api_server.name)
-        << ".entities." << snake_identifier(domain.name) << ";\n\n";
-    out << "import java.util.List;\n\n";
-    out << "public final class Catalog {\n";
-    out << "    private Catalog() {}\n\n";
-    out << "    public static void appendApiServerNames(List<String> serves) {\n";
-    out << "        for (var apiName : com.statespec.generated.entities."
-        << snake_identifier(domain.name) << ".Catalog.apiNames()) {\n";
-    out << "            if (";
+    std::ostringstream condition;
     for (std::size_t i = 0; i < served_domain_apis.size(); ++i)
     {
         if (i > 0)
         {
-            out << " || ";
+            condition << " || ";
         }
-        out << "apiName.equals(com.statespec.generated.entities." << snake_identifier(domain.name)
-            << ".ApiConstants." << java_api_name_constant_name(served_domain_apis[i].name) << ")";
+        condition << "apiName.equals(com.statespec.generated.entities."
+                  << snake_identifier(domain.name) << ".ApiConstants."
+                  << java_api_name_constant_name(served_domain_apis[i].name) << ")";
     }
-    out << ") {\n";
-    out << "                serves.add(apiName);\n";
-    out << "            }\n";
-    out << "        }\n";
-    out << "    }\n";
-    out << "}\n";
-    return out.str();
+    return templates.render(
+        "api/com/statespec/generated/servers/EntityCatalog.java.tmpl",
+        TemplateRenderer::Values{
+            {"api_server_package", snake_identifier(api_server.name)},
+            {"entity_package", snake_identifier(domain.name)},
+            {"served_api_condition", condition.str()},
+        }
+    );
 }
 
 std::string java_entity_api_constants_file(
@@ -3651,14 +3641,14 @@ void add_java_api_artifacts(
                 result, options,
                 "api/com/statespec/generated/servers/" + snake_identifier(api_server.name) +
                     "/entities/" + snake_identifier(domain.name) + "/Catalog.java",
-                java_api_server_entity_catalog_file(api_server, domain)
+                java_api_server_entity_catalog_file(templates, api_server, domain)
             );
         }
         add_java_raw_api_file(
             result, options,
             "api/com/statespec/generated/servers/" + snake_identifier(api_server.name) +
                 "/Catalog.java",
-            java_api_server_catalog_file(system, api_server)
+            java_api_server_catalog_file(templates, system, api_server)
         );
     }
     add_java_raw_api_file(

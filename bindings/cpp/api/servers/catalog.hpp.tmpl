@@ -1,0 +1,25 @@
+#pragma once
+
+#include "../../../common/descriptors/types.hpp"
+#include "constants.hpp"
+{{server_entity_includes}}
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace statespec_generated::api::servers::{{api_server_namespace}}
+{
+
+using ApiServerDescriptor = ::statespec_generated::ApiServerDescriptor;
+
+inline std::vector<ApiServerDescriptor> api_server_descriptors()
+{
+    std::vector<std::string> serves;
+{{server_entity_append_calls}}{{manual_served_api_entries}}    return {ApiServerDescriptor{
+        constants::{{api_server_name_constant}},
+        std::move(serves),
+        constants::{{api_server_concurrency_constant}},
+    }};
+}
+
+} // namespace statespec_generated::api::servers::{{api_server_namespace}}

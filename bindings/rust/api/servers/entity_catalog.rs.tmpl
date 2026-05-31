@@ -1,0 +1,10 @@
+#[path = "../../../entities/{{entity_snake}}/catalog.rs"]
+mod entity_catalog;
+
+pub fn append_api_server_names(serves: &mut Vec<String>) {
+    for api_name in entity_catalog::api_names() {
+        match *api_name {
+{{served_api_match_arms}}            _ => {}
+        }
+    }
+}

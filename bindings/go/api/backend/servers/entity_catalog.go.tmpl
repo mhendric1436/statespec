@@ -1,0 +1,12 @@
+package {{entity_package}}
+
+import {{entity_package}} "statespec-generated/api/backend/entities/{{entity_package}}"
+
+func AppendAPIServerNames(serves *[]string) {
+	for _, apiName := range {{entity_package}}.EntityAPINames() {
+		switch apiName {
+		case {{served_api_cases}}:
+			*serves = append(*serves, apiName)
+		}
+	}
+}

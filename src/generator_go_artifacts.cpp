@@ -2294,6 +2294,7 @@ std::string go_api_server_constants_file(const IrApiServer& api_server)
 }
 
 std::string go_api_server_catalog_file(
+    const TemplatePackage& templates,
     const IrSystem& system,
     const IrApiServer& api_server
 )
@@ -2318,22 +2319,17 @@ std::string go_api_server_catalog_file(
             served_domains.push_back(std::move(served_domain));
         }
     }
-    std::ostringstream out;
-    out << "package " << snake_identifier(api_server.name) << "\n\n";
-    out << "import (\n";
-    out << "\tdescriptortypes \"statespec-generated/common/backend/descriptortypes\"\n";
+    std::ostringstream entity_imports;
+    std::ostringstream entity_append_calls;
+    std::ostringstream manual_served_api_entries;
     for (const auto& domain : served_domains)
     {
-        out << "\tserver" << snake_identifier(domain.name)
-            << " \"statespec-generated/api/backend/servers/" << snake_identifier(api_server.name)
-            << "/entities/" << snake_identifier(domain.name) << "\"\n";
-    }
-    out << ")\n\n";
-    out << "func ApiServerDescriptors() []descriptortypes.ApiServerDescriptor {\n";
-    out << "\tserves := []string{}\n";
-    for (const auto& domain : served_domains)
-    {
-        out << "\tserver" << snake_identifier(domain.name) << ".AppendAPIServerNames(&serves)\n";
+        entity_imports << "\tserver" << snake_identifier(domain.name)
+                       << " \"statespec-generated/api/backend/servers/"
+                       << snake_identifier(api_server.name) << "/entities/"
+                       << snake_identifier(domain.name) << "\"\n";
+        entity_append_calls << "\tserver" << snake_identifier(domain.name)
+                            << ".AppendAPIServerNames(&serves)\n";
     }
     for (const auto& served_api : api_server.serves)
     {
@@ -2341,31 +2337,32 @@ std::string go_api_server_catalog_file(
         {
             continue;
         }
-        out << "\tserves = append(serves, " << go_string(served_api) << ")\n";
+        manual_served_api_entries << "\tserves = append(serves, " << go_string(served_api)
+                                  << ")\n";
     }
-    out << "\treturn []descriptortypes.ApiServerDescriptor{{\n";
-    out << "\t\tName: " << go_api_server_name_constant_name(api_server.name) << ",\n";
-    out << "\t\tServes: serves,\n";
-    out << "\t\tConcurrency: " << go_api_server_concurrency_constant_name(api_server.name) << ",\n";
-    out << "\t}}\n";
-    out << "}\n";
-    return out.str();
+    return templates.render(
+        "api/backend/servers/catalog.go.tmpl",
+        TemplateRenderer::Values{
+            {"api_server_package", snake_identifier(api_server.name)},
+            {"server_entity_imports", entity_imports.str()},
+            {"server_entity_append_calls", entity_append_calls.str()},
+            {"manual_served_api_entries", manual_served_api_entries.str()},
+            {"api_server_name_constant", go_api_server_name_constant_name(api_server.name)},
+            {"api_server_concurrency_constant",
+             go_api_server_concurrency_constant_name(api_server.name)},
+            {"composite_open", "{{"},
+            {"composite_close", "}}"},
+        }
+    );
 }
 
 std::string go_api_server_entity_catalog_file(
+    const TemplatePackage& templates,
     const IrApiServer& api_server,
     const ApiHandlerDomain& domain
 )
 {
-    std::ostringstream out;
-    out << "package " << snake_identifier(domain.name) << "\n\n";
-    out << "import " << snake_identifier(domain.name)
-        << " \"statespec-generated/api/backend/entities/" << snake_identifier(domain.name)
-        << "\"\n\n";
-    out << "func AppendAPIServerNames(serves *[]string) {\n";
-    out << "\tfor _, apiName := range " << snake_identifier(domain.name) << ".EntityAPINames() {\n";
-    out << "\t\tswitch apiName {\n";
-    out << "\t\tcase ";
+    std::ostringstream cases;
     bool first = true;
     for (const auto& api : domain.apis)
     {
@@ -2376,17 +2373,18 @@ std::string go_api_server_entity_catalog_file(
         }
         if (!first)
         {
-            out << ", ";
+            cases << ", ";
         }
         first = false;
-        out << snake_identifier(domain.name) << "." << go_api_name_constant_name(api.name);
+        cases << snake_identifier(domain.name) << "." << go_api_name_constant_name(api.name);
     }
-    out << ":\n";
-    out << "\t\t\t*serves = append(*serves, apiName)\n";
-    out << "\t\t}\n";
-    out << "\t}\n";
-    out << "}\n";
-    return out.str();
+    return templates.render(
+        "api/backend/servers/entity_catalog.go.tmpl",
+        TemplateRenderer::Values{
+            {"entity_package", snake_identifier(domain.name)},
+            {"served_api_cases", cases.str()},
+        }
+    );
 }
 
 std::string go_entity_api_constants_file(
@@ -3602,13 +3600,13 @@ void add_go_api_artifacts(
                 result, options,
                 "api/backend/servers/" + snake_identifier(api_server.name) + "/entities/" +
                     snake_identifier(domain.name) + "/catalog.go",
-                go_api_server_entity_catalog_file(api_server, domain)
+                go_api_server_entity_catalog_file(templates, api_server, domain)
             );
         }
         add_go_raw_api_file(
             result, options,
             "api/backend/servers/" + snake_identifier(api_server.name) + "/catalog.go",
-            go_api_server_catalog_file(system, api_server)
+            go_api_server_catalog_file(templates, system, api_server)
         );
     }
     add_go_raw_api_file(

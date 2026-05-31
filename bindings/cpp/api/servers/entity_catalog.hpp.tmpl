@@ -1,0 +1,22 @@
+#pragma once
+
+#include "../../../entities/{{entity_namespace}}/catalog.hpp"
+
+#include <string>
+#include <vector>
+
+namespace statespec_generated::api::servers::{{api_server_namespace}}::entities::{{entity_namespace}}
+{
+
+inline void append_api_server_names(std::vector<std::string>& serves)
+{
+    for (const auto& api_name : ::statespec_generated::api::entities::{{entity_namespace}}::api_names())
+    {
+        if ({{served_api_condition}})
+        {
+            serves.push_back(api_name);
+        }
+    }
+}
+
+} // namespace statespec_generated::api::servers::{{api_server_namespace}}::entities::{{entity_namespace}}

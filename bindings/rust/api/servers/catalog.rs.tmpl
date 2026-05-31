@@ -1,0 +1,13 @@
+#[path = "constants.rs"]
+mod constants;
+{{server_entity_modules}}
+use crate::descriptor_types::ApiServerDescriptor;
+
+pub fn api_server_descriptors() -> Vec<ApiServerDescriptor> {
+    let mut serves = Vec::<String>::new();
+{{server_entity_append_calls}}{{manual_served_api_entries}}    vec![ApiServerDescriptor {
+        name: constants::{{api_server_name_constant}}.to_string(),
+        serves,
+        concurrency: constants::{{api_server_concurrency_constant}},
+    }]
+}

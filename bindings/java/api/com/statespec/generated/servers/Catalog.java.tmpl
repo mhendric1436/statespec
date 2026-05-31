@@ -1,0 +1,18 @@
+package com.statespec.generated.servers.{{api_server_package}};
+
+import com.statespec.generated.descriptors.types.ApiServerDescriptor;
+import java.util.ArrayList;
+import java.util.List;
+
+public final class Catalog {
+    private Catalog() {}
+
+    public static List<ApiServerDescriptor> apiServerDescriptors() {
+        var serves = new ArrayList<String>();
+{{server_entity_append_calls}}{{manual_served_api_entries}}        return List.of(new ApiServerDescriptor(
+            Constants.{{api_server_name_constant}},
+            List.copyOf(serves),
+            Constants.{{api_server_concurrency_constant}}
+        ));
+    }
+}

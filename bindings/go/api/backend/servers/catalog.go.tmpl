@@ -1,0 +1,14 @@
+package {{api_server_package}}
+
+import (
+	descriptortypes "statespec-generated/common/backend/descriptortypes"
+{{server_entity_imports}})
+
+func ApiServerDescriptors() []descriptortypes.ApiServerDescriptor {
+	serves := []string{}
+{{server_entity_append_calls}}{{manual_served_api_entries}}	return []descriptortypes.ApiServerDescriptor{{composite_open}}
+	Name: {{api_server_name_constant}},
+	Serves: serves,
+	Concurrency: {{api_server_concurrency_constant}},
+	{{composite_close}}
+}
