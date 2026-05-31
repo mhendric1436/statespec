@@ -406,9 +406,17 @@ Generated worker apps own structural workflow and worker wiring:
 - Worker registry and descriptor lookup.
 - Workflow step handler interfaces.
 - Queue worker interfaces.
-- Workflow runner behavior for claim, keep alive, complete, fail, and retry-visible state.
+- Workflow runner behavior for claim, keep alive, result-driven complete/fail/cancel,
+  and retry-visible state.
 
 User-owned code supplies concrete workflow step handlers, concrete queue workers, external API clients, retry policy integration, runtime configuration, and concrete backend adapters.
+
+Generated workflow step advancement must be handler-result driven. Workflow step
+handlers return a generated `WorkflowStepResult` or language equivalent that explicitly
+chooses complete with an optional next step, fail with a reason, or cancel with a
+reason. The generated runner applies that result through the workflow store. Do not add
+separate runner-side next-step calculators or generated `transition_to` inference
+chains; those create a second source of execution semantics outside the handler result.
 
 ### Generated artifact naming rule
 

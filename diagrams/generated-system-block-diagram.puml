@@ -40,15 +40,16 @@ package "Generated worker artifacts" {
   rectangle "WorkerRuntime\nworker composition root" as WorkerRuntime
   rectangle "WorkerApplication" as WorkerApplication
   rectangle "WorkerRegistry / Contexts / Descriptors" as WorkerCatalog
-  rectangle "WorkflowRunner" as WorkflowRunner
-  interface "Workflow/version\nstep handlers" as StepHandler
+  rectangle "WorkflowRunner\napplies WorkflowStepResult" as WorkflowRunner
+  rectangle "Workflow invoker map\nworkflow:version:step" as WorkflowInvokerMap
+  interface "Workflow/version\nstep handler" as StepHandler
   rectangle "WorkerQueues / WorkerLeases / WorkerWorkflows" as WorkerDefinitions
 }
 
 package "User-owned code" {
   component "Transport adapter" as Transport
   component "Concrete business API handlers" as ConcreteBusinessHandlers
-  component "Concrete workflow step handlers" as ConcreteStepHandlers
+  component "Concrete workflow step handlers\nreturn WorkflowStepResult" as ConcreteStepHandlers
   component "External system clients" as ExternalClients
   component "Production backend adapter" as ProductionBackend
 }
@@ -111,11 +112,13 @@ Transport --> ApiServer : normalized request
 WorkerMain --> ProductionBackend : choose backend implementation
 WorkerMain --> WorkerRuntimeConfig : choose Worker GC host setting
 WorkerMain --> WorkerRuntime : wire backend
-WorkerMain --> WorkerApplication : wire context + handler
+WorkerMain --> WorkflowInvokerMap : register concrete handlers
+WorkerMain --> WorkerApplication : wire context + invoker map
 WorkerRuntime --> Descriptors : bootstrap / register_runtime_catalogTx()
 WorkerRuntime --> RuntimeStores : owns typed stores
 WorkerApplication --> WorkflowRunner
-WorkflowRunner --> StepHandler
+WorkflowRunner --> WorkflowInvokerMap : lookup by key
+WorkflowInvokerMap --> StepHandler
 ConcreteStepHandlers ..|> StepHandler
 WorkerCatalog --> Descriptors
 WorkerDefinitions --> Descriptors

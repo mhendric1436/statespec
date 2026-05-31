@@ -313,9 +313,10 @@ Generated Worker code owns:
 - Worker context records.
 - Queue, lease, and workflow descriptor views.
 - Workflow step handler interfaces.
-- A default workflow step handler so generated apps link until user code supplies the
-  production handler.
-- Workflow runner behavior for claim, keep alive, complete, fail, and retry-visible state.
+- Default workflow-specific step handlers so generated apps link until user code
+  supplies production handlers.
+- Workflow runner behavior for claim, keep alive, handler-result dispatch,
+  complete/fail/cancel, and retry-visible state.
 - Entity GC worker startup and shutdown when Worker-hosted GC is enabled.
 
 User code owns:
@@ -328,6 +329,10 @@ User code owns:
 Workflow step handlers should be idempotent. Any persisted state read that affects a
 worker decision must happen through the generated backend transaction model, in the same
 transaction as the write or workflow/queue operation that consumes the read.
+Handlers also own step advancement decisions. A generated handler method returns a
+workflow step result: complete with an optional next step, fail with a reason, or cancel
+with a reason. The runner applies that result directly and does not use a separate
+generated next-step calculator.
 Local Worker app tests may use the generated in-memory workflow, queue, lease, log, and
 metric stores.
 

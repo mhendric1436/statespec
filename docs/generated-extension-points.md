@@ -52,8 +52,8 @@ Generated code owns:
 - workflow step handler context types, typed step-specific handler methods, and
   deterministic workflow step handler keys
 - workflow runners that claim workflow steps, call user handlers, keep claimed steps
-  alive, advance declared `transition_to` targets, and complete or fail steps through
-  backend workflow stores
+  alive, and apply handler-returned complete/fail/cancel results through backend
+  workflow stores
 - transaction-scoped catalog registration helpers for queues, leases, workflows, feature
   flags, logs, and metrics when those runtime domains are used
 - operator metadata lookup, default mapping applicators, external-system client call
@@ -297,8 +297,10 @@ Worker process contract.
 Workflow step handlers are the primary business-logic extension point for generated
 worker applications. The generated workflow runner owns the workflow store interaction:
 claiming a step, keeping the claim alive, invoking the generated step-specific user
-handler method, advancing to a declared `transition_to` target when the step succeeds,
-completing terminal steps, and failing the step when the handler returns an error.
+handler method, and applying the returned workflow step result. A handler result can
+complete the step with an optional next step, fail the step with a reason, or cancel the
+workflow with a reason. Handler errors are converted into retry-visible workflow
+failures by the generated runner.
 
 | Language | Generated workflow step handler surface |
 |---|---|
@@ -318,15 +320,17 @@ Each declared workflow step maps to one generated handler method. For example,
 StateSpec does not generate a parallel generic workflow step handler path and does not
 require one class to own every workflow step in the system. The generated context
 includes the workflow name, workflow version, step name, optional execution ID, and input
-payload. Generated per-workflow registries bind workflow-step dispatch keys to invokers,
-and the generated handler bundle resolves the workflow/version-specific user handler at
-runtime. Application code implements only the workflow handler types it needs; missing
-handlers fail deterministically through the generated dispatch map.
+payload. Generated per-workflow registries bind workflow-step dispatch keys to invokers.
+The generated worker entrypoint or application composition code builds an invoker map by
+registering concrete per-workflow handlers. Application code implements only the workflow
+handler types it needs; missing keys fail deterministically through the generated
+dispatch map.
 
-The generated runner derives workflow advancement from the `.sspec` workflow body. A
-step with `transition_to next_step` completes the claimed step with `next_step` set to
-that target, leaving the workflow execution `Running`. A step with no transition target
-completes the workflow execution.
+The generated runner does not infer next steps from a separate generated
+`transition_to` calculator. Step advancement is explicit in the handler result: complete
+with `next_step` to continue, complete with no next step to finish, fail to make the
+step retry-visible, or cancel to terminate the workflow. This keeps workflow business
+logic and advancement decisions in the same user-owned handler method.
 
 Workflow step handlers should be idempotent. A handler may be retried after process
 restart, lease expiry, or backend failover. External calls should use idempotency keys

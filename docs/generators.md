@@ -222,8 +222,8 @@ The worker application artifact responsibilities are:
 | `worker_process` | Thread/goroutine-owned Worker lifecycle: bootstrap, workflow polling loops, Worker-hosted GC, stop, and join |
 | `worker_runtime` | Store composition, definition registration, GC worker registration, and one-step workflow execution runtime |
 | `worker_registry` | Registry derived from `worker` declarations |
-| `workflow_runner` | Workflow claim, keep-alive, typed step dispatch, `transition_to` advancement, complete, fail, and retry loop |
-| `workflow_step_handlers` | Step-specific user implementation contract and default linking handler for declared workflow steps |
+| `workflow_runner` | Workflow claim, keep-alive, typed step dispatch, handler-result complete/fail/cancel, and retry loop |
+| `workflow_step_handlers` | Step-specific user implementation contract, result type, invoker map support, and default linking handlers for declared workflow steps |
 | `worker_main` | Worker process entrypoint |
 
 Generated API application filenames:

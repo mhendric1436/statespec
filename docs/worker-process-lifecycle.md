@@ -29,8 +29,8 @@ Generated worker loops are derived from `worker` declarations and `WorkerContext
 records. For every context with `executes`, the process starts `concurrency` polling
 loops. Each loop asks `WorkerRuntime.run_once` to claim the next runnable workflow
 execution for the declared workflow. The runtime delegates to `WorkflowRunner`, which
-owns claim, keep alive, typed handler dispatch, `transition_to` advancement, complete,
-and fail behavior.
+owns claim, keep alive, typed handler dispatch, and applying the handler-returned
+complete/fail/cancel result.
 
 The empty workflow execution id used by the polling loop means "claim the next runnable
 execution for this workflow name and version." Direct tests and specialized adapters may
@@ -38,9 +38,11 @@ still pass a concrete workflow execution id to run a known execution.
 
 ## User-Owned Code
 
-Generated code provides a default workflow step handler so generated apps link and
-exercise lifecycle tests. Production applications should replace that default handler
-with a concrete implementation of the generated typed workflow step handler interface.
+Generated code provides default workflow-specific handler implementations so generated
+apps link and exercise lifecycle tests. Production applications should register concrete
+workflow-specific handlers in the generated workflow step invoker map. Each handler
+method returns a generated workflow step result: complete with an optional next step,
+fail with a reason, or cancel with a reason.
 
 User-owned workflow step handlers should be idempotent. Any persisted state read that
 affects a worker decision must use the generated backend transaction model and be
