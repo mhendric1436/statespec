@@ -35,6 +35,7 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 		WorkflowExecutionID: record.WorkflowExecutionID,
 		Worker:              runner.WorkerName,
 		CurrentStep:         record.CurrentStep,
+		ClaimToken:          stringValue(record.ClaimToken),
 		Now:                 time.Now(),
 		LeaseDuration:       runner.LeaseDuration,
 	}); err != nil {
@@ -83,6 +84,7 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 			Reason:              result.Reason,
 			Now:                 time.Now(),
 			MaxAttempts:         runner.MaxAttempts,
+			ClaimToken:          stringValue(current.ClaimToken),
 		})
 		if failErr != nil {
 			return nil, failErr
@@ -112,6 +114,7 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 			CompletedStep:       current.CurrentStep,
 			NextStep:            result.NextStep,
 			State:               current.State,
+			ClaimToken:          stringValue(current.ClaimToken),
 		})
 		if completeErr != nil {
 			return nil, completeErr
@@ -138,8 +141,18 @@ func (runner WorkflowRunner) revalidateClaimedStep(ctx context.Context, tx commo
 	if current.ClaimedBy == nil || *current.ClaimedBy != runner.WorkerName {
 		return common.WorkflowExecutionRecord{}, fmt.Errorf("claimed workflow execution is no longer owned by worker")
 	}
+	if current.ClaimToken == nil || claimed.ClaimToken == nil || *current.ClaimToken != *claimed.ClaimToken {
+		return common.WorkflowExecutionRecord{}, fmt.Errorf("claimed workflow execution token changed before execution")
+	}
 	if current.ClaimExpiresAt == nil || !current.ClaimExpiresAt.After(time.Now()) {
 		return common.WorkflowExecutionRecord{}, fmt.Errorf("claimed workflow execution lease expired before execution")
 	}
 	return *current, nil
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }

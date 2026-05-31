@@ -161,6 +161,7 @@ int main()
                      .workflow_execution_id = "wf-1",
                      .worker = "worker-1",
                      .current_step = "validate_request",
+                     .claim_token = *steps.front().claim_token,
                      .now = now,
                      .lease_duration = std::chrono::minutes{1},
                  }

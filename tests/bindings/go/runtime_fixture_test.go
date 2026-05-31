@@ -108,7 +108,10 @@ func TestMemoryBackendStoresComposeInTransaction(t *testing.T) {
 	if err != nil || len(steps) != 1 {
 		t.Fatalf("workflow claim failed: %v %#v", err, steps)
 	}
-	if _, err := workflows.KeepAliveStep(ctx, backend, common.KeepAliveWorkflowStepRequest{WorkflowExecutionID: "wf-1", Worker: "worker-1", CurrentStep: "validate_request", Now: now, LeaseDuration: time.Minute}); err != nil {
+	if steps[0].ClaimToken == nil {
+		t.Fatalf("workflow claim token was not set: %#v", steps[0])
+	}
+	if _, err := workflows.KeepAliveStep(ctx, backend, common.KeepAliveWorkflowStepRequest{WorkflowExecutionID: "wf-1", Worker: "worker-1", CurrentStep: "validate_request", ClaimToken: *steps[0].ClaimToken, Now: now, LeaseDuration: time.Minute}); err != nil {
 		t.Fatal(err)
 	}
 

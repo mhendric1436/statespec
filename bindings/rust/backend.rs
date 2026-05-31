@@ -14,6 +14,7 @@ pub mod runtime_collections {
     pub const LEASES: &str = "statespec_leases";
     pub const WORKFLOW_DEFINITIONS: &str = "statespec_workflow_definitions";
     pub const WORKFLOW_EXECUTIONS: &str = "statespec_workflow_executions";
+    pub const WORKFLOW_HEARTBEATS: &str = "statespec_workflow_heartbeats";
     pub const LOG_DEFINITIONS: &str = "statespec_log_definitions";
     pub const LOG_EVENTS: &str = "statespec_log_events";
     pub const METRIC_DEFINITIONS: &str = "statespec_metric_definitions";
@@ -30,6 +31,7 @@ pub mod runtime_key_fields {
     pub const LEASE: &str = "lease";
     pub const WORKFLOW_DEFINITION: &str = "workflow_definition";
     pub const WORKFLOW_EXECUTION_ID: &str = "workflow_execution_id";
+    pub const WORKFLOW_HEARTBEAT: &str = "workflow_heartbeat";
     pub const EVENT_ID: &str = "event_id";
     pub const SAMPLE_ID: &str = "sample_id";
 }

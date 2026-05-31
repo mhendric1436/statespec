@@ -46,6 +46,7 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
                 workflow_execution_id: record.workflow_execution_id.clone(),
                 worker: self.worker_name.clone(),
                 current_step: record.current_step.clone(),
+                claim_token: record.claim_token.clone().unwrap_or_default(),
                 now: SystemTime::now(),
                 lease_duration: self.lease_duration,
             },
@@ -102,6 +103,7 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
                     completed_step: record.current_step,
                     next_step,
                     state: record.state,
+                    claim_token: record.claim_token.unwrap_or_default(),
                 },
             ),
             WorkflowStepResult::Fail { reason } => self.workflow_store.fail_step_tx(
@@ -113,6 +115,7 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
                     reason,
                     now: SystemTime::now(),
                     max_attempts: self.max_attempts,
+                    claim_token: record.claim_token.unwrap_or_default(),
                 },
             ),
             WorkflowStepResult::Cancel { reason } => self.workflow_store.cancel_tx(
@@ -149,6 +152,14 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
             return Err(BackendError::Conflict {
                 kind: ConflictKind::WorkflowClaimConflict,
                 message: "claimed workflow execution is no longer owned by worker".to_string(),
+            });
+        }
+        if current.claim_token.as_deref() != claimed.claim_token.as_deref()
+            || current.claim_token.is_none()
+        {
+            return Err(BackendError::Conflict {
+                kind: ConflictKind::WorkflowClaimConflict,
+                message: "claimed workflow execution token changed before execution".to_string(),
             });
         }
         if !current

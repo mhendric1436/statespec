@@ -131,7 +131,8 @@ public final class MemoryBackendFixture
         }
         workflows.keepAliveStep(
             backend, new Workflow.KeepAliveWorkflowStepRequest(
-                         "wf-1", "worker-1", "validate_request", now, Duration.ofMinutes(1)
+                         "wf-1", "worker-1", "validate_request",
+                         steps.get(0).claimToken().orElseThrow(), now, Duration.ofMinutes(1)
                      )
         );
 

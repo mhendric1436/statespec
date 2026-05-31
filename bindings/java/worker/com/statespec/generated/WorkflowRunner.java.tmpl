@@ -60,6 +60,7 @@ public final class WorkflowRunner {
                 record.workflowExecutionId(),
                 workerName,
                 record.currentStep(),
+                record.claimToken().orElse(""),
                 Instant.now(),
                 leaseDuration
             )
@@ -106,7 +107,8 @@ public final class WorkflowRunner {
                             current.currentStep(),
                             result.reason(),
                             Instant.now(),
-                            maxAttempts
+                            maxAttempts,
+                            current.claimToken().orElse("")
                         )
                     );
                 backend.commit(tx);
@@ -134,7 +136,8 @@ public final class WorkflowRunner {
                         workerName,
                         current.currentStep(),
                         result.nextStep(),
-                        current.stateJson()
+                        current.stateJson(),
+                        current.claimToken().orElse("")
                     )
                 );
             backend.commit(tx);
@@ -166,6 +169,11 @@ public final class WorkflowRunner {
         if (record.claimedBy().isEmpty() || !record.claimedBy().get().equals(workerName))
         {
             throw new Backend.BackendException("claimed workflow execution is no longer owned by worker");
+        }
+        if (record.claimToken().isEmpty() || claimed.claimToken().isEmpty() ||
+            !record.claimToken().get().equals(claimed.claimToken().get()))
+        {
+            throw new Backend.BackendException("claimed workflow execution token changed before execution");
         }
         if (record.claimExpiresAt().isEmpty() || !record.claimExpiresAt().get().isAfter(Instant.now()))
         {

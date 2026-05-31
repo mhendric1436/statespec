@@ -217,6 +217,7 @@ fn memory_backend_stores_compose_in_transaction() {
                 workflow_execution_id: "wf-1".to_string(),
                 worker: "worker-1".to_string(),
                 current_step: "validate_request".to_string(),
+                claim_token: steps[0].claim_token.clone().unwrap(),
                 now,
                 lease_duration: Duration::from_secs(60),
             },

@@ -48,8 +48,19 @@ public interface Workflow
         String status,
         long attempt,
         Optional<String> claimedBy,
+        Optional<String> claimToken,
         Optional<Instant> claimExpiresAt,
         String stateJson
+    )
+    {
+    }
+
+    record WorkflowHeartbeatRecord(
+        String workflowExecutionId,
+        String claimToken,
+        String worker,
+        String currentStep,
+        Instant claimExpiresAt
     )
     {
     }
@@ -80,6 +91,7 @@ public interface Workflow
         String workflowExecutionId,
         String worker,
         String currentStep,
+        String claimToken,
         Instant now,
         Duration leaseDuration
     )
@@ -91,7 +103,8 @@ public interface Workflow
         String worker,
         String completedStep,
         Optional<String> nextStep,
-        String stateJson
+        String stateJson,
+        String claimToken
     )
     {
     }
@@ -102,7 +115,8 @@ public interface Workflow
         String failedStep,
         String reason,
         Instant now,
-        int maxAttempts
+        int maxAttempts,
+        String claimToken
     )
     {
     }

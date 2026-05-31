@@ -2,6 +2,8 @@ package runtime
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	common "statespec-generated/common/backend"
 )
@@ -9,6 +11,7 @@ import (
 const (
 	workflowDefinitionsCollection = common.RuntimeCollectionWorkflowDefinitions
 	workflowExecutionsCollection  = common.RuntimeCollectionWorkflowExecutions
+	workflowHeartbeatsCollection  = common.RuntimeCollectionWorkflowHeartbeats
 )
 
 type WorkflowStore struct{}
@@ -139,7 +142,12 @@ func (s *WorkflowStore) ClaimStepsTx(ctx context.Context, tx common.Transaction,
 		expires := request.Now.Add(request.LeaseDuration)
 		execution.ClaimExpiresAt = &expires
 		execution.Attempt++
+		token := workflowClaimToken(execution, request.Worker)
+		execution.ClaimToken = &token
 		if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+			return nil, err
+		}
+		if err := putWorkflowHeartbeat(ctx, tx, execution, request.Worker, expires); err != nil {
 			return nil, err
 		}
 		claimed = append(claimed, execution)
@@ -168,11 +176,14 @@ func (s *WorkflowStore) KeepAliveStepTx(ctx context.Context, tx common.Transacti
 	if err := requireWorkflowClaim(execution, request.Worker, request.CurrentStep); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
-	expires := request.Now.Add(request.LeaseDuration)
-	execution.ClaimExpiresAt = &expires
-	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+	if err := requireWorkflowClaimToken(execution, request.ClaimToken); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
+	expires := request.Now.Add(request.LeaseDuration)
+	if err := putWorkflowHeartbeat(ctx, tx, execution, request.Worker, expires); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	execution.ClaimExpiresAt = &expires
 	return execution, nil
 }
 
@@ -197,8 +208,13 @@ func (s *WorkflowStore) CompleteStepTx(ctx context.Context, tx common.Transactio
 	if err := requireWorkflowClaim(execution, request.Worker, request.CompletedStep); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
+	if err := requireWorkflowClaimToken(execution, request.ClaimToken); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
 	execution.State = request.State
+	claimToken := execution.ClaimToken
 	execution.ClaimedBy = nil
+	execution.ClaimToken = nil
 	execution.ClaimExpiresAt = nil
 	if request.NextStep == nil {
 		execution.Status = "Completed"
@@ -207,6 +223,9 @@ func (s *WorkflowStore) CompleteStepTx(ctx context.Context, tx common.Transactio
 		execution.Status = "Running"
 	}
 	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if err := eraseWorkflowHeartbeat(ctx, tx, execution.WorkflowExecutionID, claimToken); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
 	return execution, nil
@@ -233,7 +252,12 @@ func (s *WorkflowStore) FailStepTx(ctx context.Context, tx common.Transaction, r
 	if err := requireWorkflowClaim(execution, request.Worker, request.FailedStep); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
+	if err := requireWorkflowClaimToken(execution, request.ClaimToken); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	claimToken := execution.ClaimToken
 	execution.ClaimedBy = nil
+	execution.ClaimToken = nil
 	execution.ClaimExpiresAt = nil
 	if execution.Attempt >= uint64(request.MaxAttempts) {
 		execution.Status = "Failed"
@@ -241,6 +265,9 @@ func (s *WorkflowStore) FailStepTx(ctx context.Context, tx common.Transaction, r
 		execution.Status = "Running"
 	}
 	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if err := eraseWorkflowHeartbeat(ctx, tx, execution.WorkflowExecutionID, claimToken); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
 	return execution, nil
@@ -264,10 +291,15 @@ func (s *WorkflowStore) CancelTx(ctx context.Context, tx common.Transaction, req
 	if err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
+	claimToken := execution.ClaimToken
 	execution.Status = "Canceled"
 	execution.ClaimedBy = nil
+	execution.ClaimToken = nil
 	execution.ClaimExpiresAt = nil
 	if err := tx.Put(ctx, workflowExecutionsCollection, common.Key(execution.WorkflowExecutionID), workflowExecutionToJSON(execution)); err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if err := eraseWorkflowHeartbeat(ctx, tx, execution.WorkflowExecutionID, claimToken); err != nil {
 		return common.WorkflowExecutionRecord{}, err
 	}
 	return execution, nil
@@ -322,6 +354,7 @@ func ensureWorkflowCollections(ctx context.Context, backend common.Backend) erro
 	return backend.EnsureCollections(ctx, []common.CollectionDescriptor{
 		{Name: string(workflowDefinitionsCollection), KeyFields: []string{common.RuntimeKeyFieldWorkflowDefinition}},
 		{Name: string(workflowExecutionsCollection), KeyFields: []string{common.RuntimeKeyFieldWorkflowExecutionID}},
+		{Name: string(workflowHeartbeatsCollection), KeyFields: []string{common.RuntimeKeyFieldWorkflowHeartbeat}},
 	})
 }
 
@@ -329,9 +362,44 @@ func workflowDefinitionKey(name string, version int64) string {
 	return definitionKey(name, version)
 }
 
+func workflowHeartbeatKey(workflowExecutionID string, claimToken string) string {
+	return workflowExecutionID + ":" + claimToken
+}
+
+func workflowClaimToken(execution common.WorkflowExecutionRecord, worker string) string {
+	return fmt.Sprintf("%s:%s:%d", execution.WorkflowExecutionID, worker, execution.Attempt)
+}
+
+func putWorkflowHeartbeat(ctx context.Context, tx common.Transaction, execution common.WorkflowExecutionRecord, worker string, claimExpiresAt time.Time) error {
+	if execution.ClaimToken == nil {
+		return conflict(common.WorkflowClaimConflict, "workflow step claim token is missing")
+	}
+	return tx.Put(ctx, workflowHeartbeatsCollection, common.Key(workflowHeartbeatKey(execution.WorkflowExecutionID, *execution.ClaimToken)), workflowHeartbeatToJSON(common.WorkflowHeartbeatRecord{
+		WorkflowExecutionID: execution.WorkflowExecutionID,
+		ClaimToken:          *execution.ClaimToken,
+		Worker:              worker,
+		CurrentStep:         execution.CurrentStep,
+		ClaimExpiresAt:      claimExpiresAt,
+	}))
+}
+
+func eraseWorkflowHeartbeat(ctx context.Context, tx common.Transaction, workflowExecutionID string, claimToken *string) error {
+	if claimToken == nil {
+		return nil
+	}
+	return tx.Erase(ctx, workflowHeartbeatsCollection, common.Key(workflowHeartbeatKey(workflowExecutionID, *claimToken)))
+}
+
 func requireWorkflowClaim(execution common.WorkflowExecutionRecord, worker string, step string) error {
 	if execution.ClaimedBy == nil || *execution.ClaimedBy != worker || execution.CurrentStep != step {
 		return conflict(common.WorkflowClaimConflict, "workflow step is not claimed by caller")
+	}
+	return nil
+}
+
+func requireWorkflowClaimToken(execution common.WorkflowExecutionRecord, claimToken string) error {
+	if execution.ClaimToken == nil || *execution.ClaimToken != claimToken {
+		return conflict(common.WorkflowClaimConflict, "workflow step claim token does not match caller")
 	}
 	return nil
 }

@@ -62,6 +62,7 @@ class WorkflowRunner
                           record.workflow_execution_id,
                           worker_name_,
                           record.current_step,
+                          record.claim_token.value_or(""),
                           std::chrono::system_clock::now(),
                           lease_duration_,
                       }
@@ -82,7 +83,8 @@ class WorkflowRunner
             WorkflowStepResult result;
             if (invoker == invokers_.end())
             {
-                result = WorkflowStepResult::fail("unknown generated workflow step handler: " + key);
+                result =
+                    WorkflowStepResult::fail("unknown generated workflow step handler: " + key);
             }
             else
             {
@@ -99,13 +101,14 @@ class WorkflowRunner
             {
                 auto failed = workflow_store_.fail_stepTx(
                     *tx, statespec::backend::FailWorkflowStepRequest{
-                                  current.workflow_execution_id,
-                                  worker_name_,
-                                  current.current_step,
-                                  result.reason,
-                                  std::chrono::system_clock::now(),
-                                  max_attempts_,
-                              }
+                             current.workflow_execution_id,
+                             worker_name_,
+                             current.current_step,
+                             result.reason,
+                             std::chrono::system_clock::now(),
+                             max_attempts_,
+                             current.claim_token.value_or(""),
+                         }
                 );
                 backend_.commit(*tx);
                 return failed;
@@ -122,12 +125,13 @@ class WorkflowRunner
             }
             auto completed = workflow_store_.complete_stepTx(
                 *tx, statespec::backend::CompleteWorkflowStepRequest{
-                              current.workflow_execution_id,
-                              worker_name_,
-                              current.current_step,
-                              result.next_step,
-                              current.state,
-                          }
+                         current.workflow_execution_id,
+                         worker_name_,
+                         current.current_step,
+                         result.next_step,
+                         current.state,
+                         current.claim_token.value_or(""),
+                     }
             );
             backend_.commit(*tx);
             return completed;
@@ -162,6 +166,10 @@ class WorkflowRunner
         if (!current->claimed_by.has_value() || *current->claimed_by != worker_name_)
         {
             throw std::runtime_error("claimed workflow execution is no longer owned by worker");
+        }
+        if (!current->claim_token.has_value() || current->claim_token != claimed.claim_token)
+        {
+            throw std::runtime_error("claimed workflow execution token changed before execution");
         }
         const auto now = std::chrono::system_clock::now();
         if (!current->claim_expires_at.has_value() || *current->claim_expires_at <= now)

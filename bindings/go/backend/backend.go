@@ -19,6 +19,7 @@ const (
 	RuntimeCollectionLeases                 CollectionName = "statespec_leases"
 	RuntimeCollectionWorkflowDefinitions    CollectionName = "statespec_workflow_definitions"
 	RuntimeCollectionWorkflowExecutions     CollectionName = "statespec_workflow_executions"
+	RuntimeCollectionWorkflowHeartbeats     CollectionName = "statespec_workflow_heartbeats"
 	RuntimeCollectionLogDefinitions         CollectionName = "statespec_log_definitions"
 	RuntimeCollectionLogEvents              CollectionName = "statespec_log_events"
 	RuntimeCollectionMetricDefinitions      CollectionName = "statespec_metric_definitions"
@@ -35,6 +36,7 @@ const (
 	RuntimeKeyFieldLease               = "lease"
 	RuntimeKeyFieldWorkflowDefinition  = "workflow_definition"
 	RuntimeKeyFieldWorkflowExecutionID = "workflow_execution_id"
+	RuntimeKeyFieldWorkflowHeartbeat   = "workflow_heartbeat"
 	RuntimeKeyFieldEventID             = "event_id"
 	RuntimeKeyFieldSampleID            = "sample_id"
 )

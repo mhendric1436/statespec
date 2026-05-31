@@ -143,10 +143,12 @@ class RuntimeWorkflowStore : public IWorkflowStore
             execution.claimed_by = request.worker;
             execution.claim_expires_at = request.now + request.lease_duration;
             ++execution.attempt;
+            execution.claim_token = claim_token_for(execution, request.worker);
             tx.put(
                 kExecutionsCollection, execution.workflow_execution_id,
                 detail::workflow_execution_to_json(execution)
             );
+            put_heartbeat(tx, execution, request.worker, request.now + request.lease_duration);
             claimed.push_back(execution);
         }
         return claimed;
@@ -169,12 +171,9 @@ class RuntimeWorkflowStore : public IWorkflowStore
     ) override
     {
         auto execution = require_execution(tx, request.workflow_execution_id);
-        require_claim(execution, request.worker, request.current_step);
+        require_claim(execution, request.worker, request.current_step, request.claim_token);
+        put_heartbeat(tx, execution, request.worker, request.now + request.lease_duration);
         execution.claim_expires_at = request.now + request.lease_duration;
-        tx.put(
-            kExecutionsCollection, execution.workflow_execution_id,
-            detail::workflow_execution_to_json(execution)
-        );
         return execution;
     }
 
@@ -195,9 +194,11 @@ class RuntimeWorkflowStore : public IWorkflowStore
     ) override
     {
         auto execution = require_execution(tx, request.workflow_execution_id);
-        require_claim(execution, request.worker, request.completed_step);
+        require_claim(execution, request.worker, request.completed_step, request.claim_token);
         execution.state = request.state;
         execution.claimed_by.reset();
+        const auto claim_token = execution.claim_token;
+        execution.claim_token.reset();
         execution.claim_expires_at.reset();
         if (request.next_step.has_value())
         {
@@ -212,6 +213,7 @@ class RuntimeWorkflowStore : public IWorkflowStore
             kExecutionsCollection, execution.workflow_execution_id,
             detail::workflow_execution_to_json(execution)
         );
+        erase_heartbeat(tx, request.workflow_execution_id, claim_token);
         return execution;
     }
 
@@ -232,14 +234,17 @@ class RuntimeWorkflowStore : public IWorkflowStore
     ) override
     {
         auto execution = require_execution(tx, request.workflow_execution_id);
-        require_claim(execution, request.worker, request.failed_step);
+        require_claim(execution, request.worker, request.failed_step, request.claim_token);
+        const auto claim_token = execution.claim_token;
         execution.claimed_by.reset();
+        execution.claim_token.reset();
         execution.claim_expires_at.reset();
         execution.status = execution.attempt >= request.max_attempts ? "Failed" : "Running";
         tx.put(
             kExecutionsCollection, execution.workflow_execution_id,
             detail::workflow_execution_to_json(execution)
         );
+        erase_heartbeat(tx, request.workflow_execution_id, claim_token);
         return execution;
     }
 
@@ -260,13 +265,16 @@ class RuntimeWorkflowStore : public IWorkflowStore
     ) override
     {
         auto execution = require_execution(tx, request.workflow_execution_id);
+        const auto claim_token = execution.claim_token;
         execution.status = "Canceled";
         execution.claimed_by.reset();
+        execution.claim_token.reset();
         execution.claim_expires_at.reset();
         tx.put(
             kExecutionsCollection, execution.workflow_execution_id,
             detail::workflow_execution_to_json(execution)
         );
+        erase_heartbeat(tx, request.workflow_execution_id, claim_token);
         return execution;
     }
 
@@ -297,6 +305,7 @@ class RuntimeWorkflowStore : public IWorkflowStore
   private:
     static constexpr const char* kDefinitionsCollection = runtime_collections::WorkflowDefinitions;
     static constexpr const char* kExecutionsCollection = runtime_collections::WorkflowExecutions;
+    static constexpr const char* kHeartbeatsCollection = runtime_collections::WorkflowHeartbeats;
 
     static void ensure_collections(IBackend& backend)
     {
@@ -308,6 +317,10 @@ class RuntimeWorkflowStore : public IWorkflowStore
              CollectionDescriptor{
                  .name = kExecutionsCollection,
                  .key_fields = {std::string{runtime_key_fields::WorkflowExecutionId}}
+             },
+             CollectionDescriptor{
+                 .name = kHeartbeatsCollection,
+                 .key_fields = {std::string{runtime_key_fields::WorkflowHeartbeat}}
              }}
         );
     }
@@ -344,14 +357,67 @@ class RuntimeWorkflowStore : public IWorkflowStore
         return *execution;
     }
 
+    static std::string heartbeat_key(
+        const std::string& workflow_execution_id,
+        const std::string& claim_token
+    )
+    {
+        return workflow_execution_id + ":" + claim_token;
+    }
+
+    static std::string claim_token_for(
+        const WorkflowExecutionRecord& execution,
+        const std::string& worker
+    )
+    {
+        return execution.workflow_execution_id + ":" + worker + ":" +
+               std::to_string(execution.attempt);
+    }
+
+    static void put_heartbeat(
+        ITransaction& tx,
+        const WorkflowExecutionRecord& execution,
+        const std::string& worker,
+        Timestamp claim_expires_at
+    )
+    {
+        const auto token = execution.claim_token.value_or("");
+        tx.put(
+            kHeartbeatsCollection, heartbeat_key(execution.workflow_execution_id, token),
+            detail::workflow_heartbeat_to_json(
+                WorkflowHeartbeatRecord{
+                    .workflow_execution_id = execution.workflow_execution_id,
+                    .claim_token = token,
+                    .worker = worker,
+                    .current_step = execution.current_step,
+                    .claim_expires_at = claim_expires_at,
+                }
+            )
+        );
+    }
+
+    static void erase_heartbeat(
+        ITransaction& tx,
+        const std::string& workflow_execution_id,
+        const std::optional<std::string>& claim_token
+    )
+    {
+        if (claim_token.has_value())
+        {
+            tx.erase(kHeartbeatsCollection, heartbeat_key(workflow_execution_id, *claim_token));
+        }
+    }
+
     static void require_claim(
         const WorkflowExecutionRecord& execution,
         const std::string& worker,
-        const std::string& step
+        const std::string& step,
+        const std::string& claim_token
     )
     {
         if (!execution.claimed_by.has_value() || *execution.claimed_by != worker ||
-            execution.current_step != step)
+            execution.current_step != step || !execution.claim_token.has_value() ||
+            *execution.claim_token != claim_token)
         {
             throw ConflictError(
                 ConflictKind::WorkflowClaimConflict, "workflow step is not claimed by caller"

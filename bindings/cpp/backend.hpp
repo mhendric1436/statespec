@@ -29,6 +29,7 @@ inline constexpr const char* LeaseDefinitions = "statespec_lease_definitions";
 inline constexpr const char* Leases = "statespec_leases";
 inline constexpr const char* WorkflowDefinitions = "statespec_workflow_definitions";
 inline constexpr const char* WorkflowExecutions = "statespec_workflow_executions";
+inline constexpr const char* WorkflowHeartbeats = "statespec_workflow_heartbeats";
 inline constexpr const char* LogDefinitions = "statespec_log_definitions";
 inline constexpr const char* LogEvents = "statespec_log_events";
 inline constexpr const char* MetricDefinitions = "statespec_metric_definitions";
@@ -46,6 +47,7 @@ inline constexpr const char* LeaseDefinition = "lease_definition";
 inline constexpr const char* Lease = "lease";
 inline constexpr const char* WorkflowDefinition = "workflow_definition";
 inline constexpr const char* WorkflowExecutionId = "workflow_execution_id";
+inline constexpr const char* WorkflowHeartbeat = "workflow_heartbeat";
 inline constexpr const char* EventId = "event_id";
 inline constexpr const char* SampleId = "sample_id";
 } // namespace runtime_key_fields

@@ -62,6 +62,7 @@ func workflowExecutionToJSON(execution common.WorkflowExecutionRecord) common.JS
 		"status":                common.JSONString(execution.Status),
 		"attempt":               common.JSONInt(int64(execution.Attempt)),
 		"claimed_by":            optionalString(execution.ClaimedBy),
+		"claim_token":           optionalString(execution.ClaimToken),
 		"claim_expires_at":      optionalTimeToJSON(execution.ClaimExpiresAt),
 		"state":                 execution.State,
 	})
@@ -77,7 +78,29 @@ func workflowExecutionFromJSON(value common.JSON) common.WorkflowExecutionRecord
 		Status:              stringFromJSON(object["status"]),
 		Attempt:             uint64(intFromJSON(object["attempt"])),
 		ClaimedBy:           stringPtrFromJSON(object["claimed_by"]),
+		ClaimToken:          stringPtrFromJSON(object["claim_token"]),
 		ClaimExpiresAt:      optionalTimeFromJSON(object["claim_expires_at"]),
 		State:               object["state"],
+	}
+}
+
+func workflowHeartbeatToJSON(heartbeat common.WorkflowHeartbeatRecord) common.JSON {
+	return common.JSONObject(map[string]common.JSON{
+		"workflow_execution_id": common.JSONString(heartbeat.WorkflowExecutionID),
+		"claim_token":           common.JSONString(heartbeat.ClaimToken),
+		"worker":                common.JSONString(heartbeat.Worker),
+		"current_step":          common.JSONString(heartbeat.CurrentStep),
+		"claim_expires_at":      timeToJSON(heartbeat.ClaimExpiresAt),
+	})
+}
+
+func workflowHeartbeatFromJSON(value common.JSON) common.WorkflowHeartbeatRecord {
+	object, _ := value.AsObject()
+	return common.WorkflowHeartbeatRecord{
+		WorkflowExecutionID: stringFromJSON(object["workflow_execution_id"]),
+		ClaimToken:          stringFromJSON(object["claim_token"]),
+		Worker:              stringFromJSON(object["worker"]),
+		CurrentStep:         stringFromJSON(object["current_step"]),
+		ClaimExpiresAt:      timeFromJSON(object["claim_expires_at"]),
 	}
 }

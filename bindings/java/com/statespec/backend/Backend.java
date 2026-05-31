@@ -17,6 +17,7 @@ public interface Backend
         public static final String LEASES = "statespec_leases";
         public static final String WORKFLOW_DEFINITIONS = "statespec_workflow_definitions";
         public static final String WORKFLOW_EXECUTIONS = "statespec_workflow_executions";
+        public static final String WORKFLOW_HEARTBEATS = "statespec_workflow_heartbeats";
         public static final String LOG_DEFINITIONS = "statespec_log_definitions";
         public static final String LOG_EVENTS = "statespec_log_events";
         public static final String METRIC_DEFINITIONS = "statespec_metric_definitions";
@@ -36,6 +37,7 @@ public interface Backend
         public static final String LEASE = "lease";
         public static final String WORKFLOW_DEFINITION = "workflow_definition";
         public static final String WORKFLOW_EXECUTION_ID = "workflow_execution_id";
+        public static final String WORKFLOW_HEARTBEAT = "workflow_heartbeat";
         public static final String EVENT_ID = "event_id";
         public static final String SAMPLE_ID = "sample_id";
 

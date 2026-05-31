@@ -71,6 +71,7 @@ inline Json workflow_execution_to_json(const WorkflowExecutionRecord& execution)
         {"state", execution.state},
     };
     put_optional_string(object, "claimed_by", execution.claimed_by);
+    put_optional_string(object, "claim_token", execution.claim_token);
     if (execution.claim_expires_at.has_value())
     {
         object.emplace("claim_expires_at_ms", timestamp_millis(*execution.claim_expires_at));
@@ -88,12 +89,35 @@ inline WorkflowExecutionRecord workflow_execution_from_json(const Json& json)
     execution.status = json.at("status").as_string();
     execution.attempt = static_cast<std::uint64_t>(json.at("attempt").as_int64());
     execution.claimed_by = optional_string(json, "claimed_by");
+    execution.claim_token = optional_string(json, "claim_token");
     if (const auto* value = json.find("claim_expires_at_ms"))
     {
         execution.claim_expires_at = timestamp_from(*value);
     }
     execution.state = json.contains("state") ? json.at("state") : Json::object({});
     return execution;
+}
+
+inline Json workflow_heartbeat_to_json(const WorkflowHeartbeatRecord& heartbeat)
+{
+    return Json::object(
+        {{"workflow_execution_id", heartbeat.workflow_execution_id},
+         {"claim_token", heartbeat.claim_token},
+         {"worker", heartbeat.worker},
+         {"current_step", heartbeat.current_step},
+         {"claim_expires_at_ms", timestamp_millis(heartbeat.claim_expires_at)}}
+    );
+}
+
+inline WorkflowHeartbeatRecord workflow_heartbeat_from_json(const Json& json)
+{
+    return WorkflowHeartbeatRecord{
+        .workflow_execution_id = json.at("workflow_execution_id").as_string(),
+        .claim_token = json.at("claim_token").as_string(),
+        .worker = json.at("worker").as_string(),
+        .current_step = json.at("current_step").as_string(),
+        .claim_expires_at = timestamp_from(json.at("claim_expires_at_ms")),
+    };
 }
 
 } // namespace statespec::backend::runtime::detail

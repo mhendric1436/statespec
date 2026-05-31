@@ -36,12 +36,21 @@ The empty workflow execution id used by the polling loop means "claim the next r
 execution for this workflow name and version." Direct tests and specialized adapters may
 still pass a concrete workflow execution id to run a known execution.
 
-## Current Keep-Alive Baseline
+## Claim Tokens And Keep-Alive
 
 The current generated `WorkflowRunner.run_once` implementation performs exactly one
 backend-managed keep-alive call after a workflow step is claimed and before the typed
 step handler is invoked. It does not yet start a periodic background keep-alive task
 while the handler is running.
+
+Claiming a workflow step assigns a claim token to the workflow execution and writes a
+matching workflow heartbeat record. Keep-alive requests must include that token. The
+workflow store validates the token and refreshes the heartbeat record instead of
+updating the workflow execution document. Completing, failing, or canceling the step
+validates the same token and clears the heartbeat. This keeps the current single
+keep-alive behavior compatible with the future periodic keep-alive controller because
+background heartbeats will not race the open handler transaction on the workflow
+execution document version.
 
 This baseline is sufficient for short local fixture handlers and for documenting the
 claim/handler/finalization order. Long-running handlers can outlive the renewed claim
@@ -49,10 +58,9 @@ lease if their execution time exceeds the keep-alive extension. Production deplo
 with long workflow steps should either keep step handlers shorter than the lease window
 or wait for the planned periodic keep-alive controller work.
 
-The future periodic design must avoid conflicting with the transaction-scoped handler
-model. A background keep-alive must not update the same workflow execution document
-version that the open handler transaction reads and later commits, unless the backend
-model separates claim heartbeat state from the workflow execution state being finalized.
+The future periodic design must reuse this heartbeat path. A background keep-alive must
+not update the same workflow execution document version that the open handler
+transaction reads and later commits.
 
 ## Transaction Boundaries
 
@@ -60,7 +68,7 @@ model separates claim heartbeat state from the workflow execution state being fi
 boundaries:
 
 1. Claim the step with a backend-managed workflow-store call and commit that claim.
-2. Keep the claim alive once with a backend-managed keep-alive call before handler
+2. Keep the claim alive once with a backend-managed heartbeat update before handler
    execution.
 3. Begin a second transaction, re-read and revalidate the claimed workflow execution,
    invoke the typed step handler with that transaction, apply the handler result with
@@ -70,7 +78,8 @@ The second transaction is intentionally allowed to stay open while the handler r
 That keeps handler-owned persisted state changes and workflow advancement in one OCC
 commit. The required tradeoff is idempotency: remote calls made from a handler must be
 safe to repeat if the process crashes, the lease expires, or the final transaction
-conflicts. Prefer idempotency keys derived from:
+conflicts. The generated claim token is a runtime ownership token, not a persisted
+business idempotency key. Prefer external idempotency keys derived from:
 
 ```text
 workflow_execution_id + ":" + current_step + ":" + attempt

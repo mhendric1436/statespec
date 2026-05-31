@@ -315,8 +315,8 @@ Generated Worker code owns:
 - Workflow step handler interfaces.
 - Default workflow-specific step handlers so generated apps link until user code
   supplies production handlers.
-- Workflow runner behavior for claim, current single pre-handler keep alive,
-  handler-result dispatch,
+- Workflow runner behavior for claim, claim-token validation, heartbeat-backed keep
+  alive, handler-result dispatch,
   complete/fail/cancel, and retry-visible state.
 - Entity GC worker startup and shutdown when Worker-hosted GC is enabled.
 

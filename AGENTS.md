@@ -406,16 +406,20 @@ Generated worker apps own structural workflow and worker wiring:
 - Worker registry and descriptor lookup.
 - Workflow step handler interfaces.
 - Queue worker interfaces.
-- Workflow runner behavior for claim, current single pre-handler keep alive,
-  result-driven complete/fail/cancel, and retry-visible state.
+- Workflow runner behavior for claim, claim-token validation, heartbeat-backed keep
+  alive, result-driven complete/fail/cancel, and retry-visible state.
 
 User-owned code supplies concrete workflow step handlers, concrete queue workers, external API clients, retry policy integration, runtime configuration, and concrete backend adapters.
 
 The current generated workflow runner baseline performs exactly one keep-alive after
 claiming a step and before invoking the step handler. It does not yet run periodic
-background keep-alives during handler execution. Future periodic keep-alive work must
-preserve the transaction-scoped handler model and avoid introducing OCC conflicts with
-the workflow execution document that the handler transaction revalidates and finalizes.
+background keep-alives during handler execution. Workflow claims must carry a generated
+claim token. Keep-alive calls must include that token and update a separate workflow
+heartbeat record rather than mutating the workflow execution document. Finalization
+paths must validate the claim token before completing, failing, or canceling a claimed
+step. Future periodic keep-alive work must preserve the transaction-scoped handler
+model and avoid introducing OCC conflicts with the workflow execution document that the
+handler transaction revalidates and finalizes.
 
 Generated workflow step advancement must be handler-result driven. Workflow step
 handlers return a generated `WorkflowStepResult` or language equivalent that explicitly

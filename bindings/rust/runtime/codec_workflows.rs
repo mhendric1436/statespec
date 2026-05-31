@@ -1,5 +1,7 @@
 use crate::json::Json;
-use crate::workflow::{WorkflowDefinition, WorkflowExecutionRecord, WorkflowStepDefinition};
+use crate::workflow::{
+    WorkflowDefinition, WorkflowExecutionRecord, WorkflowHeartbeatRecord, WorkflowStepDefinition,
+};
 
 use super::codec_core::{
     bool_from_json, duration_from_json, duration_to_json, i64_from_json, object, object_values,
@@ -91,6 +93,7 @@ pub(crate) fn workflow_execution_to_json(execution: &WorkflowExecutionRecord) ->
         ("status", Json::String(execution.status.clone())),
         ("attempt", Json::Integer(execution.attempt as i64)),
         ("claimed_by", optional_string(&execution.claimed_by)),
+        ("claim_token", optional_string(&execution.claim_token)),
         (
             "claim_expires_at",
             optional_time(&execution.claim_expires_at),
@@ -111,9 +114,42 @@ pub(crate) fn workflow_execution_from_json(value: &Json) -> WorkflowExecutionRec
         status: string_from_json(values.get("status").unwrap_or(&Json::Null)),
         attempt: u64_from_json(values.get("attempt").unwrap_or(&Json::Null)),
         claimed_by: optional_string_from_json(values.get("claimed_by").unwrap_or(&Json::Null)),
+        claim_token: optional_string_from_json(values.get("claim_token").unwrap_or(&Json::Null)),
         claim_expires_at: optional_time_from_json(
             values.get("claim_expires_at").unwrap_or(&Json::Null),
         ),
         state: values.get("state").cloned().unwrap_or(Json::Null),
+    }
+}
+
+pub(crate) fn workflow_heartbeat_to_json(heartbeat: &WorkflowHeartbeatRecord) -> Json {
+    object(vec![
+        (
+            "workflow_execution_id",
+            Json::String(heartbeat.workflow_execution_id.clone()),
+        ),
+        ("claim_token", Json::String(heartbeat.claim_token.clone())),
+        ("worker", Json::String(heartbeat.worker.clone())),
+        ("current_step", Json::String(heartbeat.current_step.clone())),
+        (
+            "claim_expires_at",
+            optional_time(&Some(heartbeat.claim_expires_at)),
+        ),
+    ])
+}
+
+pub(crate) fn workflow_heartbeat_from_json(value: &Json) -> WorkflowHeartbeatRecord {
+    let values = object_values(value);
+    WorkflowHeartbeatRecord {
+        workflow_execution_id: string_from_json(
+            values.get("workflow_execution_id").unwrap_or(&Json::Null),
+        ),
+        claim_token: string_from_json(values.get("claim_token").unwrap_or(&Json::Null)),
+        worker: string_from_json(values.get("worker").unwrap_or(&Json::Null)),
+        current_step: string_from_json(values.get("current_step").unwrap_or(&Json::Null)),
+        claim_expires_at: optional_time_from_json(
+            values.get("claim_expires_at").unwrap_or(&Json::Null),
+        )
+        .unwrap_or(std::time::UNIX_EPOCH),
     }
 }

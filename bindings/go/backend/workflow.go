@@ -38,8 +38,17 @@ type WorkflowExecutionRecord struct {
 	Status              string
 	Attempt             uint64
 	ClaimedBy           *string
+	ClaimToken          *string
 	ClaimExpiresAt      *time.Time
 	State               JSON
+}
+
+type WorkflowHeartbeatRecord struct {
+	WorkflowExecutionID string
+	ClaimToken          string
+	Worker              string
+	CurrentStep         string
+	ClaimExpiresAt      time.Time
 }
 
 type StartWorkflowRequest struct {
@@ -64,6 +73,7 @@ type KeepAliveWorkflowStepRequest struct {
 	WorkflowExecutionID string
 	Worker              string
 	CurrentStep         string
+	ClaimToken          string
 	Now                 time.Time
 	LeaseDuration       time.Duration
 }
@@ -74,6 +84,7 @@ type CompleteWorkflowStepRequest struct {
 	CompletedStep       string
 	NextStep            *string
 	State               JSON
+	ClaimToken          string
 }
 
 type FailWorkflowStepRequest struct {
@@ -83,6 +94,7 @@ type FailWorkflowStepRequest struct {
 	Reason              string
 	Now                 time.Time
 	MaxAttempts         uint32
+	ClaimToken          string
 }
 
 type CancelWorkflowRequest struct {

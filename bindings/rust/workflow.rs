@@ -41,8 +41,18 @@ pub struct WorkflowExecutionRecord {
     pub status: String,
     pub attempt: u64,
     pub claimed_by: Option<String>,
+    pub claim_token: Option<String>,
     pub claim_expires_at: Option<SystemTime>,
     pub state: Json,
+}
+
+#[derive(Debug, Clone)]
+pub struct WorkflowHeartbeatRecord {
+    pub workflow_execution_id: String,
+    pub claim_token: String,
+    pub worker: String,
+    pub current_step: String,
+    pub claim_expires_at: SystemTime,
 }
 
 #[derive(Debug, Clone)]
@@ -70,6 +80,7 @@ pub struct KeepAliveWorkflowStepRequest {
     pub workflow_execution_id: String,
     pub worker: String,
     pub current_step: String,
+    pub claim_token: String,
     pub now: SystemTime,
     pub lease_duration: Duration,
 }
@@ -81,6 +92,7 @@ pub struct CompleteWorkflowStepRequest {
     pub completed_step: String,
     pub next_step: Option<String>,
     pub state: Json,
+    pub claim_token: String,
 }
 
 #[derive(Debug, Clone)]
@@ -91,6 +103,7 @@ pub struct FailWorkflowStepRequest {
     pub reason: String,
     pub now: SystemTime,
     pub max_attempts: u32,
+    pub claim_token: String,
 }
 
 #[derive(Debug, Clone)]

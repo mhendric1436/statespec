@@ -10,6 +10,7 @@ public final class WorkflowStore implements Workflow
 {
     private static final String DEFINITIONS = Backend.RuntimeCollections.WORKFLOW_DEFINITIONS;
     private static final String EXECUTIONS = Backend.RuntimeCollections.WORKFLOW_EXECUTIONS;
+    private static final String HEARTBEATS = Backend.RuntimeCollections.WORKFLOW_HEARTBEATS;
 
     @Override
     public WorkflowDefinitionRegistration registerDefinition(
@@ -109,7 +110,7 @@ public final class WorkflowStore implements Workflow
         var record = new WorkflowExecutionRecord(
             request.workflowExecutionId(), request.workflowName(), request.workflowVersion(),
             request.startStep(), "Running", 0L, Optional.empty(), Optional.empty(),
-            request.stateJson()
+            Optional.empty(), request.stateJson()
         );
         tx.put(
             EXECUTIONS, record.workflowExecutionId(), WorkflowCodec.workflowExecutionToJson(record)
@@ -166,15 +167,19 @@ public final class WorkflowStore implements Workflow
             {
                 continue;
             }
+            var claimToken = workflowClaimToken(execution, request.worker());
             var updated = new WorkflowExecutionRecord(
                 execution.workflowExecutionId(), execution.workflowName(),
                 execution.workflowVersion(), execution.currentStep(), execution.status(),
-                execution.attempt() + 1, Optional.of(request.worker()),
+                execution.attempt() + 1, Optional.of(request.worker()), Optional.of(claimToken),
                 Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
             );
             tx.put(
                 EXECUTIONS, updated.workflowExecutionId(),
                 WorkflowCodec.workflowExecutionToJson(updated)
+            );
+            putHeartbeat(
+                tx, updated, request.worker(), request.now().plus(request.leaseDuration())
             );
             claimed.add(updated);
         }
@@ -209,14 +214,13 @@ public final class WorkflowStore implements Workflow
     {
         var execution = requireExecution(tx, request.workflowExecutionId());
         requireClaim(execution, request.worker(), request.currentStep());
+        requireClaimToken(execution, request.claimToken());
+        var expiresAt = request.now().plus(request.leaseDuration());
+        putHeartbeat(tx, execution, request.worker(), expiresAt);
         var updated = new WorkflowExecutionRecord(
             execution.workflowExecutionId(), execution.workflowName(), execution.workflowVersion(),
             execution.currentStep(), execution.status(), execution.attempt(), execution.claimedBy(),
-            Optional.of(request.now().plus(request.leaseDuration())), execution.stateJson()
-        );
-        tx.put(
-            EXECUTIONS, updated.workflowExecutionId(),
-            WorkflowCodec.workflowExecutionToJson(updated)
+            execution.claimToken(), Optional.of(expiresAt), execution.stateJson()
         );
         return updated;
     }
@@ -249,17 +253,19 @@ public final class WorkflowStore implements Workflow
     {
         var execution = requireExecution(tx, request.workflowExecutionId());
         requireClaim(execution, request.worker(), request.completedStep());
+        requireClaimToken(execution, request.claimToken());
         var status = request.nextStep().isPresent() ? "Running" : "Completed";
         var step = request.nextStep().orElse(execution.currentStep());
         var updated = new WorkflowExecutionRecord(
             execution.workflowExecutionId(), execution.workflowName(), execution.workflowVersion(),
-            step, status, execution.attempt(), Optional.empty(), Optional.empty(),
+            step, status, execution.attempt(), Optional.empty(), Optional.empty(), Optional.empty(),
             request.stateJson()
         );
         tx.put(
             EXECUTIONS, updated.workflowExecutionId(),
             WorkflowCodec.workflowExecutionToJson(updated)
         );
+        eraseHeartbeat(tx, execution.workflowExecutionId(), execution.claimToken());
         return updated;
     }
 
@@ -291,16 +297,18 @@ public final class WorkflowStore implements Workflow
     {
         var execution = requireExecution(tx, request.workflowExecutionId());
         requireClaim(execution, request.worker(), request.failedStep());
+        requireClaimToken(execution, request.claimToken());
         var status = execution.attempt() >= request.maxAttempts() ? "Failed" : "Running";
         var updated = new WorkflowExecutionRecord(
             execution.workflowExecutionId(), execution.workflowName(), execution.workflowVersion(),
             execution.currentStep(), status, execution.attempt(), Optional.empty(),
-            Optional.empty(), execution.stateJson()
+            Optional.empty(), Optional.empty(), execution.stateJson()
         );
         tx.put(
             EXECUTIONS, updated.workflowExecutionId(),
             WorkflowCodec.workflowExecutionToJson(updated)
         );
+        eraseHeartbeat(tx, execution.workflowExecutionId(), execution.claimToken());
         return updated;
     }
 
@@ -334,12 +342,13 @@ public final class WorkflowStore implements Workflow
         var updated = new WorkflowExecutionRecord(
             execution.workflowExecutionId(), execution.workflowName(), execution.workflowVersion(),
             execution.currentStep(), "Canceled", execution.attempt(), Optional.empty(),
-            Optional.empty(), execution.stateJson()
+            Optional.empty(), Optional.empty(), execution.stateJson()
         );
         tx.put(
             EXECUTIONS, updated.workflowExecutionId(),
             WorkflowCodec.workflowExecutionToJson(updated)
         );
+        eraseHeartbeat(tx, execution.workflowExecutionId(), execution.claimToken());
         return updated;
     }
 
@@ -394,6 +403,58 @@ public final class WorkflowStore implements Workflow
         return Codec.definitionKey(name, version);
     }
 
+    private static String workflowHeartbeatKey(
+        String workflowExecutionId,
+        String claimToken
+    )
+    {
+        return workflowExecutionId + ":" + claimToken;
+    }
+
+    private static String workflowClaimToken(
+        WorkflowExecutionRecord execution,
+        String worker
+    )
+    {
+        return execution.workflowExecutionId() + ":" + worker + ":" + (execution.attempt() + 1);
+    }
+
+    private static void putHeartbeat(
+        Backend.Transaction tx,
+        WorkflowExecutionRecord execution,
+        String worker,
+        java.time.Instant claimExpiresAt
+    ) throws Backend.BackendException
+    {
+        if (execution.claimToken().isEmpty())
+        {
+            throw new Backend.ConflictException(
+                Backend.ConflictKind.WORKFLOW_CLAIM_CONFLICT, "workflow step claim token is missing"
+            );
+        }
+        var heartbeat = new WorkflowHeartbeatRecord(
+            execution.workflowExecutionId(), execution.claimToken().get(), worker,
+            execution.currentStep(), claimExpiresAt
+        );
+        tx.put(
+            HEARTBEATS,
+            workflowHeartbeatKey(heartbeat.workflowExecutionId(), heartbeat.claimToken()),
+            WorkflowCodec.workflowHeartbeatToJson(heartbeat)
+        );
+    }
+
+    private static void eraseHeartbeat(
+        Backend.Transaction tx,
+        String workflowExecutionId,
+        Optional<String> claimToken
+    ) throws Backend.BackendException
+    {
+        if (claimToken.isPresent())
+        {
+            tx.erase(HEARTBEATS, workflowHeartbeatKey(workflowExecutionId, claimToken.get()));
+        }
+    }
+
     private static void requireClaim(
         WorkflowExecutionRecord execution,
         String worker,
@@ -406,6 +467,20 @@ public final class WorkflowStore implements Workflow
             throw new Backend.ConflictException(
                 Backend.ConflictKind.WORKFLOW_CLAIM_CONFLICT,
                 "workflow step is not claimed by caller"
+            );
+        }
+    }
+
+    private static void requireClaimToken(
+        WorkflowExecutionRecord execution,
+        String claimToken
+    ) throws Backend.BackendException
+    {
+        if (execution.claimToken().isEmpty() || !execution.claimToken().get().equals(claimToken))
+        {
+            throw new Backend.ConflictException(
+                Backend.ConflictKind.WORKFLOW_CLAIM_CONFLICT,
+                "workflow step claim token does not match caller"
             );
         }
     }

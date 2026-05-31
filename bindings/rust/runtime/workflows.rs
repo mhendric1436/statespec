@@ -7,11 +7,12 @@ use crate::workflow::{
     CancelWorkflowRequest, ClaimWorkflowStepRequest, CompleteWorkflowStepRequest,
     FailWorkflowStepRequest, KeepAliveWorkflowStepRequest, RegisterWorkflowDefinitionRequest,
     StartWorkflowRequest, WorkflowDefinition, WorkflowDefinitionRegistration,
-    WorkflowExecutionRecord, WorkflowStore,
+    WorkflowExecutionRecord, WorkflowHeartbeatRecord, WorkflowStore,
 };
 
 const DEFINITIONS: &str = runtime_collections::WORKFLOW_DEFINITIONS;
 const EXECUTIONS: &str = runtime_collections::WORKFLOW_EXECUTIONS;
+const HEARTBEATS: &str = runtime_collections::WORKFLOW_HEARTBEATS;
 
 #[derive(Debug, Clone, Default)]
 pub struct RuntimeWorkflowStore;
@@ -143,6 +144,7 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
             status: "Running".to_string(),
             attempt: 0,
             claimed_by: None,
+            claim_token: None,
             claim_expires_at: None,
             state: request.state.clone(),
         };
@@ -196,10 +198,17 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
             execution.claimed_by = Some(request.worker.clone());
             execution.claim_expires_at = Some(request.now + request.lease_duration);
             execution.attempt += 1;
+            execution.claim_token = Some(workflow_claim_token(&execution, &request.worker));
             tx.put(
                 EXECUTIONS,
                 &execution.workflow_execution_id,
                 runtime_codec::workflow_execution_to_json(&execution),
+            )?;
+            put_workflow_heartbeat(
+                tx,
+                &execution,
+                &request.worker,
+                request.now + request.lease_duration,
             )?;
             claimed.push(execution);
         }
@@ -225,11 +234,13 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut execution = self.require_execution::<B>(tx, &request.workflow_execution_id)?;
         require_claim(&execution, &request.worker, &request.current_step)?;
+        require_claim_token(&execution, &request.claim_token)?;
         execution.claim_expires_at = Some(request.now + request.lease_duration);
-        tx.put(
-            EXECUTIONS,
-            &execution.workflow_execution_id,
-            runtime_codec::workflow_execution_to_json(&execution),
+        put_workflow_heartbeat(
+            tx,
+            &execution,
+            &request.worker,
+            request.now + request.lease_duration,
         )?;
         Ok(execution)
     }
@@ -253,8 +264,11 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut execution = self.require_execution::<B>(tx, &request.workflow_execution_id)?;
         require_claim(&execution, &request.worker, &request.completed_step)?;
+        require_claim_token(&execution, &request.claim_token)?;
+        let claim_token = execution.claim_token.clone();
         execution.state = request.state.clone();
         execution.claimed_by = None;
+        execution.claim_token = None;
         execution.claim_expires_at = None;
         if let Some(next_step) = &request.next_step {
             execution.current_step = next_step.clone();
@@ -267,6 +281,7 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
             &execution.workflow_execution_id,
             runtime_codec::workflow_execution_to_json(&execution),
         )?;
+        erase_workflow_heartbeat(tx, &request.workflow_execution_id, claim_token.as_deref())?;
         Ok(execution)
     }
 
@@ -289,7 +304,10 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut execution = self.require_execution::<B>(tx, &request.workflow_execution_id)?;
         require_claim(&execution, &request.worker, &request.failed_step)?;
+        require_claim_token(&execution, &request.claim_token)?;
+        let claim_token = execution.claim_token.clone();
         execution.claimed_by = None;
+        execution.claim_token = None;
         execution.claim_expires_at = None;
         execution.status = if execution.attempt >= request.max_attempts as u64 {
             "Failed".to_string()
@@ -301,6 +319,7 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
             &execution.workflow_execution_id,
             runtime_codec::workflow_execution_to_json(&execution),
         )?;
+        erase_workflow_heartbeat(tx, &request.workflow_execution_id, claim_token.as_deref())?;
         Ok(execution)
     }
 
@@ -321,14 +340,17 @@ impl<B: Backend> WorkflowStore<B> for RuntimeWorkflowStore {
         request: &CancelWorkflowRequest,
     ) -> BackendResult<WorkflowExecutionRecord> {
         let mut execution = self.require_execution::<B>(tx, &request.workflow_execution_id)?;
+        let claim_token = execution.claim_token.clone();
         execution.status = "Canceled".to_string();
         execution.claimed_by = None;
+        execution.claim_token = None;
         execution.claim_expires_at = None;
         tx.put(
             EXECUTIONS,
             &execution.workflow_execution_id,
             runtime_codec::workflow_execution_to_json(&execution),
         )?;
+        erase_workflow_heartbeat(tx, &request.workflow_execution_id, claim_token.as_deref())?;
         Ok(execution)
     }
 
@@ -362,6 +384,56 @@ fn workflow_definition_key(name: &str, version: i64) -> String {
     definition_key(&[name.to_string(), version.to_string()])
 }
 
+fn workflow_heartbeat_key(workflow_execution_id: &str, claim_token: &str) -> String {
+    format!("{}:{}", workflow_execution_id, claim_token)
+}
+
+fn workflow_claim_token(execution: &WorkflowExecutionRecord, worker: &str) -> String {
+    format!(
+        "{}:{}:{}",
+        execution.workflow_execution_id, worker, execution.attempt
+    )
+}
+
+fn put_workflow_heartbeat<Tx: Transaction>(
+    tx: &mut Tx,
+    execution: &WorkflowExecutionRecord,
+    worker: &str,
+    claim_expires_at: std::time::SystemTime,
+) -> BackendResult<()> {
+    let Some(claim_token) = execution.claim_token.as_ref() else {
+        return Err(BackendError::Conflict {
+            kind: ConflictKind::WorkflowClaimConflict,
+            message: "workflow step claim token is missing".to_string(),
+        });
+    };
+    tx.put(
+        HEARTBEATS,
+        &workflow_heartbeat_key(&execution.workflow_execution_id, claim_token),
+        runtime_codec::workflow_heartbeat_to_json(&WorkflowHeartbeatRecord {
+            workflow_execution_id: execution.workflow_execution_id.clone(),
+            claim_token: claim_token.clone(),
+            worker: worker.to_string(),
+            current_step: execution.current_step.clone(),
+            claim_expires_at,
+        }),
+    )
+}
+
+fn erase_workflow_heartbeat<Tx: Transaction>(
+    tx: &mut Tx,
+    workflow_execution_id: &str,
+    claim_token: Option<&str>,
+) -> BackendResult<()> {
+    let Some(claim_token) = claim_token else {
+        return Ok(());
+    };
+    tx.erase(
+        HEARTBEATS,
+        &workflow_heartbeat_key(workflow_execution_id, claim_token),
+    )
+}
+
 fn require_claim(
     execution: &WorkflowExecutionRecord,
     worker: &str,
@@ -371,6 +443,19 @@ fn require_claim(
         return Err(BackendError::Conflict {
             kind: ConflictKind::WorkflowClaimConflict,
             message: "workflow step is not claimed by caller".to_string(),
+        });
+    }
+    Ok(())
+}
+
+fn require_claim_token(
+    execution: &WorkflowExecutionRecord,
+    claim_token: &str,
+) -> BackendResult<()> {
+    if execution.claim_token.as_deref() != Some(claim_token) {
+        return Err(BackendError::Conflict {
+            kind: ConflictKind::WorkflowClaimConflict,
+            message: "workflow step claim token does not match caller".to_string(),
         });
     }
     Ok(())

@@ -51,8 +51,18 @@ struct WorkflowExecutionRecord
     std::string status;
     std::uint64_t attempt = 0;
     std::optional<std::string> claimed_by;
+    std::optional<std::string> claim_token;
     std::optional<Timestamp> claim_expires_at;
     Json state;
+};
+
+struct WorkflowHeartbeatRecord
+{
+    std::string workflow_execution_id;
+    std::string claim_token;
+    std::string worker;
+    std::string current_step;
+    Timestamp claim_expires_at;
 };
 
 struct StartWorkflowRequest
@@ -80,6 +90,7 @@ struct KeepAliveWorkflowStepRequest
     std::string workflow_execution_id;
     std::string worker;
     std::string current_step;
+    std::string claim_token;
     Timestamp now;
     std::chrono::seconds lease_duration;
 };
@@ -91,6 +102,7 @@ struct CompleteWorkflowStepRequest
     std::string completed_step;
     std::optional<std::string> next_step;
     Json state;
+    std::string claim_token;
 };
 
 struct FailWorkflowStepRequest
@@ -101,6 +113,7 @@ struct FailWorkflowStepRequest
     std::string reason;
     Timestamp now;
     std::uint32_t max_attempts = 1;
+    std::string claim_token;
 };
 
 struct CancelWorkflowRequest

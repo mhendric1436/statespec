@@ -62,7 +62,8 @@ final class WorkflowCodec
             Json.integer(execution.workflowVersion()), "current_step",
             Json.string(execution.currentStep()), "status", Json.string(execution.status()),
             "attempt", Json.integer(execution.attempt()), "claimed_by",
-            Codec.optionalString(execution.claimedBy()), "claim_expires_at",
+            Codec.optionalString(execution.claimedBy()), "claim_token",
+            Codec.optionalString(execution.claimToken()), "claim_expires_at",
             Codec.optionalInstant(execution.claimExpiresAt()), "state",
             Json.string(execution.stateJson())
         ));
@@ -78,8 +79,31 @@ final class WorkflowCodec
             Codec.stringFromJson(object.get("current_step")),
             Codec.stringFromJson(object.get("status")), Codec.longFromJson(object.get("attempt")),
             Codec.optionalStringFromJson(object.get("claimed_by")),
+            Codec.optionalStringFromJson(object.get("claim_token")),
             Codec.optionalInstantFromJson(object.get("claim_expires_at")),
             Codec.stringFromJson(object.get("state"))
+        );
+    }
+
+    static Json workflowHeartbeatToJson(Workflow.WorkflowHeartbeatRecord heartbeat)
+    {
+        return Json.object(Map.of(
+            "workflow_execution_id", Json.string(heartbeat.workflowExecutionId()), "claim_token",
+            Json.string(heartbeat.claimToken()), "worker", Json.string(heartbeat.worker()),
+            "current_step", Json.string(heartbeat.currentStep()), "claim_expires_at",
+            Codec.instantToJson(heartbeat.claimExpiresAt())
+        ));
+    }
+
+    static Workflow.WorkflowHeartbeatRecord workflowHeartbeatFromJson(Json value)
+    {
+        var object = ((Json.ObjectValue)value).values();
+        return new Workflow.WorkflowHeartbeatRecord(
+            Codec.stringFromJson(object.get("workflow_execution_id")),
+            Codec.stringFromJson(object.get("claim_token")),
+            Codec.stringFromJson(object.get("worker")),
+            Codec.stringFromJson(object.get("current_step")),
+            Codec.instantFromJson(object.get("claim_expires_at"))
         );
     }
 }
