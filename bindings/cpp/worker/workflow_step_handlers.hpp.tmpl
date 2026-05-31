@@ -1,57 +1,11 @@
 #pragma once
 
-#include "../common/descriptors/types.hpp"
-#include "../common/workflow.hpp"
+#include "workflow_step_types.hpp"
 
-#include <cstdint>
-#include <functional>
-#include <optional>
-#include <stdexcept>
-#include <string>
 #include <string_view>
-#include <unordered_map>
 
 namespace statespec_generated::worker
 {
-struct WorkflowStepHandlerContext;
-}
-
-// clang-format off
-{{workflow_step_handler_includes}}
-// clang-format on
-
-namespace statespec_generated::worker
-{
-
-inline std::string workflow_step_key(
-    const std::string& workflow_name,
-    std::int64_t workflow_version,
-    const std::string& step_name
-)
-{
-    return workflow_name + ":" + std::to_string(workflow_version) + ":" + step_name;
-}
-
-struct WorkflowStepKey
-{
-    std::string workflow_name;
-    std::int64_t workflow_version = 1;
-    std::string step_name;
-
-    std::string encode() const
-    {
-        return workflow_step_key(workflow_name, workflow_version, step_name);
-    }
-};
-
-struct WorkflowStepHandlerContext
-{
-    std::string workflow_name;
-    int workflow_version = 1;
-    std::string step_name;
-    std::optional<std::string> execution_id;
-    statespec::backend::Json input;
-};
 
 class WorkflowStepHandlerBundle
 {
@@ -63,10 +17,14 @@ class WorkflowStepHandlerBundle
     ) = 0;
 };
 
-using WorkflowStepInvoker = std::function<
-    void(statespec::backend::IBackend& backend, const WorkflowStepHandlerContext& context)>;
+} // namespace statespec_generated::worker
 
-using WorkflowStepInvokerMap = std::unordered_map<std::string, WorkflowStepInvoker>;
+// clang-format off
+{{workflow_step_handler_includes}}
+// clang-format on
+
+namespace statespec_generated::worker
+{
 
 class DefaultWorkflowStepHandlerBundle final : public WorkflowStepHandlerBundle
 {

@@ -1,0 +1,94 @@
+#pragma once
+
+#include "../common/workflow.hpp"
+
+#include <cstdint>
+#include <functional>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <utility>
+
+namespace statespec_generated::worker
+{
+
+inline std::string workflow_step_key(
+    const std::string& workflow_name,
+    std::int64_t workflow_version,
+    const std::string& step_name
+)
+{
+    return workflow_name + ":" + std::to_string(workflow_version) + ":" + step_name;
+}
+
+struct WorkflowStepKey
+{
+    std::string workflow_name;
+    std::int64_t workflow_version = 1;
+    std::string step_name;
+
+    std::string encode() const
+    {
+        return workflow_step_key(workflow_name, workflow_version, step_name);
+    }
+};
+
+struct WorkflowStepHandlerContext
+{
+    std::string workflow_name;
+    int workflow_version = 1;
+    std::string step_name;
+    std::optional<std::string> execution_id;
+    statespec::backend::Json input;
+};
+
+enum class WorkflowStepResultKind
+{
+    Complete,
+    Fail,
+    Cancel,
+};
+
+struct WorkflowStepResult
+{
+    WorkflowStepResultKind kind = WorkflowStepResultKind::Complete;
+    std::optional<std::string> next_step;
+    std::string reason;
+
+    static WorkflowStepResult complete()
+    {
+        return WorkflowStepResult{};
+    }
+
+    static WorkflowStepResult complete(std::string next_step)
+    {
+        WorkflowStepResult result;
+        result.next_step = std::move(next_step);
+        return result;
+    }
+
+    static WorkflowStepResult fail(std::string reason)
+    {
+        WorkflowStepResult result;
+        result.kind = WorkflowStepResultKind::Fail;
+        result.reason = std::move(reason);
+        return result;
+    }
+
+    static WorkflowStepResult cancel(std::string reason)
+    {
+        WorkflowStepResult result;
+        result.kind = WorkflowStepResultKind::Cancel;
+        result.reason = std::move(reason);
+        return result;
+    }
+};
+
+using WorkflowStepInvoker = std::function<WorkflowStepResult(
+    statespec::backend::IBackend& backend,
+    const WorkflowStepHandlerContext& context
+)>;
+
+using WorkflowStepInvokerMap = std::unordered_map<std::string, WorkflowStepInvoker>;
+
+} // namespace statespec_generated::worker
