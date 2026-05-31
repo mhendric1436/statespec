@@ -7,7 +7,7 @@ import (
 	workflowcontext "statespec-generated/worker/backend/workflows/context"
 )
 
-type StepInvoker func(context.Context, common.Backend, workflowcontext.WorkflowStepHandlerContext) (workflowcontext.WorkflowStepResult, error)
+type StepInvoker func(context.Context, common.Backend, common.Transaction, workflowcontext.WorkflowStepHandlerContext) (workflowcontext.WorkflowStepResult, error)
 
 {{step_invoker_functions}}
 func RegisterWorkflowStepInvokers(invokers map[string]StepInvoker, handler {{handler_alias}}) {

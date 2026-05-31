@@ -15,7 +15,8 @@ type linkingWorkflowStepHandler struct {
 	handled bool
 }
 
-func (h *linkingWorkflowStepHandler) HandleValidateRequest(ctx context.Context, step worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+func (h *linkingWorkflowStepHandler) HandleValidateRequest(ctx context.Context, tx common.Transaction, step worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+	_ = tx
 	if step.WorkflowName != "ProvisionService" || step.StepName != "validate_request" {
 		t := ctx.Value(testingContextKey{}).(*testing.T)
 		t.Fatalf("unexpected workflow step: %#v", step)
@@ -25,11 +26,11 @@ func (h *linkingWorkflowStepHandler) HandleValidateRequest(ctx context.Context, 
 	return worker.Complete(&nextStep), nil
 }
 
-func (h *linkingWorkflowStepHandler) HandleCreateRemoteService(context.Context, worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+func (h *linkingWorkflowStepHandler) HandleCreateRemoteService(context.Context, common.Transaction, worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
 	return worker.Fail("unexpected create_remote_service step"), nil
 }
 
-func (h *linkingWorkflowStepHandler) HandleWaitForRemoteService(context.Context, worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
+func (h *linkingWorkflowStepHandler) HandleWaitForRemoteService(context.Context, common.Transaction, worker.WorkflowStepHandlerContext) (worker.WorkflowStepResult, error) {
 	return worker.Fail("unexpected wait_for_remote_service step"), nil
 }
 

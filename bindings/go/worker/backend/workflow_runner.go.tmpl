@@ -40,73 +40,106 @@ func (runner WorkflowRunner) RunOnce(ctx context.Context, workflowExecutionID st
 	}); err != nil {
 		return nil, err
 	}
+	tx, err := runner.Backend.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	committed := false
+	defer func() {
+		if !committed && tx.IsOpen() {
+			_ = tx.Abort(ctx)
+		}
+	}()
+	current, err := runner.revalidateClaimedStep(ctx, tx, record)
+	if err != nil {
+		return nil, err
+	}
 	stepContext := WorkflowStepHandlerContext{
-		WorkflowName:    record.WorkflowName,
-		WorkflowVersion: record.WorkflowVersion,
-		StepName:        record.CurrentStep,
-		ExecutionID:     &record.WorkflowExecutionID,
-		Input:           record.State,
+		WorkflowName:    current.WorkflowName,
+		WorkflowVersion: current.WorkflowVersion,
+		StepName:        current.CurrentStep,
+		ExecutionID:     &current.WorkflowExecutionID,
+		Input:           current.State,
 	}
 	handlerErr := error(nil)
-	stepKey := WorkflowStepKeyString(record.WorkflowName, int(record.WorkflowVersion), record.CurrentStep)
+	stepKey := WorkflowStepKeyString(current.WorkflowName, int(current.WorkflowVersion), current.CurrentStep)
 	invoker, handled := runner.Invokers[stepKey]
+	result := WorkflowStepResult{}
 	if !handled {
-		handlerErr = fmt.Errorf("unknown generated workflow step handler: %s", stepKey)
+		result = Fail(fmt.Sprintf("unknown generated workflow step handler: %s", stepKey))
 	} else {
-		result, err := invoker(ctx, runner.Backend, stepContext)
+		result, err = invoker(ctx, runner.Backend, tx, stepContext)
 		handlerErr = err
-		if handlerErr == nil {
-			switch result.Kind {
-			case WorkflowStepFail:
-				failed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, common.FailWorkflowStepRequest{
-					WorkflowExecutionID: record.WorkflowExecutionID,
-					Worker:              runner.WorkerName,
-					FailedStep:          record.CurrentStep,
-					Reason:              result.Reason,
-					Now:                 time.Now(),
-					MaxAttempts:         runner.MaxAttempts,
-				})
-				if failErr != nil {
-					return nil, failErr
-				}
-				return &failed, nil
-			case WorkflowStepCancel:
-				canceled, cancelErr := runner.WorkflowStore.Cancel(ctx, runner.Backend, common.CancelWorkflowRequest{
-					WorkflowExecutionID: record.WorkflowExecutionID,
-					Reason:              result.Reason,
-				})
-				if cancelErr != nil {
-					return nil, cancelErr
-				}
-				return &canceled, nil
-			default:
-				completed, completeErr := runner.WorkflowStore.CompleteStep(ctx, runner.Backend, common.CompleteWorkflowStepRequest{
-					WorkflowExecutionID: record.WorkflowExecutionID,
-					Worker:              runner.WorkerName,
-					CompletedStep:       record.CurrentStep,
-					NextStep:            result.NextStep,
-					State:               record.State,
-				})
-				if completeErr != nil {
-					return nil, completeErr
-				}
-				return &completed, nil
-			}
+		if handlerErr != nil {
+			result = Fail(handlerErr.Error())
 		}
 	}
-	if handlerErr != nil {
-		failed, failErr := runner.WorkflowStore.FailStep(ctx, runner.Backend, common.FailWorkflowStepRequest{
-			WorkflowExecutionID: record.WorkflowExecutionID,
+	switch result.Kind {
+	case WorkflowStepFail:
+		failed, failErr := runner.WorkflowStore.FailStepTx(ctx, tx, common.FailWorkflowStepRequest{
+			WorkflowExecutionID: current.WorkflowExecutionID,
 			Worker:              runner.WorkerName,
-			FailedStep:          record.CurrentStep,
-			Reason:              handlerErr.Error(),
+			FailedStep:          current.CurrentStep,
+			Reason:              result.Reason,
 			Now:                 time.Now(),
 			MaxAttempts:         runner.MaxAttempts,
 		})
 		if failErr != nil {
 			return nil, failErr
 		}
+		if err := runner.Backend.Commit(ctx, tx); err != nil {
+			return nil, err
+		}
+		committed = true
 		return &failed, handlerErr
+	case WorkflowStepCancel:
+		canceled, cancelErr := runner.WorkflowStore.CancelTx(ctx, tx, common.CancelWorkflowRequest{
+			WorkflowExecutionID: current.WorkflowExecutionID,
+			Reason:              result.Reason,
+		})
+		if cancelErr != nil {
+			return nil, cancelErr
+		}
+		if err := runner.Backend.Commit(ctx, tx); err != nil {
+			return nil, err
+		}
+		committed = true
+		return &canceled, nil
+	default:
+		completed, completeErr := runner.WorkflowStore.CompleteStepTx(ctx, tx, common.CompleteWorkflowStepRequest{
+			WorkflowExecutionID: current.WorkflowExecutionID,
+			Worker:              runner.WorkerName,
+			CompletedStep:       current.CurrentStep,
+			NextStep:            result.NextStep,
+			State:               current.State,
+		})
+		if completeErr != nil {
+			return nil, completeErr
+		}
+		if err := runner.Backend.Commit(ctx, tx); err != nil {
+			return nil, err
+		}
+		committed = true
+		return &completed, nil
 	}
-	return nil, nil
+}
+
+func (runner WorkflowRunner) revalidateClaimedStep(ctx context.Context, tx common.Transaction, claimed common.WorkflowExecutionRecord) (common.WorkflowExecutionRecord, error) {
+	current, err := runner.WorkflowStore.InspectTx(ctx, tx, claimed.WorkflowExecutionID)
+	if err != nil {
+		return common.WorkflowExecutionRecord{}, err
+	}
+	if current == nil {
+		return common.WorkflowExecutionRecord{}, fmt.Errorf("claimed workflow execution disappeared")
+	}
+	if current.WorkflowName != claimed.WorkflowName || current.WorkflowVersion != claimed.WorkflowVersion || current.CurrentStep != claimed.CurrentStep {
+		return common.WorkflowExecutionRecord{}, fmt.Errorf("claimed workflow execution changed before execution")
+	}
+	if current.ClaimedBy == nil || *current.ClaimedBy != runner.WorkerName {
+		return common.WorkflowExecutionRecord{}, fmt.Errorf("claimed workflow execution is no longer owned by worker")
+	}
+	if current.ClaimExpiresAt == nil || !current.ClaimExpiresAt.After(time.Now()) {
+		return common.WorkflowExecutionRecord{}, fmt.Errorf("claimed workflow execution lease expired before execution")
+	}
+	return *current, nil
 }

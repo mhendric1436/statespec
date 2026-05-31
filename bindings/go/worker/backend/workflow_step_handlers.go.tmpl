@@ -44,6 +44,6 @@ func Cancel(reason string) WorkflowStepResult {
 	return workflowmodules.Cancel(reason)
 }
 
-type WorkflowStepInvoker func(context.Context, common.Backend, WorkflowStepHandlerContext) (WorkflowStepResult, error)
+type WorkflowStepInvoker func(context.Context, common.Backend, common.Transaction, WorkflowStepHandlerContext) (WorkflowStepResult, error)
 
 type WorkflowStepInvokerMap map[string]WorkflowStepInvoker

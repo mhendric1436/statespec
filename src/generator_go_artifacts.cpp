@@ -352,9 +352,9 @@ std::string go_worker_registry_facade(const IrSystem& system)
             out << "\tfor key, invoker := range localInvokers {\n";
             out << "\t\tlocalInvoker := invoker\n";
             out << "\t\tinvokers[key] = func(ctx context.Context, backend common.Backend, "
-                   "stepContext WorkflowStepHandlerContext) "
+                   "tx common.Transaction, stepContext WorkflowStepHandlerContext) "
                    "(WorkflowStepResult, error) {\n";
-            out << "\t\t\treturn localInvoker(ctx, backend, stepContext)\n";
+            out << "\t\t\treturn localInvoker(ctx, backend, tx, stepContext)\n";
             out << "\t\t}\n";
             out << "\t}\n";
             out << "}\n";
@@ -369,7 +369,7 @@ std::string go_workflow_handler_methods(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "\tHandle" << pascal_identifier(step.name)
-            << "(context.Context, workflowcontext.WorkflowStepHandlerContext) "
+            << "(context.Context, common.Transaction, workflowcontext.WorkflowStepHandlerContext) "
                "(workflowcontext.WorkflowStepResult, error)\n";
     }
     return out.str();
@@ -382,7 +382,7 @@ std::string go_workflow_default_handler_methods(const IrWorkflow& workflow)
     {
         out << "func (Default" << pascal_identifier(workflow.name) << "StepHandler) Handle"
             << pascal_identifier(step.name)
-            << "(context.Context, workflowcontext.WorkflowStepHandlerContext) "
+            << "(context.Context, common.Transaction, workflowcontext.WorkflowStepHandlerContext) "
                "(workflowcontext.WorkflowStepResult, error) {\n";
         out << "\treason := \"generated workflow step handler " << workflow.name << "." << step.name
             << " is not implemented\"\n";
@@ -419,11 +419,11 @@ std::string go_workflow_registry_invoker_functions(const IrWorkflow& workflow)
     {
         out << "func invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
             << "(handler " << pascal_identifier(workflow.name) << "StepHandler) StepInvoker {\n";
-        out << "\treturn func(ctx context.Context, backend common.Backend, stepContext "
+        out << "\treturn func(ctx context.Context, backend common.Backend, tx common.Transaction, stepContext "
                "workflowcontext.WorkflowStepHandlerContext) "
                "(workflowcontext.WorkflowStepResult, error) {\n";
         out << "\t_ = backend\n";
-        out << "\treturn handler.Handle" << pascal_identifier(step.name) << "(ctx, stepContext)\n";
+        out << "\treturn handler.Handle" << pascal_identifier(step.name) << "(ctx, tx, stepContext)\n";
         out << "\t}\n";
         out << "}\n\n";
     }
