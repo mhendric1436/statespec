@@ -30,8 +30,37 @@ pub struct WorkflowStepHandlerContext {
     pub input: Json,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorkflowStepResult {
+    Complete { next_step: Option<String> },
+    Fail { reason: String },
+    Cancel { reason: String },
+}
+
+impl WorkflowStepResult {
+    pub fn complete(next_step: Option<String>) -> Self {
+        Self::Complete { next_step }
+    }
+
+    pub fn fail(reason: impl Into<String>) -> Self {
+        Self::Fail {
+            reason: reason.into(),
+        }
+    }
+
+    pub fn cancel(reason: impl Into<String>) -> Self {
+        Self::Cancel {
+            reason: reason.into(),
+        }
+    }
+}
+
 pub type WorkflowStepInvoker<B> =
-    fn(&dyn WorkflowStepHandlerBundle, &B, &WorkflowStepHandlerContext) -> BackendResult<()>;
+    fn(
+        &dyn WorkflowStepHandlerBundle,
+        &B,
+        &WorkflowStepHandlerContext,
+    ) -> BackendResult<WorkflowStepResult>;
 
 pub trait WorkflowStepHandlerBundle {
 {{workflow_step_handler_bundle_methods}}

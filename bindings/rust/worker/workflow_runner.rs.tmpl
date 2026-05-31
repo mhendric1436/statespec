@@ -2,14 +2,13 @@ use std::time::{Duration, SystemTime};
 
 use crate::backend::{Backend, BackendError, BackendResult};
 use crate::workflow::{
-    ClaimWorkflowStepRequest, CompleteWorkflowStepRequest, FailWorkflowStepRequest,
-    KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,
+    CancelWorkflowRequest, ClaimWorkflowStepRequest, CompleteWorkflowStepRequest,
+    FailWorkflowStepRequest, KeepAliveWorkflowStepRequest, WorkflowExecutionRecord, WorkflowStore,
 };
 use crate::workflow_step_handlers::{
-    workflow_step_key, WorkflowStepHandlerBundle, WorkflowStepHandlerContext,
+    workflow_step_key, WorkflowStepHandlerBundle, WorkflowStepHandlerContext, WorkflowStepResult,
 };
 use crate::worker_registry::workflow_step_invokers;
-{{workflow_step_module_declarations}}
 
 pub struct WorkflowRunner<'a, B: Backend, S: WorkflowStore<B>> {
     pub backend: &'a B,
@@ -71,22 +70,43 @@ impl<'a, B: Backend, S: WorkflowStore<B>> WorkflowRunner<'a, B, S> {
             }),
         };
         match handler_result {
-            Ok(()) => {
-                let mut next_step = None;
-{{workflow_step_module_next_cases}}
-                self.workflow_store
-                    .complete_step(
-                        self.backend,
-                        &CompleteWorkflowStepRequest {
-                            workflow_execution_id: record.workflow_execution_id,
-                            worker: self.worker_name.clone(),
-                            completed_step: record.current_step,
-                            next_step,
-                            state: record.state,
-                        },
-                    )
-                    .map(Some)
-            }
+            Ok(WorkflowStepResult::Complete { next_step }) => self
+                .workflow_store
+                .complete_step(
+                    self.backend,
+                    &CompleteWorkflowStepRequest {
+                        workflow_execution_id: record.workflow_execution_id,
+                        worker: self.worker_name.clone(),
+                        completed_step: record.current_step,
+                        next_step,
+                        state: record.state,
+                    },
+                )
+                .map(Some),
+            Ok(WorkflowStepResult::Fail { reason }) => self
+                .workflow_store
+                .fail_step(
+                    self.backend,
+                    &FailWorkflowStepRequest {
+                        workflow_execution_id: record.workflow_execution_id,
+                        worker: self.worker_name.clone(),
+                        failed_step: record.current_step,
+                        reason,
+                        now: SystemTime::now(),
+                        max_attempts: self.max_attempts,
+                    },
+                )
+                .map(Some),
+            Ok(WorkflowStepResult::Cancel { reason }) => self
+                .workflow_store
+                .cancel(
+                    self.backend,
+                    &CancelWorkflowRequest {
+                        workflow_execution_id: record.workflow_execution_id,
+                        reason,
+                    },
+                )
+                .map(Some),
             Err(err) => {
                 let reason = format!("{:?}", err);
                 self.workflow_store

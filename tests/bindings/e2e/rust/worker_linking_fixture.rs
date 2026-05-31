@@ -10,7 +10,7 @@ use statespec_generated::workflow::{
 use statespec_generated::workflow_provision_service_handlers::ProvisionServiceV1StepHandler;
 use statespec_generated::workflow_runner::WorkflowRunner;
 use statespec_generated::workflow_step_handlers::{
-    DefaultWorkflowStepHandlerBundle, WorkflowStepHandlerContext,
+    DefaultWorkflowStepHandlerBundle, WorkflowStepHandlerContext, WorkflowStepResult,
 };
 
 struct LinkingWorkflowStepHandler;
@@ -19,24 +19,30 @@ impl ProvisionServiceV1StepHandler for LinkingWorkflowStepHandler {
     fn handle_validate_request(
         &self,
         context: &WorkflowStepHandlerContext,
-    ) -> statespec_generated::backend::BackendResult<()> {
+    ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
         assert_eq!(context.workflow_name, "ProvisionService");
         assert_eq!(context.step_name, "validate_request");
-        Ok(())
+        Ok(WorkflowStepResult::complete(Some(
+            "create_remote_service".to_string(),
+        )))
     }
 
     fn handle_create_remote_service(
         &self,
         _context: &WorkflowStepHandlerContext,
-    ) -> statespec_generated::backend::BackendResult<()> {
-        Ok(())
+    ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
+        Ok(WorkflowStepResult::fail(
+            "unexpected create_remote_service step",
+        ))
     }
 
     fn handle_wait_for_remote_service(
         &self,
         _context: &WorkflowStepHandlerContext,
-    ) -> statespec_generated::backend::BackendResult<()> {
-        Ok(())
+    ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
+        Ok(WorkflowStepResult::fail(
+            "unexpected wait_for_remote_service step",
+        ))
     }
 }
 
