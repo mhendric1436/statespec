@@ -32,7 +32,8 @@ int main()
         statespec::backend::memory::InMemoryBackend backend;
         statespec_generated::worker::WorkerRuntime runtime{backend};
         statespec_generated::worker::DefaultWorkflowStepHandlerBundle handlers;
-        statespec_generated::worker::WorkerProcess process{runtime, handlers};
+        auto invokers = statespec_generated::worker::workflow_step_invokers(handlers);
+        statespec_generated::worker::WorkerProcess process{runtime, invokers};
 
         // clang-format off
 {{worker_main_entity_gc_registration}} // clang-format on

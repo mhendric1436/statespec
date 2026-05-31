@@ -85,8 +85,9 @@ int main()
     LinkingWorkflowStepHandler handler;
     statespec_generated::worker::DefaultWorkflowStepHandlerBundle handlers;
     handlers.set_provision_service_handler(handler);
+    auto invokers = statespec_generated::worker::workflow_step_invokers(handlers);
     statespec_generated::worker::WorkflowRunner runner{
-        backend, workflows, handlers, "ProvisionWorker", std::chrono::seconds{60}, 3,
+        backend, workflows, invokers, "ProvisionWorker", std::chrono::seconds{60}, 3,
     };
     const auto advanced = runner.run_once("wf-1", "ProvisionService", 1);
     if (!handler.handled() || !advanced.has_value() || advanced->status != "Running" ||

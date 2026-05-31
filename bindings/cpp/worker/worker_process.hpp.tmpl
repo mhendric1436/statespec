@@ -27,11 +27,11 @@ class WorkerProcess
   public:
     explicit WorkerProcess(
         WorkerRuntime& runtime,
-        WorkflowStepHandlerBundle& handlers,
+        const WorkflowStepInvokerMap& invokers,
         WorkerProcessConfig config = {}
     )
         : runtime_(runtime),
-          handlers_(handlers),
+          invokers_(invokers),
           config_(config)
     {
     }
@@ -169,7 +169,7 @@ class WorkerProcess
                         {
                             try
                             {
-                                (void)runtime_.run_once(context, handlers_, "");
+                                (void)runtime_.run_once(context, invokers_, "");
                             }
                             catch (...)
                             {
@@ -202,7 +202,7 @@ class WorkerProcess
     }
 
     WorkerRuntime& runtime_;
-    WorkflowStepHandlerBundle& handlers_;
+    const WorkflowStepInvokerMap& invokers_;
     WorkerProcessConfig config_;
     mutable std::mutex lifecycle_mutex_;
     std::mutex stop_mutex_;

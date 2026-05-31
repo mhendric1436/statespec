@@ -51,9 +51,10 @@ int main()
     ProcessWorkflowStepHandler handler;
     statespec_generated::worker::DefaultWorkflowStepHandlerBundle handlers;
     handlers.set_provision_service_handler(handler);
+    auto invokers = statespec_generated::worker::workflow_step_invokers(handlers);
     statespec_generated::worker::WorkerProcessConfig config;
     config.worker_poll_interval_ms = 1;
-    statespec_generated::worker::WorkerProcess process{runtime, handlers, config};
+    statespec_generated::worker::WorkerProcess process{runtime, invokers, config};
 
     if (process.join() == 0)
     {

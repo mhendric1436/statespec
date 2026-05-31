@@ -129,7 +129,7 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
         worker_run_once
             << "    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(\n"
             << "        const WorkerContext& context,\n"
-            << "        WorkflowStepHandlerBundle& handlers,\n"
+            << "        const WorkflowStepInvokerMap& invokers,\n"
             << "        const std::string& workflow_execution_id\n"
             << "    )\n"
             << "    {\n"
@@ -138,7 +138,7 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
             << "            return std::nullopt;\n"
             << "        }\n"
             << "        WorkflowRunner runner{\n"
-            << "            backend_, workflows_, handlers, context.worker_name, "
+            << "            backend_, workflows_, invokers, context.worker_name, "
                "std::chrono::seconds{30}, 3\n"
             << "        };\n"
             << "        return runner.run_once(workflow_execution_id, *context.executes, 1);\n"
@@ -149,7 +149,7 @@ TemplateRenderer::Values cpp_runtime_bootstrap_values(const IrSystem& system)
         worker_run_once
             << "    std::optional<statespec::backend::WorkflowExecutionRecord> run_once(\n"
             << "        const WorkerContext&,\n"
-            << "        WorkflowStepHandlerBundle&,\n"
+            << "        const WorkflowStepInvokerMap&,\n"
             << "        const std::string&\n"
             << "    )\n"
             << "    {\n"

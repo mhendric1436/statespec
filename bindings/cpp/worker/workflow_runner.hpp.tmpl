@@ -24,14 +24,14 @@ class WorkflowRunner
     WorkflowRunner(
         statespec::backend::IBackend& backend,
         statespec::backend::IWorkflowStore& workflow_store,
-        WorkflowStepHandlerBundle& handlers,
+        const WorkflowStepInvokerMap& invokers,
         std::string worker_name,
         std::chrono::seconds lease_duration,
         std::uint32_t max_attempts
     )
         : backend_(backend),
           workflow_store_(workflow_store),
-          handlers_(handlers),
+          invokers_(invokers),
           worker_name_(std::move(worker_name)),
           lease_duration_(lease_duration),
           max_attempts_(max_attempts)
@@ -80,9 +80,8 @@ class WorkflowRunner
             const auto key = workflow_step_key(
                 record.workflow_name, record.workflow_version, record.current_step
             );
-            const auto invokers = workflow_step_invokers(handlers_);
-            const auto invoker = invokers.find(key);
-            if (invoker == invokers.end())
+            const auto invoker = invokers_.find(key);
+            if (invoker == invokers_.end())
             {
                 throw std::runtime_error("unknown generated workflow step handler: " + key);
             }
@@ -119,7 +118,7 @@ class WorkflowRunner
   private:
     statespec::backend::IBackend& backend_;
     statespec::backend::IWorkflowStore& workflow_store_;
-    WorkflowStepHandlerBundle& handlers_;
+    const WorkflowStepInvokerMap& invokers_;
     std::string worker_name_;
     std::chrono::seconds lease_duration_;
     std::uint32_t max_attempts_;

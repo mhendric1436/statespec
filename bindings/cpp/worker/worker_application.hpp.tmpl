@@ -15,11 +15,11 @@ class WorkerApplication
     WorkerApplication(
         WorkerContext context,
         WorkerRuntime& runtime,
-        WorkflowStepHandlerBundle& handlers
+        const WorkflowStepInvokerMap& invokers
     )
         : context_(std::move(context)),
           runtime_(runtime),
-          handlers_(handlers)
+          invokers_(invokers)
     {
     }
 
@@ -31,13 +31,13 @@ class WorkerApplication
     std::optional<statespec::backend::WorkflowExecutionRecord>
     run_once(const std::string& workflow_execution_id)
     {
-        return runtime_.run_once(context_, handlers_, workflow_execution_id);
+        return runtime_.run_once(context_, invokers_, workflow_execution_id);
     }
 
   private:
     WorkerContext context_;
     WorkerRuntime& runtime_;
-    WorkflowStepHandlerBundle& handlers_;
+    const WorkflowStepInvokerMap& invokers_;
 };
 
 } // namespace statespec_generated::worker
