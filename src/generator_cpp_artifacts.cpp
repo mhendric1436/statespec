@@ -337,8 +337,7 @@ std::string generate_cpp_workflow_registry_module(const IrWorkflow& workflow)
     out << "#include \"handlers.hpp\"\n";
     out << "#include \"../../workflow_step_handlers.hpp\"\n\n";
     out << "#include <stdexcept>\n";
-    out << "#include <string>\n";
-    out << "#include <unordered_map>\n\n";
+    out << "#include <string>\n\n";
     out << "namespace statespec_generated::worker::workflows::" << ns << "\n";
     out << "{\n\n";
     for (const auto& step : workflow.steps)
@@ -363,9 +362,7 @@ std::string generate_cpp_workflow_registry_module(const IrWorkflow& workflow)
         out << "}\n\n";
     }
     out << "inline void register_workflow_step_invokers(\n";
-    out << "    std::unordered_map<std::string, "
-           "::statespec_generated::worker::WorkflowStepInvoker>& "
-           "invokers\n";
+    out << "    ::statespec_generated::worker::WorkflowStepInvokerMap& invokers\n";
     out << ")\n";
     out << "{\n";
     for (const auto& step : workflow.steps)
@@ -435,10 +432,6 @@ std::string cpp_worker_registry_facade(const IrSystem& system)
     out << "\n#include <optional>\n";
     out << "#include <string>\n";
     out << "#include <string_view>\n\n";
-    if (!system.workflows.empty())
-    {
-        out << "#include <unordered_map>\n\n";
-    }
     out << "namespace statespec_generated::worker\n";
     out << "{\n\n";
     out << "inline std::optional<WorkerDescriptor> find_worker_descriptor(std::string_view "
@@ -469,11 +462,10 @@ std::string cpp_worker_registry_facade(const IrSystem& system)
     out << "}\n\n";
     if (!system.workflows.empty())
     {
-        out << "inline const std::unordered_map<std::string, WorkflowStepInvoker>& "
-               "workflow_step_invokers()\n";
+        out << "inline const WorkflowStepInvokerMap& workflow_step_invokers()\n";
         out << "{\n";
         out << "    static const auto invokers = [] {\n";
-        out << "        std::unordered_map<std::string, WorkflowStepInvoker> values;\n";
+        out << "        WorkflowStepInvokerMap values;\n";
         for (const auto& workflow : system.workflows)
         {
             out << "        workflows::" << cpp_workflow_handler_namespace(workflow)
