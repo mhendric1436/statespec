@@ -2207,44 +2207,55 @@ std::string go_api_shape_type_file(const IrShape& shape)
 }
 
 std::string go_entity_api_shapes_file(
+    const TemplatePackage& templates,
     const IrEntity& entity,
     const std::vector<IrShape>& shapes,
     std::string_view package_name
 )
 {
-    std::ostringstream out;
-    out << "package " << package_name << "\n\n";
     const auto uses_entity_constants = go_entity_api_shapes_use_entity_constants(entity, shapes);
+    std::ostringstream imports;
     if (uses_entity_constants)
     {
-        out << "import (\n";
-        out << "\tcommon \"statespec-generated/common/backend\"\n";
-        out << "\tentityconstants \"statespec-generated/common/entities/"
-            << snake_identifier(entity.name) << "\"\n";
-        out << ")\n\n";
+        imports << "import (\n";
+        imports << "\tcommon \"statespec-generated/common/backend\"\n";
+        imports << "\tentityconstants \"statespec-generated/common/entities/"
+                << snake_identifier(entity.name) << "\"\n";
+        imports << ")\n\n";
     }
     else
     {
-        out << "import common \"statespec-generated/common/backend\"\n\n";
+        imports << "import common \"statespec-generated/common/backend\"\n\n";
     }
+    std::ostringstream shape_type_declarations;
+    std::ostringstream shape_descriptor_functions;
     for (const auto& shape : shapes)
     {
-        out << "type " << pascal_identifier(shape.name) << " struct {\n";
+        shape_type_declarations << "type " << pascal_identifier(shape.name) << " struct {\n";
         for (const auto& field : shape.fields)
         {
-            out << "\t" << pascal_identifier(field.name) << " " << go_shape_field_type(field.type);
+            shape_type_declarations << "\t" << pascal_identifier(field.name) << " "
+                                    << go_shape_field_type(field.type);
             if (field.name != go_entity_plural_api_field_name(entity.name))
             {
-                out << " `json:\"" << field.name << "\"`";
+                shape_type_declarations << " `json:\"" << field.name << "\"`";
             }
-            out << "\n";
+            shape_type_declarations << "\n";
         }
-        out << "}\n\n";
-        out << go_entity_api_shape_descriptor_content(
+        shape_type_declarations << "}\n\n";
+        shape_descriptor_functions << go_entity_api_shape_descriptor_content(
             entity, shape, pascal_identifier(shape.name) + "ShapeDescriptors()"
         );
     }
-    return out.str();
+    return templates.render(
+        "api/backend/entities/shapes.go.tmpl",
+        TemplateRenderer::Values{
+            {"package_name", std::string{package_name}},
+            {"imports", imports.str()},
+            {"shape_type_declarations", shape_type_declarations.str()},
+            {"shape_descriptor_functions", shape_descriptor_functions.str()},
+        }
+    );
 }
 
 std::string go_api_name_constant_name(const std::string& api_name)
@@ -2605,6 +2616,7 @@ void add_go_raw_api_file(
 void add_go_api_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
     const IrSystem& system
 )
 {
@@ -2646,7 +2658,7 @@ void add_go_api_shape_type_artifacts(
         );
         add_go_raw_api_file(
             result, options, "api/backend/entities/" + snake_identifier(entity.name) + "/shapes.go",
-            go_entity_api_shapes_file(entity, shapes, snake_identifier(entity.name))
+            go_entity_api_shapes_file(templates, entity, shapes, snake_identifier(entity.name))
         );
     }
 }
@@ -3568,7 +3580,7 @@ void add_go_api_artifacts(
 
     const auto include_api_composition = !system.api_servers.empty();
 
-    add_go_api_shape_type_artifacts(result, options, system);
+    add_go_api_shape_type_artifacts(result, options, templates, system);
     add_go_api_descriptor_artifacts(result, options, system);
     add_go_raw_api_file(
         result, options, "api/backend/descriptors/catalog.go",

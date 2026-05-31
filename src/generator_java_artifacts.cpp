@@ -1793,36 +1793,34 @@ std::string java_entity_api_shape_descriptors(
 }
 
 std::string java_entity_api_shapes_file(
+    const TemplatePackage& templates,
     const IrEntity& entity,
     const std::vector<IrShape>& shapes,
     std::string_view package_name
 )
 {
-    std::ostringstream out;
-    out << "package " << package_name << ";\n\n";
-    out << "import com.statespec.backend.Json;\n";
-    out << "import com.statespec.backend.Backend.FieldDescriptor;\n";
-    out << "import com.statespec.backend.Backend.FieldType;\n";
-    out << "import com.statespec.backend.Backend.FieldType;\n";
-    out << "import com.statespec.generated.descriptors.types.ShapeDescriptor;\n";
-    out << "import java.util.List;\n";
-    out << "import java.util.Optional;\n\n";
-    out << "public final class Shapes {\n";
-    out << "    private Shapes() {}\n\n";
+    std::ostringstream shape_record_declarations;
     for (const auto& shape : shapes)
     {
-        out << "    public record " << pascal_identifier(shape.name) << "(\n";
+        shape_record_declarations << "    public record " << pascal_identifier(shape.name)
+                                  << "(\n";
         for (std::size_t i = 0; i < shape.fields.size(); ++i)
         {
             const auto& field = shape.fields[i];
-            out << "        " << java_shape_type(field.type) << " " << field.name;
-            out << (i + 1 < shape.fields.size() ? "," : "") << "\n";
+            shape_record_declarations << "        " << java_shape_type(field.type) << " "
+                                      << field.name;
+            shape_record_declarations << (i + 1 < shape.fields.size() ? "," : "") << "\n";
         }
-        out << "    ) {}\n\n";
+        shape_record_declarations << "    ) {}\n\n";
     }
-    out << java_entity_api_shape_descriptors(entity, shapes);
-    out << "}\n";
-    return out.str();
+    return templates.render(
+        "api/com/statespec/generated/entities/Shapes.java.tmpl",
+        TemplateRenderer::Values{
+            {"package_name", std::string{package_name}},
+            {"shape_record_declarations", shape_record_declarations.str()},
+            {"shape_descriptor_methods", java_entity_api_shape_descriptors(entity, shapes)},
+        }
+    );
 }
 
 std::string java_api_name_constant_name(const std::string& api_name)
@@ -2206,6 +2204,7 @@ void add_java_shape_type_artifacts(
 void add_java_api_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
     const IrSystem& system
 )
 {
@@ -2240,7 +2239,8 @@ void add_java_api_shape_type_artifacts(
         add_java_raw_api_file(
             result, options, entity_package_path / "Shapes.java",
             java_entity_api_shapes_file(
-                entity, shapes, "com.statespec.generated.entities." + snake_identifier(entity.name)
+                templates, entity, shapes,
+                "com.statespec.generated.entities." + snake_identifier(entity.name)
             )
         );
     }
@@ -3612,7 +3612,7 @@ void add_java_api_artifacts(
 
     const auto include_api_composition = !system.api_servers.empty();
 
-    add_java_api_shape_type_artifacts(result, options, system);
+    add_java_api_shape_type_artifacts(result, options, templates, system);
     add_java_api_descriptor_artifacts(result, options, system);
     for (const auto& api_server : system.api_servers)
     {

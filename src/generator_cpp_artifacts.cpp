@@ -2139,30 +2139,28 @@ std::string cpp_shapes_umbrella_header(
 }
 
 std::string cpp_entity_api_shapes_header(
+    const TemplatePackage& templates,
     const IrEntity& entity,
     const std::vector<IrShape>& shapes
 )
 {
-    std::ostringstream out;
-    out << "#pragma once\n\n";
-    out << "#include \"../../../common/entities/" << snake_identifier(entity.name)
-        << "/constants.hpp\"\n";
-    out << "#include \"../../../common/backend.hpp\"\n";
-    out << "#include \"../../../common/shape_types.hpp\"\n\n";
-    out << "#include <cstdint>\n";
-    out << "#include <optional>\n";
-    out << "#include <string>\n\n";
-    out << "namespace statespec_generated\n";
-    out << "{\n\n";
+    std::ostringstream shape_type_declarations;
+    std::ostringstream shape_descriptor_declarations;
     for (const auto& shape : shapes)
     {
-        out << cpp_shape_type_declaration(shape);
-        out << cpp_entity_api_shape_descriptor_declarations(
+        shape_type_declarations << cpp_shape_type_declaration(shape);
+        shape_descriptor_declarations << cpp_entity_api_shape_descriptor_declarations(
             entity, shape, snake_identifier(shape.name) + "_shape_descriptors()"
         );
     }
-    out << "} // namespace statespec_generated\n";
-    return out.str();
+    return templates.render(
+        "api/entities/shapes.hpp.tmpl",
+        TemplateRenderer::Values{
+            {"entity_snake", snake_identifier(entity.name)},
+            {"shape_type_declarations", shape_type_declarations.str()},
+            {"shape_descriptor_declarations", shape_descriptor_declarations.str()},
+        }
+    );
 }
 
 std::string cpp_entity_api_catalog_header(
@@ -2290,6 +2288,7 @@ void add_cpp_shape_type_artifacts(
 void add_cpp_api_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
     const IrSystem& system
 )
 {
@@ -2323,7 +2322,7 @@ void add_cpp_api_shape_type_artifacts(
         );
         add_cpp_raw_api_file(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.hpp",
-            cpp_entity_api_shapes_header(entity, shapes)
+            cpp_entity_api_shapes_header(templates, entity, shapes)
         );
     }
 }
@@ -3163,7 +3162,7 @@ void add_cpp_api_artifacts(
 
     const auto include_api_composition = !system.api_servers.empty();
 
-    add_cpp_api_shape_type_artifacts(result, options, system);
+    add_cpp_api_shape_type_artifacts(result, options, templates, system);
     add_cpp_api_descriptor_artifacts(result, options, system);
     add_cpp_raw_api_file(
         result, options, "api/descriptors/catalog.hpp", cpp_api_descriptor_catalog_file(system)

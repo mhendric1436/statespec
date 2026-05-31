@@ -1737,25 +1737,28 @@ std::string rust_shapes_module(
 }
 
 std::string rust_entity_api_shapes_file(
+    const TemplatePackage& templates,
     const IrEntity& entity,
     const std::vector<IrShape>& shapes
 )
 {
-    std::ostringstream out;
-    out << "#[allow(unused_imports)]\n";
-    out << "use crate::json::Json;\n\n";
-    out << "use crate::backend::{FieldDescriptor, FieldType};\n";
-    out << "use crate::entity_" << snake_identifier(entity.name)
-        << "::constants as entity_constants;\n";
-    out << "use crate::shape_types::ShapeDescriptor;\n\n";
+    std::ostringstream shape_type_declarations;
+    std::ostringstream shape_descriptor_functions;
     for (const auto& shape : shapes)
     {
-        out << rust_shape_type_declaration(shape) << "\n";
-        out << rust_entity_api_shape_descriptors(
+        shape_type_declarations << rust_shape_type_declaration(shape) << "\n";
+        shape_descriptor_functions << rust_entity_api_shape_descriptors(
             entity, shape, snake_identifier(shape.name) + "_shape_descriptors()"
         );
     }
-    return out.str();
+    return templates.render(
+        "api/entities/shapes.rs.tmpl",
+        TemplateRenderer::Values{
+            {"entity_snake", snake_identifier(entity.name)},
+            {"shape_type_declarations", shape_type_declarations.str()},
+            {"shape_descriptor_functions", shape_descriptor_functions.str()},
+        }
+    );
 }
 
 std::string rust_api_name_constant_name(const std::string& api_name)
@@ -2068,6 +2071,7 @@ void add_rust_raw_api_file(
 void add_rust_api_shape_type_artifacts(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
+    const TemplatePackage& templates,
     const IrSystem& system
 )
 {
@@ -2097,7 +2101,7 @@ void add_rust_api_shape_type_artifacts(
         );
         add_rust_raw_api_file(
             result, options, "api/entities/" + snake_identifier(entity.name) + "/shapes.rs",
-            rust_entity_api_shapes_file(entity, shapes)
+            rust_entity_api_shapes_file(templates, entity, shapes)
         );
     }
 }
@@ -2893,7 +2897,7 @@ void add_rust_api_artifacts(
 
     const auto include_api_composition = !system.api_servers.empty();
 
-    add_rust_api_shape_type_artifacts(result, options, system);
+    add_rust_api_shape_type_artifacts(result, options, templates, system);
     add_rust_api_descriptor_artifacts(result, options, system);
     add_rust_raw_api_file(
         result, options, "api/descriptors/catalog.rs", rust_api_descriptor_catalog_file(system)

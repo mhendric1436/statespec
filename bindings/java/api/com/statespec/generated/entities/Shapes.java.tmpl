@@ -1,0 +1,13 @@
+package {{package_name}};
+
+import com.statespec.backend.Json;
+import com.statespec.backend.Backend.FieldDescriptor;
+import com.statespec.backend.Backend.FieldType;
+import com.statespec.generated.descriptors.types.ShapeDescriptor;
+import java.util.List;
+import java.util.Optional;
+
+public final class Shapes {
+    private Shapes() {}
+
+{{shape_record_declarations}}{{shape_descriptor_methods}}}
