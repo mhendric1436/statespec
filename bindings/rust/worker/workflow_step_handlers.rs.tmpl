@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::backend::BackendResult;
+use crate::backend::{Backend, BackendResult};
 use crate::json::Json;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -55,7 +55,10 @@ impl WorkflowStepResult {
     }
 }
 
-pub type WorkflowStepInvoker<B> =
-    Arc<dyn Fn(&B, &WorkflowStepHandlerContext) -> BackendResult<WorkflowStepResult> + Send + Sync>;
+pub type WorkflowStepInvoker<B> = Arc<
+    dyn Fn(&B, &mut <B as Backend>::Tx, &WorkflowStepHandlerContext) -> BackendResult<WorkflowStepResult>
+        + Send
+        + Sync,
+>;
 
 pub type WorkflowStepInvokerMap<B> = HashMap<String, WorkflowStepInvoker<B>>;

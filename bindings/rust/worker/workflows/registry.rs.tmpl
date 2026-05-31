@@ -7,7 +7,7 @@ use crate::workflow_{{workflow_snake}}_handlers::{{handler_trait}};
 {{invoke_functions}}
 pub fn register_workflow_step_invokers<B>(
     invokers: &mut WorkflowStepInvokerMap<B>,
-    handler: Arc<dyn {{handler_trait}} + Send + Sync>,
+    handler: Arc<dyn {{handler_trait}}<B> + Send + Sync>,
 )
 where
     B: Backend + 'static,

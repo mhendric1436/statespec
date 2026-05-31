@@ -21,9 +21,10 @@ struct ProcessWorkflowStepHandler {
     handled_validate_request: Arc<AtomicBool>,
 }
 
-impl ProvisionServiceV1StepHandler for ProcessWorkflowStepHandler {
+impl ProvisionServiceV1StepHandler<InMemoryBackend> for ProcessWorkflowStepHandler {
     fn handle_validate_request(
         &self,
+        _tx: &mut <InMemoryBackend as statespec_generated::backend::Backend>::Tx,
         context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
         assert_eq!(context.workflow_name, "ProvisionService");
@@ -36,6 +37,7 @@ impl ProvisionServiceV1StepHandler for ProcessWorkflowStepHandler {
 
     fn handle_create_remote_service(
         &self,
+        _tx: &mut <InMemoryBackend as statespec_generated::backend::Backend>::Tx,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
         Ok(WorkflowStepResult::complete(Some(
@@ -45,6 +47,7 @@ impl ProvisionServiceV1StepHandler for ProcessWorkflowStepHandler {
 
     fn handle_wait_for_remote_service(
         &self,
+        _tx: &mut <InMemoryBackend as statespec_generated::backend::Backend>::Tx,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
         Ok(WorkflowStepResult::complete(None))

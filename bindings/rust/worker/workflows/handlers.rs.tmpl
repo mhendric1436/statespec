@@ -1,13 +1,13 @@
-use crate::backend::BackendResult;
+use crate::backend::{Backend, BackendResult};
 pub use crate::workflow_step_handlers::{WorkflowStepHandlerContext, WorkflowStepResult};
 
-pub trait {{handler_trait}} {
+pub trait {{handler_trait}}<B: Backend> {
 {{handler_methods}}
 }
 
 #[derive(Clone, Debug)]
 pub struct Default{{handler_trait}};
 
-impl {{handler_trait}} for Default{{handler_trait}} {
+impl<B: Backend> {{handler_trait}}<B> for Default{{handler_trait}} {
 {{default_handler_methods}}
 }

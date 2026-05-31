@@ -343,7 +343,7 @@ std::string rust_workflow_handler_methods(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "    fn handle_" << snake_identifier(step.name)
-            << "(&self, context: &WorkflowStepHandlerContext) -> "
+            << "(&self, tx: &mut B::Tx, context: &WorkflowStepHandlerContext) -> "
                "BackendResult<WorkflowStepResult>;\n";
     }
     return out.str();
@@ -355,7 +355,7 @@ std::string rust_workflow_default_handler_methods(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "    fn handle_" << snake_identifier(step.name)
-            << "(&self, _context: &WorkflowStepHandlerContext) -> "
+            << "(&self, _tx: &mut B::Tx, _context: &WorkflowStepHandlerContext) -> "
                "BackendResult<WorkflowStepResult> {\n";
         out << "        Ok(WorkflowStepResult::fail(\"generated workflow step handler "
             << workflow.name << "." << step.name << " is not implemented\"))\n";
@@ -389,15 +389,16 @@ std::string rust_workflow_registry_invoke_functions(const IrWorkflow& workflow)
         out << "fn invoke_" << snake_identifier(workflow.name) << "_" << snake_identifier(step.name)
             << "<B>(\n";
         out << "    handler: &(dyn " << pascal_identifier(workflow.name) << "V"
-            << workflow.version.value_or(1) << "StepHandler + Send + Sync),\n";
+            << workflow.version.value_or(1) << "StepHandler<B> + Send + Sync),\n";
         out << "    backend: &B,\n";
+        out << "    tx: &mut B::Tx,\n";
         out << "    context: &WorkflowStepHandlerContext,\n";
         out << ") -> BackendResult<WorkflowStepResult>\n";
         out << "where\n";
         out << "    B: Backend,\n";
         out << "{\n";
         out << "    let _ = backend;\n";
-        out << "    handler.handle_" << snake_identifier(step.name) << "(context)\n";
+        out << "    handler.handle_" << snake_identifier(step.name) << "(tx, context)\n";
         out << "}\n\n";
     }
     return out.str();
@@ -412,10 +413,10 @@ std::string rust_workflow_registry_invoker_entries(const IrWorkflow& workflow)
         out << "    invokers.insert(\n";
         out << "        workflow_step_key(" << rust_string(workflow.name) << ", "
             << workflow.version.value_or(1) << ", " << rust_string(step.name) << "),\n";
-        out << "        Arc::new(move |backend, context| {\n";
+        out << "        Arc::new(move |backend, tx, context| {\n";
         out << "            invoke_" << snake_identifier(workflow.name) << "_"
             << snake_identifier(step.name) << "::<B>(handler_" << snake_identifier(step.name)
-            << ".as_ref(), backend, context)\n";
+            << ".as_ref(), backend, tx, context)\n";
         out << "        }),\n";
         out << "    );\n";
     }
@@ -2229,7 +2230,8 @@ void add_rust_descriptor_module_artifacts(
         }
         add_rust_raw_common_file(result, options, entity_dir + "mod.rs", entity_mods);
         add_rust_raw_common_file(
-            result, options, entity_dir + "constants.rs", rust_entity_constants_file(templates, entity)
+            result, options, entity_dir + "constants.rs",
+            rust_entity_constants_file(templates, entity)
         );
         add_rust_raw_common_file(
             result, options, entity_dir + "model.rs",
