@@ -17,6 +17,8 @@ IrWorkflowStatement lower_workflow_statement(const SemanticWorkflowStatement& st
     lowered.target = statement.target;
     lowered.expression = statement.expression;
     lowered.assignable = statement.assignable;
+    lowered.from_assignable = statement.from_assignable;
+    lowered.to_assignable = statement.to_assignable;
     lowered.binding = statement.binding;
     for (const auto& assignment : statement.payload)
     {
@@ -26,6 +28,10 @@ IrWorkflowStatement lower_workflow_statement(const SemanticWorkflowStatement& st
                 assignment.expression,
             }
         );
+    }
+    for (const auto& nested : statement.statements)
+    {
+        lowered.statements.push_back(lower_workflow_statement(nested));
     }
     return lowered;
 }
@@ -55,6 +61,22 @@ void lower_ir_workflows(
                     load.entity.name,
                     load.key_field,
                     load.binding,
+                }
+            );
+        }
+        for (const auto& child_set : workflow.child_sets)
+        {
+            ir_workflow.child_sets.push_back(
+                IrWorkflowChildSet{
+                    child_set.name,
+                    reference_name(child_set.entity),
+                    child_set.parent_field,
+                    child_set.id_type,
+                    child_set.pending,
+                    child_set.creating,
+                    child_set.succeeded,
+                    child_set.failed,
+                    child_set.desired_count,
                 }
             );
         }

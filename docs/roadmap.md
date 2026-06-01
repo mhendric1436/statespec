@@ -59,9 +59,9 @@ Partial:
   ownership is now the next architectural pass and must move canonical ordering into
   AST-owned rewriting for high-value nested forms.
 - Policies are emitted as descriptors, but enforcement hooks are not generated.
-- Workflow statements lower into IR, but generated business workflow bodies remain
-  user-owned until statement semantics, idempotency contracts, and expression typing are
-  stronger.
+- Workflow statements, child sets, and nested workflow blocks lower into IR, but
+  generated business workflow bodies remain user-owned until statement execution
+  semantics, idempotency contracts, and expression typing are stronger.
 - Queue descriptors and runtime stores exist, but generated queue-worker business
   execution remains intentionally thin.
 

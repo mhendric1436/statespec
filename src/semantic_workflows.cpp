@@ -41,6 +41,8 @@ SemanticWorkflowStatement resolve_workflow_statement(
     resolved.resolved_target = resolve_workflow_statement_target(symbols, workflow_name, statement);
     resolved.expression = statement.expression;
     resolved.assignable = statement.assignable;
+    resolved.from_assignable = statement.from_assignable;
+    resolved.to_assignable = statement.to_assignable;
     resolved.binding = statement.binding;
     for (const auto& assignment : statement.payload)
     {
@@ -50,6 +52,10 @@ SemanticWorkflowStatement resolve_workflow_statement(
                 assignment.expression,
             }
         );
+    }
+    for (const auto& nested : statement.statements)
+    {
+        resolved.statements.push_back(resolve_workflow_statement(symbols, workflow_name, nested));
     }
     return resolved;
 }
@@ -80,6 +86,22 @@ void resolve_semantic_workflows(
                     resolve_reference(symbols, load.entity),
                     load.key_field,
                     load.binding,
+                }
+            );
+        }
+        for (const auto& child_set : workflow.child_sets)
+        {
+            resolved_workflow.child_sets.push_back(
+                SemanticWorkflowChildSet{
+                    child_set.name,
+                    resolve_optional_reference(symbols, child_set.entity),
+                    child_set.parent_field,
+                    child_set.id_type,
+                    child_set.pending,
+                    child_set.creating,
+                    child_set.succeeded,
+                    child_set.failed,
+                    child_set.desired_count,
                 }
             );
         }

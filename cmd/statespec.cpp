@@ -102,22 +102,10 @@ bool ast_formatter_should_fallback_to_tokens(const std::vector<statespec::Token>
         case statespec::TokenKind::KeywordAnnotations:
         case statespec::TokenKind::KeywordAuthz:
         case statespec::TokenKind::KeywordBehavior:
-        case statespec::TokenKind::KeywordChildSet:
         case statespec::TokenKind::KeywordControl:
-        case statespec::TokenKind::KeywordWhen:
         case statespec::TokenKind::KeywordAllocates:
         case statespec::TokenKind::KeywordReturns:
-        case statespec::TokenKind::KeywordAtomic:
-        case statespec::TokenKind::KeywordForEach:
-        case statespec::TokenKind::KeywordObserve:
-        case statespec::TokenKind::KeywordMove:
             return true;
-        case statespec::TokenKind::KeywordCreate:
-            if (i + 1 < tokens.size() && tokens[i + 1].kind == statespec::TokenKind::KeywordChild)
-            {
-                return true;
-            }
-            break;
         default:
             break;
         }

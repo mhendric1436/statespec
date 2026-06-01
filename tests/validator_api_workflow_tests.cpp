@@ -140,6 +140,97 @@ void validator_rejects_invalid_workflow_behavior_references()
     );
 }
 
+void validator_rejects_invalid_nested_workflow_references()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system OrderSystem {
+          feature_flag NewScheduler {
+            type bool
+            default false
+            owner "platform"
+          }
+
+          entity Child {
+            key child_id
+
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              child_id uuid
+              parent_id uuid
+            }
+
+            state_machine {
+              state Pending
+              state Deleted {
+                terminal: true
+                garbage_collection {
+                  after: P30D
+                  mode: tombstone
+                }
+              }
+              initial Pending
+              terminal Deleted
+              Pending -> Deleted
+            }
+          }
+
+          workflow ParentWorkflow {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start reserve_children
+            child_set children_to_create {
+              entity Child
+              parent_field missing_parent
+              desired_count feature_enabled(NewScheduler)
+            }
+            step reserve_children {
+              expected_execution_time PT10S
+              max_retries 2
+              atomic {
+                reserve child_set missing_child_set;
+                when feature_enabled(MissingFlag) {
+                  create child MissingChild {
+                    key = generated_child_id;
+                  }
+                  transition_to missing_step;
+                }
+              }
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow child_set parent field"),
+        "validator should reject invalid workflow child_set parent fields"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow child_set target reference"),
+        "validator should reject unknown child_set statement targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow child entity target reference"),
+        "validator should reject unknown create child entity targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow transition target reference"),
+        "validator should reject nested transition targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown feature flag reference"),
+        "validator should validate nested workflow expressions"
+    );
+}
+
 void validator_rejects_unknown_worker_references()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -456,6 +547,11 @@ TEST_CASE("validator rejects incomplete workflow canonical shape")
 TEST_CASE("validator rejects invalid workflow behavior references")
 {
     validator_rejects_invalid_workflow_behavior_references();
+}
+
+TEST_CASE("validator rejects invalid nested workflow references")
+{
+    validator_rejects_invalid_nested_workflow_references();
 }
 
 TEST_CASE("validator rejects unknown worker references")

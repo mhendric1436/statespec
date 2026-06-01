@@ -97,6 +97,14 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
             );
             workflow.loads.push_back(std::move(load));
         }
+        else if (check(TokenKind::KeywordChildSet))
+        {
+            auto child_set = parse_workflow_child_set_decl(diagnostics);
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordChildSet}, child_set.range}
+            );
+            workflow.child_sets.push_back(std::move(child_set));
+        }
         else if (check(TokenKind::KeywordStep))
         {
             auto step = parse_workflow_step_decl(diagnostics);
@@ -139,6 +147,89 @@ WorkflowLoadDecl Parser::parse_workflow_load_decl(DiagnosticBag& diagnostics)
     return load;
 }
 
+WorkflowChildSetDecl Parser::parse_workflow_child_set_decl(DiagnosticBag& diagnostics)
+{
+    const auto start = consume(TokenKind::KeywordChildSet, "expected child_set", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected child_set name", diagnostics);
+    WorkflowChildSetDecl child_set;
+    child_set.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after child_set name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (match(TokenKind::KeywordEntity))
+        {
+            child_set.entity = parse_qualified_name(diagnostics, "child_set entity");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "parent_field"))
+        {
+            advance();
+            child_set.parent_field =
+                consume(TokenKind::Identifier, "expected child_set parent field", diagnostics)
+                    .lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "id_type"))
+        {
+            advance();
+            child_set.id_type = parse_type_name(diagnostics);
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "pending"))
+        {
+            advance();
+            child_set.pending =
+                consume(TokenKind::Identifier, "expected child_set pending field", diagnostics)
+                    .lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "creating"))
+        {
+            advance();
+            child_set.creating =
+                consume(TokenKind::Identifier, "expected child_set creating field", diagnostics)
+                    .lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "succeeded"))
+        {
+            advance();
+            child_set.succeeded =
+                consume(TokenKind::Identifier, "expected child_set succeeded field", diagnostics)
+                    .lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "failed"))
+        {
+            advance();
+            child_set.failed =
+                consume(TokenKind::Identifier, "expected child_set failed field", diagnostics)
+                    .lexeme;
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "desired_count"))
+        {
+            advance();
+            child_set.desired_count = parse_simple_expression_until_boundary();
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordAnnotations))
+        {
+            advance();
+            skip_balanced_block();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after child_set block", diagnostics);
+
+    child_set.range = SourceRange{start.range.begin, previous().range.end};
+    return child_set;
+}
+
 WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
 {
     const auto start = consume(TokenKind::KeywordStep, "expected workflow step", diagnostics);
@@ -165,26 +256,18 @@ WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)
             );
             consume_optional_semicolon();
         }
-        else if (check_any(
-                     {TokenKind::KeywordRequire, TokenKind::KeywordSet, TokenKind::KeywordEmit,
-                      TokenKind::KeywordEnqueue, TokenKind::KeywordAcquire, TokenKind::KeywordRenew,
-                      TokenKind::KeywordRelease, TokenKind::KeywordStart,
-                      TokenKind::KeywordTransitionTo, TokenKind::KeywordComplete,
-                      TokenKind::KeywordFail}
-                 ))
+        else if (check_any({TokenKind::KeywordRequire,      TokenKind::KeywordSet,
+                            TokenKind::KeywordEmit,         TokenKind::KeywordEnqueue,
+                            TokenKind::KeywordAcquire,      TokenKind::KeywordRenew,
+                            TokenKind::KeywordRelease,      TokenKind::KeywordStart,
+                            TokenKind::KeywordTransitionTo, TokenKind::KeywordComplete,
+                            TokenKind::KeywordFail,         TokenKind::KeywordAtomic,
+                            TokenKind::KeywordForEach,      TokenKind::KeywordWhen,
+                            TokenKind::KeywordCreate,       TokenKind::KeywordObserve,
+                            TokenKind::KeywordMove,         TokenKind::KeywordReserve,
+                            TokenKind::KeywordMaterialize,  TokenKind::KeywordReconcile}))
         {
             step.statements.push_back(parse_workflow_statement_decl(diagnostics));
-        }
-        else if (match(TokenKind::KeywordWhen))
-        {
-            while (!is_at_end() && !check(TokenKind::LeftBrace) && !check(TokenKind::RightBrace))
-            {
-                advance();
-            }
-            if (check(TokenKind::LeftBrace))
-            {
-                skip_balanced_block();
-            }
         }
         else
         {
@@ -265,6 +348,72 @@ WorkflowStatementDecl Parser::parse_workflow_statement_decl(DiagnosticBag& diagn
             statement.expression = parse_simple_expression_until_boundary();
         }
         break;
+    case TokenKind::KeywordAtomic:
+        statement.kind = "atomic";
+        statement.statements = parse_workflow_statement_block(diagnostics);
+        break;
+    case TokenKind::KeywordForEach:
+        statement.kind = "for_each";
+        statement.binding =
+            consume(TokenKind::Identifier, "expected for_each iterator name", diagnostics).lexeme;
+        consume(TokenKind::KeywordIn, "expected in after for_each iterator", diagnostics);
+        statement.expression = parse_expression_until(TokenKind::LeftBrace);
+        statement.statements = parse_workflow_statement_block(diagnostics);
+        break;
+    case TokenKind::KeywordWhen:
+        statement.kind = "when";
+        statement.expression = parse_expression_until(TokenKind::LeftBrace);
+        statement.statements = parse_workflow_statement_block(diagnostics);
+        break;
+    case TokenKind::KeywordCreate:
+        statement.kind = "create_child";
+        consume(TokenKind::KeywordChild, "expected child after create", diagnostics);
+        statement.target = parse_qualified_name(diagnostics, "created child entity");
+        statement.payload = parse_workflow_payload(diagnostics);
+        break;
+    case TokenKind::KeywordObserve:
+        statement.kind = "observe_child";
+        consume(TokenKind::KeywordChild, "expected child after observe", diagnostics);
+        statement.target = parse_qualified_name(diagnostics, "observed child entity");
+        if (!is_named_identifier(peek(), SyntaxIdentifierBy))
+        {
+            diagnostics.error(peek().range, "SSPEC0200", "expected by in observe child");
+        }
+        else
+        {
+            advance();
+        }
+        statement.binding =
+            consume(TokenKind::Identifier, "expected observe child field", diagnostics).lexeme;
+        consume(TokenKind::Equals, "expected '=' in observe child", diagnostics);
+        statement.expression = parse_simple_expression_until_boundary();
+        break;
+    case TokenKind::KeywordMove:
+        statement.kind = "move";
+        statement.expression = parse_expression_until(TokenKind::KeywordFrom);
+        consume(TokenKind::KeywordFrom, "expected from in move statement", diagnostics);
+        statement.from_assignable = parse_expression_until(TokenKind::KeywordTo);
+        consume(TokenKind::KeywordTo, "expected to in move statement", diagnostics);
+        statement.to_assignable = parse_simple_expression_until_boundary();
+        break;
+    case TokenKind::KeywordReserve:
+        statement.kind = "reserve_child_set";
+        consume(TokenKind::KeywordChildSet, "expected child_set after reserve", diagnostics);
+        statement.target =
+            consume(TokenKind::Identifier, "expected child_set name", diagnostics).lexeme;
+        break;
+    case TokenKind::KeywordMaterialize:
+        statement.kind = "materialize_child_set";
+        consume(TokenKind::KeywordChildSet, "expected child_set after materialize", diagnostics);
+        statement.target =
+            consume(TokenKind::Identifier, "expected child_set name", diagnostics).lexeme;
+        break;
+    case TokenKind::KeywordReconcile:
+        statement.kind = "reconcile_child_set";
+        consume(TokenKind::KeywordChildSet, "expected child_set after reconcile", diagnostics);
+        statement.target =
+            consume(TokenKind::Identifier, "expected child_set name", diagnostics).lexeme;
+        break;
     default:
         statement.kind = "unknown";
         synchronize_to_member_boundary();
@@ -274,6 +423,35 @@ WorkflowStatementDecl Parser::parse_workflow_statement_decl(DiagnosticBag& diagn
     consume_optional_semicolon();
     statement.range = SourceRange{start.range.begin, previous().range.end};
     return statement;
+}
+
+std::vector<WorkflowStatementDecl>
+Parser::parse_workflow_statement_block(DiagnosticBag& diagnostics)
+{
+    std::vector<WorkflowStatementDecl> statements;
+    consume(TokenKind::LeftBrace, "expected workflow statement block", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (check_any({TokenKind::KeywordRequire,      TokenKind::KeywordSet,
+                       TokenKind::KeywordEmit,         TokenKind::KeywordEnqueue,
+                       TokenKind::KeywordAcquire,      TokenKind::KeywordRenew,
+                       TokenKind::KeywordRelease,      TokenKind::KeywordStart,
+                       TokenKind::KeywordTransitionTo, TokenKind::KeywordComplete,
+                       TokenKind::KeywordFail,         TokenKind::KeywordAtomic,
+                       TokenKind::KeywordForEach,      TokenKind::KeywordWhen,
+                       TokenKind::KeywordCreate,       TokenKind::KeywordObserve,
+                       TokenKind::KeywordMove,         TokenKind::KeywordReserve,
+                       TokenKind::KeywordMaterialize,  TokenKind::KeywordReconcile}))
+        {
+            statements.push_back(parse_workflow_statement_decl(diagnostics));
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after workflow statement block", diagnostics);
+    return statements;
 }
 
 std::vector<WorkflowAssignmentDecl> Parser::parse_workflow_payload(DiagnosticBag& diagnostics)
@@ -286,7 +464,15 @@ std::vector<WorkflowAssignmentDecl> Parser::parse_workflow_payload(DiagnosticBag
 
     while (!check(TokenKind::RightBrace) && !is_at_end())
     {
-        const auto name = consume(TokenKind::Identifier, "expected payload field", diagnostics);
+        Token name;
+        if (check(TokenKind::KeywordKey) || check(TokenKind::KeywordParent))
+        {
+            name = advance();
+        }
+        else
+        {
+            name = consume(TokenKind::Identifier, "expected payload field", diagnostics);
+        }
         consume(TokenKind::Equals, "expected '=' in payload assignment", diagnostics);
         WorkflowAssignmentDecl assignment;
         assignment.name = name.lexeme;

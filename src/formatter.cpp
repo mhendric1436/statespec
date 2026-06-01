@@ -1156,9 +1156,55 @@ class AstFormatter
                 {
                     line("load " + load.entity + " by " + load.key_field + " as " + load.binding);
                 }
+                for (const auto& child_set : workflow.child_sets)
+                {
+                    write_workflow_child_set(child_set);
+                }
                 for (const auto& step : workflow.steps)
                 {
                     write_workflow_step(step);
+                }
+            }
+        );
+    }
+
+    void write_workflow_child_set(const WorkflowChildSetDecl& child_set)
+    {
+        block(
+            "child_set " + child_set.name,
+            [&]()
+            {
+                if (child_set.entity.has_value())
+                {
+                    line("entity " + *child_set.entity);
+                }
+                if (child_set.parent_field.has_value())
+                {
+                    line("parent_field " + *child_set.parent_field);
+                }
+                if (child_set.id_type.has_value())
+                {
+                    line("id_type " + *child_set.id_type);
+                }
+                if (child_set.pending.has_value())
+                {
+                    line("pending " + *child_set.pending);
+                }
+                if (child_set.creating.has_value())
+                {
+                    line("creating " + *child_set.creating);
+                }
+                if (child_set.succeeded.has_value())
+                {
+                    line("succeeded " + *child_set.succeeded);
+                }
+                if (child_set.failed.has_value())
+                {
+                    line("failed " + *child_set.failed);
+                }
+                if (child_set.desired_count.has_value())
+                {
+                    line("desired_count " + normalized_expression(*child_set.desired_count));
                 }
             }
         );
@@ -1269,6 +1315,70 @@ class AstFormatter
                     ? "fail " + normalized_expression(*statement.expression) + ";"
                     : "fail;"
             );
+        }
+        else if (statement.kind == "atomic")
+        {
+            block("atomic", [&]() { write_workflow_statements(statement.statements); });
+        }
+        else if (statement.kind == "for_each" && statement.binding.has_value() &&
+                 statement.expression.has_value())
+        {
+            block(
+                "for_each " + *statement.binding + " in " +
+                    normalized_expression(*statement.expression),
+                [&]() { write_workflow_statements(statement.statements); }
+            );
+        }
+        else if (statement.kind == "when" && statement.expression.has_value())
+        {
+            block(
+                "when " + normalized_expression(*statement.expression),
+                [&]() { write_workflow_statements(statement.statements); }
+            );
+        }
+        else if (statement.kind == "create_child" && statement.target.has_value())
+        {
+            block(
+                "create child " + *statement.target,
+                [&]() { write_workflow_payload(statement.payload); }
+            );
+        }
+        else if (statement.kind == "observe_child" && statement.target.has_value() &&
+                 statement.binding.has_value() && statement.expression.has_value())
+        {
+            line(
+                "observe child " + *statement.target + " by " + *statement.binding + " = " +
+                normalized_expression(*statement.expression) + ";"
+            );
+        }
+        else if (statement.kind == "move" && statement.expression.has_value() &&
+                 statement.from_assignable.has_value() && statement.to_assignable.has_value())
+        {
+            line(
+                "move " + normalized_expression(*statement.expression) + " from " +
+                normalized_expression(*statement.from_assignable) + " to " +
+                normalized_expression(*statement.to_assignable) + ";"
+            );
+        }
+        else if (statement.kind == "reserve_child_set" && statement.target.has_value())
+        {
+            line("reserve child_set " + *statement.target + ";");
+        }
+        else if (statement.kind == "materialize_child_set" && statement.target.has_value())
+        {
+            line("materialize child_set " + *statement.target + ";");
+        }
+        else if (statement.kind == "reconcile_child_set" && statement.target.has_value())
+        {
+            line("reconcile child_set " + *statement.target + ";");
+        }
+    }
+
+    void write_workflow_statements(const std::vector<WorkflowStatementDecl>& statements)
+    {
+        for (const auto& statement : statements)
+        {
+            write_workflow_statement(statement);
         }
     }
 

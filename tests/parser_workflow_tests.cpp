@@ -117,9 +117,109 @@ void parser_parses_workflow_steps()
         "parser should parse complete statement"
     );
 }
+
+void parser_parses_nested_workflow_blocks_and_child_sets()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          workflow ParentWorkflow {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start reserve_children
+            child_set children_to_create {
+              entity Child
+              parent_field parent_id
+              id_type uuid
+              pending pending_child_ids
+              creating creating_child_ids
+              succeeded succeeded_child_ids
+              failed failed_child_ids
+              desired_count order.desired_child_count
+            }
+            step reserve_children {
+              expected_execution_time PT10S
+              max_retries 2
+              atomic {
+                reserve child_set children_to_create;
+                when feature_enabled(NewScheduler) {
+                  for_each child_id in order.pending_child_ids {
+                    create child Child {
+                      key = child_id;
+                      parent = order.order_id;
+                    }
+                    observe child Child by child_id = child_id;
+                    move child_id from order.pending_child_ids to order.creating_child_ids;
+                  }
+                }
+                transition_to waiting_children;
+              }
+            }
+            step waiting_children {
+              expected_execution_time PT30S
+              max_retries 3
+              reconcile child_set children_to_create;
+              complete;
+            }
+          }
+        }
+    )sspec");
+
+    statespec::test::require(spec.system.has_value(), "parser should parse system");
+    const auto& workflow = spec.system->workflows[0];
+    statespec::test::require(
+        workflow.child_sets.size() == 1, "parser should parse workflow child sets"
+    );
+    statespec::test::require(
+        workflow.child_sets[0].desired_count == "order . desired_child_count",
+        "parser should parse child_set desired_count expression"
+    );
+    const auto& atomic = workflow.steps[0].statements[0];
+    statespec::test::require(atomic.kind == "atomic", "parser should parse atomic block");
+    statespec::test::require(
+        atomic.statements.size() == 3, "parser should preserve atomic nested statements"
+    );
+    statespec::test::require(
+        atomic.statements[0].kind == "reserve_child_set",
+        "parser should parse child_set reserve statement"
+    );
+    const auto& when = atomic.statements[1];
+    statespec::test::require(when.kind == "when", "parser should parse when block");
+    statespec::test::require(
+        when.expression == "feature_enabled ( NewScheduler )", "parser should parse when expression"
+    );
+    const auto& for_each = when.statements[0];
+    statespec::test::require(for_each.kind == "for_each", "parser should parse for_each block");
+    statespec::test::require(
+        for_each.binding == "child_id", "parser should parse for_each binding"
+    );
+    statespec::test::require(
+        for_each.statements.size() == 3, "parser should preserve for_each nested statements"
+    );
+    statespec::test::require(
+        for_each.statements[0].kind == "create_child", "parser should parse create child statement"
+    );
+    statespec::test::require(
+        for_each.statements[0].payload.size() == 2,
+        "parser should parse create child initialization"
+    );
+    statespec::test::require(
+        for_each.statements[1].kind == "observe_child",
+        "parser should parse observe child statement"
+    );
+    statespec::test::require(
+        for_each.statements[2].from_assignable == "order . pending_child_ids",
+        "parser should parse move from assignable"
+    );
+}
 } // namespace
 
 TEST_CASE("parser parses workflow steps")
 {
     parser_parses_workflow_steps();
+}
+
+TEST_CASE("parser parses nested workflow blocks and child sets")
+{
+    parser_parses_nested_workflow_blocks_and_child_sets();
 }

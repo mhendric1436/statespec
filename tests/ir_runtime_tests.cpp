@@ -98,6 +98,11 @@ void ir_lowers_system_runtime_contracts()
             input StartOrderRequest
             state OrderProcessingState
             load Order by order_id as order
+            child_set children_to_create {
+              entity Order
+              parent_field order_id
+              desired_count 1
+            }
             start validate_order
             step validate_order {
               expected_execution_time PT10S
@@ -111,6 +116,11 @@ void ir_lowers_system_runtime_contracts()
               start workflow OrderProcessing {
                 order_id = order.order_id;
               };
+              atomic {
+                when order.status == "Active" {
+                  transition_to validate_order;
+                }
+              }
               transition_to validate_order;
             }
           }
@@ -235,7 +245,18 @@ void ir_lowers_system_runtime_contracts()
         workflow.loads[0].binding == "order", "IR should lower workflow load binding"
     );
     statespec::test::require(
-        workflow.steps[0].statements.size() == 6, "IR should lower workflow statements"
+        workflow.child_sets.size() == 1, "IR should lower workflow child sets"
+    );
+    statespec::test::require(
+        workflow.child_sets[0].name == "children_to_create",
+        "IR should lower workflow child_set name"
+    );
+    statespec::test::require(
+        workflow.child_sets[0].desired_count == "1",
+        "IR should lower workflow child_set desired_count"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements.size() == 7, "IR should lower workflow statements"
     );
     statespec::test::require(
         workflow.steps[0].statements[0].kind == "require", "IR should lower require statement kind"
@@ -255,7 +276,22 @@ void ir_lowers_system_runtime_contracts()
         workflow.steps[0].statements[3].binding == "leaseToken", "IR should lower lease binding"
     );
     statespec::test::require(
-        workflow.steps[0].statements[5].target == "validate_order",
+        workflow.steps[0].statements[5].kind == "atomic", "IR should lower atomic statement kind"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[5].statements.size() == 1,
+        "IR should lower nested atomic statements"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[5].statements[0].kind == "when",
+        "IR should lower nested when statement kind"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[5].statements[0].statements[0].target == "validate_order",
+        "IR should lower deeply nested transition target"
+    );
+    statespec::test::require(
+        workflow.steps[0].statements[6].target == "validate_order",
         "IR should lower transition target"
     );
 

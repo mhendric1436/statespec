@@ -34,6 +34,7 @@ system KitchenSink {
   }
 
   value OrderAmount: decimal where OrderAmount >= 0;
+
   enum OrderStatus {
     Pending = "pending"
     Active = "active"

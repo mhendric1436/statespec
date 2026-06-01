@@ -120,17 +120,18 @@ Common statement families include:
 Generator support for workflow statements can evolve over time. Use the validator and
 generator output to confirm which statements are active for a given target.
 
-The compiler currently preserves the first linear workflow behavior slice in AST,
-semantic model, and IR: `on`, `input`, `state`, workflow-level `load`, and step-level
-`require`, `set`, `emit`, `enqueue`, lease operations, `start workflow`, `transition_to`,
-`complete`, and `fail`. Payload-bearing statements should use an explicit semicolon after
-the payload block in the current parser milestone.
+The compiler preserves workflow behavior in AST, semantic model, and IR: `on`, `input`,
+`state`, workflow-level `load`, `child_set`, step-level linear statements, and nested
+`atomic`, `for_each`, and `when` blocks. Child orchestration statements such as
+`create child`, `observe child`, `move`, `reserve child_set`, `materialize child_set`,
+and `reconcile child_set` are represented as workflow statements.
 
 Validation checks that workflow triggers, input/state types, loaded entities, load key
-fields, queue messages, leases, started workflows, transition targets, and feature flag
+fields, child-set entities and parent fields, queue messages, leases, started workflows,
+transition targets, child entities, child-set statement targets, and feature flag
 references resolve against the current system model. Expression syntax and allowed
-built-ins are validated. Expression type checking and nested workflow blocks remain
-future compiler work.
+built-ins are validated recursively through nested workflow blocks. Expression type
+checking and generated business workflow bodies remain future compiler work.
 
 ## Parent-Child Orchestration
 

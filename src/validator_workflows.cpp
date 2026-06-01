@@ -46,11 +46,15 @@ int workflow_member_order_index(const std::string& kind)
     {
         return 7;
     }
-    if (kind == "step")
+    if (kind == "child_set")
     {
         return 8;
     }
-    return 9;
+    if (kind == "step")
+    {
+        return 9;
+    }
+    return 10;
 }
 
 void validate_workflow_member_order(
@@ -68,11 +72,132 @@ void validate_workflow_member_order(
                 member.range, diagnostic_codes::NoncanonicalWorkflowOrder,
                 "workflow '" + workflow.name +
                     "' members should use canonical order: version, singleton, "
-                    "expected_execution_time, start, on, input, state, load, step"
+                    "expected_execution_time, start, on, input, state, load, child_set, step"
             );
             return;
         }
         previous_order = order;
+    }
+}
+
+std::unordered_set<std::string> entity_field_names(const EntityDecl& entity)
+{
+    std::unordered_set<std::string> fields;
+    for (const auto& field : entity.fields)
+    {
+        fields.insert(field.name);
+    }
+    return fields;
+}
+
+bool workflow_statement_is_child_set_operation(const WorkflowStatementDecl& statement)
+{
+    return statement.kind == "reserve_child_set" || statement.kind == "materialize_child_set" ||
+           statement.kind == "reconcile_child_set";
+}
+
+void validate_workflow_statement(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    const std::unordered_set<std::string>& steps,
+    const std::unordered_set<std::string>& child_sets,
+    const WorkflowStatementDecl& statement,
+    DiagnosticBag& diagnostics
+)
+{
+    if (statement.expression.has_value())
+    {
+        validate_expression(system, statement.range, *statement.expression, diagnostics);
+    }
+    for (const auto& assignment : statement.payload)
+    {
+        validate_expression(system, assignment.range, assignment.expression, diagnostics);
+    }
+    for (const auto& nested : statement.statements)
+    {
+        validate_workflow_statement(system, symbols, steps, child_sets, nested, diagnostics);
+    }
+
+    if (statement.kind == "emit" && statement.target.has_value())
+    {
+        validate_symbol_reference(
+            symbols, statement.range, "workflow emit target", *statement.target,
+            {SymbolKind::Event, SymbolKind::Log}, diagnostics
+        );
+    }
+    else if (statement.kind == "enqueue" && statement.target.has_value())
+    {
+        validate_symbol_reference(
+            symbols, statement.range, "workflow enqueue target", *statement.target,
+            {SymbolKind::Message}, diagnostics
+        );
+    }
+    else if ((statement.kind == "acquire_lease" || statement.kind == "renew_lease" ||
+              statement.kind == "release_lease") &&
+             statement.target.has_value())
+    {
+        validate_symbol_reference(
+            symbols, statement.range, "workflow lease target", *statement.target,
+            {SymbolKind::Lease}, diagnostics
+        );
+    }
+    else if (statement.kind == "start_workflow" && statement.target.has_value())
+    {
+        validate_symbol_reference(
+            symbols, statement.range, "workflow start target", *statement.target,
+            {SymbolKind::Workflow}, diagnostics
+        );
+    }
+    else if ((statement.kind == "create_child" || statement.kind == "observe_child") &&
+             statement.target.has_value())
+    {
+        validate_symbol_reference(
+            symbols, statement.range, "workflow child entity target", *statement.target,
+            {SymbolKind::Entity}, diagnostics
+        );
+    }
+
+    if (statement.kind == "transition_to" && statement.target.has_value() &&
+        !contains(steps, *statement.target))
+    {
+        unknown_reference_error(
+            diagnostics, statement.range, "workflow transition target", *statement.target
+        );
+    }
+    if (workflow_statement_is_child_set_operation(statement) && statement.target.has_value() &&
+        !contains(child_sets, *statement.target))
+    {
+        unknown_reference_error(
+            diagnostics, statement.range, "workflow child_set target", *statement.target
+        );
+    }
+
+    if (statement.kind == "for_each" && !statement.binding.has_value())
+    {
+        required_error(diagnostics, statement.range, "workflow for_each statement", "iterator");
+    }
+    if ((statement.kind == "atomic" || statement.kind == "for_each" || statement.kind == "when") &&
+        statement.statements.empty())
+    {
+        required_error(
+            diagnostics, statement.range, "workflow " + statement.kind + " block",
+            "at least one statement"
+        );
+    }
+    if (statement.kind == "move")
+    {
+        if (!statement.expression.has_value() || statement.expression->empty())
+        {
+            required_error(diagnostics, statement.range, "workflow move statement", "expression");
+        }
+        if (!statement.from_assignable.has_value() || statement.from_assignable->empty())
+        {
+            required_error(diagnostics, statement.range, "workflow move statement", "from");
+        }
+        if (!statement.to_assignable.has_value() || statement.to_assignable->empty())
+        {
+            required_error(diagnostics, statement.range, "workflow move statement", "to");
+        }
     }
 }
 
@@ -176,6 +301,43 @@ void validate_workflows(
             }
         }
 
+        std::unordered_set<std::string> child_sets;
+        for (const auto& child_set : workflow.child_sets)
+        {
+            if (!child_sets.insert(child_set.name).second)
+            {
+                duplicate_error(diagnostics, child_set.range, child_set.name);
+            }
+            if (!child_set.entity.has_value())
+            {
+                required_error(
+                    diagnostics, child_set.range, "workflow child_set '" + child_set.name + "'",
+                    "entity"
+                );
+                continue;
+            }
+            const auto* child_entity = find_entity(system, *child_set.entity);
+            if (child_entity == nullptr)
+            {
+                unknown_reference_error(
+                    diagnostics, child_set.range, "workflow child_set entity", *child_set.entity
+                );
+                continue;
+            }
+            const auto fields = entity_field_names(*child_entity);
+            if (child_set.parent_field.has_value() && !contains(fields, *child_set.parent_field))
+            {
+                unknown_reference_error(
+                    diagnostics, child_set.range, "workflow child_set parent field",
+                    *child_set.parent_field
+                );
+            }
+            if (child_set.desired_count.has_value())
+            {
+                validate_expression(system, child_set.range, *child_set.desired_count, diagnostics);
+            }
+        }
+
         std::unordered_set<std::string> steps;
         for (const auto& step : workflow.steps)
         {
@@ -213,53 +375,6 @@ void validate_workflows(
                     "workflow step '" + workflow_step_name(workflow, step) + "'", "max_retries"
                 );
             }
-
-            for (const auto& statement : step.statements)
-            {
-                if (statement.expression.has_value())
-                {
-                    validate_expression(
-                        system, statement.range, *statement.expression, diagnostics
-                    );
-                }
-                for (const auto& assignment : statement.payload)
-                {
-                    validate_expression(
-                        system, assignment.range, assignment.expression, diagnostics
-                    );
-                }
-
-                if (statement.kind == "emit" && statement.target.has_value())
-                {
-                    validate_symbol_reference(
-                        symbols, statement.range, "workflow emit target", *statement.target,
-                        {SymbolKind::Event, SymbolKind::Log}, diagnostics
-                    );
-                }
-                else if (statement.kind == "enqueue" && statement.target.has_value())
-                {
-                    validate_symbol_reference(
-                        symbols, statement.range, "workflow enqueue target", *statement.target,
-                        {SymbolKind::Message}, diagnostics
-                    );
-                }
-                else if ((statement.kind == "acquire_lease" || statement.kind == "renew_lease" ||
-                          statement.kind == "release_lease") &&
-                         statement.target.has_value())
-                {
-                    validate_symbol_reference(
-                        symbols, statement.range, "workflow lease target", *statement.target,
-                        {SymbolKind::Lease}, diagnostics
-                    );
-                }
-                else if (statement.kind == "start_workflow" && statement.target.has_value())
-                {
-                    validate_symbol_reference(
-                        symbols, statement.range, "workflow start target", *statement.target,
-                        {SymbolKind::Workflow}, diagnostics
-                    );
-                }
-            }
         }
 
         if (workflow.start_step.has_value() && !contains(steps, *workflow.start_step))
@@ -272,14 +387,9 @@ void validate_workflows(
         {
             for (const auto& statement : step.statements)
             {
-                if (statement.kind == "transition_to" && statement.target.has_value() &&
-                    !contains(steps, *statement.target))
-                {
-                    unknown_reference_error(
-                        diagnostics, statement.range, "workflow transition target",
-                        *statement.target
-                    );
-                }
+                validate_workflow_statement(
+                    system, symbols, steps, child_sets, statement, diagnostics
+                );
             }
         }
     }

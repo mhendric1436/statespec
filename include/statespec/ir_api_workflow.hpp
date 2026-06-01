@@ -24,8 +24,24 @@ struct IrWorkflowStatement
     std::optional<std::string> target;
     std::optional<std::string> expression;
     std::optional<std::string> assignable;
+    std::optional<std::string> from_assignable;
+    std::optional<std::string> to_assignable;
     std::optional<std::string> binding;
     std::vector<IrWorkflowAssignment> payload;
+    std::vector<IrWorkflowStatement> statements;
+};
+
+struct IrWorkflowChildSet
+{
+    std::string name;
+    std::optional<std::string> entity;
+    std::optional<std::string> parent_field;
+    std::optional<std::string> id_type;
+    std::optional<std::string> pending;
+    std::optional<std::string> creating;
+    std::optional<std::string> succeeded;
+    std::optional<std::string> failed;
+    std::optional<std::string> desired_count;
 };
 
 struct IrWorkflowStep
@@ -47,6 +63,7 @@ struct IrWorkflow
     std::optional<std::string> input;
     std::optional<std::string> state;
     std::vector<IrWorkflowLoad> loads;
+    std::vector<IrWorkflowChildSet> child_sets;
     std::vector<IrWorkflowStep> steps;
 };
 
