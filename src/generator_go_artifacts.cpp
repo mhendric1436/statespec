@@ -419,11 +419,13 @@ std::string go_workflow_registry_invoker_functions(const IrWorkflow& workflow)
     {
         out << "func invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
             << "(handler " << pascal_identifier(workflow.name) << "StepHandler) StepInvoker {\n";
-        out << "\treturn func(ctx context.Context, backend common.Backend, tx common.Transaction, stepContext "
+        out << "\treturn func(ctx context.Context, backend common.Backend, tx common.Transaction, "
+               "stepContext "
                "workflowcontext.WorkflowStepHandlerContext) "
                "(workflowcontext.WorkflowStepResult, error) {\n";
         out << "\t_ = backend\n";
-        out << "\treturn handler.Handle" << pascal_identifier(step.name) << "(ctx, tx, stepContext)\n";
+        out << "\treturn handler.Handle" << pascal_identifier(step.name)
+            << "(ctx, tx, stepContext)\n";
         out << "\t}\n";
         out << "}\n\n";
     }
@@ -2348,8 +2350,7 @@ std::string go_api_server_catalog_file(
         {
             continue;
         }
-        manual_served_api_entries << "\tserves = append(serves, " << go_string(served_api)
-                                  << ")\n";
+        manual_served_api_entries << "\tserves = append(serves, " << go_string(served_api) << ")\n";
     }
     return templates.render(
         "api/backend/servers/catalog.go.tmpl",
@@ -2710,7 +2711,8 @@ void add_go_entity_descriptor_artifacts(
     {
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
         add_go_raw_common_file(
-            result, options, entity_dir + "constants.go", go_entity_constants_file(templates, entity)
+            result, options, entity_dir + "constants.go",
+            go_entity_constants_file(templates, entity)
         );
         add_go_raw_common_file(
             result, options, entity_dir + "model.go",
@@ -3369,7 +3371,7 @@ std::string go_worker_descriptor_catalog_file(const IrSystem& system)
 
 } // namespace
 
-void add_go_common_runtime_artifacts(
+void add_go_common_runtime_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
@@ -3565,7 +3567,7 @@ void add_go_common_runtime_artifacts(
     );
 }
 
-void add_go_api_artifacts(
+void add_go_api_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
@@ -3744,7 +3746,7 @@ void add_go_api_artifacts(
     }
 }
 
-void add_go_worker_artifacts(
+void add_go_worker_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,

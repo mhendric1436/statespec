@@ -449,6 +449,13 @@ StateSpec persisted state; it does not make an external system transactional.
 
 Generated artifacts must use meaningful filenames for the code they contain. Avoid catch-all files such as `api_artifacts.*` or `worker_artifacts.*`.
 
+Generator artifact implementation should follow the same rule. Public binding artifact
+entrypoints are tier-focused: `generator_<lang>_common_artifacts.cpp`,
+`generator_<lang>_api_artifacts.cpp`, and `generator_<lang>_worker_artifacts.cpp`.
+Shared implementation helpers may remain in `generator_<lang>_artifacts.cpp` only as a
+temporary support layer while they are split further into common entity, runtime,
+descriptor catalog, and package/manifest builders.
+
 Current C++ generated common descriptors emit to:
 
 ```text

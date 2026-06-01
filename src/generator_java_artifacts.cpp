@@ -3408,7 +3408,7 @@ void add_java_descriptor_module_artifacts(
 
 } // namespace
 
-void add_java_common_runtime_artifacts(
+void add_java_common_runtime_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
@@ -3601,7 +3601,7 @@ void add_java_common_runtime_artifacts(
     );
 }
 
-void add_java_api_artifacts(
+void add_java_api_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
@@ -3786,7 +3786,7 @@ void add_java_api_artifacts(
     }
 }
 
-void add_java_worker_artifacts(
+void add_java_worker_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,

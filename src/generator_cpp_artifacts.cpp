@@ -189,8 +189,7 @@ std::string cpp_workflow_handler_methods(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "    virtual ::statespec_generated::worker::WorkflowStepResult handle_"
-            << snake_identifier(step.name)
-            << "(\n";
+            << snake_identifier(step.name) << "(\n";
         out << "        ::statespec::backend::ITransaction& tx,\n";
         out << "        const ::statespec_generated::worker::WorkflowStepHandlerContext& context\n";
         out << "    ) = 0;\n";
@@ -204,8 +203,7 @@ std::string cpp_workflow_default_handler_methods(const IrWorkflow& workflow)
     for (const auto& step : workflow.steps)
     {
         out << "    ::statespec_generated::worker::WorkflowStepResult handle_"
-            << snake_identifier(step.name)
-            << "(\n";
+            << snake_identifier(step.name) << "(\n";
         out << "        ::statespec::backend::ITransaction&,\n";
         out << "        const ::statespec_generated::worker::WorkflowStepHandlerContext&\n";
         out << "    ) override\n";
@@ -1484,15 +1482,13 @@ std::string cpp_entity_centered_facade_header(
     if (area == "model")
     {
         return templates.render(
-            "common/entities/model.hpp.tmpl",
-            TemplateRenderer::Values{{"model_content", content}}
+            "common/entities/model.hpp.tmpl", TemplateRenderer::Values{{"model_content", content}}
         );
     }
     if (area == "schema")
     {
         return templates.render(
-            "common/entities/schema.hpp.tmpl",
-            TemplateRenderer::Values{{"schema_content", content}}
+            "common/entities/schema.hpp.tmpl", TemplateRenderer::Values{{"schema_content", content}}
         );
     }
     if (area == "persistence")
@@ -1646,7 +1642,8 @@ std::string cpp_api_server_catalog_header(
         );
         if (served)
         {
-            entity_includes << "#include \"entities/" << snake_identifier(domain.name) << ".hpp\"\n";
+            entity_includes << "#include \"entities/" << snake_identifier(domain.name)
+                            << ".hpp\"\n";
             entity_append_calls << "    entities::" << snake_identifier(domain.name)
                                 << "::append_api_server_names(serves);\n";
         }
@@ -2434,7 +2431,8 @@ void add_cpp_descriptor_module_artifacts(
     {
         const auto entity_dir = "entities/" + snake_identifier(entity.name) + "/";
         add_cpp_raw_common_file(
-            result, options, entity_dir + "constants.hpp", cpp_entity_constants_header(templates, entity)
+            result, options, entity_dir + "constants.hpp",
+            cpp_entity_constants_header(templates, entity)
         );
         add_cpp_raw_common_file(
             result, options, entity_dir + "model.hpp",
@@ -2963,7 +2961,7 @@ std::string cpp_api_descriptors_header(const IrSystem& system)
 
 } // namespace
 
-void add_cpp_common_runtime_artifacts(
+void add_cpp_common_runtime_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
@@ -3154,7 +3152,7 @@ void add_cpp_common_runtime_artifacts(
     );
 }
 
-void add_cpp_api_artifacts(
+void add_cpp_api_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
@@ -3335,7 +3333,7 @@ void add_cpp_api_artifacts(
     }
 }
 
-void add_cpp_worker_artifacts(
+void add_cpp_worker_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,

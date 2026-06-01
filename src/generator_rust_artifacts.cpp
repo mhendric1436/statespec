@@ -2709,7 +2709,7 @@ std::string rust_api_descriptors_file(const IrSystem& system)
 
 } // namespace
 
-void add_rust_common_runtime_artifacts(
+void add_rust_common_runtime_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
@@ -2886,7 +2886,7 @@ void add_rust_common_runtime_artifacts(
     );
 }
 
-void add_rust_api_artifacts(
+void add_rust_api_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
@@ -3057,7 +3057,7 @@ void add_rust_api_artifacts(
     }
 }
 
-void add_rust_worker_artifacts(
+void add_rust_worker_artifacts_impl(
     GenerationResult& result,
     const BindingGeneratorOptions& options,
     const TemplatePackage& templates,
