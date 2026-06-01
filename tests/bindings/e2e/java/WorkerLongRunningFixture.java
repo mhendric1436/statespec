@@ -196,8 +196,7 @@ public final class WorkerLongRunningFixture
         private boolean handled;
 
         @Override
-        public WorkflowStepHandlers.WorkflowStepResult
-        handleValidateRequest(
+        public WorkflowStepHandlers.WorkflowStepResult handleValidateRequest(
             Backend.Transaction tx,
             WorkflowStepHandlers.Context context
         ) throws Exception
@@ -217,8 +216,7 @@ public final class WorkerLongRunningFixture
         }
 
         @Override
-        public WorkflowStepHandlers.WorkflowStepResult
-        handleCreateRemoteService(
+        public WorkflowStepHandlers.WorkflowStepResult handleCreateRemoteService(
             Backend.Transaction tx,
             WorkflowStepHandlers.Context context
         )
@@ -231,8 +229,7 @@ public final class WorkerLongRunningFixture
         }
 
         @Override
-        public WorkflowStepHandlers.WorkflowStepResult
-        handleWaitForRemoteService(
+        public WorkflowStepHandlers.WorkflowStepResult handleWaitForRemoteService(
             Backend.Transaction tx,
             WorkflowStepHandlers.Context context
         )
@@ -282,7 +279,8 @@ public final class WorkerLongRunningFixture
         );
         Optional<Workflow.WorkflowExecutionRecord> completed =
             runner.runOnce("wf-long", "ProvisionService", 1L);
-        if (!handler.handled || completed.isEmpty() || !completed.get().status().equals("Completed"))
+        if (!handler.handled || completed.isEmpty() ||
+            !completed.get().status().equals("Completed"))
         {
             throw new IllegalStateException("long-running workflow step did not complete");
         }

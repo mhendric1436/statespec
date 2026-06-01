@@ -19,8 +19,7 @@ public final class WorkerLinkingFixture
         private boolean handled;
 
         @Override
-        public WorkflowStepHandlers.WorkflowStepResult
-        handleValidateRequest(
+        public WorkflowStepHandlers.WorkflowStepResult handleValidateRequest(
             com.statespec.backend.Backend.Transaction tx,
             WorkflowStepHandlers.Context context
         )
@@ -39,8 +38,7 @@ public final class WorkerLinkingFixture
         }
 
         @Override
-        public WorkflowStepHandlers.WorkflowStepResult
-        handleCreateRemoteService(
+        public WorkflowStepHandlers.WorkflowStepResult handleCreateRemoteService(
             com.statespec.backend.Backend.Transaction tx,
             WorkflowStepHandlers.Context context
         )
@@ -53,8 +51,7 @@ public final class WorkerLinkingFixture
         }
 
         @Override
-        public WorkflowStepHandlers.WorkflowStepResult
-        handleWaitForRemoteService(
+        public WorkflowStepHandlers.WorkflowStepResult handleWaitForRemoteService(
             com.statespec.backend.Backend.Transaction tx,
             WorkflowStepHandlers.Context context
         )

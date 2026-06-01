@@ -28,7 +28,10 @@ impl ProvisionServiceV1StepHandler<InMemoryBackend> for ProcessWorkflowStepHandl
         tx: &mut <InMemoryBackend as Backend>::Tx,
         context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
-        assert!(tx.is_open(), "workflow handler received a closed transaction");
+        assert!(
+            tx.is_open(),
+            "workflow handler received a closed transaction"
+        );
         assert_eq!(context.workflow_name, "ProvisionService");
         assert_eq!(context.step_name, "validate_request");
         self.handled_validate_request.store(true, Ordering::SeqCst);
@@ -42,7 +45,10 @@ impl ProvisionServiceV1StepHandler<InMemoryBackend> for ProcessWorkflowStepHandl
         tx: &mut <InMemoryBackend as Backend>::Tx,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
-        assert!(tx.is_open(), "workflow handler received a closed transaction");
+        assert!(
+            tx.is_open(),
+            "workflow handler received a closed transaction"
+        );
         Ok(WorkflowStepResult::complete(Some(
             "wait_for_remote_service".to_string(),
         )))
@@ -53,7 +59,10 @@ impl ProvisionServiceV1StepHandler<InMemoryBackend> for ProcessWorkflowStepHandl
         tx: &mut <InMemoryBackend as Backend>::Tx,
         _context: &WorkflowStepHandlerContext,
     ) -> statespec_generated::backend::BackendResult<WorkflowStepResult> {
-        assert!(tx.is_open(), "workflow handler received a closed transaction");
+        assert!(
+            tx.is_open(),
+            "workflow handler received a closed transaction"
+        );
         Ok(WorkflowStepResult::complete(None))
     }
 }

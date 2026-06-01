@@ -28,7 +28,7 @@ CLI_SRC := $(wildcard cmd/*.cpp)
 TEST_SRC := $(wildcard tests/*.cpp)
 TEST_HEADERS := $(wildcard tests/*.hpp)
 CATCH_SRC := third_party/catch2/catch_amalgamated.cpp
-FORMAT_FILES := $(HEADERS) $(SRC_ALL) $(wildcard src/*.hpp) $(CLI_SRC) $(TEST_SRC) $(TEST_HEADERS)
+FORMAT_FILES := $(HEADERS) $(SRC_ALL) $(wildcard src/*.hpp) $(wildcard src/*.inc) $(CLI_SRC) $(TEST_SRC) $(TEST_HEADERS)
 
 OBJ := $(patsubst src/%.cpp,$(OBJ_DIR)/src/%.o,$(SRC))
 CLI_OBJ := $(patsubst cmd/%.cpp,$(OBJ_DIR)/cmd/%.o,$(CLI_SRC))
