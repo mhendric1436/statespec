@@ -55,8 +55,9 @@ Partial:
 - OpenAPI schema lowering is intentionally conservative. Primitive and shape references
   are emitted, but richer `value`, `enum`, nested collection, and error-model semantics
   still need expansion.
-- Formatter support is token-preserving. Canonical-order warnings exist, but the
-  formatter does not yet own full AST-based declaration reordering.
+- Formatter support is token-preserving. Canonical-order warnings exist, but formatter
+  ownership is now the next architectural pass and must move canonical ordering into
+  AST-owned rewriting for high-value nested forms.
 - Policies are emitted as descriptors, but enforcement hooks are not generated.
 - Workflow statements lower into IR, but generated business workflow bodies remain
   user-owned until statement semantics, idempotency contracts, and expression typing are
@@ -98,9 +99,11 @@ opinionated HTTP backend.
 
 ## Next Priorities
 
-1. Keep parity and roadmap docs synchronized with generated API/Worker runtime changes.
-2. Continue moving formatter behavior from token-preserving output toward AST-owned
-   canonical declaration ordering.
+1. Make formatter ownership the next architectural pass. Move formatter behavior from
+   token-preserving output toward AST-owned canonical declaration ordering for entity
+   `ownership`, `relations`, `children`, and `invariants`, then key nested API and
+   workflow forms.
+2. Keep parity and roadmap docs synchronized with generated API/Worker runtime changes.
 3. Split remaining generator artifact orchestration files so path selection, manifests,
    template data, and source rendering stay modular.
 4. Expand OpenAPI output for `value`, `enum`, nested collection, and error schemas.
@@ -110,3 +113,35 @@ opinionated HTTP backend.
 7. Expand generated queue-worker execution and workflow body generation after workflow
    statement semantics are fully typed and idempotency guidance is enforceable.
 8. Add backend conformance tests for metadata repository implementations.
+
+## Next Architectural Pass: Formatter Ownership
+
+The formatter should become the owner of the written `.sspec` shape for constructs whose
+canonical order is already enforced by validation warnings. The next pass should keep
+semantic behavior unchanged and replace token-preserving best effort formatting with
+AST-owned reconstruction for the most important nested forms.
+
+Scope:
+
+- Entity member order: `key`, `ownership`, `version`, `fields`, `state_machine`,
+  `relations`, `children`, `invariants`, `indexes`, and `annotations`.
+- Entity `ownership` property order: `authority`, `system_of_record`, and `lifecycle`.
+- Entity `relations`, `children`, and `invariants` block ordering and indentation.
+- Entity-owned API blocks: `resource`, `create`, `get`, `list`, `update_status`, and
+  `delete`, with stable nested `fields`, `path`, and `by` ordering.
+- Workflow blocks: metadata first, then `on`, `input`, `state`, `load`, `child_set`,
+  and `step`; step bodies should format `require` before behavior statements.
+
+Out of scope for this pass:
+
+- Semantic rewrites, inferred declarations, migration tooling, or user-configurable
+  style options.
+- Typed expression formatting beyond preserving deterministic whitespace and indentation.
+- New syntax for APIs, workflows, relations, children, or invariants.
+
+Acceptance criteria:
+
+- `statespec fmt` produces a stable fixed point for the targeted forms.
+- Formatter tests include intentionally scrambled entity/API/workflow examples.
+- Validator canonical-order warnings agree with formatter output.
+- Examples and generator fixtures remain formatted by the canonical formatter.

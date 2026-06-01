@@ -109,6 +109,9 @@ entity Order {
 ```
 
 The validator emits a warning when entity members appear out of canonical order.
+The formatter ownership pass should make this order the `statespec fmt` fixed point,
+including AST-owned ordering for `ownership`, `relations`, `children`, and
+`invariants`.
 
 For lifecycle entities, include a `state_machine` block. Prefer explicit state machines
 over prose descriptions.
@@ -124,6 +127,8 @@ version, singleton, expected_execution_time, start, on, input, state, load, step
 ```
 
 The validator emits a warning when workflow members appear out of canonical order.
+The formatter ownership pass should make this order the `statespec fmt` fixed point for
+workflow metadata and key nested step forms.
 The validator rejects workflows that omit `singleton`, workflow-level
 `expected_execution_time`, or step-level `max_retries`; these runtime semantics must be
 authored explicitly.

@@ -33,7 +33,7 @@ Status meanings:
 | `feature_flag` | complete | complete | complete | complete | complete | complete | partial | P1 | Descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime evaluator generation remains future work. |
 | `log` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, emit, and inspect binding APIs exist. |
 | `metric` | complete | complete | complete | complete | complete | complete | complete | P0 | Descriptor generation, bootstrap helpers, registration, record, and inspect binding APIs exist. |
-| `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; validator warnings flag noncanonical member ordering; expression syntax and built-ins are validated while type checking remains incomplete. |
+| `entity` | complete | partial | partial | partial | partial | complete | partial | P0 | Core fields, keys, indexes, state machine, ownership, relations, children, and invariants exist; validator warnings flag noncanonical member ordering. Next formatter work is AST-owned canonical ordering for entity subblocks; expression syntax and built-ins are validated while type checking remains incomplete. |
 | `event` | complete | complete | complete | complete | complete | complete | partial | P2 | Event payload fields are validated, emitted in descriptors, and have generated payload envelope builders; backend event transport remains future work. |
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding consumes queue references as metadata. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
@@ -53,7 +53,7 @@ Status meanings:
 | Validator | complete | Metadata entities must resolve, include tenant/profile/key fields, declare a unique key index, use authoritative system ownership, and model the canonical `Active`/`Disabled`/`Deleted` lifecycle with `Deleted` as a terminal GC state. Mapping roots and target uniqueness are validated. `metadata.*` mapping sources must exist and be listed in `required_fields`. Operator API shapes follow normal tenant validation. |
 | Semantic model | complete | External system metadata references, mappings, API declarations, and API server serves references resolve through the shared symbol model. |
 | IR | complete | IR preserves metadata entity name, tenant field, profile field, metadata key fields, required fields, mapping source/target pairs, APIs, and API server route inputs. |
-| Formatter | partial | Token-preserving formatting handles the syntax and canonical-order warnings cover the containing declarations. Full AST-owned reordering for all nested metadata/API forms remains future work. |
+| Formatter | partial | Token-preserving formatting handles the syntax and canonical-order warnings cover the containing declarations. The next architectural pass is AST-owned canonical ordering for entity, nested API, workflow, and metadata forms. |
 | Binding generators | complete | C++, Go, Java, and Rust emit external-system descriptors, mapping-plan helpers, default mapping applicators, missing-source diagnostics, generic external-system client interfaces and call adapters, metadata lookup helpers, transaction-scoped resolver helpers, OCC repository contracts plus default generic repository implementations, and operator metadata API handler contracts. |
 | OpenAPI generator | partial | OpenAPI emits declared API operations, entity-derived CRUD API operations, and metadata-derived operator routes when explicit routes are absent. It emits schema contracts, not framework glue. Protobuf generation is intentionally not implemented. |
 | Regression fixture | complete | `testdata/generators/external-system-metadata-e2e.sspec` validates the end-to-end pass across metadata, mappings, explicit operator APIs, API servers, OpenAPI, and generated bindings. |
@@ -78,18 +78,18 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 | `fields` | complete | complete | complete | complete | complete | complete | complete | P0 | Mandatory lifecycle fields are validated and must appear first in canonical order. |
 | `state_machine` | complete | complete | complete | complete | complete | complete | complete | P0 | Initial, terminal, transitions, and GC metadata are represented. |
 | `indexes` | complete | complete | complete | complete | complete | complete | complete | P1 | Index declarations populate generated collection `IndexDescriptor` metadata and named generated repository helpers. Generated list APIs choose the best leading path-parameter prefix index and query through repositories rather than raw backend index names. |
-| `ownership` | complete | complete | complete | complete | complete | not-started | complete | P0 | Mandatory for every entity. Represented in AST, validation, semantic model, IR, and binding descriptors; formatter support is still token-preserving. |
-| `relations` | complete | complete | complete | complete | complete | not-started | complete | P1 | Parent/reference metadata is validated and emitted in descriptors; composition-cycle checks remain future work. |
-| `children` | complete | complete | complete | complete | complete | not-started | complete | P2 | Parent-side declarations are validated against child-owned parent relations. |
+| `ownership` | complete | complete | complete | complete | complete | not-started | complete | P0 | Mandatory for every entity. Represented in AST, validation, semantic model, IR, and binding descriptors; AST-owned formatter support is next and should preserve canonical property order. |
+| `relations` | complete | complete | complete | complete | complete | not-started | complete | P1 | Parent/reference metadata is validated and emitted in descriptors; AST-owned formatter ordering is next, while composition-cycle checks remain future work. |
+| `children` | complete | complete | complete | complete | complete | not-started | complete | P2 | Parent-side declarations are validated against child-owned parent relations; AST-owned formatter ordering is next. |
 | entity-level `transitions` block | not-started | not-started | not-started | not-started | not-started | not-started | not-started | n/a | Removed before implementation. State transitions are authored only inside `state_machine`. |
-| `invariants` | complete | complete | partial | complete | complete | not-started | complete | P1 | Names and raw expressions flow through descriptors; expression syntax and built-ins are validated while type checking remains pending. |
+| `invariants` | complete | complete | partial | complete | complete | not-started | complete | P1 | Names and raw expressions flow through descriptors; AST-owned formatter ordering is next, while expression type checking remains pending. |
 | entity `annotations` | complete | not-started | not-started | not-started | not-started | not-started | not-started | P4 | Low priority by doctrine. |
 
 ## Workflow Construct Parity
 
 | Construct | Grammar | Parser/AST | Validator | Semantic | IR | Formatter | Generators | Priority | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| workflow metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Version, singleton, timing, start step, and retry metadata are supported; validator warnings flag noncanonical workflow member ordering. |
+| workflow metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Version, singleton, timing, start step, and retry metadata are supported; validator warnings flag noncanonical workflow member ordering. Next formatter work is AST-owned ordering for workflow metadata and nested step forms. |
 | `step` metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Step descriptors feed generated per-workflow handler contracts, invoker registries, and workflow runner dispatch maps. |
 | `on` trigger | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed, resolved, and validated against known trigger targets; trigger-specific execution semantics remain future work. |
 | `load` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed, resolved, and validated against entity key fields; loaded binding type propagation remains future work. |
@@ -115,23 +115,29 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
    Preserve current entity, state machine, log, metric, queue, lease, workflow, include,
    and binding generation behavior while closing known descriptor gaps.
 
-2. **P1: Generate target-language types from `shape`.**
+2. **P0: Make formatter ownership the next architectural pass.**
+   Move the formatter from token-preserving best effort output toward AST-owned
+   canonical ordering for entity `ownership`, `relations`, `children`, `invariants`,
+   entity-owned API blocks, and key workflow forms. Formatter output should become the
+   fixed point that validator canonical-order warnings describe.
+
+3. **P1: Generate target-language types from `shape`.**
    Implemented: generated bindings now include C++ structs, Go structs, Java records,
    and Rust structs for each shape using conservative scalar mappings. Next work is
    richer custom type mapping for value, enum, event, collection, and nested shape
    fields.
 
-3. **P1: Expand relationship and invariant semantics for entities.**
+4. **P1: Expand relationship and invariant semantics for entities.**
    Ownership is mandatory and descriptor-oriented support for relations and invariants is
-   in place. Remaining work is formatter ownership for canonical block ordering, typed
-   invariant expressions, composition-cycle checks, and richer generator usage.
+   in place. Remaining work after formatter ownership is typed invariant expressions,
+   composition-cycle checks, and richer generator usage.
 
-4. **P1: Expand runtime bootstrap helpers across all runtime catalogs.**
+5. **P1: Expand runtime bootstrap helpers across all runtime catalogs.**
    Implemented: generated bindings now include transaction-scoped helpers for feature
    flags, queues, leases, workflows, logs, and metrics. Keep future runtime catalogs on
    the same caller-managed transaction model.
 
-5. **P1: Add workflow behavior IR.**
+6. **P1: Add workflow behavior IR.**
    Initial workflow behavior IR is in place for `on`, `input`, `state`, `load`, `require`,
    `set`, `emit`, `enqueue`, lease operations, `start workflow`, `transition_to`,
    `complete`, and `fail`, with validation for loaded entity keys, resolved statement
@@ -139,39 +145,39 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
    and feature flag references in workflow expressions. The next increment is nested
    blocks and typed expression validation before generating worker bodies.
 
-6. **P2: Add reusable `value`, `enum`, and `event` support.**
+7. **P2: Add reusable `value`, `enum`, and `event` support.**
    Implemented: value, enum, and event declarations are parsed, validated, lowered
    through semantic/IR models, surfaced in AST JSON, and emitted as passive binding
    descriptor metadata. Next work is target-language type generation and event runtime
    helpers.
 
-7. **P2/P3: Add external systems and policies.**
+8. **P2/P3: Add external systems and policies.**
    Implemented: external systems are parsed and validated as named property catalogs,
    external-system metadata maps to operator-managed durable state, and policies now
    emit passive binding descriptor metadata. Metadata mapping and operator API
    contracts are generated; next work is external ownership semantics and generated
    policy enforcement hooks.
 
-8. **P1: Generate API descriptors from typed shapes.**
+9. **P1: Generate API descriptors from typed shapes.**
    Implemented: generated bindings now include passive API descriptor metadata for
    method, path, input, output, error, workflow starts, and queue enqueue targets.
    OpenAPI generation now emits declared API operations and operator metadata API
    surfaces. Next work is richer schema lowering, error contract coverage, and optional
    endpoint adapter generation.
 
-9. **P1: Add API server descriptors.**
+10. **P1: Add API server descriptors.**
    Implemented: `api_server` declarations parse, validate served API references, lower
    into IR, and emit binding descriptor metadata, route descriptors, request/response
    contexts, and handler interfaces. Next work is concrete HTTP framework adapters and
    route registration loops.
 
-10. **P2: Add event runtime helpers.**
+11. **P2: Add event runtime helpers.**
    Implemented: generated bindings now include event envelope types and event-specific
    payload builder helpers backed by each language binding's typed JSON value. Next
    work is backend event transport interfaces and generated publisher/subscriber
    integration.
 
-11. **P2: Add worker scaffolding.**
+12. **P2: Add worker scaffolding.**
     Implemented: generated bindings now expose worker descriptor lists, worker runtime
     contexts, WorkerProcess lifecycle, workflow runners, per-workflow handler
     interfaces, composite-key invoker registries, result-driven complete/fail/cancel

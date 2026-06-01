@@ -863,6 +863,12 @@ Field descriptors in generated bindings should use typed field-kind enums connec
 
 Formatter output must be deterministic.
 
+Formatter ownership is the next architectural pass. New formatter work should prefer
+AST-owned reconstruction for canonical language forms over token-preserving local
+patches. The first targets are entity `ownership`, `relations`, `children`,
+`invariants`, entity-owned API blocks, and key workflow forms. Validator
+canonical-order warnings and formatter output must describe the same ordering.
+
 Canonical ordering inside `entity`:
 
 1. `key`
