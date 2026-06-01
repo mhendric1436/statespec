@@ -92,6 +92,39 @@ statespec::Spec parse_file(
     return parser.parse(diagnostics);
 }
 
+bool ast_formatter_should_fallback_to_tokens(const std::vector<statespec::Token>& tokens)
+{
+    for (std::size_t i = 0; i < tokens.size(); ++i)
+    {
+        const auto kind = tokens[i].kind;
+        switch (kind)
+        {
+        case statespec::TokenKind::KeywordAnnotations:
+        case statespec::TokenKind::KeywordAuthz:
+        case statespec::TokenKind::KeywordBehavior:
+        case statespec::TokenKind::KeywordChildSet:
+        case statespec::TokenKind::KeywordControl:
+        case statespec::TokenKind::KeywordWhen:
+        case statespec::TokenKind::KeywordAllocates:
+        case statespec::TokenKind::KeywordReturns:
+        case statespec::TokenKind::KeywordAtomic:
+        case statespec::TokenKind::KeywordForEach:
+        case statespec::TokenKind::KeywordObserve:
+        case statespec::TokenKind::KeywordMove:
+            return true;
+        case statespec::TokenKind::KeywordCreate:
+            if (i + 1 < tokens.size() && tokens[i + 1].kind == statespec::TokenKind::KeywordChild)
+            {
+                return true;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return false;
+}
+
 std::filesystem::path normalized_existing_path(const std::filesystem::path& path)
 {
     return std::filesystem::weakly_canonical(path);
@@ -978,8 +1011,18 @@ int fmt_file(
 )
 {
     statespec::DiagnosticBag diagnostics;
-    const auto tokens = lex_file(path, diagnostics);
-    const auto formatted = statespec::format_tokens(tokens, diagnostics);
+    auto tokens = lex_file(path, diagnostics);
+    std::string formatted;
+    if (ast_formatter_should_fallback_to_tokens(tokens))
+    {
+        formatted = statespec::format_tokens(tokens, diagnostics);
+    }
+    else
+    {
+        statespec::Parser parser{std::move(tokens)};
+        const auto spec = parser.parse(diagnostics);
+        formatted = statespec::format_spec_ast(spec, diagnostics);
+    }
     if (diagnostics.has_errors())
     {
         print_diagnostics(diagnostics);

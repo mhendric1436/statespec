@@ -20,6 +20,9 @@ INCLUDE_EXPECTED="$TMPDIR/include-expected.sspec"
 API_SERVER_UNFORMATTED="$TMPDIR/api-server-unformatted.sspec"
 API_SERVER_FORMATTED="$TMPDIR/api-server-formatted.sspec"
 API_SERVER_EXPECTED="$TMPDIR/api-server-expected.sspec"
+AST_UNFORMATTED="$TMPDIR/ast-unformatted.sspec"
+AST_FORMATTED="$TMPDIR/ast-formatted.sspec"
+AST_EXPECTED="$TMPDIR/ast-expected.sspec"
 PARITY_FIXTURE="testdata/parity/kitchen-sink.sspec"
 
 cat > "$UNFORMATTED" <<'SSPEC'
@@ -64,25 +67,25 @@ SSPEC
 cat > "$GC_EXPECTED" <<'SSPEC'
 system Demo {
   entity Order {
-    key order_id;
+    key order_id
     fields {
-      order_id string;
-      created_at timestamp;
-      updated_at timestamp;
-      status string;
+      order_id string
+      created_at timestamp
+      updated_at timestamp
+      status string
     }
     state_machine {
-      state Creating;
+      state Creating
       state Deleted {
-        terminal: true;
+        terminal: true
         garbage_collection {
-          after: P30D;
-          mode: tombstone;
+          after: P30D
+          mode: tombstone
         }
       }
-      initial Creating;
-      terminal[Deleted];
-      Creating -> Deleted;
+      initial Creating
+      terminal Deleted
+      Creating -> Deleted
     }
   }
 }
@@ -112,18 +115,103 @@ SSPEC
 cat > "$API_SERVER_EXPECTED" <<'SSPEC'
 system Demo {
   api StartOrderProcessing {
-    method POST;
-    path "/v1/orders/start";
+    method POST
+    path "/v1/orders/start"
   }
+
   api_server OrderApi {
-    serves StartOrderProcessing;
-    concurrency 16;
+    serves StartOrderProcessing
+    concurrency 16
   }
 }
 SSPEC
 
 "$CLI" fmt "$API_SERVER_UNFORMATTED" > "$API_SERVER_FORMATTED"
 diff -u "$API_SERVER_EXPECTED" "$API_SERVER_FORMATTED"
+
+cat > "$AST_UNFORMATTED" <<'SSPEC'
+system Demo { entity Account { api { delete DeleteAccount; list Accounts { by [tenant_id]; path "/v1/tenants/{tenant_id}/accounts"; } resource "/v1/tenants/{tenant_id}/accounts/{account_id}"; create CreateAccount { fields [display_name]; } update_status UpdateAccountStatus; get GetAccount; } indexes { index by_tenant on tenant_id; } invariants { hasName: display_name != ""; } children { projects: Project by account_id; } relations { parent tenant_id: ref<Tenant> { unique_within_parent: [account_id]; on_parent_delete: block; kind: composition; } } state_machine { Active -> Deleted; initial Active; state Deleted { garbage_collection { mode: tombstone; after: P30D; } terminal: true; } state Active; terminal [Deleted]; } fields { created_at timestamp; updated_at timestamp; status string; tenant_id string; account_id string; display_name string; } ownership { lifecycle: authoritative; system_of_record: self; authority: system; } key tenant_id, account_id; } workflow AccountWorkflow { step create_account { max_retries 2; require account.status == Active; expected_execution_time PT5S; complete; } on AccountCreated; start create_account; expected_execution_time PT30S; singleton false; version 1; } }
+SSPEC
+
+cat > "$AST_EXPECTED" <<'SSPEC'
+system Demo {
+  entity Account {
+    key tenant_id, account_id
+    ownership {
+      authority: system
+      system_of_record: self
+      lifecycle: authoritative
+    }
+    fields {
+      created_at timestamp
+      updated_at timestamp
+      status string
+      tenant_id string
+      account_id string
+      display_name string
+    }
+    state_machine {
+      state Deleted {
+        terminal: true
+        garbage_collection {
+          after: P30D
+          mode: tombstone
+        }
+      }
+      state Active
+      initial Active
+      terminal Deleted
+      Active -> Deleted
+    }
+    relations {
+      parent tenant_id: ref<Tenant> {
+        kind: composition
+        on_parent_delete: block
+        unique_within_parent: [account_id]
+      }
+    }
+    children {
+      projects: Project by account_id
+    }
+    invariants {
+      hasName: display_name != ""
+    }
+    indexes {
+      index by_tenant on tenant_id
+    }
+    api {
+      resource "/v1/tenants/{tenant_id}/accounts/{account_id}"
+      create CreateAccount {
+        fields [display_name]
+      }
+      get GetAccount
+      list Accounts {
+        path "/v1/tenants/{tenant_id}/accounts"
+        by [tenant_id]
+      }
+      update_status UpdateAccountStatus
+      delete DeleteAccount
+    }
+  }
+
+  workflow AccountWorkflow {
+    version 1
+    singleton false
+    expected_execution_time PT30S
+    start create_account
+    on AccountCreated
+    step create_account {
+      expected_execution_time PT5S
+      max_retries 2
+      require account.status == Active;
+      complete;
+    }
+  }
+}
+SSPEC
+
+"$CLI" fmt "$AST_UNFORMATTED" > "$AST_FORMATTED"
+diff -u "$AST_EXPECTED" "$AST_FORMATTED"
 
 "$CLI" fmt --check "$PARITY_FIXTURE"
 

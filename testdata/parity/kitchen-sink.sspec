@@ -113,9 +113,6 @@ system KitchenSink {
       timeout_ms int
       retry_policy string
     }
-    indexes {
-      unique by_tenant_system_profile on tenant_id, external_system_id, profile
-    }
     state_machine {
       state Active
       state Disabled
@@ -127,11 +124,14 @@ system KitchenSink {
         }
       }
       initial Active
-      terminal[Deleted]
+      terminal Deleted
       Active -> Disabled
       Disabled -> Active
       Active -> Deleted
       Disabled -> Deleted
+    }
+    indexes {
+      unique by_tenant_system_profile on tenant_id, external_system_id, profile
     }
   }
 
@@ -149,10 +149,6 @@ system KitchenSink {
       tenant_id string
       order_id string
     }
-    indexes {
-      index by_tenant_status on tenant_id, status
-      unique by_tenant_order on tenant_id, order_id
-    }
     state_machine {
       state Pending
       state Active
@@ -167,6 +163,10 @@ system KitchenSink {
       terminal Failed
       Pending -> Active
       Pending -> Failed
+    }
+    indexes {
+      index by_tenant_status on tenant_id, status
+      unique by_tenant_order on tenant_id, order_id
     }
   }
 
@@ -257,10 +257,10 @@ system KitchenSink {
 
   workflow OrderProcessing {
     version 1
-    on OrderAccepted
     singleton false
     expected_execution_time PT60S
     start validate_order
+    on OrderAccepted
     step validate_order {
       expected_execution_time PT10S
       max_retries 1
