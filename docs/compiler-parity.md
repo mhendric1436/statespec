@@ -37,10 +37,10 @@ Status meanings:
 | `event` | complete | complete | complete | complete | complete | complete | partial | P2 | Event payload fields are validated, emitted in descriptors, and have generated payload envelope builders; backend event transport remains future work. |
 | `queue` | complete | complete | complete | complete | complete | complete | partial | P1 | Queue/message descriptors, bindings, and transaction-scoped generated creation helpers exist; worker scaffolding consumes queue references as metadata. |
 | `lease` | complete | complete | complete | complete | complete | complete | partial | P1 | Lease descriptors, bindings, and transaction-scoped generated registration helpers exist; runtime lease enforcement is backend-owned. |
-| `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve and generated bindings expose worker descriptors, contexts, and handler skeleton interfaces; executable worker bodies remain future work. |
-| `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve, passive API descriptor metadata is generated, and OpenAPI generation emits declared API operations. Request decoding, auth, framework routing, and concrete server adapters remain runtime-owned. |
-| `api_server` | complete | complete | complete | complete | complete | complete | partial | P1 | API server declarations resolve served APIs and generated bindings expose descriptors, route metadata, request/response contexts, handler interfaces, process lifecycle types, and local blocking transports; the cross-language thread-owned lifecycle contract is documented while implementation remains in progress; real HTTP adapters remain runtime-owned. |
-| `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors and registration helpers exist; workflow trigger/load metadata and linear step statements now lower into IR, but nested blocks and worker body generation remain future work. |
+| `worker` | complete | complete | complete | complete | complete | complete | partial | P2 | References resolve and generated bindings expose worker descriptors, contexts, WorkerProcess lifecycle types, workflow runner wiring, per-workflow registries, and generated process entrypoints. Concrete queue-worker bodies and production supervisors remain runtime-owned. |
+| `api` | complete | complete | partial | partial | partial | complete | partial | P1 | References resolve, entity-owned CRUD lowers into generated API contracts, generated CRUD handlers use backend-owned invokers, and OpenAPI generation emits declared and derived API operations. Auth, concrete network transport, and framework adapters remain runtime-owned. |
+| `api_server` | complete | complete | complete | complete | complete | complete | partial | P1 | API server declarations resolve served APIs and generated bindings expose descriptors, route metadata, request/response contexts, map-based route/handler dispatch, process lifecycle types, generated entrypoints, and local blocking transports across C++, Go, Java, and Rust. Real HTTP adapters remain runtime-owned. |
+| `workflow` | complete | partial | complete | partial | partial | complete | partial | P1 | Step descriptors, per-workflow handler contracts, composite-key invoker maps, result-driven step completion, claim-token validation, and periodic keepalive wiring exist. Workflow trigger/load metadata and linear step statements lower into IR, but nested blocks and generated business workflow bodies remain future work. |
 | `policy` | complete | complete | partial | complete | complete | complete | partial | P2 | Rules lower as strings/references and emit descriptor metadata; expression syntax and built-ins are validated while policy enforcement generation remains future work. |
 | `annotations` | complete | grammar-only | not-started | not-started | not-started | not-started | not-started | P4 | Keep low priority; annotations must not become a semantic escape hatch. |
 
@@ -67,7 +67,8 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 - authentication and authorization enforcement
 - concrete remote clients, protocol serialization, retry, timeout, and circuit-breaker behavior
 - secret resolution for credential references
-- event transport and worker execution loops
+- event transport, concrete queue-worker bodies, external side effects, production
+  supervisors, and retry/idempotency policy
 
 ## Entity Construct Parity
 
@@ -89,7 +90,7 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 | Construct | Grammar | Parser/AST | Validator | Semantic | IR | Formatter | Generators | Priority | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | workflow metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Version, singleton, timing, start step, and retry metadata are supported; validator warnings flag noncanonical workflow member ordering. |
-| `step` metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Current step model is descriptor-oriented. |
+| `step` metadata | complete | complete | complete | complete | complete | complete | complete | P0 | Step descriptors feed generated per-workflow handler contracts, invoker registries, and workflow runner dispatch maps. |
 | `on` trigger | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed, resolved, and validated against known trigger targets; trigger-specific execution semantics remain future work. |
 | `load` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed, resolved, and validated against entity key fields; loaded binding type propagation remains future work. |
 | `require` | complete | complete | partial | complete | complete | complete | not-started | P1 | Parsed and lowered as a raw expression string; expression syntax, allowed built-ins, and feature flag references are validated while type checking remains future work. |
@@ -103,8 +104,8 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 | Binding template emission | partial | P0 | Keep generated packages self-contained; add package manifests where practical. |
 | Descriptor generation | partial | P0 | Collection, event, shape, log, and metric field descriptors now use the shared compiler field type classifier and emit language-native `FieldType` enums plus preserved StateSpec type names in C++, Go, Java, and Rust. Next work is expanding descriptor usage into richer endpoint, worker body, and policy generation. |
 | Runtime bootstrap helpers | complete | P1 | Transaction-scoped helpers cover feature flags, queues, leases, workflows, logs, and metrics in all generated bindings. |
-| Worker scaffolding | partial | P2 | Generated bindings expose worker descriptors, contexts, and language-specific handler interfaces. Next work is runnable queue polling, lease acquisition, and workflow dispatch loops. |
-| API generation | partial | P1 | OpenAPI generation exists for declared APIs and generated operator metadata API surfaces. Next work is richer OpenAPI schemas, error model coverage, and optional framework adapters. |
+| Worker scaffolding | partial | P2 | Generated bindings expose worker descriptors, contexts, WorkerProcess lifecycle, workflow runners, per-workflow handler interfaces, composite-key invoker maps, result-driven complete/fail/cancel handling, claim-token validation, and periodic keepalive controllers. Next work is richer queue-worker execution and generated workflow body semantics from workflow statements. |
+| API generation | partial | P1 | OpenAPI generation exists for declared APIs, entity-derived CRUD APIs, and generated operator metadata API surfaces. Generated API apps include process lifecycle, local blocking transports, map-based route/handler dispatch, generated CRUD codecs, and backend-owned CRUD handlers. Next work is richer OpenAPI schemas, error model coverage, auth hooks, and optional framework adapters. |
 | External-system metadata generation | partial | P1 | Descriptor, mapping, lookup, OCC repository, operator API handler, and OpenAPI contracts exist. Runtime persistence, remote clients, auth, retries, and HTTP framework adapters remain runtime-owned. |
 | Policy generation | not-started | P3 | Wait for expression type checking and runtime evaluator design. |
 
@@ -172,9 +173,11 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 
 11. **P2: Add worker scaffolding.**
     Implemented: generated bindings now expose worker descriptor lists, worker runtime
-    contexts, and language-specific handler interfaces. Next work is generating runnable
-    queue polling, lease acquisition, and workflow dispatch loops from worker, workflow,
-    and queue IR.
+    contexts, WorkerProcess lifecycle, workflow runners, per-workflow handler
+    interfaces, composite-key invoker registries, result-driven complete/fail/cancel
+    handling, claim-token validation, and periodic keepalive controllers. Next work is
+    richer queue-worker execution and generated workflow body semantics from worker,
+    workflow, and queue IR.
 
 ## Pull Request Rule
 
