@@ -314,6 +314,99 @@ void semantic_resolver_resolves_entity_relationship_references()
     );
 }
 
+void semantic_resolver_resolves_child_workflow_references()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system ChildWorkflowSystem {
+          entity Account {
+            key account_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              account_id uuid
+            }
+          }
+
+          entity Task {
+            key task_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              task_id uuid
+              account_id uuid
+            }
+          }
+
+          workflow TaskLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT1M
+            start run_task
+            step run_task {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+
+          workflow AccountLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start run_account
+            child_workflow tasks {
+              child_entity Task
+              child_workflow TaskLifecycle
+              child_id task_id uuid
+              parent_ref account_id = account.account_id
+              desired_count account.desired_task_count
+              create {
+                task_id: task_id
+                account_id: account.account_id
+              }
+              success when Task.status == Active
+              failure when Task.status == Failed
+            }
+            step run_account {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+        }
+    )sspec");
+
+    const auto resolved = statespec::resolve_semantics(spec);
+
+    const auto& workflow = resolved.workflows[1];
+    statespec::test::require(
+        workflow.child_workflows.size() == 1, "semantic resolver should lower child_workflow blocks"
+    );
+    const auto& child_workflow = workflow.child_workflows[0];
+    statespec::test::require(
+        child_workflow.child_entity.has_value() &&
+            child_workflow.child_entity->kind == statespec::SymbolKind::Entity,
+        "semantic resolver should resolve child_workflow child entity"
+    );
+    statespec::test::require(
+        child_workflow.child_workflow.has_value() &&
+            child_workflow.child_workflow->kind == statespec::SymbolKind::Workflow,
+        "semantic resolver should resolve child workflow target"
+    );
+    statespec::test::require(
+        child_workflow.derived_names.has_value(),
+        "semantic resolver should derive child_workflow generated names"
+    );
+    statespec::test::require(
+        child_workflow.derived_names->pending_bucket == "pending_task_ids",
+        "semantic resolver should derive pending child id bucket"
+    );
+    statespec::test::require(
+        child_workflow.derived_names->generate_ids_step == "generate_task_ids",
+        "semantic resolver should derive parent generate step"
+    );
+}
+
 } // namespace
 
 TEST_CASE("semantic resolver resolves runtime references")
@@ -324,6 +417,11 @@ TEST_CASE("semantic resolver resolves runtime references")
 TEST_CASE("semantic resolver preserves unresolved references")
 {
     semantic_resolver_preserves_unresolved_references();
+}
+
+TEST_CASE("semantic resolver resolves child workflow references")
+{
+    semantic_resolver_resolves_child_workflow_references();
 }
 
 TEST_CASE("semantic resolver resolves entity relationship references")

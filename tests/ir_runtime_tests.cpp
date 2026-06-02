@@ -308,9 +308,153 @@ void ir_lowers_system_runtime_contracts()
         policy.allows[0].condition == "caller . role == operator", "IR should lower allow condition"
     );
 }
+
+void ir_lowers_workflow_child_workflows()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system ChildWorkflowSystem {
+          entity Account {
+            key account_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              account_id uuid
+              desired_task_count int
+            }
+          }
+
+          entity Task {
+            key task_id
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              task_id uuid
+              account_id uuid
+            }
+          }
+
+          workflow TaskLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT1M
+            start run_task
+            step run_task {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+
+          workflow AccountLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start run_account
+            child_workflow tasks {
+              child_entity Task
+              child_workflow TaskLifecycle
+              child_id task_id uuid
+              parent_ref account_id = account.account_id
+              desired_count account.desired_task_count
+              create {
+                task_id: task_id
+                account_id: account.account_id
+              }
+              success when Task.status == Active
+              failure when Task.status == Failed
+            }
+            step run_account {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+        }
+    )sspec");
+
+    const auto ir = statespec::lower_to_ir(spec);
+
+    const auto& workflow = ir.workflows[1];
+    statespec::test::require(
+        workflow.child_workflows.size() == 1, "IR should lower workflow child_workflow blocks"
+    );
+    const auto& child_workflow = workflow.child_workflows[0];
+    statespec::test::require(child_workflow.name == "tasks", "IR should lower child workflow name");
+    statespec::test::require(
+        child_workflow.child_entity == "Task", "IR should lower child workflow entity"
+    );
+    statespec::test::require(
+        child_workflow.child_workflow == "TaskLifecycle", "IR should lower child workflow target"
+    );
+    statespec::test::require(
+        child_workflow.child_id_field == "task_id", "IR should lower child id field"
+    );
+    statespec::test::require(
+        child_workflow.child_id_type == "uuid", "IR should lower child id type"
+    );
+    statespec::test::require(
+        child_workflow.parent_ref_field == "account_id", "IR should lower parent ref field"
+    );
+    statespec::test::require(
+        child_workflow.parent_ref_expression == "account . account_id",
+        "IR should lower parent ref expression"
+    );
+    statespec::test::require(
+        child_workflow.desired_count == "account . desired_task_count",
+        "IR should lower desired count expression"
+    );
+    statespec::test::require(
+        child_workflow.create_assignments.size() == 2,
+        "IR should lower child_workflow create assignments"
+    );
+    statespec::test::require(
+        child_workflow.create_assignments[0].name == "task_id",
+        "IR should lower child create assignment field"
+    );
+    statespec::test::require(
+        child_workflow.success_expression == "Task . status == Active",
+        "IR should lower child workflow success expression"
+    );
+    statespec::test::require(
+        child_workflow.failure_expression == "Task . status == Failed",
+        "IR should lower child workflow failure expression"
+    );
+    statespec::test::require(
+        child_workflow.pending_bucket == "pending_task_ids",
+        "IR should lower derived pending bucket"
+    );
+    statespec::test::require(
+        child_workflow.creating_bucket == "creating_task_ids",
+        "IR should lower derived creating bucket"
+    );
+    statespec::test::require(
+        child_workflow.succeeded_bucket == "succeeded_task_ids",
+        "IR should lower derived succeeded bucket"
+    );
+    statespec::test::require(
+        child_workflow.failed_bucket == "failed_task_ids", "IR should lower derived failed bucket"
+    );
+    statespec::test::require(
+        child_workflow.generate_ids_step == "generate_task_ids",
+        "IR should lower derived generate ids step"
+    );
+    statespec::test::require(
+        child_workflow.create_children_step == "create_tasks",
+        "IR should lower derived create children step"
+    );
+    statespec::test::require(
+        child_workflow.wait_children_step == "wait_for_tasks",
+        "IR should lower derived wait children step"
+    );
+}
 } // namespace
 
 TEST_CASE("IR lowers system runtime contracts")
 {
     ir_lowers_system_runtime_contracts();
+}
+
+TEST_CASE("IR lowers workflow child workflows")
+{
+    ir_lowers_workflow_child_workflows();
 }

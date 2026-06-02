@@ -105,6 +105,38 @@ void resolve_semantic_workflows(
                 }
             );
         }
+        for (const auto& child_workflow : workflow.child_workflows)
+        {
+            SemanticWorkflowChildWorkflow resolved_child_workflow;
+            resolved_child_workflow.name = child_workflow.name;
+            resolved_child_workflow.child_entity =
+                resolve_optional_reference(symbols, child_workflow.child_entity);
+            resolved_child_workflow.child_workflow =
+                resolve_optional_reference(symbols, child_workflow.child_workflow);
+            resolved_child_workflow.child_id_field = child_workflow.child_id_field;
+            resolved_child_workflow.child_id_type = child_workflow.child_id_type;
+            resolved_child_workflow.parent_ref_field = child_workflow.parent_ref_field;
+            resolved_child_workflow.parent_ref_expression = child_workflow.parent_ref_expression;
+            resolved_child_workflow.desired_count = child_workflow.desired_count;
+            for (const auto& assignment : child_workflow.create_assignments)
+            {
+                resolved_child_workflow.create_assignments.push_back(
+                    SemanticWorkflowAssignment{
+                        assignment.name,
+                        assignment.expression,
+                    }
+                );
+            }
+            resolved_child_workflow.success_expression = child_workflow.success_expression;
+            resolved_child_workflow.failure_expression = child_workflow.failure_expression;
+            if (child_workflow.child_id_field.has_value())
+            {
+                resolved_child_workflow.derived_names = derive_child_workflow_names(
+                    child_workflow.name, *child_workflow.child_id_field
+                );
+            }
+            resolved_workflow.child_workflows.push_back(std::move(resolved_child_workflow));
+        }
         for (const auto& step : workflow.steps)
         {
             SemanticWorkflowStep resolved_step;

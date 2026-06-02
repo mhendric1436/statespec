@@ -1,5 +1,6 @@
 #pragma once
 
+#include "statespec/child_workflow_names.hpp"
 #include "statespec/semantic_core.hpp"
 
 namespace statespec
@@ -64,6 +65,22 @@ struct SemanticWorkflowChildSet
     std::optional<std::string> desired_count;
 };
 
+struct SemanticWorkflowChildWorkflow
+{
+    std::string name;
+    std::optional<SemanticReference> child_entity;
+    std::optional<SemanticReference> child_workflow;
+    std::optional<std::string> child_id_field;
+    std::optional<std::string> child_id_type;
+    std::optional<std::string> parent_ref_field;
+    std::optional<std::string> parent_ref_expression;
+    std::optional<std::string> desired_count;
+    std::vector<SemanticWorkflowAssignment> create_assignments;
+    std::optional<std::string> success_expression;
+    std::optional<std::string> failure_expression;
+    std::optional<ChildWorkflowDerivedNames> derived_names;
+};
+
 struct SemanticWorkflowStep
 {
     std::string name;
@@ -84,6 +101,7 @@ struct SemanticWorkflow
     std::optional<SemanticReference> state;
     std::vector<SemanticWorkflowLoad> loads;
     std::vector<SemanticWorkflowChildSet> child_sets;
+    std::vector<SemanticWorkflowChildWorkflow> child_workflows;
     std::vector<SemanticWorkflowStep> steps;
 };
 

@@ -44,6 +44,29 @@ struct IrWorkflowChildSet
     std::optional<std::string> desired_count;
 };
 
+struct IrWorkflowChildWorkflow
+{
+    std::string name;
+    std::optional<std::string> child_entity;
+    std::optional<std::string> child_workflow;
+    std::optional<std::string> child_id_field;
+    std::optional<std::string> child_id_type;
+    std::optional<std::string> parent_ref_field;
+    std::optional<std::string> parent_ref_expression;
+    std::optional<std::string> desired_count;
+    std::vector<IrWorkflowAssignment> create_assignments;
+    std::optional<std::string> success_expression;
+    std::optional<std::string> failure_expression;
+    std::optional<std::string> id_bucket_base;
+    std::optional<std::string> pending_bucket;
+    std::optional<std::string> creating_bucket;
+    std::optional<std::string> succeeded_bucket;
+    std::optional<std::string> failed_bucket;
+    std::optional<std::string> generate_ids_step;
+    std::optional<std::string> create_children_step;
+    std::optional<std::string> wait_children_step;
+};
+
 struct IrWorkflowStep
 {
     std::string name;
@@ -64,6 +87,7 @@ struct IrWorkflow
     std::optional<std::string> state;
     std::vector<IrWorkflowLoad> loads;
     std::vector<IrWorkflowChildSet> child_sets;
+    std::vector<IrWorkflowChildWorkflow> child_workflows;
     std::vector<IrWorkflowStep> steps;
 };
 

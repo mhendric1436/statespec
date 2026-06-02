@@ -80,6 +80,44 @@ void lower_ir_workflows(
                 }
             );
         }
+        for (const auto& child_workflow : workflow.child_workflows)
+        {
+            IrWorkflowChildWorkflow ir_child_workflow;
+            ir_child_workflow.name = child_workflow.name;
+            ir_child_workflow.child_entity = reference_name(child_workflow.child_entity);
+            ir_child_workflow.child_workflow = reference_name(child_workflow.child_workflow);
+            ir_child_workflow.child_id_field = child_workflow.child_id_field;
+            ir_child_workflow.child_id_type = child_workflow.child_id_type;
+            ir_child_workflow.parent_ref_field = child_workflow.parent_ref_field;
+            ir_child_workflow.parent_ref_expression = child_workflow.parent_ref_expression;
+            ir_child_workflow.desired_count = child_workflow.desired_count;
+            for (const auto& assignment : child_workflow.create_assignments)
+            {
+                ir_child_workflow.create_assignments.push_back(
+                    IrWorkflowAssignment{
+                        assignment.name,
+                        assignment.expression,
+                    }
+                );
+            }
+            ir_child_workflow.success_expression = child_workflow.success_expression;
+            ir_child_workflow.failure_expression = child_workflow.failure_expression;
+            if (child_workflow.derived_names.has_value())
+            {
+                ir_child_workflow.id_bucket_base = child_workflow.derived_names->id_bucket_base;
+                ir_child_workflow.pending_bucket = child_workflow.derived_names->pending_bucket;
+                ir_child_workflow.creating_bucket = child_workflow.derived_names->creating_bucket;
+                ir_child_workflow.succeeded_bucket = child_workflow.derived_names->succeeded_bucket;
+                ir_child_workflow.failed_bucket = child_workflow.derived_names->failed_bucket;
+                ir_child_workflow.generate_ids_step =
+                    child_workflow.derived_names->generate_ids_step;
+                ir_child_workflow.create_children_step =
+                    child_workflow.derived_names->create_children_step;
+                ir_child_workflow.wait_children_step =
+                    child_workflow.derived_names->wait_children_step;
+            }
+            ir_workflow.child_workflows.push_back(std::move(ir_child_workflow));
+        }
         for (const auto& step : workflow.steps)
         {
             IrWorkflowStep ir_step;
