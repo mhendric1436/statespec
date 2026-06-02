@@ -1161,6 +1161,10 @@ class AstFormatter
                 {
                     write_workflow_child_set(child_set);
                 }
+                for (const auto& child_workflow : workflow.child_workflows)
+                {
+                    write_workflow_child_workflow(child_workflow);
+                }
                 for (const auto& step : workflow.steps)
                 {
                     write_workflow_step(step);
@@ -1206,6 +1210,72 @@ class AstFormatter
                 if (child_set.desired_count.has_value())
                 {
                     line("desired_count " + normalized_expression(*child_set.desired_count));
+                }
+            }
+        );
+    }
+
+    void write_workflow_child_workflow(const WorkflowChildWorkflowDecl& child_workflow)
+    {
+        block(
+            "child_workflow " + child_workflow.name,
+            [&]()
+            {
+                if (child_workflow.child_entity.has_value())
+                {
+                    line("child_entity " + *child_workflow.child_entity);
+                }
+                if (child_workflow.child_workflow.has_value())
+                {
+                    line("child_workflow " + *child_workflow.child_workflow);
+                }
+                if (child_workflow.child_id_field.has_value() &&
+                    child_workflow.child_id_type.has_value())
+                {
+                    line(
+                        "child_id " + *child_workflow.child_id_field + " " +
+                        *child_workflow.child_id_type
+                    );
+                }
+                if (child_workflow.parent_ref_field.has_value() &&
+                    child_workflow.parent_ref_expression.has_value())
+                {
+                    line(
+                        "parent_ref " + *child_workflow.parent_ref_field + " = " +
+                        normalized_expression(*child_workflow.parent_ref_expression)
+                    );
+                }
+                if (child_workflow.desired_count.has_value())
+                {
+                    line("desired_count " + normalized_expression(*child_workflow.desired_count));
+                }
+                if (!child_workflow.create_assignments.empty())
+                {
+                    block(
+                        "create",
+                        [&]()
+                        {
+                            for (const auto& assignment : child_workflow.create_assignments)
+                            {
+                                line(
+                                    assignment.name + ": " +
+                                    normalized_expression(assignment.expression)
+                                );
+                            }
+                        }
+                    );
+                }
+                if (child_workflow.success_expression.has_value())
+                {
+                    line(
+                        "success when " + normalized_expression(*child_workflow.success_expression)
+                    );
+                }
+                if (child_workflow.failure_expression.has_value())
+                {
+                    line(
+                        "failure when " + normalized_expression(*child_workflow.failure_expression)
+                    );
                 }
             }
         );

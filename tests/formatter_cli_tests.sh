@@ -130,7 +130,7 @@ SSPEC
 diff -u "$API_SERVER_EXPECTED" "$API_SERVER_FORMATTED"
 
 cat > "$AST_UNFORMATTED" <<'SSPEC'
-system Demo { entity Account { api { delete DeleteAccount; list Accounts { by [tenant_id]; path "/v1/tenants/{tenant_id}/accounts"; } resource "/v1/tenants/{tenant_id}/accounts/{account_id}"; create CreateAccount { fields [display_name]; } update_status UpdateAccountStatus; get GetAccount; } indexes { index by_tenant on tenant_id; } invariants { hasName: display_name != ""; } children { projects: Project by account_id; } relations { parent tenant_id: ref<Tenant> { unique_within_parent: [account_id]; on_parent_delete: block; kind: composition; } } state_machine { Active -> Deleted; initial Active; state Deleted { garbage_collection { mode: tombstone; after: P30D; } terminal: true; } state Active; terminal [Deleted]; } fields { created_at timestamp; updated_at timestamp; status string; tenant_id string; account_id string; display_name string; } ownership { lifecycle: authoritative; system_of_record: self; authority: system; } key tenant_id, account_id; } workflow AccountWorkflow { step create_account { max_retries 2; require account.status == Active; expected_execution_time PT5S; complete; } on AccountCreated; start create_account; expected_execution_time PT30S; singleton false; version 1; } }
+system Demo { entity Account { api { delete DeleteAccount; list Accounts { by [tenant_id]; path "/v1/tenants/{tenant_id}/accounts"; } resource "/v1/tenants/{tenant_id}/accounts/{account_id}"; create CreateAccount { fields [display_name]; } update_status UpdateAccountStatus; get GetAccount; } indexes { index by_tenant on tenant_id; } invariants { hasName: display_name != ""; } children { projects: Project by account_id; } relations { parent tenant_id: ref<Tenant> { unique_within_parent: [account_id]; on_parent_delete: block; kind: composition; } } state_machine { Active -> Deleted; initial Active; state Deleted { garbage_collection { mode: tombstone; after: P30D; } terminal: true; } state Active; terminal [Deleted]; } fields { created_at timestamp; updated_at timestamp; status string; tenant_id string; account_id string; display_name string; } ownership { lifecycle: authoritative; system_of_record: self; authority: system; } key tenant_id, account_id; } workflow AccountWorkflow { step create_account { max_retries 2; require account.status == Active; expected_execution_time PT5S; complete; } child_workflow tasks { failure when Task.status == Failed; success when Task.status == Active; create { task_id: task_id; account_id: account.account_id; tenant_id: account.tenant_id; } desired_count account.desired_task_count; parent_ref account_id = account.account_id; child_id task_id uuid; child_workflow TaskLifecycle; child_entity Task; } on AccountCreated; start create_account; expected_execution_time PT30S; singleton false; version 1; } }
 SSPEC
 
 cat > "$AST_EXPECTED" <<'SSPEC'
@@ -200,6 +200,20 @@ system Demo {
     expected_execution_time PT30S
     start create_account
     on AccountCreated
+    child_workflow tasks {
+      child_entity Task
+      child_workflow TaskLifecycle
+      child_id task_id uuid
+      parent_ref account_id = account.account_id
+      desired_count account.desired_task_count
+      create {
+        task_id: task_id
+        account_id: account.account_id
+        tenant_id: account.tenant_id
+      }
+      success when Task.status == Active
+      failure when Task.status == Failed
+    }
     step create_account {
       expected_execution_time PT5S
       max_retries 2
