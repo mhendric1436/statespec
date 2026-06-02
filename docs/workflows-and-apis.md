@@ -51,6 +51,11 @@ The canonical workflow shape requires explicit `version`, `singleton`,
 `expected_execution_time` and `max_retries`; StateSpec does not infer runtime retry or
 timing defaults for workflow definitions.
 
+Use workflow-level `load` declarations to name the primary durable entity a workflow
+operates on. A workflow that coordinates child entity work should load the parent entity
+and then declare child orchestration intent with `child_workflow` blocks before its
+steps.
+
 ## Steps
 
 Each step should have a stable name, expected execution time, and retry intent.
@@ -137,7 +142,80 @@ checking and generated business workflow bodies remain future compiler work.
 
 StateSpec supports a durable parent-child orchestration pattern.
 
-Recommended three-phase convention:
+The recommended form is the entity-specific `child_workflow` block. It removes most of
+the boilerplate from the three-phase pattern while keeping the generated names
+deterministic.
+
+```statespec
+workflow AccountLifecycle {
+  version 1
+  singleton false
+  expected_execution_time PT5M
+  start inspect_account
+
+  load Account by account_id as account;
+
+  child_workflow projects {
+    child_entity Project
+    child_workflow ProjectLifecycle
+    child_id project_id string
+    parent_ref account_id = account.account_id
+    desired_count account.desired_project_count
+    create {
+      tenant_id: account.tenant_id
+      account_id: account.account_id
+      project_id: project_id
+      name: account.display_name
+    }
+    success when Project.status == Active
+    failure when Project.status == Deleted
+  }
+
+  step inspect_account {
+    expected_execution_time PT10S
+    max_retries 2
+    transition_to reconcile_account
+  }
+}
+```
+
+The block declares:
+
+| Member | Purpose |
+|---|---|
+| `child_entity` | Entity type created or monitored by the parent workflow. |
+| `child_workflow` | Workflow that owns each child entity's lifecycle. |
+| `child_id` | Child identity field and type used to derive bucket names. |
+| `parent_ref` | Child field that links back to the loaded parent expression. |
+| `desired_count` | Expression that determines how many child IDs are expected. |
+| `create` | Child entity fields populated by the parent workflow. |
+| `success when` | Child state expression that marks a child as succeeded. |
+| `failure when` | Child state expression that marks a child as failed. |
+
+Bucket and parent step names are generated from the child ID field. For
+`child_id project_id string`, StateSpec derives:
+
+```text
+pending_project_ids
+creating_project_ids
+succeeded_project_ids
+failed_project_ids
+generate_project_ids
+create_projects
+wait_for_projects
+```
+
+Generated C++, Go, Java, and Rust workflow descriptors include this child-workflow
+metadata under `metadata.child_workflows`. Descriptor metadata is used for generated
+catalogs, inspection, and future worker generation. User-owned workflow handlers remain
+responsible for performing idempotent child creation and observing child entity state
+until StateSpec adopts a fully generated child-orchestration runner.
+
+The lower-level `child_set` form remains reserved for explicit bucket declarations and
+child-set operations. Prefer `child_workflow` unless the spec needs to model the bucket
+fields manually.
+
+The underlying three-phase convention is:
 
 ```text
 generate_child_ids
@@ -145,7 +223,7 @@ creating_children
 waiting_children
 ```
 
-The grammar reserves child-set declarations and child operations:
+The grammar also reserves child-set declarations and child operations:
 
 ```statespec
 workflow CreateChildren {

@@ -721,7 +721,46 @@ Parent workflows should not depend on private child workflow internals. Parent w
 
 ## Child Orchestration Pattern
 
-StateSpec supports a canonical three-phase pattern for parent workflows that create child entities.
+StateSpec supports a canonical three-phase pattern for parent workflows that create child
+entities. The preferred authoring surface is the workflow-level `child_workflow` block;
+it captures the entity-specific inputs and lets the compiler derive bucket names and
+parent orchestration step names from the child ID field.
+
+Example:
+
+```sspec
+workflow AccountLifecycle {
+  version 1
+  singleton false
+  expected_execution_time PT5M
+  start inspect_account
+
+  load Account by account_id as account;
+
+  child_workflow projects {
+    child_entity Project
+    child_workflow ProjectLifecycle
+    child_id project_id string
+    parent_ref account_id = account.account_id
+    desired_count account.desired_project_count
+    create {
+      tenant_id: account.tenant_id
+      account_id: account.account_id
+      project_id: project_id
+      name: account.display_name
+    }
+    success when Project.status == Active
+    failure when Project.status == Deleted
+  }
+}
+```
+
+Generated workflow descriptors in C++, Go, Java, and Rust must preserve this declaration
+as workflow metadata under `child_workflows`. This metadata is descriptor/catalog data
+today. Generated workflow runners must not infer a separate child orchestration engine
+from it until that runtime is intentionally designed; user-owned workflow handlers remain
+responsible for idempotent child creation, child state observation, and returning
+`WorkflowStepResult`.
 
 ### Phase 1: `generate_child_ids`
 

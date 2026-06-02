@@ -17,6 +17,11 @@ system WorkflowEntitiesOnly {
       tenant_id string
       account_id string
       display_name string
+      desired_project_count int
+      pending_project_ids list<string>
+      creating_project_ids list<string>
+      succeeded_project_ids list<string>
+      failed_project_ids list<string>
     }
     state_machine {
       state Active
@@ -59,6 +64,11 @@ system WorkflowEntitiesOnly {
       account_id string
       project_id string
       name string
+      desired_task_count int
+      pending_task_ids list<string>
+      creating_task_ids list<string>
+      succeeded_task_ids list<string>
+      failed_task_ids list<string>
     }
     state_machine {
       state Planned
@@ -188,6 +198,22 @@ system WorkflowEntitiesOnly {
 
     load Account by account_id as account;
 
+    child_workflow projects {
+      child_entity Project
+      child_workflow ProjectLifecycle
+      child_id project_id string
+      parent_ref account_id = account.account_id
+      desired_count account.desired_project_count
+      create {
+        tenant_id: account.tenant_id
+        account_id: account.account_id
+        project_id: project_id
+        name: account.display_name
+      }
+      success when Project.status == Active
+      failure when Project.status == Deleted
+    }
+
     step inspect_account {
       expected_execution_time PT10S
       max_retries 2
@@ -214,6 +240,23 @@ system WorkflowEntitiesOnly {
     start inspect_project
 
     load Project by project_id as project;
+
+    child_workflow tasks {
+      child_entity Task
+      child_workflow TaskLifecycle
+      child_id task_id string
+      parent_ref project_id = project.project_id
+      desired_count project.desired_task_count
+      create {
+        tenant_id: project.tenant_id
+        account_id: project.account_id
+        project_id: project.project_id
+        task_id: task_id
+        title: project.name
+      }
+      success when Task.status == Done
+      failure when Task.status == Cancelled
+    }
 
     step inspect_project {
       expected_execution_time PT10S

@@ -332,6 +332,14 @@ with `next_step` to continue, complete with no next step to finish, fail to make
 step retry-visible, or cancel to terminate the workflow. This keeps workflow business
 logic and advancement decisions in the same user-owned handler method.
 
+Workflow descriptors also preserve declared `child_workflow` orchestration intent in
+their metadata. The generated metadata includes the child entity, target child
+workflow, child ID field and type, parent reference expression, desired-count
+expression, create assignments, success/failure expressions, and derived bucket/step
+names. This metadata is descriptor/catalog data today; generated workflow step handlers
+remain the extension point that performs idempotent child creation, observes child
+entity state, and returns the resulting `WorkflowStepResult`.
+
 Generated workflow runners use two OCC boundaries for step execution. Claiming the step
 is a short standalone transaction that commits ownership before user code runs.
 Keep-alive calls are independent heartbeat-maintenance operations while execution is in

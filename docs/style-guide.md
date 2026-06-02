@@ -123,7 +123,7 @@ Workflow steps should describe durable progress, not implementation details.
 Use canonical workflow member order:
 
 ```text
-version, singleton, expected_execution_time, start, on, input, state, load, step
+version, singleton, expected_execution_time, start, on, input, state, load, child_set, child_workflow, step
 ```
 
 The validator emits a warning when workflow members appear out of canonical order.
@@ -132,6 +132,11 @@ workflow metadata and key nested step forms.
 The validator rejects workflows that omit `singleton`, workflow-level
 `expected_execution_time`, or step-level `max_retries`; these runtime semantics must be
 authored explicitly.
+
+For parent workflows that create or observe child entities, prefer the generated
+`child_workflow` block over hand-authored three-phase boilerplate. Let StateSpec derive
+bucket names and parent orchestration step names from the `child_id` field, and keep
+workflow handler code idempotent around child creation and remote side effects.
 
 Good:
 

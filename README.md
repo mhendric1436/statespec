@@ -197,7 +197,7 @@ StateSpec source files use the `.sspec` extension.
 | Workers | Queue polling, workflow execution, singleton mode, leases, and concurrency |
 | APIs | External operations, request/response/error shapes, workflow starts, and message enqueue behavior |
 | API servers | Runtime actors that serve one or more declared APIs with concurrency metadata |
-| Workflows | Versioned long-running orchestration with steps, loads, statements, retry limits, and expected execution time |
+| Workflows | Versioned long-running orchestration with steps, loads, child workflow intent, statements, retry limits, and expected execution time |
 | Policies | Tenant scoping, allow/deny rules, quotas, and audit declarations |
 | Logs and metrics | Stable operational event and measurement contracts |
 | Generators | Deterministic output targets from the canonical model |

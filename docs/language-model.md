@@ -316,6 +316,13 @@ api StartOrderProcessing {
 Validation should ensure referenced identifiers exist and are used in a compatible
 context.
 
+Workflows may also reference child entities and child workflows through a
+`child_workflow` block. The block is workflow-owned orchestration intent: it identifies
+the child entity, the child lifecycle workflow, the child ID field, parent reference,
+desired count, create assignments, and success/failure state expressions. The compiler
+derives deterministic bucket and parent-step names from the child ID field and lowers
+the block into workflow descriptor metadata for generators.
+
 ## Binding Generation
 
 Generated bindings are selected outside the `.sspec` file:

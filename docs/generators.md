@@ -236,6 +236,13 @@ and stops before finalization. Generated handler contracts should make the trans
 available to user code so workflow advancement and handler-owned durable mutations
 commit atomically.
 
+Workflow descriptor generation preserves `child_workflow` declarations in the runtime
+workflow definition metadata. The metadata includes child entity/workflow references,
+child ID typing, parent reference expression, desired-count expression, create
+assignments, success/failure expressions, and derived bucket/step names. This is
+catalog data for generated bindings and inspection; generated worker execution still
+dispatches only declared workflow steps to user-owned handlers.
+
 Generated API application filenames:
 
 | Language | Files |
