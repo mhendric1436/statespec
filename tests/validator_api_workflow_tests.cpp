@@ -231,6 +231,403 @@ void validator_rejects_invalid_nested_workflow_references()
     );
 }
 
+void validator_accepts_valid_child_workflow_blocks()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system ChildWorkflowSystem {
+          tenant scoped_by tenant_id
+          system_tenant configured
+
+          entity Account {
+            key tenant_id, account_id
+
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              account_id uuid
+              desired_task_count int
+            }
+
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          entity Task {
+            key tenant_id, task_id
+
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+
+            relations {
+              parent account_id: ref<Account> {
+                kind: composition
+                on_parent_delete: cascade
+              }
+            }
+
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              tenant_id string
+              task_id uuid
+              account_id uuid
+            }
+
+            state_machine {
+              state Pending
+              state Active
+              state Failed
+              initial Pending
+              Pending -> Active
+              Pending -> Failed
+            }
+          }
+
+          workflow TaskLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT1M
+            start run_task
+            step run_task {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+
+          workflow AccountLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start run_account
+            load Account by account_id as account
+            child_workflow tasks {
+              child_entity Task
+              child_workflow TaskLifecycle
+              child_id task_id uuid
+              parent_ref account_id = account.account_id
+              desired_count account.desired_task_count
+              create {
+                tenant_id: account.tenant_id
+                task_id: task_id
+                account_id: account.account_id
+              }
+              success when Task.status == Active
+              failure when Task.status == Failed
+            }
+            step run_account {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        !has_error_code(diagnostics, dc::UnknownReference),
+        "validator should accept valid child_workflow references"
+    );
+    require(
+        !has_error_code(diagnostics, dc::RequiredDeclaration),
+        "validator should accept complete child_workflow declarations"
+    );
+}
+
+void validator_rejects_invalid_child_workflow_blocks()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system ChildWorkflowSystem {
+          feature_flag ExistingFlag {
+            type bool
+            default true
+            scope system
+          }
+
+          entity Account {
+            key account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              account_id uuid
+              desired_task_count int
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          entity Task {
+            key task_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              task_id uuid
+              account_id uuid
+            }
+            state_machine {
+              state Pending
+              initial Pending
+            }
+          }
+
+          workflow AccountLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start run_account
+            child_workflow tasks {
+              child_entity Task
+              child_workflow MissingWorkflow
+              child_id task_id string
+              parent_ref missing_parent = account.account_id
+              desired_count feature_enabled(MissingFlag)
+              create {
+                task_id: task_id
+                task_id: duplicate_task_id
+                missing_field: account.account_id
+              }
+              success when feature_enabled(ExistingFlag)
+              failure when feature_enabled(MissingFlag)
+            }
+            step run_account {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow child_workflow target"),
+        "validator should reject unknown child workflow targets"
+    );
+    require(
+        has_error_message_containing(diagnostics, "child_id field 'task_id' must have type string"),
+        "validator should reject child_id type mismatches"
+    );
+    require(
+        has_error_message_containing(
+            diagnostics, "unknown workflow child_workflow parent_ref field"
+        ),
+        "validator should reject unknown parent_ref fields"
+    );
+    require(
+        has_error_message_containing(
+            diagnostics, "unknown workflow child_workflow parent_ref relation"
+        ),
+        "validator should require parent_ref to name a child parent relation"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown workflow child_workflow create field"),
+        "validator should reject unknown create fields"
+    );
+    require(
+        has_error_message_containing(diagnostics, "create assignment for parent_ref field"),
+        "validator should require parent_ref assignment during child create"
+    );
+    require(
+        has_error_message_containing(diagnostics, "duplicate declaration 'task_id'"),
+        "validator should reject duplicate child create assignments"
+    );
+    require(
+        has_error_message_containing(diagnostics, "unknown feature flag reference"),
+        "validator should validate child_workflow expressions"
+    );
+}
+
+void validator_rejects_incomplete_child_workflow_blocks()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system ChildWorkflowSystem {
+          workflow AccountLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start run_account
+            child_workflow tasks {
+            }
+            step run_account {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "child_entity"),
+        "validator should require child_workflow child_entity"
+    );
+    require(
+        has_error_message_containing(diagnostics, "child_workflow"),
+        "validator should require child_workflow target workflow"
+    );
+    require(
+        has_error_message_containing(diagnostics, "child_id"),
+        "validator should require child_workflow child_id"
+    );
+    require(
+        has_error_message_containing(diagnostics, "parent_ref"),
+        "validator should require child_workflow parent_ref"
+    );
+    require(
+        has_error_message_containing(diagnostics, "desired_count"),
+        "validator should require child_workflow desired_count"
+    );
+    require(
+        has_error_message_containing(diagnostics, "create"),
+        "validator should require child_workflow create block"
+    );
+    require(
+        has_error_message_containing(diagnostics, "success"),
+        "validator should require child_workflow success condition"
+    );
+    require(
+        has_error_message_containing(diagnostics, "failure"),
+        "validator should require child_workflow failure condition"
+    );
+}
+
+void validator_rejects_child_workflow_derived_name_collisions()
+{
+    auto diagnostics = validate_text(R"sspec(
+        system ChildWorkflowSystem {
+          entity Account {
+            key account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              account_id uuid
+              desired_task_count int
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          entity Task {
+            key task_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            relations {
+              parent account_id: ref<Account> {
+                kind: composition
+                on_parent_delete: cascade
+              }
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              task_id uuid
+              account_id uuid
+            }
+            state_machine {
+              state Pending
+              state Active
+              state Failed
+              initial Pending
+              Pending -> Active
+              Pending -> Failed
+            }
+          }
+
+          workflow TaskLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT1M
+            start run_task
+            step run_task {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+
+          workflow AccountLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start generate_task_ids
+            child_workflow tasks {
+              child_entity Task
+              child_workflow TaskLifecycle
+              child_id task_id uuid
+              parent_ref account_id = account.account_id
+              desired_count account.desired_task_count
+              create {
+                task_id: task_id
+                account_id: account.account_id
+              }
+              success when Task.status == Active
+              failure when Task.status == Failed
+            }
+            child_workflow retry_tasks {
+              child_entity Task
+              child_workflow TaskLifecycle
+              child_id task_id uuid
+              parent_ref account_id = account.account_id
+              desired_count account.desired_task_count
+              create {
+                task_id: task_id
+                account_id: account.account_id
+              }
+              success when Task.status == Active
+              failure when Task.status == Failed
+            }
+            step generate_task_ids {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+        }
+    )sspec");
+
+    require(
+        has_error_message_containing(diagnostics, "derived step 'generate_task_ids'"),
+        "validator should reject collisions with derived child_workflow step names"
+    );
+    require(
+        has_error_message_containing(diagnostics, "derived bucket 'pending_task_ids'"),
+        "validator should reject duplicate derived child_workflow bucket names"
+    );
+}
+
 void validator_rejects_unknown_worker_references()
 {
     auto diagnostics = validate_text(R"sspec(
@@ -552,6 +949,26 @@ TEST_CASE("validator rejects invalid workflow behavior references")
 TEST_CASE("validator rejects invalid nested workflow references")
 {
     validator_rejects_invalid_nested_workflow_references();
+}
+
+TEST_CASE("validator accepts valid child workflow blocks")
+{
+    validator_accepts_valid_child_workflow_blocks();
+}
+
+TEST_CASE("validator rejects invalid child workflow blocks")
+{
+    validator_rejects_invalid_child_workflow_blocks();
+}
+
+TEST_CASE("validator rejects incomplete child workflow blocks")
+{
+    validator_rejects_incomplete_child_workflow_blocks();
+}
+
+TEST_CASE("validator rejects child workflow derived name collisions")
+{
+    validator_rejects_child_workflow_derived_name_collisions();
 }
 
 TEST_CASE("validator rejects unknown worker references")

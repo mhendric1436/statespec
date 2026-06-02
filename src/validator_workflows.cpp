@@ -1,8 +1,10 @@
 #include "validator_workflows.hpp"
 
+#include "statespec/child_workflow_names.hpp"
 #include "validator_declarations.hpp"
 #include "validator_helpers.hpp"
 
+#include <array>
 #include <string>
 #include <unordered_set>
 
@@ -50,11 +52,15 @@ int workflow_member_order_index(const std::string& kind)
     {
         return 8;
     }
-    if (kind == "step")
+    if (kind == "child_workflow")
     {
         return 9;
     }
-    return 10;
+    if (kind == "step")
+    {
+        return 10;
+    }
+    return 11;
 }
 
 void validate_workflow_member_order(
@@ -72,7 +78,8 @@ void validate_workflow_member_order(
                 member.range, diagnostic_codes::NoncanonicalWorkflowOrder,
                 "workflow '" + workflow.name +
                     "' members should use canonical order: version, singleton, "
-                    "expected_execution_time, start, on, input, state, load, child_set, step"
+                    "expected_execution_time, start, on, input, state, load, child_set, "
+                    "child_workflow, step"
             );
             return;
         }
@@ -90,10 +97,270 @@ std::unordered_set<std::string> entity_field_names(const EntityDecl& entity)
     return fields;
 }
 
+const FieldDecl* find_entity_field(
+    const EntityDecl& entity,
+    const std::string& field_name
+)
+{
+    for (const auto& field : entity.fields)
+    {
+        if (field.name == field_name)
+        {
+            return &field;
+        }
+    }
+    return nullptr;
+}
+
+bool entity_has_parent_relation(
+    const EntityDecl& entity,
+    const std::string& relation_name
+)
+{
+    for (const auto& relation : entity.relations)
+    {
+        if (relation.name == relation_name && relation.kind == "parent")
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool workflow_statement_is_child_set_operation(const WorkflowStatementDecl& statement)
 {
     return statement.kind == "reserve_child_set" || statement.kind == "materialize_child_set" ||
            statement.kind == "reconcile_child_set";
+}
+
+void validate_child_workflow_derived_name_collisions(
+    const WorkflowDecl& workflow,
+    const WorkflowChildWorkflowDecl& child_workflow,
+    const std::unordered_set<std::string>& step_names,
+    const std::unordered_set<std::string>& derived_bucket_names,
+    DiagnosticBag& diagnostics
+)
+{
+    if (!child_workflow.child_id_field.has_value())
+    {
+        return;
+    }
+
+    const auto names =
+        derive_child_workflow_names(child_workflow.name, *child_workflow.child_id_field);
+    const auto generated_steps = std::array<std::string, 3>{
+        names.generate_ids_step,
+        names.create_children_step,
+        names.wait_children_step,
+    };
+
+    for (const auto& generated_step : generated_steps)
+    {
+        if (contains(step_names, generated_step))
+        {
+            duplicate_error(
+                diagnostics, child_workflow.range,
+                workflow.name + "." + child_workflow.name + " derived step '" + generated_step + "'"
+            );
+        }
+    }
+
+    const auto buckets = std::array<std::string, 4>{
+        names.pending_bucket,
+        names.creating_bucket,
+        names.succeeded_bucket,
+        names.failed_bucket,
+    };
+
+    for (const auto& bucket : buckets)
+    {
+        if (contains(derived_bucket_names, bucket))
+        {
+            duplicate_error(
+                diagnostics, child_workflow.range,
+                workflow.name + "." + child_workflow.name + " derived bucket '" + bucket + "'"
+            );
+        }
+    }
+}
+
+void validate_workflow_child_workflow(
+    const SystemDecl& system,
+    const SymbolTable& symbols,
+    const WorkflowDecl& workflow,
+    const WorkflowChildWorkflowDecl& child_workflow,
+    const std::unordered_set<std::string>& step_names,
+    const std::unordered_set<std::string>& derived_bucket_names,
+    DiagnosticBag& diagnostics
+)
+{
+    const auto subject = "workflow child_workflow '" + child_workflow.name + "'";
+
+    if (!child_workflow.child_entity.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "child_entity");
+    }
+    if (!child_workflow.child_workflow.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "child_workflow");
+    }
+    if (!child_workflow.child_id_field.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "child_id");
+    }
+    if (!child_workflow.child_id_type.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "child_id type");
+    }
+    if (!child_workflow.parent_ref_field.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "parent_ref");
+    }
+    if (!child_workflow.parent_ref_expression.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "parent_ref expression");
+    }
+    if (!child_workflow.desired_count.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "desired_count");
+    }
+    if (child_workflow.create_assignments.empty())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "create");
+    }
+    if (!child_workflow.success_expression.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "success");
+    }
+    if (!child_workflow.failure_expression.has_value())
+    {
+        required_error(diagnostics, child_workflow.range, subject, "failure");
+    }
+
+    if (child_workflow.child_workflow.has_value())
+    {
+        validate_symbol_reference(
+            symbols, child_workflow.range, "workflow child_workflow target",
+            *child_workflow.child_workflow, {SymbolKind::Workflow}, diagnostics
+        );
+    }
+
+    const EntityDecl* child_entity = nullptr;
+    if (child_workflow.child_entity.has_value())
+    {
+        child_entity = find_entity(system, *child_workflow.child_entity);
+        if (child_entity == nullptr)
+        {
+            unknown_reference_error(
+                diagnostics, child_workflow.range, "workflow child_workflow child_entity",
+                *child_workflow.child_entity
+            );
+        }
+    }
+
+    if (child_entity != nullptr && child_workflow.child_id_field.has_value())
+    {
+        const auto* child_id_field =
+            find_entity_field(*child_entity, *child_workflow.child_id_field);
+        if (child_id_field == nullptr)
+        {
+            unknown_reference_error(
+                diagnostics, child_workflow.range, "workflow child_workflow child_id field",
+                *child_workflow.child_id_field
+            );
+        }
+        else if (child_workflow.child_id_type.has_value() &&
+                 child_id_field->type != *child_workflow.child_id_type)
+        {
+            diagnostics.error(
+                child_workflow.range, diagnostic_codes::UnknownReference,
+                "workflow child_workflow '" + child_workflow.name + "' child_id field '" +
+                    *child_workflow.child_id_field + "' must have type " +
+                    *child_workflow.child_id_type
+            );
+        }
+    }
+
+    if (child_entity != nullptr && child_workflow.parent_ref_field.has_value())
+    {
+        if (find_entity_field(*child_entity, *child_workflow.parent_ref_field) == nullptr)
+        {
+            unknown_reference_error(
+                diagnostics, child_workflow.range, "workflow child_workflow parent_ref field",
+                *child_workflow.parent_ref_field
+            );
+        }
+        if (!entity_has_parent_relation(*child_entity, *child_workflow.parent_ref_field))
+        {
+            unknown_reference_error(
+                diagnostics, child_workflow.range, "workflow child_workflow parent_ref relation",
+                *child_workflow.parent_ref_field
+            );
+        }
+    }
+
+    if (child_workflow.parent_ref_expression.has_value())
+    {
+        validate_expression(
+            system, child_workflow.range, *child_workflow.parent_ref_expression, diagnostics
+        );
+    }
+    if (child_workflow.desired_count.has_value())
+    {
+        validate_expression(
+            system, child_workflow.range, *child_workflow.desired_count, diagnostics
+        );
+    }
+    if (child_workflow.success_expression.has_value())
+    {
+        validate_expression(
+            system, child_workflow.range, *child_workflow.success_expression, diagnostics
+        );
+    }
+    if (child_workflow.failure_expression.has_value())
+    {
+        validate_expression(
+            system, child_workflow.range, *child_workflow.failure_expression, diagnostics
+        );
+    }
+
+    std::unordered_set<std::string> assigned_fields;
+    for (const auto& assignment : child_workflow.create_assignments)
+    {
+        if (!assigned_fields.insert(assignment.name).second)
+        {
+            duplicate_error(diagnostics, assignment.range, assignment.name);
+        }
+        if (child_entity != nullptr && find_entity_field(*child_entity, assignment.name) == nullptr)
+        {
+            unknown_reference_error(
+                diagnostics, assignment.range, "workflow child_workflow create field",
+                assignment.name
+            );
+        }
+        validate_expression(system, assignment.range, assignment.expression, diagnostics);
+    }
+
+    if (child_workflow.child_id_field.has_value() &&
+        !contains(assigned_fields, *child_workflow.child_id_field))
+    {
+        required_error(
+            diagnostics, child_workflow.range, subject,
+            "create assignment for child_id field '" + *child_workflow.child_id_field + "'"
+        );
+    }
+    if (child_workflow.parent_ref_field.has_value() &&
+        !contains(assigned_fields, *child_workflow.parent_ref_field))
+    {
+        required_error(
+            diagnostics, child_workflow.range, subject,
+            "create assignment for parent_ref field '" + *child_workflow.parent_ref_field + "'"
+        );
+    }
+
+    validate_child_workflow_derived_name_collisions(
+        workflow, child_workflow, step_names, derived_bucket_names, diagnostics
+    );
 }
 
 void validate_workflow_statement(
@@ -338,6 +605,15 @@ void validate_workflows(
             }
         }
 
+        std::unordered_set<std::string> child_workflows;
+        for (const auto& child_workflow : workflow.child_workflows)
+        {
+            if (!child_workflows.insert(child_workflow.name).second)
+            {
+                duplicate_error(diagnostics, child_workflow.range, child_workflow.name);
+            }
+        }
+
         std::unordered_set<std::string> steps;
         for (const auto& step : workflow.steps)
         {
@@ -375,6 +651,26 @@ void validate_workflows(
                     "workflow step '" + workflow_step_name(workflow, step) + "'", "max_retries"
                 );
             }
+        }
+
+        std::unordered_set<std::string> derived_child_workflow_buckets;
+        for (const auto& child_workflow : workflow.child_workflows)
+        {
+            validate_workflow_child_workflow(
+                system, symbols, workflow, child_workflow, steps, derived_child_workflow_buckets,
+                diagnostics
+            );
+
+            if (!child_workflow.child_id_field.has_value())
+            {
+                continue;
+            }
+            const auto names =
+                derive_child_workflow_names(child_workflow.name, *child_workflow.child_id_field);
+            derived_child_workflow_buckets.insert(names.pending_bucket);
+            derived_child_workflow_buckets.insert(names.creating_bucket);
+            derived_child_workflow_buckets.insert(names.succeeded_bucket);
+            derived_child_workflow_buckets.insert(names.failed_bucket);
         }
 
         if (workflow.start_step.has_value() && !contains(steps, *workflow.start_step))
