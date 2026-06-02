@@ -7,6 +7,7 @@
 #include "generator_cpp_package_artifacts.hpp"
 #include "generator_entity_index_helpers.hpp"
 #include "generator_support.hpp"
+#include "generator_workflow_metadata.hpp"
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
@@ -325,6 +326,34 @@ std::string cpp_workflow_registry_invoker_entries(const IrWorkflow& workflow)
         out << "        ) {\n";
         out << "            (void)backend;\n";
         out << "            return handler.handle_" << step_snake << "(tx, context);\n";
+        out << "        }\n";
+        out << "    );\n";
+    }
+    for (const auto& phase : workflow_synthetic_child_phases(workflow))
+    {
+        out << "    invokers.emplace(\n";
+        out << "        ::statespec_generated::worker::workflow_step_key("
+            << cpp_string(workflow.name) << ", " << workflow.version.value_or(1) << ", "
+            << cpp_string(phase.step_name) << "),\n";
+        out << "        [](\n";
+        out << "            ::statespec::backend::IBackend& backend,\n";
+        out << "            ::statespec::backend::ITransaction& tx,\n";
+        out << "            const ::statespec_generated::worker::WorkflowStepHandlerContext& "
+               "context\n";
+        out << "        ) {\n";
+        out << "            (void)backend;\n";
+        out << "            (void)tx;\n";
+        out << "            (void)context;\n";
+        if (phase.next_step.has_value())
+        {
+            out << "            return ::statespec_generated::worker::WorkflowStepResult::complete("
+                << cpp_string(*phase.next_step) << ");\n";
+        }
+        else
+        {
+            out << "            return "
+                   "::statespec_generated::worker::WorkflowStepResult::complete();\n";
+        }
         out << "        }\n";
         out << "    );\n";
     }

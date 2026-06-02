@@ -73,6 +73,7 @@ std::string generate_java_workflow_descriptor(
 )
 {
     std::ostringstream out;
+    const auto phases = workflow_synthetic_child_phases(workflow);
     out << "package " << package_name << ";\n\n";
     out << "import com.statespec.backend.Workflow.WorkflowDefinition;\n";
     out << "import com.statespec.backend.Workflow.WorkflowStepDefinition;\n";
@@ -95,7 +96,14 @@ std::string generate_java_workflow_descriptor(
         out << "                new WorkflowStepDefinition(" << java_string(step.name)
             << ", Duration.ofSeconds(" << parse_java_duration_seconds(step.expected_execution_time)
             << "L), " << step.max_retries.value_or(0) << ")";
-        out << (step_index + 1 < workflow.steps.size() ? "," : "") << "\n";
+        out << (step_index + 1 < workflow.steps.size() || !phases.empty() ? "," : "") << "\n";
+    }
+    for (std::size_t phase_index = 0; phase_index < phases.size(); ++phase_index)
+    {
+        const auto& phase = phases[phase_index];
+        out << "                new WorkflowStepDefinition(" << java_string(phase.step_name)
+            << ", Duration.ofSeconds(0L), 0)";
+        out << (phase_index + 1 < phases.size() ? "," : "") << "\n";
     }
     out << "            ),\n";
     out << "            " << java_string(workflow_descriptor_metadata_json(workflow)) << "\n";

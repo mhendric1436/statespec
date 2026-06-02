@@ -78,6 +78,11 @@ std::string generate_go_workflow_descriptor(const IrWorkflow& workflow)
             << parse_go_duration_seconds(step.expected_execution_time)
             << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
     }
+    for (const auto& phase : workflow_synthetic_child_phases(workflow))
+    {
+        out << "\t\t\t{Name: " << go_string(phase.step_name)
+            << ", ExpectedExecutionTime: 0 * time.Second, MaxRetries: 0},\n";
+    }
     out << "\t\t},\n";
     out << "\t\tMetadataJSON: " << go_string(workflow_descriptor_metadata_json(workflow)) << ",\n";
     out << "\t}\n";

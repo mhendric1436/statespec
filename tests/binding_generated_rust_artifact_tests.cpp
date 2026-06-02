@@ -303,6 +303,20 @@ void test_rust_workflow_descriptors_include_child_workflow_metadata()
         result, "common/workflows/account_lifecycle.rs", "generate_task_ids"
     );
     require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.rs", "name: \"generate_task_ids\".to_string()"
+    );
+    require_generated_artifact_contains(
+        result, "worker/workflows/account_lifecycle/registry.rs",
+        "workflow_step_key(\"AccountLifecycle\", 1, \"generate_task_ids\")"
+    );
+    require_generated_artifact_contains(
+        result, "worker/workflows/account_lifecycle/registry.rs",
+        "WorkflowStepResult::complete(Some(\"create_tasks\".to_string()))"
+    );
+    require_generated_artifact_not_contains(
+        result, "worker/workflows/account_lifecycle/handlers.rs", "handle_generate_task_ids"
+    );
+    require_generated_artifact_contains(
         result, "common/workflows/task_lifecycle.rs", "Json::parse(\"{}\").unwrap()"
     );
 }

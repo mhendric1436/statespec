@@ -478,6 +478,22 @@ void test_java_workflow_descriptors_include_child_workflow_metadata()
         "generate_task_ids"
     );
     require_generated_artifact_contains(
+        result, "common/com/statespec/generated/workflows/AccountLifecycleDescriptorModule.java",
+        "new WorkflowStepDefinition(\"generate_task_ids\""
+    );
+    require_generated_artifact_contains(
+        result, "worker/com/statespec/generated/workflows/account_lifecycle/Registry.java",
+        "workflowStepKey(\"AccountLifecycle\", 1L, \"generate_task_ids\")"
+    );
+    require_generated_artifact_contains(
+        result, "worker/com/statespec/generated/workflows/account_lifecycle/Registry.java",
+        "WorkflowStepHandlers.complete(\"create_tasks\")"
+    );
+    require_generated_artifact_not_contains(
+        result, "worker/com/statespec/generated/workflows/account_lifecycle/Handlers.java",
+        "handleGenerateTaskIds"
+    );
+    require_generated_artifact_contains(
         result, "common/com/statespec/generated/workflows/TaskLifecycleDescriptorModule.java",
         "\"{}\""
     );

@@ -301,6 +301,21 @@ void test_cpp_workflow_descriptors_include_child_workflow_metadata()
         result, "common/workflows/account_lifecycle.hpp", "generate_task_ids"
     );
     require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.hpp",
+        "WorkflowStepDefinition{\"generate_task_ids\""
+    );
+    require_generated_artifact_contains(
+        result, "worker/workflows/account_lifecycle/registry.hpp",
+        "workflow_step_key(\"AccountLifecycle\", 1, \"generate_task_ids\")"
+    );
+    require_generated_artifact_contains(
+        result, "worker/workflows/account_lifecycle/registry.hpp",
+        "WorkflowStepResult::complete(\"create_tasks\")"
+    );
+    require_generated_artifact_not_contains(
+        result, "worker/workflows/account_lifecycle/handlers.hpp", "handle_generate_task_ids"
+    );
+    require_generated_artifact_contains(
         result, "common/workflows/task_lifecycle.hpp", "Json::parse(\"{}\")"
     );
 }

@@ -87,6 +87,11 @@ std::string generate_rust_workflow_descriptor(const IrWorkflow& workflow)
             << parse_rust_duration_seconds(step.expected_execution_time)
             << "), max_retries: " << step.max_retries.value_or(0) << " },\n";
     }
+    for (const auto& phase : workflow_synthetic_child_phases(workflow))
+    {
+        out << "            WorkflowStepDefinition { name: " << rust_string(phase.step_name)
+            << ".to_string(), expected_execution_time: Duration::from_secs(0), max_retries: 0 },\n";
+    }
     out << "        ],\n";
     out << "        metadata: Json::parse("
         << rust_string(workflow_descriptor_metadata_json(workflow)) << ").unwrap(),\n";

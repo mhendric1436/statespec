@@ -7,6 +7,7 @@
 #include "generator_go_descriptors.hpp"
 #include "generator_go_package_artifacts.hpp"
 #include "generator_support.hpp"
+#include "generator_workflow_metadata.hpp"
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 #include "string_utils.hpp"
@@ -429,6 +430,29 @@ std::string go_workflow_registry_invoker_functions(const IrWorkflow& workflow)
         out << "\t}\n";
         out << "}\n\n";
     }
+    for (const auto& phase : workflow_synthetic_child_phases(workflow))
+    {
+        out << "func invoke" << pascal_identifier(workflow.name)
+            << pascal_identifier(phase.step_name) << "() StepInvoker {\n";
+        out << "\treturn func(ctx context.Context, backend common.Backend, tx common.Transaction, "
+               "stepContext workflowcontext.WorkflowStepHandlerContext) "
+               "(workflowcontext.WorkflowStepResult, error) {\n";
+        out << "\t\t_ = ctx\n";
+        out << "\t\t_ = backend\n";
+        out << "\t\t_ = tx\n";
+        out << "\t\t_ = stepContext\n";
+        if (phase.next_step.has_value())
+        {
+            out << "\t\tnextStep := " << go_string(*phase.next_step) << "\n";
+            out << "\t\treturn workflowcontext.Complete(&nextStep), nil\n";
+        }
+        else
+        {
+            out << "\t\treturn workflowcontext.Complete(nil), nil\n";
+        }
+        out << "\t}\n";
+        out << "}\n\n";
+    }
     return out.str();
 }
 
@@ -444,6 +468,16 @@ std::string go_workflow_registry_invoker_entries(const IrWorkflow& workflow)
                )
             << "] = invoke" << pascal_identifier(workflow.name) << pascal_identifier(step.name)
             << "(handler)\n";
+    }
+    for (const auto& phase : workflow_synthetic_child_phases(workflow))
+    {
+        out << "\tinvokers["
+            << go_string(
+                   workflow.name + ":" + std::to_string(workflow.version.value_or(1)) + ":" +
+                   phase.step_name
+               )
+            << "] = invoke" << pascal_identifier(workflow.name)
+            << pascal_identifier(phase.step_name) << "()\n";
     }
     return out.str();
 }

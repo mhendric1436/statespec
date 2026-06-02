@@ -294,6 +294,20 @@ void test_go_workflow_descriptors_include_child_workflow_metadata()
         result, "common/backend/workflows/account_lifecycle.go", "pending_task_ids"
     );
     require_generated_artifact_contains(
+        result, "common/backend/workflows/account_lifecycle.go", "Name: \"generate_task_ids\""
+    );
+    require_generated_artifact_contains(
+        result, "worker/backend/workflows/account_lifecycle/registry.go",
+        "\"AccountLifecycle:1:generate_task_ids\""
+    );
+    require_generated_artifact_contains(
+        result, "worker/backend/workflows/account_lifecycle/registry.go",
+        "nextStep := \"create_tasks\""
+    );
+    require_generated_artifact_not_contains(
+        result, "worker/backend/workflows/account_lifecycle/handlers.go", "HandleGenerateTaskIds"
+    );
+    require_generated_artifact_contains(
         result, "common/backend/runtime_definitions.go", "ParseJSON(definition.MetadataJSON)"
     );
     require_generated_artifact_contains(

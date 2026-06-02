@@ -138,4 +138,38 @@ std::string workflow_descriptor_metadata_json(const IrWorkflow& workflow)
     return out.str();
 }
 
+std::vector<GeneratedWorkflowSyntheticPhase>
+workflow_synthetic_child_phases(const IrWorkflow& workflow)
+{
+    std::vector<GeneratedWorkflowSyntheticPhase> phases;
+    for (const auto& child_workflow : workflow.child_workflows)
+    {
+        if (child_workflow.generate_ids_step.has_value() &&
+            child_workflow.create_children_step.has_value())
+        {
+            phases.push_back(
+                GeneratedWorkflowSyntheticPhase{
+                    *child_workflow.generate_ids_step, child_workflow.create_children_step
+                }
+            );
+        }
+        if (child_workflow.create_children_step.has_value() &&
+            child_workflow.wait_children_step.has_value())
+        {
+            phases.push_back(
+                GeneratedWorkflowSyntheticPhase{
+                    *child_workflow.create_children_step, child_workflow.wait_children_step
+                }
+            );
+        }
+        if (child_workflow.wait_children_step.has_value())
+        {
+            phases.push_back(
+                GeneratedWorkflowSyntheticPhase{*child_workflow.wait_children_step, std::nullopt}
+            );
+        }
+    }
+    return phases;
+}
+
 } // namespace statespec

@@ -7,6 +7,7 @@
 #include "generator_java_descriptors.hpp"
 #include "generator_java_package_artifacts.hpp"
 #include "generator_support.hpp"
+#include "generator_workflow_metadata.hpp"
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
@@ -902,6 +903,23 @@ std::string java_workflow_registry_invoker_entries(const IrWorkflow& workflow)
             << ", " << workflow.version.value_or(1) << "L, " << java_string(step.name) << "),\n";
         out << "            (backend, tx, context) -> invoke" << pascal_identifier(workflow.name)
             << pascal_identifier(step.name) << "(handler, backend, tx, context)\n";
+        out << "        );\n";
+    }
+    for (const auto& phase : workflow_synthetic_child_phases(workflow))
+    {
+        out << "        invokers.put(\n";
+        out << "            WorkflowStepHandlers.workflowStepKey(" << java_string(workflow.name)
+            << ", " << workflow.version.value_or(1) << "L, " << java_string(phase.step_name)
+            << "),\n";
+        if (phase.next_step.has_value())
+        {
+            out << "            (backend, tx, context) -> WorkflowStepHandlers.complete("
+                << java_string(*phase.next_step) << ")\n";
+        }
+        else
+        {
+            out << "            (backend, tx, context) -> WorkflowStepHandlers.complete()\n";
+        }
         out << "        );\n";
     }
     return out.str();

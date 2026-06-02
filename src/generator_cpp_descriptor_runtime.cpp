@@ -86,6 +86,11 @@ std::string generate_cpp_workflow_descriptor(const IrWorkflow& workflow)
             << ", std::chrono::seconds{" << parse_duration_seconds(step.expected_execution_time)
             << "}, " << step.max_retries.value_or(0) << "},\n";
     }
+    for (const auto& phase : workflow_synthetic_child_phases(workflow))
+    {
+        out << "            statespec::backend::WorkflowStepDefinition{"
+            << cpp_string(phase.step_name) << ", std::chrono::seconds{0}, 0},\n";
+    }
     out << "        },\n";
     out << "        statespec::backend::Json::parse("
         << cpp_string(workflow_descriptor_metadata_json(workflow)) << "),\n";

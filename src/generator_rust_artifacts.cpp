@@ -7,6 +7,7 @@
 #include "generator_rust_descriptors.hpp"
 #include "generator_rust_package_artifacts.hpp"
 #include "generator_support.hpp"
+#include "generator_workflow_metadata.hpp"
 #include "identifier_case.hpp"
 #include "statespec/runtime_usage.hpp"
 
@@ -419,6 +420,24 @@ std::string rust_workflow_registry_invoker_entries(const IrWorkflow& workflow)
         out << "            invoke_" << snake_identifier(workflow.name) << "_"
             << snake_identifier(step.name) << "::<B>(handler_" << snake_identifier(step.name)
             << ".as_ref(), backend, tx, context)\n";
+        out << "        }),\n";
+        out << "    );\n";
+    }
+    for (const auto& phase : workflow_synthetic_child_phases(workflow))
+    {
+        out << "    invokers.insert(\n";
+        out << "        workflow_step_key(" << rust_string(workflow.name) << ", "
+            << workflow.version.value_or(1) << ", " << rust_string(phase.step_name) << "),\n";
+        out << "        Arc::new(move |_backend, _tx, _context| {\n";
+        if (phase.next_step.has_value())
+        {
+            out << "            Ok(WorkflowStepResult::complete(Some("
+                << rust_string(*phase.next_step) << ".to_string())))\n";
+        }
+        else
+        {
+            out << "            Ok(WorkflowStepResult::complete(None))\n";
+        }
         out << "        }),\n";
         out << "    );\n";
     }
