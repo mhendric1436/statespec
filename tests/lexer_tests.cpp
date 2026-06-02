@@ -114,6 +114,19 @@ void lexer_tokenizes_api_server_keywords()
     );
 }
 
+void lexer_tokenizes_child_workflow_keyword()
+{
+    const auto tokens = statespec::test::lex_text("child_workflow tasks {}");
+    statespec::test::require(
+        tokens[0].kind == statespec::TokenKind::KeywordChildWorkflow,
+        "child_workflow should be a keyword"
+    );
+    statespec::test::require(
+        tokens[1].kind == statespec::TokenKind::Identifier,
+        "child_workflow name should be an identifier"
+    );
+}
+
 void lexer_rejects_identifier_leading_underscore()
 {
     statespec::DiagnosticBag diagnostics;
@@ -272,6 +285,11 @@ TEST_CASE("lexer tokenizes observability keywords")
 TEST_CASE("lexer tokenizes API server keywords")
 {
     lexer_tokenizes_api_server_keywords();
+}
+
+TEST_CASE("lexer tokenizes child workflow keyword")
+{
+    lexer_tokenizes_child_workflow_keyword();
 }
 
 TEST_CASE("lexer rejects identifier leading underscores")

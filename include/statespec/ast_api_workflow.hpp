@@ -69,6 +69,22 @@ struct WorkflowChildSetDecl
     SourceRange range;
 };
 
+struct WorkflowChildWorkflowDecl
+{
+    std::string name;
+    std::optional<std::string> child_entity;
+    std::optional<std::string> child_workflow;
+    std::optional<std::string> child_id_field;
+    std::optional<std::string> child_id_type;
+    std::optional<std::string> parent_ref_field;
+    std::optional<std::string> parent_ref_expression;
+    std::optional<std::string> desired_count;
+    std::vector<WorkflowAssignmentDecl> create_assignments;
+    std::optional<std::string> success_expression;
+    std::optional<std::string> failure_expression;
+    SourceRange range;
+};
+
 struct WorkflowStepDecl
 {
     std::string name;
@@ -90,6 +106,7 @@ struct WorkflowDecl
     std::optional<std::string> state;
     std::vector<WorkflowLoadDecl> loads;
     std::vector<WorkflowChildSetDecl> child_sets;
+    std::vector<WorkflowChildWorkflowDecl> child_workflows;
     std::vector<WorkflowStepDecl> steps;
     std::vector<BlockMemberOrder> member_order;
     SourceRange range;

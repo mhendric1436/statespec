@@ -105,6 +105,14 @@ WorkflowDecl Parser::parse_workflow_decl(DiagnosticBag& diagnostics)
             );
             workflow.child_sets.push_back(std::move(child_set));
         }
+        else if (check(TokenKind::KeywordChildWorkflow))
+        {
+            auto child_workflow = parse_workflow_child_workflow_decl(diagnostics);
+            workflow.member_order.push_back(
+                BlockMemberOrder{std::string{SyntaxKeywordChildWorkflow}, child_workflow.range}
+            );
+            workflow.child_workflows.push_back(std::move(child_workflow));
+        }
         else if (check(TokenKind::KeywordStep))
         {
             auto step = parse_workflow_step_decl(diagnostics);
@@ -228,6 +236,100 @@ WorkflowChildSetDecl Parser::parse_workflow_child_set_decl(DiagnosticBag& diagno
 
     child_set.range = SourceRange{start.range.begin, previous().range.end};
     return child_set;
+}
+
+WorkflowChildWorkflowDecl Parser::parse_workflow_child_workflow_decl(DiagnosticBag& diagnostics)
+{
+    const auto start =
+        consume(TokenKind::KeywordChildWorkflow, "expected child_workflow", diagnostics);
+    const auto name = consume(TokenKind::Identifier, "expected child_workflow name", diagnostics);
+    WorkflowChildWorkflowDecl child_workflow;
+    child_workflow.name = name.lexeme;
+
+    consume(TokenKind::LeftBrace, "expected '{' after child_workflow name", diagnostics);
+    while (!check(TokenKind::RightBrace) && !is_at_end())
+    {
+        if (is_named_identifier(peek(), "child_entity"))
+        {
+            advance();
+            child_workflow.child_entity = parse_qualified_name(diagnostics, "child entity");
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordChildWorkflow))
+        {
+            advance();
+            child_workflow.child_workflow = parse_qualified_name(diagnostics, "child workflow");
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "child_id"))
+        {
+            advance();
+            child_workflow.child_id_field =
+                consume(TokenKind::Identifier, "expected child_id field", diagnostics).lexeme;
+            child_workflow.child_id_type = parse_type_name(diagnostics);
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "parent_ref"))
+        {
+            advance();
+            child_workflow.parent_ref_field =
+                consume(TokenKind::Identifier, "expected parent_ref field", diagnostics).lexeme;
+            consume(TokenKind::Equals, "expected '=' after parent_ref field", diagnostics);
+            child_workflow.parent_ref_expression = parse_simple_expression_until_line_boundary();
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "desired_count"))
+        {
+            advance();
+            child_workflow.desired_count = parse_simple_expression_until_line_boundary();
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordCreate))
+        {
+            advance();
+            consume(TokenKind::LeftBrace, "expected '{' after child_workflow create", diagnostics);
+            while (!check(TokenKind::RightBrace) && !is_at_end())
+            {
+                const auto field =
+                    consume(TokenKind::Identifier, "expected create field name", diagnostics);
+                WorkflowAssignmentDecl assignment;
+                assignment.name = field.lexeme;
+                consume(TokenKind::Colon, "expected ':' after create field name", diagnostics);
+                assignment.expression = parse_simple_expression_until_line_boundary();
+                consume_optional_semicolon();
+                assignment.range = SourceRange{field.range.begin, previous().range.end};
+                child_workflow.create_assignments.push_back(std::move(assignment));
+            }
+            consume(TokenKind::RightBrace, "expected '}' after child_workflow create", diagnostics);
+        }
+        else if (is_named_identifier(peek(), "success"))
+        {
+            advance();
+            consume(TokenKind::KeywordWhen, "expected when after success", diagnostics);
+            child_workflow.success_expression = parse_simple_expression_until_line_boundary();
+            consume_optional_semicolon();
+        }
+        else if (is_named_identifier(peek(), "failure"))
+        {
+            advance();
+            consume(TokenKind::KeywordWhen, "expected when after failure", diagnostics);
+            child_workflow.failure_expression = parse_simple_expression_until_line_boundary();
+            consume_optional_semicolon();
+        }
+        else if (check(TokenKind::KeywordAnnotations))
+        {
+            advance();
+            skip_balanced_block();
+        }
+        else
+        {
+            skip_unknown_declaration(diagnostics);
+        }
+    }
+    consume(TokenKind::RightBrace, "expected '}' after child_workflow block", diagnostics);
+
+    child_workflow.range = SourceRange{start.range.begin, previous().range.end};
+    return child_workflow;
 }
 
 WorkflowStepDecl Parser::parse_workflow_step_decl(DiagnosticBag& diagnostics)

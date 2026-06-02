@@ -53,6 +53,7 @@ inline constexpr std::string_view SyntaxKeywordBehavior = "behavior";
 inline constexpr std::string_view SyntaxKeywordWorkflow = "workflow";
 inline constexpr std::string_view SyntaxKeywordStep = "step";
 inline constexpr std::string_view SyntaxKeywordChildSet = "child_set";
+inline constexpr std::string_view SyntaxKeywordChildWorkflow = "child_workflow";
 inline constexpr std::string_view SyntaxKeywordPolicy = "policy";
 inline constexpr std::string_view SyntaxKeywordOn = "on";
 inline constexpr std::string_view SyntaxKeywordWhen = "when";

@@ -212,6 +212,88 @@ void parser_parses_nested_workflow_blocks_and_child_sets()
         "parser should parse move from assignable"
     );
 }
+
+void parser_parses_child_workflow_blocks()
+{
+    const auto spec = statespec::test::parse_text(R"sspec(
+        system OrderSystem {
+          workflow AccountLifecycle {
+            version 1
+            start generate_task_ids
+            load Account by account_id as account
+            child_workflow tasks {
+              child_entity Task
+              child_workflow TaskLifecycle
+              child_id task_id uuid
+              parent_ref account_id = account.account_id
+              desired_count account.desired_task_count
+              create {
+                tenant_id: account.tenant_id
+                account_id: account.account_id
+                task_id: task_id
+              }
+              success when Task.status == "Active"
+              failure when Task.status == "Failed"
+            }
+          }
+        }
+    )sspec");
+
+    statespec::test::require(spec.system.has_value(), "parser should parse system");
+    statespec::test::require(
+        spec.system->workflows.size() == 1, "parser should parse one workflow"
+    );
+    const auto& workflow = spec.system->workflows[0];
+    statespec::test::require(
+        workflow.child_workflows.size() == 1, "parser should parse child_workflow blocks"
+    );
+    const auto& child_workflow = workflow.child_workflows[0];
+    statespec::test::require(
+        child_workflow.name == "tasks", "parser should parse child_workflow name"
+    );
+    statespec::test::require(
+        child_workflow.child_entity == "Task", "parser should parse child entity"
+    );
+    statespec::test::require(
+        child_workflow.child_workflow == "TaskLifecycle", "parser should parse child workflow"
+    );
+    statespec::test::require(
+        child_workflow.child_id_field == "task_id", "parser should parse child id field"
+    );
+    statespec::test::require(
+        child_workflow.child_id_type == "uuid", "parser should parse child id type"
+    );
+    statespec::test::require(
+        child_workflow.parent_ref_field == "account_id", "parser should parse parent_ref field"
+    );
+    statespec::test::require(
+        child_workflow.parent_ref_expression == "account . account_id",
+        "parser should parse parent_ref expression"
+    );
+    statespec::test::require(
+        child_workflow.desired_count == "account . desired_task_count",
+        "parser should parse desired_count expression"
+    );
+    statespec::test::require(
+        child_workflow.create_assignments.size() == 3, "parser should parse create assignments"
+    );
+    statespec::test::require(
+        child_workflow.create_assignments[0].name == "tenant_id",
+        "parser should parse create assignment name"
+    );
+    statespec::test::require(
+        child_workflow.create_assignments[0].expression == "account . tenant_id",
+        "parser should parse create assignment expression"
+    );
+    statespec::test::require(
+        child_workflow.success_expression == "Task . status == \"Active\"",
+        "parser should parse success predicate"
+    );
+    statespec::test::require(
+        child_workflow.failure_expression == "Task . status == \"Failed\"",
+        "parser should parse failure predicate"
+    );
+}
 } // namespace
 
 TEST_CASE("parser parses workflow steps")
@@ -222,4 +304,9 @@ TEST_CASE("parser parses workflow steps")
 TEST_CASE("parser parses nested workflow blocks and child sets")
 {
     parser_parses_nested_workflow_blocks_and_child_sets();
+}
+
+TEST_CASE("parser parses child workflow blocks")
+{
+    parser_parses_child_workflow_blocks();
 }

@@ -77,6 +77,7 @@ TokenKind keyword_kind(std::string_view text)
         {SyntaxKeywordWorkflow, TokenKind::KeywordWorkflow},
         {SyntaxKeywordStep, TokenKind::KeywordStep},
         {SyntaxKeywordChildSet, TokenKind::KeywordChildSet},
+        {SyntaxKeywordChildWorkflow, TokenKind::KeywordChildWorkflow},
         {SyntaxKeywordPolicy, TokenKind::KeywordPolicy},
         {SyntaxKeywordOn, TokenKind::KeywordOn},
         {SyntaxKeywordWhen, TokenKind::KeywordWhen},

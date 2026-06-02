@@ -700,6 +700,7 @@ workflow_member         ::= "version" IntegerLiteral ";"?
                           | "state" QualifiedName ";"?
                           | workflow_load_decl
                           | child_set_block
+                          | child_workflow_block
                           | workflow_step
                           | annotations_block ;
 
@@ -718,6 +719,26 @@ child_set_member        ::= "entity" QualifiedName ";"?
                           | "failed" Identifier ";"?
                           | "desired_count" expression ";"?
                           | annotations_block ;
+
+child_workflow_block    ::= "child_workflow" Identifier "{"
+                              child_workflow_member*
+                            "}" ;
+
+child_workflow_member   ::= "child_entity" QualifiedName ";"?
+                          | "child_workflow" QualifiedName ";"?
+                          | "child_id" Identifier type ";"?
+                          | "parent_ref" Identifier "=" expression ";"?
+                          | "desired_count" expression ";"?
+                          | child_workflow_create_block
+                          | "success" "when" expression ";"?
+                          | "failure" "when" expression ";"?
+                          | annotations_block ;
+
+child_workflow_create_block ::= "create" "{"
+                                  child_workflow_create_assignment*
+                                "}" ;
+
+child_workflow_create_assignment ::= Identifier ":" expression ";"? ;
 
 workflow_step           ::= "step" Identifier workflow_step_block ;
 

@@ -165,6 +165,8 @@ std::string token_kind_name(TokenKind kind)
         return "KeywordStep";
     case TokenKind::KeywordChildSet:
         return "KeywordChildSet";
+    case TokenKind::KeywordChildWorkflow:
+        return "KeywordChildWorkflow";
     case TokenKind::KeywordPolicy:
         return "KeywordPolicy";
     case TokenKind::KeywordOn:

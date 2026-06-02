@@ -67,6 +67,7 @@ bool is_word_token(TokenKind kind)
     case TokenKind::KeywordWorkflow:
     case TokenKind::KeywordStep:
     case TokenKind::KeywordChildSet:
+    case TokenKind::KeywordChildWorkflow:
     case TokenKind::KeywordPolicy:
     case TokenKind::KeywordWhen:
     case TokenKind::KeywordWhere:

@@ -56,6 +56,7 @@ bool is_expression_identifier_token(TokenKind kind)
     case TokenKind::KeywordWorkflow:
     case TokenKind::KeywordStep:
     case TokenKind::KeywordChildSet:
+    case TokenKind::KeywordChildWorkflow:
     case TokenKind::KeywordPolicy:
     case TokenKind::KeywordTenant:
     case TokenKind::KeywordInput:

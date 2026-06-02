@@ -90,6 +90,7 @@ enum class TokenKind
     KeywordWorkflow,
     KeywordStep,
     KeywordChildSet,
+    KeywordChildWorkflow,
     KeywordPolicy,
     KeywordOn,
     KeywordWhen,

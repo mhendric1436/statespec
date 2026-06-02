@@ -132,6 +132,25 @@ std::string Parser::parse_simple_expression_until_boundary()
     return expression;
 }
 
+std::string Parser::parse_simple_expression_until_line_boundary()
+{
+    std::string expression;
+    while (!is_at_end() && !check(TokenKind::Semicolon) && !check(TokenKind::RightBrace))
+    {
+        if (!expression.empty() && peek().range.begin.line > previous().range.end.line)
+        {
+            break;
+        }
+        if (!expression.empty())
+        {
+            expression += ' ';
+        }
+        expression += peek().lexeme;
+        advance();
+    }
+    return expression;
+}
+
 std::string Parser::parse_expression_until(TokenKind kind)
 {
     std::string expression;
