@@ -1,6 +1,7 @@
 #include "generator_rust_descriptor_areas.hpp"
 
 #include "generator_rust_descriptor_support.hpp"
+#include "generator_workflow_metadata.hpp"
 #include "identifier_case.hpp"
 
 #include <sstream>
@@ -65,7 +66,6 @@ std::string generate_rust_runtime_descriptors(const IrSystem& system)
 std::string generate_rust_workflow_descriptor(const IrWorkflow& workflow)
 {
     std::ostringstream out;
-    out << "use std::collections::BTreeMap;\n";
     out << "use std::time::Duration;\n\n";
     out << "use crate::json::Json;\n";
     out << "use crate::workflow::{WorkflowDefinition, WorkflowStepDefinition};\n\n";
@@ -88,7 +88,8 @@ std::string generate_rust_workflow_descriptor(const IrWorkflow& workflow)
             << "), max_retries: " << step.max_retries.value_or(0) << " },\n";
     }
     out << "        ],\n";
-    out << "        metadata: Json::Object(BTreeMap::new()),\n";
+    out << "        metadata: Json::parse("
+        << rust_string(workflow_descriptor_metadata_json(workflow)) << ").unwrap(),\n";
     out << "    }\n";
     out << "}\n";
     return out.str();

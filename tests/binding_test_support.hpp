@@ -270,6 +270,112 @@ sorted_expected_app_artifact_paths(const std::vector<ExpectedBindingAppArtifact>
     return result;
 }
 
+[[maybe_unused]] statespec::Spec child_workflow_system_spec()
+{
+    return statespec::test::parse_text(R"sspec(
+        system ChildWorkflowSystem {
+          entity Account {
+            key account_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              account_id uuid
+              desired_task_count int
+            }
+            state_machine {
+              state Active
+              initial Active
+            }
+          }
+
+          entity Task {
+            key task_id
+            ownership {
+              authority: system
+              system_of_record: self
+              lifecycle: authoritative
+            }
+            fields {
+              created_at timestamp
+              updated_at timestamp
+              status string
+              task_id uuid
+              account_id uuid
+            }
+            state_machine {
+              state Active
+              state Failed
+              initial Active
+            }
+          }
+
+          workflow TaskLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT1M
+            start run_task
+            step run_task {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+
+          workflow AccountLifecycle {
+            version 1
+            singleton false
+            expected_execution_time PT5M
+            start run_account
+            child_workflow tasks {
+              child_entity Task
+              child_workflow TaskLifecycle
+              child_id task_id uuid
+              parent_ref account_id = account.account_id
+              desired_count account.desired_task_count
+              create {
+                task_id: task_id
+                account_id: account.account_id
+              }
+              success when Task.status == Active
+              failure when Task.status == Failed
+            }
+            step run_account {
+              expected_execution_time PT10S
+              max_retries 1
+            }
+          }
+        }
+    )sspec");
+}
+
+[[maybe_unused]] statespec::GenerationResult generate_child_workflow_bindings(
+    statespec::BindingLanguage language,
+    const std::string& language_name
+)
+{
+    statespec::DiagnosticBag diagnostics;
+    const auto result = statespec::generate_bindings(
+        child_workflow_system_spec(),
+        statespec::BindingGeneratorOptions{
+            language,
+            std::filesystem::path{statespec::test::ArtifactTierTestRoot} / language_name /
+                "child-workflow",
+            statespec::BindingGenerationTier::All,
+            {},
+        },
+        diagnostics
+    );
+    require(
+        !diagnostics.has_errors(), language_name + " child workflow generation should not fail"
+    );
+    return result;
+}
+
 [[maybe_unused]] bool generated_artifact_exists(
     const statespec::GenerationResult& result,
     const std::string& artifact_path

@@ -1,6 +1,7 @@
 #include "generator_java_descriptor_areas.hpp"
 
 #include "generator_java_descriptor_support.hpp"
+#include "generator_workflow_metadata.hpp"
 #include "identifier_case.hpp"
 
 #include <sstream>
@@ -97,7 +98,7 @@ std::string generate_java_workflow_descriptor(
         out << (step_index + 1 < workflow.steps.size() ? "," : "") << "\n";
     }
     out << "            ),\n";
-    out << "            \"{}\"\n";
+    out << "            " << java_string(workflow_descriptor_metadata_json(workflow)) << "\n";
     out << "        );\n";
     out << "    }\n";
     out << "}\n";

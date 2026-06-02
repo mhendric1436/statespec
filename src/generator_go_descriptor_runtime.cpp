@@ -1,6 +1,7 @@
 #include "generator_go_descriptor_areas.hpp"
 
 #include "generator_go_descriptor_support.hpp"
+#include "generator_workflow_metadata.hpp"
 #include "identifier_case.hpp"
 
 #include <sstream>
@@ -78,6 +79,7 @@ std::string generate_go_workflow_descriptor(const IrWorkflow& workflow)
             << " * time.Second, MaxRetries: " << step.max_retries.value_or(0) << "},\n";
     }
     out << "\t\t},\n";
+    out << "\t\tMetadataJSON: " << go_string(workflow_descriptor_metadata_json(workflow)) << ",\n";
     out << "\t}\n";
     out << "}\n";
     return out.str();
@@ -107,6 +109,11 @@ std::string generate_go_workflow_descriptor_umbrella(const IrSystem& system)
     out << "\t\tsteps = append(steps, WorkflowStepDefinition{Name: step.Name, "
            "ExpectedExecutionTime: step.ExpectedExecutionTime, MaxRetries: step.MaxRetries})\n";
     out << "\t}\n";
+    out << "\tmetadata, err := ParseJSON(definition.MetadataJSON)\n";
+    out << "\tif err != nil {\n";
+    out << "\t\tpanic(\"generated workflow metadata is invalid for \" + "
+           "definition.WorkflowName + \": \" + err.Error())\n";
+    out << "\t}\n";
     out << "\treturn WorkflowDefinition{\n";
     out << "\t\tWorkflowName: definition.WorkflowName,\n";
     out << "\t\tWorkflowVersion: definition.WorkflowVersion,\n";
@@ -114,7 +121,7 @@ std::string generate_go_workflow_descriptor_umbrella(const IrSystem& system)
     out << "\t\tExpectedExecutionTime: definition.ExpectedExecutionTime,\n";
     out << "\t\tSingleton: definition.Singleton,\n";
     out << "\t\tSteps: steps,\n";
-    out << "\t\tMetadata: JSONObject(map[string]JSON{}),\n";
+    out << "\t\tMetadata: metadata,\n";
     out << "\t}\n";
     out << "}\n";
     return out.str();

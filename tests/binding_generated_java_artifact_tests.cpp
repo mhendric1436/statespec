@@ -458,6 +458,31 @@ void test_java_entity_api_catalog_artifacts_are_operation_owned()
     );
 }
 
+void test_java_workflow_descriptors_include_child_workflow_metadata()
+{
+    const auto result = generate_child_workflow_bindings(statespec::BindingLanguage::Java, "java");
+    require_generated_artifact_contains(
+        result, "common/com/statespec/generated/workflows/AccountLifecycleDescriptorModule.java",
+        "child_workflows"
+    );
+    require_generated_artifact_contains(
+        result, "common/com/statespec/generated/workflows/AccountLifecycleDescriptorModule.java",
+        "TaskLifecycle"
+    );
+    require_generated_artifact_contains(
+        result, "common/com/statespec/generated/workflows/AccountLifecycleDescriptorModule.java",
+        "pending_task_ids"
+    );
+    require_generated_artifact_contains(
+        result, "common/com/statespec/generated/workflows/AccountLifecycleDescriptorModule.java",
+        "generate_task_ids"
+    );
+    require_generated_artifact_contains(
+        result, "common/com/statespec/generated/workflows/TaskLifecycleDescriptorModule.java",
+        "\"{}\""
+    );
+}
+
 } // namespace
 
 TEST_CASE("Java binding generator emits meaningful production filenames")
@@ -473,4 +498,9 @@ TEST_CASE("Java binding generator models artifact paths")
 TEST_CASE("Java entity API catalog artifacts are emitted only for API-owned operations")
 {
     test_java_entity_api_catalog_artifacts_are_operation_owned();
+}
+
+TEST_CASE("Java workflow descriptors include child workflow metadata")
+{
+    test_java_workflow_descriptors_include_child_workflow_metadata();
 }

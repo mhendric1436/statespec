@@ -1,6 +1,7 @@
 #include "generator_cpp_descriptor_areas.hpp"
 
 #include "generator_cpp_descriptor_support.hpp"
+#include "generator_workflow_metadata.hpp"
 #include "identifier_case.hpp"
 
 #include <sstream>
@@ -86,7 +87,8 @@ std::string generate_cpp_workflow_descriptor(const IrWorkflow& workflow)
             << "}, " << step.max_retries.value_or(0) << "},\n";
     }
     out << "        },\n";
-    out << "        \"{}\",\n";
+    out << "        statespec::backend::Json::parse("
+        << cpp_string(workflow_descriptor_metadata_json(workflow)) << "),\n";
     out << "    };\n";
     out << "}\n\n";
     out << "} // namespace statespec_generated\n";

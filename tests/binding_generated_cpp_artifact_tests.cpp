@@ -282,6 +282,29 @@ void test_cpp_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_contains(result, "api/descriptors/catalog.hpp", "api_names()");
 }
 
+void test_cpp_workflow_descriptors_include_child_workflow_metadata()
+{
+    const auto result = generate_child_workflow_bindings(statespec::BindingLanguage::Cpp, "cpp");
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.hpp", "Json::parse"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.hpp", "child_workflows"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.hpp", "TaskLifecycle"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.hpp", "pending_task_ids"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.hpp", "generate_task_ids"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/task_lifecycle.hpp", "Json::parse(\"{}\")"
+    );
+}
+
 } // namespace
 
 TEST_CASE("C++ binding generator emits meaningful production filenames")
@@ -297,4 +320,9 @@ TEST_CASE("C++ binding generator models artifact paths")
 TEST_CASE("C++ entity API catalog artifacts are emitted only for API-owned operations")
 {
     test_cpp_entity_api_catalog_artifacts_are_operation_owned();
+}
+
+TEST_CASE("C++ workflow descriptors include child workflow metadata")
+{
+    test_cpp_workflow_descriptors_include_child_workflow_metadata();
 }

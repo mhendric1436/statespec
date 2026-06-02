@@ -275,6 +275,32 @@ void test_go_entity_api_catalog_artifacts_are_operation_owned()
     );
 }
 
+void test_go_workflow_descriptors_include_child_workflow_metadata()
+{
+    const auto result = generate_child_workflow_bindings(statespec::BindingLanguage::Go, "go");
+    require_generated_artifact_contains(
+        result, "common/backend/workflows/workflows.go", "MetadataJSON string"
+    );
+    require_generated_artifact_contains(
+        result, "common/backend/workflows/account_lifecycle.go", "MetadataJSON:"
+    );
+    require_generated_artifact_contains(
+        result, "common/backend/workflows/account_lifecycle.go", "child_workflows"
+    );
+    require_generated_artifact_contains(
+        result, "common/backend/workflows/account_lifecycle.go", "TaskLifecycle"
+    );
+    require_generated_artifact_contains(
+        result, "common/backend/workflows/account_lifecycle.go", "pending_task_ids"
+    );
+    require_generated_artifact_contains(
+        result, "common/backend/runtime_definitions.go", "ParseJSON(definition.MetadataJSON)"
+    );
+    require_generated_artifact_contains(
+        result, "common/backend/workflows/task_lifecycle.go", "MetadataJSON: \"{}\""
+    );
+}
+
 } // namespace
 
 TEST_CASE("Go binding generator emits meaningful production filenames")
@@ -290,4 +316,9 @@ TEST_CASE("Go binding generator models artifact paths")
 TEST_CASE("Go entity API catalog artifacts are emitted only for API-owned operations")
 {
     test_go_entity_api_catalog_artifacts_are_operation_owned();
+}
+
+TEST_CASE("Go workflow descriptors include child workflow metadata")
+{
+    test_go_workflow_descriptors_include_child_workflow_metadata();
 }

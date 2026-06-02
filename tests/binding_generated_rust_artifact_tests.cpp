@@ -284,6 +284,29 @@ void test_rust_entity_api_catalog_artifacts_are_operation_owned()
     require_generated_artifact_not_contains(result, "api/descriptors/catalog.rs", "api_names()");
 }
 
+void test_rust_workflow_descriptors_include_child_workflow_metadata()
+{
+    const auto result = generate_child_workflow_bindings(statespec::BindingLanguage::Rust, "rust");
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.rs", "Json::parse"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.rs", "child_workflows"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.rs", "TaskLifecycle"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.rs", "pending_task_ids"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/account_lifecycle.rs", "generate_task_ids"
+    );
+    require_generated_artifact_contains(
+        result, "common/workflows/task_lifecycle.rs", "Json::parse(\"{}\").unwrap()"
+    );
+}
+
 } // namespace
 
 TEST_CASE("Rust binding generator emits meaningful production filenames")
@@ -299,4 +322,9 @@ TEST_CASE("Rust binding generator models artifact paths")
 TEST_CASE("Rust entity API catalog artifacts are emitted only for API-owned operations")
 {
     test_rust_entity_api_catalog_artifacts_are_operation_owned();
+}
+
+TEST_CASE("Rust workflow descriptors include child workflow metadata")
+{
+    test_rust_workflow_descriptors_include_child_workflow_metadata();
 }

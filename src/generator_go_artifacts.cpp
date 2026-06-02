@@ -2752,6 +2752,7 @@ std::string go_workflow_descriptor_support_file()
     out << "\tExpectedExecutionTime time.Duration\n";
     out << "\tSingleton bool\n";
     out << "\tSteps []WorkflowStepDefinition\n";
+    out << "\tMetadataJSON string\n";
     out << "}\n";
     return out.str();
 }
