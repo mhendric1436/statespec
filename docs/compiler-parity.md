@@ -105,7 +105,7 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 | Descriptor generation | partial | P0 | Collection, event, shape, log, and metric field descriptors now use the shared compiler field type classifier and emit language-native `FieldType` enums plus preserved StateSpec type names in C++, Go, Java, and Rust. Next work is expanding descriptor usage into richer endpoint, worker body, and policy generation. |
 | Runtime bootstrap helpers | complete | P1 | Transaction-scoped helpers cover feature flags, queues, leases, workflows, logs, and metrics in all generated bindings. |
 | Worker scaffolding | partial | P2 | Generated bindings expose worker descriptors, contexts, WorkerProcess lifecycle, workflow runners, per-workflow handler interfaces, composite-key invoker maps, result-driven complete/fail/cancel handling, claim-token validation, and periodic keepalive controllers. Next work is richer queue-worker execution and generated workflow body semantics from workflow statements. |
-| API generation | partial | P1 | OpenAPI generation exists for declared APIs, entity-derived CRUD APIs, and generated operator metadata API surfaces. Generated API apps include process lifecycle, local blocking transports, map-based route/handler dispatch, generated CRUD codecs, and backend-owned CRUD handlers. Next work is richer OpenAPI schemas, error model coverage, auth hooks, and optional framework adapters. |
+| API generation | partial | P1 | OpenAPI generation exists for declared APIs, entity-derived CRUD APIs, generated operator metadata API surfaces, values, enums, recursive collection schemas, and default error responses. Generated API apps include process lifecycle, local blocking transports, map-based route/handler dispatch, generated CRUD codecs, and backend-owned CRUD handlers. Next work is auth hooks, richer constraints/examples, and optional framework adapters. |
 | External-system metadata generation | partial | P1 | Descriptor, mapping, lookup, OCC repository, operator API handler, and OpenAPI contracts exist. Runtime persistence, remote clients, auth, retries, and HTTP framework adapters remain runtime-owned. |
 | Policy generation | not-started | P3 | Wait for expression type checking and runtime evaluator design. |
 
@@ -161,9 +161,10 @@ Runtime-owned responsibilities are intentionally outside the compiler contract:
 9. **P1: Generate API descriptors from typed shapes.**
    Implemented: generated bindings now include passive API descriptor metadata for
    method, path, input, output, error, workflow starts, and queue enqueue targets.
-   OpenAPI generation now emits declared API operations and operator metadata API
-   surfaces. Next work is richer schema lowering, error contract coverage, and optional
-   endpoint adapter generation.
+   OpenAPI generation now emits declared API operations, operator metadata API surfaces,
+   values, enums, recursive collection schemas, and default error responses. Next work
+   is auth metadata, richer schema constraints/examples, and optional endpoint adapter
+   generation.
 
 10. **P1: Add API server descriptors.**
    Implemented: `api_server` declarations parse, validate served API references, lower

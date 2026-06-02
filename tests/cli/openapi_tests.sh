@@ -15,6 +15,7 @@ TESTS_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 SPEC="$TESTS_DIR/fixtures/bindings-full.sspec"
 E2E_SPEC="testdata/generators/external-system-metadata-e2e.sspec"
 ENTITY_CRUD_SPEC="testdata/generators/entity-crud-openapi.sspec"
+SCHEMA_LOWERING_SPEC="testdata/generators/openapi-schema-lowering.sspec"
 
 run_expect_status 0 "$CLI" generate openapi "$SPEC" --out "$TMPDIR/out-openapi"
 assert_output_contains "generated $TMPDIR/out-openapi/openapi.json"
@@ -106,6 +107,73 @@ if list_params != {"tenant_id", "status"}:
 list_ref = list_operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
 if list_ref != "#/components/schemas/ListAccountsByStatusResponse":
     raise SystemExit(f"unexpected list response ref: {list_ref}")
+PY
+
+run_expect_status 0 "$CLI" validate "$SCHEMA_LOWERING_SPEC"
+
+run_expect_status 0 "$CLI" generate openapi "$SCHEMA_LOWERING_SPEC" --out "$TMPDIR/out-schema-lowering-openapi"
+assert_output_contains "generated $TMPDIR/out-schema-lowering-openapi/openapi.json"
+
+python3 - "$TMPDIR/out-schema-lowering-openapi/openapi.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as handle:
+    document = json.load(handle)
+
+schemas = document["components"]["schemas"]
+
+money = schemas["Money"]
+if money["type"] != "number":
+    raise SystemExit(f"Money should lower to number: {money}")
+if money.get("x-statespec-constraint") != "Money >= 0":
+    raise SystemExit(f"Money constraint missing: {money}")
+
+status = schemas["PaymentStatus"]
+if status["type"] != "string" or status["enum"] != ["pending", "completed", "failed"]:
+    raise SystemExit(f"PaymentStatus enum lowered incorrectly: {status}")
+
+line = schemas["PaymentLine"]["properties"]
+if line["amount"]["$ref"] != "#/components/schemas/Money":
+    raise SystemExit(f"PaymentLine.amount should reference Money: {line['amount']}")
+if line["status"]["$ref"] != "#/components/schemas/PaymentStatus":
+    raise SystemExit(f"PaymentLine.status should reference PaymentStatus: {line['status']}")
+
+request = schemas["SubmitPaymentRequest"]["properties"]
+line_items = request["line_items"]
+if line_items["type"] != "array":
+    raise SystemExit(f"line_items should be an array: {line_items}")
+if line_items["items"]["$ref"] != "#/components/schemas/PaymentLine":
+    raise SystemExit(f"line_items should reference PaymentLine: {line_items}")
+
+status_history = request["status_history"]
+status_items = status_history["additionalProperties"]["items"]
+if status_history["type"] != "object":
+    raise SystemExit(f"status_history should be an object: {status_history}")
+if status_history["additionalProperties"]["type"] != "array":
+    raise SystemExit(f"status_history values should be arrays: {status_history}")
+if status_items["$ref"] != "#/components/schemas/PaymentStatus":
+    raise SystemExit(f"status_history items should reference PaymentStatus: {status_history}")
+
+audit_matrix = request["audit_matrix"]
+if audit_matrix["items"]["type"] != "array":
+    raise SystemExit(f"audit_matrix should lower nested arrays: {audit_matrix}")
+if audit_matrix["items"]["items"]["type"] != "string":
+    raise SystemExit(f"audit_matrix inner item should be string: {audit_matrix}")
+
+response = schemas["SubmitPaymentResponse"]["properties"]
+if response["totals"]["additionalProperties"]["$ref"] != "#/components/schemas/Money":
+    raise SystemExit(f"totals map should reference Money values: {response['totals']}")
+
+error = schemas["ProblemDetails"]["properties"]["field_errors"]
+if error["additionalProperties"]["items"]["type"] != "string":
+    raise SystemExit(f"field_errors should lower nested string arrays: {error}")
+
+operation = document["paths"]["/v1/tenants/{tenant_id}/payments/{payment_id}"]["post"]
+default_response = operation["responses"]["default"]
+error_ref = default_response["content"]["application/json"]["schema"]["$ref"]
+if error_ref != "#/components/schemas/ProblemDetails":
+    raise SystemExit(f"default response should reference ProblemDetails: {error_ref}")
 PY
 
 run_expect_status 0 "$CLI" generate openapi "$SPEC" --out "$TMPDIR/default-openapi"

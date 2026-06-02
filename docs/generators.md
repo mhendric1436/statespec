@@ -345,7 +345,16 @@ generated `501` response so generated application shells remain linkable.
 
 Shape declarations become reusable `components.schemas` entries. Primitive StateSpec
 types are mapped to conservative JSON Schema types, while references to declared
-shapes become OpenAPI `$ref` schemas.
+values, enums, and shapes become OpenAPI `$ref` schemas. Value aliases emit schemas for
+their underlying types and preserve declared constraints with a StateSpec extension
+field. Enums emit string schemas with declared member values.
+
+Collection type lowering is recursive for API schemas. `list<T>` and `T[]` lower to
+arrays, `set<T>` lowers to arrays with `uniqueItems`, and `map<string, T>` lowers to an
+object with `additionalProperties` set to the schema for `T`. Nested combinations such
+as `map<string, list<EnumName>>` and `list<list<string>>` are preserved in the OpenAPI
+schema. APIs with an `error` type emit a default JSON error response that references the
+declared error schema.
 
 External-system operator metadata declarations also contribute operator-facing OpenAPI
 operations for the generated metadata management surface:

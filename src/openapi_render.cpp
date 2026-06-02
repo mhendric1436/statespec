@@ -44,10 +44,37 @@ std::string render_openapi(const IrSystem& system)
     out << "  },\n";
     out << "  \"components\": {\n";
     out << "    \"schemas\": {\n";
-    for (std::size_t i = 0; i < openapi_system.shapes.size(); ++i)
+    bool wrote_schema = false;
+    for (const auto& value : openapi_system.values)
     {
-        write_openapi_shape_schema(out, openapi_system, openapi_system.shapes[i]);
-        out << (i + 1 == openapi_system.shapes.size() ? "\n" : ",\n");
+        if (wrote_schema)
+        {
+            out << ",\n";
+        }
+        write_openapi_value_schema(out, openapi_system, value);
+        wrote_schema = true;
+    }
+    for (const auto& enum_decl : openapi_system.enums)
+    {
+        if (wrote_schema)
+        {
+            out << ",\n";
+        }
+        write_openapi_enum_schema(out, enum_decl);
+        wrote_schema = true;
+    }
+    for (const auto& shape : openapi_system.shapes)
+    {
+        if (wrote_schema)
+        {
+            out << ",\n";
+        }
+        write_openapi_shape_schema(out, openapi_system, shape);
+        wrote_schema = true;
+    }
+    if (wrote_schema)
+    {
+        out << "\n";
     }
     out << "    }\n";
     out << "  }\n";

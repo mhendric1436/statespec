@@ -52,9 +52,9 @@ Complete:
 
 Partial:
 
-- OpenAPI schema lowering is intentionally conservative. Primitive and shape references
-  are emitted, but richer `value`, `enum`, nested collection, and error-model semantics
-  still need expansion.
+- OpenAPI schema lowering emits primitives, values, enums, shape references, recursive
+  list/set/map collections, and default error responses. Remaining OpenAPI work is auth
+  metadata, richer constraints, examples, and optional framework adapter integration.
 - Formatter support is token-preserving. Canonical-order warnings exist, but formatter
   ownership is now the next architectural pass and must move canonical ordering into
   AST-owned rewriting for high-value nested forms.

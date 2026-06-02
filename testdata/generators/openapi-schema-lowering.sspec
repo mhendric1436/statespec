@@ -1,0 +1,51 @@
+statespec 0.1;
+system OpenApiSchemaLowering {
+  tenant scoped_by tenant_id
+  system_tenant configured
+
+  value Money: decimal where Money >= 0;
+
+  enum PaymentStatus {
+    Pending = "pending"
+    Completed = "completed"
+    Failed = "failed"
+  }
+
+  shape PaymentLine {
+    line_id string
+    amount Money
+    status PaymentStatus
+  }
+
+  shape SubmitPaymentRequest {
+    tenant_id string
+    payment_id string
+    line_items list<PaymentLine>
+    status_history map<string, list<PaymentStatus>>
+    audit_matrix list<list<string>>
+  }
+
+  shape SubmitPaymentResponse {
+    accepted bool
+    totals map<string, Money>
+  }
+
+  shape ProblemDetails {
+    code string
+    error_message string
+    field_errors map<string, list<string>>
+  }
+
+  api SubmitPayment {
+    method POST
+    path "/v1/tenants/{tenant_id}/payments/{payment_id}"
+    input SubmitPaymentRequest
+    output SubmitPaymentResponse
+    error ProblemDetails
+  }
+
+  api_server PaymentApi {
+    serves SubmitPayment
+    concurrency 8
+  }
+}

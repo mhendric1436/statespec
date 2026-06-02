@@ -19,6 +19,17 @@ void write_openapi_shape_schema(
     const IrShape& shape
 );
 
+void write_openapi_value_schema(
+    std::ostream& out,
+    const IrSystem& system,
+    const IrValue& value
+);
+
+void write_openapi_enum_schema(
+    std::ostream& out,
+    const IrEnum& enum_decl
+);
+
 void write_openapi_media_schema(
     std::ostream& out,
     const IrSystem& system,
